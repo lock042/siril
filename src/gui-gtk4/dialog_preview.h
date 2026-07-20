@@ -21,10 +21,9 @@
 #include <gtk/gtk.h>
 #define SRC_GUI_DIALOG_PREVIEW_H_
 
-typedef struct _fileChooserPreview fileChooserPreview;
-
-void siril_file_chooser_add_preview(GtkFileChooser *dialog, fileChooserPreview *preview);
-void siril_preview_free(fileChooserPreview *preview);
-gboolean is_callback_called();
+/* The GtkFileChooser-based preview pipeline was removed: GTK4 has no
+ * file-chooser preview API, and previews are now rendered by the custom
+ * file browser (siril_file_browser_default_preview in file_browser.c, which
+ * reuses extract_thumbnail_from_ser/_fits/_avi directly). */
 
 #endif /* SRC_GUI_DIALOG_PREVIEW_H_ */

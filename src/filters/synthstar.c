@@ -52,7 +52,7 @@ void makeairy(float *psf, const int size, const float lum, const float xoff, con
 	float obscorr = (obstruction > 0.f) ? 1.f / pow(1 - obstruction * obstruction, 2.f) : 1.f;
 
 	// Following the formulae at the Wikipedia "Airy disk" article
-	const float constant = (2.f * M_PI * (aperture / 2.f) / wavelength) * (1.f / focal_length);
+	const float constant = (2.f * G_PI * (aperture / 2.f) / wavelength) * (1.f / focal_length);
 	for (int x = -halfpsfdim; x <= halfpsfdim; x++) {
 		for (int y = -halfpsfdim; y <= halfpsfdim; y++) {
 			float xf = (x - xoff + 0.5f) * pixel_size;
@@ -74,7 +74,7 @@ void makeairy(float *psf, const int size, const float lum, const float xoff, con
 
 void makemoffat(float *psf, const int size, const float fwhm, const float lum, const float xoff,
 				const float yoff, const float beta, const float ratio, const float angle) {
-	float anglerad = angle * M_PI / 180.f;
+	float anglerad = angle * G_PI / 180.f;
 	const float alpha = 0.6667f * fwhm;
 	const float alphax = alpha;
 	const float alphay = alpha / ratio;
@@ -99,7 +99,7 @@ void makemoffat(float *psf, const int size, const float fwhm, const float lum, c
 
 void makegaussian(float *psf, int size, float fwhm, float lum, float xoffset, float yoffset, float ratio, float angle) {
 	int halfpsfdim = (size - 1) / 2;
-	float anglerad = angle * M_PI / 180.f;
+	float anglerad = angle * G_PI / 180.f;
 	float sigmax = fwhm / _2_SQRT_2_LOG2;
 	float sigmay = fwhm / (ratio * _2_SQRT_2_LOG2);
 	float tssx = 2 * sigmax * sigmax;
@@ -329,20 +329,27 @@ int generate_synthstars(fits *fit) {
 	int nb_stars = 0;
 	psf_star **stars = NULL;
 
-	g_rw_lock_reader_lock(&com.stars_lock);
-	int comstar_count = starcount(com.stars);
-	if (comstar_count >= 1) {
-		stars = com.stars;
-		nb_stars = comstar_count;
-	}
-	g_rw_lock_reader_unlock(&com.stars_lock);
+	// Private, reader-locked copy of com.stars: the star-rendering loop below
+	// runs on a worker thread and must not deref a list another thread may free.
+	stars = snapshot_com_stars(&nb_stars);
+	int comstar_count = nb_stars;
+	if (stars)
+		stars_needs_freeing = TRUE;
 
 	if (comstar_count < 1) {
+		// snapshot_com_stars() can return a non-NULL but empty array (first
+		// duplicate_psf OOM); free it before findstar_worker overwrites stars.
+		if (stars_needs_freeing) {
+			free_fitted_stars(stars);
+			stars = NULL;
+			stars_needs_freeing = FALSE;
+		}
 		// Set up starfinder_data structure
 		struct starfinder_data *sf_data = calloc(1, sizeof(struct starfinder_data));
 		if (!sf_data) {
 			siril_log_error(_("Memory allocation failed\n"));
 			gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
+			// snapshot already freed above; stars_needs_freeing is FALSE here.
 			return -1;
 		}
 

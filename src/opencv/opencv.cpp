@@ -1302,8 +1302,10 @@ void set_poly_in_mask(UserPolygon *poly, fits *fit, gboolean state) {
 	int type = (m->bitpix == 8) ? CV_8UC1 : (m->bitpix == 16 ? CV_16UC1 : CV_32FC1);
 	cv::Mat mat(height, width, type, m->data);
 
-	// Perform the polygon fill
-	std::vector<std::vector<cv::Point>> contours = { pts };
+	// Perform the polygon fill. pts is not used afterwards, so move it into the
+	// contours vector rather than copying (an initializer list would copy).
+	std::vector<std::vector<cv::Point>> contours;
+	contours.push_back(std::move(pts));
 	cv::fillPoly(mat, contours, color, cv::LINE_8);
 }
 

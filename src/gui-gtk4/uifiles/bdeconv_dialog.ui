@@ -1499,7 +1499,7 @@
                             </property>
                             <property name="selected">0</property>
                             <property name="tooltip-text" translatable="yes">Total Variation regularization preserves sharp edges in the image well. If in doubt, stick with Total Variation. However it can have a tendency to produce a "staircase effect" in large uniform areas.
-    Frobenius norm of the Hessian uses a second order regularization term. It is more often used in regularizing denoising algorithms but can perform well when deconvolving a star mask produced by Siril's Starnet++ interface.</property>
+    Frobenius norm of the Hessian uses a second order regularization term. It is more often used in regularizing denoising algorithms but can perform well when deconvolving a star mask.</property>
                             <layout>
                               <property name="column">1</property>
                               <property name="row">3</property>

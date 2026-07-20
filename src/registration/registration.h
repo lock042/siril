@@ -7,6 +7,10 @@
 #include "algos/star_finder.h"
 #include "registration/distorsion.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct registration_args;
 typedef int (*registration_function)(struct registration_args *);
 
@@ -28,7 +32,8 @@ typedef enum {
 	REG_KOMBAT,
 	REG_COMET,
 	REG_APPLY,
-	REG_2PASS,
+	REG_MPP,
+	REG_2PASS, /* kept at the end: see comment by reg_methods[REG_2PASS] in gui/registration.c */
 	NUMBER_OF_METHODS
 } regmethod_index;
 
@@ -144,6 +149,21 @@ struct registration_args {
 	gboolean load_new_sequence;	// load the new sequence if success
 	struct wcsprm* wcsref;	// wcslib struct of the reference image, to recompute values for registered images
 	gchar *new_seq_name;
+
+	/* REG_MPP only: per-call config overrides. NULL → use defaults
+	 * (mpp_config_defaults). Owned by the caller; freed by register_thread_func
+	 * after the registration completes. Forward-declared as void* to avoid
+	 * pulling mpp_config.h (and its mpp.h) into every translation unit that
+	 * touches registration_args. The actual type is struct mpp_config (see
+	 * src/registration/mpp/mpp_config.h). */
+	void *mpp_cfg;
+	/* REG_MPP only: if TRUE, register_mpp runs Stage A only (rank + global
+	 * align + AP placement) and surfaces per-frame quality via regdata. It
+	 * does NOT run Stage B and does NOT write the .mpp sidecar — meant for
+	 * the "Analyze" button workflow where the user wants to see the rank
+	 * before committing to the heavier per-AP shift compute. The run is
+	 * installed in com.mpp_run on success (see mpp_set_cached_run). */
+	gboolean mpp_stage_a_only;
 	gchar *external_ref_path;	// path to external reference image (global reg only)
 	gboolean use_external_ref;	// TRUE: all sequence images aligned to external ref
 	unsigned int external_ref_rx, external_ref_ry; // dimensions of the external reference image (for global/apply reg only)
@@ -160,6 +180,7 @@ int register_comet(struct registration_args *regargs); // REG_COMET
 int register_3stars(struct registration_args *regargs); // REG_3STARS
 int register_apply_reg(struct registration_args *regargs); // REG_APPLY
 int register_kombat(struct registration_args *args); // REG_KOMBAT
+int register_mpp(struct registration_args *regargs); // REG_MPP (defined in registration/mpp.cpp)
 int register_manual(struct registration_args *regargs); // defined in compositing/compositing.c
 
 // comet specific calcs
@@ -213,4 +234,8 @@ int shift_fit_from_reg(fits *fit, Homography H);
 int minidx(const float *arr, const gboolean *mask, int nb, float *val);
 
 gboolean check_before_applyreg(struct registration_args *regargs);
+
+#ifdef __cplusplus
+}
+#endif
 #endif

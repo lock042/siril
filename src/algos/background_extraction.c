@@ -23,6 +23,7 @@
 #include <gsl/gsl_statistics.h>
 #include <gsl/gsl_multifit.h>
 #include <gsl/gsl_linalg.h>
+#include <gsl/gsl_errno.h>
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_version.h>
@@ -712,6 +713,20 @@ static GSList *generate_samples_random(fits *fit, int nb_samples, int size,
 	int sel_y0 = use_bbox ? bbox->y : 0;
 	int sel_w  = use_bbox ? bbox->w : nx;
 	int sel_h  = use_bbox ? bbox->h : ny;
+
+	/* Clamp the selection to the image so all index arithmetic below stays
+	 * within the nx*ny luminance buffer: a bbox that overruns the image
+	 * (negative origin, or origin+extent past nx/ny) would otherwise drive
+	 * the threshold-sampling read image[ry * nx + rx] out of bounds. */
+	if (sel_x0 < 0) { sel_w += sel_x0; sel_x0 = 0; }
+	if (sel_y0 < 0) { sel_h += sel_y0; sel_y0 = 0; }
+	if (sel_x0 + sel_w > nx) sel_w = nx - sel_x0;
+	if (sel_y0 + sel_h > ny) sel_h = ny - sel_y0;
+	if (sel_w <= 0 || sel_h <= 0) {
+		free(image);
+		if (error) *error = "selection does not overlap the image";
+		return NULL;
+	}
 
 	/* minimum coordinate so get_sample() succeeds */
 	int margin = radius + 1;
@@ -1428,14 +1443,491 @@ void free_background_data(void *p) {
  * Uses fit parameter instead of gfit; no notify/idle calls. */
 gchar *remove_gradient_log_hook(gpointer p, log_hook_detail detail) {
 	struct background_data *args = (struct background_data *)p;
+	if (args->method == BACKGROUND_METHOD_AUTO) {
+		const gchar *model = args->autograd.simplified ? _("simplified") : _("multiscale");
+		return g_strdup_printf(_("Automatic gradient removal (%s)"), model);
+	}
 	const gchar *interp = (args->interpolation_method == BACKGROUND_INTER_POLY) ? _("polynomial") : _("RBF");
 	if (args->is_cfa)
 		return g_strdup_printf(_("Background extraction (%s, CFA)"), interp);
 	return g_strdup_printf(_("Background extraction (%s)"), interp);
 }
 
+/* Automatic (sample-free) background model
+ *
+ * The background is fitted on every pixel that survives an iterative robust rejection of
+ * structures (stars, nebulae). Two models: a multiscale smooth surface with
+ * structure protection (default) or a stiff low-degree polynomial (simplified).
+ * The estimation path works on planar float buffers of size width*height and
+ * uses RawTherapee's fast separable Gaussian (rt/gauss.cc) for every low-pass. */
+
+#define AG_HIGH_K 2.0f
+#define AG_LOW_K 4.0f
+#define AG_N_ITER 20
+#define AG_PASSES 3
+
+/* Gaussian sigma that variance-matches `passes` box blurs of radius r: this is
+ * how the old repeated-box low-pass is mapped onto the single RT Gaussian, so
+ * the effective smoothing scale (and hence the model behaviour) is preserved. */
+static double ag_sigma(int r, int passes) {
+	if (r < 1) return 0.0;
+	return sqrt((double)passes * r * (r + 1) / 3.0);
+}
+
+/* One separable box blur of radius r along a single line of `n` float samples
+ * with the given stride, via a running sum. Edge pixels are replicated (numpy
+ * "edge" padding), so the divisor is a constant 2r+1. */
+static void ag_box1d_line(const float *in, float *out, int n, int stride, int r) {
+	const int w = 2 * r + 1;
+	const float inv = 1.0f / w;
+	float s = 0.0f;
+	for (int k = -r; k <= r; k++) {
+		int idx = k < 0 ? 0 : (k >= n ? n - 1 : k);
+		s += in[(size_t)idx * stride];
+	}
+	out[0] = s * inv;
+	for (int x = 1; x < n; x++) {
+		int leave = x - 1 - r; leave = leave < 0 ? 0 : (leave >= n ? n - 1 : leave);
+		int enter = x + r;     enter = enter < 0 ? 0 : (enter >= n ? n - 1 : enter);
+		s += in[(size_t)enter * stride] - in[(size_t)leave * stride];
+		out[(size_t)x * stride] = s * inv;
+	}
+}
+
+/* Separable low-pass of a planar float buffer approximating a Gaussian of the
+ * given sigma with AG_PASSES running-sum box blurs (variance-matched radius).
+ * O(n) per pass and independent of radius; `in` is preserved unless out == in. */
+static void ag_gauss(const float *in, float *out, int w, int h, double sigma, int threads) {
+	const size_t n = (size_t)w * h;
+	/* invert ag_sigma(): sigma^2 = passes * r(r+1)/3  ->  r */
+	int r = (int)lround((-1.0 + sqrt(1.0 + 12.0 * sigma * sigma / AG_PASSES)) / 2.0);
+	if (sigma < 0.25 || r < 1) {
+		if (out != in) memcpy(out, in, n * sizeof(float));
+		return;
+	}
+	float *tmp = malloc(n * sizeof(float));
+	if (!tmp) {
+		if (out != in) memcpy(out, in, n * sizeof(float));
+		return;
+	}
+	memcpy(out, in, n * sizeof(float));
+	for (int p = 0; p < AG_PASSES; p++) {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(threads) schedule(static) if(h > 64)
+#endif
+		for (int y = 0; y < h; y++)                       /* horizontal: out -> tmp */
+			ag_box1d_line(out + (size_t)y * w, tmp + (size_t)y * w, w, 1, r);
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(threads) schedule(static) if(w > 64)
+#endif
+		for (int x = 0; x < w; x++)                       /* vertical: tmp -> out */
+			ag_box1d_line(tmp + x, out + x, h, w, r);
+	}
+	free(tmp);
+}
+
+/* Robust (median, sigma) of a float buffer via Siril's quickmedian_float
+ * (quickselect) applied twice: once for the median, once for the median of the
+ * absolute deviations (MAD); sigma = 1.4826*MAD. `x` is preserved, `buf`
+ * (n floats) is scratch. */
+static void ag_mad_sigma(const float *x, size_t n, float *buf, float *med_out,
+		float *sigma_out) {
+	if (n == 0) { *med_out = 0.0f; *sigma_out = 1e-12f; return; }
+	memcpy(buf, x, n * sizeof(float));
+	float med = (float)quickmedian_float(buf, n);
+	double mad = siril_stats_float_mad(x, n, med, MULTI_THREADED, buf);
+	*med_out = med;
+	*sigma_out = (float)(1.4826 * mad + 1e-12);
+}
+
+/* Robust smooth fill that bridges arbitrarily large rejected holes.
+ * Harmonic-style inpainting: repeatedly low-pass then restore the kept pixels.
+ * `out` receives the filled+smoothed model; `f0` and `f1` are scratch buffers
+ * of size w*h. */
+static void ag_inpaint_lowpass(const float *img, const gboolean *mask, int w,
+		int h, int radius, int n_fill, int passes, float *out, float *f0,
+		float *f1, int threads) {
+	const size_t n = (size_t)w * h;
+	const double sigma = ag_sigma(radius, passes);
+	size_t nkept = 0;
+	double sum = 0.0;
+	for (size_t i = 0; i < n; i++)
+		if (mask[i]) { nkept++; sum += img[i]; }
+	if (nkept == 0) {
+		memset(out, 0, n * sizeof(float));
+		return;
+	}
+	if (nkept == n) {                        /* no holes: plain low-pass */
+		ag_gauss(img, out, w, h, sigma, threads);
+		return;
+	}
+	const float known_mean = (float)(sum / nkept);
+	float *filled = f0;
+	for (size_t i = 0; i < n; i++)
+		filled[i] = mask[i] ? img[i] : known_mean;
+	for (int it = 0; it < n_fill; it++) {
+		ag_gauss(filled, f1, w, h, sigma, threads);   /* sm = lowpass(filled) */
+		for (size_t i = 0; i < n; i++)
+			filled[i] = mask[i] ? img[i] : f1[i];
+	}
+	ag_gauss(filled, out, w, h, sigma, threads);
+}
+
+/* Spatially-coherent mask of extended bright structures to protect.
+ * `struct_mask` receives TRUE where a structure is to be excluded from the
+ * fit. `det` and `grown` are scratch buffers of size w*h. */
+static void ag_structure_mask(const float *residual, int w, int h,
+		int model_radius, float protect_threshold, float protect_amount,
+		gboolean *struct_mask, float *det, float *grown, int threads) {
+	const size_t n = (size_t)w * h;
+	gboolean any = FALSE;
+	for (size_t i = 0; i < n; i++) {
+		det[i] = (residual[i] > protect_threshold) ? 1.0f : 0.0f;
+		if (det[i] > 0.0f) any = TRUE;
+	}
+	if (!any) {
+		memset(struct_mask, 0, n * sizeof(gboolean));
+		return;
+	}
+	int grow_r = (int)lround(model_radius * (0.5 + protect_amount));
+	if (grow_r < 1) grow_r = 1;
+	ag_gauss(det, grown, w, h, ag_sigma(grow_r, 2), threads);
+	const float cutoff = (1.0f - protect_amount) * 0.5f + 1e-3f;
+	for (size_t i = 0; i < n; i++)
+		struct_mask[i] = grown[i] > cutoff;
+}
+
+/* Number of terms x^i*y^j with i+j <= degree. */
+static int ag_poly_nterms(int degree) {
+	return (degree + 1) * (degree + 2) / 2;
+}
+
+/* Least-squares fit of the polynomial basis over masked pixels via the normal
+ * equations (small T*T system), then evaluate the model over all pixels.
+ * `xn`/`yn` are the normalized [-1,1] coordinate axes. Returns FALSE on a
+ * singular system. */
+static gboolean ag_poly_fit(const float *ch, const gboolean *mask, int w, int h,
+		int degree, const double *xn, const double *yn, float *model) {
+	const int T = ag_poly_nterms(degree);
+	int *ei = malloc(T * sizeof(int)), *ej = malloc(T * sizeof(int));
+	if (!ei || !ej) { free(ei); free(ej); return FALSE; }
+	int t = 0;
+	for (int i = 0; i <= degree; i++)
+		for (int j = 0; j <= degree - i; j++) { ei[t] = i; ej[t] = j; t++; }
+
+	gsl_matrix *AtA = gsl_matrix_calloc(T, T);
+	gsl_vector *Atb = gsl_vector_calloc(T);
+	gsl_vector *coef = gsl_vector_calloc(T);
+	double *tv = malloc(T * sizeof(double));
+	if (!AtA || !Atb || !coef || !tv) {
+		free(ei); free(ej); free(tv);
+		if (AtA) gsl_matrix_free(AtA);
+		if (Atb) gsl_vector_free(Atb);
+		if (coef) gsl_vector_free(coef);
+		return FALSE;
+	}
+
+	for (int y = 0; y < h; y++) {
+		for (int x = 0; x < w; x++) {
+			size_t idx = (size_t)y * w + x;
+			if (!mask[idx]) continue;
+			for (int k = 0; k < T; k++)
+				tv[k] = pow(xn[x], ei[k]) * pow(yn[y], ej[k]);
+			const double b = ch[idx];
+			for (int a = 0; a < T; a++) {
+				double *row = gsl_matrix_ptr(AtA, a, 0);
+				const double ta = tv[a];
+				for (int c = 0; c < T; c++)
+					row[c] += ta * tv[c];
+				*gsl_vector_ptr(Atb, a) += ta * b;
+			}
+		}
+	}
+
+	/* Tiny ridge term keeps the normal equations well-conditioned. */
+	for (int a = 0; a < T; a++)
+		*gsl_matrix_ptr(AtA, a, a) += 1e-9;
+
+	gsl_error_handler_t *old = gsl_set_error_handler_off();
+	int status = gsl_linalg_cholesky_decomp1(AtA);
+	if (status == GSL_SUCCESS)
+		status = gsl_linalg_cholesky_solve(AtA, Atb, coef);
+	gsl_set_error_handler(old);
+	if (status != GSL_SUCCESS) {
+		gsl_matrix_free(AtA); gsl_vector_free(Atb); gsl_vector_free(coef);
+		free(ei); free(ej); free(tv);
+		return FALSE;
+	}
+
+	for (int y = 0; y < h; y++) {
+		for (int x = 0; x < w; x++) {
+			double v = 0.0;
+			for (int k = 0; k < T; k++)
+				v += gsl_vector_get(coef, k) * pow(xn[x], ei[k]) * pow(yn[y], ej[k]);
+			model[(size_t)y * w + x] = (float)v;
+		}
+	}
+
+	gsl_matrix_free(AtA); gsl_vector_free(Atb); gsl_vector_free(coef);
+	free(ei); free(ej); free(tv);
+	return TRUE;
+}
+
+/* Iterative robust background model for one channel of size w*h. `model`
+ * receives the fitted background. Returns FALSE on allocation/fit failure. */
+static gboolean ag_estimate_background(const float *ch, int w, int h, int radius,
+		const struct autograd_data *p, float *model, int threads,
+		double prog_base, double prog_span, const char *prog_msg) {
+	const size_t n = (size_t)w * h;
+	if (radius < 1) radius = 1;
+
+	gboolean ok = TRUE;
+	gboolean *keep = malloc(n * sizeof(gboolean));
+	gboolean *new_keep = malloc(n * sizeof(gboolean));
+	gboolean *smask = malloc(n * sizeof(gboolean));
+	float *residual = malloc(n * sizeof(float));
+	float *ref = malloc(n * sizeof(float));
+	float *sortbuf = malloc(n * sizeof(float));
+	/* scratch for inpaint (f0,f1) / structure mask (det,grown) / residual-med */
+	float *s0 = malloc(n * sizeof(float));
+	float *s1 = malloc(n * sizeof(float));
+	float *s2 = malloc(n * sizeof(float));
+	double *xn = NULL, *yn = NULL;
+	if (!keep || !new_keep || !smask || !residual || !ref || !sortbuf ||
+			!s0 || !s1 || !s2) { ok = FALSE; goto cleanup; }
+
+	if (p->simplified) {
+		xn = malloc(w * sizeof(double));
+		yn = malloc(h * sizeof(double));
+		if (!xn || !yn) { ok = FALSE; goto cleanup; }
+		for (int x = 0; x < w; x++) xn[x] = (double)x / (w > 1 ? w - 1 : 1) * 2.0 - 1.0;
+		for (int y = 0; y < h; y++) yn[y] = (double)y / (h > 1 ? h - 1 : 1) * 2.0 - 1.0;
+	}
+
+#define AG_FIT(mask)                                                        \
+	do {                                                                    \
+		if (p->simplified) {                                                \
+			if (!ag_poly_fit(ch, (mask), w, h, p->degree, xn, yn, model)) { \
+				ok = FALSE; goto cleanup;                                   \
+			}                                                               \
+		} else {                                                            \
+			ag_inpaint_lowpass(ch, (mask), w, h, radius, 10, 2, model,      \
+					s0, s1, threads);                                       \
+		}                                                                   \
+	} while (0)
+
+	for (size_t i = 0; i < n; i++) keep[i] = TRUE;
+	AG_FIT(keep);
+	size_t prev = n;
+	size_t min_keep = (size_t)(0.02 * n);
+	if (min_keep < 16) min_keep = 16;
+
+	for (int it = 0; it < AG_N_ITER; it++) {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(threads) schedule(static) if(n > 100000)
+#endif
+		for (size_t i = 0; i < n; i++)
+			residual[i] = ch[i] - model[i];
+		size_t nref = 0;
+		for (size_t i = 0; i < n; i++)
+			if (keep[i]) ref[nref++] = residual[i];
+		if (nref == 0)
+			for (size_t i = 0; i < n; i++) ref[i] = residual[i], nref = n;
+		float med, sigma;
+		ag_mad_sigma(ref, nref, sortbuf, &med, &sigma);
+		const float hi = med + AG_HIGH_K * sigma;
+		const float lo = med - AG_LOW_K * sigma;
+		for (size_t i = 0; i < n; i++)
+			new_keep[i] = (residual[i] <= hi) && (residual[i] >= lo);
+		if (p->protect) {
+			/* structure_mask is fed residual - med */
+			for (size_t i = 0; i < n; i++) s2[i] = residual[i] - med;
+			ag_structure_mask(s2, w, h, radius, (float)p->protect_threshold,
+					(float)p->protect_amount, smask, s0, s1, threads);
+			for (size_t i = 0; i < n; i++)
+				if (smask[i]) new_keep[i] = FALSE;
+		}
+		size_t kept = 0;
+		for (size_t i = 0; i < n; i++) if (new_keep[i]) kept++;
+		if (kept < min_keep) {                 /* never empty the fit set (rare) */
+			memcpy(sortbuf, residual, n * sizeof(float));
+			quicksort_f(sortbuf, n);
+			size_t rank = min_keep >= n ? n - 1 : min_keep;
+			float thr = sortbuf[rank];
+			kept = 0;
+			for (size_t i = 0; i < n; i++) {
+				new_keep[i] = residual[i] <= thr;
+				if (new_keep[i]) kept++;
+			}
+		}
+		AG_FIT(new_keep);
+		double change = (double)(kept > prev ? kept - prev : prev - kept) / n;
+		memcpy(keep, new_keep, n * sizeof(gboolean));
+		prev = kept;
+		/* report progress within this channel's slice; converging early just
+		 * makes the bar reach the slice end sooner (skipped on sequences) */
+		if (prog_span > 0.0)
+			gui_iface.set_progress(prog_base + prog_span * (it + 1) / (double)AG_N_ITER, prog_msg);
+		if (it > 0 && change < 1e-4)
+			break;
+	}
+#undef AG_FIT
+
+	if (p->smoothness > 0.0) {
+		int sr = (int)lround(radius * p->smoothness);
+		if (sr < 1) sr = 1;
+		ag_gauss(model, s0, w, h, ag_sigma(sr, AG_PASSES), threads);
+		memcpy(model, s0, n * sizeof(float));
+	}
+
+cleanup:
+	free(keep); free(new_keep); free(smask); free(residual); free(ref);
+	free(sortbuf); free(s0); free(s1); free(s2);
+	free(xn); free(yn);
+	return ok;
+}
+
+/* Area-average downsample by integer factor f (block mean) into `out` of size
+ * (w/f)*(h/f). Returns the small dimensions via *sw,*sh. */
+static void ag_downsample(const double *img, int w, int h, int f, float *out,
+		int *sw, int *sh) {
+	int ow = w / f, oh = h / f;
+	*sw = ow; *sh = oh;
+	for (int y = 0; y < oh; y++) {
+		for (int x = 0; x < ow; x++) {
+			double s = 0.0;
+			for (int by = 0; by < f; by++)
+				for (int bx = 0; bx < f; bx++)
+					s += img[(size_t)(y * f + by) * w + (x * f + bx)];
+			out[(size_t)y * ow + x] = (float)(s / (f * f));
+		}
+	}
+}
+
+/* Bilinear resize of `img` (sw*sh) up to (ow*oh) into `out`. */
+static void ag_resize_bilinear(const float *img, int sw, int sh, int ow, int oh,
+		float *out, int threads) {
+	if (sw == ow && sh == oh) {
+		memcpy(out, img, (size_t)ow * oh * sizeof(float));
+		return;
+	}
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(threads) schedule(static) if(oh > 64)
+#endif
+	for (int y = 0; y < oh; y++) {
+		double fy = (oh > 1) ? (double)y * (sh - 1) / (oh - 1) : 0.0;
+		int y0 = (int)fy; int y1 = y0 + 1 < sh ? y0 + 1 : sh - 1;
+		double wy = fy - y0;
+		for (int x = 0; x < ow; x++) {
+			double fx = (ow > 1) ? (double)x * (sw - 1) / (ow - 1) : 0.0;
+			int x0 = (int)fx; int x1 = x0 + 1 < sw ? x0 + 1 : sw - 1;
+			double wx = fx - x0;
+			double Ia = img[(size_t)y0 * sw + x0], Ib = img[(size_t)y0 * sw + x1];
+			double Ic = img[(size_t)y1 * sw + x0], Id = img[(size_t)y1 * sw + x1];
+			double top = Ia * (1 - wx) + Ib * wx;
+			double bot = Ic * (1 - wx) + Id * wx;
+			out[(size_t)y * ow + x] = (float)(top * (1 - wy) + bot * wy);
+		}
+	}
+}
+
+/* Correct one channel in place. `image` (w*h, double for FITS I/O precision) is
+ * both input and output; the heavy estimation runs on float buffers. Returns
+ * FALSE on failure. */
+static gboolean auto_gradient_channel(double *image, int w, int h,
+		const struct autograd_data *p, background_correction mode, int threads,
+		double prog_base, double prog_span, const char *prog_msg) {
+	int f = p->downsample;
+	if (f < 1 || f > w || f > h) f = 1;
+	int sw, sh;
+	float *small = malloc((size_t)(w / f + 1) * (h / f + 1) * sizeof(float));
+	if (!small) { PRINT_ALLOC_ERR; return FALSE; }
+	ag_downsample(image, w, h, f, small, &sw, &sh);
+	if (sw < 2 || sh < 2) { free(small); return FALSE; }
+
+	int mind = sw < sh ? sw : sh;
+	int radius = (int)lround(p->scale / 100.0 * mind);
+	if (radius < 1) radius = 1;
+
+	float *model_small = malloc((size_t)sw * sh * sizeof(float));
+	float *bg = malloc((size_t)w * h * sizeof(float));
+	float *sortbuf = malloc((size_t)w * h * sizeof(float));
+	if (!model_small || !bg || !sortbuf) {
+		free(small); free(model_small); free(bg); free(sortbuf);
+		PRINT_ALLOC_ERR; return FALSE;
+	}
+
+	/* keep a little of the slice for the final resize/correction step */
+	gboolean ok = ag_estimate_background(small, sw, sh, radius, p, model_small,
+			threads, prog_base, prog_span * 0.9, prog_msg);
+	if (ok) {
+		ag_resize_bilinear(model_small, sw, sh, w, h, bg, threads);
+		const size_t n = (size_t)w * h;
+		memcpy(sortbuf, bg, n * sizeof(float));         /* preserve bg for the correction */
+		double level = quickmedian_float(sortbuf, n);
+		if (mode == BACKGROUND_CORRECTION_DIVIDE) {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(threads) schedule(static) if(n > 100000)
+#endif
+			for (size_t i = 0; i < n; i++)
+				image[i] = image[i] / (bg[i] > 1e-6f ? bg[i] : 1e-6f) * level;
+		} else {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(threads) schedule(static) if(n > 100000)
+#endif
+			for (size_t i = 0; i < n; i++)
+				image[i] = image[i] - bg[i] + level;
+		}
+	}
+	free(small); free(model_small); free(bg); free(sortbuf);
+	return ok;
+}
+
+/* Automatic (sample-free) path of the background extraction image hook.
+ * Processes each channel of `fit` independently; CFA images are treated as a
+ * plain mono frame (no per-subchannel split). */
+static int auto_gradient_image_hook(struct background_data *args, fits *fit, int threads) {
+	const size_t n = fit->naxes[0] * fit->naxes[1];
+	const int nchan = fit->naxes[2];
+	/* On a sequence the per-frame progress bar is driven by the sequence worker,
+	 * so only report fine-grained progress when processing a single image. */
+	const gboolean report = (args->seq == NULL);
+	double *image = malloc(n * sizeof(double));
+	if (!image) { PRINT_ALLOC_ERR; return 1; }
+	for (int channel = 0; channel < nchan; channel++) {
+		const char *c_name = nchan > 1 ? channel_number_to_name(channel) : _("monochrome");
+		gchar *prog_msg = g_strdup_printf(_("Automatic gradient removal (%s)"), c_name);
+		/* each channel owns an equal slice of the [0,1] progress bar */
+		double base = (double)channel / nchan;
+		double span = 1.0 / nchan;
+		if (report)
+			gui_iface.set_progress(base, prog_msg);
+		convert_fits_to_img(fit, image, channel, args->dither);
+		if (!auto_gradient_channel(image, fit->rx, fit->ry, &args->autograd,
+				args->correction, threads,
+				report ? base : PROGRESS_NONE, report ? span : 0.0, prog_msg)) {
+			siril_log_error(_("Automatic gradient removal failed.\n"));
+			g_free(prog_msg);
+			free(image);
+			return 1;
+		}
+		siril_log_message(_("Automatic gradient removed from %s channel.\n"), c_name);
+		convert_img_to_fits(image, fit, channel);
+		g_free(prog_msg);
+	}
+	free(image);
+	invalidate_stats_from_fit(fit);
+	if (report)
+		gui_iface.set_progress(PROGRESS_DONE, _("Automatic gradient removal done"));
+	return 0;
+}
+
 int remove_gradient_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 	struct background_data *args = (struct background_data *)gargs->user;
+
+	if (args->method == BACKGROUND_METHOD_AUTO)
+		return auto_gradient_image_hook(args, fit, threads);
+
 	gchar *error = NULL;
 
 	if (args->is_cfa) {
@@ -1625,6 +2117,9 @@ static rectangle compute_border_bbox(int rx, int ry, double border_value, gboole
 static int background_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		rectangle *_, int threads) {
 	struct background_data *b_args = (struct background_data*) args->user;
+
+	if (b_args->method == BACKGROUND_METHOD_AUTO)
+		return auto_gradient_image_hook(b_args, fit, threads);
 
 	double *background = (double*)malloc(fit->naxes[0] * fit->naxes[1] * sizeof(double));
 	if (!background) {
@@ -1930,7 +2425,9 @@ void apply_background_extraction_to_sequence(struct background_data *background_
 	args->compute_mem_limits_hook = background_mem_limits_hook;
 	args->prepare_hook = seq_prepare_hook;
 	args->finalize_hook = bg_extract_finalize_hook;
-	args->image_hook = background_args->is_cfa ? bgcfa_image_hook : background_image_hook;
+	/* the automatic model treats CFA frames as a plain mono image (no split) */
+	args->image_hook = (background_args->is_cfa && background_args->method != BACKGROUND_METHOD_AUTO)
+			? bgcfa_image_hook : background_image_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Background Extraction");
 	args->has_output = TRUE;

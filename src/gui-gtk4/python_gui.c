@@ -20,6 +20,7 @@
 #include "gui-gtk4/script_menu.h"
 #include "gui-gtk4/utils.h"
 #include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/image_interactions.h"
 #include "io/siril_pythonmodule.h"
 
 #include "python_gui.h"
@@ -135,6 +136,8 @@ gboolean on_editor_key_press(GtkEventControllerKey *ctrl, guint keyval, guint ke
                               GdkModifierType state, gpointer user_data);
 
 static void on_action_open_recent(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+static void populate_pyeditor_recent_menu(void);
+static void pyeditor_register_recent(GFile *file);
 static void on_toggle_change_state(GSimpleAction *action, GVariant *value, gpointer user_data);
 static void on_language_change_state(GSimpleAction *action, GVariant *value, gpointer user_data);
 
@@ -202,15 +205,20 @@ gboolean code_view_exists() {
 }
 
 /* Append a labelled action item to `menu` with an optional GTK accelerator
- * string (e.g. "<Control>c").  When `accel` is non-NULL, the popover
+ * string (e.g. "<Primary>c").  When `accel` is non-NULL, the popover
  * renders it on the right of the item, matching the GTK3 menubar look.
  * The accelerator only triggers the action because we install matching
- * shortcuts on the editor window via install_editor_shortcuts(). */
+ * shortcuts on the editor window via install_editor_shortcuts().  Accels
+ * are routed through siril_remap_accel() so <Primary> becomes Cmd on macOS,
+ * matching how the main window registers its accelerators. */
 static void pyeditor_menu_append(GMenu *menu, const gchar *label,
                                  const gchar *action, const gchar *accel) {
 	GMenuItem *item = g_menu_item_new(label, action);
-	if (accel)
-		g_menu_item_set_attribute_value(item, "accel", g_variant_new_string(accel));
+	if (accel) {
+		gchar *mapped = siril_remap_accel(accel);
+		g_menu_item_set_attribute_value(item, "accel", g_variant_new_string(mapped));
+		g_free(mapped);
+	}
 	g_menu_append_item(menu, item);
 	g_object_unref(item);
 }
@@ -229,23 +237,23 @@ static GMenuModel *build_pyeditor_menubar_model(void) {
 	/* File */
 	GMenu *file = g_menu_new();
 	GMenu *file_top = g_menu_new();
-	pyeditor_menu_append(file_top, _("_New"),  "editor.new",  "<Control>n");
-	pyeditor_menu_append(file_top, _("_Open"), "editor.open", "<Control>o");
+	pyeditor_menu_append(file_top, _("_New"),  "editor.new",  "<Primary>n");
+	pyeditor_menu_append(file_top, _("_Open"), "editor.open", "<Primary>o");
 	GMenuItem *recent_item = g_menu_item_new(_("_Recent Files"), NULL);
 	g_menu_item_set_submenu(recent_item, G_MENU_MODEL(pyeditor_recent_menu_model));
 	g_menu_append_item(file_top, recent_item);
 	g_object_unref(recent_item);
-	pyeditor_menu_append(file_top, _("Re_load"), "editor.reload", "<Control><Shift>r");
+	pyeditor_menu_append(file_top, _("Re_load"), "editor.reload", "<Primary><Shift>r");
 	g_menu_append_section(file, NULL, G_MENU_MODEL(file_top));
 	g_object_unref(file_top);
 	GMenu *file_save = g_menu_new();
-	pyeditor_menu_append(file_save, _("_Save"),    "editor.save",    "<Control>s");
-	pyeditor_menu_append(file_save, _("Save _As"), "editor.save_as", "<Control><Shift>s");
+	pyeditor_menu_append(file_save, _("_Save"),    "editor.save",    "<Primary>s");
+	pyeditor_menu_append(file_save, _("Save _As"), "editor.save_as", "<Primary><Shift>s");
 	g_menu_append_section(file, NULL, G_MENU_MODEL(file_save));
 	g_object_unref(file_save);
 	GMenu *file_close = g_menu_new();
-	pyeditor_menu_append(file_close, _("_Close tab"), "editor.close", "<Control>q");
-	pyeditor_menu_append(file_close, _("Close _all tabs"), "editor.close_all", "<Control><Shift>q");
+	pyeditor_menu_append(file_close, _("_Close tab"), "editor.close", "<Primary>q");
+	pyeditor_menu_append(file_close, _("Close _all tabs"), "editor.close_all", "<Primary><Shift>q");
 	g_menu_append_section(file, NULL, G_MENU_MODEL(file_close));
 	g_object_unref(file_close);
 	g_menu_append_submenu(bar, _("_File"), G_MENU_MODEL(file));
@@ -254,18 +262,18 @@ static GMenuModel *build_pyeditor_menubar_model(void) {
 	/* Edit */
 	GMenu *edit = g_menu_new();
 	GMenu *edit_undo = g_menu_new();
-	pyeditor_menu_append(edit_undo, _("_Undo"), "editor.undo", "<Control>z");
-	pyeditor_menu_append(edit_undo, _("_Redo"), "editor.redo", "<Control>y");
+	pyeditor_menu_append(edit_undo, _("_Undo"), "editor.undo", "<Primary>z");
+	pyeditor_menu_append(edit_undo, _("_Redo"), "editor.redo", "<Primary>y");
 	g_menu_append_section(edit, NULL, G_MENU_MODEL(edit_undo));
 	g_object_unref(edit_undo);
 	GMenu *edit_cp = g_menu_new();
-	pyeditor_menu_append(edit_cp, _("Cu_t"),   "editor.cut",   "<Control>x");
-	pyeditor_menu_append(edit_cp, _("_Copy"),  "editor.copy",  "<Control>c");
-	pyeditor_menu_append(edit_cp, _("_Paste"), "editor.paste", "<Control>v");
+	pyeditor_menu_append(edit_cp, _("Cu_t"),   "editor.cut",   "<Primary>x");
+	pyeditor_menu_append(edit_cp, _("_Copy"),  "editor.copy",  "<Primary>c");
+	pyeditor_menu_append(edit_cp, _("_Paste"), "editor.paste", "<Primary>v");
 	g_menu_append_section(edit, NULL, G_MENU_MODEL(edit_cp));
 	g_object_unref(edit_cp);
 	GMenu *edit_find = g_menu_new();
-	pyeditor_menu_append(edit_find, _("_Find"), "editor.find", "<Control>f");
+	pyeditor_menu_append(edit_find, _("_Find"), "editor.find", "<Primary>f");
 	g_menu_append_section(edit, NULL, G_MENU_MODEL(edit_find));
 	g_object_unref(edit_find);
 	g_menu_append_submenu(bar, _("_Edit"), G_MENU_MODEL(edit));
@@ -291,8 +299,8 @@ static GMenuModel *build_pyeditor_menubar_model(void) {
 	g_menu_append_section(script, NULL, G_MENU_MODEL(script_lang));
 	g_object_unref(script_lang);
 	GMenu *script_fold = g_menu_new();
-	pyeditor_menu_append(script_fold, _("_Fold top-level nodes"), "editor.fold_toplevel", "<Control>braceleft");
-	pyeditor_menu_append(script_fold, _("_Unfold all"), "editor.unfold_all", "<Control>braceright");
+	pyeditor_menu_append(script_fold, _("_Fold top-level nodes"), "editor.fold_toplevel", "<Primary>braceleft");
+	pyeditor_menu_append(script_fold, _("_Unfold all"), "editor.unfold_all", "<Primary>braceright");
 	g_menu_append_section(script, NULL, G_MENU_MODEL(script_fold));
 	g_object_unref(script_fold);
 	GMenu *script_opts = g_menu_new();
@@ -480,22 +488,22 @@ void set_python_debug_mode(gboolean enabled) {
  * Ctrl+S, Ctrl+O, F5 reach the editor's GAction handler. */
 static void install_editor_shortcuts(GtkWindow *window) {
 	static const struct { const gchar *trigger; const gchar *action; } accels[] = {
-		{ "<Control>n",          "editor.new" },
-		{ "<Control>o",          "editor.open" },
-		{ "<Control>s",          "editor.save" },
-		{ "<Control><Shift>s",   "editor.save_as" },
-		{ "<Control>q",          "editor.close" },
-		{ "<Control><Shift>q",   "editor.close_all" },
-		{ "<Control>braceleft",  "editor.fold_toplevel" },
-		{ "<Control>braceright", "editor.unfold_all" },
-		{ "<Control>z",          "editor.undo" },
-		{ "<Control>y",          "editor.redo" },
-		{ "<Control>x",          "editor.cut" },
-		{ "<Control>c",          "editor.copy" },
-		{ "<Control>v",          "editor.paste" },
-		{ "<Control>f",          "editor.find" },
+		{ "<Primary>n",          "editor.new" },
+		{ "<Primary>o",          "editor.open" },
+		{ "<Primary>s",          "editor.save" },
+		{ "<Primary><Shift>s",   "editor.save_as" },
+		{ "<Primary>q",          "editor.close" },
+		{ "<Primary><Shift>q",   "editor.close_all" },
+		{ "<Primary>braceleft",  "editor.fold_toplevel" },
+		{ "<Primary>braceright", "editor.unfold_all" },
+		{ "<Primary>z",          "editor.undo" },
+		{ "<Primary>y",          "editor.redo" },
+		{ "<Primary>x",          "editor.cut" },
+		{ "<Primary>c",          "editor.copy" },
+		{ "<Primary>v",          "editor.paste" },
+		{ "<Primary>f",          "editor.find" },
 		{ "F5",                  "editor.execute" },
-		{ "<Control>r",          "editor.execute" },
+		{ "<Primary>r",          "editor.execute" },
 	};
 	/* MANAGED scope: the shortcut fires when any widget in the editor
 	 * window's focus chain is focused (typically the GtkSourceView),
@@ -504,7 +512,9 @@ static void install_editor_shortcuts(GtkWindow *window) {
 	GtkShortcutController *ctrl = GTK_SHORTCUT_CONTROLLER(gtk_shortcut_controller_new());
 	gtk_shortcut_controller_set_scope(ctrl, GTK_SHORTCUT_SCOPE_MANAGED);
 	for (size_t i = 0; i < G_N_ELEMENTS(accels); i++) {
-		GtkShortcutTrigger *trigger = gtk_shortcut_trigger_parse_string(accels[i].trigger);
+		gchar *trig = siril_remap_accel(accels[i].trigger);
+		GtkShortcutTrigger *trigger = gtk_shortcut_trigger_parse_string(trig);
+		g_free(trig);
 		GtkShortcutAction *act = gtk_named_action_new(accels[i].action);
 		GtkShortcut *sc = gtk_shortcut_new(trigger, act);
 		gtk_shortcut_controller_add_shortcut(ctrl, sc);
@@ -2355,6 +2365,27 @@ static void editor_open_in_tab(void) {
 		editor_new_tab();
 }
 
+/* If `file` is already open in some tab, switch to that tab and return TRUE so
+ * callers can avoid opening a duplicate copy.  Each document tracks its own
+ * GFile; the active doc's is synced from the statics first since it is only
+ * written back on a tab switch. */
+static gboolean editor_focus_existing_doc(GFile *file) {
+	if (!file || !editor_docs)
+		return FALSE;
+	if (active_doc)
+		doc_save_statics(active_doc);
+	for (guint i = 0; i < editor_docs->len; i++) {
+		EditorDoc *d = g_ptr_array_index(editor_docs, i);
+		if (d->current_file && g_file_equal(d->current_file, file)) {
+			int idx = gtk_notebook_page_num(editor_notebook, d->page);
+			if (idx >= 0)
+				gtk_notebook_set_current_page(editor_notebook, idx);
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
 /* Switch to the most-recently-active other tab (MRU toggle).  Pressing it
  * again toggles back, because the switch updates prev_doc to the tab we left. */
 static void editor_toggle_recent_tab(void) {
@@ -2375,6 +2406,8 @@ static void editor_toggle_recent_tab(void) {
 static gboolean on_editor_tab_key(GtkEventControllerKey *ctrl, guint keyval,
                                   guint keycode, GdkModifierType state, gpointer u) {
 	(void) ctrl; (void) keycode; (void) u;
+	/* Deliberately Ctrl (not get_primary()) even on macOS: Ctrl+Tab is the
+	 * conventional tab-cycle there, while Cmd+Tab is the OS app switcher. */
 	if ((state & GDK_CONTROL_MASK) &&
 	    (keyval == GDK_KEY_Tab || keyval == GDK_KEY_KP_Tab || keyval == GDK_KEY_ISO_Left_Tab)) {
 		editor_toggle_recent_tab();
@@ -2530,10 +2563,42 @@ void load_file_complete(GObject *loader, GAsyncResult *result, gpointer user_dat
 	g_object_unref(loader);
 }
 
+/* Register a freshly opened or saved script with the shared GtkRecentManager
+ * so it appears in the editor's Recent Files submenu (and bumps an existing
+ * entry to the top).  The editor only opens .py / .ssf files, so a coarse
+ * mime type is enough; populate_pyeditor_recent_menu() filters by extension
+ * regardless.  Refreshes the submenu in case the editor is already open. */
+static void pyeditor_register_recent(GFile *file) {
+	if (!file)
+		return;
+	gchar *path = g_file_get_path(file);
+	gchar *uri  = g_file_get_uri(file);
+	if (path && uri) {
+		gchar *lower = g_ascii_strdown(path, -1);
+		const gchar *mime = g_str_has_suffix(lower, ".py")
+		                    ? "text/x-python" : "text/plain";
+		GtkRecentData rd = {
+			.display_name = NULL,
+			.description  = NULL,
+			.mime_type    = (gchar *) mime,
+			.app_name     = (gchar *) g_get_application_name(),
+			.app_exec     = (gchar *) "siril %u",
+			.groups       = NULL,
+			.is_private   = FALSE,
+		};
+		gtk_recent_manager_add_full(gtk_recent_manager_get_default(), uri, &rd);
+		g_free(lower);
+		populate_pyeditor_recent_menu();
+	}
+	g_free(path);
+	g_free(uri);
+}
+
 void load_file(GFile *file) {
 	GtkSourceBuffer *buffer = sourcebuffer;
 	GtkSourceFile *source_file = gtk_source_file_new();
 	gtk_source_file_set_location(source_file, file);
+	pyeditor_register_recent(file);
 
 	GtkSourceFileLoader *loader = gtk_source_file_loader_new(buffer, source_file);
 
@@ -2567,6 +2632,7 @@ void save_file(GFile *file) {
 	GtkSourceBuffer *buffer = sourcebuffer;
 	GtkSourceFile *source_file = gtk_source_file_new();
 	gtk_source_file_set_location(source_file, file);
+	pyeditor_register_recent(file);
 
 	GtkSourceFileSaver *saver = gtk_source_file_saver_new(buffer, source_file);
 
@@ -2595,7 +2661,9 @@ void on_action_file_new(GSimpleAction *action, GVariant *parameter, gpointer use
 
 gboolean on_editor_key_press(GtkEventControllerKey *ctrl, guint keyval, guint keycode,
                               GdkModifierType state, gpointer user_data) {
-	if ((state & GDK_CONTROL_MASK) && (state & GDK_SHIFT_MASK) && keyval == GDK_KEY_R) {
+	/* get_primary() is Cmd on macOS, Ctrl elsewhere, matching the
+	 * Reload menu item's displayed accelerator. */
+	if ((state & get_primary()) && (state & GDK_SHIFT_MASK) && keyval == GDK_KEY_R) {
 		on_action_file_reload(NULL, NULL, NULL);
 		return TRUE;
 	}
@@ -2670,11 +2738,13 @@ static void on_file_open_done(GObject *src, GAsyncResult *res, gpointer ud) {
 	GError *error = NULL;
 	GFile *file = gtk_file_dialog_open_finish(fd, res, &error);
 	if (file) {
-		editor_open_in_tab();      /* fresh tab, or reuse a blank scratch tab */
-		control_window_switch_to_tab(OUTPUT_LOGS);
-		current_file = g_object_ref(file);
-		load_file(file);
-		update_title(current_file);
+		if (!editor_focus_existing_doc(file)) {
+			editor_open_in_tab();      /* fresh tab, or reuse a blank scratch tab */
+			control_window_switch_to_tab(OUTPUT_LOGS);
+			current_file = g_object_ref(file);
+			load_file(file);
+			update_title(current_file);
+		}
 		g_object_unref(file);
 	}
 	if (error)
@@ -2700,11 +2770,13 @@ static void on_action_open_recent(GSimpleAction *action, GVariant *parameter, gp
 		return;
 	}
 	GFile *file = g_file_new_for_path(path);
-	editor_open_in_tab();         /* fresh tab, or reuse a blank scratch tab */
-	control_window_switch_to_tab(OUTPUT_LOGS);
-	current_file = g_object_ref(file);
-	load_file(file);
-	update_title(current_file);
+	if (!editor_focus_existing_doc(file)) {
+		editor_open_in_tab();         /* fresh tab, or reuse a blank scratch tab */
+		control_window_switch_to_tab(OUTPUT_LOGS);
+		current_file = g_object_ref(file);
+		load_file(file);
+		update_title(current_file);
+	}
 	g_object_unref(file);
 }
 
@@ -3018,6 +3090,10 @@ void on_set_rmarginpos(GSimpleAction *action, GVariant *parameter, gpointer user
 	GtkWidget *dialog = gtk_window_new();
 	gtk_window_set_title(GTK_WINDOW(dialog), _("Right Margin Position"));
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+	/* Anchor the modal to the editor window; a modal GtkWindow with no
+	 * transient parent grabs input with no anchor and can wedge the session. */
+	gtk_window_set_transient_for(GTK_WINDOW(dialog),
+			GTK_WINDOW(gtk_widget_get_root(GTK_WIDGET(code_view))));
 	gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
 
 	GtkWidget *content_area = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
@@ -3194,8 +3270,10 @@ void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer
 			g_free(text);
 			break;
 		case LANG_SSF:;
-			GInputStream *input_stream = g_memory_input_stream_new_from_data(text, strlen(text), NULL);
-			g_free(text);
+			/* The stream does not copy 'text'; hand it ownership (g_free on
+			 * destroy) instead of freeing it here - execute_script reads it on
+			 * another thread, so an immediate g_free was a use-after-free. */
+			GInputStream *input_stream = g_memory_input_stream_new_from_data(text, strlen(text), g_free);
 			if (processing_is_job_active()) {
 				PRINT_ANOTHER_THREAD_RUNNING;
 				g_object_unref(input_stream);

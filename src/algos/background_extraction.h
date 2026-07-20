@@ -21,8 +21,30 @@ typedef enum {
 	BACKGROUND_INTER_POLY = 1,
 } background_interpolation;
 
+/* How the background model is built: from placed samples (the classic,
+ * sample-based extraction) or automatically, sample-free, on every pixel that
+ * survives an iterative robust rejection (AutoGradientRemoval). */
+typedef enum {
+	BACKGROUND_METHOD_SAMPLES = 0,
+	BACKGROUND_METHOD_AUTO = 1,
+} background_method;
+
+/* Parameters of the automatic (sample-free) model. Only the correction mode
+ * (subtract/divide) is shared with the sample-based method. */
+struct autograd_data {
+	double scale;             /* relative model scale (1-10), higher = smoother */
+	double smoothness;        /* extra regularisation of the final model */
+	gboolean protect;         /* structure protection on/off */
+	double protect_threshold; /* brightness above model treated as a structure */
+	double protect_amount;    /* how far the protection mask grows */
+	gboolean simplified;      /* use the stiff polynomial instead of the multiscale model */
+	int degree;               /* polynomial degree of the simplified model */
+	int downsample;           /* internal working scale factor (1, 2, 4, 8) */
+};
+
 struct background_data {
 	destructor destroy_fn;  /* Must be first member */
+	background_method method;
 	int nb_of_samples;
 	double tolerance;
 	background_correction correction;
@@ -40,6 +62,7 @@ struct background_data {
 	gboolean grad_descent; /* optimize each sample position to a local dark minimum */
 	double border_value;        /* >0: exclude a border strip from sample placement */
 	gboolean border_is_percent; /* TRUE = border_value is % of image dimension; FALSE = pixels */
+	struct autograd_data autograd; /* parameters of the BACKGROUND_METHOD_AUTO model */
 };
 
 #define SAMPLE_SIZE 25		// must be odd to compute a radius

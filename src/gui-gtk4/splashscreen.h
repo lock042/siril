@@ -27,5 +27,6 @@
 void show_splash_screen();
 void update_splash_progress(const gchar *message, gdouble fraction);
 void close_splash_screen();
+gboolean is_splash_screen_active();
 
 #endif /* _SPLASHSCREEN_H_ */

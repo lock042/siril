@@ -1009,6 +1009,7 @@ gchar *photometric_cc_log_hook(gpointer p, log_hook_detail detail) {
 
 /* Array of primary + fallback mirrors for the remote SPCC catalogue (xp_sampled). */
 gchar **spcc_mirrors = NULL;
+gchar **spcc_mirrors_desc = NULL;
 
 /* Mirror list for the xp_continuous catalogue. Populated as a NULL-terminated
  * empty list until an online xp_continuous catalogue is published. When non-empty,
@@ -1020,6 +1021,11 @@ void initialize_spcc_mirrors(void) {
 	spcc_mirrors = g_new(gchar *, 2);
 	spcc_mirrors[0] = g_strdup("https://zenodo.org/records/17988559/files");
 	spcc_mirrors[1] = NULL;
+
+	g_strfreev(spcc_mirrors_desc);
+	spcc_mirrors_desc = g_new(gchar *, 2);
+	spcc_mirrors_desc[0] = g_strdup("Zenodo");
+	spcc_mirrors_desc[1] = NULL;
 
 	g_strfreev(spcc_mirrors_xpcts);
 	spcc_mirrors_xpcts = g_new(gchar *, 1);

@@ -42,7 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/siril.h"
 #include <assert.h>
 #include <errno.h>
-#define _USE_MATH_DEFINES       /* needed for MS Windows to define M_PI */
+#define _USE_MATH_DEFINES       /* needed for MS Windows to define G_PI */
 #include <math.h>
 #if __STDC_VERSION__ >= 199901L
 #include <stdint.h>
@@ -157,12 +157,10 @@ struct lanczos_param_t {
   float misval;
 };
 
-typedef struct _imgmap_t {
-	float* xmap;
-	float* ymap;
-	int rx;
-	int ry;
-} imgmap_t;
+/* imgmap_t extracted to drizzle/imgmap.h so mpp_drizzle (which is C++)
+ * can use it without dragging driz_portability.h's `#define private`
+ * into C++ TUs. */
+#include "drizzle/imgmap.h"
 
 struct driz_args_t {
   bool_t is_bayer; /* Is this a Bayer drizzle? */

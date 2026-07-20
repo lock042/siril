@@ -273,6 +273,10 @@ gpointer register_thread_func(gpointer p) {
 		g_date_time_unref(args->reference_date);
 	if (args->wcsref)
 		wcsfree(args->wcsref);
+	if (args->mpp_cfg) {
+		free(args->mpp_cfg);
+		args->mpp_cfg = NULL;
+	}
 	g_free(args->external_ref_path);
 	if (!siril_add_idle(end_register_idle, args)) {
 		stop_processing_thread();

@@ -25,6 +25,7 @@
 #include "io/annotation_catalogues.h"
 #include "algos/siril_wcs.h"
 #include "gui-gtk4/image_display.h"
+#include <gtk/gtk.h>
 
 #include "annotations_pref.h"
 
@@ -38,7 +39,8 @@ static gchar *astro_catalogue[] = {
 		N_("IAU Constellations Catalogue"),
 		N_("IAU Constellations Names"),
 		N_("User Deep Sky Objects Catalogue"),
-		N_("User Solar System Objects Catalogue")
+		N_("User Solar System Objects Catalogue"),
+		N_("Velocity vectors for Solar System Objects")
 };
 // update the size of gui_config.catalog if changed
 
@@ -199,6 +201,8 @@ void fill_astrometry_catalogue(gboolean *catalog) {
 	GtkScrolledWindow *sw2 = GTK_SCROLLED_WINDOW(gtk_builder_get_object(gui.builder, "scrolled_popover_catalogue"));
 	if (sw2 && !gtk_scrolled_window_get_child(sw2))
 		gtk_scrolled_window_set_child(sw2, build_catalogue_columnview(TRUE));
+	gtk_scrolled_window_set_propagate_natural_width(GTK_SCROLLED_WINDOW(sw2), TRUE);
+	gtk_scrolled_window_set_propagate_natural_height(GTK_SCROLLED_WINDOW(sw2), TRUE);
 
 	/* GTK4: secondary-click on the annotate toggle button opens the
 	 * catalog selector popover.  Replaces the GTK3 .ui-bound

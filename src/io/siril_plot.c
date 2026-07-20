@@ -236,7 +236,7 @@ siril_plot_data* init_siril_plot_data() {
 	spl_data->cfgplot.borderline.clr.rgba[1] = 0.5;
 	spl_data->cfgplot.borderline.clr.rgba[2] = 0.5;
 	spl_data->cfgplot.borderline.clr.rgba[3] = 1.0;
-	spl_data->cfgplot.yaxislabelrot = M_PI_2 * 3.0;
+	spl_data->cfgplot.yaxislabelrot = G_PI_2 * 3.0;
 	spl_data->cfgplot.ticlabelfont.family = SIRIL_PLOT_FONT_FAMILY;
 	spl_data->cfgplot.axislabelfont.family = SIRIL_PLOT_FONT_FAMILY;
 	spl_data->cfgdata.line.sz = 0.5;
@@ -713,7 +713,7 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 				cairo_move_to(cr, px0, py0 + dy);
 				cairo_rel_line_to(cr, 4. * SIRIL_PLOT_MARGIN, 0.);
 			} else {
-				cairo_arc(cr, px0 + 3. * SIRIL_PLOT_MARGIN, py0 + dy, 0.5 * SIRIL_PLOT_LEGEND_SIZE, 0., 2. * M_PI);
+				cairo_arc(cr, px0 + 3. * SIRIL_PLOT_MARGIN, py0 + dy, 0.5 * SIRIL_PLOT_LEGEND_SIZE, 0., 2. * G_PI);
 			}
 			cairo_stroke(cr);
 			index++;

@@ -99,6 +99,20 @@
   <update_contact>cyril_at_free-astro.org</update_contact>
   <content_rating type="oars-1.0"/>
   <releases>
+    <release version="1.4.4" type="stable" date="2026-06-17">
+      <url type="details">https://siril.org/download/1.4.4</url>
+      <description>
+        <p>
+          Maintenance release for the 1.4.x series, focusing on bug fixes and stability improvements.
+        </p>
+        <ul>
+          <li>Fixed several sequence-related issues, including file corruption (#1204), a crash when loading a sequence with an out-of-range reference image (#1950), and a regression when reading 16-bit FITSEQ files (#1946)</li>
+          <li>Fixed an incorrect "not enough disk space" error on macOS external APFS/HFS volumes</li>
+          <li>Fixed scripts in custom subfolders showing up under "Other" instead of their folder name on Windows</li>
+          <li>The script repository search now also matches the category column</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.4.3" type="stable" date="2026-05-07">
       <url type="details">https://siril.org/download/1.4.3</url>
       <description>

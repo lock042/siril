@@ -137,7 +137,7 @@ double get_conversion_factor(fits *fit) {
 	double conversionfactor = -DBL_MAX;
 	if (unit_is_as) {
 		double bin_X = com.pref.binning_update ? (double) fit->keywords.binning_x : 1.0;
-		conversionfactor = (((3600.0 * 180.0) / M_PI) / 1.0E3 * (double) fit->keywords.pixel_size_x / fit->keywords.focal_length) * bin_X;
+		conversionfactor = (((3600.0 * 180.0) / G_PI) / 1.0E3 * (double) fit->keywords.pixel_size_x / fit->keywords.focal_length) * bin_X;
 	}
 	return conversionfactor;
 }
@@ -858,6 +858,8 @@ void on_cut_sequence_apply_from_gui() {
 	// Check args are cromulent
 	if (cut_struct_is_valid(arg))
 		apply_cut_to_sequence(arg);
+	else
+		free_cut_args(arg);
 }
 
 void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {

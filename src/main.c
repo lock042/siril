@@ -89,6 +89,7 @@
 #include "gui-gtk4/image_display.h"
 #include "gui-gtk4/siril_css.h"
 #include "gui-gtk4/splashscreen.h"
+#include "gui-gtk4/file_browser.h"
 
 /* initialize_spcc_mirrors() declared in algos/photometric_cc.h (via gui-gtk4/photometric_cc.h) */
 void force_paned_restore();
@@ -608,6 +609,15 @@ static void siril_app_activate(GApplication *application) {
 		log_num_procs();
 		siril_log_message(_("Supported file types: %s\n"), supported_files);
 		initialize_all_GUI(supported_files);
+
+		/* Warm GIO's volume monitor off the critical path.  The first
+		 * g_volume_monitor_get() spins up the native backend (D-Bus to
+		 * gvfs/udisks on Linux) and was the main reason the first Open
+		 * dialog was slow to appear.  A low-priority main-loop idle folds
+		 * that cost into idle launch time; it has to be the main thread
+		 * (GVolumeMonitor is not thread-default-context aware), not a
+		 * worker thread. */
+		g_idle_add_full(G_PRIORITY_LOW, siril_file_browser_prewarm, NULL, NULL);
 
 		/* Show "Ready!" message then close splash and show window after 200ms */
 		update_splash_progress(_("Ready!"), 1.0);

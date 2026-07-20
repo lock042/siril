@@ -262,16 +262,21 @@ struct _outputs_struct {
 };
 static struct _outputs_struct *outputs;
 
-// 0 or less means no limit
+// 0 or less means no limit.
+//
+// Contract: this is called exactly once per output, during the single-threaded
+// setup phase (e.g. seq_prepare_hook, before the parallel frame loop and before
+// start_writer()/the producer threads touch nb_blocks_active). That is why the
+// pool fields are written here without pool_mutex while the pool functions
+// (seqwriter_wait_for_memory/release_memory/notify_data_freed) take it. Do NOT
+// call this while the writer is running.
+//
+// A former "dynamic up-scaling" branch (raise the limit mid-run and release the
+// extra slots) was removed: no caller does that, and it was both racy and buggy
+// (its slot releases were immediately discarded by the nb_blocks_active = 0
+// reset below).
 void seqwriter_set_max_active_blocks(int max) {
 	siril_log_message(_("Number of images allowed in the write queue: %d (zero or less is unlimited)\n"), max);
-	if (configured_max_active_blocks > 0 && max > configured_max_active_blocks) {
-		int more = max - configured_max_active_blocks;
-		configured_max_active_blocks = max;
-		// unblock now for dynamic scaling
-		for (int i = 0; i < more; i++)
-			seqwriter_release_memory();
-	}
 	configured_max_active_blocks = max;
 	nb_blocks_active = 0;
 }

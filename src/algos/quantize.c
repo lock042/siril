@@ -45,7 +45,9 @@ static int FnMeanSigma_float(float *array, long npix,
 		long *ngoodpix, double *mean, double *sigma,
 		int *status);
 
-static int FnMeanSigma_int(int *array, long npix,
+static int FnDiffMeanSigma_int(int *array, long npix,
+		long *ngoodpix, double *mean, double *sigma, int *status);
+static int FnDiffMeanSigma_float(float *array, long npix,
 		long *ngoodpix, double *mean, double *sigma, int *status);
 
 static int FnNoise1_ushort(WORD *array, long nx, long ny, 
@@ -316,31 +318,78 @@ int *status) /* error status */
 
 
 /*--------------------------------------------------------------------------*/
-static int FnMeanSigma_int(int *array, /*  2 dimensional array of image pixels */
-long npix, /* number of pixels in the image */
+/* Computes mean and RMS sigma over ALL samples including zeros. Used for the
+ * 1st-order difference arrays of FnNoise1, where a zero difference (equal
+ * adjacent pixels) is a legitimate sample and must not be excluded - doing so
+ * biases the bgnoise estimate upwards. This is deliberately unlike
+ * FnMeanSigma_ushort/_float, which drop zeros to ignore black-border padding
+ * when run on raw pixel values. */
+static int FnDiffMeanSigma_int(int *array, /* array of pixel differences */
+long npix, /* number of differences in the array */
 
 /* returned parameters */
 
-long *ngoodpix, /* number of non-null pixels in the image */
-double *mean, /* returned mean value of all non-null pixels */
-double *sigma, /* returned R.M.S. value of all non-null pixels */
+long *ngoodpix, /* number of differences (all counted) */
+double *mean, /* returned mean value of all differences */
+double *sigma, /* returned R.M.S. value of all differences */
 int *status) /* error status */
-
-/*
- Compute mean and RMS sigma of the non-null pixels in the input array.
- */
 {
-	long ii, ngood = 0;
-	int *value;
+	long ii;
 	double sum = 0., sum2 = 0., xtemp;
 
-	value = array;
+	for (ii = 0; ii < npix; ii++) {
+		xtemp = (double) array[ii];
+		sum += xtemp;
+		sum2 += (xtemp * xtemp);
+	}
 
+	if (npix > 1) {
+		if (ngoodpix)
+			*ngoodpix = npix;
+		xtemp = sum / npix;
+		if (mean)
+			*mean = xtemp;
+		if (sigma)
+			*sigma = sqrt((sum2 / npix) - (xtemp * xtemp));
+	} else if (npix == 1) {
+		if (ngoodpix)
+			*ngoodpix = 1;
+		if (mean)
+			*mean = sum;
+		if (sigma)
+			*sigma = 0.0;
+	} else {
+		if (ngoodpix)
+			*ngoodpix = 0;
+		if (mean)
+			*mean = 0.;
+		if (sigma)
+			*sigma = 0.;
+	}
+	return (*status);
+}
+/*--------------------------------------------------------------------------*/
 
-	for (ii = 0; ii < npix; ii++, value++) {
-		if (*value != 0) {
+/* Float twin of FnDiffMeanSigma_int. Counts every sample including zeros;
+ * the !isnan guard is purely defensive (differences are finite by
+ * construction, being formed from non-NaN pixels). */
+static int FnDiffMeanSigma_float(float *array, /* array of pixel differences */
+long npix, /* number of differences in the array */
+
+/* returned parameters */
+
+long *ngoodpix, /* number of finite differences counted */
+double *mean, /* returned mean value of all differences */
+double *sigma, /* returned R.M.S. value of all differences */
+int *status) /* error status */
+{
+	long ii, ngood = 0;
+	double sum = 0., sum2 = 0., xtemp;
+
+	for (ii = 0; ii < npix; ii++) {
+		if (!isnan(array[ii])) {
 			ngood++;
-			xtemp = (double) *value;
+			xtemp = (double) array[ii];
 			sum += xtemp;
 			sum2 += (xtemp * xtemp);
 		}
@@ -1240,7 +1289,7 @@ int *status) /* error status */
 					continue;
 				else {
 
-					FnMeanSigma_int(differences, nvals, NULL, &mean, &stdev,
+					FnDiffMeanSigma_int(differences, nvals, NULL, &mean, &stdev,
 							status);
 
 					if (stdev > 0.) {
@@ -1258,7 +1307,7 @@ int *status) /* error status */
 								break;
 
 							nvals = kk;
-							FnMeanSigma_int(differences, nvals, NULL, &mean,
+							FnDiffMeanSigma_int(differences, nvals, NULL, &mean,
 									&stdev, status);
 						}
 					}
@@ -1387,7 +1436,7 @@ row of the image.
 				continue;
 			else {
 
-				FnMeanSigma_float(differences, nvals, NULL, &mean, &stdev,
+				FnDiffMeanSigma_float(differences, nvals, NULL, &mean, &stdev,
 						status);
 
 				if (stdev > 0.) {
@@ -1405,7 +1454,7 @@ row of the image.
 							break;
 
 						nvals = kk;
-						FnMeanSigma_float(differences, nvals, NULL, &mean,
+						FnDiffMeanSigma_float(differences, nvals, NULL, &mean,
 								&stdev, status);
 					}
 				}

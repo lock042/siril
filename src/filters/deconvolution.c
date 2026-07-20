@@ -198,7 +198,7 @@ int load_kernel(gchar* filename, estk_data *args) {
 		args->nchans = gfit->naxes[2]; // Fallback if fit not yet set
 
 	fits load_fit = { 0 };
-	if ((retval = read_single_image(filename, &load_fit, NULL, FALSE, NULL, FALSE, TRUE))) {
+	if ((retval = read_single_image(filename, &load_fit, NULL, FALSE, NULL, FALSE, TRUE, FALSE))) {
 		bad_load = TRUE;
 		goto ENDSAVE;
 	}
@@ -480,6 +480,7 @@ gchar *deconvolve_log_hook(gpointer p, log_hook_detail detail) {
 									(args->regtype == REG_TV_GRAD || args->regtype == REG_TV_MULT) ? _("total variation") :
 											(args->regtype == REG_FH_GRAD || args->regtype == REG_FH_MULT) ? _("Frobenius of Hessian") : _("No"),
 									  ss_string);
+				g_free(ss_string);
 				break;
 			case DECONV_WIENER:;
 				msg = g_strdup_printf(_("Wiener deconvolution: alpha=%.3f"),
@@ -545,16 +546,14 @@ gpointer estimate_only(gpointer p) {
 		int chan = args->fit->naxes[2] > 1 ? 1 : 0; // G channel for color, mono channel for mono
 		psf_star **detected = peaker(input_image, chan, &sfpar, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.pref.starfinder_conf.profile, com.max_thread);
 		free(input_image);
-		g_rw_lock_writer_lock(&com.stars_lock);
-		com.stars = detected;
-		g_rw_lock_writer_unlock(&com.stars_lock);
 		if (!detected || nb_stars == 0) {
 			siril_log_error(_("No suitable stars detectable in this image. Aborting..."));
+			free_fitted_stars(detected);   // no-op on NULL; frees an empty array
 			retval = 1;
 			goto ENDEST;
-		} else {
-			args->stars_need_clearing = TRUE;
 		}
+		replace_com_stars(detected);       // installs + frees any prior list, atomically
+		args->stars_need_clearing = TRUE;
 		siril_log_message(_("Found %d suitably bright, non-saturated stars.\n"), nb_stars);
 
 		// Calculate parameters for struct
@@ -705,14 +704,13 @@ gpointer deconvolve(gpointer p) {
 		int chan = args->fit->naxes[2] > 1 ? 1 : 0; // G channel for color, mono channel for mono
 		psf_star **detected = peaker(input_image, chan, &sfpar, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.pref.starfinder_conf.profile, com.max_thread);
 		free(input_image);
-		g_rw_lock_writer_lock(&com.stars_lock);
-		com.stars = detected;
-		g_rw_lock_writer_unlock(&com.stars_lock);
-		if (retval || nb_stars == 0) {
+		if (!detected || nb_stars == 0) {
 			siril_log_error(_("No suitable stars detectable in this image. Aborting..."));
+			free_fitted_stars(detected);   // no-op on NULL; frees an empty array
 			goto ENDDECONV;
-		} else
-			stars_need_clearing = TRUE;
+		}
+		replace_com_stars(detected);       // installs + frees any prior list, atomically
+		stars_need_clearing = TRUE;
 	}
 	com.fftw_max_thread = com.pref.fftw_conf.multithreaded ? com.max_thread : 1;
 
@@ -948,10 +946,11 @@ int deconvolution_finalize_hook(struct generic_seq_args *seqargs) {
 	// We do however need to reset psftype if it was modified for the loop.
 	if (args) args->psftype = args->oldpsftype;
 
-	if (data->from_command && data->deconv_data)
-		data->deconv_data->destroy_fn(data->deconv_data);
-	// If it wasn't from command, it was allocated in GUI, but we likely own it now in seqargs->user
-	else if (data && data->deconv_data)
+	// Whether allocated for a command or by the GUI, we own deconv_data here
+	// (data itself is always valid - it's dereferenced above). The previous
+	// 'else if (data && ...)' tested data for NULL after already dereferencing
+	// it, and both branches did the same thing.
+	if (data->deconv_data)
 		data->deconv_data->destroy_fn(data->deconv_data);
 
 	free(data);
@@ -1067,6 +1066,7 @@ gpointer deconvolve_sequence_command(gpointer p, sequence* seqname) {
 		seqargs->deconv_data = alloc_estk_data();
 		if (!seqargs->deconv_data) {
 			PRINT_ALLOC_ERR;
+			free(seqargs->seqEntry);
 			free(seqargs);
 			return GINT_TO_POINTER(1);
 		}

@@ -644,7 +644,7 @@ void gaussblur(float *y, float *x, int w, int h, float sigma) {
 	float *k = malloc(w * h * sizeof(float));
 	float (*kk)[w] = (void *)k;
 	float invss = 1/(sigma * sigma);
-	float alpha = invss / (M_PI);
+	float alpha = invss / (G_PI);
 	float scale = 1.f / (w * h);
 	float sum = 0;
 #ifdef _OPENMP

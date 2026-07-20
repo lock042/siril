@@ -40,6 +40,9 @@ void free_compstars_arg(gpointer p) {
 	siril_catalog_free(args->cat_stars);
 	if (args->target_star)
 		siril_catalog_free_item(args->target_star);
+	/* sort_compstars() normally frees and NULLs this; it stays set (and leaks)
+	 * if sort_compstars returned early (e.g. too few stars), so clean it up. */
+	g_list_free_full(args->var_stars_cat, (GDestroyNotify) siril_catalog_free);
 	g_free(args->AAVSO_chartid);
 	g_free(args->AAVSO_uri);
 	free(args);
@@ -304,6 +307,7 @@ int sort_compstars(struct compstars_arg *args) {
 			siril_cats = siril_cats->next;
 		}
 		g_list_free(args->var_stars_cat);
+		args->var_stars_cat = NULL;  // freed; let free_compstars_arg skip it
 	}
 
 	if (nb_phot_stars > 0) {

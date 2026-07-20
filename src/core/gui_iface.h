@@ -136,11 +136,23 @@ typedef struct {
 	void     (*log_message)(const char *msg, const char *color);
 
 	/* C – Modal dialogs ---------------------------------------------------- */
+	/* Fire-and-forget: queues the dialog on the main thread and returns
+	 * immediately, without waiting for the user to dismiss it. */
 	void     (*message_dialog)(SirilMessageType type, const char *title,
+	                           const char *text);
+	/* Same, but blocks the calling thread until the user dismisses the
+	 * dialog (callable from worker threads, e.g. the python bridge). */
+	void     (*message_dialog_modal)(SirilMessageType type, const char *title,
 	                           const char *text);
 	/* Returns TRUE if the user clicked the accept button. */
 	gboolean (*confirm_dialog)(const char *title, const char *msg,
 	                           const char *button_accept);
+	/* Same, but embeds a Bayer-pattern combo. On Accept, fills
+	 * *avi_bayer_pattern with the chosen `enum mpp_avi_bayer` value
+	 * (0..5; 0 = Auto). Headless stub auto-accepts with AUTO. */
+	gboolean (*confirm_dialog_with_avi_bayer)(const char *title, const char *msg,
+	                                          const char *button_accept,
+	                                          int *avi_bayer_pattern);
 	/* id is the GtkBuilder identifier of the dialog widget. */
 	void     (*open_dialog)(const char *id);
 	void     (*close_dialog)(const char *id);
@@ -169,6 +181,9 @@ typedef struct {
 	void     (*redraw_previews)(void);
 	/* Remap all display viewports (recalculate display LUT/buffers). */
 	void     (*remap_all_vports)(void);
+	/* Drop stale lazy-tile textures when gfit's pixels are replaced (e.g. a
+	 * sequence frame swap) so the display shows the new content, not the old. */
+	void     (*drop_lazy_tile_textures)(void);
 
 	/* E – Sequence / image state notifications ----------------------------- */
 	/* Called after a sequence is fully opened and ready for use. */
@@ -626,12 +641,6 @@ typedef struct {
 	int      (*number_of_dialogs)(void);
 	/* Clear all registration-preview windows. */
 	void     (*clear_previews)(void);
-	/* Toggle the StarNet remixer window visibility.
-	 * invocation: CALL_FROM_STARNET (1) or other; fit_left/fit_right are
-	 * cast from fits*. Returns 0 on success. */
-	int      (*toggle_remixer_window_visibility)(int invocation,
-	                                              gpointer fit_left,
-	                                              gpointer fit_right);
 	/* Show the HEIF multi-image selector dialog.
 	 * heif is cast from struct heif_context*; returns TRUE if user selected
 	 * an image, FALSE if cancelled. Stub returns FALSE. */

@@ -647,6 +647,7 @@ gpointer catmag_mono_worker(gpointer arg) {
 	siril_catalogue *cat = siril_catalog_fill_from_fit(args->fit, args->catalogue, -1);
 	if (!cat) {
 		siril_log_error(_("Failed to initialize the catalogue query\n"));
+		siril_catalog_free(cat);
 		free(pset); free(args);
 		g_rw_lock_reader_unlock(&gfit->rwlock);
 		siril_add_idle(end_generic, NULL);
@@ -667,6 +668,7 @@ gpointer catmag_mono_worker(gpointer arg) {
 	}
 	if (retval < 1) {
 		siril_log_error(_("Failed to get stars from catalog\n"));
+		siril_catalog_free(cat);
 		free(pset); free(args);
 		g_rw_lock_reader_unlock(&gfit->rwlock);
 		siril_add_idle(end_generic, NULL);
@@ -677,6 +679,7 @@ gpointer catmag_mono_worker(gpointer arg) {
 	retval = siril_catalog_project_with_WCS(cat, gfit, TRUE, FALSE);
 	if (retval || cat->nbitems < 1) {
 		siril_log_error(_("Failed to project stars from catalog\n"));
+		siril_catalog_free(cat);
 		free(pset); free(args);
 		g_rw_lock_reader_unlock(&gfit->rwlock);
 		siril_add_idle(end_generic, NULL);
@@ -687,6 +690,7 @@ gpointer catmag_mono_worker(gpointer arg) {
 	double *distances = malloc(enough_stars * sizeof(double));
 	float *magnitudes = malloc(enough_stars * sizeof(float));
 	if (!distances || !magnitudes) {
+		siril_catalog_free(cat);
 		free(distances); free(magnitudes); free(pset); free(args);
 		PRINT_ALLOC_ERR;
 		g_rw_lock_reader_unlock(&gfit->rwlock);
@@ -769,6 +773,7 @@ gpointer catmag_mono_worker(gpointer arg) {
 		retval = !kept;
 	}
 
+	siril_catalog_free(cat);
 	free(distances);
 	free(magnitudes);
 	free(pset);

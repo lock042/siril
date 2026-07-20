@@ -171,7 +171,7 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
 #ifndef _OPENMP
       siril_log_message(_("OpenMP not available. The DA3D algorithm will run in a single thread.\n"));
 #endif
-      img_t<float> input = orig;   // original (noisy) image
+      img_t<float> input = std::move(orig);   // original (noisy) image (last use of orig)
       img_t<float> guide = vout;   // NL-Bayes result, used as the DA3D guide
       // DA3D doesn't work if a color image has monochromatic noise
       if (input.d > 1 && imgops::is_monochrome(input)) {

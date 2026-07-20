@@ -116,7 +116,7 @@ float MTFp(float x, struct mtf_params params) {
 }
 
 void apply_linked_pseudoinverse_mtf_to_fits(fits *from, fits *to, struct mtf_params params, gboolean multithreaded) {
-// This is for use in reversing the pre-stretch applied to linear images for starnet++ input.
+// This is for use in reversing an MTF pre-stretch applied to linear images.
 // It does not support selected channels.
 	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
 	const size_t layersize = from->naxes[0] * from->naxes[1];
@@ -176,7 +176,7 @@ void apply_linked_pseudoinverse_mtf_to_fits(fits *from, fits *to, struct mtf_par
 }
 
 void apply_unlinked_pseudoinverse_mtf_to_fits(fits *from, fits *to, struct mtf_params *params, gboolean multithreaded) {
-	// This is for use in reversing the pre-stretch applied to linear images for starnet++ input.
+	// This is for use in reversing an MTF pre-stretch applied to linear images.
 	// It does not support selected channels.
 	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
 	const size_t layersize = from->naxes[0] * from->naxes[1];

@@ -30,7 +30,6 @@
 #define GET_DOCUMENTATION_URL "https://siril.readthedocs.io"
 
 void siril_get_documentation(const gchar *page_path) {
-	gboolean ret;
 	const char *locale;
 	const char *supported_languages[] = { "de", "fr", "it", "ru", NULL };  // en is NULL: default language
 	gchar *lang = NULL;
@@ -68,12 +67,6 @@ void siril_get_documentation(const gchar *page_path) {
 	GtkUriLauncher *launcher = gtk_uri_launcher_new(url);
 	gtk_uri_launcher_launch(launcher, GTK_WINDOW(win), NULL, NULL, NULL);
 	g_object_unref(launcher);
-	ret = TRUE;
-	if (!ret) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Could not show link"),
-				_("Please go to <a href=\""GET_DOCUMENTATION_URL"\">"GET_DOCUMENTATION_URL"</a> "
-								"by copying the link."));
-	}
 	g_free(url);
 	g_free(lang);
 }

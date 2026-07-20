@@ -66,6 +66,11 @@ gboolean value_check(fits *fit); // checks for pixel values outside [0.0, 1.0]
 gchar* get_control_window_id();
 GdkRGBA uint32_to_gdk_rgba(uint32_t packed_rgba);
 
+/* Remap a `<Primary>`-based accelerator string to the platform primary
+ * modifier (`<Meta>`/Cmd on macOS, unchanged elsewhere).  Caller owns the
+ * returned string. */
+gchar *siril_remap_accel(const gchar *accel);
+
 /* Path-button accessors.  Each function operates on a Phase-18 path button
  * (a GtkButton wired up via siril_path_button_init); non-button widgets are
  * rejected.  The deprecated GtkFileChooser interface is no longer used. */

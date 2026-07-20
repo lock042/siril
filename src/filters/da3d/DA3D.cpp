@@ -97,7 +97,7 @@ void ComputeRegressionPlane(const img_t<float> &y, const img_t<float> &g, const 
     }
   }
   float det = a * c - b * b;
-  if (abs(det) < epsilon) {
+  if (std::fabs(det) < epsilon) {
     for (int chan = 0; chan < y.d; ++chan) {
       (*reg_plane)[chan] = {0.f, 0.f};
     }

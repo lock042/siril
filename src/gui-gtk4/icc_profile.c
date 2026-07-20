@@ -203,20 +203,24 @@ void initialize_icc_preferences_widgets() {
 	GtkToggleButton *proofingtogglebutton = (GtkToggleButton*) lookup_widget("custom_proofing_profile_active");
 	GtkWidget *proofingfilechooser = lookup_widget("pref_soft_proofing_profile");
 
-	if (!siril_file_chooser_get_filename(monitorfilechooser)) {
+	gchar *monitor_path = siril_file_chooser_get_filename(monitorfilechooser);
+	if (!monitor_path) {
 		siril_toggle_set_active(GTK_WIDGET(monitortogglebutton), FALSE);
 		gtk_widget_set_sensitive((GtkWidget*) monitortogglebutton, FALSE);
 	} else {
 		siril_toggle_set_active(GTK_WIDGET(monitortogglebutton), TRUE);
 		gtk_widget_set_sensitive((GtkWidget*) monitortogglebutton, TRUE);
 	}
+	g_free(monitor_path);
 
 	siril_toggle_set_active(GTK_WIDGET(proofingtogglebutton), (com.gui_icc.soft_proof != NULL));
-	if (!siril_file_chooser_get_filename(proofingfilechooser)) {
+	gchar *proofing_path = siril_file_chooser_get_filename(proofingfilechooser);
+	if (!proofing_path) {
 		gtk_widget_set_sensitive((GtkWidget*) proofingtogglebutton, FALSE);
 	} else {
 		gtk_widget_set_sensitive((GtkWidget*) proofingtogglebutton, TRUE);
 	}
+	g_free(proofing_path);
 }
 
 void on_pref_custom_monitor_profile_file_set(GtkWidget* filechooser, gpointer user_data) {
@@ -225,6 +229,7 @@ void on_pref_custom_monitor_profile_file_set(GtkWidget* filechooser, gpointer us
 	if (filename) {
 		gtk_widget_set_sensitive((GtkWidget*) togglebutton, TRUE);
 	}
+	g_free(filename);
 }
 
 void on_pref_soft_proofing_profile_file_set(GtkWidget* filechooser, gpointer user_data) {
@@ -233,6 +238,7 @@ void on_pref_soft_proofing_profile_file_set(GtkWidget* filechooser, gpointer use
 	if (filename) {
 		gtk_widget_set_sensitive((GtkWidget*) togglebutton, TRUE);
 	}
+	g_free(filename);
 }
 
 void on_pref_icc_assign_never_toggled(GtkCheckButton *button, gpointer user_data);
@@ -904,7 +910,7 @@ void on_custom_monitor_profile_active_toggled(GtkCheckButton *button, gpointer u
 	}
 	if (active) {
 		if (!com.pref.icc.icc_path_monitor || com.pref.icc.icc_path_monitor[0] == '\0') {
-			com.pref.icc.icc_path_monitor = g_strdup(siril_file_chooser_get_filename(filechooser));
+			com.pref.icc.icc_path_monitor = siril_file_chooser_get_filename(filechooser);
 		}
 		if (!com.pref.icc.icc_path_monitor || com.pref.icc.icc_path_monitor[0] == '\0') {
 			siril_log_error(_("Error: no filename specified for custom monitor profile.\n"));
@@ -953,7 +959,7 @@ void on_custom_proofing_profile_active_toggled(GtkCheckButton *button, gpointer 
 	}
 	if (active) {
 		if (!com.pref.icc.icc_path_soft_proof || com.pref.icc.icc_path_soft_proof[0] == '\0') {
-			com.pref.icc.icc_path_soft_proof = g_strdup(siril_file_chooser_get_filename(filechooser));
+			com.pref.icc.icc_path_soft_proof = siril_file_chooser_get_filename(filechooser);
 		}
 		if (!com.pref.icc.icc_path_soft_proof || com.pref.icc.icc_path_soft_proof[0] == '\0') {
 			siril_log_error(_("Error: no filename specified for output device proofing profile.\n"));

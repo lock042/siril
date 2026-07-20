@@ -44,6 +44,7 @@
 #include "core/undo.h"
 #include "gui-gtk4/utils.h"
 #include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/mpp_ap_editor.h"
 #include "undo_gui.h"
 
 static gboolean unparent_popover_idle(gpointer data) {
@@ -155,6 +156,10 @@ static void on_undo_secondary_pressed(GtkGestureClick *gesture, int n_press,
 	(void) n_press; (void) x; (void) y;
 	GtkWidget *button = GTK_WIDGET(user_data);
 	gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_CLAIMED);
+	/* The history popover lists the image-processing history; it isn't
+	 * meaningful while Undo/Redo are diverted to the AP editor. */
+	if (mpp_ap_editor_is_open())
+		return;
 	show_undo_history_popover(button, UNDO);
 }
 
@@ -163,6 +168,8 @@ static void on_redo_secondary_pressed(GtkGestureClick *gesture, int n_press,
 	(void) n_press; (void) x; (void) y;
 	GtkWidget *button = GTK_WIDGET(user_data);
 	gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_CLAIMED);
+	if (mpp_ap_editor_is_open())
+		return;
 	show_undo_history_popover(button, REDO);
 }
 

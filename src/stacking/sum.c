@@ -112,6 +112,21 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 	gboolean is_drizzle = args->seq->is_drizzle;
 	float **weights = NULL;
 	float *dweights = NULL;
+
+	/* The accumulation below reads fit->fpdata[layer] when input_32bits and
+	 * fit->pdata[layer] otherwise, for every output layer. A frame whose bit
+	 * depth doesn't match the accumulator, or which has fewer channels than the
+	 * output, leaves those buffers NULL and would crash (this happens with a
+	 * heterogeneous/unregistered sequence). Reject such a frame up front. */
+	if ((ssdata->input_32bits ? fit->type != DATA_FLOAT : fit->type != DATA_USHORT)
+			|| (int)fit->naxes[2] < args->seq->nb_layers) {
+		siril_log_error(_("Image #%d (%d channel(s), %d-bit) is incompatible with "
+				"the stack (%d channel(s), %d-bit); aborting. All images in the "
+				"sequence must have the same channel count and bit depth.\n"),
+				o + 1, (int)fit->naxes[2], fit->type == DATA_FLOAT ? 32 : 16,
+				args->seq->nb_layers, ssdata->input_32bits ? 32 : 16);
+		return ST_SEQUENCE_ERROR;
+	}
 	if (is_drizzle) {
 		const gchar *drizzfile = get_sequence_cache_filename(args->seq, i, "drizztmp", "fit", NULL);
 		int rx = (args->seq->is_variable) ? args->seq->imgparam[i].rx : args->seq->rx;
@@ -155,13 +170,17 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 		shifty = round_to_int(dy);
 		siril_log_debug("img %d dx %d dy %d\n", o, shiftx, shifty);
 	}
-	if (shiftx == INT_MIN) { // mainly to avoid static checker warning
-		siril_log_debug("Error: image #%d has a wrong shiftx value\n", o + 1);
-		shiftx += 1;
-	}
-	if (shifty == INT_MIN) { // mainly to avoid static checker warning
-		siril_log_debug("Error: image #%d has a wrong shifty value\n", o + 1);
-		shifty += 1;
+	if (shiftx == INT_MIN || shifty == INT_MIN) {
+		/* round_to_int() returns INT_MIN for an out-of-range shift; x - shiftx
+		 * would then overflow, and a frame that far off cannot overlap the
+		 * output, so skip it. The previous '+= 1' nudge did not prevent the
+		 * x - (INT_MIN+1) overflow for x >= 1. */
+		siril_log_debug("Error: image #%d has a wrong shift value, skipping\n", o + 1);
+		if (is_drizzle) {
+			free(dweights);
+			free(weights);
+		}
+		return ST_OK;
 	}
 
 	for (y = 0; y < ssdata->output_size[1]; ++y) {
@@ -406,14 +425,13 @@ int stack_summing_generic(struct stacking_args *stackargs) {
 		cvGetEye(&Hs);
 		double dx, dy;
 		translation_from_H(args->seq->regparam[stackargs->reglayer][stackargs->ref_image].H, &dx, &dy);
-		siril_log_debug("ref shift: %d %d\n", (int)dx, (int)dy);
-		siril_log_debug("crpix: %.1f %.1f\n", result->keywords.wcslib->crpix[0], result->keywords.wcslib->crpix[1]);
+		// siril_log_debug("ref shift: %d %d\n", (int)dx, (int)dy);
+		// siril_log_debug("crpix: %.1f %.1f\n", result->keywords.wcslib->crpix[0], result->keywords.wcslib->crpix[1]);
 		Hs.h02  = dx - ssdata->offset[0];
-		Hs.h12 -= dy - ssdata->offset[1];
-		int orig_rx = (args->seq->is_variable) ? args->seq->imgparam[args->seq->reference_image].rx : args->seq->rx;
+		Hs.h12  = ssdata->offset[1] - dy;
 		int orig_ry = (args->seq->is_variable) ? args->seq->imgparam[args->seq->reference_image].ry : args->seq->ry;
-		siril_log_debug("size: %d %d\n", orig_rx, orig_ry);
-		cvApplyFlips(&Hs, orig_ry, 0);
+		// siril_log_debug("size: %d %d\n", orig_rx, orig_ry);
+		cvApplyFlips(&Hs, orig_ry, result->naxes[1]);
 		reframe_wcs(result->keywords.wcslib, &Hs);
 		update_wcsdata_from_wcs(result);
 	}

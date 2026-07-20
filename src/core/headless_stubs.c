@@ -274,11 +274,6 @@ gpointer tri_cut(gpointer p) { (void)p; return NULL; }
 gpointer cfa_cut(gpointer p) { (void)p; return NULL; }
 void reset_cut_gui_filedependent(gpointer user_data) { (void)user_data; }
 
-/* Compositing / remixer */
-int toggle_remixer_window_visibility(int _invocation, fits *_fit_left, fits *_fit_right) {
-	(void)_invocation; (void)_fit_left; (void)_fit_right; return 0;
-}
-
 /* SPCC / photometric */
 int get_favourite_spccobject(GList *list, const gchar *favourite) {
 	(void)list; (void)favourite; return 0;
@@ -289,7 +284,8 @@ int get_favourite_oscsensor(GList *list, const gchar *favourite) {
 
 /* Livestacking display */
 void livestacking_display(gchar *str, gboolean free_after_display) {
-	(void)str; (void)free_after_display;
+	if (free_after_display)
+		g_free(str);
 }
 gboolean livestacking_first_result_idle(gpointer p) { (void)p; return FALSE; }
 void livestacking_update_number_of_images(int nb, double total_exposure, double noise, const char *process_time) {

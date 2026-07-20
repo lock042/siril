@@ -772,7 +772,7 @@ static void print_alignment_results(Homography H, int filenum, float fwhm, float
 	siril_log_message(_("scale:%*.3f\n"), 13, scale);
 
 	/* Rotation */
-	rotation = atan2(H.h01, H.h00) * 180 / M_PI;
+	rotation = atan2(H.h01, H.h00) * 180 / G_PI;
 	siril_log_message(_("rotation:%+*.3f deg\n"), 10, rotation);
 
 	/* Translation */

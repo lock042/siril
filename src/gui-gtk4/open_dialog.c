@@ -31,6 +31,9 @@
 #include "core/OS_utils.h"
 #include "core/initfile.h"
 #include "core/icc_profile.h"
+#include "core/gui_iface.h"
+#include "core/processing.h"
+#include "core/processing_thread.h"
 #include "algos/sorting.h"
 #include "io/conversion.h"
 #include "io/films.h"
@@ -343,6 +346,91 @@ static gchar *pick_non_image(int whichdial, GtkWindow *parent) {
 	return picked;
 }
 
+static void opendial(int whichdial);
+
+/* ── threaded single-image open ────────────────────────────────────────
+ *
+ * open_single_image() blocks its caller for the whole decode, so calling it
+ * straight from the GUI froze the main loop and the progress bar (updated via
+ * g_idle_add) could never paint.  We run the decode on the processing thread
+ * instead: reserve the slot, launch the worker, and finalise in an idle.
+ *
+ * The worker only ever decodes into a private fits (read_new_single_image);
+ * gfit itself is mutated exclusively on the main thread, in the finishing idle,
+ * under gfit's writer lock (install_new_single_image).  Decoding straight into
+ * gfit on the worker — as this path first did — raced the display's gfit
+ * readers (the autostretch remap and the lazy-tile pool, which call
+ * statistics() under a reader lock) and crashed when a redraw landed mid-load. */
+struct threaded_open_data {
+	gchar *filename;
+	fits  *newfit;    /* decoded on the worker, installed on the main thread */
+	char  *realname;  /* resolved path from the decode (owned) */
+	int    retval;
+};
+
+static gboolean end_threaded_open(gpointer p) {
+	struct threaded_open_data *d = p;
+	stop_processing_thread();
+	/* The gfit swap-install + ICC assignment + these final GUI touches must all
+	 * run on the main thread. */
+	if (d->newfit) {
+		install_new_single_image(d->newfit, d->realname);  /* consumes both */
+		d->newfit = NULL;
+		d->realname = NULL;
+		icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_LOAD);
+	} else if (d->retval && d->retval != OPEN_IMAGE_CANCEL) {
+		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Error opening file"),
+				_("There was an error when opening this image. "
+						"See the log for more information."));
+	}
+	set_cursor_waiting(FALSE);
+	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
+	/* A sub-dialog cancelled mid-load (e.g. the RAW/debayer prompt) asks to
+	 * re-prompt, matching the old synchronous behaviour. */
+	if (d->retval == OPEN_IMAGE_CANCEL)
+		opendial(OD_OPEN);
+	g_free(d->filename);
+	free(d->realname);
+	free(d);
+	return FALSE;
+}
+
+static gpointer threaded_open_worker(gpointer p) {
+	struct threaded_open_data *d = p;
+	/* Decode into a private fits — gfit is left untouched (and readable by the
+	 * display) until install_new_single_image() swaps the result in. */
+	d->newfit = read_new_single_image(d->filename, &d->realname, &d->retval);
+	siril_add_idle(end_threaded_open, d);
+	return GINT_TO_POINTER(d->retval);
+}
+
+/* Open `path` as a single image with a live progress bar.  Returns 0 when the
+ * load was handed off to the worker (its idle owns cursor/ICC/progress from
+ * there), otherwise the synchronous open_single_image() return code — so the
+ * caller can still honour OPEN_IMAGE_CANCEL.  Takes its own copy of `path`. */
+static int open_image_threaded(const char *path) {
+	set_cursor_waiting(TRUE);
+	/* Sequences load gfit/com.seq directly and aren't handled by the
+	 * decode-into-a-local-fits worker; open them synchronously on the main
+	 * thread (safe: no concurrent gfit writer) via the fallback below. */
+	if (!single_image_path_is_sequence(path) && reserve_thread()) {
+		struct threaded_open_data *d = calloc(1, sizeof(*d));
+		d->filename = g_strdup(path);
+		if (start_in_reserved_thread(threaded_open_worker, d))
+			return 0;  /* async: worker + end idle own the rest */
+		/* Submission failed — release the slot and fall through to sync. */
+		unreserve_thread();
+		g_free(d->filename);
+		free(d);
+	}
+	/* Fallback: synchronous open.  Also the correct path when a job is truly
+	 * busy — open_single_image() then shows the proper "cannot open" error. */
+	int rv = open_single_image(path);
+	icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_LOAD);
+	set_cursor_waiting(FALSE);
+	return rv;
+}
+
 static void opendial(int whichdial) {
 	open_dialog_init_statics();
 	GtkWindow *control_window = od_control_window;
@@ -454,10 +542,7 @@ static void opendial(int whichdial) {
 			}
 			break;
 		case OD_OPEN:
-			set_cursor_waiting(TRUE);
-			retval = open_single_image(filename);
-			icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_LOAD);
-			set_cursor_waiting(FALSE);
+			retval = open_image_threaded(filename);
 			if (retval == OPEN_IMAGE_CANCEL) continue;  /* re-prompt */
 			break;
 		case OD_CONVERT:
@@ -551,9 +636,7 @@ void open_recent_action_activate(GSimpleAction *action, GVariant *parameter,
 	/* The GVariant target is owned by the menu item and will outlive
 	 * this handler, but downstream code passes the pointer into idles
 	 * that may run after we return — copy onto the heap to be safe. */
-	gchar *path_copy = g_strdup(path);
-	open_single_image(path_copy);
-	g_free(path_copy);
+	open_image_threaded(path);
 }
 
 static int recent_info_cmp_modified_desc(gconstpointer a, gconstpointer b) {
@@ -612,7 +695,9 @@ void populate_recent_files_menu(void) {
 			g_free(path);
 			continue;
 		}
-		gchar *display = g_path_get_basename(path);
+		gchar *basename = g_path_get_basename(path);
+		gchar *display = ellipsize(basename, 40, ELLIPSIZE_MIDDLE);
+		g_free(basename);
 		GtkWidget *button = gtk_button_new_with_label(display);
 		gtk_widget_add_css_class(button, "flat");
 		/* Left-align the label like a menu item */

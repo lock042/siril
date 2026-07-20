@@ -21,6 +21,10 @@ struct message_data {
 
 gboolean siril_message_dialog_idle(gpointer p);
 void siril_message_dialog(GtkMessageType type, char *title, char *text);
+/* Same as siril_message_dialog(), but callable from a worker thread: it
+ * dispatches to the main thread and blocks the caller until the dialog is
+ * dismissed (same pattern as siril_confirm_dialog_async()). */
+void siril_message_dialog_modal(GtkMessageType type, gchar *title, gchar *msg);
 void queue_message_dialog(GtkMessageType type, const char *title, const char *text);
 void queue_error_message_dialog(const char *title, const char *text);
 void queue_warning_message_dialog(const char *title, const char *text);
@@ -34,4 +38,10 @@ gboolean siril_confirm_dialog_async(gchar *title, gchar *msg, gchar *button_acce
  * Default button is B (preserve-data convention); Escape / close → Cancel. */
 int siril_three_button_dialog(gchar *title, gchar *msg,
                               gchar *button_a, gchar *button_b);
+
+/* Same as siril_confirm_dialog, but also embeds an AVI Bayer-pattern
+ * dropdown. On Accept, fills *avi_bayer_pattern with an `enum mpp_avi_bayer`
+ * value (0..5; 0 = Auto). */
+gboolean siril_confirm_dialog_with_avi_bayer(gchar *title, gchar *msg,
+		gchar *button_accept, int *avi_bayer_pattern);
 #endif
