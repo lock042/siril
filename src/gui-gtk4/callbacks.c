@@ -2628,6 +2628,24 @@ static void popdown_mapped_popovers_recursive(GtkWidget *widget,
 		popdown_mapped_popovers_recursive(child, skip_subtree, dismissed);
 }
 
+/* Pop down every mapped autohide popover in the main window, unconditionally.
+ * Returns TRUE if at least one was dismissed.  Used by the macOS backend (see
+ * siril_macos_fix_popover_autohide in OS_utils.c): there the capture-phase
+ * click handler below never fires, because AppKit does not deliver the outside
+ * mouseDown to control_window's GTK controllers while a popover NSWindow holds
+ * focus.  A local NSEvent monitor catches that click instead and calls this to
+ * run the same dismissal the Wayland path gets from on_window_press_dismiss_
+ * popovers().  Exposed through gui_iface so the Cocoa code (core layer) need
+ * not pull in GTK headers. */
+gboolean close_open_autohide_popovers(void) {
+	GtkWidget *win = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
+	if (!win)
+		return FALSE;
+	gboolean dismissed = FALSE;
+	popdown_mapped_popovers_recursive(win, NULL, &dismissed);
+	return dismissed;
+}
+
 static void on_window_press_dismiss_popovers(GtkGestureClick *gesture,
                                              int n_press, double x, double y,
                                              gpointer user_data) {
