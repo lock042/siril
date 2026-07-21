@@ -312,6 +312,12 @@ void flis_layer_free(flis_layer_t *layer);
  * @mask: mask to free.  May be NULL (no-op).
  */
 void layermask_free(layermask_t *mask);
+/* Free @mask on the GTK main thread (immediately when already there or
+ * headless).  Use instead of layermask_free whenever the free happens on
+ * a worker thread and the mask may be the active layer's lmask —
+ * redraw_mask_idle reads that on the main thread without the stack lock
+ * (see the M-F12 comment in image_format_flis.c). */
+void layermask_free_deferred(layermask_t *mask);
 
 /**
  * flis_get_displayed_mask:

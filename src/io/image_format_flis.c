@@ -98,6 +98,30 @@
  *      and commands can never re-enter the lock.
  *   4. GRWLock is not recursive — do not nest reader sections either
  *      (a queued writer between two reader acquisitions deadlocks).
+ *
+ * Documented-benign UNLOCKED accesses (everything else must lock):
+ *   a. Interactive-drag scalar writes from the main thread: a layer's
+ *      position_x/position_y during a canvas drag
+ *      (image_interactions.c) and opacity during a slider drag
+ *      (flis_gui.c).  Scalar stores racing a reader cost at most one
+ *      stale frame; the single processing slot serialises them against
+ *      structural mutation, and the drag-release commits through the
+ *      layer worker.
+ *   b. flis_group_t.collapsed (flis_gui.c): panel-only state, written
+ *      and read exclusively on the main thread.
+ *   c. gfit repointing by uniq_set_active_layer: a single pointer
+ *      store; all call sites are the main thread or a worker hook.
+ *   d. The undo restore path (undo.c undo_display_data): rewrites layer
+ *      payloads on the MAIN thread with no stack lock.  Safe because
+ *      every unlocked reader is main-thread-confined (same thread,
+ *      serial), worker-thread readers/writers only run inside
+ *      processing jobs, and the GUI undo/redo entry points
+ *      (siril_actions.c, undo_gui.c) refuse while
+ *      processing_is_job_active().  The restore path cannot simply
+ *      take the stack lock itself: it acquires gfit's rwlock
+ *      internally, which would invert the fits→stack order.  If a
+ *      non-main-thread reader outside the processing slot is ever
+ *      added, revisit this.
  * ===================================================================== */
 static GRWLock flis_stack_rwlock;
 
@@ -116,7 +140,7 @@ static gboolean layermask_free_idle(gpointer p) {
     layermask_free((layermask_t *)p);
     return G_SOURCE_REMOVE;
 }
-static void layermask_free_deferred(layermask_t *lm) {
+void layermask_free_deferred(layermask_t *lm) {
     if (!lm) return;
     if (com.headless || g_main_context_is_owner(g_main_context_default()))
         layermask_free(lm);

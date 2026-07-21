@@ -41,6 +41,8 @@
 
 #include "core/siril.h"
 #include "core/siril_language.h"
+#include "core/processing.h"
+#include "core/siril_log.h"
 #include "core/undo.h"
 #include "gui-gtk4/utils.h"
 #include "gui-gtk4/progress_and_log.h"
@@ -69,6 +71,12 @@ static void on_undo_popover_row_activated(GtkListBox *box, GtkListBoxRow *row,
 	int dir   = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(row), "dir"));
 	int level = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(row), "level"));
 	gtk_popover_popdown(popover);
+	/* Same job gate as undo_action_activate: the restore path must not
+	 * race a running processing job. */
+	if (processing_is_job_active()) {
+		siril_log_message(_("Cannot undo while a processing task is running.\n"));
+		return;
+	}
 	set_cursor_waiting(TRUE);
 	for (int i = 0; i < level; i++) {
 		if (dir == UNDO && !is_undo_available()) break;

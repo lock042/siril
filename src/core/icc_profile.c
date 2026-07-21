@@ -1848,9 +1848,11 @@ int icc_convert_to_hook(struct generic_img_args *gargs, fits *fit, int threads) 
 		return 1;
 	}
 
-	/* Land the new document profile; the pixel side lands at the swap. */
+	/* Land the new document profile; the pixel side lands at the swap.
+	 * No current_image_color_manage() — the image is already managed
+	 * (the guard above requires it), so the call would only buy a
+	 * pointless main-thread hop for the unchanged status icon. */
 	current_image_set_icc_profile(copyICCProfile(args->profile));
-	current_image_color_manage(TRUE);
 	fit->history = g_slist_append(fit->history,
 			g_strdup_printf(_("Converted to ICC profile: %s"), prof_desc ? prof_desc : "?"));
 	g_free(prof_desc);
@@ -1891,9 +1893,13 @@ int icc_convert_flis_layer_hook(struct generic_layer_args *largs) {
 	cmsCloseProfile(old);
 	com.pref.icc.processing_intent = temp_intent;
 
-	/* Land the new document profile. */
+	/* Land the new document profile.  No current_image_color_manage()
+	 * here: the image is already managed (the guard above requires it),
+	 * and that call would hop to the main thread for the status icon via
+	 * execute_idle_and_wait_for_it — a blocking main-loop call, which is
+	 * forbidden while the layer worker holds the stack writer lock
+	 * (M-F12 rule 1). */
 	current_image_set_icc_profile(copyICCProfile(args->profile));
-	current_image_color_manage(TRUE);
 	if (gfit)
 		gfit->history = g_slist_append(gfit->history,
 				g_strdup_printf(_("Converted to ICC profile: %s"), prof_desc ? prof_desc : "?"));

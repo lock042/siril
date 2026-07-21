@@ -573,8 +573,11 @@ static gpointer mini_save_dialog(gpointer p) {
 					 * — flattening the live document here would destroy
 					 * the user's layers (and mutate the stack from the
 					 * save worker thread while the main thread may be
-					 * rendering it). */
+					 * rendering it).  Reader lock: this walk runs on the
+					 * save worker thread (M-F12). */
+					flis_stack_reader_lock();
 					fits *flat = flis_render_layers(com.uniq->layers);
+					flis_stack_reader_unlock();
 					if (!flat) {
 						siril_log_error(_("Save: flatten failed.\n"));
 						args->retval = 1;
@@ -1123,8 +1126,11 @@ void on_header_save_button_clicked() {
 			save_flis(com.uniq->filename);
 		} else {
 			/* Export a flattened COPY — the open document keeps its
-			 * layers (see the Save As worker path). */
+			 * layers (see the Save As worker path).  Reader lock: a
+			 * layer-worker job could be mutating the stack (M-F12). */
+			flis_stack_reader_lock();
 			fits *flat = flis_render_layers(com.uniq->layers);
+			flis_stack_reader_unlock();
 			if (!flat) {
 				siril_log_error(_("Save: flatten failed.\n"));
 				return;

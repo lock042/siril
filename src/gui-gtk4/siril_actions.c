@@ -142,6 +142,13 @@ void undo_action_activate(GSimpleAction *action, GVariant *parameter, gpointer u
 		mpp_ap_editor_undo();
 		return;
 	}
+	/* The restore path rewrites gfit — and for a FLIS, layer payloads
+	 * without the stack lock (documented-benign case (d) in
+	 * image_format_flis.c) — so it must not race a running job. */
+	if (processing_is_job_active()) {
+		siril_log_message(_("Cannot undo while a processing task is running.\n"));
+		return;
+	}
 	gui_iface.set_busy(TRUE);
 	undo_display_data(UNDO);
 	gui_iface.set_busy(FALSE);
@@ -150,6 +157,10 @@ void undo_action_activate(GSimpleAction *action, GVariant *parameter, gpointer u
 void redo_action_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {
 	if (mpp_ap_editor_is_open()) {
 		mpp_ap_editor_redo();
+		return;
+	}
+	if (processing_is_job_active()) {
+		siril_log_message(_("Cannot redo while a processing task is running.\n"));
 		return;
 	}
 	gui_iface.set_busy(TRUE);

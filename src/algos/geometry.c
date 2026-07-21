@@ -746,13 +746,17 @@ int fits_binning(fits *fit, int factor, gboolean mean) {
 
 	/* FLIS: keep the layer mask (lmask) in step with the pixel data —
 	 * a stale-size lmask corrupts compositing.  Wrapped as a mask_t so
-	 * the shared geometry helpers apply. */
+	 * the shared geometry helpers apply.  This hook runs under
+	 * generic_image_worker (no stack lock), so take the stack writer
+	 * lock around the lmask lifetime mutation — M-F12 rule 2 allows
+	 * fits→stack nesting; the free is deferred to the main thread. */
+	flis_stack_writer_lock();
 	flis_layer_t *_lay_bin = flis_layer_get_by_fit(fit);
 	if (_lay_bin && _lay_bin->lmask && _lay_bin->lmask->data) {
 		mask_t _tmp = { .bitpix = _lay_bin->lmask->bitpix, .data = _lay_bin->lmask->data };
 		if (bin_mask(&_tmp, old_rx, old_ry, factor, mean)) {
 			siril_log_error(_("Error binning layer mask\n"));
-			layermask_free(_lay_bin->lmask);
+			layermask_free_deferred(_lay_bin->lmask);
 			_lay_bin->lmask = NULL;
 		} else {
 			_lay_bin->lmask->data = _tmp.data;
@@ -760,6 +764,7 @@ int fits_binning(fits *fit, int factor, gboolean mean) {
 			_lay_bin->lmask->h = old_ry / factor;
 		}
 	}
+	flis_stack_writer_unlock();
 
 	if (has_wcs(fit)) {
 		Homography H = { 0 };
@@ -833,12 +838,15 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation 
 	}
 
 	if (retvalue == 0) {
+		/* Stack writer lock: see the matching comment in the binning
+		 * hook (M-F12 — lmask lifetime mutation from the image worker). */
+		flis_stack_writer_lock();
 		flis_layer_t *_lay_res = flis_layer_get_by_fit(image);
 		if (_lay_res && _lay_res->lmask && _lay_res->lmask->data) {
 			mask_t _tmp = { .bitpix = _lay_res->lmask->bitpix, .data = _lay_res->lmask->data };
 			if (resize_mask(&_tmp, old_rx, old_ry, toX, toY, interpolation)) {
 				siril_log_error(_("Error resizing layer mask\n"));
-				layermask_free(_lay_res->lmask);
+				layermask_free_deferred(_lay_res->lmask);
 				_lay_res->lmask = NULL;
 			} else {
 				_lay_res->lmask->data = _tmp.data;
@@ -846,6 +854,7 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation 
 				_lay_res->lmask->h = toY;
 			}
 		}
+		flis_stack_writer_unlock();
 	}
 
 	if (image->keywords.pixel_size_x > 0) image->keywords.pixel_size_x *= factor_X;
@@ -922,12 +931,15 @@ int verbose_rotate_fast(fits *image, int angle) {
 		}
 	}
 
+	/* Stack writer lock: see the matching comment in the binning hook
+	 * (M-F12 — lmask lifetime mutation from the image worker). */
+	flis_stack_writer_lock();
 	flis_layer_t *_lay_rf = flis_layer_get_by_fit(image);
 	if (_lay_rf && _lay_rf->lmask && _lay_rf->lmask->data) {
 		mask_t _tmp = { .bitpix = _lay_rf->lmask->bitpix, .data = _lay_rf->lmask->data };
 		if (transform_mask(&_tmp, orig_rx, orig_ry, target_rx, target_ry, H, OPENCV_NEAREST)) {
 			siril_log_error(_("Error rotating layer mask\n"));
-			layermask_free(_lay_rf->lmask);
+			layermask_free_deferred(_lay_rf->lmask);
 			_lay_rf->lmask = NULL;
 		} else {
 			_lay_rf->lmask->data = _tmp.data;
@@ -935,6 +947,7 @@ int verbose_rotate_fast(fits *image, int angle) {
 			_lay_rf->lmask->h = target_ry;
 		}
 	}
+	flis_stack_writer_unlock();
 
 	if (has_wcs(image)) {
 		cvApplyFlips(&H, orig_ry, target_ry);
