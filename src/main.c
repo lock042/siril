@@ -287,7 +287,6 @@ void load_ui_files() {
 	i = 0;
 	while (*ui_files_with_primary_accelerator[i]) {
 		retval = builder_add_from_resource_with_replace(gui.builder, ui_files_with_primary_accelerator[i], &err);
-		retval = gtk_builder_add_from_resource(gui.builder, ui_files[i], &err);
 		if (!retval) {
 			g_error(_("%s was not found or contains errors, "
 			"cannot render GUI:\n%s\n Exiting.\n"), ui_files[i], err->message);
