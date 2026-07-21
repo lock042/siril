@@ -1298,6 +1298,48 @@ void siril_macos_fix_keyboard_shortcuts(void) {
 		return nil;
 	}];
 }
+
+/* GTK4 + macOS: an autohide GtkPopover maps as a separate, focused NSWindow.
+ * Once its outside-click grab is lost — clicking the popover's own border is
+ * enough to break it — clicking elsewhere in the application no longer
+ * dismisses the popover; only Escape does.  This is the same symptom as the
+ * Wayland/mutter grab bug (see gtk4-popover-autohide-wayland).  The GTK-level
+ * workaround for that (a capture-phase click controller on control_window,
+ * install_global_popover_autodismiss() in callbacks.c) cannot help on macOS:
+ * while the popover NSWindow holds focus, AppKit does not deliver the outside
+ * mouseDown to the main window's GTK view, so that controller never fires.
+ *
+ * A local NSEvent monitor sees the mouseDown regardless of which view accepts
+ * it.  When the click lands on a GTK window other than the focused one — i.e.
+ * anywhere but inside the focused popover itself — run the same popover
+ * dismissal the Wayland path uses (via gui_iface, so this Cocoa code needs no
+ * GTK headers).  A click inside the popover keeps event window == key window,
+ * so menu items still activate and the inert border is left to GTK. */
+void siril_macos_fix_popover_autohide(void) {
+	[NSEvent addLocalMonitorForEventsMatchingMask:(NSEventMaskLeftMouseDown | NSEventMaskRightMouseDown)
+	                                      handler:^NSEvent *(NSEvent *event) {
+		if (!gui_iface.dismiss_autohide_popovers)
+			return event;
+
+		NSWindow *target = [event window];
+		/* Only GTK/GDK windows carry a "Gdk"-prefixed content view; leave
+		 * native panels (NSOpenPanel, NSAlert …) untouched. */
+		if (!target || ![NSStringFromClass([target.contentView class]) hasPrefix:@"Gdk"])
+			return event;
+
+		/* A click inside the focused popover keeps target == key window: let
+		 * GTK handle it.  Any other GTK window means the click is outside the
+		 * popover, so dismiss the open autohide popovers. */
+		if (target == [NSApp keyWindow])
+			return event;
+
+		/* Mirror GTK3/Wayland: the click that closes a popover is consumed and
+		 * does not also activate whatever is underneath. */
+		if (gui_iface.dismiss_autohide_popovers())
+			return nil;
+		return event;
+	}];
+}
 #endif /* OS_OSX */
 
 gchar *get_siril_version_string() {

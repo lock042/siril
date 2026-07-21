@@ -405,6 +405,10 @@ static void siril_app_startup(GApplication *application) {
 	 * performKeyEquivalent: to keyDown:.  Re-install it so Cmd+key shortcuts
 	 * reach GTK4's shortcut controller without requiring a native menu bar. */
 	siril_macos_fix_keyboard_shortcuts();
+	/* GTK4's macOS backend leaves autohide popovers stuck open once their
+	 * outside-click grab is lost; a local NSEvent monitor restores click-to-
+	 * dismiss (see siril_macos_fix_popover_autohide). */
+	siril_macos_fix_popover_autohide();
 #endif
 }
 
