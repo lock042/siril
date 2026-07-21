@@ -56,6 +56,9 @@ xx/xx/xx
 * Fixed opening JPEG XL files wrapped in an ISO/IEC 18181-2 container (#1961)
 * Fixed compilation when the version of opencv is >= 5
 
+**Improvements**
+* Allowed editing FITS keywords of a whole sequence from the UI
+
 siril-1.4.4
 06/17/26
 

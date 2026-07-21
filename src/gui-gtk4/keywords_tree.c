@@ -66,6 +66,9 @@ static GtkTextView *key_textview = NULL;
 static GtkNotebook *key_notebook = NULL;
 static GtkWidget *key_export_button = NULL;
 
+/* sequence keyword edit confirmed once per dialog opening */
+static gboolean seq_kw_edit_confirmed = FALSE;
+
 /* Forward decl: defined further down, referenced by the columnview build path. */
 static gboolean on_key_columnview_key_pressed(GtkEventControllerKey *controller,
 		guint keyval, guint keycode, GdkModifierType state, gpointer user_data);
@@ -134,6 +137,39 @@ static void key_edit_ctx_destroy(gpointer data) {
 	g_free(ctx);
 }
 
+/* edits go to the whole sequence, except for the RESULT/SCALED in-memory image */
+static gboolean keyword_edits_target_sequence(void) {
+	return sequence_is_loaded()
+			&& com.seq.current != RESULT_IMAGE
+			&& com.seq.current != SCALED_IMAGE;
+}
+
+static gboolean confirm_seq_keyword_edit(void) {
+	if (seq_kw_edit_confirmed)
+		return TRUE;
+	if (siril_confirm_dialog(_("Operation on the sequence"),
+			_("Keyword edits made here will be applied to the FITS header of "
+			  "every image of the entire sequence. Are you sure?"), _("Proceed"))) {
+		seq_kw_edit_confirmed = TRUE;
+		return TRUE;
+	}
+	return FALSE;
+}
+
+/* returns FALSE if the user declined the confirmation */
+static gboolean launch_seq_keyword_edit(const gchar *fits_key, const gchar *newkey,
+		const gchar *value, const gchar *comment) {
+	if (!confirm_seq_keyword_edit())
+		return FALSE;
+	struct keywords_data *kargs = calloc(1, sizeof(struct keywords_data));
+	kargs->FITS_key = g_strdup(fits_key);
+	kargs->newkey   = newkey  ? g_strdup(newkey)  : NULL;
+	kargs->value    = value   ? g_strdup(value)   : NULL;
+	kargs->comment  = comment ? g_strdup(comment) : NULL;
+	start_sequence_keywords(&com.seq, kargs);
+	return TRUE;
+}
+
 static void on_key_edit_done(GtkEditableLabel *lbl, KeyEditCtx *ctx) {
 	if (gtk_editable_label_get_editing(lbl))
 		return;
@@ -141,12 +177,20 @@ static void on_key_edit_done(GtkEditableLabel *lbl, KeyEditCtx *ctx) {
 	if (!row || row->protected_flag || !row->editable) return;
 
 	const gchar *new_val = gtk_editable_get_text(GTK_EDITABLE(lbl));
+	gboolean to_seq = keyword_edits_target_sequence();
 	switch (ctx->kind) {
 		case KEY_COL_KEY:
 			if (g_strcmp0(row->key, new_val) != 0) {
 				if (strlen(new_val) > 8) {
 					siril_log_error(_("Keyname can contain a maximum of 8 characters.\n"));
 					gtk_editable_set_text(GTK_EDITABLE(lbl), row->key);
+				} else if (to_seq) {
+					if (launch_seq_keyword_edit(row->key, new_val, NULL, NULL)) {
+						g_free(row->key);
+						row->key = g_strdup(new_val);
+					} else {
+						gtk_editable_set_text(GTK_EDITABLE(lbl), row->key);
+					}
 				} else if (!updateFITSKeyword(gfit, row->key, (gchar*)new_val, NULL, NULL, TRUE, FALSE)) {
 					g_free(row->key);
 					row->key = g_strdup(new_val);
@@ -160,7 +204,15 @@ static void on_key_edit_done(GtkEditableLabel *lbl, KeyEditCtx *ctx) {
 			process_keyword_string_value(new_val, valstring,
 					row->dtype == 'C' && (new_val[0] != '\'' || new_val[strlen(new_val)-1] != '\''));
 			if (g_strcmp0(row->value, valstring) != 0) {
-				if (!updateFITSKeyword(gfit, row->key, NULL, valstring, row->comment, TRUE, FALSE)) {
+				if (to_seq) {
+					if (launch_seq_keyword_edit(row->key, NULL, valstring, row->comment)) {
+						g_free(row->value);
+						row->value = g_strdup(valstring);
+						gtk_editable_set_text(GTK_EDITABLE(lbl), valstring);
+					} else {
+						gtk_editable_set_text(GTK_EDITABLE(lbl), row->value);
+					}
+				} else if (!updateFITSKeyword(gfit, row->key, NULL, valstring, row->comment, TRUE, FALSE)) {
 					g_free(row->value);
 					row->value = g_strdup(valstring);
 					gtk_editable_set_text(GTK_EDITABLE(lbl), valstring);
@@ -176,7 +228,14 @@ static void on_key_edit_done(GtkEditableLabel *lbl, KeyEditCtx *ctx) {
 			if (len >= FLEN_COMMENT)
 				siril_log_debug("Exceeded FITS COMMENT length\n");
 			if (g_strcmp0(row->comment, commentstring) != 0) {
-				if (!updateFITSKeyword(gfit, row->key, NULL, row->value, commentstring, TRUE, FALSE)) {
+				if (to_seq) {
+					if (launch_seq_keyword_edit(row->key, NULL, row->value, commentstring)) {
+						g_free(row->comment);
+						row->comment = g_strdup(commentstring);
+					} else {
+						gtk_editable_set_text(GTK_EDITABLE(lbl), row->comment);
+					}
+				} else if (!updateFITSKeyword(gfit, row->key, NULL, row->value, commentstring, TRUE, FALSE)) {
 					g_free(row->comment);
 					row->comment = g_strdup(commentstring);
 				} else {
@@ -441,6 +500,7 @@ static int listFITSKeywords(fits *fit, gboolean editable) {
 
 void on_keywords_dialog_show(GtkWidget *dialog, gpointer user_data) {
 	(void)dialog; (void)user_data;
+	seq_kw_edit_confirmed = FALSE;
 	gui_function(refresh_keywords_dialog, NULL);
 }
 
@@ -862,7 +922,7 @@ gboolean refresh_keywords_dialog(gpointer user_data) {
 	gboolean is_a_single_image_loaded = single_image_is_loaded() &&
 			(!sequence_is_loaded() || (sequence_is_loaded() &&
 			(com.seq.current == RESULT_IMAGE || com.seq.current == SCALED_IMAGE)));
-	listFITSKeywords(gfit, is_a_single_image_loaded);
+	listFITSKeywords(gfit, is_a_single_image_loaded || keyword_edits_target_sequence());
 	if (gfit->header)
 		show_header_text(gfit->header);
 	return FALSE;
