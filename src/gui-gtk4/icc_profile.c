@@ -272,11 +272,9 @@ void on_pref_icc_assign_never_toggled(GtkCheckButton *button, gpointer user_data
 		g_signal_handlers_unblock_by_func(composition, on_pref_icc_assign_toggled, NULL);
 	}
 }
-/* Idle function for generic_image_worker path of on_icc_assign_clicked
- * and on_icc_remove_clicked.  For FLIS the colour-managed state lives on
- * the base (profiled) layer; gfit is typically the active non-base
- * layer with color_managed=FALSE, so we'd otherwise leave the convert
- * /remove buttons disabled despite the FLIS being managed. */
+/* Idle function for the icc_state_worker path of on_icc_assign_clicked
+ * and on_icc_remove_clicked (assign/remove are com.uniq state changes,
+ * no pixel work — see icc_state_worker in core/icc_profile.c). */
 static gboolean icc_assign_idle(gpointer p) {
 	stop_processing_thread();
 	gboolean managed = current_image_color_managed();
@@ -284,7 +282,7 @@ static gboolean icc_assign_idle(gpointer p) {
 	gtk_widget_set_sensitive(lookup_widget("icc_remove"), managed);
 	set_source_information();
 	gfit_modified_update_gui();
-	free_generic_img_args((struct generic_img_args *)p);
+	free_icc_state_args(p);
 	set_cursor_waiting(FALSE);
 	return FALSE;
 }
@@ -298,6 +296,27 @@ static gboolean icc_convert_to_idle(gpointer p) {
 	gui_function(init_right_tab, NULL);
 	gfit_modified_update_gui();
 	free_generic_img_args((struct generic_img_args *)p);
+	set_cursor_waiting(FALSE);
+	return FALSE;
+}
+
+/* Idle function for the generic_layer_worker path of
+ * on_icc_convertto_clicked (FLIS documents).  Overriding the worker's
+ * default idle means taking over its display duties too: every layer's
+ * pixels (and tint vectors) changed, so drop the composite caches and
+ * re-run the full display pipeline, then refresh the dialog labels. */
+static gboolean icc_convert_flis_idle(gpointer p) {
+	struct generic_layer_args *args = (struct generic_layer_args *)p;
+	stop_processing_thread();
+	if (!args->retval && is_current_image_flis()) {
+		gui_iface.flis_display_invalidate(FLIS_INV_ALL, 0);
+		gui_iface.flis_gui_update();   /* tint swatches may have changed */
+		notify_gfit_data_modified();
+		gui_iface.redraw_image(REDRAW_ALL);
+	}
+	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), current_image_color_managed());
+	set_source_information();
+	free_generic_layer_args(args);
 	set_cursor_waiting(FALSE);
 	return FALSE;
 }
@@ -367,36 +386,24 @@ void on_icc_assign_clicked(GtkButton* button, gpointer* user_data) {
 		return;
 	}
 FINISH:;
-	struct icc_data *icc_args = calloc(1, sizeof(struct icc_data));
-	icc_args->destroy_fn = free_icc_data;
-	icc_args->profile = copyICCProfile(target);
-
-	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
-	/* The hooks distinguish "current image" via fit_is_current_image,
-	 * which matches gfit OR (for FLIS) the profiled fit.  Pass the
-	 * profiled fit so FLIS gets the multi-layer undo path. */
-	args->fit = is_current_image_flis() ? flis_get_profiled_fit() : gfit;
-	args->image_hook = icc_assign_hook;
-	args->log_hook = icc_assign_log_hook;
+	/* Assign is a pure com.uniq state change — no pixel work, no fits
+	 * identity needed. */
+	struct icc_state_args *args = calloc(1, sizeof(struct icc_state_args));
+	args->destroy_fn = free_icc_state_args;
+	args->profile = copyICCProfile(target);
 	args->idle_function = icc_assign_idle;
-	args->description = _("ICC profile assignment");
-	args->verbose = TRUE;
-	args->user = icc_args;
-	if (!start_in_new_thread(generic_image_worker, args))
-		free_generic_img_args(args);
+	if (!start_in_new_thread(icc_state_worker, args))
+		free_icc_state_args(args);
 }
 
 void on_icc_remove_clicked(GtkButton* button, gpointer* user_data) {
 	on_clear_roi();
-	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
-	args->fit = is_current_image_flis() ? flis_get_profiled_fit() : gfit;
-	args->image_hook = icc_remove_hook;
-	args->log_hook = icc_remove_log_hook;
+	struct icc_state_args *args = calloc(1, sizeof(struct icc_state_args));
+	args->destroy_fn = free_icc_state_args;
+	args->profile = NULL;   /* NULL = remove */
 	args->idle_function = icc_assign_idle;
-	args->description = _("ICC profile removal");
-	args->verbose = TRUE;
-	if (!start_in_new_thread(generic_image_worker, args))
-		free_generic_img_args(args);
+	if (!start_in_new_thread(icc_state_worker, args))
+		free_icc_state_args(args);
 }
 
 void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
@@ -422,16 +429,30 @@ void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
 	icc_args->profile = copyICCProfile(target);
 	icc_args->intent = com.pref.icc.export_intent;
 
-	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
-	args->fit = is_current_image_flis() ? flis_get_profiled_fit() : gfit;
-	args->image_hook = icc_convert_to_hook;
-	args->log_hook = icc_convert_to_log_hook;
-	args->idle_function = icc_convert_to_idle;
-	args->description = _("ICC color space conversion");
-	args->verbose = TRUE;
-	args->user = icc_args;
-	if (!start_in_new_thread(generic_image_worker, args))
-		free_generic_img_args(args);
+	if (is_current_image_flis()) {
+		/* Converting a FLIS rewrites every layer's pixels — a layer-stack
+		 * mutation, so it goes through generic_layer_worker (stack writer
+		 * lock + multi-layer undo). */
+		struct generic_layer_args *largs = calloc(1, sizeof(struct generic_layer_args));
+		largs->layer_hook = icc_convert_flis_layer_hook;
+		largs->user = icc_args;
+		largs->description = _("ICC color space conversion");
+		largs->verbose = TRUE;
+		largs->idle_function = icc_convert_flis_idle;
+		if (!start_in_new_thread(generic_layer_worker, largs))
+			free_generic_layer_args(largs);
+	} else {
+		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+		args->fit = gfit;
+		args->image_hook = icc_convert_to_hook;
+		args->log_hook = icc_convert_to_log_hook;
+		args->idle_function = icc_convert_to_idle;
+		args->description = _("ICC color space conversion");
+		args->verbose = TRUE;
+		args->user = icc_args;
+		if (!start_in_new_thread(generic_image_worker, args))
+			free_generic_img_args(args);
+	}
 }
 
 void on_icc_target_combo_changed(GObject *obj, GParamSpec *pspec, gpointer user_data) {

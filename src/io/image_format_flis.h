@@ -439,19 +439,6 @@ flis_layer_t *flis_active_layer(void);
  */
 fits *flis_active_layer_fit(void);
 
-/**
- * flis_get_profiled_fit:
- *
- * Returns the fits* that carries the authoritative ICC profile for the
- * current image.  For a FLIS image this is the base layer's fits*; for a
- * plain FITS image (or when no image is loaded) it returns gfit.
- *
- * Use this wherever you need "the image's colour profile" rather than
- * "this particular layer's colour profile".  The ~200 per-layer call
- * sites that use fit->icc_profile directly are correct as-is because
- * non-base FLIS layers always have icc_profile == NULL.
- */
-fits *flis_get_profiled_fit(void);
 
 /**
  * flis_composite_naxes2:

@@ -181,11 +181,33 @@ struct icc_data {
 };
 
 void free_icc_data(void *p);
-int icc_remove_hook(struct generic_img_args *args, fits *fit, int threads);
-gchar *icc_remove_log_hook(gpointer p, log_hook_detail detail);
-int icc_assign_hook(struct generic_img_args *args, fits *fit, int threads);
-gchar *icc_assign_log_hook(gpointer p, log_hook_detail detail);
 int icc_convert_to_hook(struct generic_img_args *args, fits *fit, int threads);
 gchar *icc_convert_to_log_hook(gpointer p, log_hook_detail detail);
+
+/* Layer hook for ICC conversion of a FLIS document: transforms every
+ * layer's pixels (and tint vectors) via flis_convert_layers_icc under the
+ * stack writer lock, saves a multi-layer undo entry and lands the new
+ * profile on com.uniq.  Submit via generic_layer_worker; args->user is a
+ * struct icc_data. */
+int icc_convert_flis_layer_hook(struct generic_layer_args *args);
+
+/* --------------------------------------------------------------------
+ * Assign / Remove are pure document-state operations: they touch no
+ * pixels, so they do not ride generic_image_worker (which would deep-copy
+ * the whole image on the swap path just to change a profile pointer).
+ * They run as a lightweight processing-thread job that reads and writes
+ * com.uniq directly.
+ * -------------------------------------------------------------------- */
+struct icc_state_args {
+	destructor destroy_fn;      /* Must be first member */
+	cmsHPROFILE profile;        /* owned; NULL = remove the profile */
+	gboolean command;           /* TRUE when invoked from a command/script */
+	gboolean (*idle_function)(gpointer p); /* override the default end idle */
+	int retval;                 /* 0 = success, set by the worker */
+};
+
+void free_icc_state_args(void *p);
+/* Thread function for start_in_new_thread. */
+gpointer icc_state_worker(gpointer p);
 
 #endif /* SRC_CORE_ICC_PROFILE_H_ */

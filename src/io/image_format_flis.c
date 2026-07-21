@@ -1973,10 +1973,8 @@ int load_flis(const gchar *filename) {
     com.uniq->groups    = groups;
     com.uniq->next_item_id = 1; /* will be set properly below */
 
-    /* ICC profile (image-level — see flis_get_profiled_fit comment) lives
-     * on com.uniq.  The base layer fit will continue to mirror it for the
-     * duration of the migration via current_image_set_icc_profile so that
-     * legacy fit->icc_profile readers still work. */
+    /* ICC profile (image-level — see icc_profile.h accessors) lives
+     * on com.uniq; no fits carries ICC state. */
     if (com.uniq->icc_profile) {
         cmsCloseProfile(com.uniq->icc_profile);
         com.uniq->icc_profile = NULL;
@@ -2107,13 +2105,6 @@ flis_layer_t *flis_active_layer(void) {
 fits *flis_active_layer_fit(void) {
     flis_layer_t *lay = flis_active_layer();
     return lay ? lay->fit : NULL;
-}
-
-fits *flis_get_profiled_fit(void) {
-    if (!is_current_image_flis() || !com.uniq || !com.uniq->layers)
-        return gfit;
-    flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
-    return (base && base->fit) ? base->fit : gfit;
 }
 
 guint flis_composite_naxes2(void) {

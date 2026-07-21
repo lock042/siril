@@ -14242,19 +14242,23 @@ int process_seq_profile(int nb) {
 int process_icc_assign(int nb) {
 	gui_iface.clear_roi();
 	char *arg = word[1];
+	/* The profile describes the current image: for a FLIS that is the
+	 * always-RGB composite, not the (possibly mono) active layer. */
+	gboolean mono = (is_current_image_flis()
+	                 ? flis_composite_naxes2() : (guint)gfit->naxes[2]) == 1;
 	cmsHPROFILE profile = NULL;
 	if (!g_ascii_strncasecmp(arg, "srgblinear", 10)) {
-		profile = gfit->naxes[2] == 1 ? gray_linear() : srgb_linear();
+		profile = mono ? gray_linear() : srgb_linear();
 	} else if (!g_ascii_strncasecmp(arg, "srgb", 4)) {
-		profile = gfit->naxes[2] == 1 ? gray_srgbtrc() : srgb_trc();
+		profile = mono ? gray_srgbtrc() : srgb_trc();
 	} else if (!g_ascii_strncasecmp(arg, "rec2020linear", 13)) {
-		profile = gfit->naxes[2] == 1 ? gray_linear() : rec2020_linear();
+		profile = mono ? gray_linear() : rec2020_linear();
 	} else if (!g_ascii_strncasecmp(arg, "rec2020", 7)) {
-		profile = gfit->naxes[2] == 1 ? gray_rec709trc() : rec2020_trc();
+		profile = mono ? gray_rec709trc() : rec2020_trc();
 	} else if (!g_ascii_strncasecmp(arg, "linear", 6)) {
-		profile = gfit->naxes[2] == 1 ? gray_linear() : siril_color_profile_linear_from_color_profile(com.icc.working_standard);
+		profile = mono ? gray_linear() : siril_color_profile_linear_from_color_profile(com.icc.working_standard);
 	} else if (!g_ascii_strncasecmp(arg, "working", 7)) {
-		profile = copyICCProfile(gfit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard);
+		profile = copyICCProfile(mono ? com.icc.mono_standard : com.icc.working_standard);
 	} else if (g_file_test(arg, G_FILE_TEST_EXISTS) && g_file_test(arg, G_FILE_TEST_IS_REGULAR)) {
 		profile = cmsOpenProfileFromFile(arg, "r");
 	}
@@ -14263,22 +14267,14 @@ int process_icc_assign(int nb) {
 		return CMD_GENERIC_ERROR;
 	}
 
-	struct icc_data *icc_args = calloc(1, sizeof(struct icc_data));
-	icc_args->destroy_fn = free_icc_data;
-	icc_args->profile = profile;  /* hook owns it via icc_args */
-
-	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
-	args->fit = gfit;
-	args->image_hook = icc_assign_hook;
-	args->log_hook = icc_assign_log_hook;
-	args->description = _("ICC profile assignment");
-	args->verbose = TRUE;
+	/* Assign is a pure com.uniq state change: no pixel work, so no
+	 * generic_image_worker (see icc_state_worker). */
+	struct icc_state_args *args = calloc(1, sizeof(struct icc_state_args));
+	args->destroy_fn = free_icc_state_args;
+	args->profile = profile;  /* worker owns it */
 	args->command = TRUE;
-	args->command_updates_gfit = TRUE;
-	args->skip_generic_undo = TRUE;  /* siril_colorspace_transform already writes FITS history */
-	args->user = icc_args;
-	if (!start_in_new_thread(generic_image_worker, args)) {
-		free_generic_img_args(args);
+	if (!start_in_new_thread(icc_state_worker, args)) {
+		free_icc_state_args(args);
 		return CMD_GENERIC_ERROR;
 	}
 	return CMD_OK;
@@ -14322,7 +14318,10 @@ int process_icc_convert_to(int nb) {
 	} else if (!g_ascii_strncasecmp(arg, "graylinear", 10)) {
 		profile = gray_linear();
 	} else if (!g_ascii_strncasecmp(arg, "working", 7)) {
-		profile = copyICCProfile(gfit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard);
+		/* Composite-aware: a FLIS document is always RGB. */
+		gboolean mono = (is_current_image_flis()
+		                 ? flis_composite_naxes2() : (guint)gfit->naxes[2]) == 1;
+		profile = copyICCProfile(mono ? com.icc.mono_standard : com.icc.working_standard);
 	} else if (g_file_test(arg, G_FILE_TEST_EXISTS) && g_file_test(arg, G_FILE_TEST_IS_REGULAR)) {
 		profile = cmsOpenProfileFromFile(arg, "r");
 	}
@@ -14336,6 +14335,23 @@ int process_icc_convert_to(int nb) {
 	icc_args->profile = profile;
 	icc_args->intent = intent;
 
+	if (is_current_image_flis()) {
+		/* Converting a FLIS rewrites every layer's pixels — a layer-stack
+		 * mutation, so it goes through generic_layer_worker (stack writer
+		 * lock + multi-layer undo). */
+		struct generic_layer_args *largs = calloc(1, sizeof(struct generic_layer_args));
+		largs->layer_hook = icc_convert_flis_layer_hook;
+		largs->user = icc_args;
+		largs->description = _("ICC color space conversion");
+		largs->verbose = TRUE;
+		largs->command = TRUE;
+		if (!start_in_new_thread(generic_layer_worker, largs)) {
+			free_generic_layer_args(largs);
+			return CMD_GENERIC_ERROR;
+		}
+		return CMD_OK;
+	}
+
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
 	args->image_hook = icc_convert_to_hook;
@@ -14344,7 +14360,7 @@ int process_icc_convert_to(int nb) {
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->command_updates_gfit = TRUE;
-	args->skip_generic_undo = TRUE;  /* siril_colorspace_transform already writes FITS history */
+	args->skip_generic_undo = TRUE;  /* the hook saves a combined pixels+ICC entry */
 	args->user = icc_args;
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -14355,21 +14371,18 @@ int process_icc_convert_to(int nb) {
 
 int process_icc_remove(int nb) {
 	gui_iface.clear_roi();
-	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	/* Remove is a pure com.uniq state change: no pixel work, so no
+	 * generic_image_worker (see icc_state_worker). */
+	struct icc_state_args *args = calloc(1, sizeof(struct icc_state_args));
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		return CMD_ALLOC_ERROR;
 	}
-	args->fit = gfit;
-	args->image_hook = icc_remove_hook;
-	args->log_hook = icc_remove_log_hook;
-	args->description = _("ICC profile removal");
-	args->verbose = TRUE;
+	args->destroy_fn = free_icc_state_args;
+	args->profile = NULL;   /* NULL = remove */
 	args->command = TRUE;
-	args->command_updates_gfit = TRUE;
-	args->skip_generic_undo = TRUE;  /* siril_colorspace_transform already writes FITS history */
-	if (!start_in_new_thread(generic_image_worker, args)) {
-		free_generic_img_args(args);
+	if (!start_in_new_thread(icc_state_worker, args)) {
+		free_icc_state_args(args);
 		return CMD_GENERIC_ERROR;
 	}
 	return CMD_OK;

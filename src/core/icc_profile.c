@@ -171,15 +171,10 @@ void current_image_color_manage(gboolean active) {
 		gui_iface.update_icc_status_icon(NULL, active);
 }
 
-/* Returns TRUE iff @fit is the fits that holds the current-image state
- * (gfit for plain FITS, FLIS base for FLIS — though for FLIS the base
- * is now just a mirror, the canonical state lives on com.uniq). */
+/* Returns TRUE iff @fit is the fits that holds the current-image state.
+ * The canonical ICC state lives on com.uniq; only gfit stands in for it. */
 static gboolean fit_is_current_image(const fits *fit) {
-	if (!fit) return FALSE;
-	if (fit == gfit) return TRUE;
-	if (is_current_image_flis() && fit == flis_get_profiled_fit())
-		return TRUE;
-	return FALSE;
+	return fit && fit == gfit;
 }
 
 /* TRUE when @fit is the registered destination of an in-progress threaded
@@ -1193,6 +1188,43 @@ ERROR_OR_FINISH:
 	return retval;
 }
 
+/* Transform @fit's pixels in place from @src_profile to @dst_profile.
+ * Pure pixel work — no ICC state bookkeeping, no history, no com.uniq
+ * access.  Handles the mono↔RGB depth change implied by differing
+ * profile channel counts (gray→RGB expands the fits to 3 channels and
+ * vice versa).  Returns 0 on success, 1 if the transform could not be
+ * created.  Uses com.pref.icc.export_intent, matching the historical
+ * convert path. */
+static int icc_transform_fit_pixels(fits *fit, cmsHPROFILE src_profile,
+                                    cmsHPROFILE dst_profile) {
+	cmsUInt32Number src_cs = cmsGetColorSpace(src_profile);
+	cmsUInt32Number dst_cs = cmsGetColorSpace(dst_profile);
+	cmsUInt32Number src_ch = cmsChannelsOf(src_cs);
+	cmsUInt32Number dst_ch = cmsChannelsOf(dst_cs);
+	size_t npixels = fit->rx * fit->ry;
+	gboolean threaded = !processing_in_worker_thread();
+	cmsUInt32Number srctype = get_planar_formatter_type(src_cs, fit->type, FALSE);
+	cmsUInt32Number desttype = get_planar_formatter_type(dst_cs, fit->type, FALSE);
+	cmsHTRANSFORM transform = cmsCreateTransformTHR(
+			(threaded ? com.icc.context_threaded : com.icc.context_single),
+			src_profile, srctype, dst_profile, desttype,
+			com.pref.icc.export_intent, com.icc.rendering_flags);
+	if (!transform)
+		return 1;
+	if (src_ch < dst_ch)
+		fits_change_depth(fit, dst_ch);
+	void *data = (fit->type == DATA_FLOAT) ? (void *) fit->fdata : (void *) fit->data;
+	cmsUInt32Number datasize = fit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+	cmsUInt32Number bytesperline = fit->rx * datasize;
+	cmsUInt32Number bytesperplane = npixels * datasize;
+	cmsDoTransformLineStride(transform, data, data, fit->rx, fit->ry,
+			bytesperline, bytesperline, bytesperplane, bytesperplane);
+	cmsDeleteTransform(transform);
+	if (src_ch > dst_ch)
+		fits_change_depth(fit, dst_ch);
+	return 0;
+}
+
 void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 	/* Source profile / color_managed flag come from com.uniq for the
 	 * current image; from fit->* for intermediate buffers.  After the
@@ -1280,25 +1312,7 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Error"), _("Siril only supports representing the image in Gray or RGB color spaces. You cannot assign or convert to non-RGB color profiles"));
 		return;
 	}
-	void *data = NULL;
-	cmsUInt32Number srctype, desttype;
-	size_t npixels = fit->rx * fit->ry;
-	// convert from fit->icc_profile to profile
-	gboolean threaded = !processing_in_worker_thread();
-	srctype = get_planar_formatter_type(fit_colorspace, fit->type, FALSE);
-	desttype = get_planar_formatter_type(target_colorspace, fit->type, FALSE);
-	cmsHTRANSFORM transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), src_profile, srctype, profile, desttype, com.pref.icc.export_intent, com.icc.rendering_flags);
-	if (transform) {
-		if (fit_colorspace_channels < target_colorspace_channels)
-			fits_change_depth(fit, target_colorspace_channels);
-		data = (fit->type == DATA_FLOAT) ? (void *) fit->fdata : (void *) fit->data;
-		cmsUInt32Number datasize = fit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-		cmsUInt32Number bytesperline = fit->rx * datasize;
-		cmsUInt32Number bytesperplane = npixels * datasize;
-		cmsDoTransformLineStride(transform, data, data, fit->rx, fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
-		cmsDeleteTransform(transform);
-		if (fit_colorspace_channels > target_colorspace_channels)
-			fits_change_depth(fit, target_colorspace_channels);
+	if (!icc_transform_fit_pixels(fit, src_profile, profile)) {
 		set_fit_icc_profile(fit, copyICCProfile(profile));
 		gchar *desc = siril_color_profile_get_description(profile);
 		fit->history = g_slist_append(fit->history, g_strdup_printf(_("Converted to ICC profile: %s"), desc));
@@ -1694,108 +1708,197 @@ void free_icc_data(void *p) {
  * pixel data changes; only com.uniq->icc_profile / color_managed).
  * Task 20 introduces a lightweight ICC-only undo flavour that will
  * replace this. */
-int icc_remove_hook(struct generic_img_args *gargs, fits *fit, int threads) {
-	if (fit_is_current_image(fit) && current_image_color_managed()
-	    && current_icc_profile()) {
-		/* Lightweight ICC-only undo: snapshot com.uniq's profile only,
-		 * no swap files.  Works for both plain FITS and FLIS. */
-		undo_save_icc_state(_("ICC profile removed"));
-		gargs->skip_generic_undo = TRUE;
-	}
-	siril_colorspace_transform(fit, NULL);
-	return 0;
-}
-
-gchar *icc_remove_log_hook(gpointer p, log_hook_detail detail) {
-	return g_strdup(_("ICC profile removed"));
-}
-
-/* Hook for profile assignment (no pixel transform).
- * Clears the existing profile first to force the assign-only path
- * in siril_colorspace_transform, then assigns the new profile. */
-int icc_assign_hook(struct generic_img_args *gargs, fits *fit, int threads) {
-	struct icc_data *args = (struct icc_data *)gargs->user;
-	if (fit_is_current_image(fit)) {
-		/* Lightweight ICC-only undo. */
-		gchar *prof_desc = siril_color_profile_get_description(args->profile);
-		undo_save_icc_state(_("Assigned ICC profile: %s"),
-			prof_desc ? prof_desc : "?");
-		g_free(prof_desc);
-		gargs->skip_generic_undo = TRUE;
-	}
-	/* Force the assign-only path: clear any current profile so
-	 * siril_colorspace_transform sees !color_managed.  Only the current
-	 * image has profile state. */
-	if (fit_is_current_image(fit))
-		current_image_clear_icc_profile();
-	siril_colorspace_transform(fit, args->profile);
-	/* Check that the assign landed.  Only meaningful for the current
-	 * image — intermediate fits never had a profile slot. */
-	cmsHPROFILE landed = fit_is_current_image(fit) ? current_icc_profile() : NULL;
-	if (fit_is_current_image(fit) && !landed) {
-		siril_log_error(_("Error assigning ICC profile.\n"));
-		color_manage(fit, FALSE);
-		return 1;
-	}
-	return 0;
-}
-
-gchar *icc_assign_log_hook(gpointer p, log_hook_detail detail) {
-	struct icc_data *args = (struct icc_data *)p;
-	gchar *desc = siril_color_profile_get_description(args->profile);
-	gchar *ret = g_strdup_printf(_("Assigned ICC profile: %s"), desc);
-	g_free(desc);
-	return ret;
-}
-
-/* Hook for color space conversion (may transform pixels).
- * Sets the processing intent from args->intent then calls
- * siril_colorspace_transform which handles pixel conversion.
+/* --------------------------------------------------------------------
+ * Assign / Remove: pure document-state operations on com.uniq.
  *
- * For FLIS, a conversion that targets the base (profiled) fit must also
- * transform every *other* layer's pixels — otherwise mono+tinted upper
- * layers retain their old-colourspace data and the composite ends up
- * mixing two colour spaces.  flis_convert_layers_icc handles RGB-in-
- * place + mono broadcast/transform/collapse + tint vector conversion. */
+ * They touch no pixels, so they do not ride generic_image_worker — its
+ * swap path would deep-copy the whole image and hand the hook a private
+ * working copy that has no ICC identity (the profile change would be
+ * silently discarded).  Instead they run as a lightweight processing-
+ * thread job that reads and writes com.uniq directly.
+ * -------------------------------------------------------------------- */
+
+void free_icc_state_args(void *p) {
+	struct icc_state_args *args = (struct icc_state_args *)p;
+	if (!args)
+		return;
+	if (args->profile)
+		cmsCloseProfile(args->profile);
+	free(args);
+}
+
+static gboolean end_icc_state(gpointer p) {
+	struct icc_state_args *args = (struct icc_state_args *)p;
+	stop_processing_thread();
+	/* A profile change alters the display transform (soft proof) even
+	 * though no pixels changed — rebuild the display pipeline. */
+	if (!args->retval)
+		notify_gfit_data_modified();
+	free_icc_state_args(args);
+	return FALSE;
+}
+
+gpointer icc_state_worker(gpointer p) {
+	struct icc_state_args *args = (struct icc_state_args *)p;
+	args->retval = 0;
+
+	if (!com.uniq || !gfit || !single_image_is_loaded()) {
+		siril_log_error(_("No image loaded.\n"));
+		args->retval = 1;
+	} else if (args->profile) {
+		/* Assign */
+		cmsUInt32Number tcs = cmsGetColorSpace(args->profile);
+		/* For a FLIS the profile describes the always-RGB composite, so
+		 * check against the composite channel count, not the (possibly
+		 * mono) active layer. */
+		guint eff_naxes2 = is_current_image_flis()
+		                   ? flis_composite_naxes2() : (guint)gfit->naxes[2];
+		if (tcs != cmsSigGrayData && tcs != cmsSigRgbData) {
+			siril_log_error(_("Siril only supports representing the image in Gray or RGB color spaces. You cannot assign or convert to non-RGB color profiles\n"));
+			args->retval = 1;
+		} else if (cmsChannelsOf(tcs) != eff_naxes2) {
+			siril_log_error(_("Image number of channels does not match color profile number of channels. Cannot assign this profile to this image.\n"));
+			args->retval = 1;
+		} else {
+			gchar *desc = siril_color_profile_get_description(args->profile);
+			/* Lightweight ICC-only undo: snapshot of com.uniq's state
+			 * (gated on com.script internally). */
+			undo_save_icc_state(_("Assigned ICC profile: %s"), desc ? desc : "?");
+			current_image_set_icc_profile(copyICCProfile(args->profile));
+			current_image_color_manage(TRUE);
+			gfit->history = g_slist_append(gfit->history,
+					g_strdup_printf(_("Assigned ICC profile: %s"), desc ? desc : "?"));
+			siril_log_message(_("Assigned ICC profile: %s\n"), desc ? desc : "?");
+			g_free(desc);
+			refresh_icc_transforms();
+		}
+	} else {
+		/* Remove */
+		if (current_image_color_managed() && current_icc_profile()) {
+			undo_save_icc_state(_("ICC profile removed"));
+			gfit->history = g_slist_append(gfit->history,
+					g_strdup(_("ICC profile removed")));
+		}
+		current_image_clear_icc_profile();
+		siril_log_message(_("ICC profile removed.\n"));
+		/* Removal must also invalidate the cached display LUT / proofing
+		 * transform (see the matching hardening in
+		 * siril_colorspace_transform's removal path). */
+		refresh_icc_transforms();
+	}
+
+	int retval = args->retval;
+	if (args->command) {
+		if (com.headless) {
+			stop_processing_thread();
+			free_icc_state_args(args);
+		} else {
+			gui_iface.execute_idle_sync(end_icc_state, args);
+		}
+	} else if (args->idle_function) {
+		siril_add_idle(args->idle_function, args);
+	} else {
+		siril_add_idle(end_icc_state, args);
+	}
+	return GINT_TO_POINTER(retval);
+}
+
+/* Hook for color space conversion of a plain (non-FLIS) image.
+ *
+ * Runs on generic_image_worker's swap path: @fit is the private working
+ * copy of gfit, so the pixel transform happens off-thread and lands at
+ * the swap.  ICC state lives on com.uniq, not on any fits — the working
+ * copy has no profile identity — so the source profile is read from
+ * com.uniq and the new profile is landed on com.uniq directly here.
+ * FLIS documents convert through icc_convert_flis_layer_hook instead. */
 int icc_convert_to_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 	struct icc_data *args = (struct icc_data *)gargs->user;
-	cmsUInt32Number temp_intent = com.pref.icc.processing_intent;
-	com.pref.icc.processing_intent = args->intent;
-
-	if (fit_is_current_image(fit) && is_current_image_flis()
-	    && current_image_color_managed() && current_icc_profile()) {
-		/* Multi-layer undo capture: pixels + tints + base profile.
-		 * Task 20 will replace this with an ICC-only undo flavour
-		 * (no pixel/mask swaps) since the convert only rewrites pixels
-		 * via flis_convert_layers_icc — which we own and could re-run
-		 * on undo too. */
-		gchar *prof_desc = siril_color_profile_get_description(args->profile);
-		undo_save_flis_multi_layer(com.uniq->layers,
-			_("Converted to ICC profile: %s"),
-			prof_desc ? prof_desc : "?");
-		g_free(prof_desc);
-		gargs->skip_generic_undo = TRUE;
-
-		/* Transform every layer's pixels (and tinted-mono tint vectors)
-		 * Rec2020→sRGB-style, then re-tag the base / com.uniq with the
-		 * new profile.  The proofing transform must be refreshed
-		 * explicitly: siril_colorspace_transform's safety-net branch
-		 * (mono base + RGB profile → re-tag only) does not call it. */
-		cmsHPROFILE old = copyICCProfile(current_icc_profile());
-		flis_convert_layers_icc(old, args->profile);
-		cmsCloseProfile(old);
-		siril_colorspace_transform(fit, args->profile);
-		refresh_icc_transforms();
-	} else {
-		siril_colorspace_transform(fit, args->profile);
-	}
-
-	com.pref.icc.processing_intent = temp_intent;
-	cmsHPROFILE landed = fit_is_current_image(fit) ? current_icc_profile() : NULL;
-	if (fit_is_current_image(fit) && !landed) {
-		siril_log_error(_("Error converting ICC color space.\n"));
+	cmsHPROFILE src_profile = current_icc_profile();
+	if (!current_image_color_managed() || !src_profile) {
+		siril_log_error(_("Image has no color profile assigned to convert from. Assign a profile first.\n"));
 		return 1;
 	}
+	gchar *prof_desc = siril_color_profile_get_description(args->profile);
+
+	/* Pixels and profile must revert together: save the combined entry
+	 * now, while @fit still holds the pre-op pixels and com.uniq still
+	 * holds the pre-op profile. */
+	if (!com.script && !gargs->for_preview && gargs->fit == gfit) {
+		undo_save_state_with_icc(fit, src_profile,
+				_("Converted to ICC profile: %s"), prof_desc ? prof_desc : "?");
+	}
+	gargs->skip_generic_undo = TRUE;
+
+	cmsUInt32Number temp_intent = com.pref.icc.processing_intent;
+	com.pref.icc.processing_intent = args->intent;
+	int rc = 0;
+	cmsUInt32Number src_ch = cmsChannelsOf(cmsGetColorSpace(src_profile));
+	if (src_ch != (cmsUInt32Number)fit->naxes[2]) {
+		/* Profile/data channel mismatch (e.g. a re-tagged image): the
+		 * pixel transform cannot run — re-tag only, matching the old
+		 * safety net in siril_colorspace_transform. */
+		siril_log_message(_("Profile/data channel mismatch — re-tagging only.\n"));
+	} else {
+		rc = icc_transform_fit_pixels(fit, src_profile, args->profile);
+	}
+	com.pref.icc.processing_intent = temp_intent;
+	if (rc) {
+		siril_log_error(_("Failed to create colorspace transform.\n"));
+		g_free(prof_desc);
+		return 1;
+	}
+
+	/* Land the new document profile; the pixel side lands at the swap. */
+	current_image_set_icc_profile(copyICCProfile(args->profile));
+	current_image_color_manage(TRUE);
+	fit->history = g_slist_append(fit->history,
+			g_strdup_printf(_("Converted to ICC profile: %s"), prof_desc ? prof_desc : "?"));
+	g_free(prof_desc);
+	refresh_icc_transforms();
+	return 0;
+}
+
+/* Layer hook for ICC conversion of a FLIS document.
+ *
+ * A conversion must transform every layer's pixels — otherwise
+ * mono+tinted upper layers retain their old-colourspace data and the
+ * composite ends up mixing two colour spaces.  flis_convert_layers_icc
+ * handles RGB-in-place + mono broadcast/transform/collapse + tint
+ * vector conversion.  This is a layer-stack mutation, so it runs under
+ * generic_layer_worker's stack writer lock (the old image-worker route
+ * mutated layer pixels without it).
+ *
+ * refresh_icc_transforms takes only the ICC mutexes — stack → ICC
+ * matches the display readers' lock order. */
+int icc_convert_flis_layer_hook(struct generic_layer_args *largs) {
+	struct icc_data *args = (struct icc_data *)largs->user;
+	cmsHPROFILE cur = current_icc_profile();
+	if (!current_image_color_managed() || !cur) {
+		siril_log_error(_("Image has no color profile assigned to convert from. Assign a profile first.\n"));
+		return 1;
+	}
+	gchar *prof_desc = siril_color_profile_get_description(args->profile);
+	/* Multi-layer undo: pixels + tints of every layer in one entry
+	 * (gated on com.script internally).  Task 20 may replace this with
+	 * an ICC-only flavour that re-runs the transform on undo. */
+	undo_save_flis_multi_layer(com.uniq->layers,
+			_("Converted to ICC profile: %s"), prof_desc ? prof_desc : "?");
+
+	cmsUInt32Number temp_intent = com.pref.icc.processing_intent;
+	com.pref.icc.processing_intent = args->intent;
+	cmsHPROFILE old = copyICCProfile(cur);
+	flis_convert_layers_icc(old, args->profile);
+	cmsCloseProfile(old);
+	com.pref.icc.processing_intent = temp_intent;
+
+	/* Land the new document profile. */
+	current_image_set_icc_profile(copyICCProfile(args->profile));
+	current_image_color_manage(TRUE);
+	if (gfit)
+		gfit->history = g_slist_append(gfit->history,
+				g_strdup_printf(_("Converted to ICC profile: %s"), prof_desc ? prof_desc : "?"));
+	g_free(prof_desc);
+	refresh_icc_transforms();
 	return 0;
 }
 
