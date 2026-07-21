@@ -42,6 +42,11 @@
 void flis_gui_toggle_visible(void);
 void flis_gui_update_from_idle(void);
 
+/* Coalesced refresh for per-motion drag ticks: immediate paint (GPU
+ * compose path reads live values) + one idle-priority full pipeline
+ * rebuild once the motion-event burst drains. */
+void flis_drag_tick_refresh(void);
+
 /* Idempotent show: present the panel (building it if needed) only when
  * a FLIS is currently loaded.  No-op for plain FITS / sequences / no
  * image.  Wired from single_image.c::open_single_image_from_gfit via

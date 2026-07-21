@@ -28,6 +28,7 @@
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "core/icc_profile.h"
 #include "algos/statistics.h"
 #include "algos/fix_xtrans_af.h"
 #include "filters/cosmetic_correction.h"
@@ -526,6 +527,10 @@ int calibrate_single_image(struct preprocessing_data *args) {
 
 	copyfits(com.uniq->fit, &fit, CP_ALLOC | CP_FORMAT | CP_COPYA | CP_WCS | CP_UNKNOWNKEYS | CP_DATES, 0);
 
+	/* Captured before clear_preprocessing_data below: decides the ICC
+	 * outcome when the result is installed (see comment there). */
+	gboolean did_debayer = args->debayer;
+
 	struct generic_seq_args generic = { .user = args };
 	ret = prepro_prepare_hook(&generic);
 	if (!ret)
@@ -551,6 +556,13 @@ int calibrate_single_image(struct preprocessing_data *args) {
 			com.uniq->chans = fit.naxes[2];
 			com.uniq->filename = strdup(dest_filename);
 			// this way of opening it will not create gfit->header
+			/* ICC: master's per-fits model carried the profile on the
+			 * working copy and debayering cleared it there; under the
+			 * com.uniq model the debayer clear no-ops for the local
+			 * fit, so replicate here — CFA→RGB invalidates the
+			 * profile, plain calibration preserves it. */
+			if (did_debayer)
+				current_image_clear_icc_profile();
 		}
 		else clearfits(&fit);
 

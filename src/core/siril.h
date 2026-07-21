@@ -949,6 +949,14 @@ struct historic_struct {
 	gboolean icc_was_managed;  /* snapshot of color_managed at save time
 	                              (icc_only entries only) */
 
+	/* ---- Canvas dimensions (compound FLIS entries) -------------------- */
+	/* Captured by the multi-layer save paths; canvas ops (resize / fit /
+	 * rotate) change com.uniq->canvas_w/h alongside layer positions, and
+	 * restoring positions onto the post-op canvas would leave the
+	 * document internally inconsistent.  0 = not captured. */
+	guint flis_canvas_w;
+	guint flis_canvas_h;
+
 	/* ---- Compound (multi-layer) undo ---------------------------------- */
 	/* Non-NULL only when this entry was saved via undo_save_flis_multi_layer().
 	 * When set, the single-layer fields above are unused. */

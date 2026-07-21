@@ -1153,15 +1153,11 @@ int read_icc_profile_from_fits(fits *fit) {
 		return 1;
 	}
 	cmsHPROFILE _embedded = cmsOpenProfileFromMem(profile, profile_length);
-	if (fit == gfit) {
-		current_image_set_icc_profile(_embedded);
-		current_image_color_manage(_embedded != NULL);
-		if (_embedded)
-			siril_log_debug("Embedded ICC profile read from FITS\n");
-	} else if (_embedded) {
-		/* Sequence frames / intermediate buffers have no profile storage. */
-		cmsCloseProfile(_embedded);
-	}
+	/* Routes to com.uniq (gfit), the staging area (pending threaded-open
+	 * fits, or gfit before com.uniq exists), or closes it (sequence
+	 * frames / intermediate buffers have no profile storage). */
+	if (icc_profile_attach_from_load(fit, _embedded) && _embedded)
+		siril_log_debug("Embedded ICC profile read from FITS\n");
 	free(profile);
 	free(header);
 	fits_movabs_hdu(fit->fptr, orig_hdu, &hdutype, &status);
@@ -1251,6 +1247,12 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 			                  filename);
 			int rv = load_flis(name);
 			free(name);
+			/* load_flis repointed the global gfit at the active layer's
+			 * fits; the (clearfits'd, pixel-less) struct the caller
+			 * passed in is deliberately left allocated: another thread
+			 * may still hold the old gfit pointer (python bridge, a
+			 * blocked rwlock waiter), and freeing it here would turn a
+			 * ~500-byte one-off leak into a use-after-free. */
 			return rv;
 		}
 	}

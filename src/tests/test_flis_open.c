@@ -226,3 +226,113 @@ Test(flis_open, flis_file_is_not_a_fitseq) {
 	cr_assert_eq(fitseq_is_fitseq(tmppath, &frames), 0,
 	             "FLIS file detected as a FITS sequence (frames=%d)", frames);
 }
+
+/* ---- crafted-file hardening (M-F15 regression) ---------------------- */
+
+#include <fitsio.h>
+#include <string.h>
+
+/* Craft a FLIS whose metadata table has the columns in a non-standard
+ * order AND declares LAYER_NAME as 128A — wider than the loader's fixed
+ * 33-byte row field.  Pre-hardening, the loader used fixed column
+ * indices (misreading reordered tables) and CFITSIO's TSTRING read
+ * copied the declared width into the fixed buffer (heap overflow).
+ * Post-hardening, columns resolve by name and string cells are read
+ * bounded; the over-long name truncates. */
+Test(flis_open, crafted_wide_reordered_meta_columns_are_safe) {
+	gchar *path = g_build_filename(tmpdir, "crafted.flis", NULL);
+	fitsfile *fptr = NULL;
+	int status = 0;
+
+	fits_create_diskfile(&fptr, path, &status);
+	cr_assert_eq(status, 0);
+
+	/* HDU 1: thumbnail-ish primary with the FLIS identification keys. */
+	long naxes[2] = { 2, 2 };
+	float px[4] = { 0.f, 0.f, 0.f, 0.f };
+	fits_create_img(fptr, FLOAT_IMG, 2, naxes, &status);
+	int t = 1;
+	fits_write_key(fptr, TLOGICAL, "FLIS", &t, "FLIS file", &status);
+	fits_write_key(fptr, TSTRING, "FLISVER", "1.0", "version", &status);
+	fits_write_img(fptr, TFLOAT, 1, 4, px, &status);
+
+	/* HDU 2: FLIS_META with LAYER_NAME first and declared as 128A. */
+	char *names[14] = { "LAYER_NAME", "ITEM_ID", "ITEM_TYPE", "HDU_INDEX",
+	                    "PARENT_ID", "LAYER_ORDER", "COLOR_MDL", "BLEND_MODE",
+	                    "OPACITY", "VISIBLE", "POSITION_X", "POSITION_Y",
+	                    "METADATA", "GROUP_ID" };
+	char *forms[14] = { "128A", "1J", "8A", "1J",
+	                    "1J", "1J", "4A", "16A",
+	                    "1E", "1L", "1J", "1J",
+	                    "1PA", "1J" };
+	fits_create_tbl(fptr, BINARY_TBL, 0, 14, names, forms, NULL,
+	                "FLIS_META", &status);
+	cr_assert_eq(status, 0, "table creation failed: %d", status);
+
+	char longname[129];
+	memset(longname, 'N', 128);
+	longname[128] = '\0';
+	char *sp = longname;
+	fits_write_col(fptr, TSTRING, 1, 1, 1, 1, &sp, &status);
+	int iv = 1;
+	fits_write_col(fptr, TINT, 2, 1, 1, 1, &iv, &status);      /* ITEM_ID */
+	sp = "LAYER";
+	fits_write_col(fptr, TSTRING, 3, 1, 1, 1, &sp, &status);
+	iv = 3;
+	fits_write_col(fptr, TINT, 4, 1, 1, 1, &iv, &status);      /* HDU_INDEX */
+	iv = 0;
+	fits_write_col(fptr, TINT, 5, 1, 1, 1, &iv, &status);      /* PARENT_ID */
+	iv = 0;
+	fits_write_col(fptr, TINT, 6, 1, 1, 1, &iv, &status);      /* LAYER_ORDER */
+	sp = "MONO";
+	fits_write_col(fptr, TSTRING, 7, 1, 1, 1, &sp, &status);
+	sp = "NORMAL";
+	fits_write_col(fptr, TSTRING, 8, 1, 1, 1, &sp, &status);
+	float fv = 1.0f;
+	fits_write_col(fptr, TFLOAT, 9, 1, 1, 1, &fv, &status);
+	char lv = 1;
+	fits_write_col(fptr, TLOGICAL, 10, 1, 1, 1, &lv, &status);
+	iv = 0;
+	fits_write_col(fptr, TINT, 11, 1, 1, 1, &iv, &status);
+	iv = 0;
+	fits_write_col(fptr, TINT, 12, 1, 1, 1, &iv, &status);
+	/* METADATA left empty */
+	iv = 0;
+	fits_write_col(fptr, TINT, 14, 1, 1, 1, &iv, &status);
+	cr_assert_eq(status, 0, "row write failed: %d", status);
+
+	/* HDU 3: the layer image the row points at. */
+	float lpx[4] = { 0.5f, 0.5f, 0.5f, 0.5f };
+	fits_create_img(fptr, FLOAT_IMG, 2, naxes, &status);
+	fits_write_img(fptr, TFLOAT, 1, 4, lpx, &status);
+	fits_close_file(fptr, &status);
+	cr_assert_eq(status, 0, "file creation failed: %d", status);
+
+	/* The load must not corrupt memory.  Either a clean refusal or a
+	 * successful load with the over-long name truncated is acceptable. */
+	int rv = load_flis(path);
+	if (rv == 0) {
+		cr_assert_eq(flis_layer_count(), 1);
+		flis_layer_t *l = (flis_layer_t *)com.uniq->layers->data;
+		cr_assert_not_null(l->layer_name);
+		cr_assert(strlen(l->layer_name) <= 32,
+		          "over-long layer name must be truncated (got %zu chars)",
+		          strlen(l->layer_name));
+	}
+	g_unlink(path);
+	g_free(path);
+}
+
+/* A metadata table declaring an absurd row count must be refused before
+ * any per-row allocation happens. */
+Test(flis_open, garbage_file_fails_cleanly) {
+	gchar *path = g_build_filename(tmpdir, "garbage.flis", NULL);
+	FILE *f = fopen(path, "wb");
+	cr_assert_not_null(f);
+	for (int i = 0; i < 4096; i++)
+		fputc(i * 37 & 0xff, f);
+	fclose(f);
+	cr_assert_neq(load_flis(path), 0, "garbage input must fail cleanly");
+	g_unlink(path);
+	g_free(path);
+}

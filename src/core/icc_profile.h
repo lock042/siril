@@ -147,13 +147,27 @@ void        current_image_color_manage(gboolean active);
 void        stage_icc_profile_for_pending_image(cmsHPROFILE p, gboolean managed);
 void        install_staged_icc_profile(void);
 
+/* The threaded open decodes into a private fits while the previous image's
+ * com.uniq is still live.  Register that fits here (clears any stale staged
+ * profile); loaders then route its embedded profile into the staging area
+ * via icc_profile_attach_from_load().  Unregister with NULL when the decode
+ * finishes — that keeps the staged profile for install_staged_icc_profile().
+ *
+ * icc_profile_attach_from_load() takes ownership of @p and sends it to the
+ * right place for a load-time profile: staging (pending fit, or gfit with
+ * no com.uniq yet), the live image state (gfit with com.uniq), or closed
+ * and discarded (sequence frames / intermediate buffers — returns FALSE). */
+void        icc_profile_set_pending_fit(const fits *fit);
+gboolean    icc_fit_is_load_target(const fits *fit);
+gboolean    icc_profile_attach_from_load(const fits *fit, cmsHPROFILE p);
+
 /* Per-fits accessor: returns the ICC profile that applies to @fit.
  * For the current-image fits (gfit, or the FLIS profiled fit) this
  * is com.uniq's profile; for any intermediate / sequence-frame fits
  * it is NULL — those buffers carry no colour profile state.  Use
- * this everywhere old code did `fit->icc_profile`; the eventual
- * removal of fit->icc_profile from the fits struct will then
- * compile-error only on remaining hold-out sites. */
+ * this everywhere old code did `fit->icc_profile` (the field has been
+ * removed from the fits struct; these accessors are the only source of
+ * per-fits profile state). */
 cmsHPROFILE fit_get_icc_profile(const fits *fit);
 gboolean    fit_get_color_managed(const fits *fit);
 

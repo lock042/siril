@@ -225,3 +225,73 @@ Test(flis_undo_gui, purge_with_layer_none_is_noop) {
 	cr_assert_eq(g_list_length(com.undo_stack), 1,
 	             "purge with sentinel must touch nothing");
 }
+
+/* ----- restore path: undo/redo round-trips (C3/C4 regressions) -------- */
+
+/* Redo of a props-only entry must reapply the property change.  Before
+ * the counterpart-capture fix, undo_display_data pushed a flavour-blind
+ * pixel snapshot to the redo stack, so redo restored identical pixels
+ * and the property change silently vanished. */
+Test(flis_undo_gui, props_undo_redo_round_trip) {
+	com.headless = TRUE;
+	flis_layer_t *l = flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "x");
+	uniq_set_active_layer(com.uniq, 0);
+
+	l->opacity = 0.3f;
+	cr_assert_eq(undo_save_flis_layer_props(l, "opacity"), 0);
+	l->opacity = 0.9f;
+
+	cr_assert_eq(undo_display_data(UNDO), 0);
+	cr_assert_float_eq(l->opacity, 0.3f, 1e-6, "undo must restore the property");
+
+	cr_assert_eq(g_list_length(com.redo_stack), 1);
+	historic *h = (historic *)com.redo_stack->data;
+	cr_assert_not_null(h->layer_props,
+	                   "redo counterpart must be props-flavoured, not a pixel snapshot");
+	cr_assert(h->fd < 0, "props counterpart must not carry a pixel swap file");
+
+	cr_assert_eq(undo_display_data(REDO), 0);
+	cr_assert_float_eq(l->opacity, 0.9f, 1e-6, "redo must reapply the property change");
+	/* And the undo stack got a fresh props counterpart for another undo. */
+	cr_assert_eq(g_list_length(com.undo_stack), 1);
+	cr_assert_eq(undo_display_data(UNDO), 0);
+	cr_assert_float_eq(l->opacity, 0.3f, 1e-6, "second undo must work after redo");
+}
+
+/* A plain pixel entry saved while layer A was active must restore into
+ * layer A even if the active layer has changed since (C4: entries now
+ * record the layer identity; before, undo wrote A's pixels into whatever
+ * layer was active, resizing it to A's dims). */
+Test(flis_undo_gui, plain_undo_restores_into_saved_layer) {
+	com.headless = TRUE;
+	flis_layer_t *a = flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.25f), "a");
+	flis_layer_t *b = flis_test_add_layer(flis_test_make_mono_fits(6, 6, 0.75f), "b");
+	uniq_set_active_layer(com.uniq, 0);   /* a active, gfit = a->fit */
+
+	cr_assert_eq(undo_save_state(gfit, "stretch"), 0);
+	cr_assert_eq(g_list_length(com.undo_stack), 1);
+	historic *h = (historic *)com.undo_stack->data;
+	cr_assert_eq(h->flis_layer_id, a->item_id,
+	             "plain entry must record the layer it was saved from");
+
+	for (size_t i = 0; i < 16; i++)
+		a->fit->fdata[i] = 0.6f;
+
+	uniq_set_active_layer(com.uniq, 1);   /* b now active, gfit = b->fit */
+	cr_assert_eq(undo_display_data(UNDO), 0);
+
+	cr_assert_float_eq(a->fit->fdata[0], 0.25f, 1e-6,
+	                   "undo must restore the layer the state was saved from");
+	cr_assert_eq(a->fit->rx, 4u);
+	cr_assert_float_eq(b->fit->fdata[0], 0.75f, 1e-6,
+	                   "undo must not clobber the now-active layer");
+	cr_assert_eq(b->fit->rx, 6u, "active layer must not be resized by the restore");
+
+	/* Redo counterpart must also target layer a. */
+	cr_assert_eq(g_list_length(com.redo_stack), 1);
+	historic *r = (historic *)com.redo_stack->data;
+	cr_assert_eq(r->flis_layer_id, a->item_id);
+	cr_assert_eq(undo_display_data(REDO), 0);
+	cr_assert_float_eq(a->fit->fdata[0], 0.6f, 1e-6, "redo must reapply into layer a");
+	cr_assert_float_eq(b->fit->fdata[0], 0.75f, 1e-6);
+}

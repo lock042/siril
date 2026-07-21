@@ -80,6 +80,7 @@ static command commands[] = {
 	{"flis_canvas_rotate", 1, "flis_canvas_rotate <angle-degrees>", process_flis_canvas_rotate, STR_FLIS_CANVAS_ROTATE, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_clearmask", 1, "flis_clearmask <id|\"name\">", process_flis_clearmask, STR_FLIS_CLEARMASK, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_exportlayer", 2, "flis_exportlayer <id|\"name\"> <file>", process_flis_exportlayer, STR_FLIS_EXPORTLAYER, TRUE, REQ_CMD_FLIS_IMAGE},
+	{"flis_flatten", 0, "flis_flatten", process_flis_flatten, STR_FLIS_FLATTEN, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_group_info", 1, "flis_group_info <gid|\"name\">", process_flis_group_info, STR_FLIS_GROUP_INFO, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_group_list", 0, "flis_group_list [-format=text|csv]", process_flis_group_list, STR_FLIS_GROUP_LIST, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_info", 0, "flis_info", process_flis_info, STR_FLIS_INFO, TRUE, REQ_CMD_FLIS_IMAGE},

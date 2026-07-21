@@ -141,3 +141,30 @@ Test(flis_lifecycle, is_current_image_flis_reflects_layers_state) {
 	flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.0f), "base");
 	cr_assert(is_current_image_flis(), "one layer → FLIS");
 }
+
+/* ---- move past a group preserves the group's internal order (M-F8) -- */
+
+Test(flis_lifecycle, move_past_group_preserves_group_order) {
+	flis_layer_t *L = flis_test_add_layer(flis_test_make_mono_fits(2, 2, 0.1f), "L");
+	flis_layer_t *A = flis_test_add_layer(flis_test_make_mono_fits(2, 2, 0.2f), "A");
+	flis_layer_t *B = flis_test_add_layer(flis_test_make_mono_fits(2, 2, 0.3f), "B");
+	flis_group_t *g = flis_group_add("g");
+	A->group_id = g->item_id;
+	B->group_id = g->item_id;
+
+	/* L jumps past the whole group: expected bottom→top A, B, L.  The
+	 * old swap-with-far-member logic produced B, A, L — inverting the
+	 * group's internal z-order. */
+	cr_assert_eq(flis_layer_move_up(L), 0);
+	GSList *l = com.uniq->layers;
+	cr_assert_str_eq(((flis_layer_t *)l->data)->layer_name, "A");
+	cr_assert_str_eq(((flis_layer_t *)l->next->data)->layer_name, "B");
+	cr_assert_str_eq(((flis_layer_t *)l->next->next->data)->layer_name, "L");
+
+	/* And back down: L, A, B again. */
+	cr_assert_eq(flis_layer_move_down(L), 0);
+	l = com.uniq->layers;
+	cr_assert_str_eq(((flis_layer_t *)l->data)->layer_name, "L");
+	cr_assert_str_eq(((flis_layer_t *)l->next->data)->layer_name, "A");
+	cr_assert_str_eq(((flis_layer_t *)l->next->next->data)->layer_name, "B");
+}

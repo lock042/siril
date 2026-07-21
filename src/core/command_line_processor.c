@@ -117,6 +117,15 @@ void parse_line(char *myline, int len, int *nb) {
 				string_starter = '\0';
 				break;
 			}
+			/* Support -opt="value with spaces": a quote immediately
+			 * following '=' inside a word opens string mode, so the
+			 * quoted value (spaces included) stays in one word.  The
+			 * opening quote remains embedded in the word; option
+			 * parsers strip it from the extracted value. */
+			if (string_starter == '\0'
+					&& (myline[i] == '"' || myline[i] == '\'')
+					&& myline[i - 1] == '=')
+				string_starter = myline[i];
 		} while (i < len && (!isblank(myline[i]) || string_starter != '\0')
 				&& myline[i] != '\r' && myline[i] != '\n');
 		if (myline[i] == '\0')	// the end of the word and line (i == len)

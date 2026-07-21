@@ -28,6 +28,7 @@
 #include "flis_test_helpers.h"
 #include "core/processing.h"
 #include "core/masks.h"
+#include "core/undo.h"
 
 cominfo com;
 fits *gfit;
@@ -135,10 +136,12 @@ Test(flis_mask_route, target_id_zero_keeps_processing_mask) {
 	cr_assert_null(base->lmask, "no lmask routing should have happened");
 }
 
-/* Dimension mismatch: target layer is smaller than args->fit; routing
- * is refused (logged), mask stays on processing slot — a safer fallback
- * than dropping the mask on the floor. */
-Test(flis_mask_route, dim_mismatch_falls_back_to_processing_mask) {
+/* Dimension mismatch: the target layer is smaller than args->fit.  The
+ * worker's pre-check refuses the whole operation up front — no mask is
+ * generated at all.  (The old behaviour generated the mask and left it
+ * on the processing slot, which surprised users with an error message
+ * AND a stray mask they never asked for.) */
+Test(flis_mask_route, dim_mismatch_refuses_without_creating_mask) {
 	flis_test_add_layer(flis_test_make_mono_fits(16, 16, 0.0f), "base");
 	flis_layer_t *small = flis_test_add_layer(
 	    flis_test_make_mono_fits(8, 8, 0.5f), "small");
@@ -156,8 +159,9 @@ Test(flis_mask_route, dim_mismatch_falls_back_to_processing_mask) {
 
 	generic_mask_worker(args);
 
-	cr_assert_not_null(gfit->mask, "mask should fall back to processing slot");
-	cr_assert_null(small->lmask,   "mismatch layer must not receive mask");
+	cr_assert_null(gfit->mask,
+	               "refused op must not leave a stray processing mask");
+	cr_assert_null(small->lmask, "mismatch layer must not receive a mask");
 }
 
 /* No mask produced by the hook (hook returned success but didn't set
@@ -181,4 +185,65 @@ Test(flis_mask_route, no_mask_produced_no_op) {
 
 	cr_assert_null(gfit->mask);
 	cr_assert_null(top->lmask);
+}
+
+/* Routed lmask creation must be undoable: the worker saves an
+ * lmask-flavoured entry (not a flavour-blind pixel snapshot, which left
+ * the freshly routed mask surviving undo), and redo reinstates it. */
+Test(flis_mask_route, routed_lmask_undo_removes_mask) {
+	com.script = FALSE;    /* GUI-mode: worker-side undo saves are live */
+	com.headless = TRUE;
+	flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.0f), "base");
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+	flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+
+	struct generic_mask_args *args = calloc(1, sizeof(*args));
+	args->fit              = gfit;
+	args->mask_hook        = fill_mask_hook;
+	args->description      = "routed undo test";
+	args->command          = FALSE;   /* GUI path: worker saves undo */
+	args->mask_creation    = TRUE;
+	args->target_layer_id  = base->item_id;
+	args->max_threads      = 1;
+
+	generic_mask_worker(args);
+
+	cr_assert_not_null(base->lmask, "mask must be routed to the lmask");
+	cr_assert_eq(g_list_length(com.undo_stack), 1,
+	             "routed op must push exactly one (lmask) undo entry");
+
+	cr_assert_eq(undo_display_data(UNDO), 0);
+	cr_assert_null(base->lmask, "undo must remove the routed lmask");
+
+	cr_assert_eq(undo_display_data(REDO), 0);
+	cr_assert_not_null(base->lmask, "redo must reinstate the lmask");
+}
+
+/* A refused routed op (dimension mismatch) must leave no undo entry —
+ * the pre-check fires before any undo state is saved. */
+Test(flis_mask_route, refused_routing_leaves_no_undo) {
+	com.script = FALSE;
+	com.headless = TRUE;
+	flis_test_add_layer(flis_test_make_mono_fits(16, 16, 0.0f), "base");
+	flis_layer_t *small = flis_test_add_layer(
+	    flis_test_make_mono_fits(8, 8, 0.5f), "small");
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+
+	struct generic_mask_args *args = calloc(1, sizeof(*args));
+	args->fit              = gfit;
+	args->mask_hook        = fill_mask_hook;
+	args->description      = "refused undo test";
+	args->command          = FALSE;
+	args->mask_creation    = TRUE;
+	args->target_layer_id  = small->item_id;
+	args->max_threads      = 1;
+
+	generic_mask_worker(args);
+
+	cr_assert_null(gfit->mask, "refused op must create nothing");
+	cr_assert_null(small->lmask);
+	cr_assert_null(com.undo_stack,
+	               "refused op must leave no undo entry");
 }

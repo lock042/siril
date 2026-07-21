@@ -50,10 +50,20 @@
 #include "io/image_format_fits.h"
 #include "flis_compose.h"
 
-static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite);
+static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite,
+                                         gboolean first_raw);
 
 fits *flis_render_layers(GSList *layers) {
-    return flis_render_layers_internal(layers, FALSE);
+    return flis_render_layers_internal(layers, FALSE, FALSE);
+}
+
+/* Merge-down variant: the first (bottom) layer is painted RAW — tint only,
+ * no blend mode / opacity / mask — because merge-down's contract is that
+ * the surviving layer RETAINS those parameters; baking them into the
+ * merged pixels would apply them twice.  The top layer(s) blend normally
+ * with their own parameters. */
+fits *flis_render_layers_merge(GSList *layers) {
+    return flis_render_layers_internal(layers, TRUE, TRUE);
 }
 
 /* =====================================================================
@@ -734,7 +744,8 @@ static void flis_blend_chroma_pixel(float opacity,
  * USHORT sources are converted to float once per layer, not per pixel.
  * The inner loops are tagged with omp simd for auto-vectorisation.
  * ------------------------------------------------------------------------- */
-static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite) {
+static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite,
+                                         gboolean first_raw) {
     if (!layers) return NULL;
 
     /* §7: canvas dimensions are a document property on com.uniq, separate
@@ -829,7 +840,7 @@ static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite)
             }
 
             GSList *_ms = flis_group_get_layers(_grp);
-            fits *_sub = flis_render_layers_internal(_ms, TRUE);
+            fits *_sub = flis_render_layers_internal(_ms, TRUE, FALSE);
             g_slist_free(_ms);
             if (!_sub) continue;
 
@@ -949,7 +960,11 @@ static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite)
             pre_b = mono ? lfit->fpdata[RLAYER] : lfit->fpdata[BLAYER];
         } else {
             const size_t n_planes = mono ? 1 : 3;
-            float_buf = malloc(N * n_planes * sizeof(float));
+            /* Layer-local pixel count: the source planes and the blend loops'
+             * layer-local indices span lfit->rx * lfit->ry, which for sparse
+             * layers differs from the canvas pixel count N. */
+            const size_t lN = (size_t)lfit->rx * lfit->ry;
+            float_buf = malloc(lN * n_planes * sizeof(float));
             if (!float_buf) { PRINT_ALLOC_ERR; continue; }
 
             const WORD *sw[3] = {
@@ -958,27 +973,59 @@ static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite)
                 mono ? lfit->pdata[RLAYER] : lfit->pdata[BLAYER]
             };
             for (size_t _c = 0; _c < n_planes; _c++) {
-                float      *fw  = float_buf + _c * N;
+                float      *fw  = float_buf + _c * lN;
                 const WORD *src = sw[_c];
                 FLIS_OMP_PAR_FOR_SIMD
-                for (size_t _k = 0; _k < N; _k++)
+                for (size_t _k = 0; _k < lN; _k++)
                     fw[_k] = src[_k] * INV_USHRT_MAX_SINGLE;
             }
 
             pre_r = float_buf;
-            pre_g = mono ? float_buf : float_buf + N;
-            pre_b = mono ? float_buf : float_buf + N * 2;
+            pre_g = mono ? float_buf : float_buf + lN;
+            pre_b = mono ? float_buf : float_buf + lN * 2;
         }
 
         const float tr = (mono && lay->has_tint) ? (float)lay->layer_tint.r : 1.f;
         const float tg = (mono && lay->has_tint) ? (float)lay->layer_tint.g : 1.f;
         const float tb = (mono && lay->has_tint) ? (float)lay->layer_tint.b : 1.f;
 
-        const uint8_t *mask_data = (lmask && lay->lmask_active) ? (const uint8_t *)lmask->data : NULL;
+        /* The blend kernels consume 8-bit alpha.  8-bit masks are used
+         * in place; 16-/32-bit masks are quantised once per composite
+         * into a temporary buffer (the stored mask keeps full depth).
+         * Reading a float mask as uint8_t bytes would be garbage. */
+        uint8_t       *mask_tmp  = NULL;
+        const uint8_t *mask_data = NULL;
+        if (lmask && lay->lmask_active && lmask->data) {
+            if (lmask->bitpix == 8) {
+                mask_data = (const uint8_t *)lmask->data;
+            } else {
+                const size_t mN = lmask->w * lmask->h;
+                mask_tmp = malloc(mN);
+                if (mask_tmp) {
+                    if (lmask->bitpix == 32) {
+                        const float *mf = (const float *)lmask->data;
+                        FLIS_OMP_PAR_FOR_SIMD
+                        for (size_t _k = 0; _k < mN; _k++) {
+                            float v = mf[_k];
+                            v = v < 0.f ? 0.f : (v > 1.f ? 1.f : v);
+                            mask_tmp[_k] = (uint8_t)(v * 255.f + 0.5f);
+                        }
+                    } else {    /* 16-bit */
+                        const uint16_t *mw = (const uint16_t *)lmask->data;
+                        FLIS_OMP_PAR_FOR_SIMD
+                        for (size_t _k = 0; _k < mN; _k++)
+                            mask_tmp[_k] = (uint8_t)(mw[_k] >> 8);
+                    }
+                    mask_data = mask_tmp;
+                }
+                /* malloc failure: composite proceeds without the mask */
+            }
+        }
 
         /* Intersection of the layer rectangle with the canvas.
-         * position_y is in FITS convention (origin bottom-left), convert to
-         * top-down canvas row: oy = H - position_y - lH.
+         * position_y is in DISPLAY convention (0 = top of canvas, like
+         * position_x's 0 = left); the composite buffer is FITS bottom-up,
+         * so convert to the buffer's row origin: oy = H - position_y - lH.
          * For full-canvas: ox=0, oy=0, lW=W, lH=H → x0=0,x1=W,y0=0,y1=H. */
         const gint  ox  = lay->position_x;
         const guint lW  = (guint)lfit->rx;
@@ -993,11 +1040,25 @@ static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite)
             /* Layer entirely outside the canvas */
             if (first_layer) first_layer = FALSE;
             free(float_buf);
+            free(mask_tmp);
             continue;
         }
 
         if (first_layer) {
-            FLIS_BASE_LOOP(tr, tg, tb);
+            /* Bottom member of an isolated (NORMAL) group sub-composite:
+             * its blend mode is ignored — there is nothing beneath it in
+             * the group buffer — but its opacity and layer mask must still
+             * apply.  Blend NORMAL over the zero-initialised buffer
+             * (src·alpha) rather than the tint-only base copy, which
+             * dropped both.  Merge-down (first_raw) is the exception: the
+             * surviving layer retains its parameters, so paint raw. */
+            if (!first_raw && mask_data) {
+                FLIS_BLEND_LOOP_MASKED(tr, tg, tb, sr, sg, sb);
+            } else if (!first_raw && global_opacity < 1.f) {
+                FLIS_BLEND_LOOP(tr, tg, tb, sr, sg, sb);
+            } else {
+                FLIS_BASE_LOOP(tr, tg, tb);
+            }
             first_layer = FALSE;
         } else if (hsl_mode) {
             if (mask_data) {
@@ -1016,6 +1077,7 @@ static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite)
         }
 
         free(float_buf);  /* no-op for float sources (float_buf == NULL) */
+        free(mask_tmp);   /* no-op for 8-bit masks (mask_tmp == NULL) */
     }
 
     /* Cleanup group compositing tables */

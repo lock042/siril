@@ -33,6 +33,13 @@ gboolean is_undo_available();
 gboolean is_redo_available();
 int undo_display_data(int dir);
 int undo_save_state(fits *fit, const char *message, ...);
+/* Variant of undo_save_state for callers whose ICC state changed alongside
+ * the pixels (stretch tools): the entry's ICC snapshot is taken from
+ * @pre_icc (copied; NULL = pre-op state had no profile) instead of the
+ * live image, so one entry — and one Ctrl-Z — reverts pixels and profile
+ * together. */
+int undo_save_state_with_icc(fits *fit, cmsHPROFILE pre_icc,
+                             const char *message, ...);
 int	undo_flush();
 gboolean undo_in_thread(gpointer user_data);
 gboolean redo_in_thread(gpointer user_data);

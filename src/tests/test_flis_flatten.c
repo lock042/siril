@@ -196,3 +196,33 @@ Test(flis_flatten, sparse_layer_outside_extent_preserved) {
 	/* Row 3 col 3: just outside patch in y — base */
 	cr_assert_float_eq(fit->fpdata[0][3 * 8 + 3], 0.1f, 1e-5);
 }
+
+/* ---- merge-down must not bake the surviving layer's own params (M-F6) */
+
+Test(flis_flatten, merge_down_bottom_params_not_baked) {
+	flis_layer_t *bottom = flis_test_add_layer(
+	    flis_test_make_rgb_fits(2, 2, 0.5f, 0.5f, 0.5f), "bottom");
+	cr_assert_eq(flis_layer_set_blend_mode(bottom, FLIS_BLEND_MULTIPLY), 0);
+	cr_assert_eq(flis_layer_set_opacity(bottom, 0.5f), 0);
+	flis_layer_t *top = flis_test_add_layer(
+	    flis_test_make_rgb_fits(2, 2, 1.0f, 1.0f, 1.0f), "top");
+	cr_assert_eq(flis_layer_set_opacity(top, 0.5f), 0);
+
+	cr_assert_eq(flis_merge_down_layer(top), 0);
+	cr_assert_eq(flis_layer_count(), 1);
+	flis_layer_t *merged = (flis_layer_t *)com.uniq->layers->data;
+
+	/* Bottom painted RAW (its MULTIPLY/0.5 are retained, not baked);
+	 * top blends NORMAL at 0.5 over it: 0.5 + (1.0-0.5)*0.5 = 0.75.
+	 * The old path composited the bottom with its own mode/opacity
+	 * against the background first (MULTIPLY vs black → black). */
+	cr_assert_float_eq(merged->fit->fpdata[0][0], 0.75f, 1e-4,
+	                   "merge must paint the surviving layer raw");
+	cr_assert_eq(merged->blend_mode, FLIS_BLEND_MULTIPLY,
+	             "surviving layer retains its blend mode");
+	cr_assert_float_eq(merged->opacity, 0.5f, 1e-5,
+	                   "surviving layer retains its opacity");
+	cr_assert_eq(merged->position_x, 0);
+	cr_assert_eq(merged->position_y, 0);
+	cr_assert(!merged->has_tint, "tint is baked into the merged RGB pixels");
+}

@@ -194,3 +194,111 @@ Test(flis_sparse, rotate_handles_sparse_positions) {
 	cr_assert_eq(top->position_x, 110);
 	cr_assert_eq(top->position_y, 100);
 }
+
+/* ---- USHORT sparse-layer compose (C5 regression) -------------------- */
+
+/* Build a constant-value USHORT fits, mono or RGB. */
+static fits *make_ushort_fits(int rx, int ry, int chans, WORD value) {
+	fits *f = NULL;
+	if (new_fit_image(&f, rx, ry, chans, DATA_USHORT)) return NULL;
+	size_t n = (size_t)rx * ry * chans;
+	for (size_t i = 0; i < n; i++) f->data[i] = value;
+	return f;
+}
+
+/* A USHORT layer larger than the canvas: the 16-bit→float conversion
+ * buffer must be sized and strided by the LAYER pixel count, not the
+ * canvas's.  Before the fix the blend loop read past the conversion
+ * buffer for layer-local indices beyond canvas_w*canvas_h, compositing
+ * heap garbage. */
+Test(flis_sparse, ushort_layer_larger_than_canvas_composes_exactly) {
+	flis_test_add_layer(flis_test_make_rgb_fits(8, 8, 0.0f, 0.0f, 0.0f), "base");
+	flis_layer_t *top = flis_test_add_layer(
+	    make_ushort_fits(12, 12, 1, USHRT_MAX), "big16");
+	top->position_x = -2;   /* layer covers the whole canvas */
+	top->position_y = -2;
+	com.uniq->canvas_w = 8;
+	com.uniq->canvas_h = 8;
+
+	GSList *sorted = g_slist_copy(com.uniq->layers);
+	fits *out = flis_render_layers(sorted);
+	g_slist_free(sorted);
+	cr_assert_not_null(out);
+	/* Every canvas pixel is covered by the (white) top layer; layer-local
+	 * indices reach 9*12+9 = 117, past the canvas pixel count of 64. */
+	for (guint y = 0; y < 8; y++)
+		for (guint x = 0; x < 8; x++)
+			cr_assert_float_eq(out->fpdata[0][y * 8 + x], 1.0f, 1e-4,
+			                   "pixel (%u,%u) not composed from the layer buffer", x, y);
+	free(out->fdata); free(out);
+}
+
+/* RGB variant: the per-plane stride of the conversion buffer must be the
+ * layer pixel count.  Before the fix pre_g/pre_b pointed at canvas-count
+ * offsets, so high layer-local indices read the wrong plane. */
+Test(flis_sparse, ushort_rgb_layer_larger_than_canvas_composes_exactly) {
+	flis_test_add_layer(flis_test_make_rgb_fits(8, 8, 0.0f, 0.0f, 0.0f), "base");
+	fits *tf = NULL;
+	cr_assert_eq(new_fit_image(&tf, 12, 12, 3, DATA_USHORT), 0);
+	size_t n = (size_t)12 * 12;
+	for (size_t i = 0; i < n; i++) {
+		tf->pdata[0][i] = USHRT_MAX;        /* R = 1.0 */
+		tf->pdata[1][i] = USHRT_MAX / 2;    /* G ≈ 0.5 */
+		tf->pdata[2][i] = 0;                /* B = 0.0 */
+	}
+	flis_layer_t *top = flis_test_add_layer(tf, "rgb16");
+	top->position_x = -2;
+	top->position_y = -2;
+	com.uniq->canvas_w = 8;
+	com.uniq->canvas_h = 8;
+
+	GSList *sorted = g_slist_copy(com.uniq->layers);
+	fits *out = flis_render_layers(sorted);
+	g_slist_free(sorted);
+	cr_assert_not_null(out);
+	for (guint y = 0; y < 8; y++)
+		for (guint x = 0; x < 8; x++) {
+			size_t i = y * 8 + x;
+			cr_assert_float_eq(out->fpdata[0][i], 1.0f, 1e-4);
+			cr_assert_float_eq(out->fpdata[1][i], 0.5f, 1e-3,
+			                   "G plane misread at (%u,%u) — conversion stride wrong", x, y);
+			cr_assert_float_eq(out->fpdata[2][i], 0.0f, 1e-4);
+		}
+	free(out->fdata); free(out);
+}
+
+/* ---- displayed-mask dimension gate (C6 regression) ------------------ */
+
+/* flis_get_displayed_mask hands its buffer to callers that index it with
+ * gfit-linear indices and mask_t carries no dimensions: it must refuse to
+ * return a layer mask whose dims differ from the displayed image (e.g.
+ * a sparse layer's lmask while the canvas-sized composite is swapped
+ * into gfit). */
+Test(flis_sparse, displayed_mask_refuses_dim_mismatch) {
+	flis_test_add_layer(flis_test_make_rgb_fits(8, 8, 0.0f, 0.0f, 0.0f), "base");
+	flis_layer_t *top = flis_test_add_layer(
+	    flis_test_make_mono_fits(4, 4, 1.0f), "small");
+	layermask_t *lm = flis_test_make_const_lmask(4, 4, 8, 1.0);
+	cr_assert_eq(flis_layer_set_lmask(top, lm), 0);
+	top->lmask_active = TRUE;
+	com.uniq->flis_mask_view = 1;   /* LAYER mask view */
+	uniq_set_active_layer(com.uniq, 1);   /* top active; gfit = 4x4 layer fit */
+
+	mask_t out = { 0 };
+	cr_assert(flis_get_displayed_mask(&out),
+	          "matching dims must return the layer mask");
+	cr_assert_eq(out.data, top->lmask->data);
+
+	/* Simulate display time: the canvas-sized composite is swapped into
+	 * gfit while the active layer (and its mask) stays 4x4. */
+	fits *canvas = flis_test_make_rgb_fits(8, 8, 0.0f, 0.0f, 0.0f);
+	fits *saved = gfit;
+	gfit = canvas;
+	mask_t out2 = { 0 };
+	gboolean got = flis_get_displayed_mask(&out2);
+	cr_assert(!got || out2.data != top->lmask->data,
+	          "layer-sized mask must not be returned against a canvas-sized gfit");
+	gfit = saved;
+	clearfits(canvas);
+	free(canvas);
+}

@@ -156,7 +156,6 @@ struct flis_panel {
 	gboolean   refreshing;
 	/* Pending idle refresh ID (0 = none).  Coalesces multiple
 	 * flis_gui_update_from_idle calls during a worker burst. */
-	guint      refresh_idle_id;
 	/* What the property panel's widgets currently target.  Set by
 	 * on_selection_changed; read by name/blend/opacity handlers to
 	 * dispatch to either flis_layer_set_* or flis_group_set_*. */
@@ -179,6 +178,7 @@ static void   sync_property_widgets(flis_layer_t *lay);
 static void   update_toolbar_sensitivity(void);
 static void   ensure_flis_css(void);
 static flis_layer_t *current_selected_layer(void);
+static void dispatch_ungroup(gint layer_id);
 static flis_group_t *current_selected_group(void);
 
 /* =========================================================================
@@ -213,14 +213,23 @@ void flis_gui_present_if_flis(void) {
 
 static void canvas_dialog_refresh_external(void);
 
+/* Coalescing flag for refresh_idle_cb.  Atomic because
+ * flis_gui_update_from_idle() is documented safe from worker threads: with
+ * the old per-panel source-id scheme, the idle could run and zero the id
+ * on the main loop BEFORE the worker's g_idle_add return value was stored,
+ * leaving a stale nonzero id that silenced every future refresh.  The flag
+ * is claimed with a CAS before queueing and released as the idle's first
+ * action, so a state change landing mid-refresh queues a fresh idle. */
+static gint refresh_pending = 0;
+
 static gboolean refresh_idle_cb(gpointer p) {
 	(void)p;
+	g_atomic_int_set(&refresh_pending, 0);
 	/* Title bar reflects FLIS active-layer state independently of the panel.
 	 * Refresh it on every coalesced tick so name / count / active changes
 	 * land in the header even when the layers panel is hidden. */
 	gui_function(set_GUI_CWD, NULL);
 	if (g_panel) {
-		g_panel->refresh_idle_id = 0;
 		if (gtk_widget_get_visible(g_panel->window))
 			refresh_panel();
 	}
@@ -232,14 +241,9 @@ static gboolean refresh_idle_cb(gpointer p) {
 }
 
 void flis_gui_update_from_idle(void) {
-	/* Coalesce when the panel exists.  When it doesn't, fall through to a
-	 * standalone idle so set_GUI_CWD still gets called. */
-	if (g_panel) {
-		if (g_panel->refresh_idle_id != 0) return;  /* already pending */
-		g_panel->refresh_idle_id = g_idle_add(refresh_idle_cb, NULL);
-	} else {
-		g_idle_add(refresh_idle_cb, NULL);
-	}
+	if (!g_atomic_int_compare_and_exchange(&refresh_pending, 0, 1))
+		return;  /* already pending */
+	g_idle_add(refresh_idle_cb, NULL);
 }
 
 /* =========================================================================
@@ -465,7 +469,8 @@ static gboolean row_drop_received(GtkDropTarget *tgt, const GValue *value,
 	args->description        = g_strdup(_("Reorder layer"));
 	args->invalidate_flags   = FLIS_INV_STACK;
 	args->invalidate_item_id = src_id;
-	start_in_new_thread(generic_layer_worker, args);
+	if (!start_in_new_thread(generic_layer_worker, args))
+		free_generic_layer_args(args);   /* busy refusal: nothing ran */
 	return TRUE;
 }
 
@@ -654,7 +659,7 @@ static void on_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 			lay->locked ? _("Locked — click to unlock")
 			            : _("Unlocked — click to lock"));
 		gtk_label_set_text(GTK_LABEL(rw->name_label),
-		                   lay->layer_name ? lay->layer_name : "(unnamed)");
+		                   lay->layer_name ? lay->layer_name : _("(unnamed)"));
 
 		GdkTexture *thumb = build_layer_thumb(lay);
 		gtk_picture_set_paintable(GTK_PICTURE(rw->thumb), GDK_PAINTABLE(thumb));
@@ -734,10 +739,11 @@ static gboolean edge_drop_received(GtkDropTarget *tgt, const GValue *value,
 		 * have to special-case the ungroup here. */
 		flis_layer_t *src = flis_layer_get_by_id(src_id);
 		if (src && src->group_id != 0) {
-			src->group_id = 0;
-			gui_iface.flis_display_invalidate(FLIS_INV_STACK, src_id);
-			gui_iface.flis_gui_update();
-			notify_gfit_data_modified();
+			/* Dispatch through the worker: the lock check in
+			 * flis_layer_set_group, the stack writer lock, and the
+			 * invalidation all come from the shared path (the old
+			 * inline group_id write bypassed all three). */
+			dispatch_ungroup(src_id);
 		}
 		return TRUE;
 	}
@@ -754,7 +760,8 @@ static gboolean edge_drop_received(GtkDropTarget *tgt, const GValue *value,
 	                                            : _("Move layer to bottom"));
 	args->invalidate_flags   = FLIS_INV_STACK;
 	args->invalidate_item_id = src_id;
-	start_in_new_thread(generic_layer_worker, args);
+	if (!start_in_new_thread(generic_layer_worker, args))
+		free_generic_layer_args(args);   /* busy refusal: nothing ran */
 	return TRUE;
 }
 
@@ -824,6 +831,8 @@ static void build_list(GtkWidget *box) {
 /* ---- Property panel ------------------------------------------------ */
 
 static void on_name_activate     (GtkEntry *e,        gpointer u);
+static void on_name_focus_leave  (GtkEventControllerFocus *c, gpointer u);
+static void on_drag_toggled      (GtkToggleButton *b,  gpointer u);
 static void on_blend_changed     (GtkDropDown *dd, GParamSpec *p, gpointer u);
 static void on_opacity_changed   (GtkAdjustment *adj, gpointer u);
 static void on_opacity_drag_begin(GtkGestureDrag *g, gdouble x, gdouble y, gpointer u);
@@ -872,6 +881,13 @@ static void build_property(GtkWidget *box) {
 	gtk_grid_attach(GTK_GRID(grid), gtk_label_new(_("Name")), 0, row, 1, 1);
 	g_panel->name_entry = gtk_entry_new();
 	gtk_entry_set_max_length(GTK_ENTRY(g_panel->name_entry), 32);
+	{
+		/* Commit the edit when focus leaves the entry, not only on
+		 * Enter — clicking elsewhere silently discarded the new name. */
+		GtkEventController *fc = gtk_event_controller_focus_new();
+		g_signal_connect(fc, "leave", G_CALLBACK(on_name_focus_leave), NULL);
+		gtk_widget_add_controller(g_panel->name_entry, fc);
+	}
 	gtk_widget_set_hexpand(g_panel->name_entry, TRUE);
 	gtk_grid_attach(GTK_GRID(grid), g_panel->name_entry, 1, row, 2, 1);
 	g_signal_connect(g_panel->name_entry, "activate",
@@ -1074,6 +1090,16 @@ static void update_toolbar_sensitivity(void) {
 	gtk_widget_set_sensitive(g_panel->btn_drag,      sel_lay != NULL);
 	gtk_widget_set_sensitive(g_panel->btn_add,       com.uniq != NULL);
 	gtk_widget_set_sensitive(g_panel->btn_group,     is_flis);
+
+	/* Resync the drag toggle to the actual mouse mode — the mode can be
+	 * switched away from FLIS drag via the mouse-actions UI, which left
+	 * the toggle visually stuck on. */
+	gboolean drag_on = (mouse_status == MOUSE_ACTION_FLIS_DRAG_LAYER);
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(g_panel->btn_drag)) != drag_on) {
+		g_signal_handlers_block_by_func(g_panel->btn_drag, on_drag_toggled, NULL);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(g_panel->btn_drag), drag_on);
+		g_signal_handlers_unblock_by_func(g_panel->btn_drag, on_drag_toggled, NULL);
+	}
 }
 
 static flis_group_t *current_selected_group(void) {
@@ -1094,6 +1120,11 @@ gboolean flis_panel_group_is_selected(void) {
 
 static void refresh_panel(void) {
 	if (!g_panel) return;
+	/* M-F12: the rebuild walks com.uniq->layers/groups and reads layer
+	 * fields; hold the stack reader lock so a worker hook can't free a
+	 * layer mid-walk.  Main thread only; no fits/cairo locks and no
+	 * blocking calls are made inside (GTK widget setters only). */
+	flis_stack_reader_lock();
 	g_panel->refreshing = TRUE;
 
 	const gboolean is_flis = is_current_image_flis();
@@ -1206,6 +1237,7 @@ static void refresh_panel(void) {
 	update_toolbar_sensitivity();
 
 	g_panel->refreshing = FALSE;
+	flis_stack_reader_unlock();
 }
 
 /* Set the property panel to a "nothing selected" state. */
@@ -1346,6 +1378,7 @@ static void sync_property_widgets(flis_layer_t *lay) {
 enum op_kind {
 	OP_SET_VISIBLE, OP_SET_LOCKED, OP_SET_NAME, OP_SET_BLEND,
 	OP_SET_OPACITY, OP_SET_TINT, OP_CLEAR_TINT,
+	OP_SET_LMASK_ACTIVE, OP_UNGROUP,
 	OP_GROUP_SET_VISIBLE, OP_GROUP_SET_NAME, OP_GROUP_SET_BLEND, OP_GROUP_SET_OPACITY,
 	OP_LAYER_REMOVE, OP_LAYER_DUPLICATE,
 	OP_LAYER_MOVE_UP, OP_LAYER_MOVE_DOWN,
@@ -1385,7 +1418,13 @@ static int op_hook(struct generic_layer_args *args) {
 		case OP_SET_BLEND:    return lay ? flis_layer_set_blend_mode(lay, op->blend_v) : 1;
 		case OP_SET_OPACITY:  return lay ? flis_layer_set_opacity (lay, op->float_v) : 1;
 		case OP_SET_TINT:     return lay ? flis_layer_set_tint    (lay, op->r, op->g, op->b) : 1;
-		case OP_CLEAR_TINT:   if (lay) { lay->has_tint = FALSE; return 0; } return 1;
+		case OP_CLEAR_TINT:   return lay ? flis_layer_clear_tint(lay) : 1;
+		case OP_SET_LMASK_ACTIVE:
+			if (!lay || !lay->lmask) return 1;
+			lay->lmask_active = op->bool_v;
+			flis_layer_touch_modified(lay);
+			return 0;
+		case OP_UNGROUP:      return lay ? flis_layer_set_group(lay, 0) : 1;
 		case OP_GROUP_SET_VISIBLE: return grp ? flis_group_set_visible(grp, op->bool_v) : 1;
 		case OP_GROUP_SET_NAME:    return grp ? flis_group_set_name(grp, op->str_v)    : 1;
 		case OP_GROUP_SET_BLEND:   return grp ? flis_group_set_blend_mode(grp, op->blend_v) : 1;
@@ -1418,7 +1457,8 @@ static void dispatch_op(struct op_payload *op, const char *desc,
 		case OP_SET_BLEND:
 		case OP_SET_OPACITY:
 		case OP_SET_TINT:
-		case OP_CLEAR_TINT: {
+		case OP_CLEAR_TINT:
+		case OP_SET_LMASK_ACTIVE: {
 			flis_layer_t *lay = flis_layer_get_by_id(op->target_id);
 			if (lay) undo_save_flis_layer_props(lay,
 			                                    desc ? desc : "Layer op");
@@ -1446,7 +1486,18 @@ static void dispatch_op(struct op_payload *op, const char *desc,
 	args->verbose      = FALSE;
 	args->invalidate_flags   = invalidate_flags;
 	args->invalidate_item_id = op->target_id;
-	start_in_new_thread(generic_layer_worker, args);
+	if (!start_in_new_thread(generic_layer_worker, args))
+		free_generic_layer_args(args);   /* busy refusal: nothing ran */
+}
+
+/* Ungroup helper usable from code that sits above the op_payload
+ * definition (the drag-and-drop edge handler). */
+static void dispatch_ungroup(gint layer_id) {
+	struct op_payload *op = g_new0(struct op_payload, 1);
+	op->destroy_fn = op_payload_free;
+	op->target_id  = layer_id;
+	op->kind       = OP_UNGROUP;
+	dispatch_op(op, _("Remove from group"), FLIS_INV_STACK);
 }
 
 /* =========================================================================
@@ -1520,7 +1571,11 @@ static void on_selection_changed(GtkSelectionModel *sel, guint pos, guint nitems
 			if ((flis_layer_t *)l->data == lay) { found = TRUE; break; }
 		}
 		if (found && index != com.uniq->active_layer) {
-			uniq_set_active_layer(com.uniq, index);
+			/* Preview/ROI-coherent switch: reverts a live preview on
+			 * the outgoing layer and re-arms it on this one, and
+			 * refreshes the ROI pixel cache (see
+			 * flis_switch_active_layer_gui). */
+			flis_switch_active_layer_gui(index);
 			gui_iface.redraw_image(REDRAW_ALL);
 			/* Refresh so the active-layer-row CSS class moves to the
 			 * newly active row.  Selection is preserved across the
@@ -1531,10 +1586,29 @@ static void on_selection_changed(GtkSelectionModel *sel, guint pos, guint nitems
 }
 
 /* Property handlers */
+static void on_name_focus_leave(GtkEventControllerFocus *c, gpointer u) {
+	(void)c; (void)u;
+	if (g_panel && g_panel->name_entry)
+		on_name_activate(GTK_ENTRY(g_panel->name_entry), NULL);
+}
+
 static void on_name_activate(GtkEntry *e, gpointer u) {
 	(void)u;
 	if (g_panel && g_panel->refreshing) return;
 	if (g_panel->selected_item_id == 0) return;
+	/* Skip no-op renames — this also runs from the focus-leave
+	 * controller, which fires on every focus change. */
+	const char *txt = gtk_editable_get_text(GTK_EDITABLE(e));
+	const char *cur = NULL;
+	if (g_panel->selected_kind == FLIS_ROW_KIND_GROUP) {
+		flis_group_t *grp = flis_group_get_by_id(g_panel->selected_item_id);
+		cur = grp ? grp->name : NULL;
+	} else {
+		flis_layer_t *lay = flis_layer_get_by_id(g_panel->selected_item_id);
+		cur = lay ? lay->layer_name : NULL;
+	}
+	if (!g_strcmp0(txt, cur ? cur : ""))
+		return;
 	struct op_payload *op = g_new0(struct op_payload, 1);
 	op->destroy_fn = op_payload_free;
 	op->target_id = g_panel->selected_item_id;
@@ -1563,6 +1637,28 @@ static void on_blend_changed(GtkDropDown *dd, GParamSpec *p, gpointer u) {
 		FLIS_INV_LAYER_PROPS);
 }
 
+/* Coalesced display refresh for per-motion drag ticks (opacity slider,
+ * canvas layer drag).  Running the full notify_gfit_data_modified
+ * pipeline (stats + histogram + CPU composite rebuild + remap) on every
+ * motion event stalls the main thread on large canvases; queueing it at
+ * idle priority collapses a burst of ticks into one rebuild once the
+ * event queue drains, while an immediate paint keeps the GPU compose
+ * path (which reads live property values per frame) fluid. */
+static gint drag_refresh_pending = 0;
+static gboolean drag_refresh_idle_cb(gpointer p) {
+	(void)p;
+	g_atomic_int_set(&drag_refresh_pending, 0);
+	notify_gfit_data_modified();
+	gui_iface.redraw_image(REDRAW_ALL);
+	return G_SOURCE_REMOVE;
+}
+void flis_drag_tick_refresh(void) {
+	gui_iface.redraw_image(REDRAW_ALL);
+	if (!g_atomic_int_compare_and_exchange(&drag_refresh_pending, 0, 1))
+		return;
+	g_idle_add_full(G_PRIORITY_DEFAULT_IDLE, drag_refresh_idle_cb, NULL, NULL);
+}
+
 static void on_opacity_changed(GtkAdjustment *adj, gpointer u) {
 	(void)u;
 	if (g_panel && g_panel->refreshing) return;
@@ -1570,10 +1666,8 @@ static void on_opacity_changed(GtkAdjustment *adj, gpointer u) {
 	const gboolean is_group = (g_panel->selected_kind == FLIS_ROW_KIND_GROUP);
 	if (g_panel && g_panel->opacity_dragging) {
 		/* While dragging, update state live but don't push undo per
-		 * tick — the drag-end handler does that once.  Full
-		 * notify_gfit_data_modified rather than just a paint queue:
-		 * CPU composite + histogram + per-vport tiles all hold stale
-		 * pixels until the composite is rebuilt. */
+		 * tick — the drag-end handler does that once.  The full
+		 * pipeline rebuild is coalesced (see flis_drag_tick_refresh). */
 		if (is_group) {
 			flis_group_t *grp = flis_group_get_by_id(g_panel->selected_item_id);
 			if (grp) grp->opacity = (gfloat)(gtk_adjustment_get_value(adj) / 100.0);
@@ -1582,7 +1676,7 @@ static void on_opacity_changed(GtkAdjustment *adj, gpointer u) {
 			if (lay) lay->opacity = (gfloat)(gtk_adjustment_get_value(adj) / 100.0);
 		}
 		gui_iface.flis_display_invalidate(FLIS_INV_LAYER_PROPS, g_panel->selected_item_id);
-		notify_gfit_data_modified();
+		flis_drag_tick_refresh();
 		return;
 	}
 	struct op_payload *op = g_new0(struct op_payload, 1);
@@ -1651,7 +1745,20 @@ static void on_tint_check_toggled(GtkCheckButton *btn, gpointer u) {
 	op->target_id = lay->item_id;
 	if (want) {
 		op->kind = OP_SET_TINT;
-		op->r = op->g = op->b = 1.0;   /* neutral broadcast until colour chosen */
+		/* Apply the colour the swatch is showing — enabling with the
+		 * neutral broadcast while a colour is visibly selected was a
+		 * "nothing happened" surprise. */
+		const GdkRGBA *rgba = (g_panel && g_panel->tint_color_btn)
+			? gtk_color_dialog_button_get_rgba(
+				GTK_COLOR_DIALOG_BUTTON(g_panel->tint_color_btn))
+			: NULL;
+		if (rgba) {
+			op->r = rgba->red;
+			op->g = rgba->green;
+			op->b = rgba->blue;
+		} else {
+			op->r = op->g = op->b = 1.0;
+		}
 	} else {
 		op->kind = OP_CLEAR_TINT;
 	}
@@ -1670,7 +1777,7 @@ static void on_tint_color_chosen(GtkColorDialogButton *btn, GParamSpec *p, gpoin
 	op->target_id = lay->item_id;
 	op->kind = OP_SET_TINT;
 	op->r = rgba->red; op->g = rgba->green; op->b = rgba->blue;
-	dispatch_op(op, _("Layer tint colour"), FLIS_INV_LAYER_PIXELS);
+	dispatch_op(op, _("Layer tint color"), FLIS_INV_LAYER_PIXELS);
 }
 
 /* Toolbar handlers — these are stubs that print a TODO until the
@@ -1706,7 +1813,8 @@ static void on_add_file_chosen(GObject *src, GAsyncResult *res, gpointer ud) {
 	args->description        = g_strdup(_("Add layer"));
 	args->invalidate_flags   = FLIS_INV_ALL;
 	args->invalidate_item_id = 0;
-	start_in_new_thread(generic_layer_worker, args);
+	if (!start_in_new_thread(generic_layer_worker, args))
+		free_generic_layer_args(args);   /* busy refusal: nothing ran */
 }
 
 static void on_add_clicked(GtkButton *b, gpointer u) {
@@ -1757,7 +1865,7 @@ static void on_remove_clicked(GtkButton *b, gpointer u) {
 	if (!lay) return;
 	GtkAlertDialog *ad = gtk_alert_dialog_new(
 		_("Remove layer '%s'?"),
-		lay->layer_name ? lay->layer_name : "(unnamed)");
+		lay->layer_name ? lay->layer_name : _("(unnamed)"));
 	gtk_alert_dialog_set_detail(ad,
 		_("This action cannot be undone.  The layer's pixel data and "
 		  "mask will be discarded."));
@@ -1794,7 +1902,8 @@ static void on_group_clicked(GtkButton *b, gpointer u) {
 	args->user               = payload;
 	args->description        = g_strdup(_("Create group"));
 	args->invalidate_flags   = FLIS_INV_STACK;
-	start_in_new_thread(generic_layer_worker, args);
+	if (!start_in_new_thread(generic_layer_worker, args))
+		free_generic_layer_args(args);   /* busy refusal: nothing ran */
 }
 static void on_drag_toggled(GtkToggleButton *b, gpointer u) {
 	(void)u;
@@ -1854,7 +1963,8 @@ static void move_relative(flis_layer_t *lay, gboolean direction_up) {
 	                                                  : _("Move layer down"));
 	args->invalidate_flags   = FLIS_INV_STACK;
 	args->invalidate_item_id = lay->item_id;
-	start_in_new_thread(generic_layer_worker, args);
+	if (!start_in_new_thread(generic_layer_worker, args))
+		free_generic_layer_args(args);   /* busy refusal: nothing ran */
 }
 
 /* Dispatch a "move group as a whole" op via flis_group_reorder_hook. */
@@ -1869,7 +1979,8 @@ static void move_group_relative(flis_group_t *grp, gboolean direction_up) {
 	                                                  : _("Move group down"));
 	args->invalidate_flags   = FLIS_INV_STACK;
 	args->invalidate_item_id = grp->item_id;
-	start_in_new_thread(generic_layer_worker, args);
+	if (!start_in_new_thread(generic_layer_worker, args))
+		free_generic_layer_args(args);   /* busy refusal: nothing ran */
 }
 
 static void on_move_up_clicked(GtkButton *b, gpointer u) {
@@ -1903,7 +2014,8 @@ static void dispatch_clearmask(flis_layer_t *lay) {
 	args->updates_lmask      = TRUE;
 	args->invalidate_flags   = FLIS_INV_LAYER_PIXELS;
 	args->invalidate_item_id = lay->item_id;
-	start_in_new_thread(generic_layer_worker, args);
+	if (!start_in_new_thread(generic_layer_worker, args))
+		free_generic_layer_args(args);   /* busy refusal: nothing ran */
 }
 
 static void on_mask_file_chosen(GObject *src, GAsyncResult *res, gpointer ud) {
@@ -1934,20 +2046,23 @@ static void on_mask_file_chosen(GObject *src, GAsyncResult *res, gpointer ud) {
 	args->updates_lmask      = TRUE;
 	args->invalidate_flags   = FLIS_INV_LAYER_PIXELS;
 	args->invalidate_item_id = target_id;
-	start_in_new_thread(generic_layer_worker, args);
+	if (!start_in_new_thread(generic_layer_worker, args))
+		free_generic_layer_args(args);   /* busy refusal: nothing ran */
 }
 
 static void on_mask_status_clicked(GtkButton *b, gpointer u) {
 	(void)b; (void)u;
 	flis_layer_t *lay = current_selected_layer();
 	if (!lay || !lay->lmask) return;
-	/* Toggle active state directly on the layer struct — no primitive
-	 * for this yet; flis_layer_set_lmask doesn't have an active-only
-	 * mode.  The display invalidation does the right thing. */
-	lay->lmask_active = !lay->lmask_active;
-	gui_iface.flis_display_invalidate(FLIS_INV_LAYER_PIXELS, lay->item_id);
-	gui_iface.redraw_image(REDRAW_ALL);
-	flis_gui_update_from_idle();
+	/* Dispatch through the worker like every other mutation: undo
+	 * (lmask_active is part of the props snapshot), the stack writer
+	 * lock, and invalidation all come from the shared path. */
+	struct op_payload *op = g_new0(struct op_payload, 1);
+	op->destroy_fn = op_payload_free;
+	op->target_id  = lay->item_id;
+	op->kind       = OP_SET_LMASK_ACTIVE;
+	op->bool_v     = !lay->lmask_active;
+	dispatch_op(op, _("Layer mask active"), FLIS_INV_LAYER_PIXELS);
 }
 
 static void on_mask_toggle_clicked(GtkButton *b, gpointer u) {
@@ -2012,7 +2127,8 @@ static void on_move_mask_ok(GtkButton *btn, gpointer ud) {
 	args->updates_lmask      = TRUE;
 	args->invalidate_flags   = FLIS_INV_LAYER_PIXELS;
 	args->invalidate_item_id = ctx->from_id;
-	start_in_new_thread(generic_layer_worker, args);
+	if (!start_in_new_thread(generic_layer_worker, args))
+		free_generic_layer_args(args);   /* busy refusal: nothing ran */
 
 	gtk_window_destroy(GTK_WINDOW(ctx->dialog));
 	g_array_unref(ctx->to_ids);
@@ -2064,7 +2180,7 @@ static void on_mask_move_clicked(GtkButton *b, gpointer u) {
 		if (!cand || cand == src) continue;     /* skip self */
 		/* Size mismatch can be enforced at dispatch time but show all
 		 * candidates so the user knows which to fix sizes for. */
-		gtk_string_list_append(items, cand->layer_name ? cand->layer_name : "(unnamed)");
+		gtk_string_list_append(items, cand->layer_name ? cand->layer_name : _("(unnamed)"));
 		g_array_append_val(to_ids, cand->item_id);
 	}
 	if (to_ids->len == 0) {
@@ -2166,7 +2282,9 @@ static void on_ctx_merge_down(GSimpleAction *a, GVariant *v, gpointer u) {
 	(void)a; (void)v; (void)u;
 	flis_group_t *grp = current_selected_group();
 	if (grp) {
-		guint n_members = g_slist_length(flis_group_get_layers(grp));
+		GSList *members_tmp = flis_group_get_layers(grp);
+		guint n_members = g_slist_length(members_tmp);
+		g_slist_free(members_tmp);
 		if (n_members < 2) {
 			siril_log_message(
 			    _("FLIS: Merge Down on group — group has fewer than 2 "
@@ -2187,7 +2305,8 @@ static void on_ctx_merge_down(GSimpleAction *a, GVariant *v, gpointer u) {
 		args->description = g_strdup(_("Merge group"));
 		args->invalidate_flags   = FLIS_INV_ALL;
 		args->invalidate_item_id = grp->item_id;
-		start_in_new_thread(generic_layer_worker, args);
+		if (!start_in_new_thread(generic_layer_worker, args))
+		free_generic_layer_args(args);   /* busy refusal: nothing ran */
 		return;
 	}
 
@@ -2209,7 +2328,8 @@ static void on_ctx_merge_down(GSimpleAction *a, GVariant *v, gpointer u) {
 	args->description = g_strdup(_("Merge Down"));
 	args->invalidate_flags   = FLIS_INV_ALL;
 	args->invalidate_item_id = lay->item_id;
-	start_in_new_thread(generic_layer_worker, args);
+	if (!start_in_new_thread(generic_layer_worker, args))
+		free_generic_layer_args(args);   /* busy refusal: nothing ran */
 }
 
 /* ---- Delete group dialog ---------------------------------------------
@@ -2247,7 +2367,8 @@ static void delete_group_dispatch(gint group_id,
 	                                    : _("Delete group (ungroup members)"));
 	args->invalidate_flags   = FLIS_INV_ALL;
 	args->invalidate_item_id = group_id;
-	start_in_new_thread(generic_layer_worker, args);
+	if (!start_in_new_thread(generic_layer_worker, args))
+		free_generic_layer_args(args);   /* busy refusal: nothing ran */
 }
 
 static void on_delete_group_just_remove(GtkButton *btn, gpointer ud) {
@@ -2352,22 +2473,28 @@ static void on_ctx_delete_group(GSimpleAction *a, GVariant *v, gpointer u) {
 	gtk_window_present(GTK_WINDOW(ctx->dialog));
 }
 
-static int op_flatten_hook(struct generic_layer_args *args) {
-	(void)args;
-	return flis_flatten_all();
-}
 static void on_ctx_flatten(GSimpleAction *a, GVariant *v, gpointer u) {
 	(void)a; (void)v; (void)u;
 	if (!is_current_image_flis()) {
 		siril_log_message(_("FLIS: Flatten — current image is not a FLIS\n"));
 		return;
 	}
+	/* As destructive as Merge Down / Remove layer, which both confirm. */
+	if (!siril_confirm_dialog(
+	        _("Flatten Image"),
+	        _("Flatten all visible layers into a single layer?\n\n"
+	          "All other layers, masks and groups are removed, and the "
+	          "undo history is purged."),
+	        _("Flatten"))) {
+		return;
+	}
 	struct generic_layer_args *args = calloc(1, sizeof(*args));
 	args->layer = NULL;
-	args->layer_hook = op_flatten_hook;
+	args->layer_hook = flis_flatten_hook;
 	args->description = g_strdup(_("Flatten Image"));
 	args->invalidate_flags = FLIS_INV_ALL;
-	start_in_new_thread(generic_layer_worker, args);
+	if (!start_in_new_thread(generic_layer_worker, args))
+		free_generic_layer_args(args);   /* busy refusal: nothing ran */
 }
 
 /* Move-to-group dialog — a tiny modal window with a dropdown of
@@ -2397,7 +2524,8 @@ static void on_move_to_group_ok(GtkButton *btn, gpointer ud) {
 	args->description        = g_strdup(_("Move layer to group"));
 	args->invalidate_flags   = FLIS_INV_STACK;
 	args->invalidate_item_id = ctx->layer_id;
-	start_in_new_thread(generic_layer_worker, args);
+	if (!start_in_new_thread(generic_layer_worker, args))
+		free_generic_layer_args(args);   /* busy refusal: nothing ran */
 
 	gtk_window_destroy(GTK_WINDOW(ctx->dialog));
 	g_array_unref(ctx->group_ids);
@@ -2449,7 +2577,7 @@ static void on_ctx_move_to_group(GSimpleAction *a, GVariant *v, gpointer u) {
 	for (GSList *g = com.uniq ? com.uniq->groups : NULL; g; g = g->next) {
 		flis_group_t *grp = (flis_group_t *)g->data;
 		if (!grp) continue;
-		gtk_string_list_append(items, grp->name ? grp->name : "(unnamed)");
+		gtk_string_list_append(items, grp->name ? grp->name : _("(unnamed)"));
 		g_array_append_val(group_ids, grp->item_id);
 	}
 	GtkWidget *dd = gtk_drop_down_new(G_LIST_MODEL(items), NULL);
@@ -2509,7 +2637,8 @@ static void on_export_file_chosen(GObject *src, GAsyncResult *res, gpointer ud) 
 	args->description        = g_strdup(_("Export layer"));
 	args->read_only          = TRUE;
 	args->invalidate_item_id = target_id;
-	start_in_new_thread(generic_layer_worker, args);
+	if (!start_in_new_thread(generic_layer_worker, args))
+		free_generic_layer_args(args);   /* busy refusal: nothing ran */
 }
 
 static void on_ctx_export_layer(GSimpleAction *a, GVariant *v, gpointer u) {
@@ -2596,7 +2725,8 @@ static void on_ctx_layers_match(GSimpleAction *a, GVariant *v, gpointer u) {
 	gargs->user              = payload;
 	gargs->description       = g_strdup(_("Layers match"));
 	gargs->invalidate_flags  = FLIS_INV_ALL;
-	start_in_new_thread(generic_layer_worker, gargs);
+	if (!start_in_new_thread(generic_layer_worker, gargs))
+		free_generic_layer_args(gargs);  /* busy refusal: nothing ran */
 }
 
 /* ---- Register layers (§5.6) -----------------------------------------
@@ -2667,7 +2797,7 @@ static const opencv_interpolation REGISTER_INTERP_VALUES[] = {
 	OPENCV_NEAREST, OPENCV_LINEAR, OPENCV_CUBIC, OPENCV_AREA, OPENCV_LANCZOS4
 };
 static const char *REGISTER_INTERP_NAMES[] = {
-	"Nearest", "Linear", "Cubic", "Area", "Lanczos4"
+	N_("Nearest"), N_("Linear"), N_("Cubic"), N_("Area"), N_("Lanczos4")
 };
 #define REGISTER_INTERP_DEFAULT_IDX 4   /* Lanczos4 */
 
@@ -2780,7 +2910,8 @@ static void on_register_dialog_ok(GtkButton *btn, gpointer ud) {
 	gargs->user              = payload;
 	gargs->description       = g_strdup(_("Register layers"));
 	gargs->invalidate_flags  = FLIS_INV_ALL;
-	start_in_new_thread(generic_layer_worker, gargs);
+	if (!start_in_new_thread(generic_layer_worker, gargs))
+		free_generic_layer_args(gargs);  /* busy refusal: nothing ran */
 
 	gtk_window_destroy(GTK_WINDOW(ctx->dialog));
 	g_array_unref(ctx->ref_ids);
@@ -2913,7 +3044,7 @@ static void on_ctx_register_layers(GSimpleAction *a, GVariant *v, gpointer u) {
 	gtk_widget_set_hexpand(ctx->interp_dropdown, TRUE);
 	for (guint i = 0; i < G_N_ELEMENTS(REGISTER_INTERP_NAMES); i++)
 		siril_drop_down_append_text(GTK_DROP_DOWN(ctx->interp_dropdown),
-		                            REGISTER_INTERP_NAMES[i]);
+		                            _(REGISTER_INTERP_NAMES[i]));
 	gtk_drop_down_set_selected(GTK_DROP_DOWN(ctx->interp_dropdown),
 	                           REGISTER_INTERP_DEFAULT_IDX);
 	gtk_box_append(GTK_BOX(interp_row), ctx->interp_dropdown);
@@ -3536,7 +3667,66 @@ static int canvas_dialog_rotate_layers_pixels(double pivot_x, double pivot_y,
 /* Combined apply: resize (move + dim change) then resample each layer's
  * pixel data + reposition it around the NEW canvas centre, all under
  * one full-pixel undo entry so the user can undo back to the pre-Apply
- * state in a single step. */
+ * state in a single step.
+ *
+ * The heavy work — full-pixel undo snapshots of every layer plus a
+ * Lanczos4 resample per layer for rotation — runs on the processing
+ * worker via generic_layer_worker: the GTK main thread stays live, the
+ * worker's busy-guard refuses the op while another job runs, and the
+ * hook executes under the FLIS stack writer lock like every other
+ * layer mutation.  The default end idle plus the coalesced
+ * flis_gui_update → canvas_dialog_refresh_external() reproduce what
+ * canvas_dialog_after_op did for the synchronous path. */
+struct canvas_apply_args {
+	destructor destroy_fn;
+	gint   cw, ch, cx, cy;
+	double angle;
+};
+
+static void canvas_apply_args_free(gpointer p) {
+	g_free(p);
+}
+
+static int canvas_apply_hook(struct generic_layer_args *args) {
+	struct canvas_apply_args *a = (struct canvas_apply_args *)args->user;
+	if (!a || !is_current_image_flis()) return 1;
+	gboolean want_resize = (a->cx != 0 || a->cy != 0 ||
+	                         a->cw != (gint)flis_canvas_rx() ||
+	                         a->ch != (gint)flis_canvas_ry());
+	gboolean want_rotate = (fabs(a->angle) >= 1e-9);
+	if (!want_resize && !want_rotate) return 0;
+
+	/* Full pixel undo when rotation is involved (each layer's pixel
+	 * data changes); props-only is enough for resize alone. */
+	if (want_rotate)
+		undo_save_flis_multi_layer(com.uniq->layers, _("Adjust canvas"));
+	else
+		undo_save_flis_multi_layer_props(com.uniq->layers, _("Adjust canvas"));
+
+	if (want_resize) {
+		/* Canvas-moves-by-(cx,cy) ⇒ layer-shifts-by-the-opposite, so
+		 * layers visually stay put.  flis_canvas_resize adds its dx/dy
+		 * to each position. */
+		if (flis_canvas_resize((guint)a->cw, (guint)a->ch,
+		                       -a->cx, -a->cy) != 0)
+			return 1;
+	}
+	if (want_rotate) {
+		double pivot_x = 0.5 * (double)flis_canvas_rx();
+		double pivot_y = 0.5 * (double)flis_canvas_ry();
+		if (canvas_dialog_rotate_layers_pixels(pivot_x, pivot_y,
+		                                        a->angle) != 0) {
+			/* A mid-loop failure leaves some layers already rotated —
+			 * refresh the display anyway so it doesn't show stale
+			 * pixels (the end idle skips invalidation on failure). */
+			gui_iface.flis_invalidate_composite();
+			gui_iface.flis_gui_update();
+			return 1;
+		}
+	}
+	return 0;
+}
+
 static void on_canvas_apply_click(GtkButton *btn, gpointer ud) {
 	(void)btn;
 	struct canvas_dialog *cd = ud;
@@ -3552,29 +3742,25 @@ static void on_canvas_apply_click(GtkButton *btn, gpointer ud) {
 	gboolean want_rotate = (fabs(cd->pending_angle) >= 1e-9);
 	if (!want_resize && !want_rotate) return;
 
-	/* Full pixel undo when rotation is involved (each layer's pixel
-	 * data changes); props-only is enough for resize alone. */
-	if (want_rotate)
-		undo_save_flis_multi_layer(com.uniq->layers, _("Adjust canvas"));
-	else
-		undo_save_flis_multi_layer_props(com.uniq->layers, _("Adjust canvas"));
+	struct canvas_apply_args *payload = g_new0(struct canvas_apply_args, 1);
+	payload->destroy_fn = canvas_apply_args_free;
+	payload->cw    = cd->pending_cw;
+	payload->ch    = cd->pending_ch;
+	payload->cx    = cd->pending_cx;
+	payload->cy    = cd->pending_cy;
+	payload->angle = cd->pending_angle;
 
-	if (want_resize) {
-		/* Canvas-moves-by-(pending_cx,cy) ⇒ layer-shifts-by-the-
-		 * opposite, so layers visually stay put.  flis_canvas_resize
-		 * adds its dx/dy to each position. */
-		if (flis_canvas_resize((guint)cd->pending_cw, (guint)cd->pending_ch,
-		                       -cd->pending_cx, -cd->pending_cy) != 0)
-			return;
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	if (!args) { canvas_apply_args_free(payload); return; }
+	args->layer_hook       = canvas_apply_hook;
+	args->user             = payload;
+	args->description      = g_strdup(_("Adjust canvas"));
+	args->invalidate_flags = FLIS_INV_ALL;
+	if (!start_in_new_thread(generic_layer_worker, args)) {
+		/* Busy-guard refusal: another job owns the worker.  Free the
+		 * args; nothing was mutated and no undo entry was pushed. */
+		free_generic_layer_args(args);
 	}
-	if (want_rotate) {
-		double pivot_x = 0.5 * (double)flis_canvas_rx();
-		double pivot_y = 0.5 * (double)flis_canvas_ry();
-		if (canvas_dialog_rotate_layers_pixels(pivot_x, pivot_y,
-		                                        cd->pending_angle) != 0)
-			return;
-	}
-	canvas_dialog_after_op(cd);
 }
 
 static void on_canvas_fit_click(GtkButton *btn, gpointer ud) {
@@ -3583,8 +3769,13 @@ static void on_canvas_fit_click(GtkButton *btn, gpointer ud) {
 	if (!is_current_image_flis()) return;
 	gboolean include_invisible =
 	    siril_toggle_get_active(cd->include_invisible);
+	/* Instant op — runs on the main thread; writer lock against a
+	 * concurrent worker walking the stack (M-F12). */
+	flis_stack_writer_lock();
 	undo_save_flis_multi_layer_props(com.uniq->layers, _("Fit canvas to layers"));
-	if (flis_canvas_fit_to_layers(include_invisible) == 0)
+	int fit_ret = flis_canvas_fit_to_layers(include_invisible);
+	flis_stack_writer_unlock();
+	if (fit_ret == 0)
 		canvas_dialog_after_op(cd);
 }
 
@@ -3615,15 +3806,21 @@ static void on_canvas_mirrorx_click(GtkButton *btn, gpointer ud) {
 	(void)btn;
 	struct canvas_dialog *cd = ud;
 	if (!is_current_image_flis()) return;
+	flis_stack_writer_lock();
 	undo_save_flis_multi_layer_props(com.uniq->layers, _("Mirror canvas X"));
-	if (flis_canvas_mirrorx() == 0) canvas_dialog_after_op(cd);
+	int mx_ret = flis_canvas_mirrorx();
+	flis_stack_writer_unlock();
+	if (mx_ret == 0) canvas_dialog_after_op(cd);
 }
 static void on_canvas_mirrory_click(GtkButton *btn, gpointer ud) {
 	(void)btn;
 	struct canvas_dialog *cd = ud;
 	if (!is_current_image_flis()) return;
+	flis_stack_writer_lock();
 	undo_save_flis_multi_layer_props(com.uniq->layers, _("Mirror canvas Y"));
-	if (flis_canvas_mirrory() == 0) canvas_dialog_after_op(cd);
+	int my_ret = flis_canvas_mirrory();
+	flis_stack_writer_unlock();
+	if (my_ret == 0) canvas_dialog_after_op(cd);
 }
 
 static void on_canvas_dialog_close(GtkButton *btn, gpointer ud) {

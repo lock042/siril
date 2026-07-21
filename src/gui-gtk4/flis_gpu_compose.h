@@ -49,6 +49,11 @@
  *   • Empty layer list */
 gboolean flis_gpu_compose_compatible(GSList *layers);
 
+/* Notify the tile cache that the display LUT contents changed (rendering
+ * mode switch, ICC change baked into the LUT).  Baked tiles carry the
+ * stamp and rebuild lazily on the next render. */
+void flis_gpu_compose_bump_lut_stamp(void);
+
 /* Render @layers into @snapshot inside the rectangle @dst_rect (in
  * widget-space pixels).  The canvas-to-widget transform must already
  * be on @snapshot's stack (caller does gtk_snapshot_save /

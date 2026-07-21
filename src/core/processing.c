@@ -1938,6 +1938,36 @@ gpointer generic_mask_worker(gpointer p) {
 		goto the_end;
 	}
 
+	/* §5.2 routing pre-check: when the mask is destined for a layer's
+	 * lmask, validate the target BEFORE generating anything.  The
+	 * post-hoc check in the routing block below (kept as a backstop)
+	 * used to leave the freshly-built mask on the processing slot on a
+	 * dimension mismatch — an error message plus a stray processing
+	 * mask the user never asked for. */
+	if (args->target_layer_id != 0) {
+		flis_layer_t *pre_target = is_current_image_flis()
+			? flis_layer_get_by_id(args->target_layer_id) : NULL;
+		if (!pre_target || !pre_target->fit) {
+			siril_log_error(_("%s: target layer (id %d) not found — no mask created.\n"),
+			                args->description ? args->description : _("Mask operation"),
+			                args->target_layer_id);
+			args->retval = 1;
+			goto the_end;
+		}
+		if (pre_target->fit->rx != args->fit->rx
+		    || pre_target->fit->ry != args->fit->ry) {
+			siril_log_error(_("%s: cannot create a layer mask for '%s' — its "
+			                  "dimensions (%ux%u) do not match the mask source "
+			                  "(%ux%u).  No mask was created.\n"),
+			                args->description ? args->description : _("Mask operation"),
+			                pre_target->layer_name ? pre_target->layer_name : "?",
+			                pre_target->fit->rx, pre_target->fit->ry,
+			                args->fit->rx, args->fit->ry);
+			args->retval = 1;
+			goto the_end;
+		}
+	}
+
 	// Set default max_threads if not specified
 	if (args->max_threads < 1)
 		args->max_threads = com.max_thread;
@@ -1963,7 +1993,22 @@ gpointer generic_mask_worker(gpointer p) {
 	rwlocked = TRUE;
 	if (args->fit == gfit && !args->command) {
 		gchar *undo_msg = args->log_hook ? args->log_hook(args->user, SUMMARY) : g_strdup(args->description);
-		undo_save_state(gfit, undo_msg);
+		if (args->target_layer_id != 0 && is_current_image_flis()) {
+			/* §5.2 routed op (target validated by the pre-check above):
+			 * the meaningful pre-state is the target layer's lmask —
+			 * plus the processing mask the hook will clobber while
+			 * generating, if one exists.  A flavour-blind pixel
+			 * snapshot here left undo restoring identical pixels while
+			 * the freshly routed lmask survived untouched. */
+			if (gfit->mask && gfit->mask->data)
+				undo_save_processing_mask(gfit, "%s", undo_msg);
+			flis_layer_t *undo_target =
+				flis_layer_get_by_id(args->target_layer_id);
+			if (undo_target)
+				undo_save_flis_lmask(undo_target, undo_msg);
+		} else {
+			undo_save_state(gfit, undo_msg);
+		}
 		g_free(undo_msg);
 	}
 	// Call the mask processing hook
@@ -1999,6 +2044,11 @@ the_end:
 	 * better than dropping it on the floor. */
 	if (!retval && args->target_layer_id != 0 && args->fit->mask
 	    && args->fit->mask->data && is_current_image_flis()) {
+		/* M-F12: the routing mutates a layer's lmask from the worker
+		 * thread.  Taking the stack lock while args->fit->rwlock is held
+		 * is the allowed direction (fits → stack); see the rules in
+		 * image_format_flis.c. */
+		flis_stack_writer_lock();
 		flis_layer_t *target = flis_layer_get_by_id(args->target_layer_id);
 		if (!target || !target->fit) {
 			siril_log_warning(_("Mask routing: target layer (id %d) not found; "
@@ -2026,6 +2076,12 @@ the_end:
 				if (flis_layer_set_lmask(target, lm)) {
 					layermask_free(lm);
 				} else {
+					/* Show the result: flip the mask-view radio to
+					 * LAYER so the (now visible) mask tab displays
+					 * the lmask that was just created, not the empty
+					 * processing slot. */
+					if (com.uniq)
+						com.uniq->flis_mask_view = 1;
 					gui_iface.flis_invalidate_composite();
 					gui_iface.flis_gui_update();
 				}
@@ -2034,6 +2090,7 @@ the_end:
 				args->mask_creation = FALSE;
 			}
 		}
+		flis_stack_writer_unlock();
 	}
 
 	if (args->mask_creation) {
@@ -2152,7 +2209,16 @@ gpointer generic_layer_worker(gpointer p) {
 
 	gui_iface.set_progress(0.1, _("Processing layer..."));
 
-	if (args->layer_hook(args)) {
+	/* M-F12: hooks mutate com.uniq->layers and free/replace layer
+	 * payloads; the main thread walks the same list in the GPU compose
+	 * snapshot path, the prefetch idle, and the layers panel.  Exclusive
+	 * lock for the whole hook.  Hooks must obey the stack-lock rules in
+	 * image_format_flis.c: no fits rwlocks, no gui.cairo_mutex, no
+	 * blocking main-loop calls while it is held. */
+	flis_stack_writer_lock();
+	int hook_failed = args->layer_hook(args);
+	flis_stack_writer_unlock();
+	if (hook_failed) {
 		siril_log_error(_("%s layer processing failed.\n"), desc);
 		args->retval = 1;
 	} else if (verbose && args->description) {

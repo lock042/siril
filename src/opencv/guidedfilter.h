@@ -1,7 +1,10 @@
 #ifndef GUIDED_FILTER_H
 #define GUIDED_FILTER_H
 
-#include <opencv2/opencv.hpp>
+/* Only cv::Mat is needed here.  The opencv.hpp umbrella pulled in
+ * stitching.hpp, whose exposure_compensate.hpp emits -Woverloaded-virtual
+ * warnings on every include with current GCC/OpenCV. */
+#include <opencv2/core.hpp>
 
 class GuidedFilterImpl;
 

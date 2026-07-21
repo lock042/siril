@@ -158,7 +158,12 @@ static int flis_composite_ensure_built(void) {
 		return 1;
 	if (!flis_composite_dirty && flis_display_composite)
 		return 0;
+	/* M-F12: the render walks the layer list and reads every layer's
+	 * pixel buffers; worker hooks mutate both under the stack writer
+	 * lock.  Order: gui.cairo_mutex (held by our callers) → stack. */
+	flis_stack_reader_lock();
 	fits *fresh = flis_render_layers(com.uniq->layers);
+	flis_stack_reader_unlock();
 	if (!fresh) return 1;
 	if (flis_display_composite) {
 		clearfits(flis_display_composite);
@@ -2599,6 +2604,11 @@ static int make_index_for_current_display(int vport) {
 	if (current_image_color_managed() && com.gui_icc.same_primaries && com.gui_icc.proofing_transform && gui.rendering_mode != STF_DISPLAY)
 		display_index_transform(index, vport);
 
+	/* The FLIS GPU compose tiles bake this LUT into their pixels; a
+	 * rebuilt LUT with unchanged lo/hi (mode switch, ICC change) would
+	 * otherwise leave stale tiles on screen. */
+	flis_gpu_compose_bump_lut_stamp();
+
 	last_pente = slope;
 	last_mode = gui.rendering_mode;
 	return 0;
@@ -2975,10 +2985,10 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 
 		/* FLIS GPU compose dispatch (stage 3.2 + groups/sparse from
 		 * §3.3): if every layer in the stack is GPU-compatible (no
-		 * CHROMA blend, base layer canvas-sized at the origin, all
-		 * blend modes GSK-translatable — see
-		 * flis_gpu_compose_compatible), composite via GSK push_blend
-		 * per layer.  Each layer becomes a per-tile GdkTexture cache,
+		 * CHROMA blend, all blend modes GSK-translatable — see
+		 * flis_gpu_compose_compatible; sparse/offset base layers are
+		 * fine, a canvas_bg colour node bottoms the blend chain),
+		 * composite via GSK push_blend per layer.  Each layer becomes a per-tile GdkTexture cache,
 		 * reused across redraws.  Property-only changes (opacity /
 		 * blend mode / visibility toggle) cost zero texture work;
 		 * only the snapshot tree differs.
@@ -3001,26 +3011,57 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 		 * dimensions must express physical pixels for the
 		 * TextureScaleNode to rasterise at true screen resolution. */
 		gboolean used_gpu_compose = FALSE;
-		if (is_current_image_flis()
-		    && (vport == RGB_VPORT || !flis_composite_is_chromatic())
-		    && flis_layer_count() >= 2
-		    && flis_gpu_compose_compatible(com.uniq->layers)) {
-			guint canvas_w = flis_canvas_rx();
-			guint canvas_h = flis_canvas_ry();
-			graphene_rect_t dst = GRAPHENE_RECT_INIT(
-				0.0f, 0.0f,
-				(float)(canvas_w * sx),
-				(float)(canvas_h * sy));
-			/* Pass the canvas-space visible rect so the GPU compose
-			 * path can cull per-layer tiles that fall outside the
-			 * viewport (§3.3 slice 3). */
-			graphene_rect_t vis_canvas = GRAPHENE_RECT_INIT(
-				(float)vis_xmin, (float)vis_ymin,
-				(float)(vis_xmax - vis_xmin),
-				(float)(vis_ymax - vis_ymin));
-			flis_gpu_compose_render(snapshot, com.uniq->layers,
-				canvas_w, canvas_h, &dst, &vis_canvas, filter);
-			used_gpu_compose = TRUE;
+		/* Display modes the GPU bake cannot express — negative view,
+		 * per-channel (unlinked) LUTs, HD remap, and an active soft-proof
+		 * transform — fall back to the CPU composite + tile path, which
+		 * applies them per-pixel. */
+		gboolean gpu_display_state_ok = TRUE;
+		if (gui.rendering_mode == STF_DISPLAY && gui.unlink_channels)
+			gpu_display_state_ok = FALSE;
+		if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap
+		    && gfit->type == DATA_FLOAT)
+			gpu_display_state_ok = FALSE;
+		if (com.gui_icc.proofing_transform && !identical
+		    && !com.gui_icc.same_primaries)
+			gpu_display_state_ok = FALSE;
+		if (gpu_display_state_ok && imgdisp_app_win) {
+			GAction *action_neg = g_action_map_lookup_action(
+					G_ACTION_MAP(imgdisp_app_win), "negative-view");
+			if (action_neg) {
+				GVariant *st = g_action_get_state(action_neg);
+				if (g_variant_get_boolean(st))
+					gpu_display_state_ok = FALSE;
+				g_variant_unref(st);
+			}
+		}
+		if (gpu_display_state_ok && is_current_image_flis()
+		    && flis_layer_count() >= 2) {
+			/* M-F12: the predicate and the render both walk the layer
+			 * list and read layer pixel buffers — hold the stack reader
+			 * lock across the whole span so a worker hook cannot free a
+			 * layer mid-render.  Order: stack → g_cache_mutex (taken
+			 * inside the render). */
+			flis_stack_reader_lock();
+			if ((vport == RGB_VPORT || !flis_composite_is_chromatic())
+			    && flis_gpu_compose_compatible(com.uniq->layers)) {
+				guint canvas_w = flis_canvas_rx();
+				guint canvas_h = flis_canvas_ry();
+				graphene_rect_t dst = GRAPHENE_RECT_INIT(
+					0.0f, 0.0f,
+					(float)(canvas_w * sx),
+					(float)(canvas_h * sy));
+				/* Pass the canvas-space visible rect so the GPU compose
+				 * path can cull per-layer tiles that fall outside the
+				 * viewport (§3.3 slice 3). */
+				graphene_rect_t vis_canvas = GRAPHENE_RECT_INIT(
+					(float)vis_xmin, (float)vis_ymin,
+					(float)(vis_xmax - vis_xmin),
+					(float)(vis_ymax - vis_ymin));
+				flis_gpu_compose_render(snapshot, com.uniq->layers,
+					canvas_w, canvas_h, &dst, &vis_canvas, filter);
+				used_gpu_compose = TRUE;
+			}
+			flis_stack_reader_unlock();
 		}
 
 		if (!used_gpu_compose) {
@@ -3469,9 +3510,19 @@ static void draw_roi(const draw_data_t *dd) {
 
 static void draw_selection(const draw_data_t* dd) {
 	if (com.selection.w > 0 && com.selection.h > 0) {
-		if ((com.selection.x + com.selection.w > gfit->rx) ||
-		(com.selection.y + com.selection.h > gfit->ry)) {
-			rectangle area = {0, 0, gfit->rx, gfit->ry};
+		/* Selections live in DISPLAY (canvas) space — validate against
+		 * the displayed extent, not gfit: for a FLIS, gfit is the
+		 * active layer, and clamping against a smaller sparse layer
+		 * destroyed the user's selection on layer switch and replaced
+		 * it with a layer-sized box at the canvas origin.  Ops that
+		 * consume the selection translate to layer-local coordinates
+		 * themselves (see populate_roi).  flis_canvas_rx/ry return
+		 * gfit dims for non-FLIS images. */
+		const gint disp_rx = (gint)flis_canvas_rx();
+		const gint disp_ry = (gint)flis_canvas_ry();
+		if ((com.selection.x + com.selection.w > disp_rx) ||
+		(com.selection.y + com.selection.h > disp_ry)) {
+			rectangle area = {0, 0, disp_rx, disp_ry};
 			memcpy(&com.selection, &area, sizeof(rectangle));
 		}
 		if (!rotation_dlg) image_display_init_statics();

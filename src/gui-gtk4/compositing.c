@@ -946,7 +946,15 @@ static void load_layer_image(layer *target_layer, const char *filename) {
 				/* Per-fits ICC removed: no reference profile to capture. */
 			}
 			/* Per-fits ICC removed: cross-layer profile matching is no
-			 * longer available; inputs are treated as raw pixel data. */
+			 * longer available; inputs are treated as raw pixel data.
+			 * Say so once per composition so the change from older
+			 * versions (which converted mismatched inputs) is not
+			 * silent. */
+			if (number_of_images_loaded() == 1)
+				siril_log_message(_("RGB composition treats all input "
+						"images as raw pixel data: no colour profile "
+						"matching or conversion is performed between "
+						"inputs.\n"));
 			if (number_of_images_loaded() > 1 &&
 			    (gfit->rx != layers[layer]->the_fit.rx ||
 			     gfit->ry != layers[layer]->the_fit.ry)) {

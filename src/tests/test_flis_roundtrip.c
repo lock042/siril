@@ -225,3 +225,31 @@ Test(flis_roundtrip, unknown_group_metadata_round_trips) {
 	cr_assert(strstr(r_grp->unknown_metadata, "FUTURE_GROUP_KEY=alpha") != NULL);
 	cr_assert(strstr(r_grp->unknown_metadata, "BLEND_PROFILE=lab") != NULL);
 }
+
+/* Embedded ICC profile survives a save → load cycle (C1 regression: the
+ * loader freed the file profile handle before copying it into com.uniq —
+ * a use-after-free that meant the profile never round-tripped). */
+Test(flis_roundtrip, embedded_icc_profile_survives) {
+	flis_test_add_layer(flis_test_make_rgb_fits(8, 8, 0.2f, 0.4f, 0.6f), "base");
+	com.uniq->icc_profile = cmsCreate_sRGBProfile();
+	cr_assert_not_null(com.uniq->icc_profile);
+	com.uniq->color_managed = TRUE;
+	com.pref.fits_save_icc = TRUE;
+
+	cr_assert_eq(save_flis(tmppath), 0, "save_flis failed");
+
+	flis_free_layers(com.uniq);
+	cmsCloseProfile(com.uniq->icc_profile);
+	com.uniq->icc_profile = NULL;
+	com.uniq->color_managed = FALSE;
+
+	cr_assert_eq(load_flis(tmppath), 0, "load_flis failed");
+	cr_assert(com.uniq->color_managed,
+	          "reloaded FLIS must be colour-managed");
+	cr_assert_not_null(com.uniq->icc_profile,
+	                   "embedded profile must be reinstalled on load");
+	/* The reloaded handle must be a live lcms object — probing it via the
+	 * lcms API would crash / return garbage on a dangling copy. */
+	cr_assert_eq(cmsGetColorSpace(com.uniq->icc_profile), cmsSigRgbData,
+	             "reloaded profile is not a valid RGB profile");
+}

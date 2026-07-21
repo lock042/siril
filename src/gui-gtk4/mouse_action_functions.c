@@ -303,13 +303,22 @@ static void show_drawingarea_popover(const char *popover_id,
 		g_hash_table_insert(cache, (gpointer) popover_id, popover);
 	}
 
+	/* Always detach and re-attach the popover before popping up.  A
+	 * GtkPopoverMenu that was open when a dialog seized the grab — e.g.
+	 * picking a mask-creation item from this very menu opens its dialog
+	 * while the popover is still popping down — can be left wedged: on
+	 * the SAME parent, popdown() + popup() silently fails to map it
+	 * again.  The user-visible symptom was the context menu refusing to
+	 * reopen after closing the dialog until the viewport changed — which
+	 * "fixed" it precisely because switching drawingareas reparents the
+	 * popover and resets its internal state.  Unconditional reparenting
+	 * takes that known-good path every time; the cached menu model is
+	 * unaffected. */
 	gtk_popover_popdown(popover);
 	GtkWidget *cur_parent = gtk_widget_get_parent(GTK_WIDGET(popover));
-	if (cur_parent != anchor) {
-		if (cur_parent)
-			gtk_widget_unparent(GTK_WIDGET(popover));
-		gtk_widget_set_parent(GTK_WIDGET(popover), anchor);
-	}
+	if (cur_parent)
+		gtk_widget_unparent(GTK_WIDGET(popover));
+	gtk_widget_set_parent(GTK_WIDGET(popover), anchor);
 
 	/* Mirror the GTK3 do_popup_graymenu_unused() behaviour: refresh the
 	 * radio actions for menugray's Selection submenu from the current
@@ -573,6 +582,23 @@ static gboolean measure_release (mouse_data *data) {
 	return TRUE;
 }
 
+/* Mask polygons and colour picks are collected in display (canvas)
+ * coordinates but consumed against gfit — the active layer, which for a
+ * sparse FLIS layer sits at an offset.  Shift into layer-local
+ * coordinates so the operation lands where the cursor was.  position_x/y
+ * are display-convention (0 = canvas top-left), same as the collected
+ * points, so a plain subtraction is correct for both axes; the FITS
+ * bottom-up flip happens later in the consumers. */
+static void poly_to_active_layer_coords(UserPolygon *poly) {
+	if (!poly || !is_current_image_flis()) return;
+	flis_layer_t *act = flis_active_layer();
+	if (!act || (act->position_x == 0 && act->position_y == 0)) return;
+	for (int i = 0; i < poly->n_points; i++) {
+		poly->points[i].x -= act->position_x;
+		poly->points[i].y -= act->position_y;
+	}
+}
+
 static gboolean draw_poly_release(mouse_data *data) {
 	// Parse gui.drawing_polypoints into a Polygon and add it using add_user_polygon
 	gui.drawing_polygon = FALSE;
@@ -598,6 +624,7 @@ static gboolean mask_add_poly_release(mouse_data *data) {
 	if (!gfit->mask) { // we need something to add the polygon to, so create a zeroes-like mask
 		mask_create_zeroes_like(gfit, get_default_mask_bitpix());
 	}
+	poly_to_active_layer_coords(poly);
 	set_poly_in_mask(poly, gfit, TRUE);
 	free_user_polygon(poly);
 	gui.drawing_polypoints = NULL;
@@ -614,6 +641,7 @@ static gboolean mask_clear_poly_release(mouse_data *data) {
 	if (!gfit->mask) { // we need somthing to subtract the polygon from, so create a ones-like mask
 		mask_create_ones_like(gfit, get_default_mask_bitpix());
 	}
+	poly_to_active_layer_coords(poly);
 	set_poly_in_mask(poly, gfit, FALSE);
 	free_user_polygon(poly);
 	// Free and NULL gui.drawing_polypoints
@@ -624,7 +652,18 @@ static gboolean mask_clear_poly_release(mouse_data *data) {
 }
 
 static gboolean sample_mask_color_release(mouse_data *data) {
-	mask_color_handle_image_click(data->zoomed.x, data->zoomed.y);
+	int lx = data->zoomed.x, ly = data->zoomed.y;
+	if (is_current_image_flis()) {
+		/* Canvas → layer-local, same reasoning as
+		 * poly_to_active_layer_coords above; the handler's own bounds
+		 * check rejects picks outside the layer. */
+		flis_layer_t *act = flis_active_layer();
+		if (act) {
+			lx -= act->position_x;
+			ly -= act->position_y;
+		}
+	}
+	mask_color_handle_image_click(lx, ly);
 	return TRUE;
 }
 

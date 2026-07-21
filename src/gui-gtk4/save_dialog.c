@@ -43,6 +43,7 @@
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/image_format_flis.h"
+#include "io/flis_compose.h"
 
 #include "save_dialog.h"
 
@@ -567,12 +568,22 @@ static gpointer mini_save_dialog(gpointer p) {
 			gboolean wrote_flis = FALSE;
 			if (is_current_image_flis() && flis_layer_count() > 1) {
 				if (args->flis_save_choice == FLIS_SAVE_FLATTEN) {
-					if (flis_flatten_all()) {
+					/* Export a flattened COPY: render the composite and
+					 * save that.  The in-memory layer stack must survive
+					 * — flattening the live document here would destroy
+					 * the user's layers (and mutate the stack from the
+					 * save worker thread while the main thread may be
+					 * rendering it). */
+					fits *flat = flis_render_layers(com.uniq->layers);
+					if (!flat) {
 						siril_log_error(_("Save: flatten failed.\n"));
 						args->retval = 1;
 						break;
 					}
-					args->retval = savefits(args->filename, gfit);
+					copy_fits_metadata(gfit, flat);
+					args->retval = savefits(args->filename, flat);
+					clearfits(flat);
+					free(flat);
 				} else {
 					/* FLIS_SAVE_AS_FLIS or AUTOMATIC fallback for safety
 					 * (preserves data — never silently flatten). */
@@ -683,9 +694,9 @@ static int ask_flis_flatten_or_preserve(void) {
 		_("This image has %d layers.\n\n"
 		  "Saving as FLIS preserves every layer, mask, blend mode, and "
 		  "metadata key — recommended for in-work editing.\n\n"
-		  "Saving as plain FITS flattens the visible layers into a single "
-		  "image and discards all layer-specific data — useful for sharing "
-		  "with tools that don't read FLIS.\n\n"
+		  "Saving as plain FITS writes a flattened copy of the visible "
+		  "layers — useful for sharing with tools that don't read FLIS. "
+		  "The layered image stays open and unchanged in Siril.\n\n"
 		  "FLIS files remain valid FITS files: any FITS reader will see "
 		  "the composite thumbnail as a fallback."),
 		flis_layer_count());
@@ -707,6 +718,14 @@ static gboolean prompt_flis_save_choice_main(struct savedial_data *args) {
 	args->flis_save_choice = FLIS_SAVE_AUTOMATIC;
 	if (!is_current_image_flis() || flis_layer_count() <= 1)
 		return TRUE;
+
+	/* An explicitly typed .flis filename already answers the question —
+	 * asking again (and possibly writing a flattened plain-FITS payload
+	 * into a .flis-named file) would be incoherent. */
+	if (args->filename && g_str_has_suffix(args->filename, ".flis")) {
+		args->flis_save_choice = FLIS_SAVE_AS_FLIS;
+		return TRUE;
+	}
 
 	int choice = ask_flis_flatten_or_preserve();
 
@@ -1103,11 +1122,17 @@ void on_header_save_button_clicked() {
 		if (choice == 2) {
 			save_flis(com.uniq->filename);
 		} else {
-			if (flis_flatten_all()) {
+			/* Export a flattened COPY — the open document keeps its
+			 * layers (see the Save As worker path). */
+			fits *flat = flis_render_layers(com.uniq->layers);
+			if (!flat) {
 				siril_log_error(_("Save: flatten failed.\n"));
 				return;
 			}
-			savefits(com.uniq->filename, gfit);
+			copy_fits_metadata(gfit, flat);
+			savefits(com.uniq->filename, flat);
+			clearfits(flat);
+			free(flat);
 		}
 	} else if (is_current_image_flis()) {
 		save_flis(com.uniq->filename);

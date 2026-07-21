@@ -43,6 +43,10 @@
  * when they are needed.
  */
 fits *flis_render_layers(GSList *layers);
+/* Merge-down variant: bottom layer painted raw (tint only) so the
+ * surviving layer's retained blend mode / opacity / mask are not baked
+ * into the merged pixels; upper layers blend with their parameters. */
+fits *flis_render_layers_merge(GSList *layers);
 
 /**
  * flis_compose_bake_tile_bgra8:

@@ -165,7 +165,8 @@ int restore_roi() {
 }
 
 void copy_gfit_to_backup() {
-	guint64 gfit_size = gfit->rx * gfit->ry * gfit->naxes[2] * gfit->type == DATA_FLOAT ? 4 : 2;
+	guint64 gfit_size = (guint64)gfit->rx * gfit->ry * gfit->naxes[2]
+	                    * (gfit->type == DATA_FLOAT ? 4 : 2);
 	if (!preview_is_active && (get_available_memory() < (gfit_size * 2))) {
 		siril_log_warning(_("Warning: insufficient memory available to create a preview.\n"));
 		return;
@@ -218,7 +219,18 @@ int copy_backup_to_gfit() {
 	g_rw_lock_writer_lock(&gfit->rwlock);
 	if (!gfit->data && !gfit->fdata)
 		retval = 1;
-	else {
+	else if (preview_gfit_backup.rx != gfit->rx
+	         || preview_gfit_backup.ry != gfit->ry
+	         || preview_gfit_backup.naxes[2] != gfit->naxes[2]) {
+		/* The backup belongs to a different image than gfit now points
+		 * at — e.g. the active FLIS layer was changed under a live
+		 * preview by a path that could not re-arm it (worker hooks).
+		 * Restoring would write another layer's pixels into this one:
+		 * junk for a smaller backup, a heap overflow for a larger one.
+		 * Skip the restore; the on-screen pixels stay as they are. */
+		siril_log_debug("copy_backup_to_gfit: backup/gfit dimensions differ, skipping restore\n");
+		retval = 1;
+	} else {
 		// Restore the mask state too
 		if (copyfits(&preview_gfit_backup, gfit, CP_COPYA | CP_COPYMASK, -1)) {
 			siril_log_debug("Image copy error in previews\n");

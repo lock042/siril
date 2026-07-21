@@ -130,15 +130,15 @@ static gpointer export_sequence(gpointer ptr) {
 
 	/* possible output formats: FITS images, FITS cube, TIFF, SER, AVI, MP4, WEBM */
 	// create the sequence file for single-file sequence formats
-	fits ref = { 0 };
 	int refindex = 0;
 	switch (args->output) {
 		case EXPORT_FITS:
 			output_bitpix = args->seq->bitpix;
 			refindex = sequence_find_refimage(args->seq);
-			/* Sequence export does not embed ICC profiles. */
-			seq_read_frame(args->seq, refindex, &ref, FALSE, -1);
-			clearfits(&ref);
+			/* Sequence export does not embed ICC profiles — the
+			 * reference-frame read that used to feed the profile
+			 * capture is gone with them; refindex itself is still
+			 * used for the registration shift below. */
 			break;
 		case EXPORT_FITSEQ:
 			fitseq_file = calloc(1, sizeof(fitseq));
@@ -181,9 +181,10 @@ static gpointer export_sequence(gpointer ptr) {
 			// Check if the sequence has an ICC profile. If so, we should convert to sRGB
 			// as that's really the only suitable option here
 			refindex = sequence_find_refimage(args->seq);
-			/* Sequence export does not embed ICC profiles. */
-			seq_read_frame(args->seq, refindex, &ref, FALSE, -1);
-			clearfits(&ref);
+			/* Sequence export does not embed ICC profiles — the
+			 * reference-frame read that used to feed the profile
+			 * capture is gone with them; refindex itself is still
+			 * used for the registration shift below. */
 
 			if (args->seq->nb_layers == 1)
 				avi_format = AVI_WRITER_INPUT_FORMAT_MONOCHROME;
@@ -211,9 +212,10 @@ static gpointer export_sequence(gpointer ptr) {
 			// Check if the sequence has an ICC profile. If so, we should convert to sRGB
 			// as that's really the only suitable option here
 			refindex = sequence_find_refimage(args->seq);
-			/* Sequence export does not embed ICC profiles. */
-			seq_read_frame(args->seq, refindex, &ref, FALSE, -1);
-			clearfits(&ref);
+			/* Sequence export does not embed ICC profiles — the
+			 * reference-frame read that used to feed the profile
+			 * capture is gone with them; refindex itself is still
+			 * used for the registration shift below. */
 
 			/* resampling is managed by libswscale */
 			snprintf(dest, 256, "%s.%s", args->basename,

@@ -26,6 +26,7 @@ SOFTWARE.
 */
 
 #include "guidedfilter.h"
+#include <opencv2/imgproc.hpp>   /* cv::blur */
 
 static cv::Mat boxfilter(const cv::Mat &I, int r)
 {

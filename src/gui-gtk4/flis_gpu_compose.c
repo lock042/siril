@@ -42,10 +42,18 @@
  *
  * Limits (caller must check via flis_gpu_compose_compatible):
  *   - FLIS_BLEND_CHROMA has no GSK equivalent — fall back to CPU
- *   - Base layer must be canvas-sized at position (0,0) — non-sparse
- *     (FLIS spec invariant); upper layers may be sparse.
- *   - Base layer in a non-PASS_THROUGH group — that group would need
- *     to blend against empty content for its bottom, not yet expressed.
+ *   - Any layer may be sparse / offset: a canvas_bg colour node forms
+ *     the deepest bottom of the chain, so every layer (base included)
+ *     blends against the background with its own mode, matching the
+ *     §7 CPU walk.
+ *
+ * Known divergence from the CPU oracle (documented, §3.7 territory):
+ *   the GPU blends DISPLAY-STRETCHED 8-bit tile values, the CPU path
+ *   blends linear floats and stretches the composite.  For a
+ *   non-linear LUT with non-Normal blends or partial opacity,
+ *   stretch(blend(a,b)) ≠ blend(stretch(a),stretch(b)); eliminating
+ *   this needs shader-side colour management (GSK shaders are out of
+ *   scope for this stage).
  */
 
 #include "flis_gpu_compose.h"
@@ -139,6 +147,7 @@ struct cache_slot {
 	 * whole grid. */
 	WORD        stretch_lo;
 	WORD        stretch_hi;
+	guint       lut_stamp;   /* display-LUT generation the tiles were baked with */
 	gboolean    has_tint;
 	double      tint_r, tint_g, tint_b;
 	/* Mip stride the tile grid was baked at (1, 2, 4 …).  Higher mip
@@ -150,6 +159,17 @@ struct cache_slot {
 };
 
 static struct cache_slot g_cache[FLIS_CACHE_MAX];
+
+/* Display-LUT generation counter.  image_display.c bumps it every time
+ * gui.remap_index is actually rebuilt (rendering-mode switch, ICC profile
+ * change baked into the LUT, ...).  Tiles baked with an older stamp are
+ * stale even when gui.lo/gui.hi did not move — without this, switching
+ * e.g. autostretch→linear kept showing the old stretch on the GPU path. */
+static gint g_lut_stamp = 1;
+
+void flis_gpu_compose_bump_lut_stamp(void) {
+	g_atomic_int_inc(&g_lut_stamp);
+}
 static guint64           g_epoch;       /* monotonic counter for tile last_used */
 static gsize             g_cache_bytes; /* total tile + lmask bytes resident */
 
@@ -384,7 +404,8 @@ static struct cache_slot *ensure_layer_cache_ready(flis_layer_t *lay,
 	const guint cur_w = (guint)lay->fit->rx;
 	const guint cur_h = (guint)lay->fit->ry;
 
-	gboolean stretch_changed = (s->stretch_lo != lo || s->stretch_hi != hi);
+	gboolean stretch_changed = (s->stretch_lo != lo || s->stretch_hi != hi
+	                            || s->lut_stamp != (guint)g_atomic_int_get(&g_lut_stamp));
 	gboolean tint_changed = (s->has_tint != lay->has_tint) ||
 	                        (lay->has_tint && (
 	                            s->tint_r != lay->layer_tint.r ||
@@ -410,6 +431,7 @@ static struct cache_slot *ensure_layer_cache_ready(flis_layer_t *lay,
 		s->tile_bytes = g_new0(gsize, n);
 		s->stretch_lo = lo;
 		s->stretch_hi = hi;
+		s->lut_stamp  = (guint)g_atomic_int_get(&g_lut_stamp);
 		s->has_tint = lay->has_tint;
 		s->tint_r = lay->layer_tint.r;
 		s->tint_g = lay->layer_tint.g;
@@ -516,29 +538,15 @@ static gboolean translate_blend_mode(flis_blend_mode_t mode, GskBlendMode *out) 
 
 gboolean flis_gpu_compose_compatible(GSList *layers) {
 	if (!layers) return FALSE;
-	guint canvas_w = flis_canvas_rx();
-	guint canvas_h = flis_canvas_ry();
-	gboolean is_base = TRUE;
-	for (GSList *l = layers; l; l = l->next, is_base = FALSE) {
+	for (GSList *l = layers; l; l = l->next) {
 		flis_layer_t *lay = (flis_layer_t *)l->data;
 		if (!lay || !lay->fit) return FALSE;
-		if (is_base) {
-			/* §7: the GPU fast path doesn't paint canvas_bg into uncovered
-			 * pixels, so it can only run when the bottom layer fully covers
-			 * the canvas at the origin.  When the user moves or shrinks
-			 * the bottom layer, this predicate fails and the caller falls
-			 * back to the CPU composite — which correctly fills canvas_bg
-			 * where no layer covers.  A future GPU extension could paint
-			 * a canvas_bg rectangle before the layer textures and lift
-			 * this restriction. */
-			if (lay->position_x != 0 || lay->position_y != 0) return FALSE;
-			if (lay->fit->rx != canvas_w || lay->fit->ry != canvas_h) return FALSE;
-			if (lay->group_id != 0) {
-				flis_group_t *grp = flis_group_get_by_id(lay->group_id);
-				if (grp && grp->blend_mode != FLIS_BLEND_PASS_THROUGH)
-					return FALSE;
-			}
-		}
+		/* §7 note: the render emits a canvas_bg colour node as the
+		 * deepest bottom of the blend chain, so the bottom layer no
+		 * longer needs to cover the canvas at the origin — every layer
+		 * (including the base) blends against the background with its
+		 * own mode, matching the CPU walk.  This removed the most
+		 * common GPU→CPU fallback flip (dragging the base layer). */
 		GskBlendMode dummy;
 		if (!translate_blend_mode(lay->blend_mode, &dummy)) return FALSE;
 		if (lay->group_id != 0) {
@@ -804,6 +812,10 @@ static void schedule_prefetch_idle(guint canvas_w, guint canvas_h,
 
 static gboolean prefetch_idle_cb(gpointer user_data) {
 	(void)user_data;
+	/* M-F12: the walk below reads the live layer list and bakes from
+	 * layer pixel buffers.  Lock order: stack (reader) BEFORE
+	 * g_cache_mutex — never the other way around. */
+	flis_stack_reader_lock();
 	g_mutex_lock(&g_cache_mutex);
 	g_prefetch_idle_id = 0;
 	if (!g_prefetch.valid) goto out;
@@ -877,6 +889,7 @@ static gboolean prefetch_idle_cb(gpointer user_data) {
 	}
 out:
 	g_mutex_unlock(&g_cache_mutex);
+	flis_stack_reader_unlock();
 	return G_SOURCE_REMOVE;
 }
 
@@ -981,9 +994,16 @@ void flis_gpu_compose_render(GtkSnapshot *snapshot,
 		return;
 	}
 
-	/* ---- Phase 2: emit the nested push_blend chain over items. ---- */
+	/* ---- Phase 2: emit the nested push_blend chain over items.
+	 *
+	 * The deepest bottom is a canvas_bg colour node (stretched through
+	 * the current display LUT, mirroring the CPU path which fills the
+	 * composite with canvas_bg before the LUT is applied).  Every item
+	 * — including the base layer — is then the top of one push_blend
+	 * carrying its own blend mode, exactly like the §7 CPU walk where
+	 * the base composites against the background. ---- */
 	const int n = items->len;
-	for (int i = 0; i < n - 1; i++) {
+	for (int i = 0; i < n; i++) {
 		struct render_item *top = &g_array_index(items, struct render_item, n - 1 - i);
 		GskBlendMode mode;
 		translate_blend_mode(top->blend_mode, &mode);
@@ -991,15 +1011,29 @@ void flis_gpu_compose_render(GtkSnapshot *snapshot,
 	}
 
 	{
-		struct render_item *base = &g_array_index(items, struct render_item, 0);
-		if (base->kind == RENDER_ITEM_SINGLE)
-			emit_single(snapshot, base, canvas_w, canvas_h,
-			            dst_rect, visible_canvas, filter);
-		else
-			emit_group_subtree(snapshot, base, canvas_w, canvas_h,
-			                   dst_rect, visible_canvas, filter);
+		/* Background bottom node. */
+		const BYTE *lut = gui.remap_index[0];
+		float br = 0.f, bgc = 0.f, bb = 0.f;
+		if (com.uniq) {
+			WORD wr = (WORD)CLAMP(com.uniq->canvas_bg_r * 65535.0, 0.0, 65535.0);
+			WORD wg = (WORD)CLAMP(com.uniq->canvas_bg_g * 65535.0, 0.0, 65535.0);
+			WORD wb = (WORD)CLAMP(com.uniq->canvas_bg_b * 65535.0, 0.0, 65535.0);
+			if (lut) {
+				br  = lut[wr] / 255.f;
+				bgc = lut[wg] / 255.f;
+				bb  = lut[wb] / 255.f;
+			} else {
+				br  = (float)com.uniq->canvas_bg_r;
+				bgc = (float)com.uniq->canvas_bg_g;
+				bb  = (float)com.uniq->canvas_bg_b;
+			}
+		}
+		GdkRGBA bg_rgba = { br, bgc, bb, 1.0f };
+		graphene_rect_t bg_rect = dst_rect ? *dst_rect
+			: GRAPHENE_RECT_INIT(0.f, 0.f, (float)canvas_w, (float)canvas_h);
+		gtk_snapshot_append_color(snapshot, &bg_rgba, &bg_rect);
 	}
-	for (int i = 1; i < n; i++) {
+	for (int i = 0; i < n; i++) {
 		gtk_snapshot_pop(snapshot);
 		struct render_item *cur = &g_array_index(items, struct render_item, i);
 		if (cur->kind == RENDER_ITEM_SINGLE)

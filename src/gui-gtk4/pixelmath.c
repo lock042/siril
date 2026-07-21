@@ -825,8 +825,15 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 
 		/* Per-fits ICC removed: cross-layer profile matching for
 		 * pixelmath inputs is no longer available; inputs are treated
-		 * as raw pixel data. */
-		(void)icc_warning_given;
+		 * as raw pixel data.  Tell the user once so the change from
+		 * older versions (which converted mismatched inputs) is not
+		 * silent. */
+		if (!icc_warning_given && nb_rows > 0) {
+			siril_log_message(_("Pixel Math treats all input images as raw "
+					"pixel data: no colour profile matching or conversion "
+					"is performed between inputs.\n"));
+			icc_warning_given = TRUE;
+		}
 		if (channel == -1) {
 			width   = var_fit[nb_rows].rx;
 			height  = var_fit[nb_rows].ry;

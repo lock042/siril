@@ -122,6 +122,10 @@ gpointer stack_function_handler(gpointer p) {
 		                  "stack result would otherwise overwrite the active "
 		                  "layer.\n"));
 		args->retval = -1;
+		/* Route through the normal completion idle so the processing
+		 * thread is released, busy state cleared, and args freed —
+		 * an early return here would leak all of that. */
+		siril_add_idle(end_stacking, args);
 		return GINT_TO_POINTER(-1);
 	}
 
@@ -144,8 +148,6 @@ gpointer stack_function_handler(gpointer p) {
 		if (args->upscale_at_stacking)
 			com.seq.current = SCALED_IMAGE;
 		else com.seq.current = RESULT_IMAGE;
-		if (!com.script)
-			icc_auto_assign(gfit, ICC_ASSIGN_ON_STACK);
 		/* Warning: the previous com.uniq is not freed, but calling
 		 * close_single_image() will close everything before reopening it,
 		 * which is quite slow */
@@ -153,6 +155,12 @@ gpointer stack_function_handler(gpointer p) {
 		com.uniq->comment = strdup(_("Stacking result image"));
 		com.uniq->chans = gfit->naxes[2];
 		com.uniq->fit = gfit;
+		/* Profile state lives on com.uniq, so the auto-assign must run
+		 * after the fresh single is installed — before it, the call would
+		 * early-return (no com.uniq) or write onto the stale one, and the
+		 * stacked result would be saved without an embedded profile. */
+		if (!com.script)
+			icc_auto_assign(gfit, ICC_ASSIGN_ON_STACK);
 		/* Giving summary if average rejection stacking */
 		_show_summary(args);
 

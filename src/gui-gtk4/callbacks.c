@@ -1824,6 +1824,14 @@ gboolean show_or_hide_mask_tab_idle(gpointer p) {
 		return FALSE;
 	gboolean has_mask = (gfit->mask != NULL);
 	g_rw_lock_reader_unlock(&gfit->rwlock);
+	/* FLIS: the tab can also display the active layer's layer mask (the
+	 * mask-view radios switch between the two sources), so it must show
+	 * when either exists — checking only gfit->mask kept the tab hidden
+	 * after routing a freshly created mask to a layer's lmask. */
+	if (!has_mask && is_current_image_flis()) {
+		flis_layer_t *act = flis_active_layer();
+		has_mask = (act && act->lmask && act->lmask->data);
+	}
 	GtkNotebook* Color_Layers = GTK_NOTEBOOK(lookup_widget("notebook1"));
 	GtkWidget *page = gtk_notebook_get_nth_page(Color_Layers, MASK_VPORT);
 	if (has_mask) {
@@ -2235,7 +2243,9 @@ gboolean set_GUI_CWD(gpointer user_data) {
 			 * can tell at a glance whether the canvas matches a given
 			 * layer's pixel dims. */
 			subtitle = g_strdup_printf(
-				"%s — canvas %ux%u — layer '%s' [%d/%u]",
+				/* Translators: header-bar subtitle for a layered image:
+				 * filename — canvas WxH — layer 'name' [index/count] */
+				_("%s — canvas %ux%u — layer '%s' [%d/%u]"),
 				basename,
 				flis_canvas_rx(), flis_canvas_ry(),
 				active->layer_name ? active->layer_name : "?",

@@ -335,6 +335,22 @@ static void free_layer_entry(historic_layer_entry_t *e) {
 	/* note: callers free the array of entries; we only free contents. */
 }
 
+/* Fill a flis_layer_props_t from a layer's live state.  Shared by every
+ * save path that snapshots layer properties. */
+static void snapshot_layer_props(const flis_layer_t *lay, flis_layer_props_t *p) {
+	p->blend_mode   = lay->blend_mode;
+	p->opacity      = lay->opacity;
+	p->visible      = lay->visible;
+	p->locked       = lay->locked;
+	p->has_tint     = lay->has_tint;
+	p->tint         = lay->layer_tint;
+	p->lmask_active = lay->lmask_active;
+	p->position_x   = lay->position_x;
+	p->position_y   = lay->position_y;
+	p->layer_order  = lay->layer_order;
+	g_strlcpy(p->name, lay->layer_name ? lay->layer_name : "", sizeof(p->name));
+}
+
 /* Build a per-layer snapshot inside a compound entry: pixels + pmask +
  * lmask + all metadata + props.  Returns 0 on success, 1 on failure
  * (in which case any partially-built fields are cleaned up). */
@@ -361,18 +377,7 @@ static int build_layer_entry(flis_layer_t *lay, historic_layer_entry_t *e) {
 
 	/* Props snapshot */
 	e->layer_props = g_new0(flis_layer_props_t, 1);
-	e->layer_props->blend_mode   = lay->blend_mode;
-	e->layer_props->opacity      = lay->opacity;
-	e->layer_props->visible      = lay->visible;
-	e->layer_props->locked       = lay->locked;
-	e->layer_props->has_tint     = lay->has_tint;
-	e->layer_props->tint         = lay->layer_tint;
-	e->layer_props->lmask_active = lay->lmask_active;
-	e->layer_props->position_x   = lay->position_x;
-	e->layer_props->position_y   = lay->position_y;
-	g_strlcpy(e->layer_props->name,
-	          lay->layer_name ? lay->layer_name : "",
-	          sizeof(e->layer_props->name));
+	snapshot_layer_props(lay, e->layer_props);
 
 	/* Pixel swap */
 	if (undo_build_swapfile_named(fit, &e->filename)) {
@@ -433,9 +438,9 @@ static int restore_layer_entry(flis_layer_t *lay, const historic_layer_entry_t *
 		fit_replace_buffer(fit, ushort_buffer_to_float(fit->data, ndata), DATA_FLOAT);
 	}
 
-	/* Pixels */
-	fit->rx = fit->naxes[0] = e->rx;
-	fit->ry = fit->naxes[1] = e->ry;
+	/* Pixels.  Dimensions are written only after the buffer swap
+	 * succeeds — setting them first left the fits with new dims over
+	 * the old (smaller) buffer when the read or realloc failed. */
 	size_t n = (size_t)e->rx * e->ry;
 	size_t pix_size = n * e->nchans * (e->type == DATA_USHORT ? sizeof(WORD) : sizeof(float));
 	void *buf = read_swap_file(e->filename, pix_size);
@@ -466,6 +471,8 @@ static int restore_layer_entry(flis_layer_t *lay, const historic_layer_entry_t *
 		}
 	}
 	free(buf);
+	fit->rx = fit->naxes[0] = e->rx;
+	fit->ry = fit->naxes[1] = e->ry;
 
 	/* WCS */
 	memcpy(&fit->keywords.wcsdata, &e->wcsdata, sizeof(wcs_info));
@@ -621,6 +628,27 @@ static int undo_push_to(GList **stack, fits *fit, const char *label) {
 	 * state is restored separately via the icc-only undo flavour. */
 	h->icc_profile = (fit == gfit) ? copyICCProfile(current_icc_profile()) : NULL;
 	snprintf(h->history, FLEN_VALUE, "%s", label ? label : "");
+
+	/* g_new0 leaves the layer-id fields at 0, which is not the sentinel —
+	 * set them all so the undo_restore dispatcher never misroutes a plain
+	 * entry through a FLIS branch. */
+	h->flis_layer_id       = FLIS_UNDO_LAYER_NONE;
+	h->lmask_layer_id      = FLIS_UNDO_LAYER_NONE;
+	h->lmask_dest_layer_id = FLIS_UNDO_LAYER_NONE;
+	h->reorder_layer_a_id  = FLIS_UNDO_LAYER_NONE;
+	h->reorder_layer_b_id  = FLIS_UNDO_LAYER_NONE;
+	/* When @fit is a FLIS layer's fit, record the layer identity: the
+	 * active layer may change between save and restore, and without it a
+	 * later undo would write these pixels into whatever layer is active
+	 * by then. */
+	if (is_current_image_flis()) {
+		flis_layer_t *lay = flis_layer_get_by_fit(fit);
+		if (lay) {
+			h->flis_layer_id   = lay->item_id;
+			h->flis_position_x = lay->position_x;
+			h->flis_position_y = lay->position_y;
+		}
+	}
 
 	*stack = g_list_prepend(*stack, h);
 	return 0;
@@ -819,17 +847,19 @@ static int undo_restore_plain(fits *fit, historic *hist) {
 	int retval = 0;
 
 	if (hist->type == DATA_USHORT) {
-		if (gfit->type != DATA_USHORT) {
+		if (fit->type != DATA_USHORT) {
 			size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 			fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, ndata), DATA_USHORT);
-			gui_iface.on_precision_changed();
+			if (fit == gfit)
+				gui_iface.on_precision_changed();
 		}
 		retval = undo_get_data_ushort(fit, hist);
 	} else if (hist->type == DATA_FLOAT) {
-		if (gfit->type != DATA_FLOAT) {
+		if (fit->type != DATA_FLOAT) {
 			size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 			fit_replace_buffer(fit, ushort_buffer_to_float(fit->data, ndata), DATA_FLOAT);
-			gui_iface.on_precision_changed();
+			if (fit == gfit)
+				gui_iface.on_precision_changed();
 		}
 		retval = undo_get_data_float(fit, hist);
 	} else {
@@ -857,6 +887,9 @@ static void apply_layer_props(flis_layer_t *layer, const flis_layer_props_t *p) 
 	layer->lmask_active = p->lmask_active;
 	layer->position_x   = p->position_x;
 	layer->position_y   = p->position_y;
+	/* layer_order participates so reorder operations (move up/down past a
+	 * group) revert too; callers re-sort the stack after applying. */
+	layer->layer_order  = p->layer_order;
 	g_free(layer->layer_name);
 	layer->layer_name = g_strdup(p->name);
 }
@@ -913,6 +946,16 @@ static int undo_restore(fits *fit, historic *hist) {
 				return 1;
 			}
 		}
+		/* Restored props include layer_order — re-establish the sorted
+		 * stack invariant. */
+		flis_sort_layer_stack();
+		/* Canvas ops change com.uniq->canvas_w/h alongside layer state;
+		 * put the captured dimensions back so restored positions land on
+		 * the canvas they were saved against. */
+		if (hist->flis_canvas_w && hist->flis_canvas_h && com.uniq) {
+			com.uniq->canvas_w = hist->flis_canvas_w;
+			com.uniq->canvas_h = hist->flis_canvas_h;
+		}
 		return 0;
 	}
 
@@ -941,8 +984,10 @@ static int undo_restore(fits *fit, historic *hist) {
 			                  hist->flis_layer_id);
 			return 1;
 		}
-		/* Pixels + pmask via plain restore (uses hist->fd path) */
-		int rv = undo_restore_plain(fit, hist);
+		/* Pixels + pmask via plain restore (uses hist->fd path) — into the
+		 * entry's own layer fit, which is gfit only when that layer is
+		 * still the active one. */
+		int rv = undo_restore_plain(lay->fit, hist);
 		if (rv) return rv;
 		/* Layer mask */
 		if (restore_lmask_for_layer(lay, hist->lmask_filename,
@@ -950,7 +995,10 @@ static int undo_restore(fits *fit, historic *hist) {
 		                            hist->lmask_bitpix))
 			return 1;
 		/* Props */
-		if (hist->layer_props) apply_layer_props(lay, hist->layer_props);
+		if (hist->layer_props) {
+			apply_layer_props(lay, hist->layer_props);
+			flis_sort_layer_stack();
+		}
 		return 0;
 	}
 
@@ -965,6 +1013,7 @@ static int undo_restore(fits *fit, historic *hist) {
 			return 1;
 		}
 		apply_layer_props(layer, hist->layer_props);
+		flis_sort_layer_stack();
 		return 0;
 	}
 
@@ -1015,19 +1064,28 @@ static int undo_restore(fits *fit, historic *hist) {
 		                               hist->lmask_bitpix);
 	}
 
-	/* Default: plain pixel + mask restore. */
-	int rv = undo_restore_plain(fit, hist);
-
-	/* If this state belongs to a FLIS layer, also restore the layer offset
-	 * — geometry operations (crop, rotate) save position_x/y alongside the
-	 * pixels and we need to put it back. */
-	if (rv == 0 && hist->flis_layer_id != FLIS_UNDO_LAYER_NONE
+	/* Default: plain pixel + mask restore.  When the entry was saved from a
+	 * FLIS layer, restore into THAT layer's fit — the active layer (and
+	 * hence gfit) may have changed since the state was saved. */
+	fits *target = fit;
+	flis_layer_t *lay = NULL;
+	if (hist->flis_layer_id != FLIS_UNDO_LAYER_NONE
 	    && is_current_image_flis()) {
-		flis_layer_t *lay = flis_layer_get_by_id(hist->flis_layer_id);
-		if (lay) {
-			lay->position_x = hist->flis_position_x;
-			lay->position_y = hist->flis_position_y;
+		lay = flis_layer_get_by_id(hist->flis_layer_id);
+		if (!lay || !lay->fit) {
+			siril_log_warning(_("Undo: target layer (id %d) no longer exists\n"),
+			                  hist->flis_layer_id);
+			return 1;
 		}
+		target = lay->fit;
+	}
+	int rv = undo_restore_plain(target, hist);
+
+	/* Also restore the layer offset — geometry operations (crop, rotate)
+	 * save position_x/y alongside the pixels. */
+	if (rv == 0 && lay) {
+		lay->position_x = hist->flis_position_x;
+		lay->position_y = hist->flis_position_y;
 	}
 	return rv;
 }
@@ -1063,6 +1121,41 @@ int undo_save_state(fits *fit, const char *message, ...) {
 	return 0;
 }
 
+int undo_save_state_with_icc(fits *fit, cmsHPROFILE pre_icc,
+                             const char *message, ...) {
+	if (!single_image_is_loaded())
+		return 0;
+
+	char histo[FLEN_VALUE] = { 0 };
+	if (message != NULL) {
+		va_list args;
+		va_start(args, message);
+		vsnprintf(histo, FLEN_VALUE, message, args);
+		va_end(args);
+	}
+
+	g_list_free_full(com.redo_stack, (GDestroyNotify) undo_free_item);
+	com.redo_stack = NULL;
+
+	if (undo_push_to(&com.undo_stack, fit, histo))
+		return 1;
+
+	/* Override the entry's ICC snapshot with the caller-supplied pre-op
+	 * profile.  @fit is typically a pixel backup rather than gfit, so
+	 * undo_push_to captured no profile — and by the time the stretch
+	 * tools save undo, the live profile is already the post-op one. */
+	historic *h = (historic *)com.undo_stack->data;
+	if (h->icc_profile)
+		cmsCloseProfile(h->icc_profile);
+	h->icc_profile = pre_icc ? copyICCProfile(pre_icc) : NULL;
+
+	gui_iface.update_menu_state();
+	return 0;
+}
+
+/* Defined below the FLIS save helpers; used by undo_display_data. */
+static int undo_push_counterpart_to(GList **stack, fits *fit, const historic *top);
+
 int undo_display_data(int dir) {
 	switch (dir) {
 	case UNDO:
@@ -1091,8 +1184,10 @@ int undo_display_data(int dir) {
 			 * (writes pixels) must be atomic against the Python thread. */
 			g_rw_lock_writer_lock(&gfit->rwlock);
 
-			/* save current state to redo stack before restoring */
-			if (undo_push_to(&com.redo_stack, gfit, top->history)) {
+			/* save current state to redo stack before restoring — the
+			 * counterpart must match the popped entry's flavour, or redo
+			 * would restore the wrong aspect / the wrong layers */
+			if (undo_push_counterpart_to(&com.redo_stack, gfit, top)) {
 				g_rw_lock_writer_unlock(&gfit->rwlock);
 				return 1;
 			}
@@ -1141,6 +1236,9 @@ int undo_display_data(int dir) {
 			 * geometry on draw; an undo that restored layer positions
 			 * or dims needs them to repaint. */
 			gui_iface.flis_gui_update();
+			/* An lmask / processing-mask entry may have added or
+			 * removed the only displayable mask — retest the tab. */
+			gui_iface.show_or_hide_mask_tab();
 		}
 		break;
 
@@ -1167,8 +1265,9 @@ int undo_display_data(int dir) {
 			 * (writes pixels) must be atomic against the Python thread. */
 			g_rw_lock_writer_lock(&gfit->rwlock);
 
-			/* save current state to undo stack before restoring */
-			if (undo_push_to(&com.undo_stack, gfit, top->history)) {
+			/* save current state to undo stack before restoring — must
+			 * match the popped entry's flavour (see UNDO case) */
+			if (undo_push_counterpart_to(&com.undo_stack, gfit, top)) {
 				g_rw_lock_writer_unlock(&gfit->rwlock);
 				return 1;
 			}
@@ -1211,6 +1310,7 @@ int undo_display_data(int dir) {
 			/* See UNDO case — mirror the notification so the FLIS panel
 			 * and canvas dialog repaint after a redo. */
 			gui_iface.flis_gui_update();
+			gui_iface.show_or_hide_mask_tab();
 		}
 		break;
 
@@ -1290,6 +1390,184 @@ static void flis_push_historic(historic *h) {
 	gui_iface.update_menu_state();
 }
 
+/* Capture the CURRENT state of whatever @top's restore path will touch and
+ * push it to *stack (the opposite stack).  undo_display_data() calls this
+ * before restoring so undo↔redo round-trips are symmetric for every entry
+ * flavour — a flavour-blind pixel snapshot of the active layer would make
+ * redo of any FLIS-flavoured entry restore the wrong aspect (or the wrong
+ * layers) and permanently lose the popped state.  The dispatch order
+ * mirrors undo_restore(). */
+static int undo_push_counterpart_to(GList **stack, fits *fit, const historic *top) {
+	/* Compound multi-layer: snapshot every layer the entry addresses. */
+	if (top->n_multi_entries > 0 && top->multi_entries) {
+		if (!is_current_image_flis()) return 1;
+		historic *h = flis_alloc_historic(top->history);
+		h->flis_canvas_w   = com.uniq ? com.uniq->canvas_w : 0;
+		h->flis_canvas_h   = com.uniq ? com.uniq->canvas_h : 0;
+		h->multi_entries   = g_new0(historic_layer_entry_t, top->n_multi_entries);
+		h->n_multi_entries = top->n_multi_entries;	/* full span for undo_free_item */
+		guint idx = 0;
+		for (guint k = 0; k < top->n_multi_entries; k++) {
+			const historic_layer_entry_t *e = &top->multi_entries[k];
+			flis_layer_t *lay = flis_layer_get_by_id(e->flis_layer_id);
+			if (!lay)	/* the restore side skips it too */
+				continue;
+			historic_layer_entry_t *ne = &h->multi_entries[idx];
+			if (e->props_only) {
+				ne->flis_layer_id = lay->item_id;
+				ne->props_only    = TRUE;
+				ne->layer_props   = g_new0(flis_layer_props_t, 1);
+				snapshot_layer_props(lay, ne->layer_props);
+				ne->position_x = lay->position_x;
+				ne->position_y = lay->position_y;
+			} else if (build_layer_entry(lay, ne)) {
+				undo_free_item(h);
+				return 1;
+			}
+			idx++;
+		}
+		h->n_multi_entries = idx;
+		*stack = g_list_prepend(*stack, h);
+		return 0;
+	}
+
+	/* Processing-mask-only. */
+	if (top->pmask_only) {
+		historic *h = flis_alloc_historic(top->history);
+		h->pmask_only  = TRUE;
+		h->rx = fit->rx;
+		h->ry = fit->ry;
+		h->mask_bitpix = (fit->mask && fit->mask->data) ? fit->mask->bitpix : 0;
+		int mfd = undo_build_mask_swapfile(fit);
+		if (mfd == -2) { undo_free_item(h); return 1; }
+		h->mask_fd = mfd;
+		*stack = g_list_prepend(*stack, h);
+		return 0;
+	}
+
+	/* ICC-only. */
+	if (top->icc_only) {
+		historic *h = flis_alloc_historic(top->history);
+		h->icc_only        = TRUE;
+		h->icc_was_managed = current_image_color_managed();
+		h->icc_profile     = copyICCProfile(current_icc_profile());
+		*stack = g_list_prepend(*stack, h);
+		return 0;
+	}
+
+	/* Full single-layer state: pixels + pmask + lmask + props. */
+	if (top->full_layer) {
+		if (!is_current_image_flis()) return 1;
+		flis_layer_t *lay = flis_layer_get_by_id(top->flis_layer_id);
+		if (!lay || !lay->fit) return 1;
+		historic *h = flis_alloc_historic(top->history);
+		h->full_layer      = TRUE;
+		h->flis_layer_id   = lay->item_id;
+		h->flis_position_x = lay->position_x;
+		h->flis_position_y = lay->position_y;
+		h->rx     = lay->fit->rx;
+		h->ry     = lay->fit->ry;
+		h->nchans = lay->fit->naxes[2];
+		h->type   = lay->fit->type;
+		h->wcsdata = lay->fit->keywords.wcsdata;
+		int s = -1;
+		h->wcslib = wcs_deepcopy(lay->fit->keywords.wcslib, &s);
+		h->focal_length = lay->fit->keywords.focal_length;
+		h->icc_profile  = NULL;
+		h->mask_bitpix  = (lay->fit->mask && lay->fit->mask->data)
+		                  ? lay->fit->mask->bitpix : 0;
+		int fd = undo_build_swapfile(lay->fit);
+		if (fd < 0) { undo_free_item(h); return 1; }
+		h->fd = fd;
+		int mfd = undo_build_mask_swapfile(lay->fit);
+		if (mfd == -2) { undo_free_item(h); return 1; }
+		h->mask_fd = mfd;
+		if (lay->lmask) {
+			if (undo_build_lmask_swapfile(lay->lmask, &h->lmask_filename,
+			                              &h->lmask_w, &h->lmask_h, &h->lmask_bitpix)) {
+				undo_free_item(h);
+				return 1;
+			}
+		}
+		h->layer_props = g_new0(flis_layer_props_t, 1);
+		snapshot_layer_props(lay, h->layer_props);
+		*stack = g_list_prepend(*stack, h);
+		return 0;
+	}
+
+	/* Property-only. */
+	if (!top->filename && top->fd < 0 && top->layer_props
+	    && top->flis_layer_id != FLIS_UNDO_LAYER_NONE) {
+		if (!is_current_image_flis()) return 1;
+		flis_layer_t *lay = flis_layer_get_by_id(top->flis_layer_id);
+		if (!lay) return 1;
+		historic *h = flis_alloc_historic(top->history);
+		h->layer_props   = g_new0(flis_layer_props_t, 1);
+		snapshot_layer_props(lay, h->layer_props);
+		h->flis_layer_id = lay->item_id;
+		*stack = g_list_prepend(*stack, h);
+		return 0;
+	}
+
+	/* Atomic lmask-move: restoring {src, dest} moves the mask dest→src, so
+	 * the counterpart is the same pair with the roles swapped. */
+	if (!top->filename && top->fd < 0 && !top->layer_props
+	    && top->lmask_layer_id != FLIS_UNDO_LAYER_NONE
+	    && top->lmask_dest_layer_id != FLIS_UNDO_LAYER_NONE) {
+		historic *h = flis_alloc_historic(top->history);
+		h->lmask_layer_id      = top->lmask_dest_layer_id;
+		h->lmask_dest_layer_id = top->lmask_layer_id;
+		*stack = g_list_prepend(*stack, h);
+		return 0;
+	}
+
+	/* Layer reorder: capture the two layers' current order values. */
+	if (!top->filename && top->fd < 0 && !top->layer_props
+	    && top->reorder_layer_a_id != FLIS_UNDO_LAYER_NONE) {
+		if (!is_current_image_flis()) return 1;
+		flis_layer_t *a = flis_layer_get_by_id(top->reorder_layer_a_id);
+		flis_layer_t *b = flis_layer_get_by_id(top->reorder_layer_b_id);
+		if (!a || !b) return 1;
+		historic *h = flis_alloc_historic(top->history);
+		h->reorder_layer_a_id    = a->item_id;
+		h->reorder_layer_a_order = a->layer_order;
+		h->reorder_layer_b_id    = b->item_id;
+		h->reorder_layer_b_order = b->layer_order;
+		*stack = g_list_prepend(*stack, h);
+		return 0;
+	}
+
+	/* Lmask add/remove: capture the layer's current mask state. */
+	if (!top->filename && top->fd < 0 && !top->layer_props
+	    && top->lmask_layer_id != FLIS_UNDO_LAYER_NONE) {
+		if (!is_current_image_flis()) return 1;
+		flis_layer_t *lay = flis_layer_get_by_id(top->lmask_layer_id);
+		if (!lay) return 1;
+		historic *h = flis_alloc_historic(top->history);
+		h->lmask_layer_id = lay->item_id;
+		if (lay->lmask) {
+			if (undo_build_lmask_swapfile(lay->lmask, &h->lmask_filename,
+			                              &h->lmask_w, &h->lmask_h, &h->lmask_bitpix)) {
+				undo_free_item(h);
+				return 1;
+			}
+		}
+		*stack = g_list_prepend(*stack, h);
+		return 0;
+	}
+
+	/* Plain pixel entry: capture from the entry's own layer fit when it has
+	 * one (the active layer may differ from the entry's layer), else @fit.
+	 * undo_push_to() stamps the layer identity onto the counterpart. */
+	fits *src_fit = fit;
+	if (top->flis_layer_id != FLIS_UNDO_LAYER_NONE && is_current_image_flis()) {
+		flis_layer_t *lay = flis_layer_get_by_id(top->flis_layer_id);
+		if (!lay || !lay->fit) return 1;
+		src_fit = lay->fit;
+	}
+	return undo_push_to(stack, src_fit, top->history);
+}
+
 /* Format a printf-style varargs message into msg_var, identically to
  * undo_save_state.  The caller declares `char msg_var[FLEN_VALUE] = {0};`
  * before invoking — declaring inside a macro do-while block would create
@@ -1323,18 +1601,8 @@ int undo_save_flis_layer_props(flis_layer_t *layer, const char *message, ...) {
 	char msg_buf[FLEN_VALUE] = { 0 };
 	FLIS_FORMAT_MESSAGE_INTO(msg_buf, message);
 
-	flis_layer_props_t props = {
-		.blend_mode   = layer->blend_mode,
-		.opacity      = layer->opacity,
-		.visible      = layer->visible,
-		.locked       = layer->locked,
-		.has_tint     = layer->has_tint,
-		.tint         = layer->layer_tint,
-		.lmask_active = layer->lmask_active,
-		.position_x   = layer->position_x,
-		.position_y   = layer->position_y,
-	};
-	g_strlcpy(props.name, layer->layer_name ? layer->layer_name : "", sizeof(props.name));
+	flis_layer_props_t props;
+	snapshot_layer_props(layer, &props);
 	return undo_push_flis_layer_props(layer->item_id, &props, msg_buf);
 }
 
@@ -1405,6 +1673,8 @@ int undo_save_flis_multi_layer(GSList *layers, const char *message, ...) {
 
 	guint n = g_slist_length(layers);
 	historic *h = flis_alloc_historic(msg_buf);
+	h->flis_canvas_w   = com.uniq->canvas_w;
+	h->flis_canvas_h   = com.uniq->canvas_h;
 	h->multi_entries   = g_new0(historic_layer_entry_t, n);
 	h->n_multi_entries = n;
 
@@ -1431,6 +1701,8 @@ int undo_save_flis_multi_layer_props(GSList *layers, const char *message, ...) {
 
 	guint n = g_slist_length(layers);
 	historic *h = flis_alloc_historic(msg_buf);
+	h->flis_canvas_w   = com.uniq->canvas_w;
+	h->flis_canvas_h   = com.uniq->canvas_h;
 	h->multi_entries   = g_new0(historic_layer_entry_t, n);
 	h->n_multi_entries = n;
 
@@ -1441,18 +1713,9 @@ int undo_save_flis_multi_layer_props(GSList *layers, const char *message, ...) {
 		e->flis_layer_id = lay->item_id;
 		e->props_only    = TRUE;
 		e->layer_props   = g_new0(flis_layer_props_t, 1);
-		e->layer_props->blend_mode   = lay->blend_mode;
-		e->layer_props->opacity      = lay->opacity;
-		e->layer_props->visible      = lay->visible;
-		e->layer_props->locked       = lay->locked;
-		e->layer_props->has_tint     = lay->has_tint;
-		e->layer_props->tint         = lay->layer_tint;
-		e->layer_props->lmask_active = lay->lmask_active;
-		e->layer_props->position_x   = lay->position_x;
-		e->layer_props->position_y   = lay->position_y;
-		g_strlcpy(e->layer_props->name,
-		          lay->layer_name ? lay->layer_name : "",
-		          sizeof(e->layer_props->name));
+		snapshot_layer_props(lay, e->layer_props);
+		e->position_x    = lay->position_x;
+		e->position_y    = lay->position_y;
 		/* pixel/mask filenames remain NULL */
 	}
 	flis_push_historic(h);

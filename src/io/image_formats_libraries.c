@@ -1270,14 +1270,15 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 		return -1;
 	}
 
-	/* Assign the ICC profile to com.uniq if this load is destined for the
-	 * current image (gfit).  Sequence-frame / intermediate loads carry
-	 * no profile. */
-	if (fit == gfit && xdata->icc_buffer && xdata->icc_length > 0) {
-		current_image_set_icc_profile(cmsOpenProfileFromMem(xdata->icc_buffer, xdata->icc_length));
-		current_image_color_manage(current_icc_profile() != NULL);
-	} else if (fit == gfit) {
-		current_image_clear_icc_profile();
+	/* Assign the ICC profile if this load is destined for the current
+	 * image (gfit) or the pending fits of a threaded open.  Sequence-frame
+	 * / intermediate loads carry no profile. */
+	if (icc_fit_is_load_target(fit)) {
+		if (xdata->icc_buffer && xdata->icc_length > 0)
+			icc_profile_attach_from_load(fit,
+					cmsOpenProfileFromMem(xdata->icc_buffer, xdata->icc_length));
+		else if (fit == gfit)
+			current_image_clear_icc_profile();
 	}
 	free(xdata->icc_buffer);
 
@@ -2951,23 +2952,24 @@ int readjxl(const char* name, fits *fit) {
 	free(pixels);
 	cmsHPROFILE internal = cmsOpenProfileFromMem(internal_icc_profile, internal_icc_profile_length);
 	cmsHPROFILE original = cmsOpenProfileFromMem(icc_profile, icc_profile_length);
-	if (fit == gfit) {
+	if (icc_fit_is_load_target(fit)) {
 		if (internal && original) {
-			/* Stage internal profile then convert to original.  Use
-			 * the accessor pipeline so com.uniq gets the final state. */
-			current_image_set_icc_profile(copyICCProfile(internal));
-			current_image_color_manage(TRUE);
+			/* Attach the internal profile then convert to original.  The
+			 * accessor pipeline routes the state to com.uniq (gfit) or to
+			 * the ICC staging area (pending threaded-open fits), and
+			 * siril_colorspace_transform resolves its source profile the
+			 * same way, so the pixel conversion runs on both paths. */
+			icc_profile_attach_from_load(fit, copyICCProfile(internal));
 			gchar* orig_desc = siril_color_profile_get_description(original);
 			gchar* int_desc = siril_color_profile_get_description(internal);
 			siril_log_debug("Transforming from %s to %s\n", int_desc, orig_desc);
 			g_free(orig_desc);
 			g_free(int_desc);
 			siril_colorspace_transform(fit, original);
-			current_image_set_icc_profile(copyICCProfile(original));
+			icc_profile_attach_from_load(fit, copyICCProfile(original));
 		} else if (internal) {
-			current_image_set_icc_profile(copyICCProfile(internal));
+			icc_profile_attach_from_load(fit, copyICCProfile(internal));
 		}
-		current_image_color_manage(current_icc_profile() != NULL);
 	}
 	if (original) cmsCloseProfile(original);
 	if (internal) cmsCloseProfile(internal);

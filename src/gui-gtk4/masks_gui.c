@@ -127,8 +127,13 @@ static void refresh_mask_target_combo(const char *dialog_id,
 	GtkWidget *dialog = GTK_WIDGET(
 	    gtk_builder_get_object(gui.builder, dialog_id));
 	if (!dialog) return;
-	GtkWidget *area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
-	if (!area) return;
+	/* These dialogs are plain GtkWindows with a vertical GtkBox child
+	 * (see the mask_from_*.ui files).  The previous code called the
+	 * deprecated gtk_dialog_get_content_area() on them — which was also
+	 * wrong: they are not GtkDialogs, so the call failed its type check,
+	 * returned NULL, and the Target row was silently never built. */
+	GtkWidget *area = gtk_window_get_child(GTK_WINDOW(dialog));
+	if (!area || !GTK_IS_BOX(area)) return;
 
 	gboolean is_flis = is_current_image_flis() && com.uniq && com.uniq->layers;
 
@@ -625,11 +630,10 @@ void on_mask_from_stars_close_clicked(GtkButton *button, gpointer user_data) {
 * Applies the mask creation operation from detected stars.
 */
 void on_mask_from_stars_apply_clicked(GtkButton *button, gpointer user_data) {
-	if (gfit->mask) {
-		set_mask_active( gfit, FALSE);
-		free_mask(gfit->mask);
-		gfit->mask = NULL;
-	}
+	/* No pre-free of gfit->mask here: mask_create_from_stars replaces an
+	 * existing mask itself, and freeing it up front destroyed the pre-op
+	 * state before the worker's undo snapshot could capture it — and did
+	 * so even when the worker then refused the operation. */
 
 	/* Get star radius (FWHM multiplier) */
 	gfloat star_radius = (gfloat) gtk_spin_button_get_value(spin_mask_star_radius);
@@ -644,7 +648,10 @@ void on_mask_from_stars_apply_clicked(GtkButton *button, gpointer user_data) {
 	/* Get invert option */
 	gboolean invert = siril_toggle_get_active(GTK_WIDGET(toggle_mask_stars_invert));
 
-	undo_save_state( gfit, _("Create mask from stars"));
+	/* Undo is saved by generic_mask_worker after its pre-checks pass —
+	 * saving here as well produced a duplicate entry, and a nonsensical
+	 * one when the worker refused the operation (e.g. routing-target
+	 * dimension mismatch). */
 
 	mask_from_stars_data *data = calloc(1, sizeof(mask_from_stars_data));
 	data->r = star_radius;
@@ -807,7 +814,9 @@ void mask_color_handle_image_click(int x, int y) {
 
 	if (x < 0 || x >= gfit->rx || y < 0 || y >= gfit->ry) return;
 
-	size_t pixel_index = (gfit->ry - y) * gfit->rx + x;
+	/* Display y is top-down; FITS row index needs the -1 — without it,
+	 * y == 0 (top row) read one full row past the plane. */
+	size_t pixel_index = (size_t)(gfit->ry - 1 - y) * gfit->rx + x;
 	float r, g, b;
 
 	if (gfit->type == DATA_USHORT) {

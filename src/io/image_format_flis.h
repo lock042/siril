@@ -126,6 +126,7 @@ typedef struct flis_layer_props_t {
     gchar             name[33];   /* matches max-length in the UI */
     gint              position_x; /* display coordinates (0=left) */
     gint              position_y; /* display coordinates (0=top) */
+    gint              layer_order; /* z-order key; restore must re-sort */
 } flis_layer_props_t;
 
 /* -----------------------------------------------------------------------
@@ -269,7 +270,9 @@ gboolean is_flis_file(const gchar *filename);
 
 /**
  * save_flis:
- * @filename: output path (a .flis extension will be appended if absent).
+ * @filename: output path, used verbatim — callers append the .flis
+ *            extension themselves (the save dialog and the save command
+ *            both do).
  *
  * Writes all layers in com.uniq->layers to a new FLIS file.
  * The composite thumbnail in HDU 0 is generated from the base layer.
@@ -366,6 +369,9 @@ void flis_free_layers(single *uniq);
  * layer changes (e.g., user switches layer in the UI).
  */
 void uniq_set_active_layer(single *uniq, gint index);
+/* Preview/ROI-coherent variant for user-driven switches (panel, command);
+ * see the implementation comment.  Not callable from worker hooks. */
+void flis_switch_active_layer_gui(gint index);
 
 /* -----------------------------------------------------------------------
  * Layer lookup helpers
@@ -522,28 +528,16 @@ void flis_update_all_layer_offsets_after_rotate(gint old_rx, gint old_ry,
                                                 double angle);
 
 /**
- * flis_update_layer_offset_after_mirrorx:
+ * flis_update_layer_offset_after_mirrorx / _mirrory:
  *
- * Updates FLIS layer offsets after a top↔bottom flip (mirrorx, the vertical
- * flip Siril names "mirror in X" because it inverts pixels across the
- * horizontal X-axis).
- *
- * - Base layer mirrored: every non-base layer's canvas-Y is mirrored around
- *   the canvas centre so the visible composite stays consistent.
- * - Non-base layer mirrored: the layer's centre on the canvas is preserved,
- *   so no position change is needed.
- *
- * Invalidates the composite.  No-op if no FLIS is loaded.
+ * Called after a SINGLE LAYER's pixels were mirrored in place (the
+ * per-layer geometry hooks).  Mirroring a layer's own pixels does not
+ * move its centre, so no position change is needed — these helpers just
+ * invalidate the composite so the next redraw picks up the new pixel
+ * data.  Use flis_canvas_mirrorx / _mirrory for canvas-scoped mirroring
+ * that flips every layer's position too.  No-op if no FLIS is loaded.
  */
 void flis_update_layer_offset_after_mirrorx(void);
-
-/**
- * flis_update_layer_offset_after_mirrory:
- *
- * Updates FLIS layer offsets after a left↔right flip (mirrory, the horizontal
- * flip Siril names "mirror in Y" because it inverts pixels across the
- * vertical Y-axis).  Same rules as mirrorx, applied to canvas-X.
- */
 void flis_update_layer_offset_after_mirrory(void);
 
 /**
@@ -845,6 +839,21 @@ struct flis_setmask_args {
 void flis_setmask_args_free(gpointer p);
 int  flis_setmask_hook(struct generic_layer_args *args);
 int  flis_clearmask_hook(struct generic_layer_args *args);
+/* Worker-hook wrapper around flis_flatten_all(), shared by the panel's
+ * Flatten Image context item and the flis_flatten command. */
+int  flis_flatten_hook(struct generic_layer_args *args);
+
+/* -----------------------------------------------------------------------
+ * FLIS stack lock (M-F12) — see the comment block in image_format_flis.c
+ * for the lock-ordering rules.  Writers: dispatch-level mutation sites
+ * (worker hooks, direct-mutating commands).  Readers: main-thread walks
+ * of com.uniq->layers that dereference layer payloads (GPU compose,
+ * CPU composite build, prefetch, layers panel).
+ * ----------------------------------------------------------------------- */
+void flis_stack_reader_lock(void);
+void flis_stack_reader_unlock(void);
+void flis_stack_writer_lock(void);
+void flis_stack_writer_unlock(void);
 
 /* Slice 3 — create a group / assign a layer to a group (or 0 = ungroup).
  * For addgroup, the @name in payload may be NULL → auto "Group N".

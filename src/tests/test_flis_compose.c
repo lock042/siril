@@ -206,3 +206,55 @@ Test(flis_compose, lmask_constant_grey_equivalent_to_opacity) {
 	cr_assert_float_eq(out->fpdata[0][0], 0.5f, 5e-3);
 	clearfits(out); free(out);
 }
+
+/* ---- NORMAL-group sub-composite semantics (M-F7 regression) --------- */
+
+/* The bottom member of an isolated (NORMAL) group has no blend target
+ * inside the group buffer, so its blend mode is rightly ignored — but
+ * its opacity must still apply.  The old base-copy path dropped it. */
+Test(flis_compose, group_bottom_member_opacity_applies) {
+	flis_test_add_layer(flis_test_make_rgb_fits(2, 2, 0.2f, 0.2f, 0.2f), "base");
+	flis_layer_t *m = flis_test_add_layer(
+	    flis_test_make_rgb_fits(2, 2, 1.0f, 1.0f, 1.0f), "member");
+	flis_group_t *g = flis_group_add("g");
+	g->blend_mode = FLIS_BLEND_NORMAL;
+	m->group_id = g->item_id;
+	cr_assert_eq(flis_layer_set_opacity(m, 0.5f), 0);
+	com.uniq->canvas_w = 2;
+	com.uniq->canvas_h = 2;
+
+	GSList *sorted = g_slist_copy(com.uniq->layers);
+	fits *out = flis_render_layers(sorted);
+	g_slist_free(sorted);
+	cr_assert_not_null(out);
+	/* sub-composite = white x 0.5 = 0.5; group paints it NORMAL over the
+	 * base at group opacity 1.0 → 0.5.  The old path rendered the member
+	 * fully opaque (1.0). */
+	cr_assert_float_eq(out->fpdata[0][0], 0.5f, 1e-4,
+	                   "bottom group member's opacity must apply inside the group");
+	free(out->fdata); free(out);
+}
+
+/* Same for the layer mask: a fully-zero lmask on the bottom (sole)
+ * member makes its contribution transparent — the base must show. */
+Test(flis_compose, group_bottom_member_lmask_applies) {
+	flis_test_add_layer(flis_test_make_rgb_fits(2, 2, 0.2f, 0.2f, 0.2f), "base");
+	flis_layer_t *m = flis_test_add_layer(
+	    flis_test_make_rgb_fits(2, 2, 1.0f, 1.0f, 1.0f), "member");
+	flis_group_t *g = flis_group_add("g");
+	g->blend_mode = FLIS_BLEND_NORMAL;
+	m->group_id = g->item_id;
+	layermask_t *lm = flis_test_make_const_lmask(2, 2, 8, 0.0);
+	cr_assert_eq(flis_layer_set_lmask(m, lm), 0);
+	m->lmask_active = TRUE;
+	com.uniq->canvas_w = 2;
+	com.uniq->canvas_h = 2;
+
+	GSList *sorted = g_slist_copy(com.uniq->layers);
+	fits *out = flis_render_layers(sorted);
+	g_slist_free(sorted);
+	cr_assert_not_null(out);
+	cr_assert_float_eq(out->fpdata[0][0], 0.2f, 1e-4,
+	                   "a zero lmask on the bottom group member must hide it");
+	free(out->fdata); free(out);
+}

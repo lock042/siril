@@ -271,6 +271,11 @@ int open_single_image_internal(const char* filename) {
 	close_sequence(FALSE);	// closing a sequence if loaded
 	close_single_image();	// close the previous image and free resources
 
+	/* Drop any profile a previous load (e.g. a sequence-frame display)
+	 * left in the ICC staging area, so it cannot be installed onto this
+	 * image if the file about to be read carries no profile. */
+	stage_icc_profile_for_pending_image(NULL, FALSE);
+
 	/* open the new file */
 	retval = read_single_image(filename, gfit, &realname, TRUE, &is_single_sequence, TRUE, FALSE, FALSE);
 	if (retval) {
@@ -377,11 +382,20 @@ fits *read_new_single_image(const char *filename, char **realname_out, int *retv
 		return NULL;
 	}
 	gboolean is_seq = FALSE;
+	/* Register newfit as the ICC destination for this load (also drops any
+	 * stale staged profile): loaders route its embedded profile into the
+	 * staging area, from where install_new_single_image() →
+	 * create_uniq_from_gfit() installs it onto the new com.uniq.  The old
+	 * image's com.uniq is still live here and must not be touched. */
+	icc_profile_set_pending_fit(newfit);
 	int rv = read_single_image(filename, newfit, realname_out, FALSE, &is_seq,
 			TRUE, FALSE, FALSE);
+	icc_profile_set_pending_fit(NULL);
 	if (retval)
 		*retval = rv;
 	if (rv) {
+		/* Failed load: nothing will consume the staging — drop it. */
+		stage_icc_profile_for_pending_image(NULL, FALSE);
 		clearfits(newfit);
 		free(newfit);
 		return NULL;
@@ -728,7 +742,12 @@ void notify_gfit_data_modified() {
 		} else if (sm == MIPSLOHI) {
 			gui_iface.flis_swap_out_composite(flis_saved);
 			flis_saved = NULL;
-			if (gfit->keywords.hi != 0)
+			/* The hi == 0 skip is FLIS-only (see the comment above);
+			 * ordinary images keep the historical behaviour where init
+			 * falls back to MINMAX for files without MIPS-HI — skipping
+			 * for them left the display range stale after operations on
+			 * e.g. TIFF/PNG-sourced images. */
+			if (!is_current_image_flis() || gfit->keywords.hi != 0)
 				init_layers_hi_and_lo_values(sm);
 		} else /* MINMAX */ {
 			/* gfit is still the composite here — exactly what we want

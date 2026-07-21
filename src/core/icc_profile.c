@@ -52,23 +52,69 @@ static gboolean profile_check_verbose = TRUE;
 /* --------------------------------------------------------------------
  * Current-image ICC accessors.  See icc_profile.h for the contract.
  * -------------------------------------------------------------------- */
-cmsHPROFILE current_icc_profile(void) {
-	return (com.uniq) ? com.uniq->icc_profile : NULL;
-}
-
-gboolean current_image_color_managed(void) {
-	return (com.uniq) ? com.uniq->color_managed : FALSE;
-}
-
 /* Staging area for profiles read during load before com.uniq exists. */
 static cmsHPROFILE _staged_icc_profile = NULL;
 static gboolean    _staged_icc_managed = FALSE;
+
+/* The threaded single-image open decodes into a private fits while the
+ * previous image (and its com.uniq) is still live.  Loaders must not route
+ * that fits' embedded profile through current_image_set_icc_profile() — it
+ * would clobber the displayed image's state — so the open registers its
+ * destination fits here and icc_profile_attach_from_load() stages instead. */
+static const fits *_pending_icc_fit = NULL;
+
+cmsHPROFILE current_icc_profile(void) {
+	/* During a load window with no current image (sync load, sequence-frame
+	 * display) the profile just read from the file sits in staging; report
+	 * it so load-time consumers (check_profile_correct, managed-flag
+	 * computation) see the real state.  When com.uniq is live the staging
+	 * belongs to a pending image and must not shadow the current one. */
+	return (com.uniq) ? com.uniq->icc_profile : _staged_icc_profile;
+}
+
+gboolean current_image_color_managed(void) {
+	return (com.uniq) ? com.uniq->color_managed : _staged_icc_managed;
+}
 
 void stage_icc_profile_for_pending_image(cmsHPROFILE p, gboolean managed) {
 	if (_staged_icc_profile && _staged_icc_profile != p)
 		cmsCloseProfile(_staged_icc_profile);
 	_staged_icc_profile = p;
 	_staged_icc_managed = managed;
+}
+
+void icc_profile_set_pending_fit(const fits *fit) {
+	_pending_icc_fit = fit;
+	/* Registering a new pending load invalidates whatever a previous load
+	 * (e.g. a sequence-frame display) left in staging; unregistering
+	 * (fit == NULL) keeps the staged profile for install_staged_icc_profile. */
+	if (fit)
+		stage_icc_profile_for_pending_image(NULL, FALSE);
+}
+
+gboolean icc_fit_is_load_target(const fits *fit) {
+	return fit && (fit == gfit || fit == _pending_icc_fit);
+}
+
+/* Route a profile obtained at load time to its destination: the staging
+ * area when @fit is the pending destination of a threaded open (or when
+ * com.uniq does not exist yet), the live image state when @fit is gfit.
+ * Takes ownership of @p.  Returns TRUE if the profile state was taken,
+ * FALSE if @fit carries no profile state (sequence frames, intermediate
+ * buffers) and @p was closed. */
+gboolean icc_profile_attach_from_load(const fits *fit, cmsHPROFILE p) {
+	if (fit && fit == _pending_icc_fit && fit != gfit) {
+		stage_icc_profile_for_pending_image(p, p != NULL);
+		return TRUE;
+	}
+	if (fit == gfit) {
+		current_image_set_icc_profile(p);	/* stages when com.uniq == NULL */
+		current_image_color_manage(p != NULL);
+		return TRUE;
+	}
+	if (p)
+		cmsCloseProfile(p);
+	return FALSE;
 }
 
 void install_staged_icc_profile(void) {
@@ -136,21 +182,41 @@ static gboolean fit_is_current_image(const fits *fit) {
 	return FALSE;
 }
 
+/* TRUE when @fit is the registered destination of an in-progress threaded
+ * open (and not gfit itself): its profile state lives in the staging area
+ * until install_staged_icc_profile() promotes it. */
+static gboolean fit_is_pending_image(const fits *fit) {
+	return fit && fit == _pending_icc_fit && fit != gfit;
+}
+
 cmsHPROFILE fit_get_icc_profile(const fits *fit) {
-	return fit_is_current_image(fit) ? current_icc_profile() : NULL;
+	if (fit_is_current_image(fit))
+		return current_icc_profile();
+	if (fit_is_pending_image(fit))
+		return _staged_icc_profile;
+	return NULL;
 }
 
 gboolean fit_get_color_managed(const fits *fit) {
-	return fit_is_current_image(fit) ? current_image_color_managed() : FALSE;
+	if (fit_is_current_image(fit))
+		return current_image_color_managed();
+	if (fit_is_pending_image(fit))
+		return _staged_icc_managed;
+	return FALSE;
 }
 
-/* Profile setter.  Only the current image has profile state; intermediate
+/* Profile setter.  Only the current image (or the pending destination of a
+ * threaded open, via the staging area) has profile state; intermediate
  * buffers and sequence frames are not colour-managed since the fits struct
- * no longer carries icc_profile.  Takes ownership of @p; if @fit is not
- * the current image, @p is closed and discarded. */
+ * no longer carries icc_profile.  Takes ownership of @p; if @fit is neither
+ * current nor pending, @p is closed and discarded. */
 static void set_fit_icc_profile(fits *fit, cmsHPROFILE p) {
 	if (fit_is_current_image(fit)) {
 		current_image_set_icc_profile(p);
+		return;
+	}
+	if (fit_is_pending_image(fit)) {
+		stage_icc_profile_for_pending_image(p, p != NULL);
 		return;
 	}
 	if (p) cmsCloseProfile(p);
@@ -159,6 +225,10 @@ static void set_fit_icc_profile(fits *fit, cmsHPROFILE p) {
 void color_manage(fits *fit, gboolean active) {
 	if (fit_is_current_image(fit)) {
 		current_image_color_manage(active);
+		return;
+	}
+	if (fit_is_pending_image(fit)) {
+		_staged_icc_managed = active;
 		return;
 	}
 	/* Intermediate buffers and sequence frames are not colour-managed —
@@ -983,6 +1053,7 @@ void check_profile_correct(fits* fit) {
 				siril_log_message(_("FITS did not contain an ICC profile but is declared to be stretched. Assigning a sRGB color profile.\n"));
 			// sRGB because this is the implicit assumption made in older versions
 			current_image_set_icc_profile(fit->naxes[2] == 1 ? gray_srgbtrc() : srgb_trc());
+			current_image_color_manage(TRUE);
 			com.icc.srgb_hint = FALSE;
 		} else if (fit_appears_stretched(fit)) {
 			if (profile_check_verbose)
@@ -1047,17 +1118,19 @@ cmsHPROFILE copyICCProfile(cmsHPROFILE profile) {
  * assumption.
  */
 void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number EmbedLen) {
-	/* Only the current image carries a profile.  Intermediate buffers
-	 * (and sequence-frame loads) have no profile state. */
-	if (fit != gfit) return;
+	/* Only the current image (or the pending destination of a threaded
+	 * open) carries a profile.  Intermediate buffers and sequence-frame
+	 * loads have no profile state. */
+	if (!icc_fit_is_load_target(fit)) return;
 
-	if (EmbedBuffer) {
-		current_image_set_icc_profile(cmsOpenProfileFromMem(EmbedBuffer, EmbedLen));
-		check_profile_correct(fit);
-	} else {
-		current_image_set_icc_profile(copyICCProfile((fit->naxes[2] == 1) ? com.icc.mono_standard : com.icc.srgb_profile));
-	}
-	current_image_color_manage(current_icc_profile() != NULL);
+	cmsHPROFILE p;
+	if (EmbedBuffer)
+		p = cmsOpenProfileFromMem(EmbedBuffer, EmbedLen);
+	else
+		p = copyICCProfile((fit->naxes[2] == 1) ? com.icc.mono_standard : com.icc.srgb_profile);
+	icc_profile_attach_from_load(fit, p);
+	if (EmbedBuffer)
+		check_profile_correct(fit);	/* self-gates on fit == gfit */
 }
 
 cmsUInt8Number *siril_icc_profile_to_buffer(cmsHPROFILE profile, cmsUInt32Number *length) {
@@ -1125,14 +1198,13 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 	 * current image; from fit->* for intermediate buffers.  After the
 	 * function completes, profile updates also flow through set_fit_icc
 	 * / color_manage so com.uniq stays in sync. */
-	/* Only the current image has colour profile state; intermediate
-	 * buffers / sequence frames are not colour-managed.  The transform
-	 * is a no-op for them apart from re-assigning the target profile
-	 * if the caller asks. */
-	gboolean    src_managed = fit_is_current_image(fit)
-	                         ? current_image_color_managed() : FALSE;
-	cmsHPROFILE src_profile = fit_is_current_image(fit)
-	                         ? current_icc_profile() : NULL;
+	/* Only the current image (or a pending threaded-open destination, whose
+	 * state sits in the staging area) has colour profile state; other
+	 * intermediate buffers / sequence frames are not colour-managed.  The
+	 * transform is a no-op for them apart from re-assigning the target
+	 * profile if the caller asks. */
+	gboolean    src_managed = fit_get_color_managed(fit);
+	cmsHPROFILE src_profile = fit_get_icc_profile(fit);
 
 	// If profile is NULL, we remove the profile from fit to match it. This is an unusual
 	// case but the behaviour is consistent.

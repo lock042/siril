@@ -418,12 +418,19 @@ int process_save(int nb){
 		 * preserve layers — a script that wants to flatten should invoke
 		 * `flis_flatten` first. */
 		if (is_current_image_flis()) {
-			retval = save_flis(savename) ? CMD_GENERIC_ERROR : CMD_OK;
+			/* Append the .flis extension when none was given, mirroring
+			 * the plain-FITS branch below — `save result` should
+			 * produce result.flis, not an extensionless file. */
+			gchar *flis_name = g_str_has_suffix(savename, ".flis")
+				? g_strdup(savename)
+				: g_strdup_printf("%s.flis", savename);
+			retval = save_flis(flis_name) ? CMD_GENERIC_ERROR : CMD_OK;
 			if (retval == CMD_OK && com.uniq) {
 				free(com.uniq->filename);
-				com.uniq->filename = strdup(savename);
+				com.uniq->filename = strdup(flis_name);
 				com.uniq->fileexist = TRUE;
 			}
+			g_free(flis_name);
 		} else {
 			retval = savefits(savename, gfit) ? CMD_GENERIC_ERROR : CMD_OK;
 			if (com.uniq && retval == CMD_OK) {
@@ -7567,12 +7574,15 @@ int process_findstar(int nb) {
 	}
 
 	struct starfinder_data *args = calloc(1, sizeof(struct starfinder_data));
-	/* For FLIS images the active layer can be mono even though the GUI
-	 * displays the RGB composite (so the active vport may be GLAYER /
-	 * BLAYER / RGB).  Clamp to avoid out-of-bounds channel access on the
-	 * layer's pixel data. */
+	/* Clamp out-of-range vports to a real channel: for FLIS the active
+	 * layer can be mono even though the GUI displays the RGB composite,
+	 * and for plain RGB images the RGB vport (3) has no channel of its
+	 * own — master passed it straight into statistics(), an
+	 * out-of-bounds pdata access.  Pick the same channel the scripted
+	 * path uses (green for multi-channel, red for mono) so GUI and
+	 * script results agree. */
 	if (layer >= (int)gfit->naxes[2])
-		layer = RLAYER;
+		layer = (gfit->naxes[2] > 1) ? GLAYER : RLAYER;
 	args->layer = layer;
 	args->im.fit = gfit;
 	if (sequence_is_loaded() && com.seq.current >= 0) {
@@ -16350,7 +16360,12 @@ static flis_layer_t *resolve_layer_arg(const char *arg) {
 	gboolean all_digits = TRUE;
 	for (const char *p = arg; *p; p++) if (!g_ascii_isdigit(*p)) { all_digits = FALSE; break; }
 	if (all_digits) {
-		gint id = atoi(arg);
+		gint64 id64 = g_ascii_strtoll(arg, NULL, 10);
+		if (id64 <= 0 || id64 > G_MAXINT) {
+			siril_log_error(_("flis: layer id '%s' out of range\n"), arg);
+			return NULL;
+		}
+		gint id = (gint)id64;
 		flis_layer_t *l = flis_layer_get_by_id(id);
 		if (!l) siril_log_error(_("flis: no layer with id %d\n"), id);
 		return l;
@@ -16406,7 +16421,9 @@ static int parse_format_arg(int nb) {
 		const char *v = word[i] + 8;
 		if (!g_ascii_strcasecmp(v, "csv"))  return 1;
 		if (!g_ascii_strcasecmp(v, "text")) return 0;
-		siril_log_error(_("flis_layer_list: -format= must be text or csv\n"));
+		/* word[0] is the invoking command (flis_layer_list or
+		 * flis_group_list) — don't hard-code one of them. */
+		siril_log_error(_("%s: -format= must be text or csv\n"), word[0]);
 		return -1;
 	}
 	return 0;
@@ -16529,10 +16546,11 @@ int process_flis_layer_info(int nb) {
 	siril_log_info(_("  opacity     : %.4f\n"), (double)lay->opacity);
 	siril_log_info(_("  visible     : %s\n"), lay->visible ? "yes" : "no");
 	siril_log_info(_("  locked      : %s\n"), lay->locked  ? "yes" : "no");
-	siril_log_info(_("  tint        : %s"), lay->has_tint ? "" : "neutral\n");
 	if (lay->has_tint)
-		siril_log_info("(%.3f, %.3f, %.3f)\n",
+		siril_log_info(_("  tint        : (%.3f, %.3f, %.3f)\n"),
 		               lay->layer_tint.r, lay->layer_tint.g, lay->layer_tint.b);
+	else
+		siril_log_info(_("  tint        : neutral\n"));
 	siril_log_info(_("  layer mask  : %s\n"),
 	               lay->lmask ? (lay->lmask_active ? "active" : "inactive") : "none");
 	siril_log_info(_("  proc mask   : %s\n"),
@@ -16541,12 +16559,27 @@ int process_flis_layer_info(int nb) {
 	return CMD_OK;
 }
 
+/* Strip one leading and one trailing quote (single or double) from an
+ * -opt= value, in place (word[] points into the mutable command line).
+ * The tokenizer keeps the opening quote of a -opt="..." value embedded
+ * in the word and eats the closing one at end-of-word; values typed
+ * without spaces may still carry both. */
+static char *strip_optval_quotes(char *v) {
+	if (!v) return v;
+	if (*v == '"' || *v == '\'')
+		v++;
+	size_t vl = strlen(v);
+	if (vl > 0 && (v[vl - 1] == '"' || v[vl - 1] == '\''))
+		v[vl - 1] = '\0';
+	return v;
+}
+
 int process_flis_promote(int nb) {
 	const char *name = NULL;
 	for (int i = 1; i < nb; i++) {
 		if (!word[i]) continue;
 		if (g_str_has_prefix(word[i], "-name=")) {
-			name = word[i] + 6;
+			name = strip_optval_quotes(word[i] + 6);
 		} else {
 			siril_log_error(_("flis_promote: unknown argument '%s'\n"), word[i]);
 			return CMD_ARG_ERROR;
@@ -16613,7 +16646,7 @@ int process_flis_active_layer(int nb) {
 		siril_log_error(_("flis_active_layer: target layer not in stack\n"));
 		return CMD_GENERIC_ERROR;
 	}
-	uniq_set_active_layer(com.uniq, idx);
+	flis_switch_active_layer_gui(idx);
 	siril_log_message(_("Active layer: id=%d  name=\"%s\"\n"),
 	                  target->item_id,
 	                  target->layer_name ? target->layer_name : "");
@@ -16640,7 +16673,7 @@ int process_flis_addlayer(int nb) {
 	for (int i = 2; i < nb; i++) {
 		if (!word[i]) continue;
 		if (g_str_has_prefix(word[i], "-name=")) {
-			name = word[i] + 6;
+			name = strip_optval_quotes(word[i] + 6);
 		} else {
 			siril_log_error(_("flis_addlayer: unknown argument '%s'\n"), word[i]);
 			return CMD_ARG_ERROR;
@@ -16746,13 +16779,33 @@ int process_flis_clearmask(int nb) {
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
+/* flis_flatten — composite all visible layers into a single base layer.
+ * Mirrors the panel's Flatten Image context item via the shared
+ * flis_flatten_hook.  This is the scripted counterpart the stacking /
+ * livestacking refusal messages direct users to. */
+int process_flis_flatten(int nb) {
+	(void)nb;
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	if (!args) return CMD_ALLOC_ERROR;
+	args->layer_hook       = flis_flatten_hook;
+	args->description      = g_strdup("flis_flatten");
+	args->command          = TRUE;
+	args->invalidate_flags = FLIS_INV_ALL;
+
+	if (!start_in_new_thread(generic_layer_worker, args)) {
+		free_generic_layer_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+}
+
 /* flis_addgroup [-name="X"] — create a new layer group. */
 int process_flis_addgroup(int nb) {
 	const char *name = NULL;
 	for (int i = 1; i < nb; i++) {
 		if (!word[i]) continue;
 		if (g_str_has_prefix(word[i], "-name=")) {
-			name = word[i] + 6;
+			name = strip_optval_quotes(word[i] + 6);
 		} else {
 			siril_log_error(_("flis_addgroup: unknown argument '%s'\n"), word[i]);
 			return CMD_ARG_ERROR;
@@ -16898,6 +16951,20 @@ int process_flis_exportlayer(int nb) {
  * GUI users see the panel's own widget feedback).
  * ----------------------------------------------------------------- */
 
+/* Shared tail for the flis_set* property commands: push a props-only undo
+ * entry (captured before the mutation; no-op when scripted) and refresh
+ * the composite / layers panel / display, so a property change is undoable
+ * and visible immediately — matching the panel's dispatch path. */
+static int flis_prop_cmd_finish(const flis_layer_t *target, int rc,
+                                const flis_layer_props_t *pre,
+                                const char *cmdname) {
+	if (rc)
+		return CMD_GENERIC_ERROR;
+	undo_save_flis_layer_props_snapshot(target->item_id, pre, cmdname);
+	notify_gfit_data_modified();
+	return CMD_OK;
+}
+
 int process_flis_setname(int nb) {
 	if (nb < 3) {
 		siril_log_error(_("Usage: flis_setname <id|\"name\"> \"<new name>\"\n"));
@@ -16912,9 +16979,11 @@ int process_flis_setname(int nb) {
 		name[len-1] = '\0';
 		memmove(name, name + 1, len - 1);
 	}
+	flis_layer_props_t pre;
+	flis_layer_capture_props(target, &pre);
 	int rv = flis_layer_set_name(target, name);
 	g_free(name);
-	return rv ? CMD_GENERIC_ERROR : CMD_OK;
+	return flis_prop_cmd_finish(target, rv, &pre, "flis_setname");
 }
 
 int process_flis_setblend(int nb) {
@@ -16929,7 +16998,10 @@ int process_flis_setblend(int nb) {
 		siril_log_error(_("flis_setblend: unknown blend mode '%s'\n"), word[2]);
 		return CMD_ARG_ERROR;
 	}
-	return flis_layer_set_blend_mode(target, mode) ? CMD_GENERIC_ERROR : CMD_OK;
+	flis_layer_props_t pre;
+	flis_layer_capture_props(target, &pre);
+	return flis_prop_cmd_finish(target,
+			flis_layer_set_blend_mode(target, mode), &pre, "flis_setblend");
 }
 
 int process_flis_setopacity(int nb) {
@@ -16945,7 +17017,10 @@ int process_flis_setopacity(int nb) {
 		siril_log_error(_("flis_setopacity: opacity must be a float in [0.0, 1.0]\n"));
 		return CMD_ARG_ERROR;
 	}
-	return flis_layer_set_opacity(target, (gfloat)v) ? CMD_GENERIC_ERROR : CMD_OK;
+	flis_layer_props_t pre;
+	flis_layer_capture_props(target, &pre);
+	return flis_prop_cmd_finish(target,
+			flis_layer_set_opacity(target, (gfloat)v), &pre, "flis_setopacity");
 }
 
 int process_flis_setvisible(int nb) {
@@ -16960,7 +17035,10 @@ int process_flis_setvisible(int nb) {
 		siril_log_error(_("flis_setvisible: expected on/off/true/false/1/0\n"));
 		return CMD_ARG_ERROR;
 	}
-	return flis_layer_set_visible(target, b) ? CMD_GENERIC_ERROR : CMD_OK;
+	flis_layer_props_t pre;
+	flis_layer_capture_props(target, &pre);
+	return flis_prop_cmd_finish(target,
+			flis_layer_set_visible(target, b), &pre, "flis_setvisible");
 }
 
 int process_flis_setlocked(int nb) {
@@ -16975,7 +17053,10 @@ int process_flis_setlocked(int nb) {
 		siril_log_error(_("flis_setlocked: expected on/off/true/false/1/0\n"));
 		return CMD_ARG_ERROR;
 	}
-	return flis_layer_set_locked(target, b) ? CMD_GENERIC_ERROR : CMD_OK;
+	flis_layer_props_t pre;
+	flis_layer_capture_props(target, &pre);
+	return flis_prop_cmd_finish(target,
+			flis_layer_set_locked(target, b), &pre, "flis_setlocked");
 }
 
 int process_flis_settint(int nb) {
@@ -16986,8 +17067,12 @@ int process_flis_settint(int nb) {
 	flis_layer_t *target = resolve_layer_arg(word[1]);
 	if (!target) return CMD_ARG_ERROR;
 	if (!g_strcmp0(word[2], "-clear")) {
-		target->has_tint = FALSE;
-		return CMD_OK;
+		/* Use the primitive so the locked-layer check, tint reset and
+		 * modified stamp all apply — mirrors flis_layer_set_tint below. */
+		flis_layer_props_t pre_clear;
+		flis_layer_capture_props(target, &pre_clear);
+		return flis_prop_cmd_finish(target,
+				flis_layer_clear_tint(target), &pre_clear, "flis_settint");
 	}
 	if (nb < 5) {
 		siril_log_error(_("flis_settint: need three colour components (r g b) or -clear\n"));
@@ -17002,7 +17087,10 @@ int process_flis_settint(int nb) {
 		siril_log_error(_("flis_settint: r g b must each be floats in [0.0, 1.0]\n"));
 		return CMD_ARG_ERROR;
 	}
-	return flis_layer_set_tint(target, r, g, b) ? CMD_GENERIC_ERROR : CMD_OK;
+	flis_layer_props_t pre;
+	flis_layer_capture_props(target, &pre);
+	return flis_prop_cmd_finish(target,
+			flis_layer_set_tint(target, r, g, b), &pre, "flis_settint");
 }
 
 int process_flis_group_info(int nb) {
@@ -17035,7 +17123,14 @@ int process_flis_group_info(int nb) {
  * resolution failure logs and returns NULL.  Caller frees the GSList
  * shell via g_slist_free (layer pointers are borrowed). */
 static GSList *parse_layer_subset(const char *csv) {
-	if (!csv || !*csv) return NULL;
+	if (!csv || !*csv) {
+		siril_log_error(_("-subset= requires a comma-separated list of "
+				"layer ids or names\n"));
+		return NULL;
+	}
+	/* Known limitation: the split is a plain comma split, so quoted
+	 * layer names containing commas cannot be addressed here — use the
+	 * numeric id for such layers. */
 	GSList *out = NULL;
 	gchar **toks = g_strsplit(csv, ",", -1);
 	gboolean ok = TRUE;
@@ -17061,6 +17156,7 @@ int process_flis_layers_match(int nb) {
 	gboolean owned_subset = FALSE;
 	for (int i = 1; i < nb; i++) {
 		if (g_str_has_prefix(word[i], "-subset=")) {
+			if (owned_subset) g_slist_free(subset);  /* repeated option */
 			subset = parse_layer_subset(word[i] + 8);
 			if (!subset) return CMD_ARG_ERROR;
 			owned_subset = TRUE;
@@ -17071,6 +17167,11 @@ int process_flis_layers_match(int nb) {
 		}
 	}
 
+	/* M-F12: this command mutates layer pixels on the calling thread
+	 * (script / console), not through the layer worker — take the stack
+	 * writer lock over the undo snapshot (which reads layer pixels) and
+	 * the mutation together. */
+	flis_stack_writer_lock();
 	/* Snapshot every affected layer for one-step undo. */
 	GSList *snap_target = subset ? subset : com.uniq->layers;
 	if (undo_save_flis_multi_layer(snap_target, _("Layers match"))) {
@@ -17078,6 +17179,7 @@ int process_flis_layers_match(int nb) {
 	}
 
 	int ret = flis_background_neutralise_layers(subset);
+	flis_stack_writer_unlock();
 	if (owned_subset) g_slist_free(subset);
 
 	if (ret) {
@@ -17173,7 +17275,12 @@ int process_flis_register_layers(int nb) {
 		siril_log_warning(_("flis_register_layers: could not save undo state\n"));
 	}
 
+	/* M-F12: direct mutation on the calling thread — same exclusive
+	 * discipline as the panel path (whose hook runs under the layer
+	 * worker's stack writer lock). */
+	flis_stack_writer_lock();
 	int ret = flis_register_layers(ref, NULL, method, sel_req, tx, interp, clamp);
+	flis_stack_writer_unlock();
 	if (ret) {
 		siril_log_error(_("flis_register_layers failed\n"));
 		return CMD_GENERIC_ERROR;
@@ -17191,12 +17298,9 @@ int process_flis_register_layers(int nb) {
  *
  * Each command snapshots every layer's props for one-step undo via
  * undo_save_flis_multi_layer_props (positions change, pixels don't,
- * so the props-only variant is sufficient).  When the canvas dims
- * also change (resize / fit / rotate) the snapshot doesn't capture
- * them — undo restores layer positions; the user re-runs the inverse
- * canvas op to restore dims.  A future undo_save_flis_canvas could
- * bundle both, but the props-only path is correct for the common case
- * of restoring layer alignment.
+ * so the props-only variant is sufficient).  The compound entry also
+ * captures com.uniq->canvas_w/h, so undo restores the canvas
+ * dimensions together with the layer positions.
  * ===================================================================== */
 
 int process_flis_canvas_resize(int nb) {
@@ -17209,16 +17313,28 @@ int process_flis_canvas_resize(int nb) {
 		char *end;
 		if (g_str_has_prefix(word[i], "-w=")) {
 			w = (gint)g_ascii_strtoll(word[i] + 3, &end, 10);
-			if (end == word[i] + 3 || w <= 0) return CMD_ARG_ERROR;
+			if (end == word[i] + 3 || w <= 0 || w > (1 << 20)) {
+				siril_log_error(_("flis_canvas_resize: -w= must be a positive integer up to %d\n"), 1 << 20);
+				return CMD_ARG_ERROR;
+			}
 		} else if (g_str_has_prefix(word[i], "-h=")) {
 			h = (gint)g_ascii_strtoll(word[i] + 3, &end, 10);
-			if (end == word[i] + 3 || h <= 0) return CMD_ARG_ERROR;
+			if (end == word[i] + 3 || h <= 0 || h > (1 << 20)) {
+				siril_log_error(_("flis_canvas_resize: -h= must be a positive integer up to %d\n"), 1 << 20);
+				return CMD_ARG_ERROR;
+			}
 		} else if (g_str_has_prefix(word[i], "-dx=")) {
 			dx = (gint)g_ascii_strtoll(word[i] + 4, &end, 10);
-			if (end == word[i] + 4) return CMD_ARG_ERROR;
+			if (end == word[i] + 4) {
+				siril_log_error(_("flis_canvas_resize: -dx= must be an integer\n"));
+				return CMD_ARG_ERROR;
+			}
 		} else if (g_str_has_prefix(word[i], "-dy=")) {
 			dy = (gint)g_ascii_strtoll(word[i] + 4, &end, 10);
-			if (end == word[i] + 4) return CMD_ARG_ERROR;
+			if (end == word[i] + 4) {
+				siril_log_error(_("flis_canvas_resize: -dy= must be an integer\n"));
+				return CMD_ARG_ERROR;
+			}
 		} else {
 			siril_log_error(_("flis_canvas_resize: unknown option '%s'\n"), word[i]);
 			return CMD_ARG_ERROR;
@@ -17228,10 +17344,15 @@ int process_flis_canvas_resize(int nb) {
 		siril_log_error(_("flis_canvas_resize: -w= and -h= are required\n"));
 		return CMD_ARG_ERROR;
 	}
+	/* M-F12: direct mutation on the calling thread — writer lock over
+	 * the undo snapshot and the canvas op together. */
+	flis_stack_writer_lock();
 	if (undo_save_flis_multi_layer_props(com.uniq->layers, _("Resize canvas"))) {
 		siril_log_warning(_("flis_canvas_resize: could not save undo state\n"));
 	}
-	if (flis_canvas_resize((guint)w, (guint)h, dx, dy)) return CMD_GENERIC_ERROR;
+	int canvas_ret = flis_canvas_resize((guint)w, (guint)h, dx, dy);
+	flis_stack_writer_unlock();
+	if (canvas_ret) return CMD_GENERIC_ERROR;
 	gui_iface.flis_invalidate_composite();
 	gui_iface.flis_gui_update();
 	return CMD_OK;
@@ -17251,10 +17372,15 @@ int process_flis_canvas_fit(int nb) {
 			return CMD_ARG_ERROR;
 		}
 	}
+	/* M-F12: direct mutation on the calling thread — writer lock over
+	 * the undo snapshot and the canvas op together. */
+	flis_stack_writer_lock();
 	if (undo_save_flis_multi_layer_props(com.uniq->layers, _("Fit canvas to layers"))) {
 		siril_log_warning(_("flis_canvas_fit: could not save undo state\n"));
 	}
-	if (flis_canvas_fit_to_layers(include_invisible)) return CMD_GENERIC_ERROR;
+	int canvas_ret = flis_canvas_fit_to_layers(include_invisible);
+	flis_stack_writer_unlock();
+	if (canvas_ret) return CMD_GENERIC_ERROR;
 	gui_iface.flis_invalidate_composite();
 	gui_iface.flis_gui_update();
 	return CMD_OK;
@@ -17275,10 +17401,15 @@ int process_flis_canvas_rotate(int nb) {
 		siril_log_error(_("flis_canvas_rotate: angle must be a number\n"));
 		return CMD_ARG_ERROR;
 	}
+	/* M-F12: direct mutation on the calling thread — writer lock over
+	 * the undo snapshot and the canvas op together. */
+	flis_stack_writer_lock();
 	if (undo_save_flis_multi_layer_props(com.uniq->layers, _("Rotate canvas"))) {
 		siril_log_warning(_("flis_canvas_rotate: could not save undo state\n"));
 	}
-	if (flis_canvas_rotate(angle)) return CMD_GENERIC_ERROR;
+	int canvas_ret = flis_canvas_rotate(angle);
+	flis_stack_writer_unlock();
+	if (canvas_ret) return CMD_GENERIC_ERROR;
 	gui_iface.flis_invalidate_composite();
 	gui_iface.flis_gui_update();
 	return CMD_OK;
@@ -17290,10 +17421,15 @@ int process_flis_canvas_mirrorx(int nb) {
 		siril_log_error(_("flis_canvas_mirrorx: requires a FLIS image\n"));
 		return CMD_GENERIC_ERROR;
 	}
+	/* M-F12: direct mutation on the calling thread — writer lock over
+	 * the undo snapshot and the canvas op together. */
+	flis_stack_writer_lock();
 	if (undo_save_flis_multi_layer_props(com.uniq->layers, _("Mirror canvas X"))) {
 		siril_log_warning(_("flis_canvas_mirrorx: could not save undo state\n"));
 	}
-	if (flis_canvas_mirrorx()) return CMD_GENERIC_ERROR;
+	int canvas_ret = flis_canvas_mirrorx();
+	flis_stack_writer_unlock();
+	if (canvas_ret) return CMD_GENERIC_ERROR;
 	gui_iface.flis_invalidate_composite();
 	gui_iface.flis_gui_update();
 	return CMD_OK;
@@ -17305,10 +17441,15 @@ int process_flis_canvas_mirrory(int nb) {
 		siril_log_error(_("flis_canvas_mirrory: requires a FLIS image\n"));
 		return CMD_GENERIC_ERROR;
 	}
+	/* M-F12: direct mutation on the calling thread — writer lock over
+	 * the undo snapshot and the canvas op together. */
+	flis_stack_writer_lock();
 	if (undo_save_flis_multi_layer_props(com.uniq->layers, _("Mirror canvas Y"))) {
 		siril_log_warning(_("flis_canvas_mirrory: could not save undo state\n"));
 	}
-	if (flis_canvas_mirrory()) return CMD_GENERIC_ERROR;
+	int canvas_ret = flis_canvas_mirrory();
+	flis_stack_writer_unlock();
+	if (canvas_ret) return CMD_GENERIC_ERROR;
 	gui_iface.flis_invalidate_composite();
 	gui_iface.flis_gui_update();
 	return CMD_OK;

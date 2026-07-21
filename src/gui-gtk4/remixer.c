@@ -1113,7 +1113,11 @@ static void remix_apply_left_file(const gchar *filename) {
 			left_loaded = TRUE;
 			/* Per-fits ICC state was removed; remixer's auto-match
 			 * between left/right profiles is no longer available.
-			 * Both inputs are treated as raw pixel data. */
+			 * Both inputs are treated as raw pixel data — tell the
+			 * user, as older versions converted mismatched inputs. */
+			siril_log_message(_("Star recomposition treats both input images "
+					"as raw pixel data: no colour profile matching or "
+					"conversion is performed.\n"));
 			merge_fits_headers_to_result(gfit, FALSE, &fit_left, &fit_right, NULL);
 			if (fit_left.keywords.filter[0] != '\0' && fit_right.keywords.filter[0] != '\0' && strlen(fit_left.keywords.filter) >= 8 && strlen(fit_right.keywords.filter) >= 8) {
 				gchar *temp_l = g_malloc(strlen(fit_left.keywords.filter) - 7);

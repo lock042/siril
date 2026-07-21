@@ -34,6 +34,7 @@
 #include "io/image_format_flis.h"
 #include "image_interactions.h"
 #include "gui-gtk4/mouse_action_functions.h"
+#include "gui-gtk4/flis_gui.h"
 #include "gui-gtk4/image_display.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/utils.h"
@@ -339,26 +340,35 @@ gboolean is_inside_of_sel(pointi zoomed, double zoom) {
 	return FALSE;
 }
 
-/* Clamp given coordinates to image boundaries.
+/* Clamp given coordinates to the DISPLAYED image's boundaries.
    Returns true if point was inside, false otherwise.
-*/
+
+   For a FLIS the displayed image is the canvas-sized composite, not the
+   active layer's fits — clamping against gfit (= the active layer) made
+   mouse interactions dead outside a sparse active layer's extent: with a
+   small offset layer selected, the context menu only worked near the
+   canvas origin.  flis_canvas_rx/ry return gfit->rx/ry for non-FLIS
+   images, so this is behaviour-neutral outside FLIS. */
 static gboolean clamp2image(pointi* pt) {
+	const gint disp_rx = (gint)flis_canvas_rx();
+	const gint disp_ry = (gint)flis_canvas_ry();
+
 	gboolean x_inside = FALSE;
 	if (pt->x < 0) {
 		pt->x = 0;
-	} else if (pt->x > gfit->rx) {
-		pt->x = gfit->rx - 1;
+	} else if (pt->x > disp_rx) {
+		pt->x = disp_rx - 1;
 	} else {
-		x_inside = pt->x < gfit->rx;
+		x_inside = pt->x < disp_rx;
 	}
 
 	gboolean y_inside = FALSE;
 	if (pt->y < 0) {
 		pt->y = 0;
-	} else if (pt->y > gfit->ry) {
-		pt->y = gfit->ry - 1;
+	} else if (pt->y > disp_ry) {
+		pt->y = disp_ry - 1;
 	} else {
-		y_inside = pt->y < gfit->ry;
+		y_inside = pt->y < disp_ry;
 	}
 	return x_inside && y_inside;
 }
@@ -606,18 +616,36 @@ static void update_pointer_feedback(const drawingarea_ctx *c) {
 	gboolean feedback_locked = c->inside && g_rw_lock_reader_trylock(&gfit->rwlock);
 	if (c->inside && feedback_locked) {
 		const pointi zoomed = c->zoomed;
-		if (gui.cvport == RGB_VPORT) {
+		/* c->zoomed is clamped to the DISPLAYED (canvas) extent, but the
+		 * pixel/mask/WCS reads below index gfit — the active layer,
+		 * which for a sparse FLIS layer is smaller and/or offset.
+		 * Translate to layer-local coordinates for every gfit access
+		 * and blank the value readouts when the cursor is off the
+		 * layer; indexing gfit with raw canvas coords was an
+		 * out-of-bounds read (SIGSEGV) over the uncovered canvas. */
+		pointi lz = zoomed;
+		gboolean on_layer = TRUE;
+		if (is_current_image_flis()) {
+			flis_layer_t *act_lay = flis_active_layer();
+			if (act_lay) {
+				lz.x = zoomed.x - act_lay->position_x;
+				lz.y = zoomed.y - act_lay->position_y;
+			}
+			on_layer = (lz.x >= 0 && lz.y >= 0
+			            && lz.x < (gint)gfit->rx && lz.y < (gint)gfit->ry);
+		}
+		if (gui.cvport == RGB_VPORT && on_layer) {
 			static gchar buffer[256] = { 0 };
 			if (gfit->type == DATA_USHORT) {
 				g_sprintf(buffer, "<span foreground=\"#FF0000\"><b>R=%.3lf%%</b></span>\n<span foreground=\"#00FF00\"><b>G=%.3lf%%</b></span>\n<span foreground=\"#0054FF\"><b>B=%.3lf%%</b></span>",
-						gfit->pdata[RLAYER][gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x] / USHRT_MAX_DOUBLE * 100.0,
-						gfit->pdata[GLAYER][gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x] / USHRT_MAX_DOUBLE * 100.0,
-						gfit->pdata[BLAYER][gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x] / USHRT_MAX_DOUBLE * 100.0);
+						gfit->pdata[RLAYER][gfit->rx * (gfit->ry - lz.y - 1) + lz.x] / USHRT_MAX_DOUBLE * 100.0,
+						gfit->pdata[GLAYER][gfit->rx * (gfit->ry - lz.y - 1) + lz.x] / USHRT_MAX_DOUBLE * 100.0,
+						gfit->pdata[BLAYER][gfit->rx * (gfit->ry - lz.y - 1) + lz.x] / USHRT_MAX_DOUBLE * 100.0);
 			} else if (gfit->type == DATA_FLOAT) {
 				g_sprintf(buffer, "<span foreground=\"#FF0000\"><b>R=%.3lf%%</b></span>\n<span foreground=\"#00FF00\"><b>G=%.3lf%%</b></span>\n<span foreground=\"#0054FF\"><b>B=%.3lf%%</b></span>",
-						gfit->fpdata[RLAYER][gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x] * 100.0,
-						gfit->fpdata[GLAYER][gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x] * 100.0,
-						gfit->fpdata[BLAYER][gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x] * 100.0);
+						gfit->fpdata[RLAYER][gfit->rx * (gfit->ry - lz.y - 1) + lz.x] * 100.0,
+						gfit->fpdata[GLAYER][gfit->rx * (gfit->ry - lz.y - 1) + lz.x] * 100.0,
+						gfit->fpdata[BLAYER][gfit->rx * (gfit->ry - lz.y - 1) + lz.x] * 100.0);
 			}
 			gtk_label_set_markup(GTK_LABEL(imgint_label_rgb), buffer);
 		}
@@ -634,7 +662,7 @@ static void update_pointer_feedback(const drawingarea_ctx *c) {
 			if (gfit->type == DATA_USHORT && gfit->pdata[vport] != NULL) {
 				int val_width = 3;
 				char *format_base_ushort;
-				if (gui.cvport < RGB_VPORT) {
+				if (gui.cvport < RGB_VPORT && on_layer) {
 					format_base_ushort = "x: %%.%dd y: %%.%dd (=%%.%dd)";
 				} else {
 					format_base_ushort = "x: %%.%dd y: %%.%dd";
@@ -645,26 +673,28 @@ static void update_pointer_feedback(const drawingarea_ctx *c) {
 					val_width = 5;
 				g_sprintf(format, format_base_ushort,
 						coords_width, coords_width, val_width);
-				if (gui.cvport < RGB_VPORT) {
-					g_sprintf(buffer, format, zoomed.x, zoomed.y, gfit->pdata[vport][gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x]);
+				if (gui.cvport < RGB_VPORT && on_layer) {
+					g_sprintf(buffer, format, zoomed.x, zoomed.y, gfit->pdata[vport][gfit->rx * (gfit->ry - lz.y - 1) + lz.x]);
 				} else {
 					g_sprintf(buffer, format, zoomed.x, zoomed.y);
 				}
 			} else if (gfit->type == DATA_FLOAT && gfit->fpdata[vport] != NULL) {
 				char *format_base_float;
-				if (gui.cvport < RGB_VPORT) {
+				if (gui.cvport < RGB_VPORT && on_layer) {
 					format_base_float = "x: %%.%dd y: %%.%dd (=%%f)";
 				} else {
 					format_base_float = "x: %%.%dd y: %%.%dd";
 				}
 				g_sprintf(format, format_base_float, coords_width, coords_width);
-				if (gui.cvport < RGB_VPORT) {
-					g_sprintf(buffer, format, zoomed.x, zoomed.y, gfit->fpdata[vport][gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x]);
+				if (gui.cvport < RGB_VPORT && on_layer) {
+					g_sprintf(buffer, format, zoomed.x, zoomed.y, gfit->fpdata[vport][gfit->rx * (gfit->ry - lz.y - 1) + lz.x]);
 				} else {
 					g_sprintf(buffer, format, zoomed.x, zoomed.y);
 				}
 			}
-		} else if (vport == MASK_VPORT) {
+		} else if (vport == MASK_VPORT && gfit->mask && on_layer) {
+			/* gfit->mask can legitimately be NULL here — the mask tab
+			 * may be showing the active layer's lmask instead. */
 			if (gfit->mask->bitpix < 32 && gfit->mask->data != NULL) {
 				int val_width = 3;
 				char *format_base_ushort;
@@ -677,17 +707,17 @@ static void update_pointer_feedback(const drawingarea_ctx *c) {
 						coords_width, coords_width, val_width);
 				if (gfit->mask->bitpix < 16) {
 					uint8_t* m = (uint8_t*) gfit->mask->data;
-					g_sprintf(buffer, format, zoomed.x, zoomed.y, m[gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x]);
+					g_sprintf(buffer, format, zoomed.x, zoomed.y, m[gfit->rx * (gfit->ry - lz.y - 1) + lz.x]);
 				} else {
 					uint16_t* m = (uint16_t*) gfit->mask->data;
-					g_sprintf(buffer, format, zoomed.x, zoomed.y, m[gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x]);
+					g_sprintf(buffer, format, zoomed.x, zoomed.y, m[gfit->rx * (gfit->ry - lz.y - 1) + lz.x]);
 				}
 			} else if (gfit->mask->bitpix == 32 && gfit->mask->data != NULL) {
 				char *format_base_float;
 				format_base_float = "x: %%.%dd y: %%.%dd (=%%f)";
 				g_sprintf(format, format_base_float, coords_width, coords_width);
 				float *m = (float*) gfit->mask->data;
-				g_sprintf(buffer, format, zoomed.x, zoomed.y, m[gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x]);
+				g_sprintf(buffer, format, zoomed.x, zoomed.y, m[gfit->rx * (gfit->ry - lz.y - 1) + lz.x]);
 			}
 		}
 
@@ -697,9 +727,9 @@ static void update_pointer_feedback(const drawingarea_ctx *c) {
 		}
 
 		static gchar wcs_buffer[256] = { 0 };
-		if (has_wcs(gfit)) {
+		if (on_layer && has_wcs(gfit)) {
 			double world_x, world_y;
-			pix2wcs(gfit, (double) zoomed.x, (double) (gfit->ry - zoomed.y - 1), &world_x, &world_y);
+			pix2wcs(gfit, (double) lz.x, (double) (gfit->ry - lz.y - 1), &world_x, &world_y);
 			if (world_x >= 0.0 && !isnan(world_x) && !isnan(world_y)) {
 				SirilWorldCS *world_cs = siril_world_cs_new_from_a_d(world_x, world_y);
 				if (world_cs) {
@@ -840,8 +870,9 @@ static void apply_drag_motion(const drawingarea_ctx *c) {
 				_lay->position_x = gui.flis_drag_start_layer.x + _dx;
 				_lay->position_y = gui.flis_drag_start_layer.y + _dy;
 				gui_iface.flis_display_invalidate(FLIS_INV_STACK, _lay->item_id);
-				notify_gfit_data_modified();
-				redraw(REDRAW_ALL);
+				/* Coalesced: full pipeline once per event burst, paint
+				 * per tick (see flis_drag_tick_refresh). */
+				flis_drag_tick_refresh();
 			}
 	} else if (cutting) {	// button 1 down, dragging a line for the pixel profile cut
 		if (c->state & GDK_SHIFT_MASK)
