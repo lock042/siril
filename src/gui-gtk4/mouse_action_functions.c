@@ -590,12 +590,13 @@ static gboolean measure_release (mouse_data *data) {
  * points, so a plain subtraction is correct for both axes; the FITS
  * bottom-up flip happens later in the consumers. */
 static void poly_to_active_layer_coords(UserPolygon *poly) {
-	if (!poly || !is_current_image_flis()) return;
-	flis_layer_t *act = flis_active_layer();
-	if (!act || (act->position_x == 0 && act->position_y == 0)) return;
+	if (!poly) return;
+	gint ox, oy;
+	flis_active_layer_offset(&ox, &oy);
+	if (ox == 0 && oy == 0) return;
 	for (int i = 0; i < poly->n_points; i++) {
-		poly->points[i].x -= act->position_x;
-		poly->points[i].y -= act->position_y;
+		poly->points[i].x -= ox;
+		poly->points[i].y -= oy;
 	}
 }
 
@@ -652,18 +653,13 @@ static gboolean mask_clear_poly_release(mouse_data *data) {
 }
 
 static gboolean sample_mask_color_release(mouse_data *data) {
-	int lx = data->zoomed.x, ly = data->zoomed.y;
-	if (is_current_image_flis()) {
-		/* Canvas → layer-local, same reasoning as
-		 * poly_to_active_layer_coords above; the handler's own bounds
-		 * check rejects picks outside the layer. */
-		flis_layer_t *act = flis_active_layer();
-		if (act) {
-			lx -= act->position_x;
-			ly -= act->position_y;
-		}
-	}
-	mask_color_handle_image_click(lx, ly);
+	/* Display → layer-local (see the coordinate model in
+	 * image_format_flis.h); picks outside the active layer are dropped
+	 * here rather than relying on the handler's bounds check. */
+	pointi local;
+	if (!flis_display_to_active_layer_pt(data->zoomed, &local))
+		return TRUE;
+	mask_color_handle_image_click(local.x, local.y);
 	return TRUE;
 }
 

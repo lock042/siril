@@ -4954,28 +4954,28 @@ void copy_roi_into_gfit() {
 	size_t npixels_roi = gui.roi.selection.w * gui.roi.selection.h;
 	if (npixels_roi == 0 || com.script || com.python_command)
 		return;
-	/* Mirror populate_roi(): gui.roi.selection is in canvas coordinates;
-	 * for an offset FLIS sub-layer convert to layer-local before writing
-	 * back into gfit, and bail out if it falls outside the layer. */
-	rectangle lsel = gui.roi.selection;
-	if (is_current_image_flis() && com.uniq && com.uniq->layers) {
-		for (GSList *node = com.uniq->layers; node; node = node->next) {
-			flis_layer_t *lay = (flis_layer_t *)node->data;
-			if (lay && lay->fit == gfit) {
-				lsel.x -= lay->position_x;
-				lsel.y -= lay->position_y;
-				break;
-			}
-		}
+	/* Mirror populate_roi(): same translate-and-clip through the shared
+	 * helper, so the write-back region is exactly the region that was
+	 * captured. */
+	rectangle lsel;
+	if (!flis_display_to_active_layer_rect(&gui.roi.selection, &lsel, TRUE)) {
+		siril_log_debug("copy_roi_into_gfit: selection does not intersect the active layer, skipping\n");
+		return;
 	}
-	if (lsel.x < 0 || lsel.y < 0 ||
-	    (guint)(lsel.x + lsel.w) > gfit->rx ||
-	    (guint)(lsel.y + lsel.h) > gfit->ry) {
-		siril_log_debug("copy_roi_into_gfit: selection out of bounds for the active layer, skipping\n");
+	/* The ROI cache dims must match the clipped rect — they can drift if
+	 * the layer or selection changed since populate (the reconciler
+	 * repopulates asynchronously).  Skip rather than write mismatched
+	 * rows. */
+	if ((guint)lsel.w != gui.roi.fit.rx || (guint)lsel.h != gui.roi.fit.ry) {
+		siril_log_debug("copy_roi_into_gfit: ROI cache stale, skipping\n");
 		return;
 	}
 	g_rw_lock_writer_lock(&gfit->rwlock);
 	size_t npixels_gfit = gfit->rx * gfit->ry;
+	/* Plane stride of the ROI cache: its own dims, NOT the selection's —
+	 * with a partially overlapping sparse layer the cache holds only the
+	 * clipped intersection. */
+	npixels_roi = (size_t)gui.roi.fit.rx * gui.roi.fit.ry;
 	if (gui.roi.fit.type != gfit->type) {
 		size_t roi_ndata = gui.roi.fit.rx * gui.roi.fit.ry * gui.roi.fit.naxes[2];
 		if (gfit->type == DATA_FLOAT) {

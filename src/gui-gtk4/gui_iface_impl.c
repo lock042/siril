@@ -906,6 +906,45 @@ static void impl_flis_swap_out_composite(void *saved) {
 }
 
 extern void flis_gui_update_from_idle(void);  /* flis_gui.h, stage 4 */
+
+/* ── Active-layer-change reconciler ──────────────────────────────────────
+ *
+ * Single chokepoint for everything keyed to WHICH layer gfit points at.
+ * uniq_set_active_layer() fires gui_iface.on_active_layer_changed() on
+ * every retarget; this queues one coalesced main-thread idle (async by
+ * contract — the caller may hold the FLIS stack writer lock, so nothing
+ * here may take locks or block).  The idle then:
+ *
+ *   - re-arms a live preview whose backup was taken from another layer
+ *     (identity-checked; restores and preview ticks are blocked by the
+ *     owner gate in siril_preview.c until this runs);
+ *   - repopulates the ROI pixel cache, which held the outgoing layer's
+ *     pixels (populate_roi clips to the new layer, or empties);
+ *   - retests mask-tab visibility (lmask presence differs per layer);
+ *   - refreshes the layers panel / header / canvas dialog.
+ */
+static gint active_layer_reconcile_pending = 0;
+
+static gboolean active_layer_reconcile_idle(gpointer p) {
+	(void)p;
+	g_atomic_int_set(&active_layer_reconcile_pending, 0);
+	if (is_preview_active() && get_preview_backup_owner() != gfit) {
+		clear_backup();
+		copy_gfit_to_backup();
+	}
+	if (gui.roi.active)
+		populate_roi();
+	show_or_hide_mask_tab();
+	flis_gui_update_from_idle();
+	redraw(REDRAW_OVERLAY);
+	return G_SOURCE_REMOVE;
+}
+
+static void impl_on_active_layer_changed(void) {
+	if (!g_atomic_int_compare_and_exchange(&active_layer_reconcile_pending, 0, 1))
+		return;
+	g_idle_add(active_layer_reconcile_idle, NULL);
+}
 extern gboolean flis_panel_group_is_selected(void);  /* flis_gui.h */
 extern void flis_gui_present_if_flis(void);
 
@@ -1581,6 +1620,7 @@ void siril_register_gui_iface(void) {
 	gui_iface.flis_swap_out_composite     = impl_flis_swap_out_composite;
 	gui_iface.flis_composite_free         = impl_flis_composite_free;
 	gui_iface.flis_gui_update             = impl_flis_gui_update;
+	gui_iface.on_active_layer_changed     = impl_on_active_layer_changed;
 	gui_iface.flis_group_is_selected      = flis_panel_group_is_selected;
 	gui_iface.flis_gui_present_if_flis    = impl_flis_gui_present_if_flis;
 	gui_iface.on_channel_count_changed    = impl_on_channel_count_changed;

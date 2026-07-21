@@ -62,6 +62,11 @@ static gboolean      preview_job_active = FALSE;
 static cmsHPROFILE preview_icc_backup = NULL;
 static fits preview_roi_backup;
 static fits preview_gfit_backup = { 0 };
+/* Identity of the fits the backup was taken from.  gfit can be repointed
+ * at a DIFFERENT layer's fits (FLIS active-layer switch) between backup
+ * and restore; a dimensions check alone cannot detect that when layers
+ * share dimensions.  Restores and preview updates are gated on this. */
+static fits *preview_backup_owner = NULL;
 
 /* Forward declaration. */
 static void dispatch_preview(update_image *im);
@@ -105,9 +110,19 @@ static void dispatch_preview(update_image *im) {
 	}
 
 	if (im->show_preview) {
-		siril_log_debug("update preview\n");
-		set_cursor_waiting(TRUE);
-		im->update_preview_fn();
+		if (preview_is_active && preview_backup_owner != gfit) {
+			/* gfit was retargeted under this preview (FLIS layer
+			 * switch) and the reconciler idle has not re-armed the
+			 * backup yet.  Running the update would stretch another
+			 * layer's backup into gfit (or read it out of bounds).
+			 * Skip this tick; the reconciler re-arms and the next
+			 * tick works. */
+			siril_log_debug("preview skipped: backup belongs to another layer\n");
+		} else {
+			siril_log_debug("update preview\n");
+			set_cursor_waiting(TRUE);
+			im->update_preview_fn();
+		}
 	}
 
 	waiting_for_thread(); /* no-op on GTK main thread; kept for safety */
@@ -183,7 +198,12 @@ void copy_gfit_to_backup() {
 		siril_log_debug("Image copy error in ROI\n");
 		return;
 	}
+	preview_backup_owner = gfit;
 	preview_is_active = TRUE;
+}
+
+fits *get_preview_backup_owner(void) {
+	return preview_is_active ? preview_backup_owner : NULL;
 }
 
 int copy_backup_to_gfit() {
@@ -219,16 +239,18 @@ int copy_backup_to_gfit() {
 	g_rw_lock_writer_lock(&gfit->rwlock);
 	if (!gfit->data && !gfit->fdata)
 		retval = 1;
-	else if (preview_gfit_backup.rx != gfit->rx
+	else if (preview_backup_owner != gfit
+	         || preview_gfit_backup.rx != gfit->rx
 	         || preview_gfit_backup.ry != gfit->ry
 	         || preview_gfit_backup.naxes[2] != gfit->naxes[2]) {
-		/* The backup belongs to a different image than gfit now points
-		 * at — e.g. the active FLIS layer was changed under a live
-		 * preview by a path that could not re-arm it (worker hooks).
-		 * Restoring would write another layer's pixels into this one:
-		 * junk for a smaller backup, a heap overflow for a larger one.
-		 * Skip the restore; the on-screen pixels stay as they are. */
-		siril_log_debug("copy_backup_to_gfit: backup/gfit dimensions differ, skipping restore\n");
+		/* The backup belongs to a different fits than gfit now points
+		 * at — the active FLIS layer was changed under a live preview
+		 * by a path that could not re-arm it (worker hooks).  Restoring
+		 * would write another layer's pixels into this one: silently
+		 * wrong for same-size layers (hence the identity check, not
+		 * just dimensions), junk for a smaller backup, and a heap
+		 * overflow for a larger one.  Skip; on-screen pixels stay. */
+		siril_log_debug("copy_backup_to_gfit: backup belongs to another image, skipping restore\n");
 		retval = 1;
 	} else {
 		// Restore the mask state too
@@ -269,6 +291,7 @@ gboolean is_preview_active() {
 void clear_backup() {
 	clearfits(&preview_gfit_backup);
 	clear_backup_icc();
+	preview_backup_owner = NULL;
 	preview_is_active = FALSE;
 }
 

@@ -302,3 +302,72 @@ Test(flis_sparse, displayed_mask_refuses_dim_mismatch) {
 	clearfits(canvas);
 	free(canvas);
 }
+
+/* ---- coordinate-model helpers (display ↔ active-layer-local) -------- */
+
+Test(flis_sparse, display_to_layer_pt_handles_offset_and_bounds) {
+	flis_test_add_layer(flis_test_make_rgb_fits(16, 16, 0.f, 0.f, 0.f), "base");
+	flis_layer_t *sp = flis_test_add_layer(
+	    flis_test_make_mono_fits(4, 4, 1.f), "sparse");
+	sp->position_x = 6;
+	sp->position_y = 8;
+	com.uniq->canvas_w = 16;
+	com.uniq->canvas_h = 16;
+	uniq_set_active_layer(com.uniq, 1);   /* sparse active, gfit = 4x4 */
+
+	pointi out;
+	/* On-layer point translates to layer-local. */
+	cr_assert(flis_display_to_active_layer_pt((pointi){ 7, 9 }, &out));
+	cr_assert_eq(out.x, 1);
+	cr_assert_eq(out.y, 1);
+	/* Canvas point outside the layer: FALSE, but translation still
+	 * reported. */
+	cr_assert_not(flis_display_to_active_layer_pt((pointi){ 0, 0 }, &out));
+	cr_assert_eq(out.x, -6);
+	cr_assert_eq(out.y, -8);
+	/* Just past the far corner. */
+	cr_assert_not(flis_display_to_active_layer_pt((pointi){ 10, 12 }, NULL));
+	cr_assert(flis_display_to_active_layer_pt((pointi){ 9, 11 }, NULL));
+
+	/* Base (non-offset) layer behaves as identity. */
+	uniq_set_active_layer(com.uniq, 0);
+	cr_assert(flis_display_to_active_layer_pt((pointi){ 15, 15 }, &out));
+	cr_assert_eq(out.x, 15);
+	cr_assert_eq(out.y, 15);
+	cr_assert_not(flis_display_to_active_layer_pt((pointi){ 16, 0 }, NULL));
+}
+
+Test(flis_sparse, display_to_layer_rect_partial_clips_full_requires_containment) {
+	flis_test_add_layer(flis_test_make_rgb_fits(16, 16, 0.f, 0.f, 0.f), "base");
+	flis_layer_t *sp = flis_test_add_layer(
+	    flis_test_make_mono_fits(4, 4, 1.f), "sparse");
+	sp->position_x = 6;
+	sp->position_y = 8;
+	com.uniq->canvas_w = 16;
+	com.uniq->canvas_h = 16;
+	uniq_set_active_layer(com.uniq, 1);
+
+	rectangle out;
+	/* Selection partially overlapping the sparse layer: partial mode
+	 * clips to the intersection (the user-visible ROI-on-sparse-layer
+	 * behaviour); full mode refuses. */
+	rectangle sel = { 4, 6, 4, 4 };   /* overlaps layer rows/cols 0..1 */
+	cr_assert(flis_display_to_active_layer_rect(&sel, &out, TRUE));
+	cr_assert_eq(out.x, 0);
+	cr_assert_eq(out.y, 0);
+	cr_assert_eq(out.w, 2);
+	cr_assert_eq(out.h, 2);
+	cr_assert_not(flis_display_to_active_layer_rect(&sel, &out, FALSE));
+
+	/* Fully inside. */
+	rectangle sel2 = { 7, 9, 2, 2 };
+	cr_assert(flis_display_to_active_layer_rect(&sel2, &out, FALSE));
+	cr_assert_eq(out.x, 1);
+	cr_assert_eq(out.y, 1);
+	cr_assert_eq(out.w, 2);
+	cr_assert_eq(out.h, 2);
+
+	/* No overlap at all. */
+	rectangle sel3 = { 0, 0, 4, 4 };
+	cr_assert_not(flis_display_to_active_layer_rect(&sel3, &out, TRUE));
+}

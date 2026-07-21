@@ -374,6 +374,48 @@ void uniq_set_active_layer(single *uniq, gint index);
 void flis_switch_active_layer_gui(gint index);
 
 /* -----------------------------------------------------------------------
+ * COORDINATE MODEL (the single source of truth — new code must use the
+ * helpers below instead of open-coding offset arithmetic):
+ *
+ *   DISPLAY coordinates — origin at the canvas top-left, y increasing
+ *     downward, extent flis_canvas_rx()/ry().  Everything the user sees
+ *     and every mouse interaction lives here: com.selection,
+ *     gui.roi.selection, mouse zoomed/evpos, layer position_x/y.
+ *     For non-FLIS images the canvas extent IS gfit's extent.
+ *
+ *   LAYER-LOCAL display coordinates — origin at the active layer's
+ *     top-left (display minus position_x/y), same orientation.  Required
+ *     for any access to gfit's pixel/mask buffers, since gfit is the
+ *     active layer, which may be smaller than and/or offset on the
+ *     canvas.
+ *
+ *   FITS storage is bottom-up; the y-flip (ry - 1 - y) happens only at
+ *     the final buffer-index computation, never in coordinate logic.
+ *
+ * The helpers are lock-free reads of the active layer's offset; callers
+ * are main-thread interaction paths (mutating jobs are serialised by the
+ * single processing slot, so a torn offset read is not a practical
+ * hazard — worst case one stale motion event).
+ * ----------------------------------------------------------------------- */
+
+/* Active layer's display offset; (0,0) for non-FLIS or no layers. */
+void flis_active_layer_offset(gint *ox, gint *oy);
+
+/* Translate a display point to active-layer-local coords.  Returns TRUE
+ * iff the point lies on the layer; *out (optional) receives the
+ * layer-local point either way.  Identity + gfit bounds for non-FLIS. */
+gboolean flis_display_to_active_layer_pt(pointi disp, pointi *out);
+
+/* Translate a display rect to active-layer-local coords.
+ * partial = TRUE : clip to the layer; returns TRUE iff a non-empty
+ *                  intersection remains (*out = the clipped rect).
+ * partial = FALSE: returns TRUE only when fully contained.
+ * Identity + gfit bounds for non-FLIS. */
+gboolean flis_display_to_active_layer_rect(const rectangle *disp,
+                                           rectangle *out,
+                                           gboolean partial);
+
+/* -----------------------------------------------------------------------
  * Layer lookup helpers
  * ----------------------------------------------------------------------- */
 

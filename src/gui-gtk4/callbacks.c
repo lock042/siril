@@ -308,28 +308,15 @@ int populate_roi() {
 		return 1;
 	if (gui.roi.selection.w == 0 || gui.roi.selection.h == 0)
 		return 1;
-	/* When a FLIS sub-layer is active, gui.roi.selection is in canvas
-	 * (composite) coordinates but gfit is the sub-layer.  Compute
-	 * layer-local coordinates for data access; gui.roi.selection itself
-	 * stays in canvas coordinates for drawing. */
-	rectangle lsel = gui.roi.selection;
-	if (is_current_image_flis() && com.uniq && com.uniq->layers) {
-		for (GSList *node = com.uniq->layers; node; node = node->next) {
-			flis_layer_t *lay = (flis_layer_t *)node->data;
-			if (lay && lay->fit == gfit) {
-				lsel.x -= lay->position_x;
-				lsel.y -= lay->position_y;
-				break;
-			}
-		}
-	}
-	/* Bounds guard: the layer-local selection must lie within gfit —
-	 * a selection made over a part of the canvas the active layer does
-	 * not cover would otherwise read outside its pixel buffer. */
-	if (lsel.x < 0 || lsel.y < 0 ||
-	    (guint)(lsel.x + lsel.w) > gfit->rx ||
-	    (guint)(lsel.y + lsel.h) > gfit->ry) {
-		siril_log_debug("populate_roi: selection out of bounds for the active layer, skipping\n");
+	/* gui.roi.selection is DISPLAY-space; gfit is the active layer.
+	 * Translate and CLIP to the layer (see the coordinate model in
+	 * image_format_flis.h): a selection partially overlapping a sparse
+	 * layer yields an ROI covering the overlapping part.
+	 * copy_roi_into_gfit derives the same clipped rect from the same
+	 * inputs, so the pair stays consistent. */
+	rectangle lsel;
+	if (!flis_display_to_active_layer_rect(&gui.roi.selection, &lsel, TRUE)) {
+		siril_log_debug("populate_roi: selection does not intersect the active layer, skipping\n");
 		return 1;
 	}
 	int retval = 0;

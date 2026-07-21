@@ -264,6 +264,13 @@ typedef struct {
 	 * widgets to current state).  No-op when the panel hasn't been
 	 * created yet — the real implementation lands in stage 4. */
 	void     (*flis_gui_update)(void);
+	/* Fired by uniq_set_active_layer after EVERY active-layer retarget
+	 * (user switch, load, worker hooks).  The implementation must be
+	 * fully asynchronous (queue an idle, no locks) — the caller may hold
+	 * the FLIS stack writer lock.  The idle reconciles all GUI state
+	 * that is keyed to the active layer: preview backup ownership, the
+	 * ROI pixel cache, mask-tab visibility, panel highlight, overlays. */
+	void     (*on_active_layer_changed)(void);
 
 	/* TRUE when the FLIS layers panel's selection is a layer GROUP row.
 	 * Generic image/mask workers refuse to run in that state: the

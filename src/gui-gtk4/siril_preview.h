@@ -34,6 +34,10 @@ void copy_gfit_to_backup();
 int copy_backup_to_gfit();
 fits *get_roi_backup();
 fits *get_preview_gfit_backup();
+/* Identity of the fits the live backup was taken from (NULL when no
+ * preview is active).  gfit != owner means an active-layer switch
+ * happened under the preview and the backup must be re-armed. */
+fits *get_preview_backup_owner(void);
 gboolean is_preview_active();
 void clear_backup();
 

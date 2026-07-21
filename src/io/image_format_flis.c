@@ -1308,10 +1308,17 @@ void flis_free_layers(single *uniq) {
 void uniq_set_active_layer(single *uniq, gint index) {
     flis_layer_t *layer = (flis_layer_t *)g_slist_nth_data(uniq->layers, index);
     g_return_if_fail(layer != NULL && layer->fit != NULL);
+    gboolean changed = (gfit != layer->fit);
     uniq->active_layer = index;
     uniq->fit   = layer->fit;
     uniq->chans = (layer->fit->naxes[2] > 0) ? (int)layer->fit->naxes[2] : 1;
     gfit        = layer->fit;
+    /* Single layer-change chokepoint: every GUI state keyed to the
+     * active layer is reconciled by ONE asynchronous callback, whatever
+     * path performed the switch (user, load, worker hook).  Async by
+     * contract — callers may hold the FLIS stack writer lock. */
+    if (changed)
+        gui_iface.on_active_layer_changed();
 }
 
 /* User-driven active-layer switch (panel row click, flis_active_layer
@@ -1332,6 +1339,55 @@ void uniq_set_active_layer(single *uniq, gint index) {
  * rules at the top of this file).  Hook-driven switches (merge, flatten,
  * remove) rely on copy_backup_to_gfit's dimension guard instead.
  * All gui_iface members are stubbed headless, so scripts are safe. */
+/* ---- Coordinate-model helpers (see the block comment in the header) -- */
+
+void flis_active_layer_offset(gint *ox, gint *oy) {
+    *ox = 0;
+    *oy = 0;
+    if (!is_current_image_flis()) return;
+    flis_layer_t *act = flis_active_layer();
+    if (act) {
+        *ox = act->position_x;
+        *oy = act->position_y;
+    }
+}
+
+gboolean flis_display_to_active_layer_pt(pointi disp, pointi *out) {
+    gint ox, oy;
+    flis_active_layer_offset(&ox, &oy);
+    pointi local = { disp.x - ox, disp.y - oy };
+    if (out) *out = local;
+    if (!gfit) return FALSE;
+    return local.x >= 0 && local.y >= 0
+        && local.x < (gint)gfit->rx && local.y < (gint)gfit->ry;
+}
+
+gboolean flis_display_to_active_layer_rect(const rectangle *disp,
+                                           rectangle *out,
+                                           gboolean partial) {
+    if (!disp || !gfit) return FALSE;
+    gint ox, oy;
+    flis_active_layer_offset(&ox, &oy);
+    rectangle local = { disp->x - ox, disp->y - oy, disp->w, disp->h };
+    if (partial) {
+        gint x0 = MAX(0, local.x);
+        gint y0 = MAX(0, local.y);
+        gint x1 = MIN((gint)gfit->rx, local.x + local.w);
+        gint y1 = MIN((gint)gfit->ry, local.y + local.h);
+        if (x0 >= x1 || y0 >= y1) return FALSE;
+        local.x = x0;
+        local.y = y0;
+        local.w = x1 - x0;
+        local.h = y1 - y0;
+        if (out) *out = local;
+        return TRUE;
+    }
+    if (out) *out = local;
+    return local.x >= 0 && local.y >= 0
+        && local.x + local.w <= (gint)gfit->rx
+        && local.y + local.h <= (gint)gfit->ry;
+}
+
 void flis_switch_active_layer_gui(gint index) {
     if (!com.uniq) return;
     gboolean preview_was_active = gui_iface.is_preview_active();

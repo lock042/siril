@@ -623,17 +623,8 @@ static void update_pointer_feedback(const drawingarea_ctx *c) {
 		 * and blank the value readouts when the cursor is off the
 		 * layer; indexing gfit with raw canvas coords was an
 		 * out-of-bounds read (SIGSEGV) over the uncovered canvas. */
-		pointi lz = zoomed;
-		gboolean on_layer = TRUE;
-		if (is_current_image_flis()) {
-			flis_layer_t *act_lay = flis_active_layer();
-			if (act_lay) {
-				lz.x = zoomed.x - act_lay->position_x;
-				lz.y = zoomed.y - act_lay->position_y;
-			}
-			on_layer = (lz.x >= 0 && lz.y >= 0
-			            && lz.x < (gint)gfit->rx && lz.y < (gint)gfit->ry);
-		}
+		pointi lz;
+		gboolean on_layer = flis_display_to_active_layer_pt(zoomed, &lz);
 		if (gui.cvport == RGB_VPORT && on_layer) {
 			static gchar buffer[256] = { 0 };
 			if (gfit->type == DATA_USHORT) {
