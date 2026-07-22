@@ -132,9 +132,8 @@ struct flis_panel {
 	GtkWidget *blend_dropdown;
 	GtkWidget *opacity_scale;
 	GtkWidget *opacity_spin;
+	GtkWidget *opacity_apply;
 	GtkAdjustment *opacity_adj;
-	float      opacity_drag_start;  /* property snapshot for undo */
-	gboolean   opacity_dragging;
 
 	/* Tint sub-frame */
 	GtkWidget *tint_frame;
@@ -835,8 +834,8 @@ static void on_name_focus_leave  (GtkEventControllerFocus *c, gpointer u);
 static void on_drag_toggled      (GtkToggleButton *b,  gpointer u);
 static void on_blend_changed     (GtkDropDown *dd, GParamSpec *p, gpointer u);
 static void on_opacity_changed   (GtkAdjustment *adj, gpointer u);
-static void on_opacity_drag_begin(GtkGestureDrag *g, gdouble x, gdouble y, gpointer u);
-static void on_opacity_drag_end  (GtkGestureDrag *g, gdouble dx, gdouble dy, gpointer u);
+static void on_opacity_apply_clicked(GtkButton *btn, gpointer u);
+static void opacity_edit_revert  (void);
 static void on_tint_check_toggled(GtkCheckButton *btn, gpointer u);
 static void on_tint_color_chosen (GtkColorDialogButton *btn, GParamSpec *p, gpointer u);
 
@@ -913,15 +912,18 @@ static void build_property(GtkWidget *box) {
 	gtk_widget_set_hexpand(g_panel->opacity_scale, TRUE);
 	gtk_scale_set_draw_value(GTK_SCALE(g_panel->opacity_scale), FALSE);
 	g_panel->opacity_spin  = gtk_spin_button_new(g_panel->opacity_adj, 1.0, 0);
+	g_panel->opacity_apply = gtk_button_new_from_icon_name("object-select-symbolic");
+	gtk_widget_set_tooltip_text(g_panel->opacity_apply,
+		_("Apply the opacity change (adds an undo step). "
+		  "Selecting another layer without applying reverts it."));
+	gtk_widget_set_sensitive(g_panel->opacity_apply, FALSE);
 	gtk_grid_attach(GTK_GRID(grid), g_panel->opacity_scale, 1, row, 1, 1);
 	gtk_grid_attach(GTK_GRID(grid), g_panel->opacity_spin,  2, row, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid), g_panel->opacity_apply, 3, row, 1, 1);
 	g_signal_connect(g_panel->opacity_adj, "value-changed",
 	                 G_CALLBACK(on_opacity_changed), NULL);
-	/* Drag-begin/end gestures on the scale for undo snapshot batching. */
-	GtkGesture *drag = gtk_gesture_drag_new();
-	gtk_widget_add_controller(g_panel->opacity_scale, GTK_EVENT_CONTROLLER(drag));
-	g_signal_connect(drag, "drag-begin", G_CALLBACK(on_opacity_drag_begin), NULL);
-	g_signal_connect(drag, "drag-end",   G_CALLBACK(on_opacity_drag_end),   NULL);
+	g_signal_connect(g_panel->opacity_apply, "clicked",
+	                 G_CALLBACK(on_opacity_apply_clicked), NULL);
 	row++;
 
 	/* Tint frame */
@@ -1550,6 +1552,9 @@ static void on_group_expander_clicked(GtkButton *btn, gpointer u) {
 static void on_selection_changed(GtkSelectionModel *sel, guint pos, guint nitems, gpointer u) {
 	(void)sel; (void)pos; (void)nitems; (void)u;
 	if (g_panel && g_panel->refreshing) return;
+	/* An un-applied opacity preview does not survive a selection
+	 * change — put the outgoing item's opacity back. */
+	opacity_edit_revert();
 	flis_layer_t *lay = current_selected_layer();
 	flis_group_t *grp = current_selected_group();
 	if (lay)      { g_panel->selected_kind = FLIS_ROW_KIND_LAYER; g_panel->selected_item_id = lay->item_id; }
@@ -1659,79 +1664,155 @@ void flis_drag_tick_refresh(void) {
 	g_idle_add_full(G_PRIORITY_DEFAULT_IDLE, drag_refresh_idle_cb, NULL, NULL);
 }
 
-static void on_opacity_changed(GtkAdjustment *adj, gpointer u) {
-	(void)u;
-	if (g_panel && g_panel->refreshing) return;
-	if (g_panel->selected_item_id == 0) return;
-	const gboolean is_group = (g_panel->selected_kind == FLIS_ROW_KIND_GROUP);
-	if (g_panel && g_panel->opacity_dragging) {
-		/* While dragging, update state live but don't push undo per
-		 * tick — the drag-end handler does that once.  The full
-		 * pipeline rebuild is coalesced (see flis_drag_tick_refresh). */
-		if (is_group) {
-			flis_group_t *grp = flis_group_get_by_id(g_panel->selected_item_id);
-			if (grp) grp->opacity = (gfloat)(gtk_adjustment_get_value(adj) / 100.0);
-		} else {
-			flis_layer_t *lay = flis_layer_get_by_id(g_panel->selected_item_id);
-			if (lay) lay->opacity = (gfloat)(gtk_adjustment_get_value(adj) / 100.0);
+/* Opacity edits are "live preview" only: slider / spin-button ticks
+ * write the property directly (plus the coalesced display refresh) and
+ * never touch the worker or the undo stack.  The Apply button next to
+ * the spin button commits the edit: it restores the pre-edit value and
+ * dispatches a single worker op, so the undo snapshot taken by
+ * dispatch_op records the true pre-edit state.  Selecting a different
+ * layer or group without applying reverts the preview.
+ *
+ * (Historical note: dispatching a worker op per adjustment tick tripped
+ * start_in_new_thread's busy guard — "The processing thread is busy" —
+ * which spammed the log and dropped the refused ops; a per-tick commit
+ * also produced one undo entry per tick.) */
+
+/* Un-applied edit; id == 0 means none pending. */
+static struct {
+	gint     id;
+	gboolean is_group;
+	gfloat   start;      /* property value before the edit, for undo/revert */
+} opacity_edit = { 0, FALSE, 0.0f };
+
+static void opacity_edit_clear(void) {
+	opacity_edit.id = 0;
+	if (g_panel && g_panel->opacity_apply)
+		gtk_widget_set_sensitive(g_panel->opacity_apply, FALSE);
+}
+
+/* Discard an un-applied edit, restoring the pre-edit value. */
+static void opacity_edit_revert(void) {
+	if (opacity_edit.id == 0) return;
+	gboolean changed = FALSE;
+	if (opacity_edit.is_group) {
+		flis_group_t *grp = flis_group_get_by_id(opacity_edit.id);
+		if (grp && grp->opacity != opacity_edit.start) {
+			grp->opacity = opacity_edit.start;
+			changed = TRUE;
 		}
-		gui_iface.flis_display_invalidate(FLIS_INV_LAYER_PROPS, g_panel->selected_item_id);
+	} else {
+		flis_layer_t *lay = flis_layer_get_by_id(opacity_edit.id);
+		if (lay && lay->opacity != opacity_edit.start) {
+			lay->opacity = opacity_edit.start;
+			changed = TRUE;
+		}
+	}
+	if (changed) {
+		gui_iface.flis_display_invalidate(FLIS_INV_LAYER_PROPS, opacity_edit.id);
 		flis_drag_tick_refresh();
+	}
+	opacity_edit_clear();
+}
+
+/* Commit payload captured at Apply-click time, so a subsequent
+ * selection change (which reverts the *pending* edit) cannot disturb an
+ * apply that is waiting out a busy worker. */
+struct opacity_apply {
+	gint     id;
+	gboolean is_group;
+	gfloat   start, final;
+};
+
+static gboolean opacity_apply_cb(gpointer p) {
+	struct opacity_apply *a = (struct opacity_apply *)p;
+	if (processing_is_job_active())
+		return G_SOURCE_CONTINUE;   /* worker busy: retry, don't drop */
+	/* Restore the pre-edit value so the worker-side undo snapshot
+	 * records it; the worker re-applies the final value under the
+	 * stack lock. */
+	if (a->is_group) {
+		flis_group_t *grp = flis_group_get_by_id(a->id);
+		if (!grp) goto DONE;
+		grp->opacity = a->start;
+	} else {
+		flis_layer_t *lay = flis_layer_get_by_id(a->id);
+		if (!lay) goto DONE;
+		lay->opacity = a->start;
+	}
+	struct op_payload *op = g_new0(struct op_payload, 1);
+	op->destroy_fn = op_payload_free;
+	op->target_id = a->id;
+	op->kind = a->is_group ? OP_GROUP_SET_OPACITY : OP_SET_OPACITY;
+	op->float_v = a->final;
+	dispatch_op(op,
+		a->is_group ? _("Group opacity") : _("Layer opacity"),
+		FLIS_INV_LAYER_PROPS);
+DONE:
+	g_free(a);
+	return G_SOURCE_REMOVE;
+}
+
+static void on_opacity_apply_clicked(GtkButton *btn, gpointer u) {
+	(void)btn; (void)u;
+	if (opacity_edit.id == 0) return;
+	gfloat final_v;
+	if (opacity_edit.is_group) {
+		flis_group_t *grp = flis_group_get_by_id(opacity_edit.id);
+		if (!grp) { opacity_edit_clear(); return; }
+		final_v = grp->opacity;
+	} else {
+		flis_layer_t *lay = flis_layer_get_by_id(opacity_edit.id);
+		if (!lay) { opacity_edit_clear(); return; }
+		final_v = lay->opacity;
+	}
+	if (final_v == opacity_edit.start) {
+		opacity_edit_clear();
 		return;
 	}
-	struct op_payload *op = g_new0(struct op_payload, 1);
-	op->destroy_fn = op_payload_free;
-	op->target_id = g_panel->selected_item_id;
-	op->kind = is_group ? OP_GROUP_SET_OPACITY : OP_SET_OPACITY;
-	op->float_v = (gfloat)(gtk_adjustment_get_value(adj) / 100.0);
-	dispatch_op(op,
-		is_group ? _("Group opacity") : _("Layer opacity"),
-		FLIS_INV_LAYER_PROPS);
+	struct opacity_apply *a = g_new0(struct opacity_apply, 1);
+	a->id       = opacity_edit.id;
+	a->is_group = opacity_edit.is_group;
+	a->start    = opacity_edit.start;
+	a->final    = final_v;
+	opacity_edit_clear();
+	/* Immediate first attempt; falls back to polling only if the
+	 * worker is busy right now. */
+	if (opacity_apply_cb(a) == G_SOURCE_CONTINUE)
+		g_timeout_add(100, opacity_apply_cb, a);
 }
 
-static void on_opacity_drag_begin(GtkGestureDrag *g, gdouble x, gdouble y, gpointer u) {
-	(void)g; (void)x; (void)y; (void)u;
-	if (!g_panel || g_panel->selected_item_id == 0) return;
-	if (g_panel->selected_kind == FLIS_ROW_KIND_GROUP) {
-		flis_group_t *grp = flis_group_get_by_id(g_panel->selected_item_id);
-		if (!grp) return;
-		g_panel->opacity_drag_start = grp->opacity;
-	} else {
-		flis_layer_t *lay = flis_layer_get_by_id(g_panel->selected_item_id);
-		if (!lay) return;
-		g_panel->opacity_drag_start = lay->opacity;
-	}
-	g_panel->opacity_dragging = TRUE;
-}
-
-static void on_opacity_drag_end(GtkGestureDrag *g, gdouble dx, gdouble dy, gpointer u) {
-	(void)g; (void)dx; (void)dy; (void)u;
-	if (!g_panel) return;
-	g_panel->opacity_dragging = FALSE;
+static void on_opacity_changed(GtkAdjustment *adj, gpointer u) {
+	(void)u;
+	if (!g_panel || g_panel->refreshing) return;
 	if (g_panel->selected_item_id == 0) return;
 	const gboolean is_group = (g_panel->selected_kind == FLIS_ROW_KIND_GROUP);
-	gfloat final_v = 0;
+	const gint id = g_panel->selected_item_id;
+	const gfloat v = (gfloat)(gtk_adjustment_get_value(adj) / 100.0);
+
+	/* Shouldn't happen (selection change reverts first), but never let
+	 * an edit of one item adopt another item's start value. */
+	if (opacity_edit.id != 0 &&
+	    (opacity_edit.id != id || opacity_edit.is_group != is_group))
+		opacity_edit_revert();
+
 	if (is_group) {
-		flis_group_t *grp = flis_group_get_by_id(g_panel->selected_item_id);
+		flis_group_t *grp = flis_group_get_by_id(id);
 		if (!grp) return;
-		final_v = grp->opacity;
-		if (final_v == g_panel->opacity_drag_start) return;
-		grp->opacity = g_panel->opacity_drag_start;
+		if (opacity_edit.id == 0)
+			opacity_edit.start = grp->opacity;
+		grp->opacity = v;
 	} else {
-		flis_layer_t *lay = flis_layer_get_by_id(g_panel->selected_item_id);
+		flis_layer_t *lay = flis_layer_get_by_id(id);
 		if (!lay) return;
-		final_v = lay->opacity;
-		if (final_v == g_panel->opacity_drag_start) return;
-		lay->opacity = g_panel->opacity_drag_start;
+		if (opacity_edit.id == 0)
+			opacity_edit.start = lay->opacity;
+		lay->opacity = v;
 	}
-	struct op_payload *op = g_new0(struct op_payload, 1);
-	op->destroy_fn = op_payload_free;
-	op->target_id = g_panel->selected_item_id;
-	op->kind = is_group ? OP_GROUP_SET_OPACITY : OP_SET_OPACITY;
-	op->float_v = final_v;
-	dispatch_op(op,
-		is_group ? _("Group opacity (drag)") : _("Layer opacity (drag)"),
-		FLIS_INV_LAYER_PROPS);
+	opacity_edit.id = id;
+	opacity_edit.is_group = is_group;
+	gtk_widget_set_sensitive(g_panel->opacity_apply, v != opacity_edit.start);
+	gui_iface.flis_display_invalidate(FLIS_INV_LAYER_PROPS, id);
+	flis_drag_tick_refresh();
 }
 
 static void on_tint_check_toggled(GtkCheckButton *btn, gpointer u) {
