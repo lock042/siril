@@ -219,6 +219,10 @@ typedef struct {
 	void     (*update_status_bar)(void);
 	/* Sync menu/toolbar enable-state to current application state. */
 	void     (*update_menu_state)(void);
+	/* Pop down every open autohide popover in the main window; returns TRUE
+	 * if any was dismissed.  Used by the macOS outside-click dismissal path
+	 * (siril_macos_fix_popover_autohide).  May be NULL in headless builds. */
+	gboolean (*dismiss_autohide_popovers)(void);
 	/* Suppress (TRUE) or restore (FALSE) drawarea redraws during processing.
 	 * When suppressing, also disables the display-mode menu button. */
 	void     (*set_suppress_redraws)(gboolean suppress);

@@ -287,7 +287,6 @@ void load_ui_files() {
 	i = 0;
 	while (*ui_files_with_primary_accelerator[i]) {
 		retval = builder_add_from_resource_with_replace(gui.builder, ui_files_with_primary_accelerator[i], &err);
-		retval = gtk_builder_add_from_resource(gui.builder, ui_files[i], &err);
 		if (!retval) {
 			g_error(_("%s was not found or contains errors, "
 			"cannot render GUI:\n%s\n Exiting.\n"), ui_files[i], err->message);
@@ -405,6 +404,10 @@ static void siril_app_startup(GApplication *application) {
 	 * performKeyEquivalent: to keyDown:.  Re-install it so Cmd+key shortcuts
 	 * reach GTK4's shortcut controller without requiring a native menu bar. */
 	siril_macos_fix_keyboard_shortcuts();
+	/* GTK4's macOS backend leaves autohide popovers stuck open once their
+	 * outside-click grab is lost; a local NSEvent monitor restores click-to-
+	 * dismiss (see siril_macos_fix_popover_autohide). */
+	siril_macos_fix_popover_autohide();
 #endif
 }
 
