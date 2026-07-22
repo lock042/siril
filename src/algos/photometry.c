@@ -44,11 +44,11 @@
 
 #define MIN_SKY    5	// min number of backgroun pixels for valid photometry
 
-static double getMagnitude(double intensity) {
+double getMagnitude(double intensity) {
 	return -2.5 * log10(intensity);
 }
 
-static double getMagErr(double intensity, double area, int nsky, double skysig, double cvf, double *SNR) {
+double getMagErr(double intensity, double area, int nsky, double skysig, double cvf, double *SNR) {
 	double skyvar = skysig * skysig;/* variance of the sky brightness */
 	double sigsq = skyvar / nsky;	/* square of the standard error of the mean sky brightness */
 	double err1 = area * skyvar;

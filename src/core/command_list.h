@@ -13,6 +13,7 @@ static command commands[] = {
 	/* name, nbarg, usage, function pointer, description, scriptable, requirements */
 	{"addmax", 1, "addmax filename [-mask]", process_addmax, STR_ADDMAX, FALSE, REQ_CMD_SINGLE_IMAGE},
 	{"asinh", 1, "asinh [-human] stretch { [offset] [-clipmode=] } [-mask]", process_asinh, STR_ASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"atrous", 2, "atrous nbr_layers type [c1 c2 c3 ...] [-anscombe] [-denoise] [-bishrink|-threshold] [-soft|-hard] [-perband] [-k=value] [-f1=value ... -f6=value]", process_atrous, STR_ATROUS, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"autoghs", 2, "autoghs [-linked] shadowsclip stretchamount [-b=] [-hp=] [-lp=] [-clipmode=] [-mask]", process_autoghs, STR_AUTOGHS, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"autostretch", 0, "autostretch [-linked] [shadowsclip [targetbg]] [-mask]", process_autostretch, STR_AUTOSTRETCH, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 
@@ -43,6 +44,7 @@ static command commands[] = {
 
 	{"ddp", 3, "ddp level coef sigma [-mask]", process_ddp, STR_DDP, FALSE, REQ_CMD_SINGLE_IMAGE},
 	{"denoise", 0, "denoise [-nocosmetic] [-mod=m] [ -vst | -da3d | -sos=n [-rho=r] ] [-indep] [-mask]", process_denoise, STR_DENOISE, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"detect_streaks", 0, "detect_streaks [-out=csv_file] [length]", process_detect_streaks, STR_DETECT_STREAKS, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 #ifdef _WIN32
 	{"dir", 0, "dir", process_ls, STR_LS, FALSE, REQ_CMD_NONE},
 #endif
@@ -203,6 +205,7 @@ static command commands[] = {
 						"seqapplyreg sequencename ... [-interp=] [-noclamp]\n"
 						"seqapplyreg sequencename ... [-drizzle [-pixfrac=] [-kernel=] [-flat=]]\n"
 						"seqapplyreg sequencename ... [-filter-fwhm=value[%|k]] [-filter-wfwhm=value[%|k]] [-filter-round=value[%|k]] [-filter-bkg=value[%|k]] [-filter-nbstars=value[%|k]] [-filter-quality=value[%|k]] [-filter-incl[uded]]", process_seq_applyreg, STR_SEQAPPLYREG, TRUE, REQ_CMD_NO_THREAD},
+	{"seqatrous", 3, "seqatrous sequencename nbr_layers type [c1 c2 c3 ...] [-anscombe] [-denoise] [-bishrink|-threshold] [-soft|-hard] [-perband] [-k=value] [-f1=value ... -f6=value] [-prefix=]", process_seqatrous, STR_SEQATROUS CMD_CAT(ATROUS) STR_ATROUS, TRUE, REQ_CMD_NONE},
 	{"seqccm", 2, "seqccm sequencename [-prefix=]", process_ccm, STR_SEQCCM CMD_CAT(CCM) STR_CCM, TRUE, REQ_CMD_NONE},
 	{"seqclean", 1, "seqclean sequencename [-reg] [-stat] [-sel]", process_seq_clean, STR_SEQCLEAN, TRUE, REQ_CMD_NONE},
 	{"seqcosme", 2, "seqcosme sequencename [filename].lst [-prefix=]", process_seq_cosme, STR_SEQCOSME CMD_CAT(COSME) STR_COSME, TRUE, REQ_CMD_NONE},
@@ -264,6 +267,7 @@ static command commands[] = {
 	{"spcc_list", 1, "spcc_list { oscsensor | monosensor | redfilter | greenfilter | bluefilter | oscfilter | osclpf | whiteref }", process_spcc_list, STR_SPCC_LIST, TRUE, REQ_CMD_NONE },
 	{"split", 3, "split file1 file2 file3 [-hsl | -hsv | -lab]", process_split, STR_SPLIT, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB | REQ_CMD_NO_THREAD},
 	{"split_cfa", 0, "split_cfa", process_split_cfa, STR_SPLIT_CFA, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_CFA},
+	{"ssr", 0, "ssr", process_ssr, STR_SSR, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"stack", 1, "stack seqfilename\n"
 			"stack seqfilename { sum | min | max } [-output_norm] [-out=filename] [-maximize] [-upscale] [-32b]\n"
 			"stack seqfilename { med | median } [-nonorm, -norm=] [-fastnorm] [-rgb_equal] [-output_norm] [-out=filename] [-32b]\n"
@@ -300,10 +304,10 @@ static command commands[] = {
 	{"visu", 2, "visu low high", process_visu, STR_VISU, FALSE, REQ_CMD_SINGLE_IMAGE},
 
 	/* wavelet transform in nbr_plan plans */
-	{"wavelet", 1, "wavelet nbr_layers type", process_wavelet, STR_WAVELET, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"wavelet", 1, "wavelet nbr_layers type [-anscombe]", process_wavelet, STR_WAVELET, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"wiener", 0, "wiener [-loadpsf=] [-alpha=] [-mask]", process_wiener, STR_WIENER, TRUE, REQ_CMD_SINGLE_IMAGE},
 	/* reconstruct from wavelet transform and weighs plans with c1, c2, c3... */
-	{"wrecons", 2, "wrecons c1 c2 c3 ...", process_wrecons, STR_WRECONS, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"wrecons", 2, "wrecons c1 c2 c3 ... [-denoise] [-bishrink|-threshold] [-soft|-hard] [-perband] [-anscombe] [-k=value] [-f1=value ... -f6=value]", process_wrecons, STR_WRECONS, TRUE, REQ_CMD_SINGLE_IMAGE},
 	EXTRA_COMMANDS
 
 	{"",0,"",0, STR_NONE, FALSE, REQ_CMD_NONE}

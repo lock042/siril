@@ -483,12 +483,15 @@ endif
 libgit2_dep = no_dep
 if enable_libgit2
   libgit2_dep = dependency('libgit2', required : true)
-  if libgit2_dep.version().version_compare('>=1.8.1') and libgit2_dep.version().version_compare('<1.9.1')
+  if libgit2_dep.version().version_compare('>=1.8.1') and libgit2_dep.version().version_compare('<1.9.3')
     libgit2_warning='''
 
-        libgit2 with a version between 1.8.0 and 1.9.0 is known to have serious issues.
+        libgit2 with a version between 1.8.0 and 1.9.2 is known to have issues that
+        have previously caused problems with synchronising local repositories with gitlab.
+        In practice this has been resolved by changes made by gitlab to their HTTP responses,
+        but for confidence that the issue cannot recur you should build against libgit2
+        1.9.3 or later.
         https://github.com/libgit2/libgit2/issues/7090
-        Please update to 1.9.1 or later.
     '''
     warning(libgit2_warning)
     warnings += libgit2_warning
