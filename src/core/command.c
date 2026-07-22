@@ -3072,17 +3072,71 @@ int process_cd(int nb) {
 
 int process_wrecons(int nb) {
 
-	float coef[7];
+	float coef[7] = { 0 };
 
 	int nb_chan = gfit->naxes[2];
 
 	g_assert(nb_chan == 1 || nb_chan == 3);
 
-	for (int i = 0; i < nb - 1; ++i) {
+	struct denoise_params denoise;
+	denoise_params_init(&denoise);
+
+	int ncoef = 0;
+	int i = 1;
+	/* positional per-layer coefficients (numbers, possibly negative) */
+	for (; i < nb && word[i]; i++) {
+		if (word[i][0] == '-' && word[i][1] != '\0'
+				&& !g_ascii_isdigit((guchar) word[i][1]) && word[i][1] != '.')
+			break; /* reached the optional denoising flags */
+		if (ncoef >= 7) {
+			siril_log_message(_("Too many coefficients (max 7).\n"));
+			return CMD_ARG_ERROR;
+		}
 		gchar *end;
-		coef[i] = g_ascii_strtod(word[i + 1], &end);
-		if (end == word[i + 1]) {
+		coef[ncoef] = g_ascii_strtod(word[i], &end);
+		if (end == word[i]) {
 			siril_log_message(_("Wrong parameters.\n"));
+			return CMD_ARG_ERROR;
+		}
+		ncoef++;
+	}
+	/* optional denoising flags */
+	for (; i < nb && word[i]; i++) {
+		char *arg = word[i], *end;
+		if (!strcmp(arg, "-denoise"))
+			denoise.enabled = TRUE;
+		else if (!strcmp(arg, "-bishrink"))
+			denoise.method = WD_BISHRINK;
+		else if (!strcmp(arg, "-threshold"))
+			denoise.method = WD_THRESHOLD;
+		else if (!strcmp(arg, "-soft"))
+			denoise.soft = TRUE;
+		else if (!strcmp(arg, "-hard"))
+			denoise.soft = FALSE;
+		else if (!strcmp(arg, "-perband"))
+			denoise.sigma_source = WD_SIGMA_PER_BAND;
+		else if (!strcmp(arg, "-anscombe"))
+			denoise.anscombe = TRUE;
+		else if (g_str_has_prefix(arg, "-k=")) {
+			denoise.k = g_ascii_strtod(arg + 3, &end);
+			if (end == arg + 3) {
+				siril_log_message(_("Wrong parameters.\n"));
+				return CMD_ARG_ERROR;
+			}
+		} else if (arg[0] == '-' && arg[1] == 'f' && g_ascii_isdigit((guchar) arg[2])
+				&& arg[3] == '=') {
+			int idx = arg[2] - '1';
+			if (idx < 0 || idx > 5) {
+				siril_log_message(_("Wrong parameters.\n"));
+				return CMD_ARG_ERROR;
+			}
+			denoise.f[idx] = g_ascii_strtod(arg + 4, &end);
+			if (end == arg + 4) {
+				siril_log_message(_("Wrong parameters.\n"));
+				return CMD_ARG_ERROR;
+			}
+		} else {
+			siril_log_message(_("Unknown parameter %s.\n"), arg);
 			return CMD_ARG_ERROR;
 		}
 	}
@@ -3090,8 +3144,9 @@ int process_wrecons(int nb) {
 	struct wrecons_data *wrecons_args = calloc(1, sizeof(struct wrecons_data));
 	wrecons_args->destroy_fn = free_wrecons_data;
 	wrecons_args->nb_chan = nb_chan;
-	for (int i = 0; i < nb - 1; i++)
-		wrecons_args->coef[i] = coef[i];
+	for (int j = 0; j < 7; j++)
+		wrecons_args->coef[j] = coef[j];
+	wrecons_args->denoise = denoise;
 
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
@@ -3106,6 +3161,196 @@ int process_wrecons(int nb) {
 		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
 	}
+	return CMD_OK;
+}
+
+/* Shared option parsing for the atrous / seqatrous commands. Starting at word
+ * index `start`, reads optional positional per-layer reconstruction coefficients
+ * (numbers, possibly negative; default 1.0 = neutral) followed by the denoising
+ * flags. When allow_prefix is set, -prefix= is accepted and written to *prefix
+ * (freeing the previous value). Returns CMD_OK or an error code. */
+static int parse_atrous_options(int start, int nb, float coef[7],
+		gboolean *anscombe, struct denoise_params *denoise,
+		gboolean allow_prefix, char **prefix) {
+	int i = start;
+	int ncoef = 0;
+	/* positional per-layer coefficients (numbers, possibly negative) */
+	for (; i < nb && word[i]; i++) {
+		if (word[i][0] == '-' && word[i][1] != '\0'
+				&& !g_ascii_isdigit((guchar) word[i][1]) && word[i][1] != '.')
+			break; /* reached the optional flags */
+		if (ncoef >= 7) {
+			siril_log_message(_("Too many coefficients (max 7).\n"));
+			return CMD_ARG_ERROR;
+		}
+		gchar *end;
+		coef[ncoef] = g_ascii_strtod(word[i], &end);
+		if (end == word[i]) {
+			siril_log_message(_("Wrong parameters.\n"));
+			return CMD_ARG_ERROR;
+		}
+		ncoef++;
+	}
+	/* optional flags */
+	for (; i < nb && word[i]; i++) {
+		char *arg = word[i], *end;
+		if (!strcmp(arg, "-denoise"))
+			denoise->enabled = TRUE;
+		else if (!strcmp(arg, "-bishrink"))
+			denoise->method = WD_BISHRINK;
+		else if (!strcmp(arg, "-threshold"))
+			denoise->method = WD_THRESHOLD;
+		else if (!strcmp(arg, "-soft"))
+			denoise->soft = TRUE;
+		else if (!strcmp(arg, "-hard"))
+			denoise->soft = FALSE;
+		else if (!strcmp(arg, "-perband"))
+			denoise->sigma_source = WD_SIGMA_PER_BAND;
+		else if (!strcmp(arg, "-anscombe"))
+			*anscombe = TRUE;
+		else if (g_str_has_prefix(arg, "-k=")) {
+			denoise->k = g_ascii_strtod(arg + 3, &end);
+			if (end == arg + 3) {
+				siril_log_message(_("Wrong parameters.\n"));
+				return CMD_ARG_ERROR;
+			}
+		} else if (arg[0] == '-' && arg[1] == 'f' && g_ascii_isdigit((guchar) arg[2])
+				&& arg[3] == '=') {
+			int idx = arg[2] - '1';
+			if (idx < 0 || idx > 5) {
+				siril_log_message(_("Wrong parameters.\n"));
+				return CMD_ARG_ERROR;
+			}
+			denoise->f[idx] = g_ascii_strtod(arg + 4, &end);
+			if (end == arg + 4) {
+				siril_log_message(_("Wrong parameters.\n"));
+				return CMD_ARG_ERROR;
+			}
+		} else if (allow_prefix && g_str_has_prefix(arg, "-prefix=")) {
+			char *value = arg + 8;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s.\n"), arg);
+				return CMD_ARG_ERROR;
+			}
+			free(*prefix);
+			*prefix = strdup(value);
+		} else {
+			siril_log_message(_("Unknown parameter %s.\n"), arg);
+			return CMD_ARG_ERROR;
+		}
+	}
+	/* the reconstruction must invert the same domain the decomposition used */
+	denoise->anscombe = *anscombe;
+	return CMD_OK;
+}
+
+int process_atrous(int nb) {
+	gchar *end1, *end2;
+	int nbr_plan = g_ascii_strtoull(word[1], &end1, 10);
+	int type = g_ascii_strtoull(word[2], &end2, 10);
+
+	if (end2 == word[2] || (type != TO_PAVE_LINEAR && type != TO_PAVE_BSPLINE)) {
+		siril_log_message(_("Wavelet: type must be %d or %d\n"), TO_PAVE_LINEAR, TO_PAVE_BSPLINE);
+		return CMD_ARG_ERROR;
+	}
+	int mins = min(gfit->rx, gfit->ry);
+	int maxplan = log(mins) / log(2) - 2;
+	if (end1 == word[1] || nbr_plan < 2 || nbr_plan > maxplan) {
+		siril_log_message(_("Wavelet: number of plans must be between 2 and %d for this image size\n"),
+				maxplan);
+		return CMD_ARG_ERROR;
+	}
+
+	image_cfa_warning_check();
+
+	struct atrous_data *args = calloc(1, sizeof(struct atrous_data));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->destroy_fn = free_atrous_data;
+	args->fit = gfit;
+	args->nbr_plan = nbr_plan;
+	args->type = type;
+	for (int i = 0; i < 7; i++)
+		args->coef[i] = 1.f;
+	denoise_params_init(&args->denoise);
+
+	int ret = parse_atrous_options(3, nb, args->coef, &args->anscombe,
+			&args->denoise, FALSE, NULL);
+	if (ret != CMD_OK) {
+		free_atrous_data(args);
+		return ret;
+	}
+
+	struct generic_img_args *gargs = calloc(1, sizeof(struct generic_img_args));
+	gargs->fit = gfit;
+	gargs->image_hook = atrous_image_hook;
+	gargs->log_hook = atrous_log_hook;
+	gargs->description = _("Wavelet transform");
+	gargs->verbose = TRUE;
+	gargs->command = TRUE;
+	gargs->command_updates_gfit = TRUE;
+	gargs->user = args;
+	if (!start_in_new_thread(generic_image_worker, gargs)) {
+		free_generic_img_args(gargs); /* also frees args via its destructor */
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK;
+}
+
+int process_seqatrous(int nb) {
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq)
+		return CMD_SEQUENCE_NOT_FOUND;
+
+	gchar *end1, *end2;
+	int nbr_plan = g_ascii_strtoull(word[2], &end1, 10);
+	int type = g_ascii_strtoull(word[3], &end2, 10);
+
+	if (end2 == word[3] || (type != TO_PAVE_LINEAR && type != TO_PAVE_BSPLINE)) {
+		siril_log_message(_("Wavelet: type must be %d or %d\n"), TO_PAVE_LINEAR, TO_PAVE_BSPLINE);
+		if (!check_seq_is_comseq(seq))
+			free_sequence(seq, TRUE);
+		return CMD_ARG_ERROR;
+	}
+	int mins = min(seq->rx, seq->ry);
+	int maxplan = log(mins) / log(2) - 2;
+	if (end1 == word[2] || nbr_plan < 2 || nbr_plan > maxplan) {
+		siril_log_message(_("Wavelet: number of plans must be between 2 and %d for this image size\n"),
+				maxplan);
+		if (!check_seq_is_comseq(seq))
+			free_sequence(seq, TRUE);
+		return CMD_ARG_ERROR;
+	}
+
+	struct atrous_data *args = calloc(1, sizeof(struct atrous_data));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		if (!check_seq_is_comseq(seq))
+			free_sequence(seq, TRUE);
+		return CMD_ALLOC_ERROR;
+	}
+	args->destroy_fn = free_atrous_data;
+	args->seq = seq;
+	args->nbr_plan = nbr_plan;
+	args->type = type;
+	args->seqEntry = strdup("wv_");
+	for (int i = 0; i < 7; i++)
+		args->coef[i] = 1.f;
+	denoise_params_init(&args->denoise);
+
+	int ret = parse_atrous_options(4, nb, args->coef, &args->anscombe,
+			&args->denoise, TRUE, &args->seqEntry);
+	if (ret != CMD_OK) {
+		free_atrous_data(args); /* frees seqEntry */
+		if (!check_seq_is_comseq(seq))
+			free_sequence(seq, TRUE);
+		return ret;
+	}
+
+	sequence_cfa_warning_check(seq);
+	apply_atrous_to_sequence(args);
 	return CMD_OK;
 }
 
@@ -3940,6 +4185,15 @@ int process_wavelet(int nb) {
 	}
 	args->Nbr_Plan = Nbr_Plan;
 	args->Type_Transform = Type_Transform;
+	for (int i = 3; i < nb && word[i]; i++) {
+		if (!strcmp(word[i], "-anscombe"))
+			args->anscombe = TRUE;
+		else {
+			siril_log_message(_("Unknown parameter %s.\n"), word[i]);
+			free(args);
+			return CMD_ARG_ERROR;
+		}
+	}
 
 	if (!start_in_new_thread(wavelet_transform_worker, args)) {
 		free(args);

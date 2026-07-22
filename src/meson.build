@@ -62,6 +62,7 @@ src_files = [
   'algos/statistics_float.c',
   'algos/streaks.c',
   'algos/transform.c',
+  'algos/wavelet_denoise.c',
   'algos/search_objects.c',
   'algos/lcms_acceleration/fast_16_tethra.c',
   'algos/lcms_acceleration/fast_8_curves.c',
