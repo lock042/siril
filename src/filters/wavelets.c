@@ -19,6 +19,8 @@
  */
 
 #include <string.h>
+#include <stdlib.h>
+#include <glib/gstdio.h>
 
 #include "core/siril.h"
 #include "core/siril_log.h"
@@ -26,6 +28,7 @@
 #include "core/gui_iface.h"
 #include "io/image_format_fits.h"
 #include "algos/Def_Wavelet.h"
+#include "algos/wavelet_denoise.h"
 #include "wavelets.h"
 
 /************* wavelet transform worker (wavelet command and GUI compute path) *************/
@@ -35,6 +38,7 @@ gpointer wavelet_transform_worker(gpointer p) {
 	const char *File_Name_Transform[3] = { "r_rawdata.wave", "g_rawdata.wave",
 			"b_rawdata.wave" };
 	const char *tmpdir = g_get_tmp_dir();
+	int retval = 0;
 	g_rw_lock_reader_lock(&gfit->rwlock);
 	int nb_chan = gfit->naxes[2];
 
@@ -42,36 +46,41 @@ gpointer wavelet_transform_worker(gpointer p) {
 		float *Imag = f_vector_alloc(gfit->rx * gfit->ry);
 		if (!Imag) {
 			PRINT_ALLOC_ERR;
-			free(args);
-			g_rw_lock_reader_unlock(&gfit->rwlock);
-			siril_add_idle(end_generic, NULL);
-			return GINT_TO_POINTER(1);
+			retval = 1;
+		} else {
+			for (int i = 0; i < nb_chan; i++) {
+				gchar *dir = g_build_filename(tmpdir, File_Name_Transform[i], NULL);
+				wavelet_transform_file(Imag, gfit->ry, gfit->rx, dir,
+						args->Type_Transform, args->Nbr_Plan, gfit->pdata[i], args->anscombe);
+				g_free(dir);
+			}
+			free(Imag);
 		}
-		for (int i = 0; i < nb_chan; i++) {
-			gchar *dir = g_build_filename(tmpdir, File_Name_Transform[i], NULL);
-			wavelet_transform_file(Imag, gfit->ry, gfit->rx, dir,
-					args->Type_Transform, args->Nbr_Plan, gfit->pdata[i]);
-			g_free(dir);
-		}
-		free(Imag);
 	} else if (gfit->type == DATA_FLOAT) {
 		for (int i = 0; i < nb_chan; i++) {
 			gchar *dir = g_build_filename(tmpdir, File_Name_Transform[i], NULL);
 			wavelet_transform_file_float(gfit->fpdata[i], gfit->ry, gfit->rx, dir,
-					args->Type_Transform, args->Nbr_Plan);
+					args->Type_Transform, args->Nbr_Plan, args->anscombe);
 			g_free(dir);
 		}
 	} else {
-		free(args);
-		g_rw_lock_reader_unlock(&gfit->rwlock);
-		siril_add_idle(end_generic, NULL);
-		return GINT_TO_POINTER(1);
+		retval = 1;
 	}
-	siril_log_message(_("Wavelet decomposition computed (%d plans)\n"), args->Nbr_Plan);
-	free(args);
+	if (!retval)
+		siril_log_message(_("Wavelet decomposition computed (%d plans)\n"), args->Nbr_Plan);
 	g_rw_lock_reader_unlock(&gfit->rwlock);
-	siril_add_idle(end_generic, NULL);
-	return GINT_TO_POINTER(0);
+
+	/* The .wave files are now written and gfit is unlocked. Hand off to the
+	 * caller's completion idle (the GUI re-enables its widgets there); it owns
+	 * args. Without one (command line, or on failure) free args and run the
+	 * generic idle. */
+	if (!retval && args->idle) {
+		siril_add_idle(args->idle, args);
+	} else {
+		free(args);
+		siril_add_idle(end_generic, NULL);
+	}
+	return GINT_TO_POINTER(retval);
 }
 
 /************* wrecons hook (shared with GUI OK path and process_wrecons) *************/
@@ -87,11 +96,16 @@ int wrecons_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 	for (int i = 0; i < args->nb_chan; i++) {
 		gchar *dir = g_build_filename(tmpdir, File_Name_Transform[i], NULL);
 		int ret;
-		if (fit->type == DATA_USHORT)
-			ret = wavelet_reconstruct_file(dir, args->coef, fit->pdata[i]);
-		else if (fit->type == DATA_FLOAT)
-			ret = wavelet_reconstruct_file_float(dir, args->coef, fit->fpdata[i]);
-		else {
+		if (args->for_roi) {
+			/* Reconstruct only the selection: reads just the ROI rows of the
+			 * transform and denoises/reconstructs that small window. */
+			ret = wavelet_reconstruct_file_roi(dir, args->coef, &args->denoise,
+					args->roi_x, args->roi_y, fit->rx, fit->ry, i, fit);
+		} else if (fit->type == DATA_USHORT) {
+			ret = wavelet_reconstruct_file(dir, args->coef, &args->denoise, fit->pdata[i]);
+		} else if (fit->type == DATA_FLOAT) {
+			ret = wavelet_reconstruct_file_float(dir, args->coef, &args->denoise, fit->fpdata[i]);
+		} else {
 			g_free(dir);
 			return 1;
 		}
@@ -103,6 +117,121 @@ int wrecons_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 
 gchar *wrecons_log_hook(gpointer p, log_hook_detail detail) {
 	return g_strdup(_("Wavelet reconstruction"));
+}
+
+/************* atrous: one-shot decompose + denoise + reconstruct *************/
+
+void free_atrous_data(void *p) {
+	struct atrous_data *args = (struct atrous_data *)p;
+	if (!args)
+		return;
+	free(args->seqEntry);
+	free(args);
+}
+
+int atrous_transform_image(fits *fit, const struct atrous_data *args, int id) {
+	const char chan_id[3] = { 'r', 'g', 'b' };
+	const char *tmpdir = g_get_tmp_dir();
+	int nb_chan = fit->naxes[2];
+	int retval = 0;
+	/* per-layer weights are read (not written) by the reconstruction, but the
+	 * API takes a non-const pointer, so work from a local copy */
+	float coef[7];
+	memcpy(coef, args->coef, sizeof coef);
+
+	float *Imag = NULL;
+	if (fit->type == DATA_USHORT) {
+		Imag = f_vector_alloc(fit->rx * fit->ry);
+		if (!Imag) {
+			PRINT_ALLOC_ERR;
+			return 1;
+		}
+	} else if (fit->type != DATA_FLOAT) {
+		return 1;
+	}
+
+	for (int i = 0; i < nb_chan; i++) {
+		/* a private transform file per (id, channel): the decomposition is only
+		 * needed for the reconstruction that immediately follows, so it is
+		 * removed afterwards rather than left to accumulate over a sequence */
+		gchar *name = g_strdup_printf("atrous_%d_%c.wave", id, chan_id[i]);
+		gchar *dir = g_build_filename(tmpdir, name, NULL);
+		g_free(name);
+		if (fit->type == DATA_USHORT) {
+			if (wavelet_transform_file(Imag, fit->ry, fit->rx, dir, args->type,
+					args->nbr_plan, fit->pdata[i], args->anscombe))
+				retval = 1;
+			else
+				retval = wavelet_reconstruct_file(dir, coef, &args->denoise, fit->pdata[i]);
+		} else {
+			if (wavelet_transform_file_float(fit->fpdata[i], fit->ry, fit->rx, dir,
+					args->type, args->nbr_plan, args->anscombe))
+				retval = 1;
+			else
+				retval = wavelet_reconstruct_file_float(dir, coef, &args->denoise, fit->fpdata[i]);
+		}
+		g_unlink(dir);
+		g_free(dir);
+		if (retval)
+			break;
+	}
+	free(Imag);
+	return retval;
+}
+
+int atrous_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
+	struct atrous_data *args = (struct atrous_data *)gargs->user;
+	return atrous_transform_image(fit, args, 0);
+}
+
+gchar *atrous_log_hook(gpointer p, log_hook_detail detail) {
+	struct atrous_data *args = (struct atrous_data *)p;
+	if (args->denoise.enabled)
+		return g_strdup_printf(_("À trous wavelet transform (%d layers, denoise k=%.2f)"),
+				args->nbr_plan, args->denoise.k);
+	return g_strdup_printf(_("À trous wavelet transform (%d layers)"), args->nbr_plan);
+}
+
+/* Sequence hook: decompose + reconstruct one frame in place. The output index is
+ * used as the transform-file id so nothing collides if this is ever run with more
+ * than one image in parallel. */
+static int atrous_seq_image_hook(struct generic_seq_args *args, int out_index,
+		int in_index, fits *fit, rectangle *_, int threads) {
+	struct atrous_data *a_args = (struct atrous_data *)args->user;
+	return atrous_transform_image(fit, a_args, out_index);
+}
+
+static int atrous_finalize_hook(struct generic_seq_args *args) {
+	struct atrous_data *a_args = (struct atrous_data *)args->user;
+	int retval = seq_finalize_hook(args);
+	free_atrous_data(a_args);
+	return retval;
+}
+
+void apply_atrous_to_sequence(struct atrous_data *a_args) {
+	struct generic_seq_args *args = create_default_seqargs(a_args->seq);
+	args->filtering_criterion = seq_filter_included;
+	args->nb_filtered_images = a_args->seq->selnum;
+	args->prepare_hook = seq_prepare_hook;
+	args->finalize_hook = atrous_finalize_hook;
+	args->image_hook = atrous_seq_image_hook;
+	args->stop_on_error = FALSE;
+	args->description = _("Wavelet transform");
+	args->has_output = TRUE;
+	args->output_type = get_data_type(a_args->seq->bitpix);
+	args->new_seq_prefix = strdup(a_args->seqEntry);
+	args->load_new_sequence = TRUE;
+	args->user = a_args;
+	/* The decomposition saves every scale of the frame to disk, so processing
+	 * frames one at a time keeps disk and memory use bounded and deterministic. */
+	args->max_parallel_images = 1;
+
+	a_args->fit = NULL; /* not used in sequence mode */
+
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free_atrous_data(a_args);
+		free_generic_seq_args(args, TRUE); /* frees args->new_seq_prefix */
+	}
 }
 
 /* This function computes wavelets with the number of Nbr_Plan and
