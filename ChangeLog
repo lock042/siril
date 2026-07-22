@@ -14,6 +14,7 @@ siril-1.5.0
 * Added caching of online GAIA database (!985)
 * Added image masks (!981)
 * Added QHY GPS timestamps support (!891)
+* Added streak detection for satellite observations (!1037)
 * Added eqcrop command (!889)
 * Added catmag command (!888)
 * Added draggable histogram overlay with cursor tracking (!986)
