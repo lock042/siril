@@ -131,8 +131,8 @@ int wave_io_write (char *File_Name_In, wave_transf_des *Wave_Trans);
 int wave_io_free (wave_transf_des *Wave_Trans);
 int wave_io_alloc (wave_transf_des *Wave_Trans, int Type_Transform, int Nbr_Plan, int Nl, int Nc);
 float *f_vector_alloc(int Nbr_Elem);
-int wavelet_transform_file (float *Imag, int Nl, int Nc, char *File_Name_Transform, int Type_Transform, int Nbr_Plan, WORD *data);
-int wavelet_transform_file_float (float *Imag, int Nl, int Nc, char *File_Name_Transform, int Type_Transform, int Nbr_Plan);
+int wavelet_transform_file (float *Imag, int Nl, int Nc, char *File_Name_Transform, int Type_Transform, int Nbr_Plan, WORD *data, int anscombe);
+int wavelet_transform_file_float (float *Imag, int Nl, int Nc, char *File_Name_Transform, int Type_Transform, int Nbr_Plan, int anscombe);
 int wavelet_transform(float *Imag, int Nl, int Nc, wave_transf_des *Wavelet, int Type_Transform, int Nbr_Plan, WORD *data);
 int wavelet_transform_float(float *Imag, int Nl, int Nc, wave_transf_des *Wavelet, int Type_Transform, int Nbr_Plan);
 int wavelet_transform_data (float *Imag, int Nl, int Nc, wave_transf_des *Wavelet, int Type_Transform, int Nbr_Plan);
@@ -142,7 +142,9 @@ int pave_2d_build (float *Pave, float *Imag, int Nl, int Nc, int Nbr_Plan, const
 int pave_2d_extract_plan (float *Pave, float *Imag, int Nl, int Nc, int Num_Plan);
 int pave_2d_bspline_smooth (const float *Imag, float *Smooth, int Nl, int Nc, int Num_Plan);
 int prepare_rawdata(float *Imag, int Nl, int Nc, WORD *data);
+struct denoise_params; /* defined in algos/wavelet_denoise.h */
 int wavelet_reconstruct_data (wave_transf_des *Wavelet, float *Imag, float *coef);
-int wavelet_reconstruct_file (char *File_Name_Transform, float *coef, WORD *data);
-int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, float *data);
+int wavelet_reconstruct_file (char *File_Name_Transform, float *coef, const struct denoise_params *dp, WORD *data);
+int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, const struct denoise_params *dp, float *data);
+int wavelet_reconstruct_file_roi(char *File_Name_Transform, float *coef, const struct denoise_params *dp, int roi_x, int roi_y, int roi_w, int roi_h, int chan, fits *roifit);
 int reget_rawdata(float *Imag, int Nl, int Nc, WORD *buf);
