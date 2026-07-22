@@ -39,6 +39,7 @@
 #include "gui-gtk4/siril_preview.h"
 #include "gui-gtk4/utils.h"
 #include "gui-gtk4/wavelets.h"
+#include "io/sequence.h"
 #include "io/single_image.h"
 
 static float wavelet_value[6];
@@ -92,6 +93,12 @@ static GtkLabel *denoise_sigma_label = NULL;
  * the single global strength stays the obvious primary control; ticking it
  * reveals the second-order per-scale adjustments. */
 static GtkCheckButton *denoise_perscale_btn = NULL;
+
+/* "Apply to sequence" controls: when ticked (and a sequence is loaded) OK runs
+ * a full decompose+denoise+reconstruct on every selected frame instead of the
+ * loaded image, generating a new sequence with the given prefix. */
+static GtkCheckButton *wavelets_seq_apply_btn = NULL;
+static GtkEntry *wavelets_seq_prefix_entry = NULL;
 
 static struct denoise_params wavelet_denoise;
 /* Whether the current decomposition was built in the Anscombe VST domain
@@ -274,6 +281,10 @@ static void wavelets_dialog_init_statics(void) {
 	denoise_perscale_btn = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "denoise_perscale"));
 	wavelets_nr_section_label = GTK_WIDGET(gtk_builder_get_object(gui.builder, "nr_section_label"));
 	wavelets_placeholder_label = GTK_WIDGET(gtk_builder_get_object(gui.builder, "wavelet_placeholder_label"));
+	wavelets_seq_apply_btn = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "wavelets_seq_apply"));
+	wavelets_seq_prefix_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "wavelets_seq_prefix"));
+	gtk_widget_set_sensitive(GTK_WIDGET(wavelets_seq_prefix_entry),
+			siril_toggle_get_active(GTK_WIDGET(wavelets_seq_apply_btn)));
 
 	denoise_params_init(&wavelet_denoise);
 	/* per-scale adjustments start hidden (checkbox off), so hide the section now
@@ -484,7 +495,60 @@ void apply_wavelets_cancel(void) {
 	siril_close_dialog("wavelets_dialog");
 }
 
+/* Grey the output-prefix entry unless "Apply to sequence" is ticked. */
+void on_wavelets_seq_apply_toggled(GtkCheckButton *button, gpointer user_data) {
+	gtk_widget_set_sensitive(GTK_WIDGET(wavelets_seq_prefix_entry),
+			siril_toggle_get_active(GTK_WIDGET(button)));
+}
+
+/* Apply the current wavelet settings (layers, type, per-layer coefficients,
+ * denoising options and VST choice) to every selected frame of the loaded
+ * sequence, producing a new "wv_" sequence. Each frame is decomposed and
+ * reconstructed fresh, so this does not depend on a decomposition of the loaded
+ * image. */
+static void apply_wavelets_to_current_sequence(void) {
+	/* stop any live preview/ROI compositing and restore the loaded frame first */
+	cancel_pending_update();
+	cancel_and_wait_for_preview();
+	roi_supported(FALSE);
+	remove_roi_callback(wavelet_roi_changed);
+	if (is_preview_active())
+		copy_backup_to_gfit();
+
+	struct atrous_data *a = calloc(1, sizeof(struct atrous_data));
+	if (!a) {
+		PRINT_ALLOC_ERR;
+		return;
+	}
+	a->destroy_fn = free_atrous_data;
+	a->seq = &com.seq;
+	/* use the number of layers actually decomposed when the user has run Execute,
+	 * otherwise fall back to the Nb-of-layers spinbutton target */
+	a->nbr_plan = nb_computed_layers > 0 ? nb_computed_layers
+			: (int) gtk_spin_button_get_value(wavelets_plans_spin);
+	a->type = gtk_drop_down_get_selected(wavelets_type_combo) + 1;
+	a->anscombe = siril_toggle_get_active(GTK_WIDGET(denoise_anscombe_btn));
+	for (int i = 0; i < 6; i++)
+		a->coef[i] = wavelet_value[i];
+	a->coef[6] = 1.f;
+	/* sync_denoise_params() copies wavelet_vst_applied into the denoise params, so
+	 * align it with the sequence's VST choice before reading them */
+	wavelet_vst_applied = a->anscombe;
+	sync_denoise_params();
+	a->denoise = wavelet_denoise;
+	const char *pfx = gtk_editable_get_text(GTK_EDITABLE(wavelets_seq_prefix_entry));
+	a->seqEntry = strdup((pfx && pfx[0]) ? pfx : "wv_");
+
+	siril_toggle_set_active(GTK_WIDGET(wavelets_seq_apply_btn), FALSE);
+	apply_atrous_to_sequence(a);
+}
+
 void on_button_ok_w_clicked(GtkButton *button, gpointer user_data) {
+	if (siril_toggle_get_active(GTK_WIDGET(wavelets_seq_apply_btn)) && sequence_is_loaded()) {
+		apply_wavelets_to_current_sequence();
+		siril_close_dialog("wavelets_dialog");
+		return;
+	}
 	if (gtk_widget_get_sensitive(wavelets_frame) != TRUE) {
 		/* Wavelets were never computed: nothing to apply. */
 		siril_close_dialog("wavelets_dialog");

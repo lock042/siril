@@ -26,6 +26,21 @@ struct wrecons_data {
 	int full_rx, full_ry;
 };
 
+/* Data for the higher-level à trous transform (atrous / seqatrous commands and
+ * the GUI "Apply to sequence" path): a full decompose + per-scale denoise +
+ * weighted reconstruct in one shot, with a fixed set of levels and options. */
+struct atrous_data {
+	destructor destroy_fn;         /* Must be first member */
+	sequence *seq;                 /* sequence to process (seqatrous); NULL otherwise */
+	fits *fit;                     /* single-image target (atrous); NULL in seq mode */
+	char *seqEntry;                /* output sequence prefix (default "wv_") */
+	int nbr_plan;                  /* number of wavelet layers */
+	int type;                      /* TO_PAVE_LINEAR or TO_PAVE_BSPLINE */
+	gboolean anscombe;             /* decompose/reconstruct in the Anscombe VST domain */
+	float coef[7];                 /* per-layer reconstruction weights (1 = neutral) */
+	struct denoise_params denoise; /* per-scale denoising options */
+};
+
 /* Data struct for wavelet decomposition (wavelet command and GUI compute path) */
 struct wavelet_transform_data {
 	int Nbr_Plan;
@@ -39,6 +54,18 @@ struct wavelet_transform_data {
 };
 
 int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer);
+/* One-shot à trous decompose + denoise + weighted reconstruct of a single image
+ * in place. `id` makes the per-channel temporary transform files unique so
+ * parallel callers (and the GUI's live decomposition) never collide. Returns 0
+ * on success. */
+int atrous_transform_image(fits *fit, const struct atrous_data *args, int id);
+/* Image hook for the single-image atrous command (used with generic_image_worker). */
+int atrous_image_hook(struct generic_img_args *args, fits *fit, int threads);
+gchar *atrous_log_hook(gpointer p, log_hook_detail detail);
+/* Launch atrous processing over the sequence in args->seq (prefix args->seqEntry),
+ * one frame at a time. Takes ownership of args. */
+void apply_atrous_to_sequence(struct atrous_data *args);
+void free_atrous_data(void *p);
 gpointer extract_plans(gpointer p);
 void free_wrecons_data(void *p);
 int wrecons_image_hook(struct generic_img_args *args, fits *fit, int threads);

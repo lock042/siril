@@ -265,6 +265,8 @@ int process_update_key(int nb);
 
 int	process_visu(int nb);
 
+int	process_atrous(int nb);
+int	process_seqatrous(int nb);
 int	process_wavelet(int nb);
 int	process_wiener(int nb);
 int	process_wrecons(int nb);

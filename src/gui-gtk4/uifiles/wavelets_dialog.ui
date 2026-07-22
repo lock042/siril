@@ -1050,6 +1050,37 @@
           </object>
         </child>
         <child>
+          <object class="GtkBox">
+            <property name="spacing">6</property>
+            <property name="margin-start">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-top">6</property>
+            <child>
+              <object class="GtkCheckButton" id="wavelets_seq_apply">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Apply to sequence</property>
+                <property name="tooltip-text" translatable="yes">If a sequence is loaded and this is activated, the same wavelet layers, coefficients and denoising options are applied to every selected frame, generating a new sequence.</property>
+                <signal name="toggled" handler="on_wavelets_seq_apply_toggled"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel" id="wavelets_seq_prefix_label">
+                <property name="label" translatable="yes">Output prefix:</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkEntry" id="wavelets_seq_prefix">
+                <property name="focusable">1</property>
+                <property name="input-hints">no-emoji|none</property>
+                <property name="max-length">10</property>
+                <property name="text">wv_</property>
+                <property name="tooltip-text" translatable="yes">Prefix of the image names resulting from the wavelet processing of the sequence.</property>
+                <property name="width-chars">10</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
           <object class="GtkBox" id="dialog-action_area27">
             <property name="halign">end</property>
             <property name="margin-bottom">12</property>
