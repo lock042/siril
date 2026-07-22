@@ -276,13 +276,19 @@ void on_pref_icc_assign_never_toggled(GtkCheckButton *button, gpointer user_data
  * and on_icc_remove_clicked (assign/remove are com.uniq state changes,
  * no pixel work — see icc_state_worker in core/icc_profile.c). */
 static gboolean icc_assign_idle(gpointer p) {
+	struct icc_state_args *args = (struct icc_state_args *)p;
 	stop_processing_thread();
 	gboolean managed = current_image_color_managed();
 	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), managed);
 	gtk_widget_set_sensitive(lookup_widget("icc_remove"), managed);
 	set_source_information();
+	/* No pixels changed, but the image→monitor display transform did:
+	 * the LUTs / Cairo buffers must be rebuilt, and redraw() alone does
+	 * not remap.  Mirrors end_icc_state on the command path. */
+	if (!args->retval)
+		notify_gfit_data_modified();
 	gfit_modified_update_gui();
-	free_icc_state_args(p);
+	free_icc_state_args(args);
 	set_cursor_waiting(FALSE);
 	return FALSE;
 }
