@@ -111,6 +111,7 @@
 #include "algos/photometric_cc.h"
 #include "algos/fix_xtrans_af.h"
 #include "algos/comparison_stars.h"
+#include "algos/streaks.h"
 #include "stacking/stacking.h"
 #include "stacking/sum.h"
 #include "registration/registration.h"
@@ -16135,3 +16136,50 @@ int process_mask_from_color(int nb) {
 	start_in_new_thread(generic_mask_worker, args);
 	return CMD_OK;
 }
+
+int process_detect_streaks(int nb) {
+	// detect_streaks [-out=csv_file] [-bright] [length]
+	/*if (get_thread_run()) {
+		PRINT_ANOTHER_THREAD_RUNNING;
+		return 1;
+	}*/
+
+	int startnb = 1;
+	gboolean bright_target = FALSE;
+	int initial_segment_length = 0;
+
+	for (int i = startnb; i < nb; i++) {
+		if (!g_strcmp0(word[i], "-bright")) bright_target = TRUE;
+		else if (word[i][0] != '-') {
+			gchar *end;
+			initial_segment_length = g_ascii_strtoull(word[i], &end, 10);
+			if (word[i] == end) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[i]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	clear_stars_list(FALSE);
+	detect_streaks_main(gfit, initial_segment_length, bright_target, com.uniq ? 0 : com.seq.current,
+			get_image_filename_no_ext(NULL, -1), FALSE);
+	return CMD_OK;
+}
+
+int process_ssr(int nb) {
+	double knoise = -0.1;
+	if (nb == 2)
+		knoise = g_ascii_strtod(word[1], NULL);
+
+	clear_stars_list(FALSE);
+	int layer = (gfit->naxes[2] == 3) ? 1 : 0;
+	simple_star_removal(gfit, layer, knoise, NULL, &com.pref.starfinder_conf);
+
+	notify_gfit_data_modified();
+	return 0;
+}
+

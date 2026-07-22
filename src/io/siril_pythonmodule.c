@@ -57,9 +57,6 @@
 // anyone is likely to use with Siril, though there are some large
 // ones such as scanner profiles)...
 #define BUFFER_SIZE 65536
-#define MAX_RETRIES 3
-#define PIPE_NAME "\\\\.\\pipe\\mypipe"
-#define SOCKET_PORT 12345
 
 #define PIP_TIMEOUT_SECONDS 300
 #define PIP_MAX_RETRIES 3

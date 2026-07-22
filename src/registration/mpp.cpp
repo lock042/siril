@@ -243,9 +243,12 @@ cv::Mat read_analysis_frame(sequence *seq, int idx, int avi_pattern, int bitdept
 		cv::Mat view = wrap_fits_layer(&buf.f, 0);
 		if (view.empty()) return cv::Mat();
 		int code = -1;
+#ifdef HAVE_FFMS2
 		if (seq && seq->type == SEQ_AVI)
 			code = mpp::avi_bayer_to_cv_code(avi_pattern, view.rows);
-		else if (seq && seq->type == SEQ_SER)
+		else
+#endif
+		if (seq && seq->type == SEQ_SER)
 			code = mpp::ser_bayer_to_cv_code(seq);
 		else if (seq && (seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ))
 			code = mpp::fits_bayer_to_cv_code(&buf.f);
@@ -298,9 +301,12 @@ cv::Mat read_full_frame(sequence *seq, int idx, int avi_pattern) {
 		cv::Mat view = wrap_fits_layer(&buf.f, 0);
 		if (view.empty()) return cv::Mat();
 		int code = -1;
+#ifdef HAVE_FFMS2
 		if (seq && seq->type == SEQ_AVI)
 			code = mpp::avi_bayer_to_cv_code(avi_pattern, view.rows);
-		else if (seq && (seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ))
+		else
+#endif
+		if (seq && (seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ))
 			code = mpp::fits_bayer_to_cv_code(&buf.f);
 		if (code >= 0) {
 			cv::Mat rgb;
@@ -762,9 +768,13 @@ static int mpp_analysis_in_flight_slots(const sequence *seq, const mpp_config_t 
 	const bool ser_cfa = (seq->type == SEQ_SER && seq->ser_file
 	                      && seq->ser_file->color_id >= SER_BAYER_RGGB
 	                      && seq->ser_file->color_id <= SER_BAYER_BGGR);
+#ifdef HAVE_FFMS2
 	const bool avi_cfa = (seq->type == SEQ_AVI
 	                      && cfg->avi_bayer_pattern >= MPP_AVI_BAYER_RGGB
 	                      && cfg->avi_bayer_pattern <= MPP_AVI_BAYER_GRBG);
+#else
+	const bool avi_cfa = FALSE;
+#endif
 	/* Single-layer FITS / FITSEQ may be a raw CFA mosaic that
 	 * read_analysis_frame now cvtColor-debayers (fits_bayer_to_cv_code).
 	 * We can't tell mono from CFA without reading a frame here, so assume
@@ -1500,9 +1510,13 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 	 * RGGB/BGGR/GBRG/GRBG) is the AVI analogue of MPP_INPUT_CFA. The
 	 * classifier can't see this (sequence-only signature) so it's
 	 * tracked here for the channel-count math below. */
+#ifdef HAVE_FFMS2
 	const bool avi_cfa = (seq->type == SEQ_AVI
 	                      && cfg->avi_bayer_pattern >= MPP_AVI_BAYER_RGGB
 	                      && cfg->avi_bayer_pattern <= MPP_AVI_BAYER_GRBG);
+#else
+	const bool avi_cfa = FALSE;
+#endif
 	const mpp_input_type input_type = mpp_classify_sequence_input(seq);
 	const bool is_cfa = (input_type == MPP_INPUT_CFA) || avi_cfa;
 
