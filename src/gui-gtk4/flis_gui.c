@@ -106,6 +106,37 @@ static flis_group_t *row_group(FlisRowItem *row) {
 	return flis_group_get_by_id(row->item_id);
 }
 
+/* ---- NdeHistRowItem: main-thread display mirror of one nde_record ------
+ * Holds copied strings only (sketch §6a/§16): the bind path never touches
+ * the canonical log, and the mirror survives records whose target layer
+ * has since been deleted. */
+#define NDE_TYPE_HIST_ROW_ITEM (nde_hist_row_item_get_type())
+G_DECLARE_FINAL_TYPE(NdeHistRowItem, nde_hist_row_item, NDE, HIST_ROW_ITEM, GObject)
+
+struct _NdeHistRowItem {
+	GObject parent_instance;
+	gchar   *badge;      /* "#7" (Tier B marked "#7·B") */
+	gchar   *summary;
+	gchar   *target;     /* layer name / "canvas" / "document" / "deleted layer" */
+	gchar   *detail;     /* popover + tooltip text */
+	gboolean dead;       /* beyond live_count (undone) → dimmed */
+};
+
+G_DEFINE_TYPE(NdeHistRowItem, nde_hist_row_item, G_TYPE_OBJECT)
+
+static void nde_hist_row_item_finalize(GObject *obj) {
+	NdeHistRowItem *self = (NdeHistRowItem *)obj;
+	g_free(self->badge);
+	g_free(self->summary);
+	g_free(self->target);
+	g_free(self->detail);
+	G_OBJECT_CLASS(nde_hist_row_item_parent_class)->finalize(obj);
+}
+static void nde_hist_row_item_class_init(NdeHistRowItemClass *klass) {
+	G_OBJECT_CLASS(klass)->finalize = nde_hist_row_item_finalize;
+}
+static void nde_hist_row_item_init(NdeHistRowItem *self) { (void)self; }
+
 /* =========================================================================
  * Panel singleton
  * ========================================================================= */
@@ -151,6 +182,14 @@ struct flis_panel {
 	GtkWidget *mask_view_proc_radio;
 	GtkWidget *mask_view_layer_radio;
 
+	/* History section (NDE provenance, sketch §16) */
+	GtkWidget  *hist_expander;
+	GtkWidget  *hist_stale_revealer;
+	GListStore *hist_store;          /* of NdeHistRowItem* */
+	GtkWidget  *hist_list;
+	GtkWidget  *hist_popover;        /* lazy; parented to hist_list */
+	GtkWidget  *hist_popover_label;
+
 	/* Refresh suppression: TRUE while we're programmatically syncing
 	 * widget state to the model, so signal handlers don't loop back. */
 	gboolean   refreshing;
@@ -171,6 +210,8 @@ static void   build_toolbar  (GtkWidget *box);
 static void   build_list     (GtkWidget *box);
 static void   build_property (GtkWidget *box);
 static void   build_mask     (GtkWidget *box);
+static void   build_history  (GtkWidget *box);
+static void   refresh_history(void);
 static GMenu *build_context_menu(void);
 static void   register_panel_actions(void);
 static void   refresh_panel(void);
@@ -284,6 +325,7 @@ static void build_panel(void) {
 	build_list    (outer);
 	build_property(outer);
 	build_mask    (outer);
+	build_history (outer);
 
 	register_panel_actions();
 }
@@ -1002,6 +1044,209 @@ static void build_mask(GtkWidget *box) {
 	gtk_box_append(GTK_BOX(box), g_panel->mask_frame);
 }
 
+/* ---- History section (NDE provenance, sketch §16) -------------------
+ * Read-only mirror of the document's edit log.  All content is copied
+ * strings prepared in refresh_history() from a snapshot — GTK callbacks
+ * never read the canonical log. */
+
+/* Popover/tooltip text for one record: identity, provenance metadata and
+ * the parsed params, keys sorted for a stable display. */
+static gchar *build_hist_detail(const nde_record *rec) {
+	GString *s = g_string_new(NULL);
+	g_string_append_printf(s, "record %" G_GINT64_FORMAT ": %s v%d (%s)\n",
+	                       rec->record_id, rec->op_id ? rec->op_id : "?",
+	                       rec->op_version,
+	                       rec->tier == NDE_TIER_A ? _("replayable") : _("opaque"));
+	if (rec->timestamp)
+		g_string_append_printf(s, "%s\n", rec->timestamp);
+	if (rec->impl)
+		g_string_append_printf(s, "%s\n", rec->impl);
+	if (rec->mask_active)
+		g_string_append_printf(s, "%s\n", _("a mask was active"));
+	if (rec->params && *rec->params) {
+		g_string_append_c(s, '\n');
+		GHashTable *kv = nde_kv_parse(rec->params);
+		GList *keys = g_list_sort(g_hash_table_get_keys(kv), (GCompareFunc)g_strcmp0);
+		for (GList *l = keys; l; l = l->next)
+			g_string_append_printf(s, "%s: %s\n", (char *)l->data,
+			                       (char *)g_hash_table_lookup(kv, l->data));
+		g_list_free(keys);
+		g_hash_table_unref(kv);
+	}
+	if (s->len && s->str[s->len - 1] == '\n')
+		g_string_truncate(s, s->len - 1);
+	return g_string_free(s, FALSE);
+}
+
+static gchar *hist_target_label(const nde_record *rec) {
+	if (rec->target_item_id >= 0) {
+		flis_layer_t *lay = flis_layer_get_by_id(rec->target_item_id);
+		if (lay)
+			return g_strdup(lay->layer_name ? lay->layer_name : "");
+		return g_strdup(_("deleted layer"));
+	}
+	if (rec->scope == NDE_SCOPE_CANVAS)
+		return g_strdup(_("canvas"));
+	if (rec->scope == NDE_SCOPE_DOCUMENT)
+		return g_strdup(_("document"));
+	return g_strdup("");
+}
+
+static void on_hist_row_setup(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
+	(void)f; (void)u;
+	GtkWidget *row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	gtk_widget_set_margin_start(row, 2);
+	gtk_widget_set_margin_end  (row, 2);
+
+	GtkWidget *badge = gtk_label_new(NULL);
+	gtk_widget_add_css_class(badge, "dim-label");
+
+	GtkWidget *summary = gtk_label_new(NULL);
+	gtk_label_set_xalign(GTK_LABEL(summary), 0.0f);
+	gtk_label_set_ellipsize(GTK_LABEL(summary), PANGO_ELLIPSIZE_END);
+	gtk_widget_set_hexpand(summary, TRUE);
+
+	GtkWidget *target = gtk_label_new(NULL);
+	gtk_widget_add_css_class(target, "dim-label");
+
+	gtk_box_append(GTK_BOX(row), badge);
+	gtk_box_append(GTK_BOX(row), summary);
+	gtk_box_append(GTK_BOX(row), target);
+	g_object_set_data(G_OBJECT(item), "hist-badge",   badge);
+	g_object_set_data(G_OBJECT(item), "hist-summary", summary);
+	g_object_set_data(G_OBJECT(item), "hist-target",  target);
+	gtk_list_item_set_child(item, row);
+}
+
+static void on_hist_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
+	(void)f; (void)u;
+	NdeHistRowItem *r = gtk_list_item_get_item(item);
+	GtkWidget *row     = gtk_list_item_get_child(item);
+	GtkWidget *badge   = g_object_get_data(G_OBJECT(item), "hist-badge");
+	GtkWidget *summary = g_object_get_data(G_OBJECT(item), "hist-summary");
+	GtkWidget *target  = g_object_get_data(G_OBJECT(item), "hist-target");
+	if (!r || !row) return;
+	gtk_label_set_text(GTK_LABEL(badge),   r->badge   ? r->badge   : "");
+	gtk_label_set_text(GTK_LABEL(summary), r->summary ? r->summary : "");
+	gtk_label_set_text(GTK_LABEL(target),  r->target  ? r->target  : "");
+	gtk_widget_set_tooltip_text(row, r->detail);
+	/* undone records stay visible but dimmed (§16) */
+	if (r->dead)
+		gtk_widget_add_css_class(row, "dim-label");
+	else
+		gtk_widget_remove_css_class(row, "dim-label");
+}
+
+static void on_hist_row_activate(GtkListView *lv, guint position, gpointer u) {
+	(void)u;
+	GListModel *model = G_LIST_MODEL(gtk_list_view_get_model(lv));
+	NdeHistRowItem *r = g_list_model_get_item(model, position);
+	if (!r) return;
+	if (!g_panel->hist_popover) {
+		g_panel->hist_popover = gtk_popover_new();
+		gtk_widget_set_parent(g_panel->hist_popover, GTK_WIDGET(lv));
+		g_panel->hist_popover_label = gtk_label_new(NULL);
+		gtk_label_set_selectable(GTK_LABEL(g_panel->hist_popover_label), TRUE);
+		gtk_widget_add_css_class(g_panel->hist_popover_label, "monospace");
+		gtk_widget_set_margin_start (g_panel->hist_popover_label, 6);
+		gtk_widget_set_margin_end   (g_panel->hist_popover_label, 6);
+		gtk_widget_set_margin_top   (g_panel->hist_popover_label, 6);
+		gtk_widget_set_margin_bottom(g_panel->hist_popover_label, 6);
+		gtk_popover_set_child(GTK_POPOVER(g_panel->hist_popover),
+		                      g_panel->hist_popover_label);
+	}
+	gtk_label_set_text(GTK_LABEL(g_panel->hist_popover_label),
+	                   r->detail ? r->detail : "");
+	gtk_popover_popup(GTK_POPOVER(g_panel->hist_popover));
+	g_object_unref(r);
+}
+
+/* Rebuild the mirror store from a snapshot.  Main thread only. */
+static void refresh_history(void) {
+	if (!g_panel || !g_panel->hist_store)
+		return;
+	guint live = 0;
+	GPtrArray *snap = nde_history_snapshot_all(&live);
+	g_list_store_remove_all(g_panel->hist_store);
+	if (snap) {
+		for (guint i = 0; i < snap->len; i++) {
+			const nde_record *rec = g_ptr_array_index(snap, i);
+			NdeHistRowItem *item = g_object_new(NDE_TYPE_HIST_ROW_ITEM, NULL);
+			item->badge   = g_strdup_printf(rec->tier == NDE_TIER_B ? "#%u\xc2\xb7B" : "#%u", i + 1);
+			item->summary = g_strdup(rec->summary ? rec->summary : rec->op_id);
+			item->target  = hist_target_label(rec);
+			item->detail  = build_hist_detail(rec);
+			item->dead    = (i >= live);
+			g_list_store_append(g_panel->hist_store, item);
+			g_object_unref(item);
+		}
+		g_ptr_array_unref(snap);
+	}
+	gtk_revealer_set_reveal_child(GTK_REVEALER(g_panel->hist_stale_revealer),
+	                              nde_history_is_stale());
+	gchar *lbl = g_strdup_printf(_("History (%u)"), live);
+	gtk_expander_set_label(GTK_EXPANDER(g_panel->hist_expander), lbl);
+	g_free(lbl);
+}
+
+/* Coalesced cross-thread refresh — same CAS pattern as refresh_pending
+ * above; gui_iface.nde_history_changed routes here from any thread. */
+static gint history_refresh_pending = 0;
+
+static gboolean history_refresh_idle_cb(gpointer p) {
+	(void)p;
+	g_atomic_int_set(&history_refresh_pending, 0);
+	if (g_panel && gtk_widget_get_visible(g_panel->window))
+		refresh_history();
+	return G_SOURCE_REMOVE;
+}
+
+void flis_gui_history_update_from_idle(void) {
+	if (!g_atomic_int_compare_and_exchange(&history_refresh_pending, 0, 1))
+		return;  /* already pending */
+	g_idle_add(history_refresh_idle_cb, NULL);
+}
+
+static void build_history(GtkWidget *box) {
+	g_panel->hist_expander = gtk_expander_new(_("History"));
+	gtk_expander_set_expanded(GTK_EXPANDER(g_panel->hist_expander), FALSE);
+
+	GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 3);
+
+	g_panel->hist_stale_revealer = gtk_revealer_new();
+	gtk_revealer_set_transition_type(GTK_REVEALER(g_panel->hist_stale_revealer),
+	                                 GTK_REVEALER_TRANSITION_TYPE_SLIDE_DOWN);
+	GtkWidget *stale = gtk_label_new(_("Pixels were modified outside the recorded history"));
+	gtk_label_set_wrap(GTK_LABEL(stale), TRUE);
+	gtk_label_set_xalign(GTK_LABEL(stale), 0.0f);
+	gtk_widget_add_css_class(stale, "warning");
+	gtk_revealer_set_child(GTK_REVEALER(g_panel->hist_stale_revealer), stale);
+	gtk_box_append(GTK_BOX(vbox), g_panel->hist_stale_revealer);
+
+	g_panel->hist_store = g_list_store_new(NDE_TYPE_HIST_ROW_ITEM);
+	GtkSingleSelection *sel = gtk_single_selection_new(
+			G_LIST_MODEL(g_object_ref(g_panel->hist_store)));
+	gtk_single_selection_set_autoselect(sel, FALSE);
+	gtk_single_selection_set_can_unselect(sel, TRUE);
+
+	GtkListItemFactory *factory = gtk_signal_list_item_factory_new();
+	g_signal_connect(factory, "setup", G_CALLBACK(on_hist_row_setup), NULL);
+	g_signal_connect(factory, "bind",  G_CALLBACK(on_hist_row_bind),  NULL);
+	g_panel->hist_list = gtk_list_view_new(GTK_SELECTION_MODEL(sel), factory);
+	g_signal_connect(g_panel->hist_list, "activate",
+	                 G_CALLBACK(on_hist_row_activate), NULL);
+
+	GtkWidget *sw = gtk_scrolled_window_new();
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw),
+	                               GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(sw), 140);
+	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), g_panel->hist_list);
+	gtk_box_append(GTK_BOX(vbox), sw);
+
+	gtk_expander_set_child(GTK_EXPANDER(g_panel->hist_expander), vbox);
+	gtk_box_append(GTK_BOX(box), g_panel->hist_expander);
+}
+
 /* ---- Context menu -------------------------------------------------- */
 
 /* Stub action callback shared by all context menu items.  The body is
@@ -1241,6 +1486,12 @@ static void refresh_panel(void) {
 
 	g_panel->refreshing = FALSE;
 	flis_stack_reader_unlock();
+
+	/* History section mirrors the provenance log; refreshed with the stack
+	 * lock released (its snapshot takes only the nde leaf mutex; target
+	 * name resolution re-reads the live stack lock-free like the rest of
+	 * the panel's main-thread accessors). */
+	refresh_history();
 }
 
 /* Set the property panel to a "nothing selected" state. */

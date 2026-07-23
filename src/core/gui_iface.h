@@ -288,6 +288,11 @@ typedef struct {
 	 * open_single_image_from_gfit so opening a FLIS automatically
 	 * reveals the panel without stealing focus during plain-FITS work. */
 	void     (*flis_gui_present_if_flis)(void);
+	/* The NDE provenance log changed (append / undo / redo / attach).
+	 * Called from any thread, never with the nde leaf mutex held; the
+	 * implementation must only schedule a coalesced idle that refreshes
+	 * the History section's main-thread mirror (sketch §6a/§16). */
+	void     (*nde_history_changed)(void);
 
 	/* F additions – Application lifecycle -------------------------------- */
 	/* Quit the application's main event loop. */

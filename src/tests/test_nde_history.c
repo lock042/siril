@@ -345,3 +345,28 @@ Test(nde_history, append_vs_snapshot_thread_smoke) {
 	g_thread_join(worker);
 	cr_assert_eq(nde_history_live_count(), SMOKE_APPENDS);
 }
+
+Test(nde_history, snapshot_all_includes_dead_tail) {
+	append_op("a.a");
+	gint64 b = append_op("b.b");
+	nde_history_on_undo(b);      /* live: [a]; dead: [b] */
+
+	guint live = 0;
+	GPtrArray *all = nde_history_snapshot_all(&live);
+	cr_assert_not_null(all);
+	cr_assert_eq(all->len, 2, "snapshot_all must include the dead tail");
+	cr_assert_eq(live, 1);
+	cr_assert_str_eq(((nde_record *)g_ptr_array_index(all, 1))->op_id, "b.b");
+	g_ptr_array_unref(all);
+
+	/* the persistence snapshot stays live-only */
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	cr_assert_eq(snap->len, 1);
+	g_ptr_array_unref(snap);
+
+	/* empty history → NULL, live 0 */
+	nde_history_attach(NULL);
+	live = 99;
+	cr_assert_null(nde_history_snapshot_all(&live));
+	cr_assert_eq(live, 0);
+}

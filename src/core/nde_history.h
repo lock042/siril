@@ -118,6 +118,15 @@ void nde_history_on_redo(gint64 record_id);
  */
 GPtrArray *nde_history_snapshot(gint64 *next_id_out);
 
+/**
+ * Like nde_history_snapshot() but INCLUDING the dead tail (records undone
+ * but not yet truncated), for display: the History panel dims records
+ * beyond the live count.  When @live_count_out is non-NULL it receives the
+ * live count.  The save path must keep using nde_history_snapshot() — only
+ * the live prefix is ever persisted.  NULL when there are no records.
+ */
+GPtrArray *nde_history_snapshot_all(guint *live_count_out);
+
 /** Live-record count of the current document's log (0 if none). */
 guint nde_history_live_count(void);
 

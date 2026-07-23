@@ -25,6 +25,7 @@
 
 #include "core/siril.h"
 #include "core/siril_log.h"
+#include "core/gui_iface.h"
 #include "core/nde_history.h"
 
 /* Leaf lock guarding the CURRENT document's log (com.uniq->nde_history and
@@ -174,6 +175,25 @@ GPtrArray *nde_history_snapshot(gint64 *next_id_out) {
 	return out;
 }
 
+GPtrArray *nde_history_snapshot_all(guint *live_count_out) {
+	if (live_count_out)
+		*live_count_out = 0;
+	if (!com.uniq)
+		return NULL;
+	GPtrArray *out = NULL;
+	g_mutex_lock(&nde_mutex);
+	nde_history *h = com.uniq->nde_history;
+	if (h && h->records->len > 0) {
+		out = g_ptr_array_new_with_free_func((GDestroyNotify)nde_record_free);
+		for (guint i = 0; i < h->records->len; i++)
+			g_ptr_array_add(out, nde_record_copy(g_ptr_array_index(h->records, i)));
+		if (live_count_out)
+			*live_count_out = h->live_count;
+	}
+	g_mutex_unlock(&nde_mutex);
+	return out;
+}
+
 guint nde_history_live_count(void) {
 	if (!com.uniq)
 		return 0;
@@ -216,9 +236,10 @@ gboolean nde_history_is_stale(void) {
 }
 
 void nde_history_notify_panel(void) {
-	/* Placeholder until the History panel lands (work-order step 8).  The
-	 * eventual implementation schedules ONE coalesced async idle that
-	 * snapshots the log and rebuilds a main-thread GListStore mirror. */
+	/* Never called with the leaf mutex held.  The GUI implementation
+	 * schedules ONE coalesced async idle that snapshots the log and
+	 * rebuilds the panel's main-thread mirror; headless is a stub. */
+	gui_iface.nde_history_changed();
 }
 
 /* ======================================================================= */

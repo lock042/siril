@@ -42,6 +42,10 @@
 void flis_gui_toggle_visible(void);
 void flis_gui_update_from_idle(void);
 
+/* Coalesced refresh of the History section only (NDE provenance mirror).
+ * Routed from gui_iface.nde_history_changed; callable from any thread. */
+void flis_gui_history_update_from_idle(void);
+
 /* Coalesced refresh for per-motion drag ticks: immediate paint (GPU
  * compose path reads live values) + one idle-priority full pipeline
  * rebuild once the motion-event burst drains. */

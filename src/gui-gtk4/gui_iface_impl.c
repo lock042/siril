@@ -954,6 +954,9 @@ static void impl_flis_gui_update(void) {
 static void impl_flis_gui_present_if_flis(void) {
 	flis_gui_present_if_flis();
 }
+static void impl_nde_history_changed(void) {
+	flis_gui_history_update_from_idle();
+}
 
 /* ── Group G additions: Channel / precision display state ────────────────── */
 
@@ -1624,6 +1627,7 @@ void siril_register_gui_iface(void) {
 	gui_iface.on_active_layer_changed     = impl_on_active_layer_changed;
 	gui_iface.flis_group_is_selected      = flis_panel_group_is_selected;
 	gui_iface.flis_gui_present_if_flis    = impl_flis_gui_present_if_flis;
+	gui_iface.nde_history_changed         = impl_nde_history_changed;
 	gui_iface.on_channel_count_changed    = impl_on_channel_count_changed;
 	gui_iface.on_precision_changed        = impl_on_precision_changed;
 	gui_iface.roi_is_active               = impl_roi_is_active;
