@@ -16668,6 +16668,62 @@ int process_flis_group_list(int nb) {
 	return CMD_OK;
 }
 
+/* flis_history [-format=text|csv] — print the nondestructive edit history of
+ * the loaded image (sketch §17).  SINGLE_IMAGE-gated, not FLIS_IMAGE: a plain
+ * image's in-memory log is inspectable too (it persists only if saved as
+ * .flis). */
+int process_flis_history(int nb) {
+	int fmt = parse_format_arg(nb);
+	if (fmt < 0) return CMD_ARG_ERROR;
+	gboolean csv = (fmt == 1);
+
+	gint64 next_id = 0;
+	GPtrArray *snap = nde_history_snapshot(&next_id);
+	if (!snap || snap->len == 0) {
+		if (snap) g_ptr_array_unref(snap);
+		siril_log_info(_("No edit history recorded for this image\n"));
+		return CMD_OK;
+	}
+
+	/* Stale banner first, matching the load-time warning wording. */
+	if (nde_history_is_stale())
+		siril_log_warning(_("FLIS: layer pixels were modified outside the recorded history\n"));
+
+	if (csv)
+		siril_log_message("record_id,tier,op_id,op_version,scope,target,summary,params\n");
+
+	for (guint i = 0; i < snap->len; i++) {
+		nde_record *r = g_ptr_array_index(snap, i);
+		const char *tier = (r->tier == NDE_TIER_A) ? "A" : "B";
+		/* Target label: item id for layer scope, else the scope name. */
+		char target_buf[32];
+		const char *target;
+		if (r->scope == NDE_SCOPE_CANVAS)
+			target = "canvas";
+		else if (r->scope == NDE_SCOPE_DOCUMENT && r->target_item_id < 0)
+			target = "document";
+		else {
+			g_snprintf(target_buf, sizeof(target_buf), "%d", r->target_item_id);
+			target = target_buf;
+		}
+		if (csv) {
+			siril_log_message("%" G_GINT64_FORMAT ",%s,%s,%d,%d,%s,\"%s\",\"%s\"\n",
+			                  r->record_id, tier, r->op_id ? r->op_id : "",
+			                  r->op_version, r->scope, target,
+			                  r->summary ? r->summary : "",
+			                  r->params ? r->params : "");
+		} else {
+			siril_log_info(_("#%" G_GINT64_FORMAT " [%s] %s v%d target=%s  %s\n"),
+			               r->record_id, tier, r->op_id ? r->op_id : "",
+			               r->op_version, target, r->summary ? r->summary : "");
+			if (r->params)
+				siril_log_info(_("    params: %s\n"), r->params);
+		}
+	}
+	g_ptr_array_unref(snap);
+	return CMD_OK;
+}
+
 int process_flis_layer_info(int nb) {
 	if (nb < 2) {
 		siril_log_error(_("Usage: flis_layer_info <id|\"name\">\n"));

@@ -1114,3 +1114,63 @@ Test(flis_cmd, move_up_couples_undo_in_gui_mode) {
 	             "undo retires the coupled reorder record");
 	com.script = TRUE;
 }
+
+/* =========================================================================
+ * flis_history command (steps 6-8 Part D)
+ * ========================================================================= */
+
+/* Append a plain Tier-B record for history-command tests. */
+static void seed_record(const char *op_id, const char *summary) {
+	nde_record *rec = nde_record_new();
+	rec->op_id = g_strdup(op_id);
+	rec->op_version = 1;
+	rec->tier = NDE_TIER_B;
+	rec->summary = g_strdup(summary);
+	nde_history_append(rec);
+}
+
+Test(flis_cmd, history_empty_is_ok) {
+	load_two_layer_fixture();   /* fixture setup creates no records (verified) */
+	word[0] = "flis_history";
+	word[1] = NULL;
+	cr_assert_eq(process_flis_history(1), CMD_OK);
+}
+
+Test(flis_cmd, history_text_and_csv_ok) {
+	load_two_layer_fixture();
+	seed_record("stretch.mtf", "MTF stretch");
+	seed_record("python.set_pixeldata", "Python script pixel update");
+	cr_assert_eq(nde_history_live_count(), 2);
+
+	word[0] = "flis_history";
+	word[1] = NULL;
+	cr_assert_eq(process_flis_history(1), CMD_OK);
+
+	word[1] = "-format=csv";
+	word[2] = NULL;
+	cr_assert_eq(process_flis_history(2), CMD_OK);
+
+	word[1] = "-format=text";
+	word[2] = NULL;
+	cr_assert_eq(process_flis_history(2), CMD_OK);
+}
+
+Test(flis_cmd, history_bad_format_rejected) {
+	load_two_layer_fixture();
+	seed_record("stretch.mtf", "MTF stretch");
+	word[0] = "flis_history";
+	word[1] = "-format=yaml";
+	word[2] = NULL;
+	cr_assert_eq(process_flis_history(2), CMD_ARG_ERROR);
+}
+
+/* End-to-end: a property command records provenance that flis_history then
+ * reports (combined Part A + Part D assertion vehicle). */
+Test(flis_cmd, setopacity_then_history_reports_ok) {
+	load_two_layer_fixture();
+	word[0] = "flis_setopacity"; word[1] = "Ha"; word[2] = "0.3"; word[3] = NULL;
+	cr_assert_eq(process_flis_setopacity(3), CMD_OK);
+	cr_assert_geq(nde_history_live_count(), 1);
+	word[0] = "flis_history"; word[1] = NULL;
+	cr_assert_eq(process_flis_history(1), CMD_OK);
+}

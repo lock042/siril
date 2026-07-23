@@ -85,6 +85,7 @@ static command commands[] = {
 	{"flis_flatten", 0, "flis_flatten", process_flis_flatten, STR_FLIS_FLATTEN, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_group_info", 1, "flis_group_info <gid|\"name\">", process_flis_group_info, STR_FLIS_GROUP_INFO, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_group_list", 0, "flis_group_list [-format=text|csv]", process_flis_group_list, STR_FLIS_GROUP_LIST, TRUE, REQ_CMD_FLIS_IMAGE},
+	{"flis_history", 0, "flis_history [-format=text|csv]", process_flis_history, STR_FLIS_HISTORY, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"flis_info", 0, "flis_info", process_flis_info, STR_FLIS_INFO, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_layer_info", 1, "flis_layer_info <id|\"name\">", process_flis_layer_info, STR_FLIS_LAYER_INFO, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_layer_list", 0, "flis_layer_list [-format=text|csv]", process_flis_layer_list, STR_FLIS_LAYER_LIST, TRUE, REQ_CMD_FLIS_IMAGE},
