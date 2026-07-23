@@ -1882,11 +1882,13 @@ int icc_convert_to_hook(struct generic_img_args *gargs, fits *fit, int threads) 
 	g_free(prof_desc);
 	refresh_icc_transforms();
 	/* NDE provenance: only now, after the transform succeeded and on the
-	 * same swap-path condition as the undo save above (never on preview or
-	 * a private working copy).  icc.convert is serializer-less → Tier B. */
-	if (save_undo) {
+	 * swap-path condition (never on preview or a private working copy) —
+	 * but WITHOUT the com.script exclusion the undo save carries: scripts
+	 * must leave provenance; that exclusion exists for undo cost only
+	 * (sketch §13.1).  icc.convert is serializer-less → Tier B. */
+	if (!gargs->for_preview && gargs->fit == gfit) {
 		gint64 rid = nde_capture_from_descriptor(&op_desc_icc_convert, NULL, summary);
-		if (!undo_err)
+		if (save_undo && !undo_err)
 			undo_tag_top_nde_record(rid);
 	}
 	g_free(summary);
