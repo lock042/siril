@@ -174,6 +174,21 @@ gint64 nde_capture_structural(const char *op_id, gint scope,
 gint64 nde_capture_opaque(const char *op_id, gint scope,
                           gint target_item_id, const char *summary);
 
+/**
+ * Build+append a record for a descriptor-identified operation applied
+ * OUTSIDE generic_image_worker — the commit-the-preview dialogs and other
+ * GUI paths that manage their own undo (and therefore run the worker with
+ * skip_generic_undo, or not at all).  Mirrors the worker's capture block:
+ * Tier A with op->serialize(@params) when the descriptor has a serializer,
+ * Tier B otherwise; target/scope/mask state resolved from the live
+ * document.  Same success-only discipline: call it only once the pixels
+ * have actually changed, right before saving the operation's undo entry,
+ * and couple with undo_tag_top_nde_record() when that save succeeds.
+ */
+struct op_descriptor;
+gint64 nde_capture_from_descriptor(const struct op_descriptor *op,
+                                   gconstpointer params, const char *summary);
+
 /** Heap ISO 8601 UTC timestamp, matching FLIS layer CREATED/MODIFIED style. */
 gchar *nde_iso8601_now(void);
 

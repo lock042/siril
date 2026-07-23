@@ -31,7 +31,9 @@
 #include <string.h>
 #include "core/siril.h"
 #include "core/op_descriptor.h"
+#include "core/op_descriptors.h"
 #include "core/nde_history.h"
+#include "algos/geometry.h"
 
 cominfo com;	// the core data struct
 fits *gfit;	// currently loaded image
@@ -369,4 +371,40 @@ Test(nde_history, snapshot_all_includes_dead_tail) {
 	live = 99;
 	cr_assert_null(nde_history_snapshot_all(&live));
 	cr_assert_eq(live, 0);
+}
+
+Test(nde_history, capture_from_descriptor) {
+	/* Tier A: a descriptor with a serializer (crop is POD) */
+	struct crop_args ca = { 0 };
+	ca.area.x = 1; ca.area.y = 2; ca.area.w = 30; ca.area.h = 40;
+	gint64 id = nde_capture_from_descriptor(&op_desc_crop, &ca, "crop it");
+	cr_assert(id > 0);
+
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	nde_record *rec = g_ptr_array_index(snap, snap->len - 1);
+	cr_assert_str_eq(rec->op_id, op_desc_crop.id);
+	cr_assert_eq(rec->tier, NDE_TIER_A);
+	cr_assert_not_null(rec->params);
+	cr_assert(strstr(rec->params, "w=30") != NULL, "params blob missing field: %s", rec->params);
+	cr_assert_eq(rec->scope, NDE_SCOPE_CANVAS, "crop carries OP_GEOMETRY_CHANGING");
+	cr_assert_str_eq(rec->summary, "crop it");
+	cr_assert_not_null(rec->timestamp);
+	cr_assert_not_null(rec->impl);
+	g_ptr_array_unref(snap);
+
+	/* Tier B: first descriptor without a serializer */
+	size_t n = 0;
+	const op_descriptor *const *all = op_descriptor_all(&n);
+	const op_descriptor *opaque = NULL;
+	for (size_t i = 0; i < n && !opaque; i++)
+		if (!all[i]->serialize)
+			opaque = all[i];
+	cr_assert_not_null(opaque, "expected at least one serializer-less descriptor");
+	id = nde_capture_from_descriptor(opaque, NULL, "opaque op");
+	cr_assert(id > 0);
+	snap = nde_history_snapshot(NULL);
+	rec = g_ptr_array_index(snap, snap->len - 1);
+	cr_assert_eq(rec->tier, NDE_TIER_B);
+	cr_assert_null(rec->params);
+	g_ptr_array_unref(snap);
 }

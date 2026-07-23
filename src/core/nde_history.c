@@ -26,7 +26,9 @@
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "core/gui_iface.h"
+#include "core/op_descriptor.h"
 #include "core/nde_history.h"
+#include "io/image_format_flis.h"
 
 /* Leaf lock guarding the CURRENT document's log (com.uniq->nde_history and
  * the fields inside it).  Nothing else is ever acquired while this is held —
@@ -280,6 +282,25 @@ gint64 nde_capture_opaque(const char *op_id, gint scope,
 	rec->target_item_id = target_item_id;
 	rec->tier           = NDE_TIER_B;
 	rec->params         = NULL;
+	return capture_finish(rec, summary);
+}
+
+gint64 nde_capture_from_descriptor(const op_descriptor *op,
+                                   gconstpointer params, const char *summary) {
+	g_return_val_if_fail(op != NULL, 0);
+	nde_record *rec = nde_record_new();
+	gboolean tier_a = op->serialize != NULL;
+	rec->op_id      = g_strdup(op->id);
+	rec->op_version = op->version;
+	rec->tier       = tier_a ? NDE_TIER_A : NDE_TIER_B;
+	rec->params     = tier_a ? op->serialize(params) : NULL;
+	rec->scope      = (op->flags & OP_GEOMETRY_CHANGING) ?
+	                  NDE_SCOPE_CANVAS : NDE_SCOPE_LAYER;
+	if (is_current_image_flis()) {
+		flis_layer_t *lay = flis_active_layer();
+		rec->target_item_id = lay ? lay->item_id : -1;
+	}
+	rec->mask_active = gfit && gfit->mask && gfit->mask_active;
 	return capture_finish(rec, summary);
 }
 

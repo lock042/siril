@@ -185,6 +185,7 @@ struct flis_panel {
 	/* History section (NDE provenance, sketch §16) */
 	GtkWidget  *hist_expander;
 	GtkWidget  *hist_stale_revealer;
+	GtkWidget  *hist_fits_hint;     /* plain-FITS: history is in-memory only */
 	GListStore *hist_store;          /* of NdeHistRowItem* */
 	GtkWidget  *hist_list;
 	GtkWidget  *hist_popover;        /* lazy; parented to hist_list */
@@ -1167,6 +1168,7 @@ static void refresh_history(void) {
 		return;
 	guint live = 0;
 	GPtrArray *snap = nde_history_snapshot_all(&live);
+	guint total = snap ? snap->len : 0;
 	g_list_store_remove_all(g_panel->hist_store);
 	if (snap) {
 		for (guint i = 0; i < snap->len; i++) {
@@ -1184,6 +1186,8 @@ static void refresh_history(void) {
 	}
 	gtk_revealer_set_reveal_child(GTK_REVEALER(g_panel->hist_stale_revealer),
 	                              nde_history_is_stale());
+	gtk_widget_set_visible(g_panel->hist_fits_hint,
+	                       total > 0 && !is_current_image_flis());
 	gchar *lbl = g_strdup_printf(_("History (%u)"), live);
 	gtk_expander_set_label(GTK_EXPANDER(g_panel->hist_expander), lbl);
 	g_free(lbl);
@@ -1222,6 +1226,16 @@ static void build_history(GtkWidget *box) {
 	gtk_widget_add_css_class(stale, "warning");
 	gtk_revealer_set_child(GTK_REVEALER(g_panel->hist_stale_revealer), stale);
 	gtk_box_append(GTK_BOX(vbox), g_panel->hist_stale_revealer);
+
+	/* Plain FITS images keep their history in memory only (sketch §13.2);
+	 * shown whenever records exist for a non-FLIS image. */
+	g_panel->hist_fits_hint = gtk_label_new(
+			_("Kept in memory only — save as FLIS to persist this history"));
+	gtk_label_set_wrap(GTK_LABEL(g_panel->hist_fits_hint), TRUE);
+	gtk_label_set_xalign(GTK_LABEL(g_panel->hist_fits_hint), 0.0f);
+	gtk_widget_add_css_class(g_panel->hist_fits_hint, "dim-label");
+	gtk_widget_set_visible(g_panel->hist_fits_hint, FALSE);
+	gtk_box_append(GTK_BOX(vbox), g_panel->hist_fits_hint);
 
 	g_panel->hist_store = g_list_store_new(NDE_TYPE_HIST_ROW_ITEM);
 	GtkSingleSelection *sel = gtk_single_selection_new(
