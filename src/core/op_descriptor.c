@@ -50,6 +50,21 @@ void op_descriptor_fill_mask_args(struct generic_mask_args *args) {
 		args->mem_ratio = op->mem_ratio;
 }
 
+void op_descriptor_fill_layer_args(struct generic_layer_args *args) {
+	if (!args->op)
+		return;
+	const op_descriptor *op = args->op;
+	g_assert(op->layer_hook != NULL);
+	g_assert(args->layer_hook == NULL);
+	g_assert(args->log_hook == NULL);
+	args->layer_hook = op->layer_hook;
+	args->log_hook = op->log_hook;             /* may be NULL */
+	if (!args->description)
+		args->description = _(op->description);
+	if (args->mem_ratio == 0.0f)
+		args->mem_ratio = op->mem_ratio;
+}
+
 /* ---------------------------------------------------------------------------
  * Registry — every descriptor in the codebase.  The array is generated from
  * the single canonical list in op_descriptors.def (the same list that produces

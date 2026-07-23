@@ -441,9 +441,8 @@ void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
 		 * mutation, so it goes through generic_layer_worker (stack writer
 		 * lock + multi-layer undo). */
 		struct generic_layer_args *largs = calloc(1, sizeof(struct generic_layer_args));
-		largs->layer_hook = icc_convert_flis_layer_hook;
+		largs->op = &op_desc_icc_convert;   /* fills layer_hook/log_hook/description */
 		largs->user = icc_args;
-		largs->description = _("ICC color space conversion");
 		largs->verbose = TRUE;
 		largs->idle_function = icc_convert_flis_idle;
 		if (!start_in_new_thread(generic_layer_worker, largs))

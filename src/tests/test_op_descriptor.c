@@ -59,9 +59,20 @@ Test(op_descriptor, registry_invariants) {
 		cr_assert(op != NULL, "descriptor %zu is NULL", i);
 		cr_assert(valid_id(op->id), "descriptor '%s' has malformed id", op->id ? op->id : "(null)");
 		cr_assert(op->version >= 1, "descriptor '%s' has version < 1", op->id);
-		/* exactly one of image_hook / mask_hook */
-		cr_assert((op->image_hook != NULL) != (op->mask_hook != NULL),
-		          "descriptor '%s' must have exactly one of image_hook/mask_hook", op->id);
+		/* Hook invariant (relaxed for the NDE layer_hook, sketch §11):
+		 * mask_hook is exclusive of the other two — a mask op is never also an
+		 * image/layer op — but image_hook and layer_hook MAY coexist on one
+		 * descriptor (the same logical op run on a plain image vs a FLIS
+		 * document; icc.convert is exactly this).  At least one hook must be
+		 * set. */
+		gboolean has_img   = op->image_hook != NULL;
+		gboolean has_mask  = op->mask_hook  != NULL;
+		gboolean has_layer = op->layer_hook != NULL;
+		cr_assert(has_img || has_mask || has_layer,
+		          "descriptor '%s' must set at least one hook", op->id);
+		if (has_mask)
+			cr_assert(!has_img && !has_layer,
+			          "descriptor '%s' mask_hook is exclusive of image/layer hooks", op->id);
 		cr_assert(op->description != NULL, "descriptor '%s' has NULL description", op->id);
 		/* NDE members: serialize/deserialize are paired — a descriptor that
 		 * can serialize its params must also be able to deserialize them, and
@@ -142,4 +153,47 @@ Test(op_descriptor, fill_asserts_on_double_hook, .signal = SIGABRT) {
 	args.op = &op_desc_test;
 	args.image_hook = dummy_image_hook;   /* both set → abort */
 	op_descriptor_fill_img_args(&args);
+}
+
+/* ------------------------------------------------------------------ *
+ *  Layer-args fill (NDE, steps 6-8 Part C)                           *
+ * ------------------------------------------------------------------ */
+
+static int dummy_layer_hook(struct generic_layer_args *a) { (void)a; return 0; }
+
+/* A descriptor that carries BOTH an image and a layer hook — the new
+ * coexistence invariant (icc.convert is real-world proof). */
+static const op_descriptor op_desc_layer_test = {
+	.id = "test.layerfill",
+	.version = 2,
+	.image_hook = dummy_image_hook,
+	.layer_hook = dummy_layer_hook,
+	.log_hook = dummy_log_hook,
+	.description = N_("Layer test op"),
+	.mem_ratio = 3.0f,
+};
+
+Test(op_descriptor, fill_layer_populates_from_descriptor) {
+	struct generic_layer_args args = { 0 };
+	args.op = &op_desc_layer_test;
+	op_descriptor_fill_layer_args(&args);
+	cr_assert(args.layer_hook == dummy_layer_hook);
+	cr_assert(args.log_hook == dummy_log_hook);
+	cr_assert_str_eq(args.description, _("Layer test op"));
+	cr_assert_float_eq(args.mem_ratio, 3.0f, 1e-6);
+}
+
+Test(op_descriptor, fill_layer_noop_when_no_op) {
+	struct generic_layer_args args = { 0 };
+	args.layer_hook = dummy_layer_hook;
+	op_descriptor_fill_layer_args(&args);   /* op == NULL → no-op, no assert */
+	cr_assert(args.layer_hook == dummy_layer_hook);
+	cr_assert(args.log_hook == NULL);
+}
+
+Test(op_descriptor, fill_layer_asserts_on_double_hook, .signal = SIGABRT) {
+	struct generic_layer_args args = { 0 };
+	args.op = &op_desc_layer_test;
+	args.layer_hook = dummy_layer_hook;   /* both set → abort */
+	op_descriptor_fill_layer_args(&args);
 }

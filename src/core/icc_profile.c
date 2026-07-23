@@ -49,7 +49,8 @@
  * go through icc_state_worker — so they have no descriptor. */
 const op_descriptor op_desc_icc_convert = {
 	.id = "icc.convert", .version = 1,
-	.image_hook = icc_convert_to_hook,
+	.image_hook = icc_convert_to_hook,        /* plain-image path */
+	.layer_hook = icc_convert_flis_layer_hook, /* FLIS-document path */
 	.log_hook = icc_convert_to_log_hook,
 	.description = N_("ICC color space conversion"),
 	.mem_ratio = 0.0f,

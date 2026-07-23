@@ -29,6 +29,8 @@
 #include "flis_test_helpers.h"
 #include "core/processing.h"
 #include "core/undo.h"
+#include "core/op_descriptor.h"
+#include "core/nde_history.h"
 
 cominfo com;
 fits *gfit;
@@ -123,4 +125,80 @@ Test(flis_worker, undo_saved_when_script_FALSE) {
 	generic_layer_worker(args);
 	cr_assert_eq(g_list_length(com.undo_stack), 1,
 	             "GUI mode: hook's undo_save should push exactly one entry");
+}
+
+/* ---- NDE descriptor-primary capture (steps 6-8 Part C) ---- */
+
+/* Descriptor without serialize → Tier-B capture; layer_hook succeeds. */
+static int nde_test_layer_hook(struct generic_layer_args *args) {
+	args->invalidate_item_id = 5;   /* pretend it targeted layer id 5 */
+	return 0;
+}
+static gchar *nde_test_log_hook(gpointer u, log_hook_detail d) {
+	(void)u; (void)d;
+	return g_strdup("test summary");
+}
+static const op_descriptor op_desc_test_layer = {
+	.id = "test.layer", .version = 3,
+	.layer_hook = nde_test_layer_hook,
+	.log_hook = nde_test_log_hook,
+	.description = "test layer op",
+	.mem_ratio = 0.0f,
+	.flags = 0,
+};
+
+/* args->op set → fill_layer_args populates layer_hook/log_hook/description
+ * and the worker appends a Tier-B provenance record on success. */
+Test(flis_worker, descriptor_layer_op_captures_record) {
+	flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "x");
+
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->op      = &op_desc_test_layer;   /* hooks come from the descriptor */
+	args->command = TRUE;
+
+	cr_assert_eq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+	cr_assert_eq(nde_history_live_count(), 1,
+	             "descriptor layer op must capture exactly one record");
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	nde_record *r = g_ptr_array_index(snap, 0);
+	cr_assert_str_eq(r->op_id, "test.layer");
+	cr_assert_eq(r->op_version, 3);
+	cr_assert_eq(r->tier, NDE_TIER_B, "no serialize → Tier B");
+	cr_assert_null(r->params);
+	cr_assert_str_eq(r->summary, "test summary");
+	cr_assert_eq(r->scope, NDE_SCOPE_DOCUMENT);
+	cr_assert_eq(r->target_item_id, 5);
+	g_ptr_array_unref(snap);
+}
+
+/* Legacy op (args->op == NULL) must NOT capture in the worker — those
+ * self-record at their own sites (Part A). */
+Test(flis_worker, legacy_layer_op_does_not_capture) {
+	flis_layer_t *l = flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "x");
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer      = l;
+	args->layer_hook = counter_hook;
+	struct counter_arg *u = calloc(1, sizeof(*u));
+	u->d = counter_arg_destroy;
+	args->user       = u;
+	args->command    = TRUE;
+
+	cr_assert_eq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+	cr_assert_eq(nde_history_live_count(), 0,
+	             "legacy op_hook path must not double-record in the worker");
+}
+
+/* Failed hook → no record. */
+Test(flis_worker, descriptor_layer_op_failure_no_record) {
+	flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "x");
+	static const op_descriptor op_desc_fail = {
+		.id = "test.fail", .version = 1,
+		.layer_hook = failing_hook,
+		.description = "failing op",
+	};
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->op      = &op_desc_fail;
+	args->command = TRUE;
+	cr_assert_eq(GPOINTER_TO_INT(generic_layer_worker(args)), 1);
+	cr_assert_eq(nde_history_live_count(), 0, "no record on failure");
 }

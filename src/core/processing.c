@@ -2176,7 +2176,12 @@ void free_generic_layer_args(struct generic_layer_args *args) {
 	if (!args) return;
 	if (args->user)
 		destroy_any_args(args->user);
-	g_free(args->description);
+	/* Legacy sites g_strdup() the description (owned); the descriptor-primary
+	 * path (op != NULL) borrows it from the descriptor via
+	 * op_descriptor_fill_layer_args() — mirroring free_generic_img_args, which
+	 * never frees the description — so only free it on the legacy path. */
+	if (!args->op)
+		g_free(args->description);
 	free(args);
 }
 
@@ -2236,6 +2241,12 @@ static gboolean end_generic_layer(gpointer p) {
 
 gpointer generic_layer_worker(gpointer p) {
 	struct generic_layer_args *args = (struct generic_layer_args *)p;
+
+	/* Descriptor-primary path: fill layer_hook/log_hook/description/mem_ratio
+	 * from args->op.  No-op when args->op == NULL (the legacy path used by the
+	 * self-recording FLIS op_hooks). */
+	op_descriptor_fill_layer_args(args);
+
 	assert(args && args->layer_hook);
 
 	struct timeval t_start, t_end;
@@ -2271,6 +2282,40 @@ gpointer generic_layer_worker(gpointer p) {
 	}
 
 	int retval = args->retval;
+
+	/* NDE provenance capture (sketch §13.1/§13.2) — descriptor-primary layer
+	 * ops only.  Gated on args->op != NULL: legacy FLIS op_hooks (op == NULL)
+	 * self-record at their intent/backend sites (Part A) and must NOT be
+	 * double-recorded here.  Today only icc.convert reaches this branch.  The
+	 * stack writer lock is already released; end_generic_layer (scheduled
+	 * below) frees args, so capture here.  Skip on failure — the hook did not
+	 * validly mutate the document. */
+	gint64 nde_rec_id = 0;
+	if (!retval && args->op) {
+		const op_descriptor *op = args->op;
+		gboolean tier_a = op->serialize != NULL;   /* none today → Tier B */
+		nde_record *rec = nde_record_new();
+		rec->op_id = g_strdup(op->id ? op->id : "opaque.unknown");
+		rec->op_version = op->version;
+		rec->tier = tier_a ? NDE_TIER_A : NDE_TIER_B;
+		rec->params = tier_a ? op->serialize(args->user) : NULL;
+		rec->summary = args->log_hook ?
+				args->log_hook(args->user, SUMMARY) : g_strdup(args->description);
+		/* Layer-worker ops act on the whole document. */
+		rec->scope = NDE_SCOPE_DOCUMENT;
+		rec->target_item_id = (args->invalidate_item_id > 0) ?
+				args->invalidate_item_id : -1;
+		rec->mask_active = FALSE;
+		rec->timestamp = nde_iso8601_now();
+		rec->impl = nde_impl_string();
+		nde_rec_id = nde_history_append(rec);
+		nde_history_notify_panel();
+		/* icc_convert_flis_layer_hook saved a multi-layer undo entry (gated on
+		 * com.script — verified); couple it so undo/redo moves live_count.
+		 * Same com.script guard the undo save used. */
+		if (!com.script)
+			undo_tag_top_nde_record(nde_rec_id);
+	}
 
 	if (retval) {
 		gui_iface.set_progress(PROGRESS_RESET, _("Layer processing failed. Check the log."));

@@ -279,11 +279,17 @@ gboolean end_generic_sequence(gpointer p);
 struct generic_layer_args {
 	destructor    destroy_fn;       /* first field: NULL or destructor for this struct
 	                                 * if it is itself passed as args->user elsewhere */
+	const struct op_descriptor *op; /* descriptor-primary path: when set,
+	                                 * op_descriptor_fill_layer_args() fills
+	                                 * layer_hook/log_hook/description/mem_ratio
+	                                 * and the worker captures a provenance
+	                                 * record.  NULL = legacy path (hook set
+	                                 * directly; self-recording FLIS op_hooks). */
 	flis_layer_t *layer;            /* primary target layer (may be NULL
 	                                 * for multi-layer operations where
 	                                 * args->user carries the list) */
 	int         (*layer_hook)(struct generic_layer_args *args);
-	gchar      *(*log_hook)(gpointer user, int type); /* log_hook_detail */
+	gchar      *(*log_hook)(gpointer, log_hook_detail); /* DETAILED + SUMMARY */
 	gpointer      user;             /* op-specific data; freed via
 	                                 * destroy_any_args(user) by
 	                                 * free_generic_layer_args */

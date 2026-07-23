@@ -27,6 +27,7 @@ extern "C" {
 
 struct generic_img_args;
 struct generic_mask_args;
+struct generic_layer_args;
 
 typedef enum {
 	OP_MASK_CAPABLE      = 1 << 0,  /* op supports mask-aware application */
@@ -43,6 +44,7 @@ typedef struct op_descriptor {
 	/* per-op invariants; the worker fills args from these */
 	int       (*image_hook)(struct generic_img_args *, fits *, int);
 	int       (*mask_hook)(struct generic_mask_args *);  /* mask ops only; else NULL */
+	int       (*layer_hook)(struct generic_layer_args *); /* FLIS-document ops; else NULL */
 	gchar    *(*log_hook)(gpointer, log_hook_detail);
 	const char *description;  /* N_() msgid — translated by the worker at fill time */
 	float       mem_ratio;    /* default; args->mem_ratio != 0 overrides */
@@ -60,6 +62,7 @@ typedef struct op_descriptor {
  * worker so the unit test can exercise the fill semantics directly. */
 void op_descriptor_fill_img_args(struct generic_img_args *args);
 void op_descriptor_fill_mask_args(struct generic_mask_args *args);
+void op_descriptor_fill_layer_args(struct generic_layer_args *args);
 
 /* Enumerate every descriptor (for tests and the NDE by-id registry). */
 const op_descriptor *const *op_descriptor_all(size_t *count);
