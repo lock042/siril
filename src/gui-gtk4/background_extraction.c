@@ -22,6 +22,7 @@
 #include "core/op_descriptors.h"
 #include "core/undo.h"
 #include "core/nde_history.h"
+#include "core/nde_checkpoint.h"
 #include "core/processing.h"
 #include "core/processing_thread.h"
 #include "algos/background_extraction.h"
@@ -480,6 +481,10 @@ void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
 			struct background_data applied = { 0 };
 			fill_background_data_from_ui(&applied, get_background_method());
 			applied.correction = bkg_view_correction;
+			/* NDE baseline (phase 2): the preview backup holds the pre-op pixels. */
+			fits *nde_base = get_preview_gfit_backup();
+			if (nde_base)
+				nde_checkpoint_baseline_ensure(nde_base, nde_checkpoint_active_item_id());
 			gint64 rid = nde_capture_from_descriptor(&op_desc_remove_gradient,
 					&applied, summary);
 			if (!undo_save_state(get_preview_gfit_backup(), "%s", summary))

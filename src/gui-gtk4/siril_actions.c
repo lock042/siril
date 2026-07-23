@@ -25,6 +25,7 @@
 #include "core/processing.h"
 #include "core/undo.h"
 #include "core/nde_history.h"
+#include "core/nde_checkpoint.h"
 #include "core/masks.h"
 #include "io/image_format_flis.h"
 #include "gui-gtk4/mpp_ap_editor.h"
@@ -1029,14 +1030,14 @@ void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointe
  * is recorded ONLY once rgb_align returns success (0), tagging the entry saved
  * just above.  @summary is the same label used for the undo entry. */
 static void rgb_align_and_capture(int method, int undo_err, const char *summary) {
+	gint target = nde_checkpoint_active_item_id();
+	/* NDE baseline (phase 2): snapshot gfit's pre-op pixels BEFORE the
+	 * direct-apply mutation.  A stray baseline for an item with no live
+	 * record (rgb_align failure) is never persisted — the saver/loader gate
+	 * on live records — so ensuring first is safe. */
+	nde_checkpoint_baseline_ensure(gfit, target);
 	if (rgb_align(method))
 		return;   /* failure: pixels unchanged, no provenance */
-	gint target = -1;
-	if (is_current_image_flis()) {
-		flis_layer_t *lay = flis_active_layer();
-		if (lay)
-			target = lay->item_id;
-	}
 	gint64 rid = nde_capture_opaque("color.rgb_align", NDE_SCOPE_LAYER,
 			target, summary);
 	if (!undo_err)

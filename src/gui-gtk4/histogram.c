@@ -41,6 +41,7 @@
 #include "gui-gtk4/siril_preview.h"
 #include "core/undo.h"
 #include "core/nde_history.h"
+#include "core/nde_checkpoint.h"
 #include "histogram.h"
 #include "histogram_utils.h"
 
@@ -1339,6 +1340,11 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 
 			// Prepare undo state with separate ICC snapshot
 			fits *backup = get_preview_gfit_backup();
+
+			/* NDE baseline (phase 2): the preview backup holds the pre-stretch
+			 * pixels for this item — the baseline for replaying its chain. */
+			if (backup)
+				nde_checkpoint_baseline_ensure(backup, nde_checkpoint_active_item_id());
 
 			gchar *log_string = NULL;
 			/* NDE provenance capture for this preview-on / non-ROI

@@ -33,6 +33,7 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/nde_history.h"
+#include "core/nde_checkpoint.h"
 #include "core/op_descriptor.h"
 #include "core/siril_log.h"
 #include "core/sequence_filtering.h"
@@ -1872,6 +1873,11 @@ the_end:;
 		rec->mask_active = using_mask;
 		rec->timestamp = nde_iso8601_now();
 		rec->impl = nde_impl_string();
+		/* Baseline checkpoint (nde phase 2): after the swap, `orig` holds the
+		 * pre-op pixels — the baseline for replaying this item's chain.  Cheap
+		 * no-op if one already exists.  Prepared outside the leaf mutex. */
+		if (orig)
+			nde_checkpoint_baseline_ensure(orig, rec->target_item_id);
 		nde_rec_id = nde_history_append(rec);
 		nde_history_notify_panel();
 	}

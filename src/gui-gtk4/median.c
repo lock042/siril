@@ -28,6 +28,7 @@
 #include "core/siril_log.h"
 #include "core/undo.h"
 #include "core/nde_history.h"
+#include "core/nde_checkpoint.h"
 #include "filters/median.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
@@ -149,8 +150,13 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 		 * false), so it captures nothing: this manual save is then the sole
 		 * commit point and we capture here.  Capture before the save. */
 		gint64 rid = 0;
-		if (gui.roi.active)
+		if (gui.roi.active) {
+			/* NDE baseline (phase 2): copy_backup_to_gfit() above restored the
+			 * pre-op whole-image pixels into gfit — the baseline for this item.
+			 * The full-image (non-ROI) path is baselined by the worker itself. */
+			nde_checkpoint_baseline_ensure(gfit, nde_checkpoint_active_item_id());
 			rid = nde_capture_from_descriptor(&op_desc_median, params, summary);
+		}
 		if (!undo_save_state(gfit, "%s", summary) && gui.roi.active)
 			undo_tag_top_nde_record(rid);
 		siril_log_info(_("Median Filter (filter=%dx%d px, iterations=%d, modulation=%.3lf)\n"),

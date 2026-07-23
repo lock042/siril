@@ -42,6 +42,7 @@
 
 #include "core/op_descriptors.h"
 #include "core/nde_history.h"
+#include "core/nde_checkpoint.h"
 
 /* Op descriptor for ICC colour-space conversion, the one ICC op that still
  * rewrites pixels through generic_image_worker (non-FLIS path). The site flags
@@ -1852,6 +1853,13 @@ int icc_convert_to_hook(struct generic_img_args *gargs, fits *fit, int threads) 
 				_("Converted to ICC profile: %s"), prof_desc ? prof_desc : "?");
 	}
 	gargs->skip_generic_undo = TRUE;
+
+	/* NDE baseline (phase 2): this hook runs with skip_generic_undo set, so the
+	 * worker's own capture block never fires — capture the baseline here, from
+	 * @fit's pre-op pixels, BEFORE the transform below.  Same condition as the
+	 * provenance capture further down (document image, not a preview copy). */
+	if (!gargs->for_preview && gargs->fit == gfit)
+		nde_checkpoint_baseline_ensure(fit, nde_checkpoint_active_item_id());
 
 	cmsUInt32Number temp_intent = com.pref.icc.processing_intent;
 	com.pref.icc.processing_intent = args->intent;

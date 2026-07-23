@@ -29,6 +29,7 @@
 #include "core/siril_log.h"
 #include "core/undo.h"
 #include "core/nde_history.h"
+#include "core/nde_checkpoint.h"
 #include "core/op_descriptors.h"
 #include "core/OS_utils.h"
 #include "io/image_format_flis.h"
@@ -165,6 +166,9 @@ void on_button_bkg_neutralization_clicked(GtkButton *button, gpointer user_data)
 	int undo_err = undo_save_state(gfit, _("Background neutralization"));
 
 	set_cursor_waiting(TRUE);
+	/* NDE baseline (phase 2): direct-apply — snapshot gfit's pre-op pixels
+	 * BEFORE the void mutation below. */
+	nde_checkpoint_baseline_ensure(gfit, nde_active_layer_target());
 	background_neutralize(gfit, black_selection);
 	gint64 rid = nde_capture_opaque("color.background_neutralization",
 			NDE_SCOPE_LAYER, nde_active_layer_target(),
@@ -299,6 +303,8 @@ void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) 
 	/* Direct-apply colour tool: sole commit point (no worker).  white_balance
 	 * is void — capture after it succeeds and tag the entry saved just above. */
 	int undo_err = undo_save_state(gfit, _("Color Calibration"));
+	/* NDE baseline (phase 2): direct-apply — snapshot pre-op pixels first. */
+	nde_checkpoint_baseline_ensure(gfit, nde_active_layer_target());
 	white_balance(gfit, is_manual, white_selection, black_selection);
 	gint64 rid = nde_capture_opaque("color.calibration", NDE_SCOPE_LAYER,
 			nde_active_layer_target(), _("Color Calibration"));
@@ -356,6 +362,8 @@ void negative_processing() {
 	 * serializer-less/paramless, so params NULL yields a Tier B record. */
 	int undo_err = undo_save_state(gfit, _("Negative Transformation"));
 	siril_log_info(_("Negative Transformation\n"));
+	/* NDE baseline (phase 2): direct-apply — snapshot pre-op pixels first. */
+	nde_checkpoint_baseline_ensure(gfit, nde_active_layer_target());
 	pos_to_neg(gfit);
 	gint64 rid = nde_capture_from_descriptor(&op_desc_neg, NULL,
 			_("Negative Transformation"));

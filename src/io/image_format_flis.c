@@ -64,6 +64,7 @@
 #include "core/icc_profile.h"
 #include "core/masks.h"
 #include "core/nde_history.h"
+#include "core/nde_checkpoint.h"
 #include "core/undo.h"
 #include "algos/statistics.h"
 #include "core/gui_iface.h"
@@ -3348,6 +3349,9 @@ int flis_addlayer_hook(struct generic_layer_args *args) {
     g_free(base);
     nde_capture_structural("layer.add", NDE_SCOPE_DOCUMENT, added->item_id,
                            nde_kv_end(kv), _("Add layer"));
+    /* NDE baseline (phase 2): a new layer's baseline is its pixels at add. */
+    if (added->fit)
+        nde_checkpoint_baseline_ensure(added->fit, added->item_id);
     return 0;
 }
 
@@ -3858,6 +3862,8 @@ int flis_layer_remove(flis_layer_t *layer) {
 
     siril_log_message(_("FLIS: removed layer '%s'\n"),
                       layer->layer_name ? layer->layer_name : "?");
+    /* NDE baseline (phase 2): drop the removed layer's baseline checkpoint. */
+    nde_checkpoint_drop(layer->item_id);
     flis_layer_free(layer);
     return 0;
 }

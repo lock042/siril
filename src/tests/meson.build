@@ -306,6 +306,14 @@ if criterion_dep.found()
                                 cpp_args : siril_cpp_flag)
      test('test_nde_replay', test_nde_replay_exec, suite: 'flis')
 
+     test_nde_checkpoint_exec = executable('test_nde_checkpoint',
+                                'test_nde_checkpoint.c',
+                                dependencies : [siril_dep, criterion_dep],
+                                link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                c_args : siril_c_flag,
+                                cpp_args : siril_cpp_flag)
+     test('test_nde_checkpoint', test_nde_checkpoint_exec, suite: 'flis')
+
      test_nde_persist_exec = executable('test_nde_persist',
                                 'test_nde_persist.c',
                                 dependencies : [siril_dep, criterion_dep],

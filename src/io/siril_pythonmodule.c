@@ -34,6 +34,7 @@
 #include "core/OS_utils.h"
 #include "core/processing.h"
 #include "core/nde_history.h"
+#include "core/nde_checkpoint.h"
 #include "core/siril_log.h"
 #include "core/siril_update.h"
 #include "core/siril_app_dirs.h"
@@ -684,6 +685,15 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 			return FALSE;
 		}
 	#endif
+
+	/* NDE baseline (phase 2): a script is about to overwrite the document's
+	 * pixels — snapshot the pre-op pixels NOW, before the free below wipes
+	 * them.  Only for the document image (fit == gfit).  The record captured
+	 * further down is Tier B (opaque), so this baseline is never used for
+	 * replay of the python step itself, but it seeds the item's checkpoint
+	 * for any Tier-A op captured after it. */
+	if (fit == gfit)
+		nde_checkpoint_baseline_ensure(fit, nde_checkpoint_active_item_id());
 
 	// Allocate new image buffer
 	fit->type = DATA_UNSUPPORTED; // prevents a potential crash in on_drawingarea_motion_notify_event while we are messing with gfit

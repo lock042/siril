@@ -93,6 +93,7 @@ src_files = [
   'core/icc_profile.c',
   'core/initfile.c',
   'core/masks.c',
+  'core/nde_checkpoint.c',
   'core/nde_history.c',
   'core/op_descriptor.c',
   'core/OS_utils.c',

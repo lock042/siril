@@ -28,6 +28,7 @@
 #include "core/gui_iface.h"
 #include "core/op_descriptor.h"
 #include "core/nde_history.h"
+#include "core/nde_checkpoint.h"
 #include "io/image_format_flis.h"
 
 /* Leaf lock guarding the CURRENT document's log (com.uniq->nde_history and
@@ -206,6 +207,11 @@ guint nde_history_live_count(void) {
 }
 
 void nde_history_attach(nde_history *h) {
+	/* The document's log is being replaced (load / close / new document),
+	 * so its in-session baselines no longer describe anything — drop them.
+	 * The FLIS loader adopts fresh NDE_BASE baselines AFTER this call.
+	 * Purge is a separate LEAF lock, taken outside the nde history mutex. */
+	nde_checkpoint_purge();
 	if (!com.uniq) {
 		nde_history_free(h);
 		return;
