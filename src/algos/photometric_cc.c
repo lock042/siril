@@ -45,6 +45,18 @@
 #include "io/remote_catalogues.h"
 #include "core/gui_iface.h"
 #include "photometric_cc.h"
+#include "core/op_descriptors.h"
+
+/* Op descriptor — PCC and SPCC are the same logical op; sites keep the
+ * spectro?"SPCC":"PCC" ternary as a per-site description override. */
+const op_descriptor op_desc_photometric_cc = {
+	.id = "color.photometric_cc", .version = 1,
+	.image_hook = photometric_cc_image_hook,
+	.log_hook = photometric_cc_log_hook,
+	.description = N_("PCC"),
+	.mem_ratio = 0.0f,
+	.flags = 0,
+};
 
 static const cmsCIEXYZ D65 = {0.95045471, 1.0, 1.08905029};
 static const cmsCIEXYZ D50 = {0.964199999, 1.000000000, 0.824899998};
