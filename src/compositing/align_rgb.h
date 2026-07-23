@@ -21,6 +21,7 @@
 #ifndef SRC_COMPOSITING_ALIGN_RGB_H_
 #define SRC_COMPOSITING_ALIGN_RGB_H_
 
-void rgb_align(int m);
+/* Returns 0 on success; non-zero on failure (pixels left unchanged). */
+int rgb_align(int m);
 
 #endif /* SRC_COMPOSITING_ALIGN_RGB_H_ */

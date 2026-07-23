@@ -24,7 +24,9 @@
 #include "core/command.h"
 #include "core/processing.h"
 #include "core/undo.h"
+#include "core/nde_history.h"
 #include "core/masks.h"
+#include "io/image_format_flis.h"
 #include "gui-gtk4/mpp_ap_editor.h"
 #include "core/siril_update.h"
 #include "gui-gtk4/siril_cmd_help.h"
@@ -1021,28 +1023,52 @@ void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointe
 		free_generic_img_args(args);
 }
 
+/* RGB channel alignment shares a direct-apply path (no generic_image_worker),
+ * so the menu handler's undo_save_state is the sole commit point.  The save is
+ * taken before rgb_align() (which has failure/early-return paths), so provenance
+ * is recorded ONLY once rgb_align returns success (0), tagging the entry saved
+ * just above.  @summary is the same label used for the undo entry. */
+static void rgb_align_and_capture(int method, int undo_err, const char *summary) {
+	if (rgb_align(method))
+		return;   /* failure: pixels unchanged, no provenance */
+	gint target = -1;
+	if (is_current_image_flis()) {
+		flis_layer_t *lay = flis_active_layer();
+		if (lay)
+			target = lay->item_id;
+	}
+	gint64 rid = nde_capture_opaque("color.rgb_align", NDE_SCOPE_LAYER,
+			target, summary);
+	if (!undo_err)
+		undo_tag_top_nde_record(rid);
+}
+
 void align_dft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	undo_save_state(gfit, _("RGB alignment (DFT)"));
-	rgb_align(1);
+	const char *summary = _("RGB alignment (DFT)");
+	int undo_err = undo_save_state(gfit, "%s", summary);
+	rgb_align_and_capture(1, undo_err, summary);
 }
 
 void align_global_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	undo_save_state(gfit, _("RGB alignment (Global stars)"));
-	rgb_align(2);
+	const char *summary = _("RGB alignment (Global stars)");
+	int undo_err = undo_save_state(gfit, "%s", summary);
+	rgb_align_and_capture(2, undo_err, summary);
 }
 
 void align_kombat_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	undo_save_state(gfit, _("RGB alignment (KOMBAT)"));
-	rgb_align(3);
+	const char *summary = _("RGB alignment (KOMBAT)");
+	int undo_err = undo_save_state(gfit, "%s", summary);
+	rgb_align_and_capture(3, undo_err, summary);
 }
 
 void align_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	undo_save_state(gfit, _("RGB alignment (PSF)"));
+	const char *summary = _("RGB alignment (PSF)");
+	int undo_err = undo_save_state(gfit, "%s", summary);
 	if (com.selection.w > 300 || com.selection.h > 300) {
 		siril_log_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
 		return;
 	}
-	rgb_align(0);
+	rgb_align_and_capture(0, undo_err, summary);
 }
 
 void icc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

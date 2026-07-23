@@ -28,7 +28,10 @@
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "core/undo.h"
+#include "core/nde_history.h"
+#include "core/op_descriptors.h"
 #include "core/OS_utils.h"
+#include "io/image_format_flis.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
@@ -116,6 +119,17 @@ void initialize_calibration_interface() {
 	gtk_adjustment_set_value(selection_white_adjustment[3], 0);
 }
 
+/* Active FLIS layer item_id for provenance targeting, or -1 for a plain
+ * image (same idiom as the python pixel/mask capture sites). */
+static gint nde_active_layer_target(void) {
+	if (is_current_image_flis()) {
+		flis_layer_t *lay = flis_active_layer();
+		if (lay)
+			return lay->item_id;
+	}
+	return -1;
+}
+
 void on_button_bkg_neutralization_clicked(GtkButton *button, gpointer user_data) {
 	static GtkSpinButton *selection_black_value[4] = { NULL, NULL, NULL, NULL };
 	rectangle black_selection;
@@ -144,10 +158,19 @@ void on_button_bkg_neutralization_clicked(GtkButton *button, gpointer user_data)
 	black_selection.w = gtk_spin_button_get_value(selection_black_value[2]);
 	black_selection.h = gtk_spin_button_get_value(selection_black_value[3]);
 
-	undo_save_state(gfit, _("Background neutralization"));
+	/* Direct-apply colour tool: no generic_image_worker runs, so this is
+	 * the sole commit point.  undo_save_state is called before the mutation
+	 * (background_neutralize is void — no failure path after it), so capture
+	 * once the pixels have changed and tag the entry saved just above. */
+	int undo_err = undo_save_state(gfit, _("Background neutralization"));
 
 	set_cursor_waiting(TRUE);
 	background_neutralize(gfit, black_selection);
+	gint64 rid = nde_capture_opaque("color.background_neutralization",
+			NDE_SCOPE_LAYER, nde_active_layer_target(),
+			_("Background neutralization"));
+	if (!undo_err)
+		undo_tag_top_nde_record(rid);
 	populate_roi();
 	delete_selected_area();
 
@@ -273,8 +296,14 @@ void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) 
 	}
 
 	set_cursor_waiting(TRUE);
-	undo_save_state(gfit, _("Color Calibration"));
+	/* Direct-apply colour tool: sole commit point (no worker).  white_balance
+	 * is void — capture after it succeeds and tag the entry saved just above. */
+	int undo_err = undo_save_state(gfit, _("Color Calibration"));
 	white_balance(gfit, is_manual, white_selection, black_selection);
+	gint64 rid = nde_capture_opaque("color.calibration", NDE_SCOPE_LAYER,
+			nde_active_layer_target(), _("Color Calibration"));
+	if (!undo_err)
+		undo_tag_top_nde_record(rid);
 
 	gettimeofday(&t_end, NULL);
 
@@ -321,9 +350,17 @@ void on_checkbutton_manual_calibration_toggled(GtkCheckButton *togglebutton,
 
 void negative_processing() {
 	set_cursor_waiting(TRUE);
-	undo_save_state(gfit, _("Negative Transformation"));
+	/* Direct-apply of the same op as the neg command's hook (arith.neg): no
+	 * worker runs here, so this is the sole commit point.  pos_to_neg is void
+	 * — capture after it and tag the entry saved just above.  The op is
+	 * serializer-less/paramless, so params NULL yields a Tier B record. */
+	int undo_err = undo_save_state(gfit, _("Negative Transformation"));
 	siril_log_info(_("Negative Transformation\n"));
 	pos_to_neg(gfit);
+	gint64 rid = nde_capture_from_descriptor(&op_desc_neg, NULL,
+			_("Negative Transformation"));
+	if (!undo_err)
+		undo_tag_top_nde_record(rid);
 	invalidate_stats_from_fit(gfit);
 	invalidate_gfit_histogram();
 	update_gfit_histogram_if_needed();

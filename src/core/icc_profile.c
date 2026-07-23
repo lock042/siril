@@ -41,6 +41,7 @@
 #endif
 
 #include "core/op_descriptors.h"
+#include "core/nde_history.h"
 
 /* Op descriptor for ICC colour-space conversion, the one ICC op that still
  * rewrites pixels through generic_image_worker (non-FLIS path). The site flags
@@ -1839,9 +1840,15 @@ int icc_convert_to_hook(struct generic_img_args *gargs, fits *fit, int threads) 
 
 	/* Pixels and profile must revert together: save the combined entry
 	 * now, while @fit still holds the pre-op pixels and com.uniq still
-	 * holds the pre-op profile. */
-	if (!com.script && !gargs->for_preview && gargs->fit == gfit) {
-		undo_save_state_with_icc(fit, src_profile,
+	 * holds the pre-op profile.  This hook is the sole commit point for
+	 * plain images (GUI and command alike — both reach it via
+	 * generic_image_worker with skip_generic_undo, so the worker records
+	 * nothing).  FLIS documents convert through the layer hook, which the
+	 * layer worker captures — so no capture here for them. */
+	gboolean save_undo = !com.script && !gargs->for_preview && gargs->fit == gfit;
+	int undo_err = 0;
+	if (save_undo) {
+		undo_err = undo_save_state_with_icc(fit, src_profile,
 				_("Converted to ICC profile: %s"), prof_desc ? prof_desc : "?");
 	}
 	gargs->skip_generic_undo = TRUE;
@@ -1870,10 +1877,19 @@ int icc_convert_to_hook(struct generic_img_args *gargs, fits *fit, int threads) 
 	 * (the guard above requires it), so the call would only buy a
 	 * pointless main-thread hop for the unchanged status icon. */
 	current_image_set_icc_profile(copyICCProfile(args->profile));
-	fit->history = g_slist_append(fit->history,
-			g_strdup_printf(_("Converted to ICC profile: %s"), prof_desc ? prof_desc : "?"));
+	gchar *summary = g_strdup_printf(_("Converted to ICC profile: %s"), prof_desc ? prof_desc : "?");
+	fit->history = g_slist_append(fit->history, g_strdup(summary));
 	g_free(prof_desc);
 	refresh_icc_transforms();
+	/* NDE provenance: only now, after the transform succeeded and on the
+	 * same swap-path condition as the undo save above (never on preview or
+	 * a private working copy).  icc.convert is serializer-less → Tier B. */
+	if (save_undo) {
+		gint64 rid = nde_capture_from_descriptor(&op_desc_icc_convert, NULL, summary);
+		if (!undo_err)
+			undo_tag_top_nde_record(rid);
+	}
+	g_free(summary);
 	return 0;
 }
 
