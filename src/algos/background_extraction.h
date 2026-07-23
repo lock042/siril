@@ -90,6 +90,8 @@ void apply_background_extraction_to_sequence(struct background_data *background_
 void free_background_data(void *p);
 int remove_gradient_image_hook(struct generic_img_args *gargs, fits *fit, int threads);
 gchar *remove_gradient_log_hook(gpointer p, log_hook_detail detail);
+/* Op descriptor (op_descriptor.h) */
+extern const struct op_descriptor op_desc_remove_gradient;
 
 gboolean background_sample_is_valid(background_sample *sample);
 gdouble background_sample_get_size(background_sample *sample);

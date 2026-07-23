@@ -12,6 +12,17 @@
 #include "algos/statistics.h"
 
 #include "asinh.h"
+#include "core/op_descriptor.h"
+
+/* Op descriptor — single source of truth for this operation (op_descriptor.h) */
+const op_descriptor op_desc_asinh = {
+	.id = "stretch.asinh", .version = 1,
+	.image_hook = asinh_image_hook,
+	.log_hook = asinh_log_hook,
+	.description = N_("Asinh stretch"),
+	.mem_ratio = 1.0f,
+	.flags = OP_MASK_CAPABLE,
+};
 
 /* The actual asinh processing hook */
 int asinh_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {

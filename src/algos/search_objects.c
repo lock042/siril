@@ -30,6 +30,17 @@
 #include "algos/siril_wcs.h"
 #include "algos/astrometry_solver.h"
 #include "io/remote_catalogues.h"
+#include "core/op_descriptor.h"
+
+/* Op descriptor for the catalog-search command. */
+const op_descriptor op_desc_catsearch = {
+	.id = "catalog.search", .version = 1,
+	.image_hook = catsearch_image_hook,
+	.log_hook = catsearch_log_hook,
+	.description = N_("Catalog search"),
+	.mem_ratio = 1.0f,
+	.flags = 0,
+};
 
 
 /* parse response from online catalogue lookups (search_in_online_catalogs()

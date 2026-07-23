@@ -25,6 +25,18 @@
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
 #include <math.h>
+#include "core/op_descriptor.h"
+
+/* Op descriptor — single source of truth for this operation (op_descriptor.h).
+ * curve_transform.h (included above) declares the hooks referenced here. */
+const op_descriptor op_desc_curves = {
+	.id = "stretch.curves", .version = 1,
+	.image_hook = curve_image_hook,
+	.log_hook = curves_log_hook,
+	.description = N_("Curve Transformation"),
+	.mem_ratio = 2.0f,
+	.flags = 0,
+};
 
 /*****************************************************************************
  *      C U R V E      A L L O C A T O R   A N D   D E S T R U C T O R      *

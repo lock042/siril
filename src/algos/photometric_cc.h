@@ -61,6 +61,8 @@ int photometric_cc(struct photometric_cc_data *args);
 void free_photometric_cc_data(void *p);
 int photometric_cc_image_hook(struct generic_img_args *args, fits *fit, int threads);
 gchar *photometric_cc_log_hook(gpointer p, log_hook_detail detail);
+/* Op descriptor (op_descriptor.h) */
+extern const struct op_descriptor op_desc_photometric_cc;
 int get_favourite_spccobject(GList *list, const gchar *favourite);
 int get_favourite_oscsensor(GList *list, const gchar *favourite);
 int make_selection_around_a_star(cat_item *star, rectangle *area, fits *fit, struct phot_config *pset);

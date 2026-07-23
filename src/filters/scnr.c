@@ -26,6 +26,17 @@
 #include "algos/colors.h"
 
 #include "scnr.h"
+#include "core/op_descriptor.h"
+
+/* Op descriptor — single source of truth for this operation (op_descriptor.h) */
+const op_descriptor op_desc_scnr = {
+	.id = "filters.scnr", .version = 1,
+	.image_hook = scnr_image_hook,
+	.log_hook = scnr_log_hook,
+	.description = N_("SCNR"),
+	.mem_ratio = 1.5f,
+	.flags = OP_MASK_CAPABLE,
+};
 
 const char *scnr_type_to_string(scnr_type t) {
 	switch (t) {

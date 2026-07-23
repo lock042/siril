@@ -36,6 +36,27 @@
 #include "opencv/opencv.h"
 
 #include "cosmetic_correction.h"
+#include "core/op_descriptor.h"
+
+/* Op descriptors — single source of truth for these ops (op_descriptor.h) */
+const op_descriptor op_desc_cosmetic = {
+	.id = "filters.cosmetic", .version = 1,
+	.image_hook = cosmetic_image_hook_generic,
+	.log_hook = cosmetic_log_hook,
+	.description = N_("Cosmetic Correction"),
+	.mem_ratio = 0.0f,
+	.flags = 0,
+};
+
+const op_descriptor op_desc_cosme = {
+	.id = "filters.cosme", .version = 1,
+	.image_hook = cosme_image_hook_generic,
+	.log_hook = cosme_log_hook,
+	.description = N_("Cosmetic Correction"),
+	.mem_ratio = 1.0f,
+	.flags = 0,
+};
+
 static int autoDetect(fits *fit, int layer, const double sig[2], long *icold, long *ihot,
 		double amount, gboolean is_cfa, threading_type threads);
 

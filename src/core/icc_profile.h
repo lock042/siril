@@ -127,4 +127,9 @@ gchar *icc_assign_log_hook(gpointer p, log_hook_detail detail);
 int icc_convert_to_hook(struct generic_img_args *args, fits *fit, int threads);
 gchar *icc_convert_to_log_hook(gpointer p, log_hook_detail detail);
 
+/* Op descriptors (op_descriptor.h) */
+extern const struct op_descriptor op_desc_icc_assign;
+extern const struct op_descriptor op_desc_icc_convert;
+extern const struct op_descriptor op_desc_icc_remove;
+
 #endif /* SRC_CORE_ICC_PROFILE_H_ */

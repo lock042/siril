@@ -31,6 +31,42 @@
 #include "io/sequence.h"
 #include "io/fits_keywords.h"
 #include "extraction.h"
+#include "core/op_descriptor.h"
+
+/* Op descriptors — the four single-image CFA extractions are distinct logical
+ * ops sharing cfa_extract_image_hook (the mode lives in the user data). No log
+ * hook; measurement/output-only (sites set skip_generic_undo per invocation). */
+const op_descriptor op_desc_cfa_split = {
+	.id = "cfa.split", .version = 1,
+	.image_hook = cfa_extract_image_hook,
+	.description = N_("Split CFA"),
+	.mem_ratio = 0.0f,
+	.flags = 0,
+};
+
+const op_descriptor op_desc_cfa_extract_green = {
+	.id = "cfa.extract_green", .version = 1,
+	.image_hook = cfa_extract_image_hook,
+	.description = N_("Extract Green"),
+	.mem_ratio = 0.0f,
+	.flags = 0,
+};
+
+const op_descriptor op_desc_cfa_extract_ha = {
+	.id = "cfa.extract_ha", .version = 1,
+	.image_hook = cfa_extract_image_hook,
+	.description = N_("Extract Ha"),
+	.mem_ratio = 0.0f,
+	.flags = 0,
+};
+
+const op_descriptor op_desc_cfa_extract_haoiii = {
+	.id = "cfa.extract_haoiii", .version = 1,
+	.image_hook = cfa_extract_image_hook,
+	.description = N_("Extract Ha/OIII"),
+	.mem_ratio = 0.0f,
+	.flags = 0,
+};
 
 /******************************************************************************
  * Note for maintainers: do not use the translation macro on the following    *

@@ -984,9 +984,7 @@ void star_desaturate_activate(GSimpleAction *action, GVariant *parameter, gpoint
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
-	args->image_hook = unclip_image_hook;
-	args->log_hook = unclip_log_hook;
-	args->description = _("Unclip stars");
+	args->op = &op_desc_unclip;
 	args->verbose = TRUE;
 	if (!start_in_new_thread(generic_image_worker, args))
 		free_generic_img_args(args);
@@ -999,9 +997,7 @@ void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointe
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
-	args->image_hook = synthstar_image_hook;
-	args->log_hook = synthstar_log_hook;
-	args->description = _("Synthetic stars");
+	args->op = &op_desc_synthstar;
 	args->verbose = TRUE;
 	if (!start_in_new_thread(generic_image_worker, args))
 		free_generic_img_args(args);
@@ -1099,8 +1095,7 @@ void clear_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit = gfit;
-	args->mask_hook = mask_clear_hook;
-	args->description = _("Clear mask");
+	args->op = &op_desc_mask_clear;
 	args->verbose = TRUE;
 	args->max_threads = com.max_thread;
 
@@ -1116,9 +1111,8 @@ void autostretch_mask_activate(GSimpleAction *action, GVariant *parameter, gpoin
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->mask_hook = mask_autostretch_hook;
-	args->description = _("Autostretch mask");
+	args->op = &op_desc_mask_autostretch;
+	args->mem_ratio = 1.0f;  // override: descriptor default is 0
 	args->verbose = TRUE;
 	args->max_threads = com.max_thread;
 
@@ -1146,10 +1140,7 @@ void invert_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer u
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit = gfit;
-	args->mem_ratio = 0.0f;
-	args->mask_hook = mask_invert_hook;
-	args->log_hook = NULL;
-	args->description = _("Invert mask");
+	args->op = &op_desc_mask_invert;
 	args->verbose = TRUE;
 	args->user = NULL;
 	args->max_threads = com.max_thread;
@@ -1172,8 +1163,7 @@ void mask_from_gradient_activate(GSimpleAction *action, GVariant *parameter, gpo
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit = gfit;
-	args->mask_hook = mask_from_gradient_hook;
-	args->description = _("Gradient of mask");
+	args->op = &op_desc_mask_from_gradient;
 	args->verbose = TRUE;
 	args->max_threads = com.max_thread;
 

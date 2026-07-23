@@ -194,9 +194,9 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 
 		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 		args->fit = gfit;
-		args->image_hook = cfa_extract_image_hook;
+		args->op = &op_desc_cfa_split;
 		args->idle_function = end_generic_image_reset_cursor;
-		args->description = _("CFA Extraction");
+		args->description = _("CFA Extraction");  // override: variant label
 		args->verbose = TRUE;
 		args->skip_generic_undo = TRUE;
 		args->user = cfa_args;

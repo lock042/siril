@@ -105,11 +105,8 @@ static int rgradient_process_with_worker(void) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 3.0f;
-	args->image_hook = rgradient_image_hook;
-	args->log_hook = rgradient_log_hook;
+	args->op = &op_desc_rgradient;
 	args->idle_function = NULL;
-	args->description = _("Rotational Gradient");
 	args->verbose = TRUE;
 	args->user = params;
 	args->mask_aware = TRUE;

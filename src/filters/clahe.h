@@ -12,6 +12,9 @@ typedef struct {
 
 int clahe_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
 gchar *clahe_log_hook(gpointer p, log_hook_detail detail);
+
+/* Op descriptor — single source of truth for this op (op_descriptor.h) */
+extern const struct op_descriptor op_desc_clahe;
 /* apply_clahe_cancel() is declared in gui/clahe.h */
 
 #endif /* SRC_FILTERS_CLAHE_H_ */

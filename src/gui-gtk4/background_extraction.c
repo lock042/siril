@@ -332,11 +332,10 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 
 		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 		args->fit = gfit;
-		args->mem_ratio = 6.0f;
-		args->image_hook = remove_gradient_image_hook;
-		args->log_hook = remove_gradient_log_hook;
+		args->op = &op_desc_remove_gradient;
+		args->mem_ratio = 6.0f;  // override: descriptor default is 0
 		args->idle_function = background_idle;
-		args->description = _("Automatic gradient removal");
+		args->description = _("Automatic gradient removal");  // override: variant label
 		args->verbose = TRUE;
 		/* Compute only previews the result; the undo state is saved on Apply.
 		 * Without this the generic worker would push an undo entry right away,
@@ -379,11 +378,9 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
-	args->mem_ratio = 2.0f;
-	args->image_hook = remove_gradient_image_hook;
-	args->log_hook = remove_gradient_log_hook;
+	args->op = &op_desc_remove_gradient;
+	args->mem_ratio = 2.0f;  // override: descriptor default is 0
 	args->idle_function = background_idle;
-	args->description = _("Background extraction");
 	args->verbose = TRUE;
 	/* Compute only previews the result; the undo state is saved on Apply. */
 	args->skip_generic_undo = TRUE;

@@ -43,6 +43,10 @@ gchar *mtf_log_hook(gpointer p, log_hook_detail detail);
 gchar *invmtf_log_hook(gpointer p, log_hook_detail detail);
 gchar *generate_mtf_log_message(const struct mtf_data *data, log_hook_detail detail);
 
+/* Op descriptors (op_descriptor.h) */
+extern const struct op_descriptor op_desc_mtf;
+extern const struct op_descriptor op_desc_mtf_inverse;
+
 /*
  * Processing data structure for MTF operations.  Defined here (not in
  * gui/histogram.h) so that non-GTK translation units can allocate and free it

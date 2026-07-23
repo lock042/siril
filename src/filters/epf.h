@@ -29,6 +29,9 @@ void free_epf_args(void *args);
 /* Image processing hook */
 int epf_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
 
+/* Op descriptor — single source of truth for this op (op_descriptor.h) */
+extern const struct op_descriptor op_desc_epf;
+
 void epf_change_between_roi_and_image();
 void apply_epf_cancel();
 

@@ -50,6 +50,10 @@ int ght_single_image_hook(struct generic_img_args *args, fits *fit, int threads)
 gchar *ght_log_hook(gpointer p, log_hook_detail detail);
 gchar *generate_ght_log_message(const ght_params *params);
 
+/* Op descriptors (op_descriptor.h) */
+extern const struct op_descriptor op_desc_ghs;
+extern const struct op_descriptor op_desc_autoghs;
+
 /*
  * Processing data structure for GHT operations.  Defined here (not in
  * gui/histogram.h) so that non-GTK translation units can allocate and free it

@@ -82,19 +82,14 @@ static int satu_process_with_worker(gboolean for_preview) {
 	}
 
 	args->fit = gui.roi.active ? &gui.roi.fit : gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = saturation_image_hook;
+	args->op = &op_desc_saturation;
 	args->idle_function = for_preview ? NULL : satu_apply_idle;
-	args->description = _("Saturation");
 	args->verbose = !for_preview;
 	args->user = params;
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
 	args->for_roi = gui.roi.active;
 	args->mask_aware = TRUE;
-	if (!for_preview) {
-		args->log_hook = satu_log_hook;
-	}
 
 	if (for_preview)
 		generic_image_worker(args);

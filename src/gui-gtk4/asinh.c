@@ -83,10 +83,8 @@ static int asinh_process_with_worker(gboolean for_preview) {
 	}
 
 	args->fit = gui.roi.active ? &gui.roi.fit : gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = asinh_image_hook;
+	args->op = &op_desc_asinh;
 	args->idle_function = for_preview ? NULL : asinh_apply_idle;
-	args->description = _("Asinh stretch");
 	args->verbose = !for_preview;
 	args->user = params;
 	args->mask_aware = TRUE;
@@ -254,13 +252,10 @@ void on_asinh_ok_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = asinh_image_hook;
+	args->op = &op_desc_asinh;
 	args->idle_function = asinh_apply_idle;
-	args->description = _("Asinh stretch");
 	args->verbose = TRUE;
 	args->user = params;
-	args->log_hook = asinh_log_hook;
 	args->max_threads = com.max_thread;
 	args->mask_aware = TRUE;
 	args->for_preview = FALSE;

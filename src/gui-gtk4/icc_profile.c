@@ -372,10 +372,8 @@ FINISH:;
 
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
-	args->image_hook = icc_assign_hook;
-	args->log_hook = icc_assign_log_hook;
+	args->op = &op_desc_icc_assign;
 	args->idle_function = icc_assign_idle;
-	args->description = _("ICC profile assignment");
 	args->verbose = TRUE;
 	args->user = icc_args;
 	if (!start_in_new_thread(generic_image_worker, args))
@@ -386,10 +384,8 @@ void on_icc_remove_clicked(GtkButton* button, gpointer* user_data) {
 	on_clear_roi();
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
-	args->image_hook = icc_remove_hook;
-	args->log_hook = icc_remove_log_hook;
+	args->op = &op_desc_icc_remove;
 	args->idle_function = icc_assign_idle;
-	args->description = _("ICC profile removal");
 	args->verbose = TRUE;
 	if (!start_in_new_thread(generic_image_worker, args))
 		free_generic_img_args(args);
@@ -420,10 +416,8 @@ void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
 
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
-	args->image_hook = icc_convert_to_hook;
-	args->log_hook = icc_convert_to_log_hook;
+	args->op = &op_desc_icc_convert;
 	args->idle_function = icc_convert_to_idle;
-	args->description = _("ICC color space conversion");
 	args->verbose = TRUE;
 	args->user = icc_args;
 	if (!start_in_new_thread(generic_image_worker, args))

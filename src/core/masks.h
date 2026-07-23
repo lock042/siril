@@ -149,6 +149,22 @@ gchar *mask_bitpix_log(gpointer user, log_hook_detail detail);
 gchar *mask_from_color_log(gpointer user, log_hook_detail detail);
 gchar *mask_thresh_log(gpointer user, log_hook_detail detail);
 
+/* Op descriptors (op_descriptor.h) */
+extern const struct op_descriptor op_desc_mask_from_stars;
+extern const struct op_descriptor op_desc_mask_from_channel;
+extern const struct op_descriptor op_desc_mask_from_luminance;
+extern const struct op_descriptor op_desc_mask_clear;
+extern const struct op_descriptor op_desc_mask_threshold;
+extern const struct op_descriptor op_desc_mask_blur;
+extern const struct op_descriptor op_desc_mask_feather;
+extern const struct op_descriptor op_desc_mask_multiply;
+extern const struct op_descriptor op_desc_mask_invert;
+extern const struct op_descriptor op_desc_mask_autostretch;
+extern const struct op_descriptor op_desc_mask_bitpix;
+extern const struct op_descriptor op_desc_mask_from_color;
+extern const struct op_descriptor op_desc_mask_from_gradient;
+extern const struct op_descriptor op_desc_mask_mtf_autostretch;
+
 #ifdef __cplusplus
 }
 #endif

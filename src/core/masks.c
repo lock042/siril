@@ -32,6 +32,85 @@
 #include "masks.h"
 #include "opencv/opencv.h" // for mask functions that use OpenCV
 // (feathering, Gaussian blur and set_poly_in_mask())
+#include "core/op_descriptor.h"
+
+/* Op descriptors for the mask operations (generic_mask_worker).  mem_ratio 0
+ * means no memory check (matches the legacy sites).  Sites that create a mask
+ * keep their per-invocation mask_creation flag. */
+const op_descriptor op_desc_mask_from_stars = {
+	.id = "mask.from_stars", .version = 1, .mask_hook = mask_from_stars_hook,
+	.log_hook = mask_from_stars_log, .description = N_("Mask from stars"),
+	.mem_ratio = 1.0f, .flags = 0,
+};
+const op_descriptor op_desc_mask_from_channel = {
+	.id = "mask.from_channel", .version = 1, .mask_hook = mask_from_channel_hook,
+	.log_hook = mask_from_channel_log, .description = N_("Mask from channel"),
+	.mem_ratio = 1.0f, .flags = 0,
+};
+const op_descriptor op_desc_mask_from_luminance = {
+	.id = "mask.from_luminance", .version = 1, .mask_hook = mask_from_lum_hook,
+	.log_hook = mask_from_lum_log, .description = N_("Mask from luminance"),
+	.mem_ratio = 1.0f, .flags = 0,
+};
+/* clear has no log_hook and no memory check */
+const op_descriptor op_desc_mask_clear = {
+	.id = "mask.clear", .version = 1, .mask_hook = mask_clear_hook,
+	.description = N_("Clear mask"), .mem_ratio = 0.0f, .flags = 0,
+};
+/* Default label from the command; the GUI site overrides it. */
+const op_descriptor op_desc_mask_threshold = {
+	.id = "mask.threshold", .version = 1, .mask_hook = mask_thresh_hook,
+	.log_hook = mask_thresh_log, .description = N_("Apply intensity threshold to mask"),
+	.mem_ratio = 1.0f, .flags = 0,
+};
+const op_descriptor op_desc_mask_blur = {
+	.id = "mask.blur", .version = 1, .mask_hook = mask_blur_hook,
+	.log_hook = mask_blur_log, .description = N_("Blur mask"),
+	.mem_ratio = 2.0f, .flags = 0,
+};
+const op_descriptor op_desc_mask_feather = {
+	.id = "mask.feather", .version = 1, .mask_hook = mask_feather_hook,
+	.log_hook = mask_feather_log, .description = N_("Feather mask"),
+	.mem_ratio = 2.0f, .flags = 0,
+};
+const op_descriptor op_desc_mask_multiply = {
+	.id = "mask.multiply", .version = 1, .mask_hook = mask_fmul_hook,
+	.log_hook = mask_fmul_log, .description = N_("Multiply mask"),
+	.mem_ratio = 0.0f, .flags = 0,
+};
+/* invert has no log_hook */
+const op_descriptor op_desc_mask_invert = {
+	.id = "mask.invert", .version = 1, .mask_hook = mask_invert_hook,
+	.description = N_("Invert mask"), .mem_ratio = 0.0f, .flags = 0,
+};
+/* autostretch has no log_hook; the siril_actions site overrides mem_ratio */
+const op_descriptor op_desc_mask_autostretch = {
+	.id = "mask.autostretch", .version = 1, .mask_hook = mask_autostretch_hook,
+	.description = N_("Autostretch mask"), .mem_ratio = 0.0f, .flags = 0,
+};
+const op_descriptor op_desc_mask_bitpix = {
+	.id = "mask.bitpix", .version = 1, .mask_hook = mask_bitpix_hook,
+	.log_hook = mask_bitpix_log, .description = N_("Change mask bitdepth"),
+	.mem_ratio = 1.0f, .flags = 0,
+};
+const op_descriptor op_desc_mask_from_color = {
+	.id = "mask.from_color", .version = 1, .mask_hook = mask_from_color_hook,
+	.log_hook = mask_from_color_log, .description = N_("Mask from color"),
+	.mem_ratio = 1.5f, .flags = 0,
+};
+/* from_gradient has no log_hook */
+const op_descriptor op_desc_mask_from_gradient = {
+	.id = "mask.from_gradient", .version = 1, .mask_hook = mask_from_gradient_hook,
+	.description = N_("Gradient of mask"), .mem_ratio = 0.0f, .flags = 0,
+};
+
+/* Image op (generic_image_worker): the autostretch applied to build a mask,
+ * distinct from the mask.* ops above.  No log_hook (an MTF HISTORY card makes
+ * no sense for mask generation). */
+const op_descriptor op_desc_mask_mtf_autostretch = {
+	.id = "mask.mtf_autostretch", .version = 1, .image_hook = mtf_single_image_hook,
+	.description = N_("Autostretch mask"), .mem_ratio = 1.0f, .flags = 0,
+};
 
 void free_mask(mask_t* mask) {
 	free(mask->data);
@@ -650,9 +729,7 @@ int mask_create_from_image(fits *fit, gchar *filename, int chan, uint8_t bitpix,
 		gi_data->params.do_red = gi_data->params.do_green =gi_data->params.do_blue = TRUE;
 
 		gi_args->fit = source;
-		gi_args->mem_ratio = 1.0f;
-		gi_args->image_hook = mtf_single_image_hook;
-		gi_args->description = _("Autostretch mask");
+		gi_args->op = &op_desc_mask_mtf_autostretch;
 		gi_args->idle_function = end_generic_image;
 		gi_args->user = gi_data;
 		gi_args->max_threads = com.max_thread;
@@ -1446,9 +1523,7 @@ int mask_from_channel_hook(struct generic_mask_args *args) {
 			gi_data->params.do_red = gi_data->params.do_green =gi_data->params.do_blue = TRUE;
 
 			gi_args->fit = ffit;
-			gi_args->mem_ratio = 1.0f;
-			gi_args->image_hook = mtf_single_image_hook;
-			gi_args->description = _("Autostretch mask");
+			gi_args->op = &op_desc_mask_mtf_autostretch;
 			gi_args->idle_function = end_embedded_autostretch;
 			gi_args->user = gi_data;
 			gi_args->max_threads = com.max_thread;
@@ -1528,9 +1603,7 @@ int mask_from_lum_hook(struct generic_mask_args *args) {
 			gi_data->params.do_red = gi_data->params.do_green =gi_data->params.do_blue = TRUE;
 
 			gi_args->fit = ffit;
-			gi_args->mem_ratio = 1.0f;
-			gi_args->image_hook = mtf_single_image_hook;
-			gi_args->description = _("Autostretch mask");
+			gi_args->op = &op_desc_mask_mtf_autostretch;
 			gi_args->idle_function = end_embedded_autostretch;
 			gi_args->user = gi_data;
 			gi_args->max_threads = com.max_thread;

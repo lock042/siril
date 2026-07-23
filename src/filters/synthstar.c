@@ -36,6 +36,26 @@
 #include "io/image_format_fits.h"
 #include "filters/synthstar.h"
 #include "opencv/opencv.h"
+#include "core/op_descriptor.h"
+
+/* Op descriptors — single source of truth for these ops (op_descriptor.h) */
+const op_descriptor op_desc_synthstar = {
+	.id = "star.synthstar", .version = 1,
+	.image_hook = synthstar_image_hook,
+	.log_hook = synthstar_log_hook,
+	.description = N_("Synthetic stars"),
+	.mem_ratio = 0.0f,
+	.flags = 0,
+};
+
+const op_descriptor op_desc_unclip = {
+	.id = "star.unclip", .version = 1,
+	.image_hook = unclip_image_hook,
+	.log_hook = unclip_log_hook,
+	.description = N_("Unclip stars"),
+	.mem_ratio = 0.0f,
+	.flags = 0,
+};
 
 int generate_synthstars(fits *fit);
 int reprofile_saturated_stars(fits *fit);

@@ -363,8 +363,8 @@ static int update_wavelets() {
 		return 1;
 	}
 	args->fit = roi ? &gui.roi.fit : gfit;
-	args->image_hook = wrecons_image_hook;
-	args->description = _("Wavelets preview");
+	args->op = &op_desc_wrecons;
+	args->description = _("Wavelets preview");  // override: variant label
 	args->verbose = FALSE;
 	args->user = wrecons_args;
 	args->max_threads = com.max_thread;
@@ -584,10 +584,9 @@ void on_button_ok_w_clicked(GtkButton *button, gpointer user_data) {
 
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
-	args->image_hook = wrecons_image_hook;
-	args->log_hook = wrecons_log_hook;
+	args->op = &op_desc_wrecons;
 	args->idle_function = wrecons_idle;
-	args->description = _("Wavelets Transformation");
+	args->description = _("Wavelets Transformation");  // override: variant label
 	args->verbose = TRUE;
 	args->user = wrecons_args;
 	if (!start_in_new_thread(generic_image_worker, args))

@@ -124,6 +124,16 @@ EXTERNC gchar *deconvolve_log_hook(gpointer p, log_hook_detail detail);
 EXTERNC int deconvolve_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
 EXTERNC int estimate_only_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
 
+/* Op descriptors (op_descriptor.h) */
+#ifdef __cplusplus
+extern "C" {
+#endif
+extern const struct op_descriptor op_desc_deconvolve;
+extern const struct op_descriptor op_desc_psf_estimate;
+#ifdef __cplusplus
+}
+#endif
+
 /* Processing functions implemented in filters/deconvolution.c */
 EXTERNC void     reset_conv_kernel(void);
 EXTERNC void     reset_conv_args(estk_data *args);

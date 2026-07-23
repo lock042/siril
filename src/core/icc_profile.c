@@ -38,6 +38,38 @@
 #include <jconfig.h>
 #endif
 
+#include "core/op_descriptor.h"
+
+/* Op descriptors for the ICC profile ops. All flag skip_generic_undo at their
+ * sites (siril_colorspace_transform writes its own FITS history), so no mem
+ * check is needed here. */
+const op_descriptor op_desc_icc_assign = {
+	.id = "icc.assign", .version = 1,
+	.image_hook = icc_assign_hook,
+	.log_hook = icc_assign_log_hook,
+	.description = N_("ICC profile assignment"),
+	.mem_ratio = 0.0f,
+	.flags = 0,
+};
+
+const op_descriptor op_desc_icc_convert = {
+	.id = "icc.convert", .version = 1,
+	.image_hook = icc_convert_to_hook,
+	.log_hook = icc_convert_to_log_hook,
+	.description = N_("ICC color space conversion"),
+	.mem_ratio = 0.0f,
+	.flags = 0,
+};
+
+const op_descriptor op_desc_icc_remove = {
+	.id = "icc.remove", .version = 1,
+	.image_hook = icc_remove_hook,
+	.log_hook = icc_remove_log_hook,
+	.description = N_("ICC profile removal"),
+	.mem_ratio = 0.0f,
+	.flags = 0,
+};
+
 static GMutex monitor_profile_mutex;
 static GMutex soft_proof_profile_mutex;
 static GMutex default_profiles_mutex;

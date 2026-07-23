@@ -16,6 +16,10 @@ struct median_filter_data {
 
 int median_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
 gchar* median_log_hook(gpointer p, log_hook_detail detail);
+
+/* Op descriptor — single source of truth for this op (op_descriptor.h) */
+extern const struct op_descriptor op_desc_median;
+
 double get_median_ushort(const WORD *buf, const int xx, const int yy, const int w,
 		const int h, int radius, gboolean is_cfa, gboolean include_self);
 double get_median_float(const float *buf, const int xx, const int yy, const int w,

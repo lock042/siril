@@ -73,4 +73,8 @@ gchar *wrecons_log_hook(gpointer p, log_hook_detail detail);
 gpointer wavelet_transform_worker(gpointer p);
 /* apply_wavelets_cancel declared in gui/wavelets.h */
 
+/* Op descriptors (op_descriptor.h) */
+extern const struct op_descriptor op_desc_wrecons;
+extern const struct op_descriptor op_desc_atrous;
+
 #endif /* SRC_FILTERS_WAVELETS_H_ */

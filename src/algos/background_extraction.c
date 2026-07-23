@@ -44,6 +44,20 @@
 #include "core/gui_iface.h"
 #include "opencv/opencv.h"
 #include "background_extraction.h"
+#include "core/op_descriptor.h"
+
+/* Op descriptor — the automatic-gradient-removal and background-extraction
+ * commands share remove_gradient_image_hook. Default label "Background
+ * extraction"; the "Automatic gradient removal" sites and the GUI mem_ratios
+ * are per-site overrides. mem_ratio default 0 (command sites do no mem check). */
+const op_descriptor op_desc_remove_gradient = {
+	.id = "bkg.remove_gradient", .version = 1,
+	.image_hook = remove_gradient_image_hook,
+	.log_hook = remove_gradient_log_hook,
+	.description = N_("Background extraction"),
+	.mem_ratio = 0.0f,
+	.flags = 0,
+};
 
 #define NPARAM_POLY4 15		// Number of parameters used with 4rd order
 #define NPARAM_POLY3 10		// Number of parameters used with 3rd order

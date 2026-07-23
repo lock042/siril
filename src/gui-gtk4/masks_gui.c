@@ -324,10 +324,7 @@ void on_mask_from_image_apply_clicked(GtkButton *button, gpointer user_data) {
 
 			struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 			args->fit =  gfit;
-			args->mem_ratio = 1.0f;
-			args->mask_hook = mask_from_lum_hook;
-			args->log_hook = mask_from_lum_log;
-			args->description = _("Mask from luminance");
+			args->op = &op_desc_mask_from_luminance;
 			args->verbose = TRUE;
 			args->user = data;
 			args->mask_creation = TRUE;
@@ -347,10 +344,7 @@ void on_mask_from_image_apply_clicked(GtkButton *button, gpointer user_data) {
 
 			struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 			args->fit =  gfit;
-			args->mem_ratio = 1.0f;
-			args->mask_hook = mask_from_channel_hook;
-			args->log_hook = mask_from_channel_log;
-			args->description = _("Mask from channel");
+			args->op = &op_desc_mask_from_channel;
 			args->verbose = TRUE;
 			args->user = data;
 			args->mask_creation = TRUE;
@@ -380,10 +374,7 @@ void on_mask_from_image_apply_clicked(GtkButton *button, gpointer user_data) {
 
 			struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 			args->fit =  gfit;
-			args->mem_ratio = 1.0f;
-			args->mask_hook = mask_from_lum_hook;
-			args->log_hook = mask_from_lum_log;
-			args->description = _("Mask from luminance");
+			args->op = &op_desc_mask_from_luminance;
 			args->verbose = TRUE;
 			args->user = data;
 			args->mask_creation = TRUE;
@@ -403,10 +394,7 @@ void on_mask_from_image_apply_clicked(GtkButton *button, gpointer user_data) {
 
 			struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 			args->fit =  gfit;
-			args->mem_ratio = 1.0f;
-			args->mask_hook = mask_from_channel_hook;
-			args->log_hook = mask_from_channel_log;
-			args->description = _("Mask from channel");
+			args->op = &op_desc_mask_from_channel;
 			args->verbose = TRUE;
 			args->user = data;
 			args->mask_creation = TRUE;
@@ -549,10 +537,7 @@ void on_mask_from_stars_apply_clicked(GtkButton *button, gpointer user_data) {
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit =  gfit;
-	args->mem_ratio = 1.0f;
-	args->mask_hook = mask_from_stars_hook;
-	args->log_hook = mask_from_stars_log;
-	args->description = _("Mask from stars");
+	args->op = &op_desc_mask_from_stars;
 	args->verbose = TRUE;
 	args->user = data;
 	args->max_threads = com.max_thread;
@@ -572,10 +557,7 @@ void on_blur_mask_apply_clicked(GtkButton *button, gpointer user_data) {
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit =  gfit;
-	args->mem_ratio = 2.0f;
-	args->mask_hook = mask_blur_hook;
-	args->log_hook = mask_blur_log;
-	args->description = _("Blur mask");
+	args->op = &op_desc_mask_blur;
 	args->verbose = TRUE;
 	args->user = data;
 	args->max_threads = com.max_thread;
@@ -596,10 +578,7 @@ void on_feather_mask_apply_clicked(GtkButton *button, gpointer user_data) {
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit =  gfit;
-	args->mem_ratio = 2.0f;
-	args->mask_hook = mask_feather_hook;
-	args->log_hook = mask_feather_log;
-	args->description = _("Feather mask");
+	args->op = &op_desc_mask_feather;
 	args->verbose = TRUE;
 	args->user = data;
 	args->max_threads = com.max_thread;
@@ -617,10 +596,7 @@ void on_multiply_mask_apply_clicked(GtkButton *button, gpointer user_data) {
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit =  gfit;
-	args->mem_ratio = 0.0f;
-	args->mask_hook = mask_fmul_hook;
-	args->log_hook = mask_fmul_log;
-	args->description = _("Multiply mask");
+	args->op = &op_desc_mask_multiply;
 	args->verbose = TRUE;
 	args->user = data;
 	args->max_threads = com.max_thread;
@@ -783,10 +759,7 @@ void on_mask_color_apply_clicked(GtkButton *button, gpointer user_data) {
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit =  gfit;
-	args->mem_ratio = 1.5f;
-	args->mask_hook = mask_from_color_hook;
-	args->log_hook = mask_from_color_log;
-	args->description = _("Mask from color");
+	args->op = &op_desc_mask_from_color;
 	args->verbose = TRUE;
 	args->user = data;
 	args->max_threads = com.max_thread;
@@ -848,10 +821,8 @@ void on_threshold_mask_apply_clicked(GtkButton *button, gpointer user_data) {
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit =  gfit;
-	args->mem_ratio = 1.0f;
-	args->mask_hook = mask_thresh_hook;
-	args->log_hook = mask_thresh_log;
-	args->description = _("Mask intensity thresholding");
+	args->op = &op_desc_mask_threshold;
+	args->description = _("Mask intensity thresholding");  // override: variant label
 	args->verbose = TRUE;
 	args->user = data;
 	args->max_threads = com.max_thread;

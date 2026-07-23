@@ -28,6 +28,28 @@ void destroy_ght_data(void *args); /* forward decl */
 #include "algos/statistics.h"
 #include "algos/colors.h"
 #include "core/siril_log.h"
+#include "core/op_descriptor.h"
+
+/* Op descriptors — GHS and AutoGHS are distinct logical ops that share
+ * ght_single_image_hook (the mode lives in the user data). mem_ratio defaults
+ * to 1.0; sites computing (COL_SAT ? 2.0 : 1.0) keep that per-site override. */
+const op_descriptor op_desc_ghs = {
+	.id = "stretch.ghs", .version = 1,
+	.image_hook = ght_single_image_hook,
+	.log_hook = ght_log_hook,
+	.description = N_("Generalised Hyperbolic Stretch"),
+	.mem_ratio = 1.0f,
+	.flags = OP_MASK_CAPABLE,
+};
+
+const op_descriptor op_desc_autoghs = {
+	.id = "stretch.autoghs", .version = 1,
+	.image_hook = ght_single_image_hook,
+	.log_hook = ght_log_hook,
+	.description = N_("AutoGHS"),
+	.mem_ratio = 1.0f,
+	.flags = OP_MASK_CAPABLE,
+};
 
 // For clarity when referring to HSL layers
 enum {

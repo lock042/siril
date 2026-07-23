@@ -30,6 +30,28 @@
 #include "algos/Def_Wavelet.h"
 #include "algos/wavelet_denoise.h"
 #include "wavelets.h"
+#include "core/op_descriptor.h"
+
+/* Op descriptors — single source of truth for the wavelet ops. The wrecons
+ * command / GUI-apply / preview sites use different progress labels, kept as
+ * per-site description overrides. */
+const op_descriptor op_desc_wrecons = {
+	.id = "wavelets.wrecons", .version = 1,
+	.image_hook = wrecons_image_hook,
+	.log_hook = wrecons_log_hook,
+	.description = N_("Wavelet reconstruction"),
+	.mem_ratio = 0.0f,
+	.flags = 0,
+};
+
+const op_descriptor op_desc_atrous = {
+	.id = "wavelets.atrous", .version = 1,
+	.image_hook = atrous_image_hook,
+	.log_hook = atrous_log_hook,
+	.description = N_("Wavelet transform"),
+	.mem_ratio = 0.0f,
+	.flags = 0,
+};
 
 /************* wavelet transform worker (wavelet command and GUI compute path) *************/
 
