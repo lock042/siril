@@ -33,6 +33,7 @@
 #include "core/masks.h"
 #include "core/OS_utils.h"
 #include "core/processing.h"
+#include "core/nde_history.h"
 #include "core/siril_log.h"
 #include "core/siril_update.h"
 #include "core/siril_app_dirs.h"
@@ -41,6 +42,7 @@
 #include "algos/statistics.h"
 #include "filters/mtf.h"
 #include "io/image_format_fits.h"
+#include "io/image_format_flis.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/siril_git.h"
@@ -756,6 +758,22 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 		close(fd);
 	#endif
 
+	/* NDE provenance (sketch §13.2): a script rewrote the document's pixels.
+	 * Only capture for the document image (fit == gfit); the handlers can also
+	 * write to non-gfit fits, which carry no provenance log.  Tier B (opaque):
+	 * no replayable params exist and no script name is on the Connection.
+	 * Runs on the python-comm worker thread while thread_claimed; the append
+	 * is leaf-mutex-safe from any thread. */
+	if (fit == gfit) {
+		gint target = -1;
+		if (is_current_image_flis()) {
+			flis_layer_t *lay = flis_active_layer();
+			if (lay) target = lay->item_id;
+		}
+		nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, target,
+		                   _("Python script pixel update"));
+	}
+
 	// In all cases we have now finished with the shm and closed and unlinked it.
 	// On receipt of the response, python will also close and unlink the shm in its
 	// finally: block.
@@ -930,6 +948,18 @@ gboolean handle_set_image_mask_request(Connection *conn, fits *fit, incoming_ima
 	#endif
 
 	set_mask_active(fit, TRUE);
+
+	/* NDE provenance (sketch §13.2): a script set/updated the document's mask.
+	 * Only for the document image (fit == gfit); Tier B (opaque). */
+	if (fit == gfit) {
+		gint target = -1;
+		if (is_current_image_flis()) {
+			flis_layer_t *lay = flis_active_layer();
+			if (lay) target = lay->item_id;
+		}
+		nde_capture_opaque("python.set_mask", NDE_SCOPE_LAYER, target,
+		                   _("Python script mask update"));
+	}
 
 	// In all cases we have now finished with the shm and closed and unlinked it.
 	// On receipt of the response, python will also close and unlink the shm in its
