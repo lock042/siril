@@ -225,6 +225,43 @@ void nde_history_notify_panel(void) {
 /* Capture-site helpers                                                    */
 /* ======================================================================= */
 
+/* Shared tail for the one-call capture helpers: fill timestamp/impl, append
+ * (which takes ownership and assigns the id) and notify the panel.  @rec is
+ * fully owned; on no-document the append frees it and returns 0. */
+static gint64 capture_finish(nde_record *rec, const char *summary) {
+	rec->summary   = g_strdup(summary);
+	rec->timestamp = nde_iso8601_now();
+	rec->impl      = nde_impl_string();
+	gint64 id = nde_history_append(rec);   /* takes ownership */
+	nde_history_notify_panel();
+	return id;
+}
+
+gint64 nde_capture_structural(const char *op_id, gint scope,
+                              gint target_item_id, gchar *params,
+                              const char *summary) {
+	nde_record *rec = nde_record_new();
+	rec->op_id          = g_strdup(op_id);
+	rec->op_version     = 1;
+	rec->scope          = scope;
+	rec->target_item_id = target_item_id;
+	rec->tier           = NDE_TIER_A;
+	rec->params         = params;   /* ownership transferred */
+	return capture_finish(rec, summary);
+}
+
+gint64 nde_capture_opaque(const char *op_id, gint scope,
+                          gint target_item_id, const char *summary) {
+	nde_record *rec = nde_record_new();
+	rec->op_id          = g_strdup(op_id);
+	rec->op_version     = 1;
+	rec->scope          = scope;
+	rec->target_item_id = target_item_id;
+	rec->tier           = NDE_TIER_B;
+	rec->params         = NULL;
+	return capture_finish(rec, summary);
+}
+
 gchar *nde_iso8601_now(void) {
 	GDateTime *now = g_date_time_new_now_utc();
 	gchar *s = g_date_time_format_iso8601(now);

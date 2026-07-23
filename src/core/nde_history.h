@@ -143,6 +143,28 @@ void nde_history_notify_panel(void);
 
 /* ---- capture-site helpers ---------------------------------------------- */
 
+/**
+ * Build+append a structural (Tier A) record in one call and return the new
+ * record id (0 = nothing recorded, e.g. no document loaded).  Structural ops
+ * carry their params inline (a handful of ints, sketch §13.2) — no serializer
+ * machinery; phase-2 replays them from op_id + params.  Takes ownership of
+ * @params (may be NULL); @summary and @op_id are copied.  timestamp/impl are
+ * filled here.  Callers MUST invoke this only AFTER the mutation succeeded,
+ * never on a failure path (records must reflect real pixel/document changes).
+ */
+gint64 nde_capture_structural(const char *op_id, gint scope,
+                              gint target_item_id, gchar *params,
+                              const char *summary);
+
+/**
+ * Build+append an opaque (Tier B, params == NULL) record and return the new
+ * record id.  For mutations recorded for provenance only, with no replayable
+ * parameters (python pixel/mask writes — sketch §13.2).  @summary and @op_id
+ * are copied.  Same success-only capture discipline as nde_capture_structural.
+ */
+gint64 nde_capture_opaque(const char *op_id, gint scope,
+                          gint target_item_id, const char *summary);
+
 /** Heap ISO 8601 UTC timestamp, matching FLIS layer CREATED/MODIFIED style. */
 gchar *nde_iso8601_now(void);
 

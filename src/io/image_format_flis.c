@@ -2758,7 +2758,12 @@ void flis_update_layer_offset_after_mirrory(void) {
  * touched-modified for save bookkeeping.
  * ===================================================================== */
 
-int flis_canvas_resize(guint new_w, guint new_h, gint dx, gint dy) {
+/* Internal canvas-resize primitive.  @record gates the NDE capture so that
+ * flis_canvas_fit_to_layers (which calls this internally) does not
+ * double-record — it captures its own canvas.fit record instead
+ * (sketch §13.2 canvas double-record resolution). */
+static int flis_canvas_resize_impl(guint new_w, guint new_h, gint dx, gint dy,
+                                   gboolean record) {
     if (!is_current_image_flis() || !com.uniq) return 1;
     if (new_w == 0 || new_h == 0) {
         siril_log_error(_("FLIS: canvas dimensions must be positive (got %ux%u)\n"),
@@ -2779,7 +2784,23 @@ int flis_canvas_resize(guint new_w, guint new_h, gint dx, gint dy) {
     gui_iface.flis_invalidate_composite();
     siril_debug_print("FLIS: canvas resized to %ux%u (layer shift %d,%d)\n",
                       new_w, new_h, dx, dy);
+
+    /* NDE provenance (sketch §13.2): canvas geometry change (no undo entry,
+     * uncoupled record). */
+    if (record) {
+        GString *kv = nde_kv_start();
+        nde_kv_add_int(kv, "w", new_w);
+        nde_kv_add_int(kv, "h", new_h);
+        nde_kv_add_int(kv, "dx", dx);
+        nde_kv_add_int(kv, "dy", dy);
+        nde_capture_structural("canvas.resize", NDE_SCOPE_CANVAS, -1,
+                               nde_kv_end(kv), _("Resize canvas"));
+    }
     return 0;
+}
+
+int flis_canvas_resize(guint new_w, guint new_h, gint dx, gint dy) {
+    return flis_canvas_resize_impl(new_w, new_h, dx, dy, TRUE);
 }
 
 int flis_canvas_fit_to_layers(gboolean include_invisible) {
@@ -2814,8 +2835,19 @@ int flis_canvas_fit_to_layers(gboolean include_invisible) {
         siril_log_warning(_("FLIS: canvas_fit_to_layers — empty bounding box\n"));
         return 1;
     }
-    /* Shift every layer so the bbox sits at the new canvas origin. */
-    return flis_canvas_resize((guint)new_w, (guint)new_h, -min_x, -min_y);
+    /* Shift every layer so the bbox sits at the new canvas origin.  Suppress
+     * the resize's own record (record=FALSE) and emit a single canvas.fit
+     * record instead, so a fit does not double-record (sketch §13.2). */
+    int rv = flis_canvas_resize_impl((guint)new_w, (guint)new_h,
+                                     -min_x, -min_y, FALSE);
+    if (rv == 0) {
+        GString *kv = nde_kv_start();
+        nde_kv_add_int(kv, "w", new_w);
+        nde_kv_add_int(kv, "h", new_h);
+        nde_capture_structural("canvas.fit", NDE_SCOPE_CANVAS, -1,
+                               nde_kv_end(kv), _("Fit canvas to layers"));
+    }
+    return rv;
 }
 
 int flis_canvas_rotate(double angle) {
@@ -3303,6 +3335,19 @@ int flis_addlayer_hook(struct generic_layer_args *args) {
      * (stack changed), capturing the id lets the panel select the new
      * layer after refresh, which is the natural UX. */
     args->invalidate_item_id = added->item_id;
+
+    /* NDE provenance (sketch §13.2): this backend funnel is reached only
+     * from user intent — the panel Add-Layer handler and the flis_addlayer
+     * command both route here; load and the flis_test_add_layer fixture use
+     * the lower-level flis_layer_add primitive instead — so capture here.
+     * No undo entry is saved for add, so the record is uncoupled. */
+    GString *kv = nde_kv_start();
+    nde_kv_add_str(kv, "name", added->layer_name ? added->layer_name : "");
+    gchar *base = g_path_get_basename(a->filename);
+    nde_kv_add_str(kv, "src", base ? base : "");
+    g_free(base);
+    nde_capture_structural("layer.add", NDE_SCOPE_DOCUMENT, added->item_id,
+                           nde_kv_end(kv), _("Add layer"));
     return 0;
 }
 
@@ -3568,6 +3613,17 @@ int flis_reorder_hook(struct generic_layer_args *args) {
     com.uniq->layers = g_slist_insert_sorted(com.uniq->layers, src,
                                               (GCompareFunc)layer_order_cmp);
     flis_layer_touch_modified(src);
+
+    /* NDE provenance (sketch §13.2): the drag-to-reorder path is DISTINCT
+     * from flis_layer_move_up/_down (verified: it computes new_order
+     * directly rather than calling those primitives), so it captures its own
+     * layer.reorder record with the resulting order.  No undo entry is saved
+     * on this path, so the record is uncoupled — consistent with the other
+     * add/remove/canvas structural ops. */
+    GString *kv = nde_kv_start();
+    nde_kv_add_int(kv, "to_order", src->layer_order);
+    nde_capture_structural("layer.reorder", NDE_SCOPE_DOCUMENT, src->item_id,
+                           nde_kv_end(kv), _("Reorder layer"));
     return 0;
 }
 
@@ -3907,6 +3963,8 @@ int flis_merge_down_layer(flis_layer_t *top) {
      * dangling-pointers top->layer_name (use-after-free otherwise). */
     gchar *top_name_copy = g_strdup(top->layer_name ? top->layer_name : "?");
     const char *bottom_name = bottom->layer_name ? bottom->layer_name : "?";
+    gint top_item_id = top->item_id;      /* for the NDE record (top is freed below) */
+    gint bottom_item_id = bottom->item_id;
 
     /* Destructive operation: purge undo history for both layers */
     flis_undo_purge_layer(top->item_id);
@@ -3947,6 +4005,16 @@ int flis_merge_down_layer(flis_layer_t *top) {
 
     siril_log_message(_("FLIS: merged '%s' down into '%s'\n"),
                       top_name_copy, bottom_name);
+
+    /* NDE provenance (sketch §13.2): merge purges per-layer undo (records are
+     * KEPT — provenance).  No undo entry survives, so the record is
+     * uncoupled; target = the surviving bottom layer. */
+    GString *kv = nde_kv_start();
+    nde_kv_add_int(kv, "top_item", top_item_id);
+    nde_kv_add_str(kv, "top_name", top_name_copy);
+    nde_capture_structural("layer.merge_down", NDE_SCOPE_DOCUMENT,
+                           bottom_item_id, nde_kv_end(kv), _("Merge down"));
+
     g_free(top_name_copy);
     return 0;
 }
@@ -3963,7 +4031,8 @@ int flis_merge_down_layer(flis_layer_t *top) {
  * ------------------------------------------------------------------------- */
 int flis_flatten_all(void) {
     if (!com.uniq || !com.uniq->layers) return 1;
-    if (flis_layer_count() <= 1) return 0; /* already flat */
+    gint n_before = flis_layer_count();
+    if (n_before <= 1) return 0; /* already flat — no mutation, no record */
 
     /* Render all visible layers */
     fits *flat = flis_render_layers(com.uniq->layers);
@@ -4021,6 +4090,13 @@ int flis_flatten_all(void) {
 
     siril_log_message(_("FLIS: image flattened to single layer '%s'\n"),
                       base->layer_name ? base->layer_name : "?");
+
+    /* NDE provenance (sketch §13.2): flatten purges all per-layer undo
+     * (records are KEPT — provenance); target = the surviving base layer. */
+    GString *kv = nde_kv_start();
+    nde_kv_add_int(kv, "n_layers", n_before);
+    nde_capture_structural("document.flatten", NDE_SCOPE_DOCUMENT,
+                           base->item_id, nde_kv_end(kv), _("Flatten image"));
     return 0;
 }
 
@@ -4154,10 +4230,13 @@ int flis_layer_move_up(flis_layer_t *layer) {
         }
     }
 
-    /* Pre-op undo covering every layer whose order changes. */
+    /* Pre-op undo covering every layer whose order changes.  Keep the
+     * return value: 0 means an entry was actually pushed (undo_save_* returns
+     * 0 WITHOUT pushing when com.script — see sketch §13.3), so we only tag
+     * the top entry below when both !com.script and undo_ok == 0. */
     GSList *affected = g_slist_copy(jump);
     affected = g_slist_prepend(affected, layer);
-    undo_save_flis_multi_layer_props(affected, _("Move layer up"));
+    int undo_ok = undo_save_flis_multi_layer_props(affected, _("Move layer up"));
     g_slist_free(affected);
 
     flis_layer_t *old_base = (flis_layer_t *)com.uniq->layers->data;
@@ -4181,6 +4260,17 @@ int flis_layer_move_up(flis_layer_t *layer) {
         flis_transfer_icc_to_new_base(old_base, new_base);
 
     flis_layer_touch_modified(layer);
+
+    /* NDE provenance (sketch §13.2): reachable only from user intent
+     * (panel move-up, drag reorder uses flis_reorder_hook instead).  Couple
+     * to the undo entry saved above so Ctrl-Z retires this record too. */
+    GString *kv = nde_kv_start();
+    nde_kv_add_int(kv, "dir", 1);
+    gint64 rid = nde_capture_structural("layer.reorder", NDE_SCOPE_DOCUMENT,
+                                        layer->item_id, nde_kv_end(kv),
+                                        _("Move layer up"));
+    if (!com.script && undo_ok == 0)
+        undo_tag_top_nde_record(rid);
     return 0;
 }
 
@@ -4216,10 +4306,11 @@ int flis_layer_move_down(flis_layer_t *layer) {
         }
     }
 
-    /* Pre-op undo covering every layer whose order changes. */
+    /* Pre-op undo covering every layer whose order changes.  See move_up:
+     * keep the return so we only couple when an entry was actually pushed. */
     GSList *affected = g_slist_copy(jump);
     affected = g_slist_prepend(affected, layer);
-    undo_save_flis_multi_layer_props(affected, _("Move layer down"));
+    int undo_ok = undo_save_flis_multi_layer_props(affected, _("Move layer down"));
     g_slist_free(affected);
 
     flis_layer_t *old_base = (flis_layer_t *)com.uniq->layers->data;
@@ -4247,6 +4338,15 @@ int flis_layer_move_down(flis_layer_t *layer) {
         flis_transfer_icc_to_new_base(old_base, new_base);
 
     flis_layer_touch_modified(layer);
+
+    /* NDE provenance (sketch §13.2): see flis_layer_move_up. */
+    GString *kv = nde_kv_start();
+    nde_kv_add_int(kv, "dir", -1);
+    gint64 rid = nde_capture_structural("layer.reorder", NDE_SCOPE_DOCUMENT,
+                                        layer->item_id, nde_kv_end(kv),
+                                        _("Move layer down"));
+    if (!com.script && undo_ok == 0)
+        undo_tag_top_nde_record(rid);
     return 0;
 }
 

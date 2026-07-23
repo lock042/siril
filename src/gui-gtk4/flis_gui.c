@@ -48,6 +48,7 @@
 #include "core/proto.h"          /* gui_function */
 #include "core/processing.h"
 #include "core/undo.h"
+#include "core/nde_history.h"
 #include "core/gui_iface.h"
 #include "io/image_format_flis.h"
 #include "io/single_image.h"
@@ -1395,6 +1396,7 @@ struct op_payload {
 	flis_blend_mode_t blend_v;
 	gfloat        float_v;
 	double        r, g, b;
+	gint          dup_item_id;   /* out: new layer id set by OP_LAYER_DUPLICATE */
 };
 
 static void op_payload_free(gpointer p) {
@@ -1413,34 +1415,104 @@ static int op_hook(struct generic_layer_args *args) {
 		 op->kind == OP_GROUP_SET_OPACITY);
 	flis_layer_t *lay = is_group_op ? NULL : flis_layer_get_by_id(op->target_id);
 	flis_group_t *grp = is_group_op ? flis_group_get_by_id(op->target_id) : NULL;
+
+	/* Remove frees the layer, so snapshot its name before running the op. */
+	gchar *removed_name = (op->kind == OP_LAYER_REMOVE && lay && lay->layer_name)
+	                      ? g_strdup(lay->layer_name) : NULL;
+
+	int rc;
 	switch (op->kind) {
-		case OP_SET_VISIBLE:  return lay ? flis_layer_set_visible (lay, op->bool_v) : 1;
-		case OP_SET_LOCKED:   return lay ? flis_layer_set_locked  (lay, op->bool_v) : 1;
-		case OP_SET_NAME:     return lay ? flis_layer_set_name    (lay, op->str_v) : 1;
-		case OP_SET_BLEND:    return lay ? flis_layer_set_blend_mode(lay, op->blend_v) : 1;
-		case OP_SET_OPACITY:  return lay ? flis_layer_set_opacity (lay, op->float_v) : 1;
-		case OP_SET_TINT:     return lay ? flis_layer_set_tint    (lay, op->r, op->g, op->b) : 1;
-		case OP_CLEAR_TINT:   return lay ? flis_layer_clear_tint(lay) : 1;
+		case OP_SET_VISIBLE:  rc = lay ? flis_layer_set_visible (lay, op->bool_v) : 1; break;
+		case OP_SET_LOCKED:   rc = lay ? flis_layer_set_locked  (lay, op->bool_v) : 1; break;
+		case OP_SET_NAME:     rc = lay ? flis_layer_set_name    (lay, op->str_v) : 1; break;
+		case OP_SET_BLEND:    rc = lay ? flis_layer_set_blend_mode(lay, op->blend_v) : 1; break;
+		case OP_SET_OPACITY:  rc = lay ? flis_layer_set_opacity (lay, op->float_v) : 1; break;
+		case OP_SET_TINT:     rc = lay ? flis_layer_set_tint    (lay, op->r, op->g, op->b) : 1; break;
+		case OP_CLEAR_TINT:   rc = lay ? flis_layer_clear_tint(lay) : 1; break;
 		case OP_SET_LMASK_ACTIVE:
-			if (!lay || !lay->lmask) return 1;
+			if (!lay || !lay->lmask) { rc = 1; break; }
 			lay->lmask_active = op->bool_v;
 			flis_layer_touch_modified(lay);
-			return 0;
-		case OP_UNGROUP:      return lay ? flis_layer_set_group(lay, 0) : 1;
-		case OP_GROUP_SET_VISIBLE: return grp ? flis_group_set_visible(grp, op->bool_v) : 1;
-		case OP_GROUP_SET_NAME:    return grp ? flis_group_set_name(grp, op->str_v)    : 1;
-		case OP_GROUP_SET_BLEND:   return grp ? flis_group_set_blend_mode(grp, op->blend_v) : 1;
-		case OP_GROUP_SET_OPACITY: return grp ? flis_group_set_opacity(grp, op->float_v)   : 1;
-		case OP_LAYER_REMOVE: return lay ? flis_layer_remove(lay) : 1;
+			rc = 0; break;
+		case OP_UNGROUP:      rc = lay ? flis_layer_set_group(lay, 0) : 1; break;
+		case OP_GROUP_SET_VISIBLE: rc = grp ? flis_group_set_visible(grp, op->bool_v) : 1; break;
+		case OP_GROUP_SET_NAME:    rc = grp ? flis_group_set_name(grp, op->str_v)    : 1; break;
+		case OP_GROUP_SET_BLEND:   rc = grp ? flis_group_set_blend_mode(grp, op->blend_v) : 1; break;
+		case OP_GROUP_SET_OPACITY: rc = grp ? flis_group_set_opacity(grp, op->float_v)   : 1; break;
+		case OP_LAYER_REMOVE: rc = lay ? flis_layer_remove(lay) : 1; break;
 		case OP_LAYER_DUPLICATE: {
-			if (!lay) return 1;
+			if (!lay) { rc = 1; break; }
 			flis_layer_t *dup = flis_layer_duplicate(lay);
-			return dup ? 0 : 1;
+			op->dup_item_id = dup ? dup->item_id : 0;
+			rc = dup ? 0 : 1; break;
 		}
-		case OP_LAYER_MOVE_UP:   return lay ? flis_layer_move_up(lay)   : 1;
-		case OP_LAYER_MOVE_DOWN: return lay ? flis_layer_move_down(lay) : 1;
+		case OP_LAYER_MOVE_UP:   rc = lay ? flis_layer_move_up(lay)   : 1; break;
+		case OP_LAYER_MOVE_DOWN: rc = lay ? flis_layer_move_down(lay) : 1; break;
+		default: rc = 1; break;
 	}
-	return 1;
+
+	/* NDE provenance capture (sketch §13.2) — intent-site: this GUI funnel is
+	 * reached only from user intent, whereas the low-level flis_layer_set_*
+	 * setters are ALSO called by load and by test fixtures, so capture must
+	 * NOT live in them.  Capture here, after the mutation succeeded.
+	 * move_up/move_down/set_name/set_locked/set_tint/lmask-active/ungroup and
+	 * the group ops are deliberately excluded here: move_up/down self-record
+	 * in the backend; the rest are display attributes not recorded in phase 1
+	 * (sketch §13.2 records visibility but not lock/tint/rename/position).
+	 *
+	 * Undo coupling for the three property commits: dispatch_op saved a
+	 * props-only undo entry BEFORE the worker ran (gated on !com.script), so
+	 * by now that entry is on top of the undo stack.  Couple it here with the
+	 * same !com.script guard the undo save used (undo_save_flis_layer_props
+	 * returns 0 WITHOUT pushing when com.script — sketch §13.3), mirroring
+	 * generic_image_worker's post-hook tagging from the worker thread. */
+	if (rc == 0) {
+		switch (op->kind) {
+			case OP_SET_OPACITY: {
+				GString *kv = nde_kv_start();
+				nde_kv_add_float(kv, "opacity", op->float_v);
+				gint64 rid = nde_capture_structural("layer.set_opacity", NDE_SCOPE_LAYER,
+				                       op->target_id, nde_kv_end(kv), _("Set opacity"));
+				if (!com.script) undo_tag_top_nde_record(rid);
+				break;
+			}
+			case OP_SET_BLEND: {
+				/* blend value is the frozen flis_blend_mode_t enum (int). */
+				GString *kv = nde_kv_start();
+				nde_kv_add_int(kv, "blend", op->blend_v);
+				gint64 rid = nde_capture_structural("layer.set_blend", NDE_SCOPE_LAYER,
+				                       op->target_id, nde_kv_end(kv), _("Set blend mode"));
+				if (!com.script) undo_tag_top_nde_record(rid);
+				break;
+			}
+			case OP_SET_VISIBLE: {
+				GString *kv = nde_kv_start();
+				nde_kv_add_bool(kv, "visible", op->bool_v);
+				gint64 rid = nde_capture_structural("layer.set_visible", NDE_SCOPE_LAYER,
+				                       op->target_id, nde_kv_end(kv), _("Set visibility"));
+				if (!com.script) undo_tag_top_nde_record(rid);
+				break;
+			}
+			case OP_LAYER_DUPLICATE: {
+				GString *kv = nde_kv_start();
+				nde_kv_add_str(kv, "name", "");
+				nde_kv_add_int(kv, "src_item", op->target_id);
+				nde_capture_structural("layer.duplicate", NDE_SCOPE_DOCUMENT,
+				                       op->dup_item_id, nde_kv_end(kv), _("Duplicate layer"));
+				break;
+			}
+			case OP_LAYER_REMOVE: {
+				GString *kv = nde_kv_start();
+				nde_kv_add_str(kv, "name", removed_name ? removed_name : "");
+				nde_capture_structural("layer.remove", NDE_SCOPE_DOCUMENT,
+				                       op->target_id, nde_kv_end(kv), _("Remove layer"));
+				break;
+			}
+			default: break;
+		}
+	}
+	g_free(removed_name);
+	return rc;
 }
 
 static void dispatch_op(struct op_payload *op, const char *desc,

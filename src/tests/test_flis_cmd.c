@@ -33,6 +33,8 @@
 #include "core/command.h"
 #include "core/command_line_processor.h"
 #include "core/processing.h"
+#include "core/nde_history.h"
+#include "core/undo.h"
 
 cominfo com;
 fits *gfit;
@@ -980,4 +982,135 @@ Test(flis_cmd, reorder_hook_self_target_noop) {
 	args->invalidate_item_id = base->item_id;
 	cr_assert_eq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
 	cr_assert_eq(base->layer_order, base_order, "self-target reorder is a no-op");
+}
+
+/* =========================================================================
+ * NDE provenance capture (steps 6-8 Part A) — records land from the FLIS
+ * structural/property commands and backends.  Fixtures run com.script=TRUE.
+ * ========================================================================= */
+
+/* Return a deep copy of the last live record, or NULL if none. */
+static nde_record *last_record(void) {
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	if (!snap) return NULL;
+	nde_record *r = nde_record_copy(g_ptr_array_index(snap, snap->len - 1));
+	g_ptr_array_unref(snap);
+	return r;
+}
+
+/* Fixture hygiene: building a layer stack with the low-level helpers
+ * (flis_test_add_layer → flis_layer_add, flis_layer_set_*) must NOT create
+ * any NDE records — those primitives are also called by load and must stay
+ * record-free (steps 6-8 plan, capture-placement rule). */
+Test(flis_cmd, fixture_setup_creates_no_records) {
+	flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.1f), "base");
+	flis_layer_t *top = flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.5f), "Ha");
+	flis_layer_set_opacity(top, 0.7f);
+	flis_layer_set_blend_mode(top, FLIS_BLEND_SCREEN);
+	flis_layer_set_visible(top, FALSE);
+	cr_assert_eq(nde_history_live_count(), 0,
+	             "low-level setters/adders must not record provenance");
+}
+
+Test(flis_cmd, setopacity_records_provenance) {
+	load_two_layer_fixture();
+	guint before = nde_history_live_count();
+	word[0] = "flis_setopacity";
+	word[1] = "Ha";
+	word[2] = "0.25";
+	word[3] = NULL;
+	cr_assert_eq(process_flis_setopacity(3), CMD_OK);
+	cr_assert_eq(nde_history_live_count(), before + 1);
+	nde_record *r = last_record();
+	cr_assert_not_null(r);
+	cr_assert_str_eq(r->op_id, "layer.set_opacity");
+	cr_assert_eq(r->scope, NDE_SCOPE_LAYER);
+	cr_assert_eq(r->target_item_id, 2, "Ha is item id 2");
+	cr_assert_not_null(r->params);
+	cr_assert(strstr(r->params, "opacity=") != NULL);
+	nde_record_free(r);
+}
+
+Test(flis_cmd, setblend_records_provenance) {
+	load_two_layer_fixture();
+	guint before = nde_history_live_count();
+	word[0] = "flis_setblend";
+	word[1] = "Ha";
+	word[2] = "multiply";
+	word[3] = NULL;
+	cr_assert_eq(process_flis_setblend(3), CMD_OK);
+	cr_assert_eq(nde_history_live_count(), before + 1);
+	nde_record *r = last_record();
+	cr_assert_str_eq(r->op_id, "layer.set_blend");
+	cr_assert(strstr(r->params, "blend=") != NULL);
+	nde_record_free(r);
+}
+
+Test(flis_cmd, setvisible_records_provenance) {
+	load_two_layer_fixture();
+	guint before = nde_history_live_count();
+	word[0] = "flis_setvisible";
+	word[1] = "Ha";
+	word[2] = "off";
+	word[3] = NULL;
+	cr_assert_eq(process_flis_setvisible(3), CMD_OK);
+	cr_assert_eq(nde_history_live_count(), before + 1);
+	nde_record *r = last_record();
+	cr_assert_str_eq(r->op_id, "layer.set_visible");
+	cr_assert(strstr(r->params, "visible=") != NULL);
+	nde_record_free(r);
+}
+
+Test(flis_cmd, flatten_records_and_retains_prior) {
+	load_two_layer_fixture();
+	/* seed a prior record via a property command */
+	word[0] = "flis_setopacity"; word[1] = "Ha"; word[2] = "0.5"; word[3] = NULL;
+	cr_assert_eq(process_flis_setopacity(3), CMD_OK);
+	guint before = nde_history_live_count();
+	cr_assert_geq(before, 1);
+
+	cr_assert_eq(flis_flatten_all(), 0);
+	cr_assert_eq(nde_history_live_count(), before + 1,
+	             "flatten adds a record and keeps prior ones (provenance)");
+	nde_record *r = last_record();
+	cr_assert_str_eq(r->op_id, "document.flatten");
+	cr_assert(strstr(r->params, "n_layers=") != NULL);
+	nde_record_free(r);
+}
+
+/* Backend reorder + undo coupling.  This suite runs headless (com.script=TRUE)
+ * so the record is uncoupled; the GUI-mode coupling is asserted below. */
+Test(flis_cmd, move_up_records_reorder) {
+	load_two_layer_fixture();
+	flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+	guint before = nde_history_live_count();
+	cr_assert_eq(flis_layer_move_up(base), 0);
+	cr_assert_eq(nde_history_live_count(), before + 1);
+	nde_record *r = last_record();
+	cr_assert_str_eq(r->op_id, "layer.reorder");
+	cr_assert_eq(r->scope, NDE_SCOPE_DOCUMENT);
+	nde_record_free(r);
+}
+
+/* GUI-mode reorder undo coupling: with com.script=FALSE the move_up backend
+ * saves an undo entry and tags it with the new record id; undo retires the
+ * record (live_count drops). */
+Test(flis_cmd, move_up_couples_undo_in_gui_mode) {
+	com.script = FALSE;    /* override the headless default from init */
+	load_two_layer_fixture();
+	flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+	guint before = nde_history_live_count();
+
+	cr_assert_eq(flis_layer_move_up(base), 0);
+	cr_assert_eq(nde_history_live_count(), before + 1);
+
+	/* the top undo entry must carry the just-appended record id */
+	cr_assert_not_null(com.undo_stack, "GUI-mode move saves an undo entry");
+	historic *top = (historic *)com.undo_stack->data;
+	cr_assert_neq(top->nde_record_id, 0, "reorder record is coupled to undo");
+
+	cr_assert_eq(undo_display_data(UNDO), 0);
+	cr_assert_eq(nde_history_live_count(), before,
+	             "undo retires the coupled reorder record");
+	com.script = TRUE;
 }

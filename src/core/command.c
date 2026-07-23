@@ -17144,8 +17144,17 @@ int process_flis_setblend(int nb) {
 	}
 	flis_layer_props_t pre;
 	flis_layer_capture_props(target, &pre);
-	return flis_prop_cmd_finish(target,
+	int rc = flis_prop_cmd_finish(target,
 			flis_layer_set_blend_mode(target, mode), &pre, "flis_setblend");
+	if (rc == CMD_OK) {
+		/* NDE provenance (sketch §13.2).  Uncoupled: command undo is
+		 * headless-gated; coupling lives in the GUI dispatch path only. */
+		GString *kv = nde_kv_start();
+		nde_kv_add_int(kv, "blend", mode);
+		nde_capture_structural("layer.set_blend", NDE_SCOPE_LAYER,
+		                       target->item_id, nde_kv_end(kv), _("Set blend mode"));
+	}
+	return rc;
 }
 
 int process_flis_setopacity(int nb) {
@@ -17163,8 +17172,15 @@ int process_flis_setopacity(int nb) {
 	}
 	flis_layer_props_t pre;
 	flis_layer_capture_props(target, &pre);
-	return flis_prop_cmd_finish(target,
+	int rc = flis_prop_cmd_finish(target,
 			flis_layer_set_opacity(target, (gfloat)v), &pre, "flis_setopacity");
+	if (rc == CMD_OK) {
+		GString *kv = nde_kv_start();
+		nde_kv_add_float(kv, "opacity", (gfloat)v);
+		nde_capture_structural("layer.set_opacity", NDE_SCOPE_LAYER,
+		                       target->item_id, nde_kv_end(kv), _("Set opacity"));
+	}
+	return rc;
 }
 
 int process_flis_setvisible(int nb) {
@@ -17181,8 +17197,15 @@ int process_flis_setvisible(int nb) {
 	}
 	flis_layer_props_t pre;
 	flis_layer_capture_props(target, &pre);
-	return flis_prop_cmd_finish(target,
+	int rc = flis_prop_cmd_finish(target,
 			flis_layer_set_visible(target, b), &pre, "flis_setvisible");
+	if (rc == CMD_OK) {
+		GString *kv = nde_kv_start();
+		nde_kv_add_bool(kv, "visible", b);
+		nde_capture_structural("layer.set_visible", NDE_SCOPE_LAYER,
+		                       target->item_id, nde_kv_end(kv), _("Set visibility"));
+	}
+	return rc;
 }
 
 int process_flis_setlocked(int nb) {

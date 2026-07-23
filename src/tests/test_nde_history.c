@@ -274,6 +274,48 @@ Test(nde_history, attach_replaces_and_stale_flag) {
 	cr_assert(nde_history_is_stale());
 }
 
+/* ---------------- capture helpers ---------------- */
+
+Test(nde_history, capture_structural_fills_fields_and_monotonic) {
+	gchar *params = g_strdup("w=10;h=20");
+	gint64 id1 = nde_capture_structural("canvas.resize", NDE_SCOPE_CANVAS, -1,
+	                                    params, "Resize canvas");
+	cr_assert_eq(id1, 1, "first structural record gets id 1");
+	gint64 id2 = nde_capture_structural("layer.add", NDE_SCOPE_DOCUMENT, 5,
+	                                    g_strdup("name=Ha"), "Add layer");
+	cr_assert_eq(id2, 2, "ids are monotonic");
+
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	cr_assert_not_null(snap);
+	cr_assert_eq(snap->len, 2);
+	nde_record *r0 = g_ptr_array_index(snap, 0);
+	cr_assert_str_eq(r0->op_id, "canvas.resize");
+	cr_assert_eq(r0->scope, NDE_SCOPE_CANVAS);
+	cr_assert_eq(r0->target_item_id, -1);
+	cr_assert_eq(r0->tier, NDE_TIER_A);
+	cr_assert_str_eq(r0->params, "w=10;h=20");
+	cr_assert_str_eq(r0->summary, "Resize canvas");
+	cr_assert_not_null(r0->timestamp);
+	cr_assert_not_null(r0->impl);
+	nde_record *r1 = g_ptr_array_index(snap, 1);
+	cr_assert_str_eq(r1->op_id, "layer.add");
+	cr_assert_eq(r1->target_item_id, 5);
+	g_ptr_array_unref(snap);
+}
+
+Test(nde_history, capture_opaque_is_tier_b_null_params) {
+	gint64 id = nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, 3,
+	                               "Python script pixel update");
+	cr_assert_eq(id, 1);
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	nde_record *r = g_ptr_array_index(snap, 0);
+	cr_assert_eq(r->tier, NDE_TIER_B);
+	cr_assert_null(r->params);
+	cr_assert_str_eq(r->op_id, "python.set_pixeldata");
+	cr_assert_eq(r->target_item_id, 3);
+	g_ptr_array_unref(snap);
+}
+
 /* ---------------- thread smoke ---------------- */
 
 #define SMOKE_APPENDS 500
