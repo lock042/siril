@@ -381,6 +381,10 @@ static void impl_show_siril_plot(gpointer spl_data) {
 	siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
 }
 
+static void impl_show_siril_plot_group(gpointer group) {
+	siril_add_pythonsafe_idle(create_new_siril_plot_group_window, group);
+}
+
 /* ── Group M: Thread utilities ───────────────────────────────────────────── */
 
 static void impl_execute_idle_sync(GSourceFunc func, gpointer data) {
@@ -1520,6 +1524,7 @@ void siril_register_gui_iface(void) {
 	gui_iface.on_stats_ready         = impl_on_stats_ready;
 	gui_iface.on_photometry_changed  = impl_on_photometry_changed;
 	gui_iface.show_siril_plot        = impl_show_siril_plot;
+	gui_iface.show_siril_plot_group  = impl_show_siril_plot_group;
 	gui_iface.update_star_list       = impl_update_star_list;
 	gui_iface.clear_star_list        = impl_clear_star_list;
 	gui_iface.get_reg_layer          = impl_get_reg_layer;

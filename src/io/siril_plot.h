@@ -97,6 +97,17 @@ siril_plot_data* init_siril_plot_data();
 void free_siril_plot_data(siril_plot_data *spl_data);
 void siril_plot_sort_x(siril_plot_data *spl_data);
 
+// a group of siril_plot_data to be displayed together, side by side, in a single window
+typedef struct siril_plot_group_struct {
+	GList *items; // list of siril_plot_data* to be displayed together
+	gchar *title; // optional title for the window holding the group
+} siril_plot_group;
+
+siril_plot_group *siril_plot_group_new();
+void siril_plot_group_add(siril_plot_group *grp, siril_plot_data *spl_data);
+void siril_plot_group_set_title(siril_plot_group *grp, const gchar *title);
+void free_siril_plot_group(siril_plot_group *grp);
+
 void siril_plot_set_title(siril_plot_data *spl_data, const gchar *title);
 void siril_plot_set_xlabel(siril_plot_data *spl_data, const gchar *xlabel);
 void siril_plot_set_ylabel(siril_plot_data *spl_data, const gchar *ylabel);

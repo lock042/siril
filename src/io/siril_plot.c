@@ -274,6 +274,40 @@ void free_siril_plot_data(siril_plot_data *spl_data) {
 
 }
 
+// init/free spl_data groups
+
+siril_plot_group *siril_plot_group_new() {
+	siril_plot_group *grp = malloc(sizeof(siril_plot_group));
+	if (!grp) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	grp->items = NULL;
+	grp->title = NULL;
+	return grp;
+}
+
+void siril_plot_group_add(siril_plot_group *grp, siril_plot_data *spl_data) {
+	if (!grp || !spl_data)
+		return;
+	grp->items = g_list_append(grp->items, spl_data);
+}
+
+void siril_plot_group_set_title(siril_plot_group *grp, const gchar *title) {
+	if (!grp)
+		return;
+	g_free(grp->title);
+	grp->title = g_strdup(title);
+}
+
+void free_siril_plot_group(siril_plot_group *grp) {
+	if (!grp)
+		return;
+	g_list_free_full(grp->items, (GDestroyNotify)free_siril_plot_data);
+	g_free(grp->title);
+	free(grp);
+}
+
 // setters
 void siril_plot_set_title(siril_plot_data *spl_data, const gchar *title) {
 	if (spl_data->title)

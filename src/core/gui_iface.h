@@ -315,6 +315,9 @@ typedef struct {
 	void     (*on_photometry_changed)(void);
 	/* Open a new siril-plot window for the given siril_plot_data pointer. */
 	void     (*show_siril_plot)(gpointer spl_data);
+	/* Open a new siril-plot window grouping all the plots of the given
+	 * siril_plot_group pointer side by side. */
+	void     (*show_siril_plot_group)(gpointer group);
 
 	/* K – Star list -------------------------------------------------------- */
 	/* Update the star list display and optionally the PSF list panel. */

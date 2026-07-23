@@ -494,6 +494,8 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	if (args->do_plot) {
 		double stat_min, stat_max;
 		spcc_object *object = (spcc_object*) selected_white->data;
+		siril_plot_group *spl_group = siril_plot_group_new();
+		siril_plot_group_set_title(spl_group, _("SPCC Linear Fits"));
 		if (plotrg) {
 			int ngoodrg = filtermaskArrays(crg, irg, maskrg, ngood);
 			gsl_stats_minmax(&stat_min, &stat_max, crg, 1, ngoodrg);
@@ -516,7 +518,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 				spl_datarg->cfgdata.point.radius = 1;
 				spl_datarg->cfgdata.point.sz = 2;
 				spl_datarg->cfgdata.line.sz = 2;
-				gui_iface.show_siril_plot(spl_datarg);
+				siril_plot_group_add(spl_group, spl_datarg);
 			}
 		}
 
@@ -542,9 +544,14 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 				spl_databg->cfgdata.point.radius = 1;
 				spl_databg->cfgdata.point.sz = 2;
 				spl_databg->cfgdata.line.sz = 2;
-				gui_iface.show_siril_plot(spl_databg);
+				siril_plot_group_add(spl_group, spl_databg);
 			}
 		}
+
+		if (spl_group->items)
+			gui_iface.show_siril_plot_group(spl_group);
+		else
+			free_siril_plot_group(spl_group);
 
 		siril_add_idle(end_generic, NULL);
 	}

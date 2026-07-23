@@ -173,27 +173,28 @@ static GdkModifierType get_primary() {
 }
 
 // callbacks
+
+// closes a siril-plot window: frees every spl_data displayed in it (one for a
+// single-plot window, several for a grouped one) and unparents every
+// right-click popover (they are attached via gtk_widget_set_parent rather
+// than through a container; GTK4 will warn ("still has children left") if
+// still parented when the window is finalized).
 static gboolean on_siril_plot_window_closed(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
 	siril_log_debug("Freeing siril_plot data and closing\n");
-	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(widget), "spl_data");
-	free_siril_plot_data(spl_data);
-	/* The right-click context popover was attached via gtk_widget_set_parent
-	 * rather than through a container; GTK4 will warn ("still has children
-	 * left") if it is still parented when the window is finalized. */
-	GtkWidget *menu = g_object_get_data(G_OBJECT(widget), "menu_handle");
-	if (menu)
-		gtk_widget_unparent(menu);
+	GList *spl_data_list = (GList *)g_object_get_data(G_OBJECT(widget), "spl_data_list");
+	g_list_free_full(spl_data_list, (GDestroyNotify)free_siril_plot_data);
+	GList *menu_list = (GList *)g_object_get_data(G_OBJECT(widget), "menu_list");
+	for (GList *l = menu_list; l; l = l->next)
+		gtk_widget_unparent(GTK_WIDGET(l->data));
+	g_list_free(menu_list);
 	gtk_window_destroy(GTK_WINDOW(widget));
 	return TRUE;
 }
 
 static void on_siril_plot_draw(GtkDrawingArea *area, cairo_t *cr,
                                 int width_i, int height_i, gpointer user_data) {
-	// retrieve the parent window and its attached spl_data
-	GtkWidget *window = (GtkWidget *)(user_data);
-	if (!window)
-		return;
-	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
+	// each pane's drawing area carries its own spl_data
+	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(area), "spl_data");
 	if (!spl_data)
 		return;
 
@@ -243,12 +244,11 @@ static void on_siril_plot_leave(GtkEventControllerMotion *controller,
 
 /* GTK4 motion: track cursor + drive selection/pan drag.  Replaces
  * "motion-notify-event"; (x, y) come straight from the controller. */
-static void siril_plot_handle_pointer(GtkWidget *window, double x, double y) {
-	if (!window) return;
-	siril_plot_data *spl_data = (siril_plot_data *) g_object_get_data(G_OBJECT(window), "spl_data");
-	GtkWidget *label = (GtkWidget *) g_object_get_data(G_OBJECT(window), "display_label_handle");
-	GtkWidget *da = (GtkWidget *) g_object_get_data(G_OBJECT(window), "drawing_area_handle");
-	if (!spl_data || !label || !da) return;
+static void siril_plot_handle_pointer(GtkWidget *da, double x, double y) {
+	if (!da) return;
+	siril_plot_data *spl_data = (siril_plot_data *) g_object_get_data(G_OBJECT(da), "spl_data");
+	GtkWidget *label = (GtkWidget *) g_object_get_data(G_OBJECT(da), "display_label_handle");
+	if (!spl_data || !label) return;
 	if (!is_inside_grid(x, y, &spl_data->pdd)) return;
 
 	/* Show cursor coordinates in the bottom-left label. */
@@ -303,11 +303,10 @@ static void on_siril_plot_drag_update(GtkGestureDrag *g,
 static gboolean on_siril_plot_scroll(GtkEventControllerScroll *controller,
 		double dx, double dy, gpointer user_data) {
 	(void)dx;
-	GtkWidget *window = (GtkWidget *) user_data;
-	if (!window) return FALSE;
-	siril_plot_data *spl_data = (siril_plot_data *) g_object_get_data(G_OBJECT(window), "spl_data");
-	GtkWidget *da = (GtkWidget *) g_object_get_data(G_OBJECT(window), "drawing_area_handle");
-	if (!spl_data || !spl_data->zoomable || !da) return FALSE;
+	GtkWidget *da = (GtkWidget *) user_data;
+	if (!da) return FALSE;
+	siril_plot_data *spl_data = (siril_plot_data *) g_object_get_data(G_OBJECT(da), "spl_data");
+	if (!spl_data || !spl_data->zoomable) return FALSE;
 
 	GdkModifierType mods = gtk_event_controller_get_current_event_state(
 	    GTK_EVENT_CONTROLLER(controller));
@@ -335,12 +334,11 @@ static gboolean on_siril_plot_scroll(GtkEventControllerScroll *controller,
  * pan); double-click resets the zoom. */
 static void on_siril_plot_pressed(GtkGestureClick *gesture, int n_press,
 		double x, double y, gpointer user_data) {
-	GtkWidget *window = (GtkWidget *) user_data;
-	if (!window) return;
-	siril_plot_data *spl_data = (siril_plot_data *) g_object_get_data(G_OBJECT(window), "spl_data");
-	GtkWidget *menu = (GtkWidget *) g_object_get_data(G_OBJECT(window), "menu_handle");
-	GtkWidget *da   = (GtkWidget *) g_object_get_data(G_OBJECT(window), "drawing_area_handle");
-	if (!spl_data || !menu || !da) return;
+	GtkWidget *da = (GtkWidget *) user_data;
+	if (!da) return;
+	siril_plot_data *spl_data = (siril_plot_data *) g_object_get_data(G_OBJECT(da), "spl_data");
+	GtkWidget *menu = (GtkWidget *) g_object_get_data(G_OBJECT(da), "menu_handle");
+	if (!spl_data || !menu) return;
 
 	guint button = gtk_gesture_single_get_current_button(GTK_GESTURE_SINGLE(gesture));
 	if (button == GDK_BUTTON_SECONDARY) {
@@ -380,11 +378,10 @@ static void on_siril_plot_pressed(GtkGestureClick *gesture, int n_press,
 static void on_siril_plot_released(GtkGestureClick *gesture, int n_press,
 		double x, double y, gpointer user_data) {
 	(void)gesture; (void)n_press; (void)x; (void)y;
-	GtkWidget *window = (GtkWidget *) user_data;
-	if (!window) return;
-	siril_plot_data *spl_data = (siril_plot_data *) g_object_get_data(G_OBJECT(window), "spl_data");
-	GtkWidget *da = (GtkWidget *) g_object_get_data(G_OBJECT(window), "drawing_area_handle");
-	if (!spl_data || !spl_data->zoomable || !da) return;
+	GtkWidget *da = (GtkWidget *) user_data;
+	if (!da) return;
+	siril_plot_data *spl_data = (siril_plot_data *) g_object_get_data(G_OBJECT(da), "spl_data");
+	if (!spl_data || !spl_data->zoomable) return;
 	if (spl_data->pdd.action == SELACTION_SELECTING) {
 		if (fabs(spl_data->pdd.selection.w) > 1. && fabs(spl_data->pdd.selection.h) > 1.) {
 			double x1, x2, y1, y2;
@@ -409,24 +406,22 @@ static void on_siril_plot_released(GtkGestureClick *gesture, int n_press,
 }
 
 static void on_siril_plot_grid_toggled(GtkCheckButton *checkmenuitem, gpointer user_data) {
-	GtkWidget *window = (GtkWidget *)(user_data);
-	if (!window)
+	GtkWidget *da = (GtkWidget *)(user_data);
+	if (!da)
 		return;
-	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
-	GtkWidget *da = (GtkWidget *)g_object_get_data(G_OBJECT(window), "drawing_area_handle");
-	if (!spl_data || !da)
+	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(da), "spl_data");
+	if (!spl_data)
 		return;
 	spl_data->cfgplot.grid = (siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(checkmenuitem)))) ? GRID_ALL : 0;
 	gtk_widget_queue_draw(da);
 }
 
 static void on_siril_plot_legend_toggled(GtkCheckButton *checkmenuitem, gpointer user_data) {
-	GtkWidget *window = (GtkWidget *)(user_data);
-	if (!window)
+	GtkWidget *da = (GtkWidget *)(user_data);
+	if (!da)
 		return;
-	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
-	GtkWidget *da = (GtkWidget *)g_object_get_data(G_OBJECT(window), "drawing_area_handle");
-	if (!spl_data || !da)
+	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(da), "spl_data");
+	if (!spl_data)
 		return;
 	spl_data->show_legend = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(checkmenuitem)));
 	gtk_widget_queue_draw(da);
@@ -437,25 +432,26 @@ static void on_siril_plot_legend_toggled(GtkCheckButton *checkmenuitem, gpointer
 // the appropriate save procedure is then called accordingly
 static void on_siril_plot_save_activate(GtkWidget *menuitem, gpointer user_data) {
 	gchar *filename = NULL, *outname = NULL;
-	GtkWidget *window = (GtkWidget *)(user_data);
-	if (!window)
+	GtkWidget *da = (GtkWidget *)(user_data);
+	if (!da)
 		return;
-	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
-	GtkWidget *da = (GtkWidget *)g_object_get_data(G_OBJECT(window), "drawing_area_handle");
-	if (!spl_data || !da)
+	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(da), "spl_data");
+	if (!spl_data)
 		return;
+	// the save dialog needs the top-level window, which may host several panes
+	GtkWindow *window = GTK_WINDOW(gtk_widget_get_root(da));
 	int width =  gtk_widget_get_width(da);
 	int height = gtk_widget_get_height(da);
-	
+
 	const gchar *widgetname = gtk_widget_get_name(GTK_WIDGET(menuitem));
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	if (!g_strcmp0(widgetname, "png")) {
 		filename = build_save_filename(spl_data->savename, ".png", spl_data->forsequence, TRUE);
-		if ((outname = save_siril_plot_dialog(GTK_WINDOW(window), filename, _("PNG files (*.png)"), "*.png")))
+		if ((outname = save_siril_plot_dialog(window, filename, _("PNG files (*.png)"), "*.png")))
 			siril_plot_save_png(spl_data, outname, width, height);
 	} else if (!g_strcmp0(widgetname, "dat")) {
 		filename = build_save_filename(spl_data->savename, ".dat", spl_data->forsequence, FALSE);
-		if ((outname = save_siril_plot_dialog(GTK_WINDOW(window), filename, _("DAT files (*.dat)"), "*.dat")))
+		if ((outname = save_siril_plot_dialog(window, filename, _("DAT files (*.dat)"), "*.dat")))
 			siril_plot_save_dat(spl_data, outname, FALSE);
 	} else if (!g_strcmp0(widgetname, "cb")) {
 		save_siril_plot_to_clipboard(spl_data, width, height);
@@ -463,7 +459,7 @@ static void on_siril_plot_save_activate(GtkWidget *menuitem, gpointer user_data)
 #ifdef CAIRO_HAS_SVG_SURFACE
 	else if (!g_strcmp0(widgetname, "svg")) {
 		filename = build_save_filename(spl_data->savename, ".svg", spl_data->forsequence, TRUE);
-		if ((outname = save_siril_plot_dialog(GTK_WINDOW(window), filename, _("SVG files (*.svg)"), "*.svg")))
+		if ((outname = save_siril_plot_dialog(window, filename, _("SVG files (*.svg)"), "*.svg")))
 			siril_plot_save_svg(spl_data, outname, width, height);
 	}
 #endif
@@ -483,36 +479,12 @@ static GtkWidget *spl_menu_button_new(const char *text) {
 	return button;
 }
 
-gboolean create_new_siril_plot_window(gpointer p) {
-	GtkWidget *window, *vbox, *da, *label, *menu;
-	GtkWidget *spl_menu_grid, *spl_menu_legend;
-	GtkWidget *spl_menu_save_cb, *spl_menu_save_png, *spl_menu_save_dat, *spl_menu_sep;
-#ifdef CAIRO_HAS_SVG_SURFACE
-	GtkWidget *spl_menu_save_svg;
-#endif
-	siril_plot_data *spl_data = (siril_plot_data *)p;
-
-	// sanity checks
-	if (!spl_data) {
-		siril_log_debug("Passed an empty spl_data structure\n");
-		return FALSE;
-	}
-	if (!spl_data_has_any_plot(spl_data)) {
-		siril_log_debug("Trying to display plot that contains no data, freeing and aborting\n");
-		free_siril_plot_data(spl_data);
-		spl_data = NULL;
-		return FALSE;
-	}
-
-	//prepare interactivity for spl_data
-	reset_zoom(spl_data);
-	reset_selection(&spl_data->pdd);
-	spl_data->zoomable = spl_data->bkg == NULL;
-
-	window = gtk_window_new();
-	gtk_window_set_title(GTK_WINDOW(window), "Siril plot");
-	// attaching the spl_data to the window widget
-	g_object_set_data(G_OBJECT(window), "spl_data", spl_data);
+// creates the bare siril-plot window (chrome only, no plot pane yet): title,
+// CSS class, close-request handler and margins. Shared by the single-plot
+// and grouped-plot window builders below.
+static GtkWidget *create_siril_plot_window_shell(const gchar *title) {
+	GtkWidget *window = gtk_window_new();
+	gtk_window_set_title(GTK_WINDOW(window), (title) ? title : "Siril plot");
 
 	/* Uniform plot-window background.  Class-scoped to avoid styling
 	 * other windows; provider registered display-wide once. */
@@ -520,13 +492,37 @@ gboolean create_new_siril_plot_window(gpointer p) {
 		"window.siril-plot { color: grey; background: white; font-size: 12px; }");
 	gtk_widget_add_css_class(GTK_WIDGET(window), "siril-plot");
 	// connect the delete-event signal, triggered when the window is closed
-	// the callback frees the attached spl_data
+	// the callback frees every spl_data displayed in the window
 	g_signal_connect(G_OBJECT(window), "close-request", G_CALLBACK(on_siril_plot_window_closed), NULL);
 	gtk_widget_set_margin_start(GTK_WIDGET(window), 5); gtk_widget_set_margin_end(GTK_WIDGET(window), 5); gtk_widget_set_margin_top(GTK_WIDGET(window), 5); gtk_widget_set_margin_bottom(GTK_WIDGET(window), 5);
+	return window;
+}
+
+// builds one interactive plot pane (drawing area + coordinate label + its
+// right-click save/grid/legend popover) bound to spl_data, and registers
+// spl_data and the popover on `window` so on_siril_plot_window_closed can
+// free/unparent them regardless of how many panes the window ends up
+// holding. Returns the pane's root widget, to be packed by the caller.
+static GtkWidget *build_siril_plot_pane(GtkWidget *window, siril_plot_data *spl_data) {
+	GtkWidget *vbox, *da, *label, *menu;
+	GtkWidget *spl_menu_grid, *spl_menu_legend;
+	GtkWidget *spl_menu_save_cb, *spl_menu_save_png, *spl_menu_save_dat, *spl_menu_sep;
+#ifdef CAIRO_HAS_SVG_SURFACE
+	GtkWidget *spl_menu_save_svg;
+#endif
+
+	//prepare interactivity for spl_data
+	reset_zoom(spl_data);
+	reset_selection(&spl_data->pdd);
+	spl_data->zoomable = spl_data->bkg == NULL;
+
+	// register spl_data on the window for freeing when it is closed
+	GList *spl_data_list = (GList *)g_object_get_data(G_OBJECT(window), "spl_data_list");
+	spl_data_list = g_list_append(spl_data_list, spl_data);
+	g_object_set_data(G_OBJECT(window), "spl_data_list", spl_data_list);
 
 	// add a vertical box
 	vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
-	gtk_window_set_child(GTK_WINDOW(window), vbox);
 
 	// add the drawing area
 	da = gtk_drawing_area_new();
@@ -536,21 +532,24 @@ gboolean create_new_siril_plot_window(gpointer p) {
 	gtk_widget_set_hexpand(da, TRUE);
 	gtk_widget_set_vexpand(da, TRUE);
 	gtk_box_append(GTK_BOX(vbox), da);
-	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(da), on_siril_plot_draw, window, NULL);
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(da), on_siril_plot_draw, da, NULL);
+
+	// attach the spl_data to its own drawing area, so several panes can coexist in one window
+	g_object_set_data(G_OBJECT(da), "spl_data", spl_data);
 
 	/* GTK4 event-controllers on the drawing area: replace the GTK3
 	 * enter-notify, leave-notify, motion-notify, button-press,
 	 * button-release, and scroll-event signals. */
 	GtkEventController *motion_ctl = gtk_event_controller_motion_new();
-	g_signal_connect(motion_ctl, "enter",  G_CALLBACK(on_siril_plot_enter),  window);
-	g_signal_connect(motion_ctl, "leave",  G_CALLBACK(on_siril_plot_leave),  window);
-	g_signal_connect(motion_ctl, "motion", G_CALLBACK(on_siril_plot_motion), window);
+	g_signal_connect(motion_ctl, "enter",  G_CALLBACK(on_siril_plot_enter),  da);
+	g_signal_connect(motion_ctl, "leave",  G_CALLBACK(on_siril_plot_leave),  da);
+	g_signal_connect(motion_ctl, "motion", G_CALLBACK(on_siril_plot_motion), da);
 	gtk_widget_add_controller(da, motion_ctl);
 
 	GtkGesture *click_gst = gtk_gesture_click_new();
 	gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(click_gst), 0); /* any button */
-	g_signal_connect(click_gst, "pressed",  G_CALLBACK(on_siril_plot_pressed),  window);
-	g_signal_connect(click_gst, "released", G_CALLBACK(on_siril_plot_released), window);
+	g_signal_connect(click_gst, "pressed",  G_CALLBACK(on_siril_plot_pressed),  da);
+	g_signal_connect(click_gst, "released", G_CALLBACK(on_siril_plot_released), da);
 	gtk_widget_add_controller(da, GTK_EVENT_CONTROLLER(click_gst));
 
 	/* Drag: primary-only (selection rectangle, pan); see also the
@@ -559,7 +558,7 @@ gboolean create_new_siril_plot_window(gpointer p) {
 	gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(drag_gst),
 	                              GDK_BUTTON_PRIMARY);
 	g_signal_connect(drag_gst, "drag-update",
-	                 G_CALLBACK(on_siril_plot_drag_update), window);
+	                 G_CALLBACK(on_siril_plot_drag_update), da);
 	gtk_widget_add_controller(da, GTK_EVENT_CONTROLLER(drag_gst));
 
 	/* Group click + drag so neither claim denies the other. */
@@ -567,11 +566,8 @@ gboolean create_new_siril_plot_window(gpointer p) {
 
 	GtkEventController *scroll_ctl = gtk_event_controller_scroll_new(
 	    GTK_EVENT_CONTROLLER_SCROLL_VERTICAL);
-	g_signal_connect(scroll_ctl, "scroll", G_CALLBACK(on_siril_plot_scroll), window);
+	g_signal_connect(scroll_ctl, "scroll", G_CALLBACK(on_siril_plot_scroll), da);
 	gtk_widget_add_controller(da, scroll_ctl);
-
-	// and cache its handle
-	g_object_set_data(G_OBJECT(window), "drawing_area_handle", da);
 
 	// add the label
 	label = gtk_label_new("0;0");
@@ -580,16 +576,18 @@ gboolean create_new_siril_plot_window(gpointer p) {
 	gtk_box_append(GTK_BOX(vbox), label);
 	gtk_widget_set_halign(label, GTK_ALIGN_START);
 	// and cache its handle
-	g_object_set_data(G_OBJECT(window), "display_label_handle", label);
+	g_object_set_data(G_OBJECT(da), "display_label_handle", label);
 
 	/* Phase 15: GtkMenu / GtkMenuItem / gtk_separator_menu_item_new are
 	 * gone in GTK4.  Build the right-click context menu as a GtkPopover
 	 * with a vertical GtkBox of GtkCheckButtons (grid/legend) and
 	 * GtkButtons (save actions); the existing toggled / clicked handlers
 	 * keep working because they already accept GtkCheckButton* /
-	 * GtkWidget* respectively. */
+	 * GtkWidget* respectively. Parented to `da` (not the window) so its
+	 * pointing-to rectangle, expressed in da's own coordinates, lines up
+	 * even when the window hosts several panes. */
 	menu = gtk_popover_new();
-	gtk_widget_set_parent(menu, window);
+	gtk_widget_set_parent(menu, da);
 	GtkWidget *menu_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
 	gtk_widget_set_margin_start(menu_box, 6);
 	gtk_widget_set_margin_end(menu_box, 6);
@@ -600,12 +598,12 @@ gboolean create_new_siril_plot_window(gpointer p) {
 	// grid
 	spl_menu_grid = gtk_check_button_new_with_label("Grid");
 	siril_toggle_set_active(GTK_WIDGET(GTK_CHECK_BUTTON(spl_menu_grid)), TRUE);
-	g_signal_connect(G_OBJECT(spl_menu_grid), "toggled", G_CALLBACK(on_siril_plot_grid_toggled), window);
+	g_signal_connect(G_OBJECT(spl_menu_grid), "toggled", G_CALLBACK(on_siril_plot_grid_toggled), da);
 
 	// legend
 	spl_menu_legend = gtk_check_button_new_with_label("Legend");
 	siril_toggle_set_active(GTK_WIDGET(GTK_CHECK_BUTTON(spl_menu_legend)), TRUE);
-	g_signal_connect(G_OBJECT(spl_menu_legend), "toggled", G_CALLBACK(on_siril_plot_legend_toggled), window);
+	g_signal_connect(G_OBJECT(spl_menu_legend), "toggled", G_CALLBACK(on_siril_plot_legend_toggled), da);
 
 	// sep
 	spl_menu_sep = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
@@ -613,24 +611,24 @@ gboolean create_new_siril_plot_window(gpointer p) {
 	// save to clipboard
 	spl_menu_save_cb = spl_menu_button_new("Save view to Clipboard");
 	gtk_widget_set_name(spl_menu_save_cb, "cb");
-	g_signal_connect(G_OBJECT(spl_menu_save_cb), "clicked", G_CALLBACK(on_siril_plot_save_activate), window);
+	g_signal_connect(G_OBJECT(spl_menu_save_cb), "clicked", G_CALLBACK(on_siril_plot_save_activate), da);
 
 	// save as png
 	spl_menu_save_png = spl_menu_button_new("Save view as PNG");
 	gtk_widget_set_name(spl_menu_save_png, "png");
-	g_signal_connect(G_OBJECT(spl_menu_save_png), "clicked", G_CALLBACK(on_siril_plot_save_activate), window);
+	g_signal_connect(G_OBJECT(spl_menu_save_png), "clicked", G_CALLBACK(on_siril_plot_save_activate), da);
 
 #ifdef CAIRO_HAS_SVG_SURFACE
 	// save as svg
 	spl_menu_save_svg = spl_menu_button_new("Save view as SVG");
 	gtk_widget_set_name(spl_menu_save_svg, "svg");
-	g_signal_connect(G_OBJECT(spl_menu_save_svg), "clicked", G_CALLBACK(on_siril_plot_save_activate), window);
+	g_signal_connect(G_OBJECT(spl_menu_save_svg), "clicked", G_CALLBACK(on_siril_plot_save_activate), da);
 #endif
 
 	// save as dat
 	spl_menu_save_dat = spl_menu_button_new("Export dat file");
 	gtk_widget_set_name(spl_menu_save_dat, "dat");
-	g_signal_connect(G_OBJECT(spl_menu_save_dat), "clicked", G_CALLBACK(on_siril_plot_save_activate), window);
+	g_signal_connect(G_OBJECT(spl_menu_save_dat), "clicked", G_CALLBACK(on_siril_plot_save_activate), da);
 
 	gtk_box_append(GTK_BOX(menu_box), spl_menu_grid);
 	gtk_box_append(GTK_BOX(menu_box), spl_menu_legend);
@@ -642,10 +640,106 @@ gboolean create_new_siril_plot_window(gpointer p) {
 #endif
 	gtk_box_append(GTK_BOX(menu_box), spl_menu_save_dat);
 	// and cache its handle
-	g_object_set_data(G_OBJECT(window), "menu_handle", menu);
+	g_object_set_data(G_OBJECT(da), "menu_handle", menu);
+
+	// register the popover on the window for unparenting when it is closed
+	GList *menu_list = (GList *)g_object_get_data(G_OBJECT(window), "menu_list");
+	menu_list = g_list_append(menu_list, menu);
+	g_object_set_data(G_OBJECT(window), "menu_list", menu_list);
+
+	return vbox;
+}
+
+gboolean create_new_siril_plot_window(gpointer p) {
+	siril_plot_data *spl_data = (siril_plot_data *)p;
+
+	// sanity checks
+	if (!spl_data) {
+		siril_log_debug("Passed an empty spl_data structure\n");
+		return FALSE;
+	}
+	if (!spl_data_has_any_plot(spl_data)) {
+		siril_log_debug("Trying to display plot that contains no data, freeing and aborting\n");
+		free_siril_plot_data(spl_data);
+		return FALSE;
+	}
+
+	GtkWidget *window = create_siril_plot_window_shell(NULL);
+	GtkWidget *pane = build_siril_plot_pane(window, spl_data);
+	gtk_window_set_child(GTK_WINDOW(window), pane);
 
 	gtk_window_present(GTK_WINDOW(window));
+	gtk_widget_set_visible(window, TRUE);
+	return FALSE;
+}
 
+// displays every siril_plot_data of the group side by side in a single
+// window, each pane keeping its own independent zoom/pan/save interactivity.
+// Takes ownership of `p` (a siril_plot_group*): the group container is
+// consumed here, its items are handed off to the window for lifetime
+// management (freed by on_siril_plot_window_closed when the window closes).
+gboolean create_new_siril_plot_group_window(gpointer p) {
+	siril_plot_group *grp = (siril_plot_group *)p;
+	if (!grp) {
+		siril_log_debug("Passed an empty siril_plot_group structure\n");
+		return FALSE;
+	}
+
+	// keep only the plots that actually hold data, freeing the empty ones
+	GList *valid = NULL;
+	for (GList *l = grp->items; l; l = l->next) {
+		siril_plot_data *spl_data = (siril_plot_data *)l->data;
+		if (spl_data_has_any_plot(spl_data))
+			valid = g_list_append(valid, spl_data);
+		else {
+			siril_log_debug("Trying to display plot that contains no data, freeing and skipping\n");
+			free_siril_plot_data(spl_data);
+		}
+	}
+	g_list_free(grp->items);
+	grp->items = NULL;
+
+	if (!valid) {
+		siril_log_debug("No valid plots in siril_plot_group, aborting\n");
+		g_free(grp->title);
+		free(grp);
+		return FALSE;
+	}
+
+	GtkWidget *window = create_siril_plot_window_shell(grp->title);
+
+	GtkWidget *scroller = gtk_scrolled_window_new();
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroller), GTK_POLICY_AUTOMATIC, GTK_POLICY_NEVER);
+	gtk_widget_set_hexpand(scroller, TRUE);
+	gtk_widget_set_vexpand(scroller, TRUE);
+	/* A GtkScrolledWindow normally reports a small minimum/natural size of
+	 * its own regardless of its child (that's how it lets arbitrarily large
+	 * content scroll); left alone, the window opens too small to show every
+	 * pane and the user has to resize it manually. Propagating the child's
+	 * natural size makes the window open wide enough for all panes (up to
+	 * what the screen allows), while still falling back to scrolling if the
+	 * group holds more plots than can fit. */
+	gtk_scrolled_window_set_propagate_natural_width(GTK_SCROLLED_WINDOW(scroller), TRUE);
+	gtk_scrolled_window_set_propagate_natural_height(GTK_SCROLLED_WINDOW(scroller), TRUE);
+
+	GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+	gboolean first = TRUE;
+	for (GList *l = valid; l; l = l->next) {
+		if (!first)
+			gtk_box_append(GTK_BOX(hbox), gtk_separator_new(GTK_ORIENTATION_VERTICAL));
+		GtkWidget *pane = build_siril_plot_pane(window, (siril_plot_data *)l->data);
+		gtk_box_append(GTK_BOX(hbox), pane);
+		first = FALSE;
+	}
+	g_list_free(valid);
+
+	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroller), hbox);
+	gtk_window_set_child(GTK_WINDOW(window), scroller);
+
+	g_free(grp->title);
+	free(grp); // ownership of its items was transferred to the window above
+
+	gtk_window_present(GTK_WINDOW(window));
 	gtk_widget_set_visible(window, TRUE);
 	return FALSE;
 }
