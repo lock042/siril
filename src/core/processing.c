@@ -32,6 +32,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
+#include "core/nde_history.h"
 #include "core/op_descriptor.h"
 #include "core/siril_log.h"
 #include "core/sequence_filtering.h"
@@ -1822,6 +1823,37 @@ the_end:;
 		notify_gfit_data_modified();
 	}
 
+	/* NDE provenance capture (nde sketch §13.1).  Same gate as undo below
+	 * EXCEPT com.script: scripts must leave provenance — the script
+	 * exclusion on undo exists for swap-file cost, not correctness.  Must
+	 * run before the completion idle is scheduled: the idle frees args
+	 * (including args->user, which serialize() reads).  Strings are
+	 * prepared here; the append itself is a few pointer ops under the
+	 * leaf mutex. */
+	gint64 nde_rec_id = 0;
+	if (!retval && use_swap && !arg_skip_undo && !argpreview) {
+		const op_descriptor *op = args->op;
+		gboolean tier_a = op && op->serialize;
+		nde_record *rec = nde_record_new();
+		rec->op_id = g_strdup(op ? op->id : "opaque.unknown");
+		rec->op_version = op ? op->version : 0;
+		rec->tier = tier_a ? NDE_TIER_A : NDE_TIER_B;
+		rec->params = tier_a ? op->serialize(args->user) : NULL;
+		rec->summary = args->log_hook ?
+				args->log_hook(args->user, SUMMARY) : g_strdup(args->description);
+		rec->scope = (op && (op->flags & OP_GEOMETRY_CHANGING)) ?
+				NDE_SCOPE_CANVAS : NDE_SCOPE_LAYER;
+		if (is_current_image_flis()) {
+			flis_layer_t *lay = flis_active_layer();
+			rec->target_item_id = lay ? lay->item_id : -1;
+		}
+		rec->mask_active = using_mask;
+		rec->timestamp = nde_iso8601_now();
+		rec->impl = nde_impl_string();
+		nde_rec_id = nde_history_append(rec);
+		nde_history_notify_panel();
+	}
+
 	/* populate_roi() refreshes gui.roi.fit from the (now-updated) gfit
 	 * so the ROI preview reflects the result.  Only meaningful for the
 	 * swap path — non-swap ops worked on roi.fit directly and
@@ -1870,18 +1902,23 @@ the_end:;
 		/* On the swap path, `orig` now holds the pre-op image — the
 		 * swap above moved the original gfit content into it.  That's
 		 * exactly what undo_save_state wants to snapshot. */
+		int undo_err;
 		if (geom_flis && geom_active) {
 			/* Active-layer geometry undo: bundles pixels + pmask + lmask
 			 * + props.  On failure fall back to the legacy path so we
 			 * still record SOMETHING in the undo stack. */
-			if (undo_save_flis_layer_full(orig, geom_active,
-			                              geom_pre_lmask, &geom_pre_props,
-			                              summary)) {
-				undo_save_state(orig, summary);
-			}
+			undo_err = undo_save_flis_layer_full(orig, geom_active,
+			                                     geom_pre_lmask, &geom_pre_props,
+			                                     summary);
+			if (undo_err)
+				undo_err = undo_save_state(orig, summary);
 		} else {
-			undo_save_state(orig, summary);
+			undo_err = undo_save_state(orig, summary);
 		}
+		/* Couple the fresh undo entry to the provenance record so
+		 * undo/redo of this op moves live_count (nde sketch §13.3). */
+		if (!undo_err)
+			undo_tag_top_nde_record(nde_rec_id);
 	}
 	if (geom_pre_lmask) {
 		layermask_free(geom_pre_lmask);

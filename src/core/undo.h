@@ -44,6 +44,15 @@ int	undo_flush();
 gboolean undo_in_thread(gpointer user_data);
 gboolean redo_in_thread(gpointer user_data);
 
+/**
+ * undo_tag_top_nde_record:
+ * Couple the newest undo entry to NDE provenance record @record_id (sketch
+ * §13.3).  Called by the capture site immediately after a successful
+ * undo_save_* for the same operation, on the same thread.  No-op for
+ * record_id 0 or an empty stack.
+ */
+void undo_tag_top_nde_record(gint64 record_id);
+
 /* ----------------------------------------------------------------------- */
 /* FLIS undo API — added at stage 1.4.  All functions below save undo      */
 /* state for FLIS layer mutations.  They are no-ops when running headless  */

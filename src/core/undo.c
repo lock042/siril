@@ -43,6 +43,7 @@
 #include "io/image_format_flis.h"
 #include "io/annotation_catalogues.h"
 #include "core/undo.h"
+#include "core/nde_history.h"
 #include "core/proto.h"
 #include "algos/statistics.h"
 #include "algos/siril_wcs.h"
@@ -1098,6 +1099,12 @@ gboolean is_redo_available() {
 	return com.redo_stack != NULL;
 }
 
+void undo_tag_top_nde_record(gint64 record_id) {
+	if (!record_id || !com.undo_stack)
+		return;
+	((historic *)com.undo_stack->data)->nde_record_id = record_id;
+}
+
 int undo_save_state(fits *fit, const char *message, ...) {
 	if (!single_image_is_loaded())
 		return 0;
@@ -1191,13 +1198,18 @@ int undo_display_data(int dir) {
 				g_rw_lock_writer_unlock(&gfit->rwlock);
 				return 1;
 			}
+			/* the counterpart inherits the provenance coupling so a later
+			 * redo moves live_count forward again (nde sketch §13.3) */
+			((historic *)com.redo_stack->data)->nde_record_id = top->nde_record_id;
 
 			siril_log_message(_("Undo: %s\n"), top->history);
 
 			/* pop and restore */
+			gint64 nde_id = top->nde_record_id;
 			com.undo_stack = g_list_remove_link(com.undo_stack, com.undo_stack);
 			undo_restore(gfit, top);
 			undo_free_item(top);
+			nde_history_on_undo(nde_id);
 
 			gui_iface.invalidate_histogram();
 			invalidate_stats_from_fit(gfit);
@@ -1271,13 +1283,17 @@ int undo_display_data(int dir) {
 				g_rw_lock_writer_unlock(&gfit->rwlock);
 				return 1;
 			}
+			/* see UNDO case: keep the provenance coupling round-trippable */
+			((historic *)com.undo_stack->data)->nde_record_id = top->nde_record_id;
 
 			siril_log_message(_("Redo: %s\n"), top->history);
 
 			/* pop and restore */
+			gint64 nde_id = top->nde_record_id;
 			com.redo_stack = g_list_remove_link(com.redo_stack, com.redo_stack);
 			undo_restore(gfit, top);
 			undo_free_item(top);
+			nde_history_on_redo(nde_id);
 
 			gui_iface.invalidate_histogram();
 			g_rw_lock_writer_unlock(&gfit->rwlock); // Finished with writer lock

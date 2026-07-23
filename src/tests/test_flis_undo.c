@@ -27,6 +27,7 @@
 #include <criterion/criterion.h>
 #include "flis_test_helpers.h"
 #include "core/undo.h"
+#include "core/nde_history.h"
 
 cominfo com;
 fits *gfit;
@@ -294,4 +295,42 @@ Test(flis_undo_gui, plain_undo_restores_into_saved_layer) {
 	cr_assert_eq(undo_display_data(REDO), 0);
 	cr_assert_float_eq(a->fit->fdata[0], 0.6f, 1e-6, "redo must reapply into layer a");
 	cr_assert_float_eq(b->fit->fdata[0], 0.75f, 1e-6);
+}
+
+/* ----- NDE provenance coupling (nde sketch §13.3) ----- */
+
+Test(flis_undo_gui, nde_tag_top_entry) {
+	flis_layer_t *l = flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "x");
+	undo_tag_top_nde_record(7);           /* empty stack: no-op, no crash */
+	cr_assert_eq(undo_save_flis_layer_props(l, "op"), 0);
+	historic *top = (historic *)com.undo_stack->data;
+	cr_assert_eq(top->nde_record_id, 0, "fresh entries start uncoupled");
+	undo_tag_top_nde_record(0);           /* id 0: no-op */
+	cr_assert_eq(top->nde_record_id, 0);
+	undo_tag_top_nde_record(42);
+	cr_assert_eq(top->nde_record_id, 42);
+	nde_history_attach(NULL);
+}
+
+Test(flis_undo_gui, nde_undo_redo_moves_live_count) {
+	flis_layer_t *l = flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "x");
+	nde_record *r1 = nde_record_new();
+	r1->op_id = g_strdup("a.a");
+	nde_history_append(r1);
+	nde_record *r2 = nde_record_new();
+	r2->op_id = g_strdup("b.b");
+	gint64 id2 = nde_history_append(r2);
+	cr_assert_eq(nde_history_live_count(), 2);
+
+	cr_assert_eq(undo_save_flis_layer_props(l, "op"), 0);
+	undo_tag_top_nde_record(id2);
+
+	cr_assert_eq(undo_display_data(UNDO), 0);
+	cr_assert_eq(nde_history_live_count(), 1, "undo must retire the coupled record");
+	/* the counterpart pushed to the redo stack inherited the coupling */
+	cr_assert_eq(((historic *)com.redo_stack->data)->nde_record_id, id2);
+
+	cr_assert_eq(undo_display_data(REDO), 0);
+	cr_assert_eq(nde_history_live_count(), 2, "redo must revive the coupled record");
+	nde_history_attach(NULL);
 }

@@ -4825,7 +4825,6 @@ int process_mirrorx(int nb){
 	args->max_threads = com.max_thread;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
-	args->geometry_changing = TRUE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -4861,7 +4860,6 @@ int process_mirrory(int nb){
 	args->max_threads = com.max_thread;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
-	args->geometry_changing = TRUE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -4911,7 +4909,6 @@ int process_binxy(int nb) {
 	args->max_threads = com.max_thread;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
-	args->geometry_changing = TRUE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -5045,7 +5042,6 @@ int process_resample(int nb) {
 	args->max_threads = com.max_thread;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
-	args->geometry_changing = TRUE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -5116,7 +5112,6 @@ int process_crop(int nb) {
 	args->max_threads = 1;
 	args->command = TRUE;
 	args->command_updates_gfit = TRUE;
-	args->geometry_changing = TRUE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -5228,7 +5223,6 @@ int process_rotate(int nb) {
 	args->max_threads = com.max_thread;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
-	args->geometry_changing = TRUE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -5270,7 +5264,6 @@ int process_rotatepi(int nb){
 	args->max_threads = 1;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
-	args->geometry_changing = TRUE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
