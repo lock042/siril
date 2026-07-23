@@ -215,6 +215,16 @@ struct generic_img_args {
 	 * Each geometry image_hook is responsible for calling the corresponding
 	 * flis_update_layer_offset_after_* helper itself. */
 	gboolean geometry_changing;
+	/* NDE replay invocation (nde-phase2-3-plan.md P2.A).  The replay driver
+	 * calls generic_image_worker() DIRECTLY from inside its own processing
+	 * job, applying one record to a PRIVATE fits (never gfit — asserted).
+	 * With this flag the worker suppresses progress, per-op logging,
+	 * notify_gfit_data_modified and the whole completion tail: it schedules
+	 * no idle, never calls stop_processing_thread, frees nothing — the
+	 * driver owns args — and just returns the hook's retval.  Undo, NDE
+	 * capture, HISTORY and display bookkeeping are already skipped by the
+	 * non-swap path.  The memory check stays active. */
+	gboolean nde_replay;
 };
 
 struct generic_mask_args {

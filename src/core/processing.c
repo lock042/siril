@@ -1552,6 +1552,10 @@ gpointer generic_image_worker(gpointer p) {
 	 * before anything reads those fields. No-op for un-migrated sites. */
 	op_descriptor_fill_img_args(args);
 	assert(args->image_hook);
+	/* Replay records apply to a PRIVATE fits only (nde-phase2-3-plan.md
+	 * decision 1): the non-swap path is what makes undo, NDE capture and
+	 * the HISTORY fallback skip without further gating. */
+	g_assert(!args->nde_replay || args->fit != gfit);
 
 	/* Stack copies of args fields — args is freed by the sync-idle at
 	 * the end of the function, so anything used past that point must be
@@ -1560,7 +1564,7 @@ gpointer generic_image_worker(gpointer p) {
 	gboolean argpreview = args->for_preview;
 	gboolean arg_skip_undo = args->skip_generic_undo;
 	gboolean arg_update_gfit = args->command_updates_gfit;
-	gboolean verbose = args->verbose || !args->for_preview;
+	gboolean verbose = (args->verbose || !args->for_preview) && !args->nde_replay;
 	gchar* desc = g_strdup(args->description);
 
 	/* FLIS geometry-op undo capture: when geometry_changing is set AND a FLIS
@@ -1615,7 +1619,8 @@ gpointer generic_image_worker(gpointer p) {
 	if (!com.script && !com.python_command && use_swap)
 		gui_iface.set_suppress_redraws(TRUE);
 
-	gui_iface.set_progress(PROGRESS_RESET, NULL);
+	if (!args->nde_replay)
+		gui_iface.set_progress(PROGRESS_RESET, NULL);
 	gettimeofday(&t_start, NULL);
 	args->retval = 0;
 
@@ -1626,7 +1631,7 @@ gpointer generic_image_worker(gpointer p) {
 	 * gfit explicitly and have no panel selection semantics.  No locks are
 	 * held yet, so finish through the same idle the normal path uses (it
 	 * owns and frees args). */
-	if (!args->command && is_current_image_flis()
+	if (!args->command && !args->nde_replay && is_current_image_flis()
 	    && gui_iface.flis_group_is_selected()) {
 		siril_log_error(_("%s: cannot apply to a layer group — select an individual layer.\n"),
 		                desc ? desc : "Operation");
@@ -1729,7 +1734,8 @@ gpointer generic_image_worker(gpointer p) {
 		g_free(desc_pretty);
 	}
 
-	gui_iface.set_progress(0.1f, _("Processing image..."));
+	if (!args->nde_replay)
+		gui_iface.set_progress(0.1f, _("Processing image..."));
 
 	/* Run the image processing hook on hook_fit (orig on the swap path,
 	 * args->fit on the non-swap path). */
@@ -1815,6 +1821,22 @@ the_end:;
 		g_rw_lock_writer_unlock(&argfit->rwlock);
 	}
 	g_rw_lock_reader_unlock(&com.pref_rwlock);
+
+	/* NDE replay: the driver called us directly inside its own job and
+	 * owns args — no idles, no stop_processing_thread, no progress, no
+	 * notify.  Everything undo/capture/HISTORY/display-related above was
+	 * skipped via the non-swap path (asserted at entry).  Free only the
+	 * locals this invocation created. */
+	if (args->nde_replay) {
+		g_free(summary);
+		g_free(history);
+		g_free(desc);
+		if (orig) {
+			clearfits(orig);
+			free(orig);
+		}
+		return GINT_TO_POINTER(retval);
+	}
 
 	/* Carry out data updates (statistics, histograms, update Cairo
 	 * buffers in GUI mode).  Only invoke on success; on failure gfit
