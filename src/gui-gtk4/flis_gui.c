@@ -1172,7 +1172,7 @@ static void refresh_history(void) {
 		for (guint i = 0; i < snap->len; i++) {
 			const nde_record *rec = g_ptr_array_index(snap, i);
 			NdeHistRowItem *item = g_object_new(NDE_TYPE_HIST_ROW_ITEM, NULL);
-			item->badge   = g_strdup_printf(rec->tier == NDE_TIER_B ? "#%u\xc2\xb7B" : "#%u", i + 1);
+			item->badge   = g_strdup_printf(rec->tier == NDE_TIER_B ? "#%u·B" : "#%u", i + 1);
 			item->summary = g_strdup(rec->summary ? rec->summary : rec->op_id);
 			item->target  = hist_target_label(rec);
 			item->detail  = build_hist_detail(rec);
