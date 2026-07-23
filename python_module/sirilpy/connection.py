@@ -1931,6 +1931,12 @@ class SirilInterface:
         By default Siril will recalculate statistics for the sample points
         on receipt, but this can be overridden with the argument recalculate=False
 
+        Note:
+            This method modifies the loaded image and requires the processing
+            thread to be claimed: call it inside a ``with image_lock():`` block
+            (or between ``claim_thread()`` and ``release_thread()``), otherwise
+            Siril will refuse the request with an error.
+
         Args:
             points: List of sample points, either as (x,y) tuples or BGSample objects
             show_samples: Whether to show the sample points in Siril
@@ -2043,6 +2049,12 @@ class SirilInterface:
     def set_image_pixeldata(self, image_data: np.ndarray) -> bool:
         """
         Send image data to Siril using shared memory.
+
+        Note:
+            This method modifies the loaded image and requires the processing
+            thread to be claimed: call it inside a ``with image_lock():`` block
+            (or between ``claim_thread()`` and ``release_thread()``), otherwise
+            Siril will refuse the request with an error.
 
         Args:
             image_data: numpy.ndarray containing the image data.
@@ -3971,6 +3983,12 @@ class SirilInterface:
             # Send the metadata to Siril
             siril.set_image_metadata_from_header_string(header_string)
 
+        Note:
+            This method modifies the loaded image and requires the processing
+            thread to be claimed: call it inside a ``with image_lock():`` block
+            (or between ``claim_thread()`` and ``release_thread()``), otherwise
+            Siril will refuse the request with an error.
+
         Args:
             header: string containing the FITS header data
 
@@ -4843,6 +4861,12 @@ class SirilInterface:
         """
         Set the image ICC profile in Siril
 
+        Note:
+            This method modifies the loaded image and requires the processing
+            thread to be claimed: call it inside a ``with image_lock():`` block
+            (or between ``claim_thread()`` and ``release_thread()``), otherwise
+            Siril will refuse the request with an error.
+
         Args:
             iccprofile (bytes): The ICC profile to send to Siril. This will
                 replace an existing ICC profile, if one is set. If None,
@@ -5676,6 +5700,12 @@ class SirilInterface:
         """
         Send image mask data to Siril using shared memory. Added: v1.1.0
 
+        Note:
+            This method modifies the loaded image and requires the processing
+            thread to be claimed: call it inside a ``with image_lock():`` block
+            (or between ``claim_thread()`` and ``release_thread()``), otherwise
+            Siril will refuse the request with an error.
+
         Args:
             mask_data: numpy.ndarray containing the image data.
                        Must be a 2D array with dtype either np.uint8,
@@ -5908,6 +5938,13 @@ class SirilInterface:
         """
         Adds a user polygon to the Siril image mask. Added: v1.1.1
 
+        Note:
+            This method modifies the loaded image mask and requires the
+            processing thread to be claimed: call it inside a
+            ``with image_lock():`` block (or between ``claim_thread()`` and
+            ``release_thread()``), otherwise Siril will refuse the request
+            with an error.
+
         Args:
             polygon: Polygon defining the polygon to be added
 
@@ -5922,6 +5959,13 @@ class SirilInterface:
     def mask_subtract_polygon(self, poly: Polygon):
         """
         Subtracts a user polygon from the Siril image mask. Added: v1.1.1
+
+        Note:
+            This method modifies the loaded image mask and requires the
+            processing thread to be claimed: call it inside a
+            ``with image_lock():`` block (or between ``claim_thread()`` and
+            ``release_thread()``), otherwise Siril will refuse the request
+            with an error.
 
         Args:
             polygon: Polygon defining the polygon to be added
