@@ -947,6 +947,7 @@ static void impl_on_active_layer_changed(void) {
 }
 extern gboolean flis_panel_group_is_selected(void);  /* flis_gui.h */
 extern void flis_gui_present_if_flis(void);
+extern void flis_gui_history_update_from_idle(void);
 
 static void impl_flis_gui_update(void) {
 	flis_gui_update_from_idle();
