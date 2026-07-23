@@ -14,6 +14,7 @@ siril-1.5.0
 * Added caching of online GAIA database (!985)
 * Added image masks (!981)
 * Added QHY GPS timestamps support (!891)
+* Added streak detection for satellite observations (!1037)
 * Added eqcrop command (!889)
 * Added catmag command (!888)
 * Added draggable histogram overlay with cursor tracking (!986)
@@ -41,6 +42,7 @@ siril-1.5.0
 * Removed original Starnet C interface (now covered by the new python script) (!tbc)
 * Added static autostretch mode to keep display stretch parameters fixed across images
 * Improve speed of extract_thumbnail_from_fits (!1066)
+* Improved à trous wavelets tool: better strength control, per-scale denoising (!1049)
 
 **Fixes**
 * Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit

@@ -23,6 +23,7 @@
 #include <string.h>
 
 #include "core/siril.h"
+#include "core/op_descriptors.h"
 #include "core/processing_thread.h"
 #include "core/proto.h"
 #include "core/icc_profile.h"
@@ -751,8 +752,7 @@ void on_mask_clear_clicked(GtkButton *button, gpointer user_data) {
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit = gfit;
-	args->mask_hook = mask_clear_hook;
-	args->description = _("Clear mask");
+	args->op = &op_desc_mask_clear;
 	args->verbose = TRUE;
 	args->max_threads = com.max_thread;
 
