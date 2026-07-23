@@ -45,7 +45,7 @@
 #include "io/remote_catalogues.h"
 #include "core/gui_iface.h"
 #include "photometric_cc.h"
-#include "core/op_descriptor.h"
+#include "core/op_descriptors.h"
 
 /* Op descriptor — PCC and SPCC are the same logical op; sites keep the
  * spectro?"SPCC":"PCC" ternary as a per-site description override. */

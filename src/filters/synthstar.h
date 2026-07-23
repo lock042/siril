@@ -9,10 +9,6 @@ gchar *synthstar_log_hook(gpointer p, log_hook_detail detail);
 int unclip_image_hook(struct generic_img_args *args, fits *fit, int threads);
 gchar *unclip_log_hook(gpointer p, log_hook_detail detail);
 
-/* Op descriptors — single source of truth for these ops (op_descriptor.h) */
-extern const struct op_descriptor op_desc_synthstar;
-extern const struct op_descriptor op_desc_unclip;
-
 void makeairy(float *psf, const int size, const float lum, const float xoff, const float yoff, const float wavelength, const float aperture, const float focal_length, const float pixel_scale, const float obstruction);
 
 void makegaussian(float *psf, int size, float fwhm, float lum, float xoffset, float yoffset, float ratio, float angle);

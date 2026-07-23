@@ -28,9 +28,6 @@ void free_scnr_data(void *args);
 int scnr_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
 gchar *scnr_log_hook(gpointer p, log_hook_detail detail);
 
-/* Op descriptor — single source of truth for this op (op_descriptor.h) */
-extern const struct op_descriptor op_desc_scnr;
-
 const char *scnr_type_to_string(scnr_type t);
 
 #endif /* SRC_FILTERS_SCNR_H_ */

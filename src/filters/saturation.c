@@ -8,7 +8,7 @@
 #include "core/siril_log.h"
 #include "algos/colors.h"
 #include "algos/statistics.h"
-#include "core/op_descriptor.h"
+#include "core/op_descriptors.h"
 
 #include "saturation.h"
 

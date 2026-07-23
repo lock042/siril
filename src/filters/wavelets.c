@@ -30,7 +30,7 @@
 #include "algos/Def_Wavelet.h"
 #include "algos/wavelet_denoise.h"
 #include "wavelets.h"
-#include "core/op_descriptor.h"
+#include "core/op_descriptors.h"
 
 /* Op descriptors — single source of truth for the wavelet ops. The wrecons
  * command / GUI-apply / preview sites use different progress labels, kept as

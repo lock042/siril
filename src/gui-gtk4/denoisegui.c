@@ -19,6 +19,7 @@
  */
 
 #include "core/proto.h"
+#include "core/op_descriptors.h"
 #include "core/OS_utils.h"
 #include "core/processing.h"
 #include "core/undo.h"

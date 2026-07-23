@@ -16,8 +16,6 @@ gchar* satu_log_hook(gpointer p, log_hook_detail detail);
 void satu_set_hues_from_types(saturation_params *args, int type);
 int saturation_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
 
-/* Op descriptor — single source of truth for this op (op_descriptor.h) */
-extern const struct op_descriptor op_desc_saturation;
 /* GUI functions (apply_satu_cancel, satu_change_between_roi_and_image) declared in gui/saturation.h */
 
 #endif /* SRC_FILTERS_SATURATION_H_ */

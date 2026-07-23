@@ -23,6 +23,7 @@
 #include <gtk/gtk.h>
 
 #include "core/siril.h"
+#include "core/op_descriptors.h"
 #include "core/processing.h"
 #include "filters/cosmetic_correction.h"
 #include "gui-gtk4/dialogs.h"

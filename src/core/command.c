@@ -51,7 +51,7 @@
 #include "core/masks.h"
 #include "core/preprocess.h"
 #include "core/processing.h"
-#include "core/op_descriptor.h"
+#include "core/op_descriptors.h"
 #include "core/sequence_filtering.h"
 #include "core/OS_utils.h"
 #include "core/siril_date.h"
@@ -130,35 +130,9 @@
 #include "command_list.h"
 #include "command_line_processor.h"
 
-/* Op descriptors owned by command.c (their hooks are static functions defined
- * below).  Forward-declared here so the construction sites can reference them;
- * defined at the end of this file, after the hooks.  Descriptors owned by other
- * modules are declared in those modules' headers, already included above. */
-extern const op_descriptor op_desc_denoise;
-extern const op_descriptor op_desc_gauss;
-extern const op_descriptor op_desc_unsharp;
-extern const op_descriptor op_desc_imoper;
-extern const op_descriptor op_desc_addmax;
-extern const op_descriptor op_desc_fdiv;
-extern const op_descriptor op_desc_fmul;
-extern const op_descriptor op_desc_thresh;
-extern const op_descriptor op_desc_neg;
-extern const op_descriptor op_desc_nozero;
-extern const op_descriptor op_desc_ddp;
-extern const op_descriptor op_desc_ffill;
-extern const op_descriptor op_desc_fill;
-extern const op_descriptor op_desc_offset;
-extern const op_descriptor op_desc_grey_flat;
-extern const op_descriptor op_desc_logstretch;
-extern const op_descriptor op_desc_entropy;
-extern const op_descriptor op_desc_bg;
-extern const op_descriptor op_desc_bgnoise;
-extern const op_descriptor op_desc_cdg;
-extern const op_descriptor op_desc_findhot;
-extern const op_descriptor op_desc_fix_xtrans;
-extern const op_descriptor op_desc_limit;
-extern const op_descriptor op_desc_stat;
-extern const op_descriptor op_desc_autoghs_unlinked;
+/* The op_descriptors for command.c's ops are declared in core/op_descriptors.h
+ * (included above) and defined at the end of this file, after their static
+ * hook functions. */
 
 #define PRINT_DEPRECATED_WARNING(__new_function__) siril_log_error(_("This command is deprecated: %s should be used instead.\n"), __new_function__)
 #define PRINT_DEPRECATED_OPTION_WARNING(__option__, __new_function__) siril_log_error(_("The %s option is deprecated: %s should be used instead.\n"), __option__, __new_function__)

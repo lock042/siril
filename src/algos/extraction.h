@@ -43,10 +43,4 @@ struct cfa_extract_args {
 void free_cfa_extract_args(void *p);
 int cfa_extract_image_hook(struct generic_img_args *args, fits *fit, int threads);
 
-/* Op descriptors (op_descriptor.h) */
-extern const struct op_descriptor op_desc_cfa_split;
-extern const struct op_descriptor op_desc_cfa_extract_green;
-extern const struct op_descriptor op_desc_cfa_extract_ha;
-extern const struct op_descriptor op_desc_cfa_extract_haoiii;
-
 #endif

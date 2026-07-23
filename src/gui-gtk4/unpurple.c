@@ -20,6 +20,7 @@
 #include <math.h>
 
 #include "core/siril.h"
+#include "core/op_descriptors.h"
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/siril_log.h"

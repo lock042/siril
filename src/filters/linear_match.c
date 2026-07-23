@@ -26,7 +26,7 @@
 #include "algos/statistics.h"
 #include "io/image_format_fits.h"
 #include "linear_match.h"
-#include "core/op_descriptor.h"
+#include "core/op_descriptors.h"
 
 /* Op descriptor — single source of truth for this operation (op_descriptor.h) */
 const op_descriptor op_desc_linear_match = {

@@ -30,7 +30,7 @@
 #include "filters/synthstar.h"
 #include "filters/unpurple.h"
 #include "core/gui_iface.h"
-#include "core/op_descriptor.h"
+#include "core/op_descriptors.h"
 
 /* Op descriptor — single source of truth for this operation (op_descriptor.h) */
 const op_descriptor op_desc_unpurple = {

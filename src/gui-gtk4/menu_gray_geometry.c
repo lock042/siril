@@ -11,6 +11,7 @@
  */
 
 #include "core/siril.h"
+#include "core/op_descriptors.h"
 #include "algos/geometry.h"
 #include "core/undo.h"
 #include "core/processing.h"

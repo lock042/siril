@@ -36,7 +36,7 @@
 #include "io/image_format_fits.h"
 #include "filters/synthstar.h"
 #include "opencv/opencv.h"
-#include "core/op_descriptor.h"
+#include "core/op_descriptors.h"
 
 /* Op descriptors — single source of truth for these ops (op_descriptor.h) */
 const op_descriptor op_desc_synthstar = {

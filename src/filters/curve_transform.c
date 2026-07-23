@@ -25,7 +25,7 @@
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
 #include <math.h>
-#include "core/op_descriptor.h"
+#include "core/op_descriptors.h"
 
 /* Op descriptor — single source of truth for this operation (op_descriptor.h).
  * curve_transform.h (included above) declares the hooks referenced here. */

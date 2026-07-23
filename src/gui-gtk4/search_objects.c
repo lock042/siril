@@ -21,6 +21,7 @@
 #include <gtk/gtk.h>
 
 #include "core/siril.h"
+#include "core/op_descriptors.h"
 #include "core/processing.h"
 #include "core/processing_thread.h"
 #include "core/siril_log.h"

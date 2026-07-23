@@ -32,7 +32,7 @@
 #include "masks.h"
 #include "opencv/opencv.h" // for mask functions that use OpenCV
 // (feathering, Gaussian blur and set_poly_in_mask())
-#include "core/op_descriptor.h"
+#include "core/op_descriptors.h"
 
 /* Op descriptors for the mask operations (generic_mask_worker).  mem_ratio 0
  * means no memory check (matches the legacy sites).  Sites that create a mask

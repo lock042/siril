@@ -38,7 +38,7 @@
 #include <jconfig.h>
 #endif
 
-#include "core/op_descriptor.h"
+#include "core/op_descriptors.h"
 
 /* Op descriptors for the ICC profile ops. All flag skip_generic_undo at their
  * sites (siril_colorspace_transform writes its own FITS history), so no mem

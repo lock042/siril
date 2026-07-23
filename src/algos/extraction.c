@@ -31,7 +31,7 @@
 #include "io/sequence.h"
 #include "io/fits_keywords.h"
 #include "extraction.h"
-#include "core/op_descriptor.h"
+#include "core/op_descriptors.h"
 
 /* Op descriptors — the four single-image CFA extractions are distinct logical
  * ops sharing cfa_extract_image_hook (the mode lives in the user data). No log

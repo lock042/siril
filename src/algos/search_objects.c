@@ -30,7 +30,7 @@
 #include "algos/siril_wcs.h"
 #include "algos/astrometry_solver.h"
 #include "io/remote_catalogues.h"
-#include "core/op_descriptor.h"
+#include "core/op_descriptors.h"
 
 /* Op descriptor for the catalog-search command. */
 const op_descriptor op_desc_catsearch = {

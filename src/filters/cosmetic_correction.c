@@ -36,7 +36,7 @@
 #include "opencv/opencv.h"
 
 #include "cosmetic_correction.h"
-#include "core/op_descriptor.h"
+#include "core/op_descriptors.h"
 
 /* Op descriptors — single source of truth for these ops (op_descriptor.h) */
 const op_descriptor op_desc_cosmetic = {

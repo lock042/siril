@@ -26,7 +26,7 @@
 void destroy_mtf_data(void *args); /* forward decl */
 #include "core/siril_log.h"
 #include "algos/statistics.h"
-#include "core/op_descriptor.h"
+#include "core/op_descriptors.h"
 
 /* Op descriptors — single source of truth for the MTF stretch ops.
  * process_mtf picks the forward/inverse descriptor via its `inverse` flag; the

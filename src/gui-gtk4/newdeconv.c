@@ -23,6 +23,7 @@
 #include <locale.h>
 #include <gdk/gdk.h>
 #include "core/siril.h"
+#include "core/op_descriptors.h"
 #include "core/proto.h"
 #include "core/siril_date.h"
 #include "core/command.h"

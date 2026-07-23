@@ -19,6 +19,7 @@
  */
 
 #include <stdio.h>
+#include "core/op_descriptors.h"
 #include <string.h>
 #include <math.h>
 #include <float.h>

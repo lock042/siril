@@ -20,6 +20,7 @@
 
 #include <glib.h>
 #include "core/siril.h"
+#include "core/op_descriptors.h"
 #include "algos/colors.h"
 #include "core/proto.h"
 #include "core/icc_profile.h"

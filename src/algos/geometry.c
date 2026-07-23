@@ -40,7 +40,7 @@
 #include "core/gui_iface.h"
 
 #include "geometry.h"
-#include "core/op_descriptor.h"
+#include "core/op_descriptors.h"
 
 /* Op descriptors — single source of truth for the geometry operations.
  * All change image dimensions, hence OP_GEOMETRY_CHANGING (consumed by the

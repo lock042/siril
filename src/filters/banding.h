@@ -24,9 +24,6 @@ gchar *banding_log_hook(gpointer p, log_hook_detail detail);
 /* Image processing hooks */
 int banding_single_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
 
-/* Op descriptor — single source of truth for this op (op_descriptor.h) */
-extern const struct op_descriptor op_desc_banding;
-
 void apply_banding_to_sequence(struct banding_data *banding_args);
 
 #endif /* SRC_FILTERS_BANDING_H_ */

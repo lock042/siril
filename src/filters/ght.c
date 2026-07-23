@@ -28,7 +28,7 @@ void destroy_ght_data(void *args); /* forward decl */
 #include "algos/statistics.h"
 #include "algos/colors.h"
 #include "core/siril_log.h"
-#include "core/op_descriptor.h"
+#include "core/op_descriptors.h"
 
 /* Op descriptors — GHS and AutoGHS are distinct logical ops that share
  * ght_single_image_hook (the mode lives in the user data). mem_ratio defaults

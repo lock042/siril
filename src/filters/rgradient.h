@@ -21,7 +21,4 @@ int rgradient_image_hook(struct generic_img_args *args, fits *fit, int nb_thread
 
 gchar *rgradient_log_hook(gpointer p, log_hook_detail detail);
 
-/* Op descriptor — single source of truth for this op (op_descriptor.h) */
-extern const struct op_descriptor op_desc_rgradient;
-
 #endif /* SRC_ALGOS_RGRADIENT_H_ */

@@ -43,9 +43,6 @@ void free_unpurple_args(void *args);
 int unpurple_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
 gchar *unpurple_log_hook(gpointer p, log_hook_detail detail);
 
-/* Op descriptor — single source of truth for this op (op_descriptor.h) */
-extern const struct op_descriptor op_desc_unpurple;
-
 void apply_unpurple_cancel();
 int generate_binary_starmask(fits *fit, fits **star_mask, double threshold);
 

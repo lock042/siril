@@ -19,6 +19,7 @@
  */
 
 #include "core/siril.h"
+#include "core/op_descriptors.h"
 #include "core/undo.h"
 #include "core/processing.h"
 #include "core/processing_thread.h"

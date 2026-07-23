@@ -37,7 +37,7 @@
 #include "io/ser.h"
 #include "filters/deconvolution/deconvolution.h"
 #include "filters/synthstar.h"
-#include "core/op_descriptor.h"
+#include "core/op_descriptors.h"
 
 /* Op descriptors. estimate_only is measurement-only (one descriptor, the
  * blind/stars/manual variants are description overrides at their sites). */

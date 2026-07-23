@@ -44,7 +44,7 @@
 #include "core/gui_iface.h"
 #include "opencv/opencv.h"
 #include "background_extraction.h"
-#include "core/op_descriptor.h"
+#include "core/op_descriptors.h"
 
 /* Op descriptor — the automatic-gradient-removal and background-extraction
  * commands share remove_gradient_image_hook. Default label "Background

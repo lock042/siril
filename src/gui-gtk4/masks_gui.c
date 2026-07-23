@@ -18,6 +18,7 @@
 
 #include <gtk/gtk.h>
 #include "core/siril.h"
+#include "core/op_descriptors.h"
 #include "core/masks.h"
 #include "core/processing.h"
 #include "core/undo.h"
