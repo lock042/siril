@@ -34,7 +34,7 @@ static command commands[] = {
 	{"clear", 0, "clear", process_clear, STR_CLEAR, FALSE, REQ_CMD_NONE},
 	{"clear_mask", 0, "clear_mask", process_clear_mask, STR_CLEAR_MASK, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"clearstar", 0, "clearstar", process_clearstar, STR_CLEARSTAR, FALSE, REQ_CMD_NONE},
-	{"close", 0, "close", process_close, STR_CLOSE, TRUE, REQ_CMD_NONE},
+	{"close", 0, "close", process_close, STR_CLOSE, TRUE, REQ_CMD_NO_THREAD},
 	{"conesearch", 0, "conesearch [limit_magnitude] [-cat=] [-phot] [-obscode=] [-tag={on|off}] [-log={on|off}] [-trix=] [-out=]", process_conesearch, STR_CONESEARCH, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"convert", 1, "convert basename [-debayer] [-fitseq] [-ser] [-start=index] [-out=]", process_convert, STR_CONVERT, TRUE, REQ_CMD_NO_THREAD},
 	{"convertraw", 1, "convertraw basename [-debayer] [-fitseq] [-ser] [-start=index] [-out=]", process_convert, STR_CONVERTRAW, TRUE, REQ_CMD_NO_THREAD},
@@ -109,7 +109,7 @@ static command commands[] = {
 	{"linstretch", 1, "linstretch -BP= [-sat] [-clipmode=] [channels] [-clipmode=] [-mask]", process_linstretch, STR_LINSTRETCH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"livestack", 1, "livestack filename", process_livestack, STR_LIVESTACK, TRUE, REQ_CMD_NONE},
 	{"load", 1, "load filename[.ext]", process_load, STR_LOAD, TRUE, REQ_CMD_NONE},
-	{"load_seq", 1, "load_seq sequencename[.ext]", process_load_seq, STR_LOAD_SEQ, FALSE, REQ_CMD_NONE},
+	{"load_seq", 1, "load_seq sequencename[.ext]", process_load_seq, STR_LOAD_SEQ, FALSE, REQ_CMD_NO_THREAD},
 	{"log", 0, "log", process_log, STR_LOG, TRUE, REQ_CMD_SINGLE_IMAGE},
 #ifndef _WIN32
 	{"ls", 0, "ls", process_ls, STR_LS, FALSE, REQ_CMD_NONE},
