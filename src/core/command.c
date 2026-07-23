@@ -51,6 +51,7 @@
 #include "core/masks.h"
 #include "core/preprocess.h"
 #include "core/processing.h"
+#include "core/op_descriptors.h"
 #include "core/sequence_filtering.h"
 #include "core/OS_utils.h"
 #include "core/siril_date.h"
@@ -128,6 +129,10 @@
 #include "command.h"
 #include "command_list.h"
 #include "command_line_processor.h"
+
+/* The op_descriptors for command.c's ops are declared in core/op_descriptors.h
+ * (included above) and defined at the end of this file, after their static
+ * hook functions. */
 
 #define PRINT_DEPRECATED_WARNING(__new_function__) siril_log_error(_("This command is deprecated: %s should be used instead.\n"), __new_function__)
 #define PRINT_DEPRECATED_OPTION_WARNING(__option__, __new_function__) siril_log_error(_("The %s option is deprecated: %s should be used instead.\n"), __option__, __new_function__)
@@ -350,16 +355,13 @@ int process_satu(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = saturation_image_hook;
+	args->op = &op_desc_saturation;
 	args->idle_function = NULL; // Synchronous execution
-	args->description = _("Saturation");
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE; // calling as command, not from GUI
 	args->verbose = FALSE;
 	args->user = params;
 	args->mask_aware = mask_aware;
-	args->log_hook = satu_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -454,9 +456,7 @@ int process_synthstar(int nb) {
 	image_cfa_warning_check();
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
-	args->image_hook = synthstar_image_hook;
-	args->log_hook = synthstar_log_hook;
-	args->description = _("Synthetic stars");
+	args->op = &op_desc_synthstar;
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->command_updates_gfit = TRUE;
@@ -471,9 +471,7 @@ int process_unclip(int nb) {
 	image_cfa_warning_check();
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
-	args->image_hook = unclip_image_hook;
-	args->log_hook = unclip_log_hook;
-	args->description = _("Unclip stars");
+	args->op = &op_desc_unclip;
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->command_updates_gfit = TRUE;
@@ -738,13 +736,10 @@ int process_denoise(int nb) {
 
 	// Set up generic_img_args
 	args->fit = gfit;
-	args->mem_ratio = 3.0f; // Denoising needs extra memory
-	args->image_hook = denoise_image_hook;
+	args->op = &op_desc_denoise;
 	args->idle_function = denoise_apply_idle;
-	args->description = _("NL-Bayes Denoising");
 	args->verbose = TRUE;
 	args->user = params;
-	args->log_hook = denoise_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -1163,8 +1158,7 @@ int process_imoper(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 2.0f;  // Need memory for original + operand image
-	args->image_hook = imoper_image_hook;
+	args->op = &op_desc_imoper;
 	args->idle_function = NULL;  // Use default
 	switch (oper) {
 		case OPER_ADD:
@@ -1183,7 +1177,6 @@ int process_imoper(int nb) {
 	args->command_updates_gfit = TRUE;  // This command modifies gfit
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = imoper;
-	args->log_hook = imoper_log_hook;
 	args->max_threads = 1;  // imoper likely doesn't need multi-threading
 	args->for_preview = FALSE;
 	args->mask_aware = mask_aware;
@@ -1277,16 +1270,13 @@ int process_addmax(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = addmax_image_hook;
+	args->op = &op_desc_addmax;
 	args->idle_function = NULL;
-	args->description = _("Add max");
 	args->verbose = TRUE;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
 	args->user = data;
 	args->mask_aware = mask_aware;
-	args->log_hook = addmax_log_hook;
 	args->max_threads = 1;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -1394,16 +1384,13 @@ int process_fdiv(int nb) {
 		return CMD_ALLOC_ERROR;
 	}
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = fdiv_image_hook;
+	args->op = &op_desc_fdiv;
 	args->idle_function = NULL;
-	args->description = _("Image division");
 	args->verbose = TRUE;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
 	args->user = data;
 	args->mask_aware = mask_aware;
-	args->log_hook = fdiv_log_hook;
 	args->max_threads = 1;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -1480,16 +1467,13 @@ int process_fmul(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;  // soper works in-place
-	args->image_hook = fmul_image_hook;
+	args->op = &op_desc_fmul;
 	args->idle_function = NULL;  // Use default
-	args->description = _("Scalar multiplication");
 	args->verbose = TRUE;
 	args->command_updates_gfit = TRUE;  // This command modifies gfit
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = data;
 	args->mask_aware = mask_aware;
-	args->log_hook = fmul_log_hook;
 	args->max_threads = 1;  // soper doesn't need multi-threading
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -1562,16 +1546,13 @@ int process_gauss(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 2.0f;  // Gaussian blur needs temporary buffers
-	args->image_hook = gauss_image_hook;
+	args->op = &op_desc_gauss;
 	args->idle_function = NULL;  // Use default
-	args->description = _("Gaussian blur");
 	args->verbose = TRUE;
 	args->command_updates_gfit = TRUE;  // This command modifies gfit
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = data;
 	args->mask_aware = mask_aware;
-	args->log_hook = gauss_log_hook;
 	args->max_threads = com.max_thread;  // Gaussian blur can benefit from multi-threading
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -1641,16 +1622,13 @@ int process_entropy(int nb) {
 		return CMD_ALLOC_ERROR;
 	}
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = entropy_image_hook;
+	args->op = &op_desc_entropy;
 	args->idle_function = NULL;
-	args->description = _("Entropy");
 	args->verbose = TRUE;
 	args->command_updates_gfit = FALSE;  // This doesn't modify gfit
 	args->skip_generic_undo = TRUE;  // measurement-only: no undo state
 	args->command = TRUE;
 	args->user = data;
-	args->log_hook = entropy_log_hook;
 	args->max_threads = 1;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -1743,13 +1721,10 @@ int process_unpurple(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 2.0f;
-	args->image_hook = unpurple_image_hook;
+	args->op = &op_desc_unpurple;
 	args->idle_function = NULL;
-	args->description = _("Unpurple Filter");
 	args->verbose = TRUE;
 	args->user = params;
-	args->log_hook = unpurple_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -1918,16 +1893,13 @@ int process_epf(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 3.0f;
-	args->image_hook = epf_image_hook;
+	args->op = &op_desc_epf;
 	args->idle_function = NULL; // Use default idle function for command-line
-	args->description = _("Edge Preserving Filter");
 	args->verbose = TRUE;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = params;
 	args->mask_aware = mask_aware;
-	args->log_hook = epf_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -1992,9 +1964,7 @@ int process_grey_flat(int nb) {
 		return CMD_ALLOC_ERROR;
 	}
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = grey_flat_image_hook;
-	args->description = _("Grey flat");
+	args->op = &op_desc_grey_flat;
 	args->verbose = TRUE;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
@@ -2169,8 +2139,7 @@ int process_makepsf(int nb) {
 			}
 
 			args->fit = gfit;
-			args->mem_ratio = 3.0f; // PSF estimation memory requirement
-			args->image_hook = estimate_only_image_hook;
+			args->op = &op_desc_psf_estimate;
 			args->idle_function = NULL;
 			args->description = _("PSF Estimation (Blind)");
 			args->verbose = TRUE;
@@ -2249,8 +2218,7 @@ int process_makepsf(int nb) {
 			}
 
 			args->fit = gfit;
-			args->mem_ratio = 3.0f; // PSF estimation memory requirement
-			args->image_hook = estimate_only_image_hook;
+			args->op = &op_desc_psf_estimate;
 			args->idle_function = NULL;
 			args->description = _("PSF Estimation (Stars)");
 			args->verbose = TRUE;
@@ -2420,8 +2388,7 @@ int process_makepsf(int nb) {
 			}
 
 			args->fit = gfit;
-			args->mem_ratio = 3.0f; // PSF estimation memory requirement
-			args->image_hook = estimate_only_image_hook;
+			args->op = &op_desc_psf_estimate;
 			args->idle_function = NULL;
 			args->description = _("PSF Estimation (Manual)");
 			args->verbose = TRUE;
@@ -2618,10 +2585,8 @@ int process_deconvolve(int nb, nonblind_t type) {
 		}
 
 		args->fit = gfit;
-		args->mem_ratio = 4.0f; // Deconvolution needs significant memory
-		args->image_hook = deconvolve_image_hook;
+		args->op = &op_desc_deconvolve;
 		args->idle_function = NULL;
-		args->description = _("Deconvolution");
 		args->command_updates_gfit = TRUE;
 		args->command = TRUE; // calling as command, not from GUI
 		args->verbose = TRUE;
@@ -2754,16 +2719,13 @@ int process_unsharp(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 2.0f;  // Unsharp mask needs temporary buffers
-	args->image_hook = unsharp_cmd_image_hook;
+	args->op = &op_desc_unsharp;
 	args->idle_function = NULL;
-	args->description = _("Unsharp mask");
 	args->verbose = TRUE;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = data;
 	args->mask_aware = mask_aware;
-	args->log_hook = unsharp_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -3004,13 +2966,10 @@ int process_ccm(int nb) {
 		}
 
 		worker_args->fit = gfit;
-		worker_args->mem_ratio = 1.5f;
-		worker_args->image_hook = ccm_single_image_hook;
+		worker_args->op = &op_desc_ccm;
 		worker_args->idle_function = NULL; // Use default idle for commands
-		worker_args->description = _("Color Conversion Matrix");
 		worker_args->verbose = TRUE;
 		worker_args->user = args;
-		worker_args->log_hook = ccm_log_hook;
 		worker_args->max_threads = com.max_thread;
 		worker_args->command = TRUE;  // This is being called from a command
 		worker_args->command_updates_gfit = TRUE;  // We need gfit to be updated
@@ -3150,9 +3109,7 @@ int process_wrecons(int nb) {
 
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
-	args->image_hook = wrecons_image_hook;
-	args->log_hook = wrecons_log_hook;
-	args->description = _("Wavelet reconstruction");
+	args->op = &op_desc_wrecons;
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->command_updates_gfit = TRUE;
@@ -3285,9 +3242,7 @@ int process_atrous(int nb) {
 
 	struct generic_img_args *gargs = calloc(1, sizeof(struct generic_img_args));
 	gargs->fit = gfit;
-	gargs->image_hook = atrous_image_hook;
-	gargs->log_hook = atrous_log_hook;
-	gargs->description = _("Wavelet transform");
+	gargs->op = &op_desc_atrous;
 	gargs->verbose = TRUE;
 	gargs->command = TRUE;
 	gargs->command_updates_gfit = TRUE;
@@ -3672,11 +3627,8 @@ int process_mtf(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = inverse ? invmtf_single_image_hook : mtf_single_image_hook;
-	args->log_hook = inverse ? invmtf_log_hook : mtf_log_hook;
+	args->op = inverse ? &op_desc_mtf_inverse : &op_desc_mtf;
 	args->idle_function = NULL;  // No idle in command mode
-	args->description = inverse ? _("Inverse Midtones Transfer Function") : _("Midtones Transfer Function");
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE; // calling as command, not from GUI
 	args->verbose = TRUE;
@@ -3748,11 +3700,9 @@ int process_ghs(int nb, int stretchtype) {
 	}
 
 	args->fit = gfit;
+	args->op = &op_desc_ghs;
 	args->mem_ratio = (params->payne_colourstretchmodel == COL_SAT) ? 2.0f : 1.0f;
-	args->image_hook = ght_single_image_hook;
-	args->log_hook = ght_log_hook;
 	args->idle_function = NULL;  // No idle in command mode
-	args->description = _("Generalised Hyperbolic Stretch");
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE; // calling as command, not from GUI
 	args->verbose = TRUE;
@@ -3983,11 +3933,8 @@ int process_autoghs(int nb) {
 		}
 
 		args->fit = gfit;
-		args->mem_ratio = 1.0f;
-		args->image_hook = ght_single_image_hook;
-		args->log_hook = ght_log_hook;
+		args->op = &op_desc_autoghs;
 		args->idle_function = NULL;  // No idle in command mode
-		args->description = _("AutoGHS");
 		args->command_updates_gfit = TRUE;
 		args->command = TRUE;
 		args->verbose = TRUE;
@@ -4023,9 +3970,7 @@ int process_autoghs(int nb) {
 			return CMD_ALLOC_ERROR;
 		}
 		args->fit = gfit;
-		args->image_hook = autoghs_unlinked_hook;
-		args->log_hook = autoghs_unlinked_log_hook;
-		args->description = _("AutoGHS (unlinked)");
+		args->op = &op_desc_autoghs_unlinked;
 		args->command_updates_gfit = TRUE;
 		args->command = TRUE;
 		args->verbose = TRUE;
@@ -4114,9 +4059,7 @@ int process_autostretch(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = mtf_single_image_hook;
-	args->log_hook = mtf_log_hook;
+	args->op = &op_desc_mtf;
 	args->idle_function = NULL;  // No idle in command mode
 	args->description = _("Autostretch");
 	args->command_updates_gfit = TRUE;
@@ -4213,8 +4156,7 @@ int process_log(int nb){
 		return CMD_ALLOC_ERROR;
 	}
 	args->fit = gfit;
-	args->image_hook = log_image_hook;
-	args->description = _("Log stretch");
+	args->op = &op_desc_logstretch;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
 	args->verbose = FALSE;
@@ -4258,9 +4200,7 @@ int process_linear_match(int nb) {
 		return CMD_ALLOC_ERROR;
 	}
 	args->fit = gfit;
-	args->image_hook = linear_match_image_hook;
-	args->log_hook = linear_match_log_hook;
-	args->description = _("Linear Match");
+	args->op = &op_desc_linear_match;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
 	args->verbose = TRUE;
@@ -4343,15 +4283,12 @@ int process_asinh(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = asinh_image_hook;
+	args->op = &op_desc_asinh;
 	args->idle_function = NULL; // No idle function for synchronous execution
-	args->description = _("Asinh stretch");
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE; // calling as command, not from GUI
 	args->verbose = FALSE;
 	args->user = params;
-	args->log_hook = asinh_log_hook;
 	args->max_threads = com.max_thread;
 	args->mask_aware = use_mask;
 	args->for_preview = FALSE;
@@ -4415,16 +4352,13 @@ int process_clahe(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 2.0f;
-	args->image_hook = clahe_image_hook;
+	args->op = &op_desc_clahe;
 	args->idle_function = NULL; // Use default idle function for command-line
-	args->description = _("CLAHE");
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE; // calling as command, not from GUI
 	args->verbose = TRUE;
 	args->user = params;
 	args->mask_aware = word[3] && g_strcmp0(word[3], "-mask") == 0; // handle the -mask flag to set mask_aware state
-	args->log_hook = clahe_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -4858,10 +4792,8 @@ int process_mirrorx(int nb){
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = mirrorx_image_hook;
+	args->op = &op_desc_mirrorx;
 	args->idle_function = NULL;  // Use default
-	args->description = _("Mirror X");
 	args->verbose = TRUE;
 	args->user = params;
 	args->max_threads = com.max_thread;
@@ -4895,10 +4827,8 @@ int process_mirrory(int nb){
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = mirrory_image_hook;
+	args->op = &op_desc_mirrory;
 	args->idle_function = NULL;
-	args->description = _("Mirror Y");
 	args->verbose = TRUE;
 	args->user = params;
 	args->max_threads = com.max_thread;
@@ -4946,11 +4876,8 @@ int process_binxy(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.5f;
-	args->image_hook = binning_image_hook;
-	args->log_hook = binning_log_hook;
+	args->op = &op_desc_binning;
 	args->idle_function = NULL;
-	args->description = _("Binning");
 	args->verbose = TRUE;
 	args->user = params;
 	args->max_threads = com.max_thread;
@@ -5081,11 +5008,9 @@ int process_resample(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.0f + ((toX / gfit->rx) * (toY / gfit->ry));
-	args->image_hook = resample_image_hook;
-	args->log_hook = resample_log_hook;
+	args->op = &op_desc_resample;
+	args->mem_ratio = 1.0f + ((toX / gfit->rx) * (toY / gfit->ry));  // override: computed
 	args->idle_function = NULL;
-	args->description = _("Resample");
 	args->verbose = TRUE;
 	args->user = params;
 	args->max_threads = com.max_thread;
@@ -5154,10 +5079,8 @@ int process_crop(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = crop_image_hook_single;
+	args->op = &op_desc_crop;
 	args->idle_function = NULL;
-	args->description = _("Crop");
 	args->verbose = TRUE;
 	args->user = params;
 	args->max_threads = 1;
@@ -5267,11 +5190,8 @@ int process_rotate(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 2.0f;
-	args->image_hook = rotation_image_hook;
-	args->log_hook = rotation_log_hook;
+	args->op = &op_desc_rotation;
 	args->idle_function = NULL;
-	args->description = _("Rotation");
 	args->verbose = TRUE;
 	args->user = params;
 	args->max_threads = com.max_thread;
@@ -5309,11 +5229,10 @@ int process_rotatepi(int nb){
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.5f;
-	args->image_hook = rotation_image_hook;
-	args->log_hook = rotation_log_hook;
+	args->op = &op_desc_rotation;
+	args->mem_ratio = 1.5f;                  // override: fast 180° needs less
 	args->idle_function = NULL;
-	args->description = _("Rotation 180°");
+	args->description = _("Rotation 180°");  // override: variant label
 	args->verbose = TRUE;
 	args->user = params;
 	args->max_threads = 1;
@@ -5379,10 +5298,7 @@ int process_rgradient(int nb) {
 	}
 	// Set up generic_img_args
 	args->fit = gfit;
-	args->mem_ratio = 3.0f; // Need memory for two temporary images
-	args->image_hook = rgradient_image_hook;
-	args->log_hook = rgradient_log_hook;
-	args->description = _("Rotational Gradient");
+	args->op = &op_desc_rgradient;
 	args->verbose = TRUE;
 	args->user = params;
 	args->mask_aware = mask_aware;
@@ -6956,16 +6872,13 @@ int process_bg(int nb) {
 		return CMD_ALLOC_ERROR;
 	}
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = bg_image_hook;
+	args->op = &op_desc_bg;
 	args->idle_function = NULL;
-	args->description = _("Background");
 	args->verbose = TRUE;
 	args->command_updates_gfit = FALSE;  // This doesn't modify gfit
 	args->skip_generic_undo = TRUE;  // measurement-only: no undo state
 	args->command = TRUE;
 	args->user = data;
-	args->log_hook = bg_log_hook;
 	args->max_threads = 1;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -7013,16 +6926,13 @@ int process_bgnoise(int nb) {
 		return CMD_ALLOC_ERROR;
 	}
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = bgnoise_image_hook;
+	args->op = &op_desc_bgnoise;
 	args->idle_function = NULL;  // noise_worker handles its own idle function
-	args->description = _("Background noise");
 	args->verbose = TRUE;
 	args->command_updates_gfit = FALSE;  // This doesn't modify gfit
 	args->skip_generic_undo = TRUE;  // measurement-only: no undo state
 	args->command = TRUE;
 	args->user = noise_args;
-	args->log_hook = bgnoise_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -7295,16 +7205,13 @@ int process_thresh(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;  // Threshold operations work in-place
-	args->image_hook = thresh_image_hook;
+	args->op = &op_desc_thresh;
 	args->idle_function = NULL;
-	args->description = _("Threshold operation");
 	args->verbose = TRUE;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = data;
 	args->mask_aware = mask_aware;
-	args->log_hook = thresh_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -7354,10 +7261,8 @@ int process_neg(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;  // Neg operation works in-place
-	args->image_hook = neg_image_hook;
+	args->op = &op_desc_neg;
 	args->idle_function = NULL;
-	args->description = _("Negative");
 	args->verbose = TRUE;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE; // calling as command, not from GUI
@@ -7419,15 +7324,12 @@ int process_nozero(int nb) {
 		return CMD_ALLOC_ERROR;
 	}
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = nozero_image_hook;
+	args->op = &op_desc_nozero;
 	args->idle_function = NULL;
-	args->description = _("Replace zeros");
 	args->verbose = TRUE;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
 	args->user = data;
-	args->log_hook = nozero_log_hook;
 	args->max_threads = 1;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -7530,16 +7432,13 @@ int process_ddp(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 2.f;
-	args->image_hook = ddp_image_hook;
+	args->op = &op_desc_ddp;
 	args->idle_function = NULL;  // Use default
-	args->description = _("Digital Development Processing");
 	args->verbose = TRUE;
 	args->command_updates_gfit = TRUE;  // This command modifies gfit
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = ddp_args;
 	args->mask_aware = mask_aware;
-	args->log_hook = ddp_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -7709,16 +7608,13 @@ int process_ffill(int nb) {
 		return CMD_ALLOC_ERROR;
 	}
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = ffill_image_hook;
+	args->op = &op_desc_ffill;
 	args->idle_function = NULL;
-	args->description = _("Fill mirrored region");
 	args->verbose = TRUE;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
 	args->user = data;
 	args->mask_aware = mask_aware;
-	args->log_hook = ffill_log_hook;
 	args->max_threads = 1;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -7975,8 +7871,7 @@ int process_findhot(int nb){
 
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
-	args->image_hook = findhot_image_hook;
-	args->description = _("Find Hot/Cold Pixels");
+	args->op = &op_desc_findhot;
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->skip_generic_undo = TRUE;
@@ -8000,9 +7895,7 @@ int process_fix_xtrans(int nb) {
 		return CMD_ALLOC_ERROR;
 	}
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = fix_xtrans_image_hook;
-	args->description = _("Fix X-Trans artefacts");
+	args->op = &op_desc_fix_xtrans;
 	args->verbose = TRUE;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
@@ -8056,11 +7949,8 @@ int process_cosme(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;  // Cosmetic correction works in-place with minimal overhead
-	args->image_hook = cosme_image_hook_generic;
-	args->log_hook = cosme_log_hook;
+	args->op = &op_desc_cosme;
 	args->idle_function = NULL;
-	args->description = _("Cosmetic Correction");
 	args->verbose = TRUE;
 	args->user = params;
 	args->max_threads = com.max_thread;
@@ -8188,16 +8078,14 @@ int process_fmedian(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = median_image_hook;
+	args->op = &op_desc_median;
+	args->mem_ratio = 1.0f;  // override: differs from descriptor default
 	args->idle_function = NULL;
-	args->description = _("Median filter");
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
 	args->verbose = FALSE;
 	args->user = params;
 	args->mask_aware = mask_aware;
-	args->log_hook = median_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -8259,16 +8147,13 @@ int process_cdg(int nb) {
 		return CMD_ALLOC_ERROR;
 	}
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = cdg_image_hook;
+	args->op = &op_desc_cdg;
 	args->idle_function = NULL;
-	args->description = _("Center of gravity");
 	args->verbose = TRUE;
 	args->command_updates_gfit = FALSE;  // This doesn't modify gfit
 	args->skip_generic_undo = TRUE;  // measurement-only: no undo state
 	args->command = TRUE;
 	args->user = data;
-	args->log_hook = cdg_log_hook;
 	args->max_threads = 1;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -8393,16 +8278,13 @@ int process_fill(int nb) {
 		return CMD_ALLOC_ERROR;
 	}
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = fill_image_hook;
+	args->op = &op_desc_fill;
 	args->idle_function = NULL;
-	args->description = _("Fill region");
 	args->verbose = TRUE;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
 	args->user = data;
 	args->mask_aware = mask_aware;
-	args->log_hook = fill_log_hook;
 	args->max_threads = 1;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -8483,16 +8365,13 @@ int process_offset(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = offset_image_hook;
+	args->op = &op_desc_offset;
 	args->idle_function = NULL;
-	args->description = _("Offset");
 	args->verbose = TRUE;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
 	args->user = data;
 	args->mask_aware = mask_aware;
-	args->log_hook = offset_log_hook;
 	args->max_threads = 1;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -8583,13 +8462,10 @@ int process_scnr(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.5f;
-	args->image_hook = scnr_image_hook;
+	args->op = &op_desc_scnr;
 	args->idle_function = NULL;
-	args->description = _("SCNR");
 	args->verbose = TRUE;
 	args->user = params;
-	args->log_hook = scnr_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -8617,9 +8493,7 @@ int process_fft(int nb){
 
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
-	args->image_hook = fft_image_hook;
-	args->log_hook = fft_log_hook;
-	args->description = _("Fourier Transform");
+	args->op = &op_desc_fft;
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->command_updates_gfit = TRUE;
@@ -8686,15 +8560,12 @@ int process_fixbanding(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 2.0f;
-	args->image_hook = banding_single_image_hook;
+	args->op = &op_desc_banding;
 	args->idle_function = NULL; // Use default idle function for command-line
-	args->description = _("Canon Banding Reduction");
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE; // calling as command, not from GUI
 	args->verbose = TRUE;
 	args->user = params;
-	args->log_hook = banding_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -8926,8 +8797,7 @@ int process_subsky(int nb) {
 			bkg_args->fit = gfit;
 			struct generic_img_args *iargs = calloc(1, sizeof(struct generic_img_args));
 			iargs->fit = gfit;
-			iargs->image_hook = remove_gradient_image_hook;
-			iargs->log_hook = remove_gradient_log_hook;
+			iargs->op = &op_desc_remove_gradient;
 			iargs->description = _("Automatic gradient removal");
 			iargs->verbose = TRUE;
 			iargs->command = TRUE;
@@ -9106,9 +8976,7 @@ int process_subsky(int nb) {
 		if (!retval) {
 			struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 			args->fit = gfit;
-			args->image_hook = remove_gradient_image_hook;
-			args->log_hook = remove_gradient_log_hook;
-			args->description = _("Background extraction");
+			args->op = &op_desc_remove_gradient;
 			args->verbose = TRUE;
 			args->command = TRUE;
 			args->command_updates_gfit = TRUE;
@@ -9189,8 +9057,7 @@ int process_findcosme(int nb) {
 		cosme_args->threading = MULTI_THREADED;
 		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 		args->fit = gfit;
-		args->image_hook = cosmetic_image_hook_generic;
-		args->description = _("Cosmetic correction");
+		args->op = &op_desc_cosmetic;
 		args->verbose = TRUE;
 		args->command = TRUE;
 		args->command_updates_gfit = TRUE;
@@ -9352,8 +9219,7 @@ int process_split_cfa(int nb) {
 
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
-	args->image_hook = cfa_extract_image_hook;
-	args->description = _("Split CFA");
+	args->op = &op_desc_cfa_split;
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->skip_generic_undo = TRUE;
@@ -9390,8 +9256,7 @@ int process_extractGreen(int nb) {
 
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
-	args->image_hook = cfa_extract_image_hook;
-	args->description = _("Extract Green");
+	args->op = &op_desc_cfa_extract_green;
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->skip_generic_undo = TRUE;
@@ -9435,8 +9300,7 @@ int process_extractHa(int nb) {
 
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
-	args->image_hook = cfa_extract_image_hook;
-	args->description = _("Extract Ha");
+	args->op = &op_desc_cfa_extract_ha;
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->skip_generic_undo = TRUE;
@@ -9491,8 +9355,7 @@ int process_extractHaOIII(int nb) {
 
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
-	args->image_hook = cfa_extract_image_hook;
-	args->description = _("Extract Ha/OIII");
+	args->op = &op_desc_cfa_extract_haoiii;
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->skip_generic_undo = TRUE;
@@ -10092,13 +9955,10 @@ int process_stat(int nb) {
 		return CMD_ALLOC_ERROR;
 	}
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = stat_cmd_image_hook;
-	args->description = _("Statistics");
+	args->op = &op_desc_stat;
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->user = data;
-	args->log_hook = stat_log_hook;
 	args->max_threads = 1;
 	args->skip_generic_undo = TRUE;  // measurement-only: no undo state
 
@@ -13316,8 +13176,7 @@ static int do_pcc(int nb, gboolean spectro) {
 
 	struct generic_img_args *img_args = calloc(1, sizeof(struct generic_img_args));
 	img_args->fit = gfit;
-	img_args->image_hook = photometric_cc_image_hook;
-	img_args->log_hook = photometric_cc_log_hook;
+	img_args->op = &op_desc_photometric_cc;
 	img_args->description = spectro ? _("SPCC") : _("PCC");
 	img_args->verbose = TRUE;
 	img_args->command = TRUE;
@@ -13928,13 +13787,10 @@ int process_catsearch(int nb) {
 		return CMD_ALLOC_ERROR;
 	}
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = catsearch_image_hook;
-	args->description = _("Catalog search");
+	args->op = &op_desc_catsearch;
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->user = query_args;
-	args->log_hook = catsearch_log_hook;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -14482,9 +14338,7 @@ int process_icc_assign(int nb) {
 
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
-	args->image_hook = icc_assign_hook;
-	args->log_hook = icc_assign_log_hook;
-	args->description = _("ICC profile assignment");
+	args->op = &op_desc_icc_assign;
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->command_updates_gfit = TRUE;
@@ -14551,9 +14405,7 @@ int process_icc_convert_to(int nb) {
 
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
-	args->image_hook = icc_convert_to_hook;
-	args->log_hook = icc_convert_to_log_hook;
-	args->description = _("ICC color space conversion");
+	args->op = &op_desc_icc_convert;
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->command_updates_gfit = TRUE;
@@ -14574,9 +14426,7 @@ int process_icc_remove(int nb) {
 		return CMD_ALLOC_ERROR;
 	}
 	args->fit = gfit;
-	args->image_hook = icc_remove_hook;
-	args->log_hook = icc_remove_log_hook;
-	args->description = _("ICC profile removal");
+	args->op = &op_desc_icc_remove;
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->command_updates_gfit = TRUE;
@@ -14736,9 +14586,7 @@ int process_limit(int nb) {
 		return CMD_ALLOC_ERROR;
 	}
 	args->fit = gfit;
-	args->image_hook = limit_image_hook;
-	args->log_hook = limit_log_hook;
-	args->description = _("Limit pixels");
+	args->op = &op_desc_limit;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
 	args->verbose = TRUE;
@@ -15763,11 +15611,8 @@ int process_mask_from_stars(int nb) {
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit =  gfit;
-	args->mem_ratio = 1.0f;
-	args->mask_hook = mask_from_stars_hook;
-	args->log_hook = mask_from_stars_log;
+	args->op = &op_desc_mask_from_stars;
 	args->idle_function = NULL;
-	args->description = _("Mask from stars");
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->mask_creation = TRUE;
@@ -15831,11 +15676,8 @@ int process_mask_from_channel(int nb) {
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit =  gfit;
-	args->mem_ratio = 1.0f;
-	args->mask_hook = mask_from_channel_hook;
-	args->log_hook = mask_from_channel_log;
+	args->op = &op_desc_mask_from_channel;
 	args->idle_function = NULL;
-	args->description = _("Mask from channel");
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->mask_creation = TRUE;
@@ -15954,11 +15796,8 @@ int process_mask_from_lum(int nb) {
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit =  gfit;
-	args->mem_ratio = 1.0f;
-	args->mask_hook = mask_from_lum_hook;
-	args->log_hook = mask_from_lum_log;
+	args->op = &op_desc_mask_from_luminance;
 	args->idle_function = NULL;
-	args->description = _("Mask from luminance");
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->mask_creation = TRUE;
@@ -15979,8 +15818,7 @@ int process_clear_mask(int nb) {
 		return CMD_ALLOC_ERROR;
 	}
 	args->fit = gfit;
-	args->mask_hook = mask_clear_hook;
-	args->description = _("Clear mask");
+	args->op = &op_desc_mask_clear;
 	args->verbose = TRUE;
 	args->command = TRUE;
 	if (!start_in_new_thread(generic_mask_worker, args)) {
@@ -16066,11 +15904,8 @@ int process_mask_threshold(int nb) {
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit =  gfit;
-	args->mem_ratio = 1.0f;
-	args->mask_hook = mask_thresh_hook;
-	args->log_hook = mask_thresh_log;
+	args->op = &op_desc_mask_threshold;
 	args->idle_function = NULL;
-	args->description = _("Apply intensity threshold to mask");
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->user = data;
@@ -16113,11 +15948,8 @@ int process_blur_mask(int nb) {
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit =  gfit;
-	args->mem_ratio = 2.0f;
-	args->mask_hook = mask_blur_hook;
-	args->log_hook = mask_blur_log;
+	args->op = &op_desc_mask_blur;
 	args->idle_function = NULL;
-	args->description = _("Blur mask");
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->user = data;
@@ -16178,11 +16010,8 @@ int process_feather_mask(int nb) {
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit =  gfit;
-	args->mem_ratio = 2.0f;
-	args->mask_hook = mask_feather_hook;
-	args->log_hook = mask_feather_log;
+	args->op = &op_desc_mask_feather;
 	args->idle_function = NULL;
-	args->description = _("Feather mask");
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->user = data;
@@ -16214,11 +16043,8 @@ int process_mask_fmul(int nb) {
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit =  gfit;
-	args->mem_ratio = 0.0f;
-	args->mask_hook = mask_fmul_hook;
-	args->log_hook = mask_fmul_log;
+	args->op = &op_desc_mask_multiply;
 	args->idle_function = NULL;
-	args->description = _("Multiply mask");
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->user = data;
@@ -16236,11 +16062,8 @@ int process_invert_mask(int nb) {
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit =  gfit;
-	args->mem_ratio = 0.0f;
-	args->mask_hook = mask_invert_hook;
-	args->log_hook = NULL;
+	args->op = &op_desc_mask_invert;
 	args->idle_function = NULL;
-	args->description = _("Invert mask");
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->user = NULL;
@@ -16258,11 +16081,8 @@ int process_autostretch_mask(int nb) {
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit =  gfit;
-	args->mem_ratio = 0.0f;
-	args->mask_hook = mask_autostretch_hook;
-	args->log_hook = NULL;
+	args->op = &op_desc_mask_autostretch;
 	args->idle_function = NULL;
-	args->description = _("Autostretch mask");
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->user = NULL;
@@ -16295,11 +16115,8 @@ int process_mask_bitpix(int nb) {
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit =  gfit;
-	args->mem_ratio = 1.0f;
-	args->mask_hook = mask_bitpix_hook;
-	args->log_hook = mask_bitpix_log;
+	args->op = &op_desc_mask_bitpix;
 	args->idle_function = NULL;
-	args->description = _("Change mask bitdepth");
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->user = data;
@@ -16419,11 +16236,8 @@ int process_mask_from_color(int nb) {
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit =  gfit;
-	args->mem_ratio = 1.5f;
-	args->mask_hook = mask_from_color_hook;
-	args->log_hook = mask_from_color_log;
+	args->op = &op_desc_mask_from_color;
 	args->idle_function = NULL;
-	args->description = _("Mask from color");
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->mask_creation = TRUE;
@@ -16480,3 +16294,135 @@ int process_ssr(int nb) {
 	return 0;
 }
 
+/* ==========================================================================
+ * Op descriptors owned by command.c.  Defined here, after the static hook
+ * functions they reference.  Forward-declared near the top of the file.
+ * mem_ratio 0 means "no memory check" for these ops (matches the legacy sites
+ * that set no mem_ratio).  Descriptions marked "default" are overridden at
+ * variant sites (e.g. imoper add/sub/mul/div).
+ * ========================================================================== */
+const op_descriptor op_desc_denoise = {
+	.id = "filters.denoise", .version = 1, .image_hook = denoise_image_hook,
+	.log_hook = denoise_log_hook, .description = N_("NL-Bayes Denoising"),
+	.mem_ratio = 3.0f, .flags = OP_MASK_CAPABLE,
+};
+const op_descriptor op_desc_gauss = {
+	.id = "filters.gauss", .version = 1, .image_hook = gauss_image_hook,
+	.log_hook = gauss_log_hook, .description = N_("Gaussian blur"),
+	.mem_ratio = 2.0f, .flags = OP_MASK_CAPABLE,
+};
+const op_descriptor op_desc_unsharp = {
+	.id = "filters.unsharp", .version = 1, .image_hook = unsharp_cmd_image_hook,
+	.log_hook = unsharp_log_hook, .description = N_("Unsharp mask"),
+	.mem_ratio = 2.0f, .flags = OP_MASK_CAPABLE,
+};
+const op_descriptor op_desc_imoper = {
+	.id = "arith.imoper", .version = 1, .image_hook = imoper_image_hook,
+	.log_hook = imoper_log_hook, .description = N_("Image addition"),
+	.mem_ratio = 2.0f, .flags = OP_MASK_CAPABLE,
+};
+const op_descriptor op_desc_addmax = {
+	.id = "arith.addmax", .version = 1, .image_hook = addmax_image_hook,
+	.log_hook = addmax_log_hook, .description = N_("Add max"),
+	.mem_ratio = 1.0f, .flags = OP_MASK_CAPABLE,
+};
+const op_descriptor op_desc_fdiv = {
+	.id = "arith.fdiv", .version = 1, .image_hook = fdiv_image_hook,
+	.log_hook = fdiv_log_hook, .description = N_("Image division"),
+	.mem_ratio = 1.0f, .flags = OP_MASK_CAPABLE,
+};
+const op_descriptor op_desc_fmul = {
+	.id = "arith.fmul", .version = 1, .image_hook = fmul_image_hook,
+	.log_hook = fmul_log_hook, .description = N_("Scalar multiplication"),
+	.mem_ratio = 1.0f, .flags = OP_MASK_CAPABLE,
+};
+const op_descriptor op_desc_thresh = {
+	.id = "arith.thresh", .version = 1, .image_hook = thresh_image_hook,
+	.log_hook = thresh_log_hook, .description = N_("Threshold operation"),
+	.mem_ratio = 1.0f, .flags = OP_MASK_CAPABLE,
+};
+/* neg has no log_hook (the op does not possess one) */
+const op_descriptor op_desc_neg = {
+	.id = "arith.neg", .version = 1, .image_hook = neg_image_hook,
+	.description = N_("Negative"), .mem_ratio = 1.0f, .flags = OP_MASK_CAPABLE,
+};
+const op_descriptor op_desc_nozero = {
+	.id = "arith.nozero", .version = 1, .image_hook = nozero_image_hook,
+	.log_hook = nozero_log_hook, .description = N_("Replace zeros"),
+	.mem_ratio = 1.0f, .flags = 0,
+};
+const op_descriptor op_desc_ddp = {
+	.id = "filters.ddp", .version = 1, .image_hook = ddp_image_hook,
+	.log_hook = ddp_log_hook, .description = N_("Digital Development Processing"),
+	.mem_ratio = 2.0f, .flags = OP_MASK_CAPABLE,
+};
+const op_descriptor op_desc_ffill = {
+	.id = "arith.ffill", .version = 1, .image_hook = ffill_image_hook,
+	.log_hook = ffill_log_hook, .description = N_("Fill mirrored region"),
+	.mem_ratio = 1.0f, .flags = OP_MASK_CAPABLE,
+};
+const op_descriptor op_desc_fill = {
+	.id = "arith.fill", .version = 1, .image_hook = fill_image_hook,
+	.log_hook = fill_log_hook, .description = N_("Fill region"),
+	.mem_ratio = 1.0f, .flags = OP_MASK_CAPABLE,
+};
+const op_descriptor op_desc_offset = {
+	.id = "arith.offset", .version = 1, .image_hook = offset_image_hook,
+	.log_hook = offset_log_hook, .description = N_("Offset"),
+	.mem_ratio = 1.0f, .flags = OP_MASK_CAPABLE,
+};
+/* grey_flat has no log_hook */
+const op_descriptor op_desc_grey_flat = {
+	.id = "color.grey_flat", .version = 1, .image_hook = grey_flat_image_hook,
+	.description = N_("Grey flat"), .mem_ratio = 1.0f, .flags = 0,
+};
+/* log stretch has no log_hook and does no memory check */
+const op_descriptor op_desc_logstretch = {
+	.id = "stretch.log", .version = 1, .image_hook = log_image_hook,
+	.description = N_("Log stretch"), .mem_ratio = 0.0f, .flags = 0,
+};
+const op_descriptor op_desc_entropy = {
+	.id = "stats.entropy", .version = 1, .image_hook = entropy_image_hook,
+	.log_hook = entropy_log_hook, .description = N_("Entropy"),
+	.mem_ratio = 1.0f, .flags = 0,
+};
+const op_descriptor op_desc_bg = {
+	.id = "stats.bg", .version = 1, .image_hook = bg_image_hook,
+	.log_hook = bg_log_hook, .description = N_("Background"),
+	.mem_ratio = 1.0f, .flags = 0,
+};
+const op_descriptor op_desc_bgnoise = {
+	.id = "stats.bgnoise", .version = 1, .image_hook = bgnoise_image_hook,
+	.log_hook = bgnoise_log_hook, .description = N_("Background noise"),
+	.mem_ratio = 1.0f, .flags = 0,
+};
+const op_descriptor op_desc_cdg = {
+	.id = "stats.cdg", .version = 1, .image_hook = cdg_image_hook,
+	.log_hook = cdg_log_hook, .description = N_("Center of gravity"),
+	.mem_ratio = 1.0f, .flags = 0,
+};
+/* findhot has no log_hook and does no memory check */
+const op_descriptor op_desc_findhot = {
+	.id = "cfa.findhot", .version = 1, .image_hook = findhot_image_hook,
+	.description = N_("Find Hot/Cold Pixels"), .mem_ratio = 0.0f, .flags = 0,
+};
+/* fix_xtrans has no log_hook */
+const op_descriptor op_desc_fix_xtrans = {
+	.id = "cfa.fix_xtrans", .version = 1, .image_hook = fix_xtrans_image_hook,
+	.description = N_("Fix X-Trans artefacts"), .mem_ratio = 1.0f, .flags = 0,
+};
+const op_descriptor op_desc_limit = {
+	.id = "arith.limit", .version = 1, .image_hook = limit_image_hook,
+	.log_hook = limit_log_hook, .description = N_("Limit pixels"),
+	.mem_ratio = 0.0f, .flags = 0,
+};
+const op_descriptor op_desc_stat = {
+	.id = "stats.stat", .version = 1, .image_hook = stat_cmd_image_hook,
+	.log_hook = stat_log_hook, .description = N_("Statistics"),
+	.mem_ratio = 1.0f, .flags = 0,
+};
+const op_descriptor op_desc_autoghs_unlinked = {
+	.id = "stretch.autoghs_unlinked", .version = 1, .image_hook = autoghs_unlinked_hook,
+	.log_hook = autoghs_unlinked_log_hook, .description = N_("AutoGHS (unlinked)"),
+	.mem_ratio = 0.0f, .flags = OP_MASK_CAPABLE,
+};

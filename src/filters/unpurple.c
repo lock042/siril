@@ -30,6 +30,17 @@
 #include "filters/synthstar.h"
 #include "filters/unpurple.h"
 #include "core/gui_iface.h"
+#include "core/op_descriptors.h"
+
+/* Op descriptor — single source of truth for this operation (op_descriptor.h) */
+const op_descriptor op_desc_unpurple = {
+	.id = "filters.unpurple", .version = 1,
+	.image_hook = unpurple_image_hook,
+	.log_hook = unpurple_log_hook,
+	.description = N_("Unpurple Filter"),
+	.mem_ratio = 2.0f,
+	.flags = OP_MASK_CAPABLE,
+};
 
 /*****************************************************************************
  *      U N P U R P L E   A L L O C A T O R   A N D   D E S T R U C T O R    *

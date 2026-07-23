@@ -20,6 +20,7 @@
 #include <math.h>
 
 #include "core/siril.h"
+#include "core/op_descriptors.h"
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
@@ -124,13 +125,10 @@ static int unpurple_process_with_worker(gboolean for_preview, gboolean for_roi) 
 
 	// Set the fit based on whether ROI is active
 	args->fit = for_roi ? &gui.roi.fit : gfit;
-	args->mem_ratio = 2.0f; // unpurple needs some extra memory
-	args->image_hook = unpurple_image_hook;
+	args->op = &op_desc_unpurple;
 	args->idle_function = NULL;
-	args->description = _("Unpurple Filter");
 	args->verbose = !for_preview;
 	args->user = params;
-	args->log_hook = unpurple_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
 	args->for_roi = for_roi;

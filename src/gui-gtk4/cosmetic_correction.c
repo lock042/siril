@@ -23,6 +23,7 @@
 #include <gtk/gtk.h>
 
 #include "core/siril.h"
+#include "core/op_descriptors.h"
 #include "core/processing.h"
 #include "filters/cosmetic_correction.h"
 #include "gui-gtk4/dialogs.h"
@@ -136,14 +137,12 @@ void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 		}
 
 		ga->fit = gfit;
-		ga->mem_ratio = 2.f;
-		ga->image_hook = cosmetic_image_hook_generic;
+		ga->op = &op_desc_cosmetic;
+		ga->mem_ratio = 2.f; // override
 		ga->idle_function = cosme_idle;
-		ga->description = _("Cosmetic Correction");
 		ga->verbose = TRUE;
 		ga->user = args;
 		args->fit = gfit;
-		ga->log_hook = cosmetic_log_hook;
 		ga->max_threads = com.max_thread;
 
 		if (!start_in_new_thread(generic_image_worker, ga)) {

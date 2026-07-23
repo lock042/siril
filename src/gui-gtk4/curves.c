@@ -22,6 +22,7 @@
 #include <math.h>
 #include <float.h>
 #include "core/siril.h"
+#include "core/op_descriptors.h"
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/icc_profile.h"
@@ -377,13 +378,10 @@ static int curves_process_with_worker(gboolean for_preview, gboolean for_roi) {
 
 	// Set the fit based on whether ROI is active
 	args->fit = for_roi ? &gui.roi.fit : gfit;
-	args->mem_ratio = 2.0f; // Curves need memory for depth conversions
-	args->image_hook = curve_image_hook;
+	args->op = &op_desc_curves;
 	args->idle_function = for_preview ? curve_preview_idle : curve_apply_idle;
-	args->description = _("Curve Transformation");
 	args->verbose = !for_preview;
 	args->user = params;
-	args->log_hook = curves_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
 	args->for_roi = for_roi;
