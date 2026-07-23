@@ -29,6 +29,8 @@ void op_descriptor_fill_img_args(struct generic_img_args *args) {
 		args->description = _(op->description); /* site may pre-set to override */
 	if (args->mem_ratio == 0.0f)
 		args->mem_ratio = op->mem_ratio;       /* 0 in args means "use default" */
+	if (op->flags & OP_GEOMETRY_CHANGING)
+		args->geometry_changing = TRUE;        /* was per-site; descriptor owns it now */
 	if (args->mask_aware)
 		g_warn_if_fail(op->flags & OP_MASK_CAPABLE);
 }
@@ -67,4 +69,19 @@ const op_descriptor *const *op_descriptor_all(size_t *count) {
 	if (count)
 		*count = (sizeof(descriptors) / sizeof(descriptors[0])) - 1;
 	return descriptors;
+}
+
+const op_descriptor *op_descriptor_by_id(const char *id) {
+	static GHashTable *by_id;
+	static gsize once;
+	if (!id)
+		return NULL;
+	if (g_once_init_enter(&once)) {
+		GHashTable *table = g_hash_table_new(g_str_hash, g_str_equal);
+		for (const op_descriptor *const *p = descriptors; *p; p++)
+			g_hash_table_insert(table, (gpointer)(*p)->id, (gpointer)*p);
+		by_id = table;
+		g_once_init_leave(&once, 1);
+	}
+	return g_hash_table_lookup(by_id, id);
 }

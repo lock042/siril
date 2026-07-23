@@ -23,6 +23,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/undo.h"
+#include "core/nde_history.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "core/icc_profile.h"
@@ -92,6 +93,8 @@ void free_image_data() {
 			com.uniq->icc_profile = NULL;
 		}
 		com.uniq->color_managed = FALSE;
+		/* Provenance dies with the document (it persists only in .flis). */
+		nde_history_attach(NULL);
 		/* FLIS cleanup (stage 3.1): release the display-side composite
 		 * cache and the in-memory layer stack before freeing the single
 		 * struct.  Order matters — see below for the gfit detach dance. */

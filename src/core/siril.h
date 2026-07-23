@@ -587,6 +587,12 @@ typedef struct {
 	 * Zero on non-FLIS images. */
 	guint canvas_w, canvas_h;
 	double canvas_bg_r, canvas_bg_g, canvas_bg_b;
+
+	/* Nondestructive-editing operation log (provenance).  Lazily created on
+	 * first capture or FLIS load; freed via nde_history_attach(NULL) in
+	 * free_image_data().  All access goes through the nde_history.[ch] API,
+	 * which guards it with its own leaf mutex. */
+	struct nde_history *nde_history;
 } single;
 
 typedef struct {
@@ -962,6 +968,13 @@ struct historic_struct {
 	 * When set, the single-layer fields above are unused. */
 	historic_layer_entry_t *multi_entries;
 	guint                   n_multi_entries;
+
+	/* ---- NDE provenance coupling (sketch §13.3) ----------------------- */
+	/* Id of the nde_record captured for the same operation, 0 = none.
+	 * Restoring this entry moves the history's live_count via
+	 * nde_history_on_undo()/on_redo(); counterpart entries pushed to the
+	 * opposite stack inherit the id so undo↔redo round-trips stay coupled. */
+	gint64 nde_record_id;
 };
 
 /* struct layer, struct image_view, draw_data_t, and struct guiinf have been

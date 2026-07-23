@@ -61,8 +61,13 @@ typedef struct op_descriptor {
 void op_descriptor_fill_img_args(struct generic_img_args *args);
 void op_descriptor_fill_mask_args(struct generic_mask_args *args);
 
-/* Enumerate every descriptor (for tests and, later, the NDE by-id registry). */
+/* Enumerate every descriptor (for tests and the NDE by-id registry). */
 const op_descriptor *const *op_descriptor_all(size_t *count);
+
+/* By-id lookup over op_descriptor_all(), NULL for unknown ids.  Needed only
+ * where an op arrives as a string (FLIS_HIST deserialization) — live capture
+ * reads args->op directly.  Thread-safe; the table is built on first use. */
+const op_descriptor *op_descriptor_by_id(const char *id);
 
 #ifdef __cplusplus
 }
