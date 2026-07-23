@@ -63,6 +63,7 @@
 
 #include "core/icc_profile.h"
 #include "core/masks.h"
+#include "core/nde_history.h"
 #include "core/undo.h"
 #include "algos/statistics.h"
 #include "core/gui_iface.h"
@@ -498,7 +499,7 @@ static uint8_t *generate_thumbnail(const fits *fit,
  */
 static int write_thumbnail_hdu(fitsfile *fptr, const fits *base_fit,
                                long canvas_w, long canvas_h,
-                               gboolean icc_present) {
+                               gboolean icc_present, gboolean nde_present) {
     int status = 0;
     long tw = 0, th = 0;
 
@@ -574,6 +575,9 @@ static int write_thumbnail_hdu(fitsfile *fptr, const fits *base_fit,
     fits_write_key(fptr, TLOGICAL, "FLISLMSK",&(int){1},        "Layer mask (LMASK) supported",   &status);
     fits_write_key(fptr, TLOGICAL, "FLISGRP", &(int){1},        "Layer groups supported",         &status);
     fits_write_key(fptr, TLOGICAL, "FLISEFF", &(int){0},        "Effects metadata supported",     &status);
+    /* FLISNDE signals that THIS file carries a FLIS_HIST provenance table
+     * (nde sketch §14.2) — a presence flag like FLISICC, not a capability. */
+    fits_write_key(fptr, TLOGICAL, "FLISNDE", &(int){nde_present}, "NDE history table present",   &status);
     /* FLISEXT: comma-separated list of optional FLIS extensions this
      * writer understands.  SPARSE = layers may extend past the canvas
      * (§6.2 sparse-layer correctness).  Future extensions append. */
@@ -810,6 +814,36 @@ static int write_flis_meta_hdu(fitsfile *fptr, GSList *layers,
  * Temporarily borrows fptr into layer->fit to reuse save_opened_fits().
  * The flis_id and flis_type keywords are added after the pixel write.
  */
+/*
+ * SHA-256 of a layer's in-memory pixel buffer, as a heap hex string (or NULL
+ * for an empty/absent buffer).  Used for the PIXHASH external-edit check
+ * (nde sketch §14.4): computed at save and re-checked at load, never at
+ * runtime.  The hash covers the raw buffer for the image's data_type, so it
+ * only round-trips when the on-disk representation is lossless — callers
+ * skip it when tile compression is enabled.
+ */
+static gchar *flis_pixel_sha256(const fits *f) {
+    if (!f)
+        return NULL;
+    size_t npix = (size_t)f->rx * f->ry * (f->naxes[2] ? f->naxes[2] : 1);
+    const guchar *buf;
+    gsize nbytes;
+    if (f->type == DATA_FLOAT) {
+        buf = (const guchar *)f->fdata;
+        nbytes = npix * sizeof(float);
+    } else {
+        buf = (const guchar *)f->data;
+        nbytes = npix * sizeof(WORD);
+    }
+    if (!buf || !npix)
+        return NULL;
+    GChecksum *ck = g_checksum_new(G_CHECKSUM_SHA256);
+    g_checksum_update(ck, buf, nbytes);
+    gchar *hex = g_strdup(g_checksum_get_string(ck));
+    g_checksum_free(ck);
+    return hex;
+}
+
 static int write_layer_hdu(fitsfile *fptr, flis_layer_t *layer) {
     int status = 0;
     fits *f = layer->fit;
@@ -845,6 +879,18 @@ static int write_layer_hdu(fitsfile *fptr, flis_layer_t *layer) {
     fits_write_key(fptr, TINT,    "FLIS_ID",   &flis_id,        "FLIS item ID",          &status);
     fits_write_key(fptr, TSTRING, "FLIS_TYPE", FLIS_TYPE_LAYER, "FLIS HDU type",         &status);
     fits_write_key(fptr, TSTRING, "EXTNAME",   (void *)name,    "Extension name",        &status);
+
+    /* PIXHASH external-edit check (nde sketch §14.4).  Skipped under tile
+     * compression: float quantisation is lossy, so the loaded buffer would
+     * never hash-match and every file would present as stale. */
+    if (!com.pref.comp.fits_enabled) {
+        gchar *hash = flis_pixel_sha256(f);
+        if (hash) {
+            fits_write_key(fptr, TSTRING, "PIXHASH", hash,
+                           "SHA-256 of in-memory pixel buffer", &status);
+            g_free(hash);
+        }
+    }
 
     if (status) { report_fits_error(status); return 1; }
     return 0;
@@ -1442,6 +1488,205 @@ static gint layer_order_cmp(gconstpointer a, gconstpointer b) {
     return la->layer_order - lb->layer_order;
 }
 
+/* =====================================================================
+ * FLIS_HIST — NDE provenance table (nde sketch §14)
+ * ===================================================================== */
+
+#define FLIS_HIST_NCOLS 12
+
+/*
+ * Write the FLIS_HIST binary table from a history snapshot.  Appended after
+ * the data HDUs and located by EXTNAME on load, so it never disturbs the
+ * FLIS_META hdu_index arithmetic.  String columns are fixed-width ASCII
+ * sized to the longest value in this save (min 1 — cfitsio rejects 0A).
+ */
+static int write_flis_hist_hdu(fitsfile *fptr, GPtrArray *records, gint64 next_id) {
+    int status = 0;
+    size_t w_op = 1, w_par = 1, w_sum = 1, w_ts = 1, w_impl = 1, w_mref = 1;
+    for (guint i = 0; i < records->len; i++) {
+        nde_record *rec = g_ptr_array_index(records, i);
+        if (rec->op_id)     w_op   = MAX(w_op,   strlen(rec->op_id));
+        if (rec->params)    w_par  = MAX(w_par,  strlen(rec->params));
+        if (rec->summary)   w_sum  = MAX(w_sum,  strlen(rec->summary));
+        if (rec->timestamp) w_ts   = MAX(w_ts,   strlen(rec->timestamp));
+        if (rec->impl)      w_impl = MAX(w_impl, strlen(rec->impl));
+        if (rec->mask_ref)  w_mref = MAX(w_mref, strlen(rec->mask_ref));
+    }
+    char f_op[24], f_par[24], f_sum[24], f_ts[24], f_impl[24], f_mref[24];
+    g_snprintf(f_op,   sizeof(f_op),   "%zuA", w_op);
+    g_snprintf(f_par,  sizeof(f_par),  "%zuA", w_par);
+    g_snprintf(f_sum,  sizeof(f_sum),  "%zuA", w_sum);
+    g_snprintf(f_ts,   sizeof(f_ts),   "%zuA", w_ts);
+    g_snprintf(f_impl, sizeof(f_impl), "%zuA", w_impl);
+    g_snprintf(f_mref, sizeof(f_mref), "%zuA", w_mref);
+
+    const char *names[FLIS_HIST_NCOLS] = {
+        "RECORD_ID", "OP_ID", "OP_VER", "SCOPE", "TARGET", "TIER",
+        "MASKACT", "PARAMS", "SUMMARY", "TSTAMP", "IMPL", "MASKREF"
+    };
+    const char *fmts[FLIS_HIST_NCOLS] = {
+        "1K", f_op, "1J", "1J", "1J", "1J",
+        "1L", f_par, f_sum, f_ts, f_impl, f_mref
+    };
+
+    if (fits_create_tbl(fptr, BINARY_TBL, records->len, FLIS_HIST_NCOLS,
+                        (char **)names, (char **)fmts, NULL, "FLIS_HIST", &status)) {
+        report_fits_error(status);
+        return 1;
+    }
+    int hver = 1;
+    LONGLONG seq = next_id;
+    fits_write_key(fptr, TINT,      "FLISHVER", &hver, "FLIS_HIST format version", &status);
+    fits_write_key(fptr, TLONGLONG, "FLISHSEQ", &seq,  "Next NDE record id",       &status);
+
+    for (guint i = 0; i < records->len; i++) {
+        nde_record *rec = g_ptr_array_index(records, i);
+        long row = i + 1;
+        LONGLONG rid = rec->record_id;
+        int ver  = rec->op_version;
+        int scp  = rec->scope;
+        int tgt  = rec->target_item_id;
+        int tier = rec->tier;
+        int act  = rec->mask_active ? 1 : 0;
+        char *s_op   = rec->op_id     ? rec->op_id     : (char *)"";
+        char *s_par  = rec->params    ? rec->params    : (char *)"";
+        char *s_sum  = rec->summary   ? rec->summary   : (char *)"";
+        char *s_ts   = rec->timestamp ? rec->timestamp : (char *)"";
+        char *s_impl = rec->impl      ? rec->impl      : (char *)"";
+        char *s_mref = rec->mask_ref  ? rec->mask_ref  : (char *)"";
+        fits_write_col(fptr, TLONGLONG, 1,  row, 1, 1, &rid,    &status);
+        fits_write_col(fptr, TSTRING,   2,  row, 1, 1, &s_op,   &status);
+        fits_write_col(fptr, TINT,      3,  row, 1, 1, &ver,    &status);
+        fits_write_col(fptr, TINT,      4,  row, 1, 1, &scp,    &status);
+        fits_write_col(fptr, TINT,      5,  row, 1, 1, &tgt,    &status);
+        fits_write_col(fptr, TINT,      6,  row, 1, 1, &tier,   &status);
+        fits_write_col(fptr, TLOGICAL,  7,  row, 1, 1, &act,    &status);
+        fits_write_col(fptr, TSTRING,   8,  row, 1, 1, &s_par,  &status);
+        fits_write_col(fptr, TSTRING,   9,  row, 1, 1, &s_sum,  &status);
+        fits_write_col(fptr, TSTRING,   10, row, 1, 1, &s_ts,   &status);
+        fits_write_col(fptr, TSTRING,   11, row, 1, 1, &s_impl, &status);
+        fits_write_col(fptr, TSTRING,   12, row, 1, 1, &s_mref, &status);
+    }
+    if (status) { report_fits_error(status); return 1; }
+    return 0;
+}
+
+/* Read one cell of a fixed-width ASCII column as a heap string; NULL for an
+ * empty cell (which is how NULL record fields were written).  Trailing
+ * blanks are trimmed — fixed-width A columns are space-padded on disk, so
+ * they cannot round-trip anyway, and cfitsio returns a lone " " for a cell
+ * that was written empty. */
+static gchar *hist_read_str_cell(fitsfile *fptr, int col, long row, long width,
+                                 int *status) {
+    if (*status || width <= 0)
+        return NULL;
+    gchar *buf = g_malloc0(width + 1);
+    char *ptr = buf;
+    int anynul = 0;
+    if (fits_read_col(fptr, TSTRING, col, row, 1, 1, (char *)"", &ptr,
+                      &anynul, status)) {
+        g_free(buf);
+        return NULL;
+    }
+    g_strchomp(buf);
+    if (!buf[0]) {
+        g_free(buf);
+        return NULL;
+    }
+    return buf;
+}
+
+/*
+ * Locate (by EXTNAME scan over @nhdus HDUs) and read the FLIS_HIST table.
+ * Returns a fully-populated history (all records live) or NULL when the
+ * table is absent or unreadable.  Unknown OP_IDs load fine — op identity is
+ * just a string (§14.3).  Leaves the file positioned at an arbitrary HDU.
+ */
+static nde_history *read_flis_hist(fitsfile *fptr, int nhdus) {
+    int status = 0;
+    gboolean found = FALSE;
+    for (int h = 2; h <= nhdus; h++) {
+        char extname[FLEN_VALUE] = { 0 };
+        fits_movabs_hdu(fptr, h, NULL, &status); status = 0;
+        fits_read_key(fptr, TSTRING, "EXTNAME", extname, NULL, &status); status = 0;
+        if (!g_ascii_strcasecmp(extname, "FLIS_HIST")) {
+            found = TRUE;
+            break;
+        }
+    }
+    if (!found)
+        return NULL;
+
+    int hver = 1;
+    fits_read_key(fptr, TINT, "FLISHVER", &hver, NULL, &status); status = 0;
+    if (hver > 1)
+        siril_log_warning(_("FLIS: history table version %d is newer than this build understands (1); reading best-effort\n"), hver);
+    LONGLONG seq = 0;
+    fits_read_key(fptr, TLONGLONG, "FLISHSEQ", &seq, NULL, &status); status = 0;
+
+    long nrows = 0;
+    fits_get_num_rows(fptr, &nrows, &status);
+    int cols[FLIS_HIST_NCOLS];
+    long widths[FLIS_HIST_NCOLS] = { 0 };
+    static const char *colnames[FLIS_HIST_NCOLS] = {
+        "RECORD_ID", "OP_ID", "OP_VER", "SCOPE", "TARGET", "TIER",
+        "MASKACT", "PARAMS", "SUMMARY", "TSTAMP", "IMPL", "MASKREF"
+    };
+    for (int c = 0; c < FLIS_HIST_NCOLS; c++) {
+        fits_get_colnum(fptr, CASEINSEN, (char *)colnames[c], &cols[c], &status);
+        if (!status) {
+            int typecode = 0;
+            long repeat = 0, w = 0;
+            fits_get_coltype(fptr, cols[c], &typecode, &repeat, &w, &status);
+            widths[c] = repeat;
+        }
+    }
+    if (status) {
+        report_fits_error(status);
+        siril_log_warning(_("FLIS: malformed FLIS_HIST table, ignoring history\n"));
+        return NULL;
+    }
+
+    nde_history *hist = g_new0(nde_history, 1);
+    hist->records = g_ptr_array_new_with_free_func((GDestroyNotify)nde_record_free);
+    gint64 max_id = 0;
+    for (long r = 1; r <= nrows; r++) {
+        nde_record *rec = nde_record_new();
+        LONGLONG rid = 0;
+        int ver = 0, scp = 0, tgt = -1, tier = NDE_TIER_B, act = 0, anynul = 0;
+        fits_read_col(fptr, TLONGLONG, cols[0], r, 1, 1, &(LONGLONG){0}, &rid, &anynul, &status);
+        rec->op_id = hist_read_str_cell(fptr, cols[1], r, widths[1], &status);
+        fits_read_col(fptr, TINT,     cols[2], r, 1, 1, &(int){0},  &ver,  &anynul, &status);
+        fits_read_col(fptr, TINT,     cols[3], r, 1, 1, &(int){0},  &scp,  &anynul, &status);
+        fits_read_col(fptr, TINT,     cols[4], r, 1, 1, &(int){-1}, &tgt,  &anynul, &status);
+        fits_read_col(fptr, TINT,     cols[5], r, 1, 1, &(int){1},  &tier, &anynul, &status);
+        fits_read_col(fptr, TLOGICAL, cols[6], r, 1, 1, &(int){0},  &act,  &anynul, &status);
+        rec->params    = hist_read_str_cell(fptr, cols[7],  r, widths[7],  &status);
+        rec->summary   = hist_read_str_cell(fptr, cols[8],  r, widths[8],  &status);
+        rec->timestamp = hist_read_str_cell(fptr, cols[9],  r, widths[9],  &status);
+        rec->impl      = hist_read_str_cell(fptr, cols[10], r, widths[10], &status);
+        rec->mask_ref  = hist_read_str_cell(fptr, cols[11], r, widths[11], &status);
+        if (status) {
+            nde_record_free(rec);
+            report_fits_error(status);
+            siril_log_warning(_("FLIS: error reading FLIS_HIST row %ld, dropping the rest\n"), r);
+            break;
+        }
+        rec->record_id      = rid;
+        rec->op_version     = ver;
+        rec->scope          = scp;
+        rec->target_item_id = tgt;
+        rec->tier           = tier;
+        rec->mask_active    = act != 0;
+        if (rid > max_id)
+            max_id = rid;
+        g_ptr_array_add(hist->records, rec);
+    }
+    hist->live_count = hist->records->len;
+    hist->next_record_id = MAX((gint64)seq, max_id + 1);
+    return hist;
+}
+
 int save_flis(const gchar *filename) {
     if (!com.uniq || !com.uniq->layers) {
         siril_log_message(_("FLIS save: no layers to save\n"));
@@ -1465,6 +1710,13 @@ int save_flis(const gchar *filename) {
     GSList *sorted = g_slist_copy(com.uniq->layers);
     sorted = g_slist_sort(sorted, (GCompareFunc)layer_order_cmp);
 
+    /* NDE provenance (nde sketch §14): snapshot the live records up front —
+     * FLISNDE on the primary HDU must reflect whether the table follows.
+     * Only the live prefix is persisted, so the file's history always
+     * matches its pixels. */
+    gint64 nde_next_id = 1;
+    GPtrArray *nde_records = nde_history_snapshot(&nde_next_id);
+
     /* §7: canvas dimensions live on com.uniq, independent of any layer.
      * Fall back to base dims only if the canvas wasn't initialised (which
      * shouldn't happen for a loaded/promoted FLIS but is defensive). */
@@ -1486,10 +1738,13 @@ int save_flis(const gchar *filename) {
     /* ----------------------------------------------------------------
      * HDU 1 (index 0): primary thumbnail HDU
      * ---------------------------------------------------------------- */
-    if (write_thumbnail_hdu(fptr, base->fit, canvas_w, canvas_h, icc_present)) {
+    if (write_thumbnail_hdu(fptr, base->fit, canvas_w, canvas_h, icc_present,
+                            nde_records != NULL)) {
         siril_log_error(_("FLIS: failed to write thumbnail HDU\n"));
         fits_close_file(fptr, &status);
         g_slist_free(sorted);
+        if (nde_records)
+            g_ptr_array_unref(nde_records);
         g_free(outpath);
         return 1;
     }
@@ -1515,6 +1770,8 @@ int save_flis(const gchar *filename) {
         siril_log_error(_("FLIS: failed to write FLIS_META table\n"));
         fits_close_file(fptr, &status);
         g_slist_free(sorted);
+        if (nde_records)
+            g_ptr_array_unref(nde_records);
         g_free(outpath);
         return 1;
     }
@@ -1643,6 +1900,17 @@ int save_flis(const gchar *filename) {
         }
     }
 
+    /* FLIS_HIST rides after the data HDUs (located by EXTNAME on load).  A
+     * failure here is a warning, not a save failure — the pixels are
+     * intact; the loader treats FLISNDE=T without a table as "warn, empty
+     * history". */
+    if (saved_ok && nde_records) {
+        if (write_flis_hist_hdu(fptr, nde_records, nde_next_id))
+            siril_log_warning(_("FLIS: failed to write the NDE history table\n"));
+    }
+    if (nde_records)
+        g_ptr_array_unref(nde_records);
+
     status = 0;
     fits_close_file(fptr, &status);
     g_slist_free(sorted);
@@ -1767,6 +2035,11 @@ int load_flis(const gchar *filename) {
     fits_read_key(fptr, TLOGICAL, "FLISICC", &icc_present, NULL, &status);
     status = 0;
 
+    /* NDE history presence flag (nde sketch §14.2); absent == false. */
+    int nde_flag = 0;
+    fits_read_key(fptr, TLOGICAL, "FLISNDE", &nde_flag, NULL, &status);
+    status = 0;
+
     /* ----------------------------------------------------------------
      * Locate the FLIS_META table.  It is at HDU 2 (no ICC) or HDU 3.
      * Verify by EXTNAME in case HDU layout shifted.
@@ -1816,6 +2089,15 @@ int load_flis(const gchar *filename) {
         fits_close_file(fptr, &status);
         return 1;
     }
+
+    /* NDE provenance table (nde sketch §14.3): located by EXTNAME scan, like
+     * FLIS_META itself.  Unknown OP_IDs load fine; a declared-but-missing
+     * table degrades to a warning and an empty history. */
+    nde_history *nde_hist = read_flis_hist(fptr, nhdus);
+    if (nde_flag && !nde_hist)
+        siril_log_warning(_("FLIS: file declares an NDE history (FLISNDE) but no readable FLIS_HIST table was found\n"));
+    guint nde_hash_scope = 0, nde_hash_present = 0;
+    gboolean nde_hash_mismatch = FALSE;
 
     /* ----------------------------------------------------------------
      * Read ICC profile if present
@@ -1885,6 +2167,25 @@ int load_flis(const gchar *filename) {
                                        (GCompareFunc)layer_order_cmp);
         g_hash_table_insert(id_map,
                             GINT_TO_POINTER(row->item_id), layer);
+
+        /* PIXHASH external-edit check (nde sketch §14.4) — only meaningful
+         * when the file carries a history.  Absent hashes are legal
+         * (compressed saves skip them); mixed presence or a mismatch marks
+         * the history stale. */
+        if (nde_hist) {
+            nde_hash_scope++;
+            int s2 = 0;
+            char stored_hash[FLEN_VALUE] = { 0 };
+            fits_movabs_hdu(fptr, row->hdu_index, NULL, &s2);
+            fits_read_key(fptr, TSTRING, "PIXHASH", stored_hash, NULL, &s2);
+            if (!s2 && stored_hash[0]) {
+                nde_hash_present++;
+                gchar *actual = flis_pixel_sha256(f);
+                if (!actual || g_ascii_strcasecmp(actual, stored_hash))
+                    nde_hash_mismatch = TRUE;
+                g_free(actual);
+            }
+        }
     }
 
     /* Assign the file-level ICC profile to the base layer only.
@@ -1979,6 +2280,7 @@ int load_flis(const gchar *filename) {
         /* Group rows may have parsed even though every layer HDU
          * failed — free them or they leak on this path. */
         g_slist_free_full(groups, (GDestroyNotify)flis_group_free);
+        nde_history_free(nde_hist);
         return 1;
     }
 
@@ -2043,6 +2345,16 @@ int load_flis(const gchar *filename) {
     com.uniq->canvas_bg_r = canvas_bg_r;
     com.uniq->canvas_bg_g = canvas_bg_g;
     com.uniq->canvas_bg_b = canvas_bg_b;
+
+    /* Install the loaded provenance (also clears any previous document's
+     * log when nde_hist is NULL — this load path reuses com.uniq). */
+    if (nde_hist) {
+        nde_hist->stale = nde_hash_mismatch ||
+                          (nde_hash_present > 0 && nde_hash_present < nde_hash_scope);
+        if (nde_hist->stale)
+            siril_log_warning(_("FLIS: layer pixels were modified outside the recorded history\n"));
+    }
+    nde_history_attach(nde_hist);
 
     siril_log_message(_("FLIS: loaded %d layer(s) from %s (%dx%d canvas)\n"),
                       g_slist_length(layers), filename, canvas_w, canvas_h);

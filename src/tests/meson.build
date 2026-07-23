@@ -59,6 +59,15 @@ if criterion_dep.found()
 
      test('soper_test', soper_exec, suite: 'arithmetic')
 
+     nde_history_exec = executable('test_nde_history',
+                                   'test_nde_history.c',
+                                   dependencies : [siril_dep, criterion_dep],
+                                   link_args : siril_link_arg,
+                                   c_args : siril_c_flag,
+                                   cpp_args : siril_cpp_flag)
+
+     test('test_nde_history', nde_history_exec)
+
      op_descriptor_exec = executable('test_op_descriptor',
                                      'test_op_descriptor.c',
                                      dependencies : [siril_dep, criterion_dep],
@@ -279,6 +288,14 @@ if criterion_dep.found()
                                 c_args : siril_c_flag,
                                 cpp_args : siril_cpp_flag)
      test('test_flis_flatten', test_flis_flatten_exec, suite: 'flis')
+
+     test_nde_persist_exec = executable('test_nde_persist',
+                                'test_nde_persist.c',
+                                dependencies : [siril_dep, criterion_dep],
+                                link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                c_args : siril_c_flag,
+                                cpp_args : siril_cpp_flag)
+     test('test_nde_persist', test_nde_persist_exec, suite: 'flis')
 
      test_flis_undo_exec = executable('test_flis_undo',
                                 'test_flis_undo.c',
