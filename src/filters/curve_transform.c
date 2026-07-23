@@ -26,10 +26,22 @@
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
+#include "core/op_descriptors.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
+
+/* Op descriptor — single source of truth for this operation (op_descriptor.h).
+ * curve_transform.h (included above) declares the hooks referenced here. */
+const op_descriptor op_desc_curves = {
+	.id = "stretch.curves", .version = 1,
+	.image_hook = curve_image_hook,
+	.log_hook = curves_log_hook,
+	.description = N_("Curve Transformation"),
+	.mem_ratio = 2.0f,
+	.flags = 0,
+};
 
 /*****************************************************************************
  *      MATH IMPLEMENTATIONS (Spline Fits)

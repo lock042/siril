@@ -34,6 +34,17 @@
 #include "algos/statistics.h"
 
 #include "fft.h"
+#include "core/op_descriptors.h"
+
+/* Op descriptor — single source of truth for this operation (op_descriptor.h) */
+const op_descriptor op_desc_fft = {
+	.id = "filters.fft", .version = 1,
+	.image_hook = fft_image_hook,
+	.log_hook = fft_log_hook,
+	.description = N_("Fourier Transform"),
+	.mem_ratio = 2.0f,
+	.flags = 0,
+};
 
 enum {
 	TYPE_CENTERED,
