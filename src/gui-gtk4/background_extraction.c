@@ -21,6 +21,7 @@
 #include "core/siril.h"
 #include "core/op_descriptors.h"
 #include "core/undo.h"
+#include "core/nde_history.h"
 #include "core/processing.h"
 #include "core/processing_thread.h"
 #include "algos/background_extraction.h"
@@ -314,6 +315,32 @@ void on_background_clear_all_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(FALSE);
 }
 
+/* Fill @bkg with the parameter set currently shown in the dialog for @method.
+ * Shared by the Compute invocations and the NDE provenance capture on Apply so
+ * the recorded model matches the applied one without duplicating the
+ * widget-reading code.  Leaves runtime-only fields (fit/seq/seqEntry/destroy_fn)
+ * untouched. */
+static void fill_background_data_from_ui(struct background_data *bkg,
+                                         background_method method) {
+	bkg->method = method;
+	bkg->threads = com.max_thread;
+	bkg->from_ui = TRUE;
+	bkg->correction = get_correction_type();
+	bkg->dither = is_dither_checked();
+	if (method == BACKGROUND_METHOD_AUTO) {
+		fill_autograd_from_ui(&bkg->autograd);
+	} else {
+		sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit->keywords.bayer_pattern);
+		bkg->interpolation_method = get_interpolation_method();
+		bkg->degree = (poly_order)get_poly_order();
+		bkg->smoothing = get_smoothing_parameter();
+		bkg->nb_of_samples = get_nb_samples_per_line();
+		bkg->tolerance = get_tolerance_value();
+		bkg->is_cfa = gfit->naxes[2] == 1 && pattern >= BAYER_FILTER_MIN
+				&& pattern <= BAYER_FILTER_MAX;
+	}
+}
+
 void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 	background_method method = get_background_method();
 
@@ -323,13 +350,8 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 
 		struct background_data *bkg_args = calloc(1, sizeof(struct background_data));
 		bkg_args->destroy_fn = free_background_data;
-		bkg_args->method = BACKGROUND_METHOD_AUTO;
-		bkg_args->threads = com.max_thread;
-		bkg_args->from_ui = TRUE;
-		bkg_args->correction = get_correction_type();
-		bkg_args->dither = is_dither_checked();
+		fill_background_data_from_ui(bkg_args, BACKGROUND_METHOD_AUTO);
 		bkg_args->fit = gfit;
-		fill_autograd_from_ui(&bkg_args->autograd);
 
 		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 		args->fit = gfit;
@@ -355,27 +377,10 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	copy_backup_to_gfit();
 
-	background_correction correction = get_correction_type();
-	poly_order degree = get_poly_order();
-	gboolean use_dither = is_dither_checked();
-	double smoothing = get_smoothing_parameter();
-	background_interpolation interpolation_method = get_interpolation_method();
-
-	// Check if the image has a Bayer CFA pattern
-	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit->keywords.bayer_pattern);
-	gboolean is_cfa = gfit->naxes[2] == 1 && pattern >= BAYER_FILTER_MIN && pattern <= BAYER_FILTER_MAX;
-
 	struct background_data *bkg_args = calloc(1, sizeof(struct background_data));
 	bkg_args->destroy_fn = free_background_data;
-	bkg_args->threads = com.max_thread;
-	bkg_args->from_ui = TRUE;
-	bkg_args->correction = correction;
-	bkg_args->interpolation_method = interpolation_method;
-	bkg_args->degree = (poly_order)degree;
-	bkg_args->smoothing = smoothing;
-	bkg_args->dither = use_dither;
+	fill_background_data_from_ui(bkg_args, method);
 	bkg_args->fit = gfit;
-	bkg_args->is_cfa = is_cfa;
 
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
@@ -465,8 +470,21 @@ void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
 				copyfits(&bkg_processed, gfit, CP_COPYA, -1);
 				notify_gfit_data_modified();
 			}
-			undo_save_state(get_preview_gfit_backup(), _("Background extraction (Correction: %s)"),
+			gchar *summary = g_strdup_printf(_("Background extraction (Correction: %s)"),
 					bkg_view_correction == BACKGROUND_CORRECTION_DIVIDE ? "Division" : "Subtraction");
+			/* NDE provenance capture: the Compute invocations ran the worker
+			 * with skip_generic_undo, so nothing was recorded there — this
+			 * Apply is the sole commit point.  Reconstruct the applied model
+			 * from the dialog (the serializer also reads com.grad_samples,
+			 * still present here) and capture before the save (worker order). */
+			struct background_data applied = { 0 };
+			fill_background_data_from_ui(&applied, get_background_method());
+			applied.correction = bkg_view_correction;
+			gint64 rid = nde_capture_from_descriptor(&op_desc_remove_gradient,
+					&applied, summary);
+			if (!undo_save_state(get_preview_gfit_backup(), "%s", summary))
+				undo_tag_top_nde_record(rid);
+			g_free(summary);
 			background_computed = FALSE;
 			clear_backup();
 			siril_close_dialog("background_extraction_dialog");

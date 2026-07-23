@@ -37,6 +37,7 @@
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/siril_preview.h"
 #include "core/undo.h"
+#include "core/nde_history.h"
 #include "curves.h"
 #include "histogram.h"
 #include "histogram_utils.h"
@@ -715,10 +716,19 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 				.do_channel = { do_channel[0], do_channel[1], do_channel[2] }
 			};
 			gchar *summary = curves_log_hook(&undo_params, SUMMARY);
+			/* This preview-on / non-ROI branch is the sole commit point:
+			 * the curve was applied incrementally by the preview pipeline,
+			 * so no generic_image_worker run (which would capture) fires
+			 * here.  The preview-off / ROI branch below DOES run the worker
+			 * without skip_generic_undo, so it is captured there — not here.
+			 * Capture before the save (worker order) and tag the entry. */
+			gint64 rid = nde_capture_from_descriptor(&op_desc_curves,
+					&undo_params, summary);
 			/* One entry captures pre-curve pixels + pre-curve ICC
 			 * profile so a single Ctrl-Z reverts the operation. */
-			undo_save_state_with_icc(get_preview_gfit_backup(),
-					original_icc, "%s", summary);
+			if (!undo_save_state_with_icc(get_preview_gfit_backup(),
+					original_icc, "%s", summary))
+				undo_tag_top_nde_record(rid);
 			g_free(summary);
 
 			populate_roi();

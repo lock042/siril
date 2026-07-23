@@ -13,6 +13,7 @@
 #include "core/processing.h"
 #include "core/processing_thread.h"
 #include "core/undo.h"
+#include "core/nde_history.h"
 #include "algos/statistics.h"
 #include "io/single_image.h"
 #include "gui-gtk4/callbacks.h"
@@ -141,15 +142,29 @@ static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 	} else {
 		invalidate_stats_from_fit(gfit);
 
-		float stretch_value, black_value;
-		get_asinh_values(&stretch_value, &black_value, NULL, NULL);
+		/* Read the full applied parameter set (the same values the OK
+		 * handler's worker run used) so the provenance record round-trips
+		 * exactly. */
+		asinh_params applied = { 0 };
+		get_asinh_values(&applied.beta, &applied.offset,
+				&applied.human_luminance, &applied.clip_mode);
+
+		gchar *summary = g_strdup_printf(
+				_("Asinh Transformation: (stretch=%6.1f, bp=%7.5f)"),
+				applied.beta, applied.offset);
+
+		/* on_asinh_ok_clicked ran the worker with skip_generic_undo, so
+		 * the worker recorded nothing: this is the sole commit point.
+		 * Capture BEFORE the save (worker order) and tag the fresh entry. */
+		gint64 rid = nde_capture_from_descriptor(&op_desc_asinh, &applied, summary);
 
 		/* One entry captures the pre-stretch pixels (from the preview
 		 * backup) and the pre-stretch ICC profile together, so a single
 		 * Ctrl-Z reverts the whole operation. */
-		undo_save_state_with_icc(get_preview_gfit_backup(), original_icc,
-				_("Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"),
-				stretch_value, black_value);
+		if (!undo_save_state_with_icc(get_preview_gfit_backup(), original_icc,
+				"%s", summary))
+			undo_tag_top_nde_record(rid);
+		g_free(summary);
 	}
 
 	roi_supported(FALSE);

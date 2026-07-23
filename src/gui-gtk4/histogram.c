@@ -40,6 +40,7 @@
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/siril_preview.h"
 #include "core/undo.h"
+#include "core/nde_history.h"
 #include "histogram.h"
 #include "histogram_utils.h"
 
@@ -1340,6 +1341,14 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			fits *backup = get_preview_gfit_backup();
 
 			gchar *log_string = NULL;
+			/* NDE provenance capture for this preview-on / non-ROI
+			 * branch: the stretch was applied incrementally by the preview
+			 * pipeline, so no generic_image_worker run (which would
+			 * capture) fires here — this undo save is the sole commit
+			 * point.  The preview-off / ROI branch below DOES run the
+			 * worker without skip_generic_undo, so it is captured there,
+			 * NOT here.  Capture before the save (worker order). */
+			gint64 rid = 0;
 
 			if (invocation == HISTO_STRETCH) {
 				struct mtf_data data = {
@@ -1361,6 +1370,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 					.is_preview = FALSE
 				};
 				log_string = generate_mtf_log_message(&data, SUMMARY);
+				rid = nde_capture_from_descriptor(&op_desc_mtf, &data, log_string);
 
 			} else if (invocation == GHT_STRETCH) {
 				struct ght_params params = {
@@ -1378,13 +1388,20 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 					.clip_mode = _clip_mode
 				};
 				log_string = generate_ght_log_message(&params);
+				/* ght_serialize reads struct ght_data->params_ght */
+				struct ght_data data = {
+					.params_ght = &params,
+					.auto_display_compensation = FALSE
+				};
+				rid = nde_capture_from_descriptor(&op_desc_ghs, &data, log_string);
 			}
 
 			if (log_string) {
 				/* One entry: pre-stretch pixels + pre-stretch ICC
 				 * profile — a single Ctrl-Z reverts both. */
-				undo_save_state_with_icc(backup, original_icc,
-						"%s", log_string);
+				if (!undo_save_state_with_icc(backup, original_icc,
+						"%s", log_string))
+					undo_tag_top_nde_record(rid);
 				siril_log_info("%s\n", log_string);
 				g_free(log_string);
 			}

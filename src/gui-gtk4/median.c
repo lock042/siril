@@ -27,6 +27,7 @@
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "core/undo.h"
+#include "core/nde_history.h"
 #include "filters/median.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
@@ -139,10 +140,22 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 	fill_median_params_from_gui(params, for_preview);
 
 	if (!for_preview && !com.script) {
-		undo_save_state(gfit, _("Median Filter (filter=%dx%d px, iters=%d), mod=%.3lf"),
+		gchar *summary = g_strdup_printf(_("Median Filter (filter=%dx%d px, iters=%d), mod=%.3lf"),
 			params->ksize, params->ksize, params->iterations, params->amount);
+		/* NDE provenance: the worker below runs WITHOUT skip_generic_undo,
+		 * so on the full-image apply (fit == gfit, use_swap) it records the
+		 * provenance itself — do NOT capture here or we double-record.
+		 * With an active ROI the worker's fit is &gui.roi.fit (use_swap
+		 * false), so it captures nothing: this manual save is then the sole
+		 * commit point and we capture here.  Capture before the save. */
+		gint64 rid = 0;
+		if (gui.roi.active)
+			rid = nde_capture_from_descriptor(&op_desc_median, params, summary);
+		if (!undo_save_state(gfit, "%s", summary) && gui.roi.active)
+			undo_tag_top_nde_record(rid);
 		siril_log_info(_("Median Filter (filter=%dx%d px, iterations=%d, modulation=%.3lf)\n"),
 			params->ksize, params->ksize, params->iterations, params->amount);
+		g_free(summary);
 	}
 
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
