@@ -685,3 +685,51 @@ Test(nde_replay, golden_bge_tolerance_and_samples_reinstall) {
 	}
 	golden_teardown(result, f);
 }
+
+Test(nde_replay, golden_bge_command_path_captures_samples) {
+	/* Regression for the P2.E finding: with from_ui == FALSE (the command
+	 * path) the hook frees com.grad_samples on success BEFORE the worker's
+	 * capture serializes the record.  The hook now stashes the effective
+	 * positions into args->effective_samples first, so the record still
+	 * carries them and replay reproduces the pixels. */
+	fits *f = flis_test_make_mono_fits(96, 96, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	int coords[3] = { 24, 48, 72 };
+	for (int yi = 0; yi < 3; yi++)
+		for (int xi = 0; xi < 3; xi++) {
+			point pt = { coords[xi], coords[yi] };
+			com.grad_samples = add_background_sample(com.grad_samples, gfit, pt, FALSE);
+		}
+	cr_assert_not_null(com.grad_samples);
+
+	struct background_data *u = calloc(1, sizeof(*u));
+	u->destroy_fn = free_background_data;
+	u->method = BACKGROUND_METHOD_SAMPLES;
+	u->nb_of_samples = 9;
+	u->tolerance = 2.0;
+	u->correction = BACKGROUND_CORRECTION_SUBTRACT;
+	u->interpolation_method = BACKGROUND_INTER_POLY;
+	u->degree = BACKGROUND_POLY_1;
+	u->smoothing = 0.5;
+	u->threads = 1;
+	u->dither = FALSE;
+	u->from_ui = FALSE;                   /* command path: hook clears samples */
+	u->randomize = FALSE;
+	u->grad_descent = FALSE;
+
+	cr_assert_eq(apply_op_real(&op_desc_remove_gradient, u), 0);
+	cr_assert_null(com.grad_samples, "command path must still clear the live list");
+
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	nde_record *rec = g_ptr_array_index(snap, 0);
+	cr_assert(rec->params && strstr(rec->params, "samples=") != NULL,
+	          "command-path BGE record must carry the effective sample positions");
+	g_ptr_array_unref(snap);
+
+	fits *result = replay_current_chain(1);
+	assert_pixels_close(result, gfit, 1e-5f, "bge-cmd");
+
+	golden_teardown(result, f);
+}

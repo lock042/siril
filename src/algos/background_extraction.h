@@ -63,6 +63,12 @@ struct background_data {
 	double border_value;        /* >0: exclude a border strip from sample placement */
 	gboolean border_is_percent; /* TRUE = border_value is % of image dimension; FALSE = pixels */
 	struct autograd_data autograd; /* parameters of the BACKGROUND_METHOD_AUTO model */
+	/* Effective sample positions ("x,y:x,y..."), stashed by the single-image
+	 * hook just before its command-path (!from_ui) cleanup frees
+	 * com.grad_samples — the worker's NDE capture serializes AFTER the hook
+	 * returns, so without this the command path would record no samples.
+	 * Owned; freed in free_background_data. */
+	gchar *effective_samples;
 };
 
 #define SAMPLE_SIZE 25		// must be odd to compute a radius

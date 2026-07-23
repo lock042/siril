@@ -62,6 +62,33 @@
  * key back into com.grad_samples before invoking the hook.  Serialize tolerates
  * com.grad_samples == NULL (key omitted).  mem_ratio and threads are
  * per-invocation and are not serialized; fit/seq/seqEntry/from_ui are runtime. */
+/* Serialize the valid sample positions of @list ("x,y:x,y..."), NULL when
+ * none.  Shared by the serializer (GUI capture reads the live list) and the
+ * single-image hook (command path stashes the positions into the args before
+ * its !from_ui cleanup frees the list — the worker's NDE capture runs after
+ * the hook returns). */
+static gchar *samples_positions_string(GSList *list) {
+	if (!list)
+		return NULL;
+	GString *pts = g_string_new(NULL);
+	char bx[G_ASCII_DTOSTR_BUF_SIZE], by[G_ASCII_DTOSTR_BUF_SIZE];
+	gboolean first = TRUE;
+	for (GSList *l = list; l; l = l->next) {
+		const background_sample *s = l->data;
+		if (!s || !s->valid)
+			continue;
+		g_ascii_formatd(bx, sizeof bx, "%.17g", s->position.x);
+		g_ascii_formatd(by, sizeof by, "%.17g", s->position.y);
+		g_string_append_printf(pts, "%s%s,%s", first ? "" : ":", bx, by);
+		first = FALSE;
+	}
+	if (!pts->len) {
+		g_string_free(pts, TRUE);
+		return NULL;
+	}
+	return g_string_free(pts, FALSE);
+}
+
 static gchar *remove_gradient_serialize(gconstpointer user) {
 	const struct background_data *p = user;
 	GString *kv = nde_kv_start();
@@ -91,23 +118,15 @@ static gchar *remove_gradient_serialize(gconstpointer user) {
 	nde_kv_add_bool(kv, "ag_simplified", p->autograd.simplified);
 	nde_kv_add_int(kv, "ag_degree", p->autograd.degree);
 	nde_kv_add_int(kv, "ag_downsample", p->autograd.downsample);
-	/* effective sample positions (§15) — omitted when none are placed. */
-	if (com.grad_samples) {
-		GString *pts = g_string_new(NULL);
-		char bx[G_ASCII_DTOSTR_BUF_SIZE], by[G_ASCII_DTOSTR_BUF_SIZE];
-		gboolean first = TRUE;
-		for (GSList *l = com.grad_samples; l; l = l->next) {
-			const background_sample *s = l->data;
-			if (!s || !s->valid)
-				continue;
-			g_ascii_formatd(bx, sizeof bx, "%.17g", s->position.x);
-			g_ascii_formatd(by, sizeof by, "%.17g", s->position.y);
-			g_string_append_printf(pts, "%s%s,%s", first ? "" : ":", bx, by);
-			first = FALSE;
-		}
-		if (pts->len)
-			nde_kv_add_str(kv, "samples", pts->str);
-		g_string_free(pts, TRUE);
+	/* effective sample positions (§15) — the hook stashes them for the
+	 * command path (whose cleanup frees com.grad_samples before capture
+	 * runs); the GUI capture path reads the live list.  Omitted when no
+	 * samples were placed (auto model). */
+	gchar *pts = p->effective_samples ? g_strdup(p->effective_samples)
+	                                  : samples_positions_string(com.grad_samples);
+	if (pts) {
+		nde_kv_add_str(kv, "samples", pts);
+		g_free(pts);
 	}
 	return nde_kv_end(kv);
 }
@@ -1599,6 +1618,7 @@ void free_background_data(void *p) {
 	struct background_data *args = (struct background_data *)p;
 	if (!args) return;
 	free(args->seqEntry);
+	g_free(args->effective_samples);
 	free(args);
 }
 
@@ -2194,12 +2214,17 @@ int remove_gradient_image_hook(struct generic_img_args *gargs, fits *fit, int th
 				(args->interpolation_method == BACKGROUND_INTER_POLY) ? "polynomial" : "RBF");
 		cfachans_cleanup(cfachans);
 		invalidate_stats_from_fit(fit);
+		g_mutex_lock(&bgsamples_mutex);
+		/* Stash the effective positions for NDE capture, which runs after
+		 * this hook returns — the !from_ui cleanup below would otherwise
+		 * erase them from the record (P2.E finding). */
+		if (!args->effective_samples)
+			args->effective_samples = samples_positions_string(com.grad_samples);
 		if (!args->from_ui) {
-			g_mutex_lock(&bgsamples_mutex);
 			free_background_sample_list(com.grad_samples);
 			com.grad_samples = NULL;
-			g_mutex_unlock(&bgsamples_mutex);
 		}
+		g_mutex_unlock(&bgsamples_mutex);
 	} else {
 		double *background = malloc(fit->ry * fit->rx * sizeof(double));
 		if (!background) {
@@ -2249,12 +2274,17 @@ int remove_gradient_image_hook(struct generic_img_args *gargs, fits *fit, int th
 		free(image);
 		free(background);
 		invalidate_stats_from_fit(fit);
+		g_mutex_lock(&bgsamples_mutex);
+		/* Stash the effective positions for NDE capture, which runs after
+		 * this hook returns — the !from_ui cleanup below would otherwise
+		 * erase them from the record (P2.E finding). */
+		if (!args->effective_samples)
+			args->effective_samples = samples_positions_string(com.grad_samples);
 		if (!args->from_ui) {
-			g_mutex_lock(&bgsamples_mutex);
 			free_background_sample_list(com.grad_samples);
 			com.grad_samples = NULL;
-			g_mutex_unlock(&bgsamples_mutex);
 		}
+		g_mutex_unlock(&bgsamples_mutex);
 	}
 	return 0;
 }
