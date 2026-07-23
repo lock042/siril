@@ -26,6 +26,109 @@
 #include "io/single_image.h"
 #include <math.h>
 #include "core/op_descriptors.h"
+#include "core/nde_history.h"
+
+/* Owning destructor for a deserialized curve_params: unlike free_curve_params
+ * (which deliberately leaves the points list alone because the curves dialog
+ * owns it), the deserializer allocates a FRESH list of g_new'd points, so it
+ * must free that list too.  Used only as the deserialized struct's destroy_fn. */
+static void free_curve_params_owned(void *ptr) {
+	struct curve_params *params = (struct curve_params *)ptr;
+	if (!params)
+		return;
+	g_list_free_full(params->points, g_free);
+	free(ptr);
+}
+
+/* NDE serializers (flis-nde-sketch.md §11, §14).  apply_curve reads
+ * algorithm, do_channel[3], and the points list (GList of point{x,y}).
+ * Points are encoded as points=x1,y1:x2,y2:... with %.17g via g_ascii_formatd
+ * so the value is locale-independent; ',' and ':' are not codec
+ * metacharacters so no escaping interaction.  An empty points list omits the
+ * key entirely; on deserialize a missing points key means an empty list (a
+ * degenerate but representable curve).  fit/verbose/for_preview are runtime. */
+static gchar *curves_serialize(gconstpointer user) {
+	const struct curve_params *p = user;
+	GString *kv = nde_kv_start();
+	/* on-disk value: enum order is frozen by the NDE format — do not reorder */
+	nde_kv_add_int(kv, "algorithm", p->algorithm);
+	nde_kv_add_bool(kv, "ch0", p->do_channel[0]);
+	nde_kv_add_bool(kv, "ch1", p->do_channel[1]);
+	nde_kv_add_bool(kv, "ch2", p->do_channel[2]);
+	if (p->points) {
+		GString *pts = g_string_new(NULL);
+		char bx[G_ASCII_DTOSTR_BUF_SIZE], by[G_ASCII_DTOSTR_BUF_SIZE];
+		gboolean first = TRUE;
+		for (GList *l = p->points; l; l = l->next) {
+			const point *pt = l->data;
+			g_ascii_formatd(bx, sizeof bx, "%.17g", pt->x);
+			g_ascii_formatd(by, sizeof by, "%.17g", pt->y);
+			g_string_append_printf(pts, "%s%s,%s", first ? "" : ":", bx, by);
+			first = FALSE;
+		}
+		nde_kv_add_str(kv, "points", pts->str);
+		g_string_free(pts, TRUE);
+	}
+	return nde_kv_end(kv);
+}
+
+static gpointer curves_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_curves.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	gint64 algorithm;
+	gboolean ch0, ch1, ch2;
+	if (!nde_kv_get_int(kv, "algorithm", &algorithm) ||
+	    !nde_kv_get_bool(kv, "ch0", &ch0) ||
+	    !nde_kv_get_bool(kv, "ch1", &ch1) ||
+	    !nde_kv_get_bool(kv, "ch2", &ch2)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	GList *points = NULL;
+	const char *pts = nde_kv_get_str(kv, "points");   /* may be absent → empty */
+	gboolean parse_ok = TRUE;
+	if (pts && *pts) {
+		gchar **tokens = g_strsplit(pts, ":", -1);
+		for (int i = 0; tokens[i] && parse_ok; i++) {
+			gchar **xy = g_strsplit(tokens[i], ",", 2);
+			if (xy[0] && xy[1]) {
+				char *ex = NULL, *ey = NULL;
+				double x = g_ascii_strtod(xy[0], &ex);
+				double y = g_ascii_strtod(xy[1], &ey);
+				if (ex != xy[0] && ey != xy[1]) {
+					point *pt = g_new(point, 1);
+					pt->x = x; pt->y = y;
+					points = g_list_append(points, pt);
+				} else {
+					parse_ok = FALSE;
+				}
+			} else {
+				parse_ok = FALSE;
+			}
+			g_strfreev(xy);
+		}
+		g_strfreev(tokens);
+	}
+	if (!parse_ok) {
+		g_list_free_full(points, g_free);
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct curve_params *p = new_curve_params();
+	if (p) {
+		p->destroy_fn = free_curve_params_owned;   /* owns the fresh list */
+		p->points = points;
+		p->algorithm = (enum curve_algorithm)algorithm;
+		p->do_channel[0] = ch0;
+		p->do_channel[1] = ch1;
+		p->do_channel[2] = ch2;
+	} else {
+		g_list_free_full(points, g_free);
+	}
+	g_hash_table_unref(kv);
+	return p;
+}
 
 /* Op descriptor — single source of truth for this operation (op_descriptor.h).
  * curve_transform.h (included above) declares the hooks referenced here. */
@@ -36,6 +139,7 @@ const op_descriptor op_desc_curves = {
 	.description = N_("Curve Transformation"),
 	.mem_ratio = 2.0f,
 	.flags = 0,
+	.serialize = curves_serialize, .deserialize = curves_deserialize,
 };
 
 /*****************************************************************************

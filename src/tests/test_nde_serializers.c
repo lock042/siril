@@ -41,6 +41,8 @@
 #include "filters/scnr.h"
 #include "filters/median.h"
 #include "algos/colors.h"
+#include "filters/curve_transform.h"
+#include "algos/background_extraction.h"
 
 cominfo com;	// the core data struct
 fits *gfit;	// currently loaded image (a pointer)
@@ -422,6 +424,133 @@ Test(nde_serializers, ccm_roundtrip) {
 }
 
 /* ------------------------------------------------------------------ *
+ *  Batch 3 — curves and background extraction (non-POD)              *
+ * ------------------------------------------------------------------ */
+
+static GList *make_point(GList *l, double x, double y) {
+	point *pt = g_new(point, 1);
+	pt->x = x; pt->y = y;
+	return g_list_append(l, pt);
+}
+
+Test(nde_serializers, curves_roundtrip_with_points) {
+	struct curve_params in = { 0 };
+	in.algorithm = LINEAR;   /* 1 */
+	in.do_channel[0] = TRUE; in.do_channel[1] = FALSE; in.do_channel[2] = TRUE;
+	in.points = make_point(in.points, 0.1, 0.2);
+	in.points = make_point(in.points, 0.5, 0.03125);
+	in.points = make_point(in.points, 1.0 / 3.0, -0.25);
+
+	gchar *blob = op_desc_curves.serialize(&in);
+	cr_assert_not_null(blob);
+	struct curve_params *out = op_desc_curves.deserialize(blob, op_desc_curves.version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->algorithm, in.algorithm);
+	cr_assert_eq(out->do_channel[0], TRUE);
+	cr_assert_eq(out->do_channel[1], FALSE);
+	cr_assert_eq(out->do_channel[2], TRUE);
+	cr_assert_eq(g_list_length(out->points), 3);
+	GList *a = in.points, *b = out->points;
+	for (; a && b; a = a->next, b = b->next) {
+		const point *pa = a->data, *pb = b->data;
+		cr_assert(memcmp(&pa->x, &pb->x, sizeof(double)) == 0, "point x not bit-exact");
+		cr_assert(memcmp(&pa->y, &pb->y, sizeof(double)) == 0, "point y not bit-exact");
+	}
+	/* the deserialized struct owns its list — its destructor must free it */
+	cr_assert_not_null(out->destroy_fn);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_curves, blob);
+	g_free(blob);
+	g_list_free_full(in.points, g_free);
+}
+
+Test(nde_serializers, curves_empty_points) {
+	/* empty points list: no points key; deserialize yields an empty list */
+	struct curve_params in = { 0 };
+	in.algorithm = CUBIC_SPLINE;   /* 0 */
+	in.do_channel[0] = in.do_channel[1] = in.do_channel[2] = TRUE;
+	in.points = NULL;
+	gchar *blob = op_desc_curves.serialize(&in);
+	cr_assert_not_null(blob);
+	cr_assert_null(strstr(blob, "points="), "empty list must omit the points key");
+	struct curve_params *out = op_desc_curves.deserialize(blob, op_desc_curves.version);
+	cr_assert_not_null(out);
+	cr_assert_null(out->points);
+	cr_assert_eq(out->algorithm, CUBIC_SPLINE);
+	FREE_VIA_DESTRUCTOR(out);
+	g_free(blob);
+}
+
+Test(nde_serializers, bkg_remove_gradient_roundtrip) {
+	struct background_data in = { 0 };
+	in.method = BACKGROUND_METHOD_AUTO;            /* 1 */
+	in.nb_of_samples = 20;
+	in.tolerance = 0.1;
+	in.correction = BACKGROUND_CORRECTION_DIVIDE;  /* 1 */
+	in.interpolation_method = BACKGROUND_INTER_POLY; /* 1 */
+	in.degree = BACKGROUND_POLY_3;                 /* 2 */
+	in.smoothing = 0.03125;
+	in.dither = TRUE;
+	in.is_cfa = FALSE;
+	in.randomize = TRUE;
+	in.grad_descent = TRUE;
+	in.border_value = 5.0;
+	in.border_is_percent = TRUE;
+	in.autograd.scale = 3.5;
+	in.autograd.smoothness = 0.1;
+	in.autograd.protect = TRUE;
+	in.autograd.protect_threshold = 0.25;
+	in.autograd.protect_amount = 0.75;
+	in.autograd.simplified = TRUE;
+	in.autograd.degree = 4;
+	in.autograd.downsample = 2;
+
+	/* effective sample positions (§15): one valid, one invalid (must be skipped) */
+	background_sample s0 = { 0 }, s1 = { 0 };
+	s0.valid = TRUE; s0.position.x = 12.5; s0.position.y = 0.1;
+	s1.valid = FALSE; s1.position.x = 99.0; s1.position.y = 99.0;
+	background_sample s2 = { 0 };
+	s2.valid = TRUE; s2.position.x = 1.0 / 3.0; s2.position.y = -7.0;
+	com.grad_samples = g_slist_append(com.grad_samples, &s0);
+	com.grad_samples = g_slist_append(com.grad_samples, &s1);
+	com.grad_samples = g_slist_append(com.grad_samples, &s2);
+
+	gchar *blob = op_desc_remove_gradient.serialize(&in);
+	cr_assert_not_null(blob);
+	/* the samples key must carry the two VALID positions only */
+	cr_assert_not_null(strstr(blob, "samples="));
+
+	struct background_data *out = op_desc_remove_gradient.deserialize(blob, op_desc_remove_gradient.version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->method, in.method);
+	cr_assert_eq(out->nb_of_samples, in.nb_of_samples);
+	cr_assert(memcmp(&out->tolerance, &in.tolerance, sizeof(double)) == 0);
+	cr_assert_eq(out->correction, in.correction);
+	cr_assert_eq(out->interpolation_method, in.interpolation_method);
+	cr_assert_eq(out->degree, in.degree);
+	cr_assert(memcmp(&out->smoothing, &in.smoothing, sizeof(double)) == 0);
+	cr_assert_eq(out->dither, in.dither);
+	cr_assert_eq(out->is_cfa, in.is_cfa);
+	cr_assert_eq(out->randomize, in.randomize);
+	cr_assert_eq(out->grad_descent, in.grad_descent);
+	cr_assert(memcmp(&out->border_value, &in.border_value, sizeof(double)) == 0);
+	cr_assert_eq(out->border_is_percent, in.border_is_percent);
+	cr_assert(memcmp(&out->autograd.scale, &in.autograd.scale, sizeof(double)) == 0);
+	cr_assert(memcmp(&out->autograd.smoothness, &in.autograd.smoothness, sizeof(double)) == 0);
+	cr_assert_eq(out->autograd.protect, in.autograd.protect);
+	cr_assert(memcmp(&out->autograd.protect_threshold, &in.autograd.protect_threshold, sizeof(double)) == 0);
+	cr_assert(memcmp(&out->autograd.protect_amount, &in.autograd.protect_amount, sizeof(double)) == 0);
+	cr_assert_eq(out->autograd.simplified, in.autograd.simplified);
+	cr_assert_eq(out->autograd.degree, in.autograd.degree);
+	cr_assert_eq(out->autograd.downsample, in.autograd.downsample);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_remove_gradient, blob);
+	g_free(blob);
+	g_slist_free(com.grad_samples);
+	com.grad_samples = NULL;
+}
+
+/* ------------------------------------------------------------------ *
  *  Registry: the set of ops with serializers is exactly phase 1.     *
  *  Keeps the set deliberate — a new serializer without an entry here *
  *  (or an accidental one) fails the build.                           *
@@ -435,6 +564,8 @@ static const char *phase1_ids[] = {
 	"stretch.mtf", "stretch.mtf_inverse", "stretch.log",
 	"stretch.ghs", "stretch.autoghs", "stretch.autoghs_unlinked",
 	"stretch.asinh", "filters.scnr", "filters.median", "color.ccm",
+	/* batch 3 — curves, background extraction */
+	"stretch.curves", "bkg.remove_gradient",
 };
 
 Test(nde_serializers, serializer_set_is_phase1) {

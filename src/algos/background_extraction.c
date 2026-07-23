@@ -45,6 +45,122 @@
 #include "opencv/opencv.h"
 #include "background_extraction.h"
 #include "core/op_descriptors.h"
+#include "core/nde_history.h"
+
+/* NDE serializers (flis-nde-sketch.md §11, §15).  remove_gradient_image_hook
+ * reads all the genuine params below plus the autograd sub-struct (flattened
+ * with an ag_ prefix).
+ *
+ * CRITICAL (§15): dither/randomize/grad_descent make param-only replay
+ * nondeterministic — the same nb_of_samples/tolerance would place different
+ * samples on a rerun.  To make the operation reproducible, serialize the
+ * EFFECTIVE sample positions from com.grad_samples (valid samples only) as
+ * samples=x1,y1:x2,y2:...  (%.17g, locale-independent).  There is no field in
+ * struct background_data to hold them, so for phase 1 the samples key lives in
+ * the blob ONLY: it round-trips through FLIS_HIST untouched and the
+ * deserializer parses-and-discards it.  Phase 2's replay driver will read the
+ * key back into com.grad_samples before invoking the hook.  Serialize tolerates
+ * com.grad_samples == NULL (key omitted).  mem_ratio and threads are
+ * per-invocation and are not serialized; fit/seq/seqEntry/from_ui are runtime. */
+static gchar *remove_gradient_serialize(gconstpointer user) {
+	const struct background_data *p = user;
+	GString *kv = nde_kv_start();
+	/* on-disk value: enum order is frozen by the NDE format — do not reorder */
+	nde_kv_add_int(kv, "method", p->method);
+	nde_kv_add_int(kv, "nb_of_samples", p->nb_of_samples);
+	nde_kv_add_double(kv, "tolerance", p->tolerance);
+	/* on-disk value: enum order is frozen by the NDE format — do not reorder */
+	nde_kv_add_int(kv, "correction", p->correction);
+	/* on-disk value: enum order is frozen by the NDE format — do not reorder */
+	nde_kv_add_int(kv, "interpolation_method", p->interpolation_method);
+	/* on-disk value: enum order is frozen by the NDE format — do not reorder */
+	nde_kv_add_int(kv, "degree", p->degree);
+	nde_kv_add_double(kv, "smoothing", p->smoothing);
+	nde_kv_add_bool(kv, "dither", p->dither);
+	nde_kv_add_bool(kv, "is_cfa", p->is_cfa);
+	nde_kv_add_bool(kv, "randomize", p->randomize);
+	nde_kv_add_bool(kv, "grad_descent", p->grad_descent);
+	nde_kv_add_double(kv, "border_value", p->border_value);
+	nde_kv_add_bool(kv, "border_is_percent", p->border_is_percent);
+	/* autograd sub-struct (ag_ prefix) */
+	nde_kv_add_double(kv, "ag_scale", p->autograd.scale);
+	nde_kv_add_double(kv, "ag_smoothness", p->autograd.smoothness);
+	nde_kv_add_bool(kv, "ag_protect", p->autograd.protect);
+	nde_kv_add_double(kv, "ag_protect_threshold", p->autograd.protect_threshold);
+	nde_kv_add_double(kv, "ag_protect_amount", p->autograd.protect_amount);
+	nde_kv_add_bool(kv, "ag_simplified", p->autograd.simplified);
+	nde_kv_add_int(kv, "ag_degree", p->autograd.degree);
+	nde_kv_add_int(kv, "ag_downsample", p->autograd.downsample);
+	/* effective sample positions (§15) — omitted when none are placed. */
+	if (com.grad_samples) {
+		GString *pts = g_string_new(NULL);
+		char bx[G_ASCII_DTOSTR_BUF_SIZE], by[G_ASCII_DTOSTR_BUF_SIZE];
+		gboolean first = TRUE;
+		for (GSList *l = com.grad_samples; l; l = l->next) {
+			const background_sample *s = l->data;
+			if (!s || !s->valid)
+				continue;
+			g_ascii_formatd(bx, sizeof bx, "%.17g", s->position.x);
+			g_ascii_formatd(by, sizeof by, "%.17g", s->position.y);
+			g_string_append_printf(pts, "%s%s,%s", first ? "" : ":", bx, by);
+			first = FALSE;
+		}
+		if (pts->len)
+			nde_kv_add_str(kv, "samples", pts->str);
+		g_string_free(pts, TRUE);
+	}
+	return nde_kv_end(kv);
+}
+
+static gpointer remove_gradient_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_remove_gradient.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	struct background_data tmp = { 0 };
+	gint64 method, nb_of_samples, correction, interpolation_method, degree,
+	       ag_degree, ag_downsample;
+	if (!nde_kv_get_int(kv, "method", &method) ||
+	    !nde_kv_get_int(kv, "nb_of_samples", &nb_of_samples) ||
+	    !nde_kv_get_double(kv, "tolerance", &tmp.tolerance) ||
+	    !nde_kv_get_int(kv, "correction", &correction) ||
+	    !nde_kv_get_int(kv, "interpolation_method", &interpolation_method) ||
+	    !nde_kv_get_int(kv, "degree", &degree) ||
+	    !nde_kv_get_double(kv, "smoothing", &tmp.smoothing) ||
+	    !nde_kv_get_bool(kv, "dither", &tmp.dither) ||
+	    !nde_kv_get_bool(kv, "is_cfa", &tmp.is_cfa) ||
+	    !nde_kv_get_bool(kv, "randomize", &tmp.randomize) ||
+	    !nde_kv_get_bool(kv, "grad_descent", &tmp.grad_descent) ||
+	    !nde_kv_get_double(kv, "border_value", &tmp.border_value) ||
+	    !nde_kv_get_bool(kv, "border_is_percent", &tmp.border_is_percent) ||
+	    !nde_kv_get_double(kv, "ag_scale", &tmp.autograd.scale) ||
+	    !nde_kv_get_double(kv, "ag_smoothness", &tmp.autograd.smoothness) ||
+	    !nde_kv_get_bool(kv, "ag_protect", &tmp.autograd.protect) ||
+	    !nde_kv_get_double(kv, "ag_protect_threshold", &tmp.autograd.protect_threshold) ||
+	    !nde_kv_get_double(kv, "ag_protect_amount", &tmp.autograd.protect_amount) ||
+	    !nde_kv_get_bool(kv, "ag_simplified", &tmp.autograd.simplified) ||
+	    !nde_kv_get_int(kv, "ag_degree", &ag_degree) ||
+	    !nde_kv_get_int(kv, "ag_downsample", &ag_downsample)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	/* The "samples" key (§15) is intentionally ignored here: struct
+	 * background_data has no field for it.  It survives verbatim in the blob
+	 * and phase 2's replay driver will load it into com.grad_samples. */
+	tmp.method = (background_method)method;
+	tmp.nb_of_samples = (int)nb_of_samples;
+	tmp.correction = (background_correction)correction;
+	tmp.interpolation_method = (background_interpolation)interpolation_method;
+	tmp.degree = (poly_order)degree;
+	tmp.autograd.degree = (int)ag_degree;
+	tmp.autograd.downsample = (int)ag_downsample;
+	struct background_data *p = calloc(1, sizeof(*p));
+	if (p) {
+		*p = tmp;
+		p->destroy_fn = free_background_data;
+	}
+	g_hash_table_unref(kv);
+	return p;
+}
 
 /* Op descriptor — the automatic-gradient-removal and background-extraction
  * commands share remove_gradient_image_hook. Default label "Background
@@ -57,6 +173,7 @@ const op_descriptor op_desc_remove_gradient = {
 	.description = N_("Background extraction"),
 	.mem_ratio = 0.0f,
 	.flags = 0,
+	.serialize = remove_gradient_serialize, .deserialize = remove_gradient_deserialize,
 };
 
 #define NPARAM_POLY4 15		// Number of parameters used with 4rd order
