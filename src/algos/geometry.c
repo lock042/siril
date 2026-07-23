@@ -42,6 +42,185 @@
 
 #include "geometry.h"
 #include "core/op_descriptors.h"
+#include "core/nde_history.h"
+
+/* ---------------------------------------------------------------------- *
+ *  NDE serializers (flis-nde-sketch.md §11-§12).  Each pair serializes    *
+ *  exactly the fields the matching image_hook reads that affect output    *
+ *  pixels; runtime context (fit/seq/threads/destroy_fn) is skipped.       *
+ *  All geometry param structs are POD; deserializers set destroy_fn to    *
+ *  the module's existing free_*_args.                                     *
+ * ---------------------------------------------------------------------- */
+
+/* geometry.crop — hook reads params->area {x,y,w,h}. */
+static gchar *crop_serialize(gconstpointer user) {
+	const struct crop_args *p = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_int(kv, "x", p->area.x);
+	nde_kv_add_int(kv, "y", p->area.y);
+	nde_kv_add_int(kv, "w", p->area.w);
+	nde_kv_add_int(kv, "h", p->area.h);
+	return nde_kv_end(kv);
+}
+
+static gpointer crop_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_crop.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	gint64 x, y, w, h;
+	if (!nde_kv_get_int(kv, "x", &x) || !nde_kv_get_int(kv, "y", &y) ||
+	    !nde_kv_get_int(kv, "w", &w) || !nde_kv_get_int(kv, "h", &h)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct crop_args *p = new_crop_args();
+	if (p) {
+		p->area.x = (int)x; p->area.y = (int)y;
+		p->area.w = (int)w; p->area.h = (int)h;
+	}
+	g_hash_table_unref(kv);
+	return p;
+}
+
+/* geometry.rotation — hook reads area{x,y,w,h}, angle, interpolation,
+ * cropped, clamp. */
+static gchar *rotation_serialize(gconstpointer user) {
+	const struct rotation_args *p = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_int(kv, "x", p->area.x);
+	nde_kv_add_int(kv, "y", p->area.y);
+	nde_kv_add_int(kv, "w", p->area.w);
+	nde_kv_add_int(kv, "h", p->area.h);
+	nde_kv_add_double(kv, "angle", p->angle);
+	/* on-disk value: enum order is frozen by the NDE format — do not reorder */
+	nde_kv_add_int(kv, "interp", p->interpolation);
+	nde_kv_add_int(kv, "cropped", p->cropped);
+	nde_kv_add_bool(kv, "clamp", p->clamp);
+	return nde_kv_end(kv);
+}
+
+static gpointer rotation_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_rotation.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	gint64 x, y, w, h, interp, cropped;
+	double angle;
+	gboolean clamp;
+	if (!nde_kv_get_int(kv, "x", &x) || !nde_kv_get_int(kv, "y", &y) ||
+	    !nde_kv_get_int(kv, "w", &w) || !nde_kv_get_int(kv, "h", &h) ||
+	    !nde_kv_get_double(kv, "angle", &angle) ||
+	    !nde_kv_get_int(kv, "interp", &interp) ||
+	    !nde_kv_get_int(kv, "cropped", &cropped) ||
+	    !nde_kv_get_bool(kv, "clamp", &clamp)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct rotation_args *p = new_rotation_args();
+	if (p) {
+		p->area.x = (int)x; p->area.y = (int)y;
+		p->area.w = (int)w; p->area.h = (int)h;
+		p->angle = angle;
+		p->interpolation = (int)interp;
+		p->cropped = (int)cropped;
+		p->clamp = clamp;
+	}
+	g_hash_table_unref(kv);
+	return p;
+}
+
+/* geometry.mirrorx / geometry.mirrory — shared mirror_args; hooks call
+ * mirrorx()/mirrory() unconditionally, x_axis is serialized anyway so the
+ * op identity is fully captured by the record's op_id + this field. */
+static gchar *mirror_serialize(gconstpointer user) {
+	const struct mirror_args *p = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_bool(kv, "x_axis", p->x_axis);
+	return nde_kv_end(kv);
+}
+
+static gpointer mirror_deserialize(const gchar *blob, int version) {
+	/* both mirror descriptors share version 1 */
+	if (version > op_desc_mirrorx.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	gboolean x_axis;
+	if (!nde_kv_get_bool(kv, "x_axis", &x_axis)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct mirror_args *p = new_mirror_args();
+	if (p)
+		p->x_axis = x_axis;
+	g_hash_table_unref(kv);
+	return p;
+}
+
+/* geometry.binning — hook reads factor, mean. */
+static gchar *binning_serialize(gconstpointer user) {
+	const struct binning_args *p = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_int(kv, "factor", p->factor);
+	nde_kv_add_bool(kv, "mean", p->mean);
+	return nde_kv_end(kv);
+}
+
+static gpointer binning_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_binning.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	gint64 factor;
+	gboolean mean;
+	if (!nde_kv_get_int(kv, "factor", &factor) ||
+	    !nde_kv_get_bool(kv, "mean", &mean)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct binning_args *p = new_binning_args();
+	if (p) {
+		p->factor = (int)factor;
+		p->mean = mean;
+	}
+	g_hash_table_unref(kv);
+	return p;
+}
+
+/* geometry.resample — hook reads toX, toY, interpolation, clamp, update_wcs. */
+static gchar *resample_serialize(gconstpointer user) {
+	const struct resample_args *p = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_int(kv, "toX", p->toX);
+	nde_kv_add_int(kv, "toY", p->toY);
+	/* on-disk value: enum order is frozen by the NDE format — do not reorder */
+	nde_kv_add_int(kv, "interp", p->interpolation);
+	nde_kv_add_bool(kv, "clamp", p->clamp);
+	nde_kv_add_bool(kv, "update_wcs", p->update_wcs);
+	return nde_kv_end(kv);
+}
+
+static gpointer resample_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_resample.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	gint64 toX, toY, interp;
+	gboolean clamp, update_wcs;
+	if (!nde_kv_get_int(kv, "toX", &toX) || !nde_kv_get_int(kv, "toY", &toY) ||
+	    !nde_kv_get_int(kv, "interp", &interp) ||
+	    !nde_kv_get_bool(kv, "clamp", &clamp) ||
+	    !nde_kv_get_bool(kv, "update_wcs", &update_wcs)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct resample_args *p = new_resample_args();
+	if (p) {
+		p->toX = (int)toX;
+		p->toY = (int)toY;
+		p->interpolation = (opencv_interpolation)interp;
+		p->clamp = clamp;
+		p->update_wcs = update_wcs;
+	}
+	g_hash_table_unref(kv);
+	return p;
+}
 
 /* Op descriptors — single source of truth for the geometry operations.
  * All change image dimensions, hence OP_GEOMETRY_CHANGING (consumed by the
@@ -53,6 +232,7 @@ const op_descriptor op_desc_crop = {
 	.description = N_("Crop"),
 	.mem_ratio = 1.0f,
 	.flags = OP_GEOMETRY_CHANGING,
+	.serialize = crop_serialize, .deserialize = crop_deserialize,
 };
 
 const op_descriptor op_desc_binning = {
@@ -62,6 +242,7 @@ const op_descriptor op_desc_binning = {
 	.description = N_("Binning"),
 	.mem_ratio = 1.5f,
 	.flags = OP_GEOMETRY_CHANGING,
+	.serialize = binning_serialize, .deserialize = binning_deserialize,
 };
 
 /* mem_ratio is always computed per-site (from the scale factors), so the
@@ -73,6 +254,7 @@ const op_descriptor op_desc_resample = {
 	.description = N_("Resample"),
 	.mem_ratio = 0.0f,
 	.flags = OP_GEOMETRY_CHANGING,
+	.serialize = resample_serialize, .deserialize = resample_deserialize,
 };
 
 /* Default mem_ratio 2.0 (arbitrary-angle rotation); the 90°/180° variants
@@ -84,6 +266,7 @@ const op_descriptor op_desc_rotation = {
 	.description = N_("Rotation"),
 	.mem_ratio = 2.0f,
 	.flags = OP_GEOMETRY_CHANGING,
+	.serialize = rotation_serialize, .deserialize = rotation_deserialize,
 };
 
 const op_descriptor op_desc_mirrorx = {
@@ -92,6 +275,7 @@ const op_descriptor op_desc_mirrorx = {
 	.description = N_("Mirror X"),
 	.mem_ratio = 1.0f,
 	.flags = OP_GEOMETRY_CHANGING,
+	.serialize = mirror_serialize, .deserialize = mirror_deserialize,
 };
 
 const op_descriptor op_desc_mirrory = {
@@ -100,6 +284,7 @@ const op_descriptor op_desc_mirrory = {
 	.description = N_("Mirror Y"),
 	.mem_ratio = 1.0f,
 	.flags = OP_GEOMETRY_CHANGING,
+	.serialize = mirror_serialize, .deserialize = mirror_deserialize,
 };
 
 /* Mask helper functions */

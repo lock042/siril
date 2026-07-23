@@ -63,9 +63,11 @@ Test(op_descriptor, registry_invariants) {
 		cr_assert((op->image_hook != NULL) != (op->mask_hook != NULL),
 		          "descriptor '%s' must have exactly one of image_hook/mask_hook", op->id);
 		cr_assert(op->description != NULL, "descriptor '%s' has NULL description", op->id);
-		/* NDE members reserved — always NULL in this MR */
-		cr_assert(op->serialize == NULL, "descriptor '%s' sets serialize", op->id);
-		cr_assert(op->deserialize == NULL, "descriptor '%s' sets deserialize", op->id);
+		/* NDE members: serialize/deserialize are paired — a descriptor that
+		 * can serialize its params must also be able to deserialize them, and
+		 * vice versa.  Either both set (Tier A) or both NULL (Tier B). */
+		cr_assert_eq(!!op->serialize, !!op->deserialize,
+		             "descriptor '%s' must set serialize and deserialize together", op->id);
 	}
 }
 
