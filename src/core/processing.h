@@ -164,8 +164,14 @@ struct _multi_split {
 	fits **images;
 };
 
+struct op_descriptor; // core/op_descriptor.h — per-op invariants, filled into args by the worker
+
 struct generic_img_args {
 	fits *fit; // input image to be processed
+	/* When set, the worker fills image_hook/log_hook/description/mem_ratio from
+	 * this descriptor (op_descriptor_fill_img_args()).  NULL for un-migrated
+	 * sites, which populate those fields directly as before. */
+	const struct op_descriptor *op;
 	float mem_ratio; 	// peak memory requirement as multiple of image size
 	/** function called to process the image
 	 *  Returns 0 on success, non-zero on error */
@@ -206,6 +212,9 @@ struct generic_img_args {
 
 struct generic_mask_args {
 	fits *fit; // input image to be processed
+	/* When set, the worker fills mask_hook/log_hook/description/mem_ratio from
+	 * this descriptor (op_descriptor_fill_mask_args()). */
+	const struct op_descriptor *op;
 	float mem_ratio; 	// peak memory requirement as multiple of image size
 	/** function called to process the image
 	 *  Returns 0 on success, non-zero on error */
