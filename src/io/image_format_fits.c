@@ -3024,13 +3024,12 @@ guchar *extract_thumbnail_from_fits(const char *filename, gchar **descr,
 	}
 	g_free(filter_str);
 	*descr = description;
-
+	
 	// Dimensions calibrated exactly to match CFITSIO striding
 	const float scale_x = (float)w / MAX_SIZE;
 	const float scale_y = (float)h / MAX_SIZE;
 	const float max_scale = (scale_x > scale_y) ? scale_x : scale_y;
 
-	// If max_scale is less than 1.0 (image is smaller than thumbnail size), step is 1
 	const int pixScale = (max_scale > 1.0f) ? (int)max_scale : 1;
 
 	const int Ws = ((w - 1) / pixScale) + 1;
@@ -3038,32 +3037,105 @@ guchar *extract_thumbnail_from_fits(const char *filename, gchar **descr,
 	size_t prev_size = (size_t)Ws * Hs;
 
 	if (Ws <= 0 || Hs <= 0) {
-		fits_close_file(fp, &status);
-		return NULL;
+		   fits_close_file(fp, &status);
+		   return NULL;
 	}
 
-	// Allocate preview buffer directly
+	// Configurable anti-aliasing sample size (e.g., 2, 4, or 8 pixels)
+	// Must be less than pixel scale or it's not worth doing!!
+	int SAMPLE_SIZE = 2;
+	if (SAMPLE_SIZE > pixScale) SAMPLE_SIZE = pixScale;
+	if (SAMPLE_SIZE < 1) SAMPLE_SIZE = 1;
+
+	// Modulate BOTH horizontal and vertical strides dynamically
+	const int stride_x = (pixScale > 1) ? (pixScale / SAMPLE_SIZE) : 1;
+	const int stride_y = (pixScale > 1) ? (pixScale / SAMPLE_SIZE) : 1;
+
+	const int Ws_oversampled = ((w - 1) / stride_x) + 1;
+	const int Hs_oversampled = ((h - 1) / stride_y) + 1;
+
+	// Allocate temporary buffers to hold the image data
+	float *oversampled_data = malloc(Ws_oversampled * Hs_oversampled * n_channels * sizeof(float));
 	float *preview_data = malloc(prev_size * n_channels * sizeof(float));
 	if (!preview_data) {
+		free(oversampled_data);
 		fits_close_file(fp, &status);
 		return NULL;
 	}
 
-	// Read each channel plane sequentially to optimize disk streaming layout 
+	// Retrieve data from FITS file
+	// Start at the top-left corner (1,1) of channel ch+1, sweep across to the bottom-right corner (w,h), 
+	// but don't read every single pixel. Step horizontally by stride_x columns and vertically by stride_y rows.
 	int anynul;
 	stat = 0;
 	for (int ch = 0; ch < n_channels; ch++) {
-		long fpixel[3] = { 1, 1, ch + 1 }; // Step to the specific channel plane
-		long lpixel[3] = { w, h, ch + 1 }; // Limit read to just this plane
-		long inc[3]	= { pixScale, pixScale, 1 };
-		float *channel_dest = preview_data + (ch * prev_size);
+		long fpixel[3] = { 1, 1, ch + 1 };
+		long lpixel[3] = { w, h, ch + 1 };
+		long inc[3]	= { stride_x, stride_y, 1 }; 
+		float *channel_dest = oversampled_data + (ch * Ws_oversampled * Hs_oversampled);
 
 		if (fits_read_subset(fp, TFLOAT, fpixel, lpixel, inc, &nullval, channel_dest, &anynul, &stat)) {
+			free(oversampled_data);
 			free(preview_data);
 			fits_close_file(fp, &status);
 			return NULL;
 		}
 	}
+
+	// True 2D sampled Box Filter
+	float inv_sample_area = 1.0f / (float)(SAMPLE_SIZE * SAMPLE_SIZE);
+	float sample_step_x = (float)Ws_oversampled / (float)Ws;
+	float sample_step_y = (float)Hs_oversampled / (float)Hs;
+
+	// for each channel
+	for (int ch = 0; ch < n_channels; ch++) {
+		float *src_ch = oversampled_data + (ch * Ws_oversampled * Hs_oversampled);
+		float *dest_ch = preview_data + (ch * prev_size);
+
+		// for each row
+		for (int y = 0; y < Hs; y++) {
+			int base_y = (int)(y * sample_step_y);
+
+			// for each column in each row
+			for (int x = 0; x < Ws; x++) {
+				int base_x = (int)(x * sample_step_x);
+				float sum = 0.0f;
+
+				/*
+				* =============================================================
+				* INNER 2D BOX BLUR COLLAPSE
+				* =============================================================
+				* We sweep a localized kernel window of size (SAMPLE_SIZE x SAMPLE_SIZE)
+				* across the oversampled data buffer. The code flattens this 2D sub-grid
+				* and sums all points into a single accumulator.
+				* * Example for SAMPLE_SIZE = 4:
+				* * (base_x, base_y)
+				* │
+				* ▼  sx=0    sx=1    sx=2    sx=3
+				* sy=0 [ P0 ]  [ P1 ]  [ P2 ]  [ P3 ]
+				* sy=1 [ P4 ]  [ P5 ]  [ P6 ]  [ P7 ]  ───► All 16 samples
+				* sy=2 [ P8 ]  [ P9 ]  [P10 ]  [P11 ]       are accumulated
+				* sy=3 [P12 ]  [P13 ]  [P14 ]  [P15 ]       into 'sum'
+				* * =============================================================
+				*/
+				for (int sy = 0; sy < SAMPLE_SIZE; sy++) {
+					int src_y = base_y + sy;
+					if (src_y >= Hs_oversampled) src_y = Hs_oversampled - 1;
+
+					int row_start = src_y * Ws_oversampled;
+
+					for (int sx = 0; sx < SAMPLE_SIZE; sx++) {
+						int src_x = base_x + sx;
+						if (src_x >= Ws_oversampled) src_x = Ws_oversampled - 1;
+
+						sum += src_ch[row_start + src_x];
+					}
+				}
+				dest_ch[y * Ws + x] = sum * inv_sample_area;
+			}
+		}
+	}
+	free(oversampled_data);
 
 	// Set min, max and scale, avoiding calculations where possible
 	float maxmax = 1.f;
@@ -3107,6 +3179,7 @@ guchar *extract_thumbnail_from_fits(const char *filename, gchar **descr,
 		}
 	}
 
+	// Scale the data
 	for (int idx = 0 ; idx < (int)(prev_size * n_channels); idx++) {
 		preview_data[idx] = (preview_data[idx] - minmin) * scale;
 	}
