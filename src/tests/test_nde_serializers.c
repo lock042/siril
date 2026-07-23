@@ -35,6 +35,12 @@
 #include "core/nde_history.h"
 
 #include "algos/geometry.h"
+#include "filters/mtf.h"
+#include "filters/ght.h"
+#include "filters/asinh.h"
+#include "filters/scnr.h"
+#include "filters/median.h"
+#include "algos/colors.h"
 
 cominfo com;	// the core data struct
 fits *gfit;	// currently loaded image (a pointer)
@@ -159,6 +165,263 @@ Test(nde_serializers, resample_roundtrip) {
 }
 
 /* ------------------------------------------------------------------ *
+ *  Batch 2 — stretches, scnr, median, ccm                            *
+ * ------------------------------------------------------------------ */
+
+static void fill_mtf_params(struct mtf_params *p, float base) {
+	p->midtones = base + 0.1f;      /* binary-inexact */
+	p->shadows = base + 0.03125f;
+	p->highlights = base + 0.9f;
+	p->do_red = TRUE; p->do_green = FALSE; p->do_blue = TRUE;
+}
+
+static void check_mtf_params(const struct mtf_params *a, const struct mtf_params *b) {
+	cr_assert(memcmp(&a->midtones, &b->midtones, sizeof(float)) == 0);
+	cr_assert(memcmp(&a->shadows, &b->shadows, sizeof(float)) == 0);
+	cr_assert(memcmp(&a->highlights, &b->highlights, sizeof(float)) == 0);
+	cr_assert_eq(a->do_red, b->do_red);
+	cr_assert_eq(a->do_green, b->do_green);
+	cr_assert_eq(a->do_blue, b->do_blue);
+}
+
+Test(nde_serializers, mtf_roundtrip_unlinked) {
+	/* unlinked: params + all three uparams round-trip */
+	struct mtf_data in = { 0 };
+	in.linked = FALSE;
+	fill_mtf_params(&in.params, 0.2f);
+	fill_mtf_params(&in.uparams[0], 0.3f);
+	fill_mtf_params(&in.uparams[1], 0.4f);
+	fill_mtf_params(&in.uparams[2], 0.5f);
+	in.auto_display_compensation = TRUE;
+
+	gchar *blob = op_desc_mtf.serialize(&in);
+	cr_assert_not_null(blob);
+	struct mtf_data *out = op_desc_mtf.deserialize(blob, op_desc_mtf.version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->linked, FALSE);
+	check_mtf_params(&out->params, &in.params);
+	check_mtf_params(&out->uparams[0], &in.uparams[0]);
+	check_mtf_params(&out->uparams[1], &in.uparams[1]);
+	check_mtf_params(&out->uparams[2], &in.uparams[2]);
+	cr_assert_eq(out->auto_display_compensation, TRUE);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_mtf, blob);
+	g_free(blob);
+}
+
+Test(nde_serializers, mtf_roundtrip_linked) {
+	/* linked: uparams are not serialized (absent) and default to zero */
+	struct mtf_data in = { 0 };
+	in.linked = TRUE;
+	fill_mtf_params(&in.params, 0.15f);
+	in.auto_display_compensation = FALSE;
+
+	gchar *blob = op_desc_mtf.serialize(&in);
+	struct mtf_data *out = op_desc_mtf.deserialize(blob, op_desc_mtf.version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->linked, TRUE);
+	check_mtf_params(&out->params, &in.params);
+	cr_assert_eq(out->auto_display_compensation, FALSE);
+	FREE_VIA_DESTRUCTOR(out);
+	g_free(blob);
+}
+
+Test(nde_serializers, mtf_inverse_shares_pair) {
+	/* mtf_inverse uses the same serializer pair */
+	struct mtf_data in = { 0 };
+	in.linked = TRUE;
+	fill_mtf_params(&in.params, 0.25f);
+	gchar *blob = op_desc_mtf_inverse.serialize(&in);
+	struct mtf_data *out = op_desc_mtf_inverse.deserialize(blob, op_desc_mtf_inverse.version);
+	cr_assert_not_null(out);
+	check_mtf_params(&out->params, &in.params);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_mtf_inverse, blob);
+	g_free(blob);
+}
+
+Test(nde_serializers, ghs_roundtrip) {
+	ght_params p = { 0 };
+	p.B = 1.5f; p.D = 2.25f; p.LP = 0.1f; p.SP = 0.5f; p.HP = 0.9f; p.BP = -0.03125f;
+	p.stretchtype = STRETCH_ASINH;             /* 2 */
+	p.payne_colourstretchmodel = COL_HUMANLUM; /* 1 */
+	p.do_red = TRUE; p.do_green = FALSE; p.do_blue = TRUE;
+	p.clip_mode = RGBBLEND;                     /* 2 */
+	struct ght_data in = { 0 };
+	in.params_ght = &p;
+	in.auto_display_compensation = TRUE;
+
+	gchar *blob = op_desc_ghs.serialize(&in);
+	cr_assert_not_null(blob);
+	struct ght_data *out = op_desc_ghs.deserialize(blob, op_desc_ghs.version);
+	cr_assert_not_null(out);
+	cr_assert_not_null(out->params_ght);
+	cr_assert(memcmp(&out->params_ght->B, &p.B, sizeof(float)) == 0);
+	cr_assert(memcmp(&out->params_ght->D, &p.D, sizeof(float)) == 0);
+	cr_assert(memcmp(&out->params_ght->LP, &p.LP, sizeof(float)) == 0);
+	cr_assert(memcmp(&out->params_ght->SP, &p.SP, sizeof(float)) == 0);
+	cr_assert(memcmp(&out->params_ght->HP, &p.HP, sizeof(float)) == 0);
+	cr_assert(memcmp(&out->params_ght->BP, &p.BP, sizeof(float)) == 0);
+	cr_assert_eq(out->params_ght->stretchtype, p.stretchtype);
+	cr_assert_eq(out->params_ght->payne_colourstretchmodel, p.payne_colourstretchmodel);
+	cr_assert_eq(out->params_ght->do_red, p.do_red);
+	cr_assert_eq(out->params_ght->do_green, p.do_green);
+	cr_assert_eq(out->params_ght->do_blue, p.do_blue);
+	cr_assert_eq(out->params_ght->clip_mode, p.clip_mode);
+	cr_assert_eq(out->auto_display_compensation, TRUE);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_ghs, blob);
+	g_free(blob);
+}
+
+Test(nde_serializers, autoghs_shares_ghs_pair) {
+	/* autoghs uses the same serializer pair as ghs */
+	cr_assert_eq(op_desc_autoghs.serialize, op_desc_ghs.serialize);
+	cr_assert_eq(op_desc_autoghs.deserialize, op_desc_ghs.deserialize);
+	ght_params p = { 0 };
+	p.B = 0.5f; p.D = 1.0f; p.LP = 0.0f; p.SP = 0.3f; p.HP = 0.8f; p.BP = 0.0f;
+	p.stretchtype = STRETCH_PAYNE_NORMAL;
+	p.payne_colourstretchmodel = COL_INDEP;
+	p.do_red = p.do_green = p.do_blue = TRUE;
+	p.clip_mode = CLIP;
+	struct ght_data in = { 0 };
+	in.params_ght = &p;
+	gchar *blob = op_desc_autoghs.serialize(&in);
+	struct ght_data *out = op_desc_autoghs.deserialize(blob, op_desc_autoghs.version);
+	cr_assert_not_null(out);
+	cr_assert(memcmp(&out->params_ght->SP, &p.SP, sizeof(float)) == 0);
+	FREE_VIA_DESTRUCTOR(out);
+	g_free(blob);
+}
+
+/* Local mirror of the internal struct in command.c (POD, stable field
+ * layout — the on-disk keys are the contract). */
+struct t_autoghs_unlinked_data {
+	destructor destroy_fn;
+	float shadows_clipping;
+	float amount;
+	float b, hp, lp;
+	clip_mode_t clip_mode;
+};
+
+Test(nde_serializers, autoghs_unlinked_roundtrip) {
+	const op_descriptor *op = op_descriptor_by_id("stretch.autoghs_unlinked");
+	cr_assert_not_null(op);
+	cr_assert_not_null(op->serialize);
+	struct t_autoghs_unlinked_data in = { 0 };
+	in.shadows_clipping = -2.8f;
+	in.amount = 13.0f;
+	in.b = 0.1f;
+	in.hp = 0.7f;
+	in.lp = 0.03125f;
+	in.clip_mode = RESCALEGLOBAL;   /* 3 */
+
+	gchar *blob = op->serialize(&in);
+	cr_assert_not_null(blob);
+	struct t_autoghs_unlinked_data *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert(memcmp(&out->shadows_clipping, &in.shadows_clipping, sizeof(float)) == 0);
+	cr_assert(memcmp(&out->amount, &in.amount, sizeof(float)) == 0);
+	cr_assert(memcmp(&out->b, &in.b, sizeof(float)) == 0);
+	cr_assert(memcmp(&out->hp, &in.hp, sizeof(float)) == 0);
+	cr_assert(memcmp(&out->lp, &in.lp, sizeof(float)) == 0);
+	cr_assert_eq(out->clip_mode, in.clip_mode);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(op, blob);
+	g_free(blob);
+}
+
+Test(nde_serializers, logstretch_paramless) {
+	const op_descriptor *op = op_descriptor_by_id("stretch.log");
+	cr_assert_not_null(op);
+	cr_assert_not_null(op->serialize);
+	/* paramless: serialize emits an empty blob; deserialize accepts it */
+	gchar *blob = op->serialize(NULL);
+	cr_assert_not_null(blob);
+	cr_assert_str_eq(blob, "");
+	void *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	FREE_VIA_DESTRUCTOR(out);
+	/* paramless: the empty blob is VALID, so only the newer-version case is
+	 * a failure (the generic empty-blob malformed check does not apply). */
+	cr_assert_null(op->deserialize(blob, op->version + 1));
+	g_free(blob);
+}
+
+Test(nde_serializers, asinh_roundtrip) {
+	asinh_params in = { 0 };
+	in.beta = 42.5f;
+	in.offset = 0.1f;
+	in.human_luminance = TRUE;
+	in.clip_mode = RESCALE;   /* 1 */
+	gchar *blob = op_desc_asinh.serialize(&in);
+	cr_assert_not_null(blob);
+	asinh_params *out = op_desc_asinh.deserialize(blob, op_desc_asinh.version);
+	cr_assert_not_null(out);
+	cr_assert(memcmp(&out->beta, &in.beta, sizeof(float)) == 0);
+	cr_assert(memcmp(&out->offset, &in.offset, sizeof(float)) == 0);
+	cr_assert_eq(out->human_luminance, in.human_luminance);
+	cr_assert_eq(out->clip_mode, in.clip_mode);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_asinh, blob);
+	g_free(blob);
+}
+
+Test(nde_serializers, scnr_roundtrip) {
+	struct scnr_data in = { 0 };
+	in.type = SCNR_ADDITIVE_MASK;   /* 3 */
+	in.amount = 0.1;
+	in.preserve = TRUE;
+	gchar *blob = op_desc_scnr.serialize(&in);
+	cr_assert_not_null(blob);
+	struct scnr_data *out = op_desc_scnr.deserialize(blob, op_desc_scnr.version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->type, in.type);
+	cr_assert(memcmp(&out->amount, &in.amount, sizeof(double)) == 0);
+	cr_assert_eq(out->preserve, in.preserve);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_scnr, blob);
+	g_free(blob);
+}
+
+Test(nde_serializers, median_roundtrip) {
+	struct median_filter_data in = { 0 };
+	in.ksize = 7;
+	in.amount = 0.1;
+	in.iterations = 3;
+	gchar *blob = op_desc_median.serialize(&in);
+	cr_assert_not_null(blob);
+	struct median_filter_data *out = op_desc_median.deserialize(blob, op_desc_median.version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->ksize, in.ksize);
+	cr_assert(memcmp(&out->amount, &in.amount, sizeof(double)) == 0);
+	cr_assert_eq(out->iterations, in.iterations);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_median, blob);
+	g_free(blob);
+}
+
+Test(nde_serializers, ccm_roundtrip) {
+	struct ccm_data in = { 0 };
+	float v = 0.1f;
+	for (int r = 0; r < 3; r++)
+		for (int c = 0; c < 3; c++)
+			in.matrix[r][c] = (v += 0.03125f) * ((r + c) % 2 ? -1.0f : 1.0f);
+	in.power = 2.2f;
+	gchar *blob = op_desc_ccm.serialize(&in);
+	cr_assert_not_null(blob);
+	struct ccm_data *out = op_desc_ccm.deserialize(blob, op_desc_ccm.version);
+	cr_assert_not_null(out);
+	for (int r = 0; r < 3; r++)
+		for (int c = 0; c < 3; c++)
+			cr_assert(memcmp(&out->matrix[r][c], &in.matrix[r][c], sizeof(float)) == 0);
+	cr_assert(memcmp(&out->power, &in.power, sizeof(float)) == 0);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_ccm, blob);
+	g_free(blob);
+}
+
+/* ------------------------------------------------------------------ *
  *  Registry: the set of ops with serializers is exactly phase 1.     *
  *  Keeps the set deliberate — a new serializer without an entry here *
  *  (or an accidental one) fails the build.                           *
@@ -168,6 +431,10 @@ static const char *phase1_ids[] = {
 	/* batch 1 — geometry */
 	"geometry.crop", "geometry.rotation", "geometry.mirrorx",
 	"geometry.mirrory", "geometry.binning", "geometry.resample",
+	/* batch 2 — stretches, scnr, median, ccm */
+	"stretch.mtf", "stretch.mtf_inverse", "stretch.log",
+	"stretch.ghs", "stretch.autoghs", "stretch.autoghs_unlinked",
+	"stretch.asinh", "filters.scnr", "filters.median", "color.ccm",
 };
 
 Test(nde_serializers, serializer_set_is_phase1) {

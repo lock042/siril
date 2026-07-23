@@ -29,6 +29,80 @@ void destroy_ght_data(void *args); /* forward decl */
 #include "algos/colors.h"
 #include "core/siril_log.h"
 #include "core/op_descriptors.h"
+#include "core/nde_history.h"
+
+/* ---------------------------------------------------------------------- *
+ *  NDE serializers (flis-nde-sketch.md §11-§12).  Shared by the GHS and   *
+ *  AutoGHS descriptors — both take struct ght_data with a heap            *
+ *  *params_ght, which the deserializer allocates; destroy_ght_data frees   *
+ *  it.  auto_display_compensation (adc) is serialized because             *
+ *  ght_single_image_hook reads it and, when set, applies display ICC      *
+ *  compensation to the output pixels (verified in ght_single_image_hook).  *
+ *  Runtime context (fit/seq/seqEntry/is_preview) is skipped.              *
+ * ---------------------------------------------------------------------- */
+
+static gchar *ght_serialize(gconstpointer user) {
+	const struct ght_data *d = user;
+	const ght_params *p = d->params_ght;
+	GString *kv = nde_kv_start();
+	nde_kv_add_float(kv, "B", p->B);
+	nde_kv_add_float(kv, "D", p->D);
+	nde_kv_add_float(kv, "LP", p->LP);
+	nde_kv_add_float(kv, "SP", p->SP);
+	nde_kv_add_float(kv, "HP", p->HP);
+	nde_kv_add_float(kv, "BP", p->BP);
+	/* on-disk value: enum order is frozen by the NDE format — do not reorder */
+	nde_kv_add_int(kv, "stretchtype", p->stretchtype);
+	nde_kv_add_int(kv, "colourmodel", p->payne_colourstretchmodel);
+	nde_kv_add_bool(kv, "do_red", p->do_red);
+	nde_kv_add_bool(kv, "do_green", p->do_green);
+	nde_kv_add_bool(kv, "do_blue", p->do_blue);
+	/* on-disk value: enum order is frozen by the NDE format — do not reorder */
+	nde_kv_add_int(kv, "clip_mode", p->clip_mode);
+	nde_kv_add_bool(kv, "adc", d->auto_display_compensation);
+	return nde_kv_end(kv);
+}
+
+static gpointer ght_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_ghs.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	ght_params p = { 0 };
+	gint64 stretchtype, colourmodel, clip_mode;
+	gboolean adc;
+	if (!nde_kv_get_float(kv, "B", &p.B) ||
+	    !nde_kv_get_float(kv, "D", &p.D) ||
+	    !nde_kv_get_float(kv, "LP", &p.LP) ||
+	    !nde_kv_get_float(kv, "SP", &p.SP) ||
+	    !nde_kv_get_float(kv, "HP", &p.HP) ||
+	    !nde_kv_get_float(kv, "BP", &p.BP) ||
+	    !nde_kv_get_int(kv, "stretchtype", &stretchtype) ||
+	    !nde_kv_get_int(kv, "colourmodel", &colourmodel) ||
+	    !nde_kv_get_bool(kv, "do_red", &p.do_red) ||
+	    !nde_kv_get_bool(kv, "do_green", &p.do_green) ||
+	    !nde_kv_get_bool(kv, "do_blue", &p.do_blue) ||
+	    !nde_kv_get_int(kv, "clip_mode", &clip_mode) ||
+	    !nde_kv_get_bool(kv, "adc", &adc)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	p.stretchtype = (int)stretchtype;
+	p.payne_colourstretchmodel = (int)colourmodel;
+	p.clip_mode = (clip_mode_t)clip_mode;
+	struct ght_data *d = create_ght_data();
+	if (d) {
+		d->params_ght = malloc(sizeof(ght_params));
+		if (!d->params_ght) {
+			destroy_ght_data(d);
+			g_hash_table_unref(kv);
+			return NULL;
+		}
+		*d->params_ght = p;
+		d->auto_display_compensation = adc;
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
 
 /* Op descriptors — GHS and AutoGHS are distinct logical ops that share
  * ght_single_image_hook (the mode lives in the user data). mem_ratio defaults
@@ -40,6 +114,7 @@ const op_descriptor op_desc_ghs = {
 	.description = N_("Generalised Hyperbolic Stretch"),
 	.mem_ratio = 1.0f,
 	.flags = OP_MASK_CAPABLE,
+	.serialize = ght_serialize, .deserialize = ght_deserialize,
 };
 
 const op_descriptor op_desc_autoghs = {
@@ -49,6 +124,7 @@ const op_descriptor op_desc_autoghs = {
 	.description = N_("AutoGHS"),
 	.mem_ratio = 1.0f,
 	.flags = OP_MASK_CAPABLE,
+	.serialize = ght_serialize, .deserialize = ght_deserialize,
 };
 
 // For clarity when referring to HSL layers

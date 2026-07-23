@@ -38,6 +38,53 @@
 #include "algos/statistics.h"
 #include "algos/extraction.h"
 #include "core/op_descriptors.h"
+#include "core/nde_history.h"
+
+/* NDE serializers (flis-nde-sketch.md §11-§12).  ccm_process reads the 3x3
+ * matrix and power; keys m00..m22 (row-major) + power.  fit/seq/seqEntry are
+ * runtime context. */
+static gchar *ccm_serialize(gconstpointer user) {
+	const struct ccm_data *p = user;
+	GString *kv = nde_kv_start();
+	for (int r = 0; r < 3; r++) {
+		for (int c = 0; c < 3; c++) {
+			char key[8];
+			g_snprintf(key, sizeof key, "m%d%d", r, c);
+			nde_kv_add_float(kv, key, p->matrix[r][c]);
+		}
+	}
+	nde_kv_add_float(kv, "power", p->power);
+	return nde_kv_end(kv);
+}
+
+static gpointer ccm_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_ccm.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	ccm matrix;
+	float power;
+	for (int r = 0; r < 3; r++) {
+		for (int c = 0; c < 3; c++) {
+			char key[8];
+			g_snprintf(key, sizeof key, "m%d%d", r, c);
+			if (!nde_kv_get_float(kv, key, &matrix[r][c])) {
+				g_hash_table_unref(kv);
+				return NULL;
+			}
+		}
+	}
+	if (!nde_kv_get_float(kv, "power", &power)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct ccm_data *p = new_ccm_data();
+	if (p) {
+		memcpy(p->matrix, matrix, sizeof(ccm));
+		p->power = power;
+	}
+	g_hash_table_unref(kv);
+	return p;
+}
 
 /* Op descriptor — single source of truth for this operation (op_descriptor.h) */
 const op_descriptor op_desc_ccm = {
@@ -47,6 +94,7 @@ const op_descriptor op_desc_ccm = {
 	.description = N_("Color Conversion Matrix"),
 	.mem_ratio = 1.5f,
 	.flags = 0,
+	.serialize = ccm_serialize, .deserialize = ccm_deserialize,
 };
 
 /******************************************************************************

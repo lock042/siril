@@ -27,6 +27,43 @@
 
 #include "scnr.h"
 #include "core/op_descriptors.h"
+#include "core/nde_history.h"
+
+/* NDE serializers (flis-nde-sketch.md §11-§12).  scnr_process reads type,
+ * amount, preserve — all serialized.  verbose/applying are preview/runtime
+ * context and are skipped. */
+static gchar *scnr_serialize(gconstpointer user) {
+	const struct scnr_data *p = user;
+	GString *kv = nde_kv_start();
+	/* on-disk value: enum order is frozen by the NDE format — do not reorder */
+	nde_kv_add_int(kv, "type", p->type);
+	nde_kv_add_double(kv, "amount", p->amount);
+	nde_kv_add_bool(kv, "preserve", p->preserve);
+	return nde_kv_end(kv);
+}
+
+static gpointer scnr_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_scnr.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	gint64 type;
+	double amount;
+	gboolean preserve;
+	if (!nde_kv_get_int(kv, "type", &type) ||
+	    !nde_kv_get_double(kv, "amount", &amount) ||
+	    !nde_kv_get_bool(kv, "preserve", &preserve)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct scnr_data *p = new_scnr_data();
+	if (p) {
+		p->type = (scnr_type)type;
+		p->amount = amount;
+		p->preserve = preserve;
+	}
+	g_hash_table_unref(kv);
+	return p;
+}
 
 /* Op descriptor — single source of truth for this operation (op_descriptor.h) */
 const op_descriptor op_desc_scnr = {
@@ -36,6 +73,7 @@ const op_descriptor op_desc_scnr = {
 	.description = N_("SCNR"),
 	.mem_ratio = 1.5f,
 	.flags = OP_MASK_CAPABLE,
+	.serialize = scnr_serialize, .deserialize = scnr_deserialize,
 };
 
 const char *scnr_type_to_string(scnr_type t) {

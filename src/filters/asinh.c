@@ -13,6 +13,48 @@
 
 #include "asinh.h"
 #include "core/op_descriptors.h"
+#include "core/nde_history.h"
+
+/* NDE serializers (flis-nde-sketch.md §11-§12).  asinh_image_hook reads
+ * beta, offset, human_luminance, clip_mode — all serialized.  The
+ * construction sites leave destroy_fn NULL (POD, framework free-fallback);
+ * the deserializer sets destroy_fn = free (behaviourally identical). */
+static gchar *asinh_serialize(gconstpointer user) {
+	const asinh_params *p = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_float(kv, "beta", p->beta);
+	nde_kv_add_float(kv, "offset", p->offset);
+	nde_kv_add_bool(kv, "human", p->human_luminance);
+	/* on-disk value: enum order is frozen by the NDE format — do not reorder */
+	nde_kv_add_int(kv, "clip_mode", p->clip_mode);
+	return nde_kv_end(kv);
+}
+
+static gpointer asinh_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_asinh.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	float beta, offset;
+	gboolean human;
+	gint64 clip_mode;
+	if (!nde_kv_get_float(kv, "beta", &beta) ||
+	    !nde_kv_get_float(kv, "offset", &offset) ||
+	    !nde_kv_get_bool(kv, "human", &human) ||
+	    !nde_kv_get_int(kv, "clip_mode", &clip_mode)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	asinh_params *p = calloc(1, sizeof(asinh_params));
+	if (p) {
+		p->destroy_fn = free;
+		p->beta = beta;
+		p->offset = offset;
+		p->human_luminance = human;
+		p->clip_mode = (clip_mode_t)clip_mode;
+	}
+	g_hash_table_unref(kv);
+	return p;
+}
 
 /* Op descriptor — single source of truth for this operation (op_descriptor.h) */
 const op_descriptor op_desc_asinh = {
@@ -22,6 +64,7 @@ const op_descriptor op_desc_asinh = {
 	.description = N_("Asinh stretch"),
 	.mem_ratio = 1.0f,
 	.flags = OP_MASK_CAPABLE,
+	.serialize = asinh_serialize, .deserialize = asinh_deserialize,
 };
 
 /* The actual asinh processing hook */

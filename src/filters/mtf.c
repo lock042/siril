@@ -27,6 +27,105 @@ void destroy_mtf_data(void *args); /* forward decl */
 #include "core/siril_log.h"
 #include "algos/statistics.h"
 #include "core/op_descriptors.h"
+#include "core/nde_history.h"
+
+/* ---------------------------------------------------------------------- *
+ *  NDE serializers (flis-nde-sketch.md §11-§12).  Shared by the forward   *
+ *  and inverse MTF descriptors — both take struct mtf_data.               *
+ *                                                                         *
+ *  Fields serialized: linked; the linked params (prefix p_); and when     *
+ *  !linked the three per-channel uparams (u0_/u1_/u2_).  auto_display_     *
+ *  compensation (adc) is serialized because mtf_single_image_hook reads    *
+ *  it and, when set, applies display ICC compensation to the output       *
+ *  pixels (verified in mtf_single_image_hook).  The inverse hook ignores   *
+ *  adc but shares the struct, so the field round-trips harmlessly.        *
+ *  Runtime context (fit/seq/seqEntry/is_preview) is skipped.              *
+ * ---------------------------------------------------------------------- */
+
+static void mtf_params_serialize(GString *kv, const char *prefix,
+                                 const struct mtf_params *p) {
+	char key[32];
+	g_snprintf(key, sizeof key, "%smid", prefix);
+	nde_kv_add_float(kv, key, p->midtones);
+	g_snprintf(key, sizeof key, "%sshadows", prefix);
+	nde_kv_add_float(kv, key, p->shadows);
+	g_snprintf(key, sizeof key, "%shi", prefix);
+	nde_kv_add_float(kv, key, p->highlights);
+	g_snprintf(key, sizeof key, "%sdo_red", prefix);
+	nde_kv_add_bool(kv, key, p->do_red);
+	g_snprintf(key, sizeof key, "%sdo_green", prefix);
+	nde_kv_add_bool(kv, key, p->do_green);
+	g_snprintf(key, sizeof key, "%sdo_blue", prefix);
+	nde_kv_add_bool(kv, key, p->do_blue);
+}
+
+/* Returns FALSE (leaving *p untouched) when any key is missing/unparsable. */
+static gboolean mtf_params_deserialize(GHashTable *kv, const char *prefix,
+                                       struct mtf_params *p) {
+	char key[32];
+	struct mtf_params r;
+	g_snprintf(key, sizeof key, "%smid", prefix);
+	if (!nde_kv_get_float(kv, key, &r.midtones)) return FALSE;
+	g_snprintf(key, sizeof key, "%sshadows", prefix);
+	if (!nde_kv_get_float(kv, key, &r.shadows)) return FALSE;
+	g_snprintf(key, sizeof key, "%shi", prefix);
+	if (!nde_kv_get_float(kv, key, &r.highlights)) return FALSE;
+	g_snprintf(key, sizeof key, "%sdo_red", prefix);
+	if (!nde_kv_get_bool(kv, key, &r.do_red)) return FALSE;
+	g_snprintf(key, sizeof key, "%sdo_green", prefix);
+	if (!nde_kv_get_bool(kv, key, &r.do_green)) return FALSE;
+	g_snprintf(key, sizeof key, "%sdo_blue", prefix);
+	if (!nde_kv_get_bool(kv, key, &r.do_blue)) return FALSE;
+	*p = r;
+	return TRUE;
+}
+
+static gchar *mtf_serialize(gconstpointer user) {
+	const struct mtf_data *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_bool(kv, "linked", d->linked);
+	mtf_params_serialize(kv, "p_", &d->params);
+	if (!d->linked) {
+		mtf_params_serialize(kv, "u0_", &d->uparams[0]);
+		mtf_params_serialize(kv, "u1_", &d->uparams[1]);
+		mtf_params_serialize(kv, "u2_", &d->uparams[2]);
+	}
+	nde_kv_add_bool(kv, "adc", d->auto_display_compensation);
+	return nde_kv_end(kv);
+}
+
+static gpointer mtf_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_mtf.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	gboolean linked, adc;
+	struct mtf_params params, uparams[3] = { { 0 } };
+	if (!nde_kv_get_bool(kv, "linked", &linked) ||
+	    !mtf_params_deserialize(kv, "p_", &params) ||
+	    !nde_kv_get_bool(kv, "adc", &adc)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	if (!linked) {
+		if (!mtf_params_deserialize(kv, "u0_", &uparams[0]) ||
+		    !mtf_params_deserialize(kv, "u1_", &uparams[1]) ||
+		    !mtf_params_deserialize(kv, "u2_", &uparams[2])) {
+			g_hash_table_unref(kv);
+			return NULL;
+		}
+	}
+	struct mtf_data *d = create_mtf_data();
+	if (d) {
+		d->linked = linked;
+		d->params = params;
+		d->uparams[0] = uparams[0];
+		d->uparams[1] = uparams[1];
+		d->uparams[2] = uparams[2];
+		d->auto_display_compensation = adc;
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
 
 /* Op descriptors — single source of truth for the MTF stretch ops.
  * process_mtf picks the forward/inverse descriptor via its `inverse` flag; the
@@ -38,6 +137,7 @@ const op_descriptor op_desc_mtf = {
 	.description = N_("Midtones Transfer Function"),
 	.mem_ratio = 1.0f,
 	.flags = OP_MASK_CAPABLE,
+	.serialize = mtf_serialize, .deserialize = mtf_deserialize,
 };
 
 const op_descriptor op_desc_mtf_inverse = {
@@ -47,6 +147,7 @@ const op_descriptor op_desc_mtf_inverse = {
 	.description = N_("Inverse Midtones Transfer Function"),
 	.mem_ratio = 1.0f,
 	.flags = OP_MASK_CAPABLE,
+	.serialize = mtf_serialize, .deserialize = mtf_deserialize,
 };
 
 void apply_linked_mtf_to_fits(fits *from, fits *to, struct mtf_params params, gboolean multithreaded) {

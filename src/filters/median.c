@@ -32,6 +32,43 @@
 #include "median.h"
 #include "algos/median_fast.h"
 #include "core/op_descriptors.h"
+#include "core/nde_history.h"
+
+/* NDE serializers (flis-nde-sketch.md §11-§12).  The median hook reads ksize,
+ * amount, iterations (fit is a runtime pointer, previewing is preview state).
+ * Construction sites leave destroy_fn NULL (POD, framework free-fallback); the
+ * deserializer sets destroy_fn = free (behaviourally identical). */
+static gchar *median_serialize(gconstpointer user) {
+	const struct median_filter_data *p = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_int(kv, "ksize", p->ksize);
+	nde_kv_add_double(kv, "amount", p->amount);
+	nde_kv_add_int(kv, "iterations", p->iterations);
+	return nde_kv_end(kv);
+}
+
+static gpointer median_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_median.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	gint64 ksize, iterations;
+	double amount;
+	if (!nde_kv_get_int(kv, "ksize", &ksize) ||
+	    !nde_kv_get_double(kv, "amount", &amount) ||
+	    !nde_kv_get_int(kv, "iterations", &iterations)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct median_filter_data *p = calloc(1, sizeof(*p));
+	if (p) {
+		p->destroy_fn = free;
+		p->ksize = (int)ksize;
+		p->amount = amount;
+		p->iterations = (int)iterations;
+	}
+	g_hash_table_unref(kv);
+	return p;
+}
 
 /* Op descriptor — single source of truth for this operation (op_descriptor.h) */
 const op_descriptor op_desc_median = {
@@ -41,6 +78,7 @@ const op_descriptor op_desc_median = {
 	.description = N_("Median filter"),
 	.mem_ratio = 2.0f,
 	.flags = OP_MASK_CAPABLE,
+	.serialize = median_serialize, .deserialize = median_deserialize,
 };
 
 gchar* median_log_hook(gpointer p, log_hook_detail detail) {

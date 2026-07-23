@@ -52,6 +52,7 @@
 #include "core/preprocess.h"
 #include "core/processing.h"
 #include "core/op_descriptors.h"
+#include "core/nde_history.h"
 #include "core/sequence_filtering.h"
 #include "core/OS_utils.h"
 #include "core/siril_date.h"
@@ -3823,6 +3824,48 @@ static gchar *autoghs_unlinked_log_hook(gpointer p, log_hook_detail detail) {
 			data->shadows_clipping, data->amount, data->b, data->lp, data->hp);
 }
 
+/* NDE serializers (flis-nde-sketch.md §11-§12).  autoghs_unlinked_hook reads
+ * shadows_clipping, amount, b, hp, lp, clip_mode; SP is derived per-channel
+ * from image statistics at replay time, not stored.  The struct uses
+ * destroy_fn = free (POD, no owned pointers). */
+static gchar *autoghs_unlinked_serialize(gconstpointer user) {
+	const struct autoghs_unlinked_data *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_float(kv, "shadows_clipping", d->shadows_clipping);
+	nde_kv_add_float(kv, "amount", d->amount);
+	nde_kv_add_float(kv, "b", d->b);
+	nde_kv_add_float(kv, "hp", d->hp);
+	nde_kv_add_float(kv, "lp", d->lp);
+	/* on-disk value: enum order is frozen by the NDE format — do not reorder */
+	nde_kv_add_int(kv, "clip_mode", d->clip_mode);
+	return nde_kv_end(kv);
+}
+
+static gpointer autoghs_unlinked_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_autoghs_unlinked.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	struct autoghs_unlinked_data tmp = { 0 };
+	gint64 clip_mode;
+	if (!nde_kv_get_float(kv, "shadows_clipping", &tmp.shadows_clipping) ||
+	    !nde_kv_get_float(kv, "amount", &tmp.amount) ||
+	    !nde_kv_get_float(kv, "b", &tmp.b) ||
+	    !nde_kv_get_float(kv, "hp", &tmp.hp) ||
+	    !nde_kv_get_float(kv, "lp", &tmp.lp) ||
+	    !nde_kv_get_int(kv, "clip_mode", &clip_mode)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct autoghs_unlinked_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		*d = tmp;
+		d->clip_mode = (clip_mode_t)clip_mode;
+		d->destroy_fn = free;
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
+
 int process_autoghs(int nb) {
 	int argidx = 1;
 	gboolean linked = FALSE, mask_aware = FALSE;
@@ -4173,6 +4216,28 @@ int process_wavelet(int nb) {
 
 static int log_image_hook(struct generic_img_args *args, fits *fit, int threads) {
 	return loglut(fit);
+}
+
+/* NDE serializers for stretch.log — a paramless op (args->user is NULL, the
+ * hook calls loglut(fit) unconditionally).  serialize emits an empty blob;
+ * deserialize returns a minimal destructor-first heap struct so replay has a
+ * valid (freeable) user pointer, even though the hook ignores it. */
+struct paramless_data { destructor destroy_fn; };
+
+static gchar *logstretch_serialize(gconstpointer user) {
+	(void)user;
+	GString *kv = nde_kv_start();
+	return nde_kv_end(kv);   /* "" */
+}
+
+static gpointer logstretch_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_logstretch.version)
+		return NULL;
+	(void)blob;   /* no keys required — any blob (incl. "") is accepted */
+	struct paramless_data *d = calloc(1, sizeof(*d));
+	if (d)
+		d->destroy_fn = free;
+	return d;
 }
 
 int process_log(int nb){
@@ -17666,6 +17731,7 @@ const op_descriptor op_desc_grey_flat = {
 const op_descriptor op_desc_logstretch = {
 	.id = "stretch.log", .version = 1, .image_hook = log_image_hook,
 	.description = N_("Log stretch"), .mem_ratio = 0.0f, .flags = 0,
+	.serialize = logstretch_serialize, .deserialize = logstretch_deserialize,
 };
 const op_descriptor op_desc_entropy = {
 	.id = "stats.entropy", .version = 1, .image_hook = entropy_image_hook,
@@ -17711,4 +17777,5 @@ const op_descriptor op_desc_autoghs_unlinked = {
 	.id = "stretch.autoghs_unlinked", .version = 1, .image_hook = autoghs_unlinked_hook,
 	.log_hook = autoghs_unlinked_log_hook, .description = N_("AutoGHS (unlinked)"),
 	.mem_ratio = 0.0f, .flags = OP_MASK_CAPABLE,
+	.serialize = autoghs_unlinked_serialize, .deserialize = autoghs_unlinked_deserialize,
 };
