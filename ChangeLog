@@ -43,6 +43,8 @@ siril-1.5.0
 * Added static autostretch mode to keep display stretch parameters fixed across images
 * Improve speed of extract_thumbnail_from_fits (!1066)
 * Improved à trous wavelets tool: better strength control, per-scale denoising (!1049)
+* Added a nondestructive edit history to FLIS layered images: operations are recorded with their parameters, persisted in .flis files, shown in the Layers panel's History section and inspectable with the new `flis_history` command (!tbc)
+* FLIS files carrying an edit history remain readable by builds without the feature, but those builds drop the history on their next save; tile-compressed saves omit the per-layer pixel checksums used to warn about external edits (!tbc)
 
 **Fixes**
 * Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
