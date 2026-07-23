@@ -180,11 +180,8 @@ static void rotate_gui(fits *fit) {
 	}
 
 	args->fit = fit;
-	args->mem_ratio = 2.0f;  // Rotation needs space for transformation
-	args->image_hook = rotation_image_hook;
-	args->log_hook = rotation_log_hook;
+	args->op = &op_desc_rotation;
 	args->idle_function = rotation_idle;
-	args->description = _("Rotation");
 	args->verbose = TRUE;
 	args->user = params;
 	args->max_threads = com.max_thread;
@@ -245,11 +242,10 @@ void siril_rotate90() {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.5f;
-	args->image_hook = rotation_image_hook;
-	args->log_hook = rotation_log_hook;
+	args->op = &op_desc_rotation;
+	args->mem_ratio = 1.5f;                  // override: fast rotation
 	args->idle_function = fast_rotation_idle;
-	args->description = _("Rotation 90°");
+	args->description = _("Rotation 90°");   // override: variant label
 	args->verbose = TRUE;
 	args->user = params;
 	args->max_threads = 1;  // Fast rotation doesn't benefit from threading
@@ -288,11 +284,10 @@ void siril_rotate270() {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.5f;
-	args->image_hook = rotation_image_hook;
-	args->log_hook = rotation_log_hook;
+	args->op = &op_desc_rotation;
+	args->mem_ratio = 1.5f;                  // override: fast rotation
 	args->idle_function = fast_rotation_idle;
-	args->description = _("Rotation -90°");
+	args->description = _("Rotation -90°");  // override: variant label
 	args->verbose = TRUE;
 	args->user = params;
 	args->max_threads = 1;
@@ -405,10 +400,8 @@ void mirrorx_gui(fits *fit) {
 	}
 
 	args->fit = fit;
-	args->mem_ratio = 1.0f;  // Mirror needs minimal extra memory
-	args->image_hook = mirrorx_image_hook;
+	args->op = &op_desc_mirrorx;
 	args->idle_function = mirror_idle;
-	args->description = _("Mirror X");
 	args->verbose = TRUE;
 	args->user = params;
 	args->max_threads = com.max_thread;
@@ -443,10 +436,8 @@ void mirrory_gui(fits *fit) {
 	}
 
 	args->fit = fit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = mirrory_image_hook;
+	args->op = &op_desc_mirrory;
 	args->idle_function = mirror_idle;
-	args->description = _("Mirror Y");
 	args->verbose = TRUE;
 	args->user = params;
 	args->max_threads = com.max_thread;
@@ -510,11 +501,8 @@ void on_button_binning_ok_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.5f;  // Binning needs space for the new buffer
-	args->image_hook = binning_image_hook;
-	args->log_hook = binning_log_hook;
+	args->op = &op_desc_binning;
 	args->idle_function = binning_idle;
-	args->description = _("Binning");
 	args->verbose = TRUE;
 	args->user = params;
 	args->max_threads = com.max_thread;
@@ -583,10 +571,9 @@ void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 2.0f;  // Resample needs space for transformation
-	args->image_hook = resample_image_hook;
+	args->op = &op_desc_resample;
+	args->mem_ratio = 2.0f;  // override: descriptor default is 0 (always set per-site)
 	args->idle_function = binning_idle;
-	args->description = _("Resample");
 	args->verbose = TRUE;
 	args->user = params;
 	args->max_threads = com.max_thread;
@@ -785,11 +772,8 @@ void siril_crop() {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;  // Crop is in-place
-	args->image_hook = crop_image_hook_single;
+	args->op = &op_desc_crop;
 	args->idle_function = crop_idle;
-	args->description = _("Crop");
-	args->log_hook = crop_log_hook;
 	args->verbose = TRUE;
 	args->user = params;
 	args->max_threads = 1;  // Crop doesn't benefit from threading

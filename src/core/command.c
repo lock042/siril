@@ -4858,10 +4858,8 @@ int process_mirrorx(int nb){
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = mirrorx_image_hook;
+	args->op = &op_desc_mirrorx;
 	args->idle_function = NULL;  // Use default
-	args->description = _("Mirror X");
 	args->verbose = TRUE;
 	args->user = params;
 	args->max_threads = com.max_thread;
@@ -4895,10 +4893,8 @@ int process_mirrory(int nb){
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = mirrory_image_hook;
+	args->op = &op_desc_mirrory;
 	args->idle_function = NULL;
-	args->description = _("Mirror Y");
 	args->verbose = TRUE;
 	args->user = params;
 	args->max_threads = com.max_thread;
@@ -4946,11 +4942,8 @@ int process_binxy(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.5f;
-	args->image_hook = binning_image_hook;
-	args->log_hook = binning_log_hook;
+	args->op = &op_desc_binning;
 	args->idle_function = NULL;
-	args->description = _("Binning");
 	args->verbose = TRUE;
 	args->user = params;
 	args->max_threads = com.max_thread;
@@ -5081,11 +5074,9 @@ int process_resample(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.0f + ((toX / gfit->rx) * (toY / gfit->ry));
-	args->image_hook = resample_image_hook;
-	args->log_hook = resample_log_hook;
+	args->op = &op_desc_resample;
+	args->mem_ratio = 1.0f + ((toX / gfit->rx) * (toY / gfit->ry));  // override: computed
 	args->idle_function = NULL;
-	args->description = _("Resample");
 	args->verbose = TRUE;
 	args->user = params;
 	args->max_threads = com.max_thread;
@@ -5154,10 +5145,8 @@ int process_crop(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = crop_image_hook_single;
+	args->op = &op_desc_crop;
 	args->idle_function = NULL;
-	args->description = _("Crop");
 	args->verbose = TRUE;
 	args->user = params;
 	args->max_threads = 1;
@@ -5267,11 +5256,8 @@ int process_rotate(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 2.0f;
-	args->image_hook = rotation_image_hook;
-	args->log_hook = rotation_log_hook;
+	args->op = &op_desc_rotation;
 	args->idle_function = NULL;
-	args->description = _("Rotation");
 	args->verbose = TRUE;
 	args->user = params;
 	args->max_threads = com.max_thread;
@@ -5309,11 +5295,10 @@ int process_rotatepi(int nb){
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.5f;
-	args->image_hook = rotation_image_hook;
-	args->log_hook = rotation_log_hook;
+	args->op = &op_desc_rotation;
+	args->mem_ratio = 1.5f;                  // override: fast 180° needs less
 	args->idle_function = NULL;
-	args->description = _("Rotation 180°");
+	args->description = _("Rotation 180°");  // override: variant label
 	args->verbose = TRUE;
 	args->user = params;
 	args->max_threads = 1;

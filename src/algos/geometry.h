@@ -78,6 +78,14 @@ int mirrory_image_hook(struct generic_img_args *args, fits *fit, int nb_threads)
 int resample_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
 int rotation_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
 
+/* Op descriptors — single source of truth for these ops (op_descriptor.h) */
+extern const struct op_descriptor op_desc_crop;
+extern const struct op_descriptor op_desc_binning;
+extern const struct op_descriptor op_desc_resample;
+extern const struct op_descriptor op_desc_rotation;
+extern const struct op_descriptor op_desc_mirrorx;
+extern const struct op_descriptor op_desc_mirrory;
+
 /* Legacy functions - still used for sequences */
 int fits_binning(fits *fit, int factor, gboolean mean);
 int crop(fits *fit, rectangle *bounds);

@@ -54,8 +54,23 @@ void op_descriptor_fill_mask_args(struct generic_mask_args *args) {
  * unit test today and by the NDE by-id registry later).
  * ------------------------------------------------------------------------- */
 
+/* Descriptors are defined next to their hooks in the owning modules; declared
+ * here so the registry can reference them without pulling in every module
+ * header.  Keep both this block and the array alphabetised by id. */
+extern const op_descriptor op_desc_binning;
+extern const op_descriptor op_desc_crop;
+extern const op_descriptor op_desc_mirrorx;
+extern const op_descriptor op_desc_mirrory;
+extern const op_descriptor op_desc_resample;
+extern const op_descriptor op_desc_rotation;
+
 static const op_descriptor *const descriptors[] = {
-	/* populated as operations are migrated */
+	&op_desc_binning,       /* geometry.binning */
+	&op_desc_crop,          /* geometry.crop */
+	&op_desc_mirrorx,       /* geometry.mirrorx */
+	&op_desc_mirrory,       /* geometry.mirrory */
+	&op_desc_resample,      /* geometry.resample */
+	&op_desc_rotation,      /* geometry.rotation */
 	NULL
 };
 
