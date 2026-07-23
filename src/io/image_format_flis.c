@@ -1572,6 +1572,114 @@ static int write_flis_hist_hdu(fitsfile *fptr, GPtrArray *records, gint64 next_i
     return 0;
 }
 
+/* ===================================================================== */
+/* NDE_BASE — baseline pixel checkpoints (nde phase 2, plan P2.C)         */
+/*                                                                       */
+/* One image HDU per baseline, EXTNAME='NDE_BASE', FLIS_ID=<item_id>.    */
+/* Written after FLIS_HIST, only for item_ids that have live records.    */
+/* Persisted LOSSLESSLY regardless of the user's compression preference  */
+/* (decision 4): float baselines would poison every replay if quantised. */
+/* ===================================================================== */
+
+/* Switch @fptr to lossless GZIP tile compression with float quantisation
+ * disabled, so subsequently created image HDUs round-trip bit-exactly. */
+static int nde_base_set_lossless(fitsfile *fptr) {
+    int status = 0;
+    if (fits_set_compression_type(fptr, GZIP_1, &status)) {
+        report_fits_error(status);
+        return 1;
+    }
+    status = 0;
+    /* qlevel 0.0 disables quantisation → lossless float compression. */
+    if (fits_set_quantize_level(fptr, 0.0f, &status)) {
+        report_fits_error(status);
+        return 1;
+    }
+    return 0;
+}
+
+/* Restore @fptr's compression state to the user's preference after the
+ * lossless baseline writes (defensive — NDE_BASE HDUs are the last ones
+ * written, but leave the fptr as save_flis's own settings expect). */
+static void nde_base_restore_compression(fitsfile *fptr) {
+    if (com.pref.comp.fits_enabled) {
+        fits tmp_f = { .fptr = fptr };
+        siril_fits_compress(&tmp_f);
+    } else {
+        int status = 0;
+        fits_set_compression_type(fptr, NOCOMPRESS, &status);
+    }
+}
+
+/* Write @f as one NDE_BASE image HDU tagged with @item_id.  @f must carry a
+ * valid pixel buffer.  Compression is assumed already set to lossless. */
+static int write_nde_base_hdu(fitsfile *fptr, fits *f, gint item_id) {
+    int status = 0;
+    f->naxes[0] = f->rx;
+    f->naxes[1] = f->ry;
+    if (fits_create_img(fptr, f->bitpix, f->naxis, f->naxes, &status)) {
+        report_fits_error(status);
+        return 1;
+    }
+    if (f->bitpix == USHORT_IMG) {
+        double bzero = 32768.0, bscale = 1.0;
+        fits_write_key(fptr, TDOUBLE, "BZERO",  &bzero,  "Unsigned 16-bit offset", &status);
+        fits_write_key(fptr, TDOUBLE, "BSCALE", &bscale, "Scale factor",           &status);
+        status = 0;
+    }
+
+    fitsfile *saved_fptr = f->fptr;
+    f->fptr = fptr;
+    int ret = save_opened_fits(f);
+    f->fptr = saved_fptr;
+    if (ret) return 1;
+
+    int id = item_id;
+    fits_write_key(fptr, TINT,    "FLIS_ID",   &id,           "FLIS item ID",   &status);
+    fits_write_key(fptr, TSTRING, "FLIS_TYPE", (void *)"NDE_BASE", "FLIS HDU type", &status);
+    fits_write_key(fptr, TSTRING, "EXTNAME",   (void *)"NDE_BASE",  "Extension name", &status);
+    if (status) { report_fits_error(status); return 1; }
+    return 0;
+}
+
+/* Write one NDE_BASE HDU per DISTINCT item_id present in @records, pulling
+ * each baseline from the in-session checkpoint store.  Only item_ids with a
+ * live record are persisted (the saver-side of the "live records only" gate).
+ * The lossless compression settings are applied here and restored after, so
+ * baselines round-trip bit-exactly whatever the user's compression pref. */
+static void write_nde_base_hdus(fitsfile *fptr, GPtrArray *records) {
+    /* Collect distinct target item_ids (records with a real target). */
+    GHashTable *seen = g_hash_table_new(g_direct_hash, g_direct_equal);
+    gboolean wrote_any = FALSE;
+    for (guint i = 0; i < records->len; i++) {
+        nde_record *rec = g_ptr_array_index(records, i);
+        gint id = rec->target_item_id;
+        if (g_hash_table_contains(seen, GINT_TO_POINTER(id)))
+            continue;
+        g_hash_table_add(seen, GINT_TO_POINTER(id));
+        if (!nde_checkpoint_baseline_exists(id))
+            continue;   /* no baseline captured for this item — chain not replayable */
+        fits *base = nde_checkpoint_baseline_get(id);
+        if (!base)
+            continue;
+        if (!wrote_any) {
+            if (nde_base_set_lossless(fptr)) {
+                clearfits(base);
+                free(base);
+                break;
+            }
+            wrote_any = TRUE;
+        }
+        if (write_nde_base_hdu(fptr, base, id))
+            siril_log_warning(_("FLIS: failed to write NDE baseline for item %d\n"), id);
+        clearfits(base);
+        free(base);
+    }
+    if (wrote_any)
+        nde_base_restore_compression(fptr);
+    g_hash_table_destroy(seen);
+}
+
 /* Read one cell of a fixed-width ASCII column as a heap string; NULL for an
  * empty cell (which is how NULL record fields were written).  Trailing
  * blanks are trimmed — fixed-width A columns are space-padded on disk, so
@@ -1686,6 +1794,66 @@ static nde_history *read_flis_hist(fitsfile *fptr, int nhdus) {
     hist->live_count = hist->records->len;
     hist->next_record_id = MAX((gint64)seq, max_id + 1);
     return hist;
+}
+
+/* One in-flight baseline read during load: an item_id + its reconstructed
+ * fits.  Adopted into the checkpoint store AFTER nde_history_attach (which
+ * purges the store), then freed. */
+typedef struct {
+    gint  item_id;
+    fits *fit;
+} nde_base_load_t;
+
+static void nde_base_load_free(gpointer p) {
+    nde_base_load_t *b = p;
+    if (!b) return;
+    if (b->fit) { clearfits(b->fit); free(b->fit); }
+    g_free(b);
+}
+
+/*
+ * Read every NDE_BASE image HDU (located by EXTNAME scan, like FLIS_HIST) into
+ * a GPtrArray of nde_base_load_t.  Only baselines for item_ids that have a
+ * live record in @hist are adopted (the loader-side of the "live records only"
+ * gate); baselines for other ids are skipped.  Returns NULL when there is no
+ * history or no baseline HDUs.  Leaves @fptr at an arbitrary HDU.
+ */
+static GPtrArray *read_nde_base_hdus(fitsfile *fptr, int nhdus, nde_history *hist) {
+    if (!hist || !hist->records || hist->records->len == 0)
+        return NULL;
+    /* Set of item_ids that carry a live record. */
+    GHashTable *live_ids = g_hash_table_new(g_direct_hash, g_direct_equal);
+    for (guint i = 0; i < hist->records->len; i++) {
+        nde_record *rec = g_ptr_array_index(hist->records, i);
+        g_hash_table_add(live_ids, GINT_TO_POINTER(rec->target_item_id));
+    }
+
+    GPtrArray *out = NULL;
+    for (int h = 2; h <= nhdus; h++) {
+        int status = 0;
+        char extname[FLEN_VALUE] = { 0 };
+        if (fits_movabs_hdu(fptr, h, NULL, &status)) { status = 0; continue; }
+        fits_read_key(fptr, TSTRING, "EXTNAME", extname, NULL, &status); status = 0;
+        if (g_ascii_strcasecmp(extname, "NDE_BASE"))
+            continue;
+        int item_id = -1;
+        fits_read_key(fptr, TINT, "FLIS_ID", &item_id, NULL, &status); status = 0;
+        if (!g_hash_table_contains(live_ids, GINT_TO_POINTER(item_id)))
+            continue;   /* baseline for an item with no live record — ignore */
+        fits *f = load_layer_from_hdu(fptr, h);
+        if (!f) {
+            siril_log_warning(_("FLIS: failed to read NDE baseline HDU %d\n"), h);
+            continue;
+        }
+        if (!out)
+            out = g_ptr_array_new_with_free_func(nde_base_load_free);
+        nde_base_load_t *b = g_new0(nde_base_load_t, 1);
+        b->item_id = item_id;
+        b->fit     = f;
+        g_ptr_array_add(out, b);
+    }
+    g_hash_table_destroy(live_ids);
+    return out;
 }
 
 int save_flis(const gchar *filename) {
@@ -1908,6 +2076,9 @@ int save_flis(const gchar *filename) {
     if (saved_ok && nde_records) {
         if (write_flis_hist_hdu(fptr, nde_records, nde_next_id))
             siril_log_warning(_("FLIS: failed to write the NDE history table\n"));
+        /* NDE baselines ride after FLIS_HIST (plan P2.C), one lossless image
+         * HDU per item that has a live record and a captured baseline. */
+        write_nde_base_hdus(fptr, nde_records);
     }
     if (nde_records)
         g_ptr_array_unref(nde_records);
@@ -2097,6 +2268,11 @@ int load_flis(const gchar *filename) {
     nde_history *nde_hist = read_flis_hist(fptr, nhdus);
     if (nde_flag && !nde_hist)
         siril_log_warning(_("FLIS: file declares an NDE history (FLISNDE) but no readable FLIS_HIST table was found\n"));
+    /* NDE baselines (plan P2.C): read the NDE_BASE HDUs while the file is
+     * open, for item_ids that carry a live record.  Adopted into the
+     * checkpoint store AFTER nde_history_attach() (attach purges the store).
+     * Pre-phase-2 files simply have no NDE_BASE HDUs → chains not replayable. */
+    GPtrArray *nde_baselines = read_nde_base_hdus(fptr, nhdus, nde_hist);
     guint nde_hash_scope = 0, nde_hash_present = 0;
     gboolean nde_hash_mismatch = FALSE;
 
@@ -2282,6 +2458,7 @@ int load_flis(const gchar *filename) {
          * failed — free them or they leak on this path. */
         g_slist_free_full(groups, (GDestroyNotify)flis_group_free);
         nde_history_free(nde_hist);
+        if (nde_baselines) g_ptr_array_unref(nde_baselines);
         return 1;
     }
 
@@ -2356,6 +2533,17 @@ int load_flis(const gchar *filename) {
             siril_log_warning(_("FLIS: layer pixels were modified outside the recorded history\n"));
     }
     nde_history_attach(nde_hist);
+
+    /* Adopt the persisted baselines into the (freshly purged) checkpoint
+     * store — AFTER attach, since attach purges it.  Only baselines for
+     * item_ids with a live record were read (read_nde_base_hdus). */
+    if (nde_baselines) {
+        for (guint i = 0; i < nde_baselines->len; i++) {
+            nde_base_load_t *b = g_ptr_array_index(nde_baselines, i);
+            nde_checkpoint_baseline_adopt(b->fit, b->item_id);
+        }
+        g_ptr_array_unref(nde_baselines);
+    }
 
     siril_log_message(_("FLIS: loaded %d layer(s) from %s (%dx%d canvas)\n"),
                       g_slist_length(layers), filename, canvas_w, canvas_h);

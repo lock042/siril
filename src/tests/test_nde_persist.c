@@ -26,6 +26,7 @@
 #include <fitsio.h>
 #include "flis_test_helpers.h"
 #include "core/nde_history.h"
+#include "core/nde_checkpoint.h"
 
 cominfo com;
 fits *gfit;
@@ -221,4 +222,189 @@ Test(nde_persist, declared_but_missing_table_loads_empty) {
 	nde_history_attach(NULL);
 	cr_assert_eq(load_flis(tmppath), 0, "missing table must degrade gracefully");
 	cr_assert_eq(nde_history_live_count(), 0);
+}
+
+/* ---- NDE_BASE baseline persistence (plan P2.C) ------------------------ */
+
+/* Build a float fits with a per-pixel ramp so bit-exactness is meaningful. */
+static fits *ramp_float(int rx, int ry, int nch, float base) {
+	fits *f = NULL;
+	cr_assert_eq(new_fit_image(&f, rx, ry, nch, DATA_FLOAT), 0);
+	size_t n = (size_t)rx * ry * nch;
+	for (size_t i = 0; i < n; i++)
+		f->fdata[i] = base + (float)i * 3.1e-4f;
+	return f;
+}
+
+static fits *ramp_ushort(int rx, int ry, int nch, WORD base) {
+	fits *f = NULL;
+	cr_assert_eq(new_fit_image(&f, rx, ry, nch, DATA_USHORT), 0);
+	size_t n = (size_t)rx * ry * nch;
+	for (size_t i = 0; i < n; i++)
+		f->data[i] = (WORD)(base + (WORD)(i * 13));
+	return f;
+}
+
+/* Assert two float fits are pixel-identical. */
+static void assert_float_exact(const fits *a, const fits *b) {
+	cr_assert_not_null(a);
+	cr_assert_not_null(b);
+	cr_assert_eq(a->rx, b->rx);
+	cr_assert_eq(a->ry, b->ry);
+	cr_assert_eq(a->naxes[2], b->naxes[2]);
+	cr_assert_eq(a->type, DATA_FLOAT);
+	cr_assert_eq(b->type, DATA_FLOAT);
+	size_t n = (size_t)a->rx * a->ry * a->naxes[2];
+	for (size_t i = 0; i < n; i++)
+		cr_assert_eq(a->fdata[i], b->fdata[i],
+		             "float baseline pixel %zu: %g != %g", i, a->fdata[i], b->fdata[i]);
+}
+
+Test(nde_persist, baseline_roundtrip_float_exact) {
+	flis_layer_t *l = flis_test_add_layer(flis_test_make_mono_fits(12, 10, 0.25f), "base");
+	gint lid = l->item_id;
+	/* Seed a distinctive baseline for this item and a Tier-A record for it. */
+	fits *seed = ramp_float(12, 10, 1, 0.1f);
+	nde_checkpoint_baseline_ensure(seed, lid);
+	append_full("stretch.asinh", 1, "beta=5;offset=0", "Asinh",
+	            NDE_TIER_A, NDE_SCOPE_LAYER, lid, FALSE);
+
+	cr_assert_eq(save_flis(tmppath), 0);
+
+	/* Reload from scratch — attach purges the store, then the loader adopts. */
+	flis_free_layers(com.uniq);
+	nde_history_attach(NULL);
+	cr_assert(!nde_checkpoint_baseline_exists(lid), "purge must clear the store");
+	cr_assert_eq(load_flis(tmppath), 0);
+
+	cr_assert(nde_checkpoint_baseline_exists(lid), "baseline must be adopted on load");
+	fits *got = nde_checkpoint_baseline_get(lid);
+	assert_float_exact(got, seed);
+	clearfits(got); free(got);
+	clearfits(seed); free(seed);
+}
+
+Test(nde_persist, baseline_roundtrip_ushort_exact) {
+	flis_layer_t *l = flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.5f), "base");
+	gint lid = l->item_id;
+	fits *seed = ramp_ushort(8, 8, 1, 1000);
+	nde_checkpoint_baseline_ensure(seed, lid);
+	append_full("filters.median", 1, "ksize=3", "Median",
+	            NDE_TIER_A, NDE_SCOPE_LAYER, lid, FALSE);
+
+	cr_assert_eq(save_flis(tmppath), 0);
+
+	flis_free_layers(com.uniq);
+	nde_history_attach(NULL);
+	cr_assert_eq(load_flis(tmppath), 0);
+
+	cr_assert(nde_checkpoint_baseline_exists(lid));
+	fits *got = nde_checkpoint_baseline_get(lid);
+	cr_assert_not_null(got);
+	cr_assert_eq(got->type, DATA_USHORT);
+	size_t n = (size_t)seed->rx * seed->ry * seed->naxes[2];
+	for (size_t i = 0; i < n; i++)
+		cr_assert_eq(got->data[i], seed->data[i],
+		             "ushort baseline pixel %zu: %u != %u", i, got->data[i], seed->data[i]);
+	clearfits(got); free(got);
+	clearfits(seed); free(seed);
+}
+
+/* Decision 4: the baseline must round-trip LOSSLESSLY even when the user has
+ * enabled (lossy) tile compression for ordinary layer HDUs. */
+Test(nde_persist, baseline_lossless_under_user_compression) {
+	flis_layer_t *l = flis_test_add_layer(flis_test_make_mono_fits(16, 16, 0.25f), "base");
+	gint lid = l->item_id;
+	fits *seed = ramp_float(16, 16, 1, 0.42f);
+	nde_checkpoint_baseline_ensure(seed, lid);
+	append_full("stretch.asinh", 1, "beta=5;offset=0", "Asinh",
+	            NDE_TIER_A, NDE_SCOPE_LAYER, lid, FALSE);
+
+	/* Lossy compression for the layer HDUs; the baseline must ignore it. */
+	com.pref.comp.fits_enabled = TRUE;
+	com.pref.comp.fits_method = 0;          /* RICE */
+	com.pref.comp.fits_quantization = 16.0;
+	int rc = save_flis(tmppath);
+	com.pref.comp.fits_enabled = FALSE;
+	cr_assert_eq(rc, 0);
+
+	flis_free_layers(com.uniq);
+	nde_history_attach(NULL);
+	cr_assert_eq(load_flis(tmppath), 0);
+
+	cr_assert(nde_checkpoint_baseline_exists(lid));
+	fits *got = nde_checkpoint_baseline_get(lid);
+	/* Bit-exact despite fits_enabled — GZIP + quantize 0.0 on NDE_BASE. */
+	assert_float_exact(got, seed);
+	clearfits(got); free(got);
+	clearfits(seed); free(seed);
+}
+
+/* A file with no history has no NDE_BASE HDUs; a fresh load adopts nothing. */
+Test(nde_persist, no_history_no_baselines) {
+	flis_layer_t *l = flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "base");
+	gint lid = l->item_id;
+	cr_assert_eq(save_flis(tmppath), 0);
+
+	/* Scan the saved file: there must be zero NDE_BASE HDUs. */
+	int status = 0, nhdus = 0, found = 0;
+	fitsfile *fptr = NULL;
+	fits_open_diskfile(&fptr, tmppath, READONLY, &status);
+	cr_assert_eq(status, 0);
+	fits_get_num_hdus(fptr, &nhdus, &status);
+	for (int h = 2; h <= nhdus; h++) {
+		char extname[FLEN_VALUE] = { 0 };
+		fits_movabs_hdu(fptr, h, NULL, &status); status = 0;
+		fits_read_key(fptr, TSTRING, "EXTNAME", extname, NULL, &status); status = 0;
+		if (!g_ascii_strcasecmp(extname, "NDE_BASE")) found++;
+	}
+	fits_close_file(fptr, &status);
+	cr_assert_eq(found, 0, "a history-less file must carry no NDE_BASE HDUs");
+
+	flis_free_layers(com.uniq);
+	nde_history_attach(NULL);
+	cr_assert_eq(load_flis(tmppath), 0);
+	cr_assert_not(nde_checkpoint_baseline_exists(lid));
+}
+
+/* Pre-phase-2 file (FLIS_HIST present, NDE_BASE HDUs deleted): loads fine and
+ * adopts no baseline — the chain is simply not replayable (decision 5). */
+Test(nde_persist, pre_phase2_no_baseline_loads) {
+	flis_layer_t *l = flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.25f), "base");
+	gint lid = l->item_id;
+	fits *seed = ramp_float(8, 8, 1, 0.3f);
+	nde_checkpoint_baseline_ensure(seed, lid);
+	append_full("stretch.asinh", 1, "beta=5", "Asinh",
+	            NDE_TIER_A, NDE_SCOPE_LAYER, lid, FALSE);
+	cr_assert_eq(save_flis(tmppath), 0);
+
+	/* Delete every NDE_BASE HDU, mimicking a pre-phase-2 writer. */
+	int status = 0, nhdus = 0;
+	fitsfile *fptr = NULL;
+	fits_open_diskfile(&fptr, tmppath, READWRITE, &status);
+	cr_assert_eq(status, 0);
+	fits_get_num_hdus(fptr, &nhdus, &status);
+	gboolean deleted = FALSE;
+	for (int h = 2; h <= nhdus; ) {
+		char extname[FLEN_VALUE] = { 0 };
+		fits_movabs_hdu(fptr, h, NULL, &status); status = 0;
+		fits_read_key(fptr, TSTRING, "EXTNAME", extname, NULL, &status); status = 0;
+		if (!g_ascii_strcasecmp(extname, "NDE_BASE")) {
+			fits_delete_hdu(fptr, NULL, &status); status = 0;
+			deleted = TRUE;
+			fits_get_num_hdus(fptr, &nhdus, &status);
+		} else {
+			h++;
+		}
+	}
+	fits_close_file(fptr, &status);
+	cr_assert(deleted, "fixture: no NDE_BASE HDU found to delete");
+
+	flis_free_layers(com.uniq);
+	nde_history_attach(NULL);
+	cr_assert_eq(load_flis(tmppath), 0, "missing baselines must load gracefully");
+	cr_assert_eq(nde_history_live_count(), 1, "history still loads");
+	cr_assert_not(nde_checkpoint_baseline_exists(lid),
+	              "no baseline HDU → not replayable");
+	clearfits(seed); free(seed);
 }
