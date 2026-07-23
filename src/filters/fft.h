@@ -18,5 +18,6 @@ int fft_compute_core(struct fft_data *args, fits *fit);
 void free_fft_data(void *p);
 int fft_image_hook(struct generic_img_args *args, fits *fit, int threads);
 gchar *fft_log_hook(gpointer p, log_hook_detail detail);
+
 /* fourier_transform and fft_idle are in src/gui/fft.c (GUI-only path) */
 #endif

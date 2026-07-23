@@ -32,6 +32,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
+#include "core/op_descriptor.h"
 #include "core/siril_log.h"
 #include "core/sequence_filtering.h"
 #include "core/command_line_processor.h"
@@ -1545,6 +1546,9 @@ gpointer generic_image_worker(gpointer p) {
 
 	assert(args);
 	assert(args->fit);
+	/* Populate image_hook/log_hook/description/mem_ratio from args->op (if any)
+	 * before anything reads those fields. No-op for un-migrated sites. */
+	op_descriptor_fill_img_args(args);
 	assert(args->image_hook);
 
 	/* Stack copies of args fields — args is freed by the sync-idle at
@@ -1845,6 +1849,8 @@ gpointer generic_mask_worker(gpointer p) {
 
 	assert(args);
 	assert(args->fit);
+	/* Populate mask_hook/log_hook/description/mem_ratio from args->op (if any). */
+	op_descriptor_fill_mask_args(args);
 	assert(args->mask_hook);
 
 	gboolean verbose = args->verbose;

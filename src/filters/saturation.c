@@ -8,8 +8,19 @@
 #include "core/siril_log.h"
 #include "algos/colors.h"
 #include "algos/statistics.h"
+#include "core/op_descriptors.h"
 
 #include "saturation.h"
+
+/* Op descriptor — single source of truth for this operation (op_descriptor.h) */
+const op_descriptor op_desc_saturation = {
+	.id = "color.saturation", .version = 1,
+	.image_hook = saturation_image_hook,
+	.log_hook = satu_log_hook,
+	.description = N_("Saturation"),
+	.mem_ratio = 1.0f,
+	.flags = OP_MASK_CAPABLE,
+};
 
 /* Helper to map hue types to degree ranges */
 void satu_set_hues_from_types(saturation_params *args, int type) {

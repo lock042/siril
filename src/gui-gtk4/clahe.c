@@ -23,6 +23,7 @@
 #include <gtk/gtk.h>
 
 #include "core/siril.h"
+#include "core/op_descriptors.h"
 #include "core/processing.h"
 #include "algos/statistics.h"
 #include "filters/clahe.h"
@@ -66,13 +67,10 @@ static int clahe_process_with_worker(gboolean for_preview) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 2.0f;
-	args->image_hook = clahe_image_hook;
+	args->op = &op_desc_clahe;
 	args->idle_function = NULL;
-	args->description = _("CLAHE");
 	args->verbose = !for_preview;
 	args->user = params;
-	args->log_hook = clahe_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
 	args->for_roi = FALSE;
@@ -166,13 +164,10 @@ void on_clahe_Apply_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 2.0f;
-	args->image_hook = clahe_image_hook;
+	args->op = &op_desc_clahe;
 	args->idle_function = NULL;
-	args->description = _("CLAHE");
 	args->verbose = TRUE;
 	args->user = params;
-	args->log_hook = clahe_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
