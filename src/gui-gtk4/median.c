@@ -23,6 +23,7 @@
 #include <gtk/gtk.h>
 
 #include "core/siril.h"
+#include "core/op_descriptors.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "core/undo.h"
@@ -152,10 +153,8 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	args->fit = gui.roi.active ? &gui.roi.fit : gfit;
-	args->mem_ratio = 2.0f;
-	args->image_hook = median_image_hook;
+	args->op = &op_desc_median;
 	args->idle_function = for_preview ? NULL : median_apply_idle;
-	args->description = _("Median filter");
 	args->command_updates_gfit = TRUE;
 	args->verbose = !for_preview;
 	args->user = params;

@@ -73,4 +73,3 @@ void initialize_spcc_mirrors(void);
 siril_cat_index siril_select_remote_gaia_xp_kind(void);
 
 #endif /* SRC_GUI_PHOTOMETRIC_CC_H_ */
-

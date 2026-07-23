@@ -23,6 +23,7 @@
 #include <gtk/gtk.h>
 
 #include "core/siril.h"
+#include "core/op_descriptors.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "filters/scnr.h"
@@ -72,13 +73,11 @@ static int scnr_process_with_worker(scnr_type type, double amount, gboolean pres
 	}
 
 	args->fit = for_roi ? &gui.roi.fit : gfit;
-	args->mem_ratio = 1.5f;
-	args->image_hook = scnr_image_hook;
+	args->op = &op_desc_scnr;
 	args->idle_function = NULL;
 	args->description = _("Subtractive Chromatic Noise Reduction");
 	args->verbose = !for_preview;
 	args->user = params;
-	args->log_hook = scnr_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
 	args->for_roi = for_roi;

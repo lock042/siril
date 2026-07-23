@@ -37,6 +37,27 @@
 #include "io/ser.h"
 #include "filters/deconvolution/deconvolution.h"
 #include "filters/synthstar.h"
+#include "core/op_descriptors.h"
+
+/* Op descriptors. estimate_only is measurement-only (one descriptor, the
+ * blind/stars/manual variants are description overrides at their sites). */
+const op_descriptor op_desc_deconvolve = {
+	.id = "filters.deconvolve", .version = 1,
+	.image_hook = deconvolve_image_hook,
+	.log_hook = deconvolve_log_hook,
+	.description = N_("Deconvolution"),
+	.mem_ratio = 4.0f,
+	.flags = OP_MASK_CAPABLE,
+};
+
+const op_descriptor op_desc_psf_estimate = {
+	.id = "psf.estimate", .version = 1,
+	.image_hook = estimate_only_image_hook,
+	.log_hook = makepsf_log_hook,
+	.description = N_("PSF Estimation"),
+	.mem_ratio = 3.0f,
+	.flags = 0,
+};
 
 /* Forward declarations for GUI idle callbacks invoked via gui_function() */
 gboolean DrawPSF(gpointer user_data);

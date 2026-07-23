@@ -23,6 +23,7 @@
 #include <gtk/gtk.h>
 
 #include "core/siril.h"
+#include "core/op_descriptors.h"
 #include "core/processing.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
@@ -141,11 +142,8 @@ void on_button_fft_apply_clicked(GtkButton *button, gpointer user_data) {
 			return;
 		}
 		args->fit = gfit;
-		args->mem_ratio = 2.0f;
-		args->image_hook = fft_image_hook;
-		args->log_hook = fft_log_hook;
+		args->op = &op_desc_fft;
 		args->idle_function = fft_idle;
-		args->description = _("Fourier Transform");
 		args->verbose = TRUE;
 		args->user = fft_args;
 
