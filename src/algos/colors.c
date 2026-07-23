@@ -37,6 +37,17 @@
 #include "algos/colors.h"
 #include "algos/statistics.h"
 #include "algos/extraction.h"
+#include "core/op_descriptors.h"
+
+/* Op descriptor — single source of truth for this operation (op_descriptor.h) */
+const op_descriptor op_desc_ccm = {
+	.id = "color.ccm", .version = 1,
+	.image_hook = ccm_single_image_hook,
+	.log_hook = ccm_log_hook,
+	.description = N_("Color Conversion Matrix"),
+	.mem_ratio = 1.5f,
+	.flags = 0,
+};
 
 /******************************************************************************
  * Note for maintainers: do not use the translation macro on the following    *
@@ -1408,13 +1419,10 @@ int ccm_process_with_worker(ccm matrix, float power) {
 
 	// Set the fit based on whether ROI is active
 	args->fit = target_fit;
-	args->mem_ratio = 1.5f; // CCM needs minimal extra memory
-	args->image_hook = ccm_single_image_hook;
+	args->op = &op_desc_ccm;
 	args->idle_function = NULL;
-	args->description = _("Color Conversion Matrix");
 	args->verbose = TRUE;
 	args->user = params;
-	args->log_hook = ccm_log_hook;
 	args->max_threads = com.max_thread;
 	// We don't need to do these two because of calloc, but they are shown as a
 	// reminder of intent

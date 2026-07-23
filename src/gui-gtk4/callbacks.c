@@ -23,6 +23,7 @@
 #include <string.h>
 
 #include "core/siril.h"
+#include "core/op_descriptors.h"
 #include "core/processing_thread.h"
 #include "core/proto.h"
 #include "core/icc_profile.h"
@@ -751,8 +752,7 @@ void on_mask_clear_clicked(GtkButton *button, gpointer user_data) {
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit = gfit;
-	args->mask_hook = mask_clear_hook;
-	args->description = _("Clear mask");
+	args->op = &op_desc_mask_clear;
 	args->verbose = TRUE;
 	args->max_threads = com.max_thread;
 
@@ -2626,6 +2626,24 @@ static void popdown_mapped_popovers_recursive(GtkWidget *widget,
 	for (GtkWidget *child = gtk_widget_get_first_child(widget); child;
 	     child = gtk_widget_get_next_sibling(child))
 		popdown_mapped_popovers_recursive(child, skip_subtree, dismissed);
+}
+
+/* Pop down every mapped autohide popover in the main window, unconditionally.
+ * Returns TRUE if at least one was dismissed.  Used by the macOS backend (see
+ * siril_macos_fix_popover_autohide in OS_utils.c): there the capture-phase
+ * click handler below never fires, because AppKit does not deliver the outside
+ * mouseDown to control_window's GTK controllers while a popover NSWindow holds
+ * focus.  A local NSEvent monitor catches that click instead and calls this to
+ * run the same dismissal the Wayland path gets from on_window_press_dismiss_
+ * popovers().  Exposed through gui_iface so the Cocoa code (core layer) need
+ * not pull in GTK headers. */
+gboolean close_open_autohide_popovers(void) {
+	GtkWidget *win = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
+	if (!win)
+		return FALSE;
+	gboolean dismissed = FALSE;
+	popdown_mapped_popovers_recursive(win, NULL, &dismissed);
+	return dismissed;
 }
 
 static void on_window_press_dismiss_popovers(GtkGestureClick *gesture,

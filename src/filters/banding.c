@@ -40,6 +40,17 @@
 #include "opencv/opencv.h"
 
 #include "banding.h"
+#include "core/op_descriptors.h"
+
+/* Op descriptor — single source of truth for this operation (op_descriptor.h) */
+const op_descriptor op_desc_banding = {
+	.id = "filters.banding", .version = 1,
+	.image_hook = banding_single_image_hook,
+	.log_hook = banding_log_hook,
+	.description = N_("Canon Banding Reduction"),
+	.mem_ratio = 2.0f,
+	.flags = 0,
+};
 
 static int BandingEngine(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation, threading_type threading);
 

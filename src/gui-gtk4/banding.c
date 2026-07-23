@@ -23,6 +23,7 @@
 #include <gtk/gtk.h>
 
 #include "core/siril.h"
+#include "core/op_descriptors.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "filters/banding.h"
@@ -137,13 +138,10 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 		}
 
 		args->fit = gfit;
-		args->mem_ratio = 2.0f;
-		args->image_hook = banding_single_image_hook;
+		args->op = &op_desc_banding;
 		args->idle_function = banding_single_idle;
-		args->description = _("Canon Banding Reduction");
 		args->verbose = TRUE;
 		args->user = params;
-		args->log_hook = banding_log_hook;
 		args->max_threads = com.max_thread;
 		args->for_preview = FALSE;
 		args->for_roi = FALSE;

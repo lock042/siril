@@ -1511,6 +1511,7 @@ void siril_register_gui_iface(void) {
 	gui_iface.set_seq_browser_active = impl_set_seq_browser_active;
 	gui_iface.update_status_bar      = impl_update_status_bar;
 	gui_iface.update_menu_state      = impl_update_menu_state;
+	gui_iface.dismiss_autohide_popovers = close_open_autohide_popovers;
 	gui_iface.set_suppress_redraws   = impl_set_suppress_redraws;
 	gui_iface.populate_roi           = impl_populate_roi;
 	gui_iface.on_geometry_changed    = impl_on_geometry_changed;

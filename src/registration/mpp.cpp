@@ -243,9 +243,12 @@ cv::Mat read_analysis_frame(sequence *seq, int idx, int avi_pattern, int bitdept
 		cv::Mat view = wrap_fits_layer(&buf.f, 0);
 		if (view.empty()) return cv::Mat();
 		int code = -1;
+#ifdef HAVE_FFMS2
 		if (seq && seq->type == SEQ_AVI)
 			code = mpp::avi_bayer_to_cv_code(avi_pattern, view.rows);
-		else if (seq && seq->type == SEQ_SER)
+		else
+#endif
+		if (seq && seq->type == SEQ_SER)
 			code = mpp::ser_bayer_to_cv_code(seq);
 		else if (seq && (seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ))
 			code = mpp::fits_bayer_to_cv_code(&buf.f);
@@ -298,9 +301,12 @@ cv::Mat read_full_frame(sequence *seq, int idx, int avi_pattern) {
 		cv::Mat view = wrap_fits_layer(&buf.f, 0);
 		if (view.empty()) return cv::Mat();
 		int code = -1;
+#ifdef HAVE_FFMS2
 		if (seq && seq->type == SEQ_AVI)
 			code = mpp::avi_bayer_to_cv_code(avi_pattern, view.rows);
-		else if (seq && (seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ))
+		else
+#endif
+		if (seq && (seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ))
 			code = mpp::fits_bayer_to_cv_code(&buf.f);
 		if (code >= 0) {
 			cv::Mat rgb;
@@ -474,7 +480,7 @@ cv::Mat mean_frame_from_run(const mpp_run_t *run) {
  * Each tier's byte cost is N · rx · ry · channels · bytes_per_sample · copies
  * (for cached/half_cached) or K · ... (for partial), or
  * in_flight · rx · ry · channels · bytes_per_sample (for streaming),
- * plus output_bytes (mean_frame accumulator, shifts arrays, drizzle
+ * plus output_bytes (mean_frame accumulator, shifts arrays, scaled
  * output canvas).
  *
  * `bytes_per_sample` should match what the caller actually stores: 2
@@ -762,9 +768,13 @@ static int mpp_analysis_in_flight_slots(const sequence *seq, const mpp_config_t 
 	const bool ser_cfa = (seq->type == SEQ_SER && seq->ser_file
 	                      && seq->ser_file->color_id >= SER_BAYER_RGGB
 	                      && seq->ser_file->color_id <= SER_BAYER_BGGR);
+#ifdef HAVE_FFMS2
 	const bool avi_cfa = (seq->type == SEQ_AVI
 	                      && cfg->avi_bayer_pattern >= MPP_AVI_BAYER_RGGB
 	                      && cfg->avi_bayer_pattern <= MPP_AVI_BAYER_GRBG);
+#else
+	const bool avi_cfa = FALSE;
+#endif
 	/* Single-layer FITS / FITSEQ may be a raw CFA mosaic that
 	 * read_analysis_frame now cvtColor-debayers (fits_bayer_to_cv_code).
 	 * We can't tell mono from CFA without reading a frame here, so assume
@@ -1270,6 +1280,145 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 
 /* -------------------- Stage B: mpp_compute_shifts -------------------- */
 
+/* mpp_improve: build the refined correlation reference for the second
+ * Stage B pass (cfg->alignment_points_refine_reference; no PSS
+ * equivalent — see MPP_PSS_DIFFS.md).
+ *
+ * The pass-1 reference is the seeing-averaged mean frame: fine structure
+ * (planetary banding, ring gradations) is washed out of it, so it cannot
+ * drive the correlation peak and low-contrast APs measure mostly noise.
+ * Stack the top-K frames per AP at the pass-1 shifts instead — locally
+ * registered, so far sharper than the global-aligned average — and hand
+ * that back as the reference for a full re-measure.
+ *
+ * K is deliberately small: reference noise adds in quadrature to frame
+ * noise in the normalized correlation, so ~8 frames already make it
+ * negligible, while a small K keeps the reference sharp (only the per-AP
+ * best moments of seeing, and less pass-1 shift jitter averaged in).
+ * Auto value: clamp(ceil(5% of included frames), 8, 32); explicit
+ * cfg->alignment_points_reference_frames overrides.
+ *
+ * The merge output is pasted into a mean-frame-sized canvas (the merge
+ * trims the clipped border ring; AP box coordinates are mean-frame-
+ * relative, so the mean frame fills whatever the trim removed — those
+ * pixels only matter for boxes hard against the intersection border).
+ *
+ * Returns MPP_OK with *ref_out / *k_out set, MPP_EINTR on cancellation,
+ * MPP_ENOMEM / MPP_ENODATA on containable failures (caller keeps the
+ * pass-1 shifts). */
+static mpp_status_t build_refined_reference(sequence *seq, const mpp_config_t *cfg,
+                                            mpp_run_t *run,
+                                            const mpp::APQualities &apq,
+                                            const std::vector<mpp::FrameOffset> &offsets,
+                                            const cv::Mat &mean_raw,
+                                            const mpp_shifts_t *pass1,
+                                            int threads, bool provider_safe,
+                                            cv::Mat *ref_out, int *k_out) {
+	const int N = run->num_frames;
+	const int M = run->aps ? run->aps->count : 0;
+	int n_included = 0;
+	for (int f = 0; f < N; ++f)
+		if (!run->included || run->included[f]) ++n_included;
+	if (n_included == 0 || M == 0) return MPP_ENODATA;
+
+	int K = cfg->alignment_points_reference_frames > 0
+	      ? cfg->alignment_points_reference_frames
+	      : std::clamp((n_included + 19) / 20, 8, 32);
+	K = std::min(K, n_included);
+
+	/* Hard top-K trim of the baked per-AP selection (rows are sorted by
+	 * descending per-AP quality), weight 1 per entry. Only frames that
+	 * appear in some AP's top-K — plus the global top-K for the
+	 * background composite — are read for this stack. */
+	mpp::APQualities apq_ref;
+	apq_ref.taper = 0;
+	apq_ref.best_frame_indices.assign(M, {});
+	apq_ref.used_alignment_points.assign(N, {});
+	std::vector<int> included_ref(N, 0);
+	int max_rows = 0;
+	for (int a = 0; a < M; ++a) {
+		const auto &row = apq.best_frame_indices[a];
+		const int k = std::min((int) row.size(), K);
+		max_rows = std::max(max_rows, k);
+		for (int i = 0; i < k; ++i) {
+			const int f = row[i];
+			if (f < 0 || f >= N) continue;
+			apq_ref.best_frame_indices[a].push_back(f);
+			apq_ref.used_alignment_points[f].push_back({a, 1.0f});
+			included_ref[f] = 1;
+		}
+	}
+	if (max_rows == 0) return MPP_ENODATA;
+	apq_ref.stack_size = std::min(K, max_rows);
+
+	std::vector<int> sorted_idx;
+	sorted_idx.reserve(N);
+	for (int f = 0; f < N; ++f)
+		if (!run->included || run->included[f]) sorted_idx.push_back(f);
+	std::sort(sorted_idx.begin(), sorted_idx.end(),
+	          [run](int a, int b) { return run->quality[a] > run->quality[b]; });
+	for (int i = 0; i < apq_ref.stack_size && i < (int) sorted_idx.size(); ++i)
+		included_ref[sorted_idx[i]] = 1;
+
+	/* Raw (unblurred) analysis-mono provider — same source as the pass-1
+	 * correlation frames minus the Gaussian blur. */
+	const mpp_cache_t *cache = run->cache;
+	const int cache_N = cache ? (int) cache->raw_frames.size() : 0;
+	auto raw_provider = [seq, cfg, cache, cache_N](int f) -> cv::Mat {
+		return guarded_frame([&]() -> cv::Mat {
+			if (cache && f >= 0 && f < cache_N
+			 && !cache->raw_frames[f].empty())
+				return cache->raw_frames[f];
+			return mpp::read_analysis_frame(seq, f, cfg->avi_bayer_pattern,
+			                                cfg->bitdepth);
+		});
+	};
+
+	const std::vector<double> brightness(run->frame_brightness,
+	                                     run->frame_brightness + N);
+	const cv::Vec4i intersection(run->intersection[0], run->intersection[1],
+	                             run->intersection[2], run->intersection[3]);
+
+	/* The reference lives in mean-frame coordinates — never upscaled. */
+	mpp_config_t cfg_ref = *cfg;
+	cfg_ref.output_scale = 1.0;
+
+	size_t budget = 0;
+	{
+		guint64 budget_b = get_available_memory();
+		const long long cap_mb = get_max_memory_in_MB();
+		if (cap_mb > 0) {
+			const guint64 cap_b = (guint64) cap_mb * 1024ULL * 1024ULL;
+			if (cap_b < budget_b) budget_b = cap_b;
+		}
+		budget = (size_t) ((long double) budget_b * 0.8L);
+	}
+
+	const auto loop = mpp::stack_apply_shifts_streamed(
+	    raw_provider, N, /*num_layers=*/1, *run->aps, apq_ref, pass1,
+	    offsets, brightness, sorted_idx, intersection, cfg_ref,
+	    included_ref.data(), threads, provider_safe, budget);
+	if (loop.oom) return MPP_ENOMEM;
+	if (loop.state.dim_y == 0) return MPP_EINTR;   /* cancellation sentinel */
+	const cv::Mat merged = mpp::stack_merge_alignment_point_buffers(
+	    loop.state, loop.border, *run->aps, cfg_ref);
+
+	cv::Mat canvas;
+	mean_raw.convertTo(canvas, CV_32F);
+	cv::Mat m32;
+	merged.convertTo(m32, CV_32F);
+	const int y0 = loop.border.y_low, x0 = loop.border.x_low;
+	const int h = std::min(m32.rows, canvas.rows - y0);
+	const int w = std::min(m32.cols, canvas.cols - x0);
+	if (h <= 0 || w <= 0) return MPP_ENODATA;
+	m32(cv::Range(0, h), cv::Range(0, w)).copyTo(
+	    canvas(cv::Range(y0, y0 + h), cv::Range(x0, x0 + w)));
+
+	*ref_out = canvas;
+	*k_out = apq_ref.stack_size;
+	return MPP_OK;
+}
+
 static mpp_status_t mpp_compute_shifts_impl(sequence *seq, const mpp_config_t *cfg,
                                             mpp_run_t *run) {
 	if (!seq || !cfg || !run || !run->aps) return MPP_EINVAL;
@@ -1354,6 +1503,65 @@ static mpp_status_t mpp_compute_shifts_impl(sequence *seq, const mpp_config_t *c
 		mpp_shift_free(shifts);
 		return MPP_EINTR;
 	}
+
+	/* mpp_improve: robust per-frame smoothing of the shift field (see
+	 * shift_field_smooth). Applied to the pass-1 shifts BEFORE the
+	 * refined-reference build so the reference stack is pasted at the
+	 * denoised field, and again to the pass-2 output below. */
+	if (cfg->alignment_points_smooth_radius > 0.0 && run->aps->count >= 5)
+		siril_log_message(_("Register: smoothing the per-AP shift field "
+		                    "(radius %.1f grid steps)\n"),
+		                  cfg->alignment_points_smooth_radius);
+	mpp::shift_field_smooth(shifts, *run->aps, *cfg, run->included,
+	                        stageb_threads);
+
+	/* mpp_improve: second pass against a refined reference. Stack the
+	 * top-K frames per AP at the pass-1 shifts and re-measure every
+	 * shift against that (much sharper) stack instead of the seeing-
+	 * averaged mean frame — see build_refined_reference. Failures other
+	 * than cancellation are contained: pass-1 shifts are kept. */
+	if (cfg->alignment_points_refine_reference) {
+		cv::Mat refined;
+		int k_ref = 0;
+		gui_iface.set_progress(PROGRESS_RESET,
+		                       _("Register: stacking refinement reference"));
+		const mpp_status_t rrc = build_refined_reference(
+		    seq, cfg, run, apq, offsets, mean_raw, shifts,
+		    stageb_threads, stageb_provider_safe, &refined, &k_ref);
+		if (rrc == MPP_EINTR) {
+			mpp_shift_free(shifts);
+			return MPP_EINTR;
+		}
+		if (rrc == MPP_OK) {
+			siril_log_message(_("Register: refined reference stacked from the "
+			                    "top %d frames per alignment point — "
+			                    "re-measuring shifts against it\n"), k_ref);
+			gui_iface.set_progress(PROGRESS_RESET,
+			                       _("Register: correlating per-AP boxes (pass 2)"));
+			mpp_shifts_t *shifts2 = mpp::stack_compute_shifts_streamed(
+			    provider, run->num_frames, refined, *run->aps, apq, offsets,
+			    *cfg, run->included, stageb_threads, stageb_provider_safe);
+			if (shifts2 && shifts2->failure_counter == -1) {
+				mpp_shift_free(shifts2);
+				mpp_shift_free(shifts);
+				return MPP_EINTR;
+			}
+			if (shifts2) {
+				mpp::shift_field_smooth(shifts2, *run->aps, *cfg,
+				                        run->included, stageb_threads);
+				mpp_shift_free(shifts);
+				shifts = shifts2;
+			} else {
+				siril_log_message(_("Register: refined pass ran out of memory "
+				                    "— keeping first-pass shifts\n"));
+			}
+		} else {
+			siril_log_message(_("Register: refinement reference build failed "
+			                    "(code %d) — keeping first-pass shifts\n"),
+			                  (int) rrc);
+		}
+	}
+
 	if (run->shifts) mpp_shift_free(run->shifts);
 	run->shifts = shifts;
 	return MPP_OK;
@@ -1403,6 +1611,28 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 	 * deep in the frame read. */
 	if (!seq || !cfg || !run || !run->aps || !run->shifts || !out || !seq->imgparam)
 		return MPP_EINVAL;
+
+	/* Demosaicing algorithm for the CFA frame reads of this stack pass
+	 * (default BAYER_LMMSE; -debayer= selects). Set for the duration of
+	 * Stage C and restored to the application-wide RCD on every exit
+	 * path — the reads are the only consumers, so the concurrent decode
+	 * threads all see one consistent value. Announced only for CFA
+	 * input (a mono SER never debayers, so the line would mislead). */
+	struct SerDebayerGuard {
+		SerDebayerGuard(int m) { ser_set_debayer_method((interpolation_method) m); }
+		~SerDebayerGuard() { ser_set_debayer_method(BAYER_RCD); }
+	} debayer_guard(cfg->debayer_method);
+	{
+		static const char *const debayer_names[] = {
+			"bilinear", "VNG", "AHD", "AMaZE", "DCB",
+			"HPHD", "IGV", "LMMSE", "RCD"
+		};
+		const int dm = cfg->debayer_method;
+		if (mpp_classify_sequence_input(seq) == MPP_INPUT_CFA
+		    && dm >= 0 && dm < (int) G_N_ELEMENTS(debayer_names))
+			siril_log_message(_("Stack (mpp): CFA demosaicing: %s\n"),
+			                  debayer_names[dm]);
+	}
 
 	/* Refresh inclusion from the live frame selector: the user may have
 	 * excluded more frames after registration (the sidecar / cached run
@@ -1488,11 +1718,6 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 	 * accumulation + Hann-weight mosaic, parallelised over frames, with
 	 * cv::resize interpolation for scale > 1.
 	 *
-	 * The STScI / Bayer dobox drizzle backends were removed: both produced
-	 * sampling / mosaic-phase artefacts on planetary data. (The code is
-	 * preserved on the pss-drizzle branch in case a future CFA-aware
-	 * revival is wanted.)
-	 *
 	 * CFA input is debayered first (read_full_frame forces ser_read_frame
 	 * to debayer regardless of the user's debayer-on-open pref), then
 	 * stacked classically like any RGB sequence. */
@@ -1500,18 +1725,15 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 	 * RGGB/BGGR/GBRG/GRBG) is the AVI analogue of MPP_INPUT_CFA. The
 	 * classifier can't see this (sequence-only signature) so it's
 	 * tracked here for the channel-count math below. */
+#ifdef HAVE_FFMS2
 	const bool avi_cfa = (seq->type == SEQ_AVI
 	                      && cfg->avi_bayer_pattern >= MPP_AVI_BAYER_RGGB
 	                      && cfg->avi_bayer_pattern <= MPP_AVI_BAYER_GRBG);
+#else
+	const bool avi_cfa = FALSE;
+#endif
 	const mpp_input_type input_type = mpp_classify_sequence_input(seq);
 	const bool is_cfa = (input_type == MPP_INPUT_CFA) || avi_cfa;
-
-	/* The classical (OpenCV-interpolation) path handles every input and
-	 * scale; a sidecar/script that explicitly pinned a dobox backend is
-	 * overridden — drizzle is no longer applied for scaling. */
-	if (cfg->drizzle_mode != MPP_DRIZZLE_OFF)
-		siril_log_message(_("Stack (mpp): dobox drizzle backend disabled — "
-		                    "scaling uses OpenCV interpolation\n"));
 
 	/* Pre-flight memory check for the classical path. */
 	{
@@ -1589,8 +1811,10 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 	    (seq->type == SEQ_SER
 	     || ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ
 	          || seq->type == SEQ_INTERNAL) && fits_is_reentrant()));
-	siril_log_message(_("Stack (mpp): classical accumulation, %d thread(s), "
+	siril_log_message(_("Stack (mpp): %s engine, %d thread(s), "
 	                    "%s frame reads\n"),
+	                  cfg->stack_method == MPP_STACK_WARP
+	                      ? _("warp-field") : _("patch-mosaic"),
 	                  stack_threads,
 	                  stack_provider_safe ? _("parallel") : _("serial"));
 	/* Memory budget for the per-thread private accumulators: 80% of the
@@ -1606,19 +1830,38 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 		}
 		stack_mem_budget = (size_t) ((long double) budget_b * 0.8L);
 	}
-	const auto loop = mpp::stack_apply_shifts_streamed(
-	    provider, run->num_frames, num_layers, *run->aps, apq,
-	    run->shifts, offsets, frame_brightness, sorted_idx,
-	    intersection, *cfg, run->included, stack_threads, stack_provider_safe,
-	    stack_mem_budget);
-	if (loop.oom) {
-		siril_log_error(_("Stack (mpp): out of memory while accumulating "
-		                  "frames — reduce the memory ratio in Preferences.\n"));
-		return MPP_ENOMEM;
+	/* Stage C engine: the warp-field engine (-engine=warp) warps each
+	 * frame once through a dense displacement field interpolated from the
+	 * per-AP shifts; the default is the PSS per-AP patch-blend engine. */
+	cv::Mat stacked;
+	if (cfg->stack_method == MPP_STACK_WARP) {
+		const mpp::WarpStackResult wr = mpp::stack_warp_apply_streamed(
+		    provider, run->num_frames, num_layers, *run->aps, apq,
+		    run->shifts, offsets, frame_brightness, sorted_idx,
+		    intersection, *cfg, run->included, stack_threads,
+		    stack_provider_safe, stack_mem_budget);
+		if (wr.oom) {
+			siril_log_error(_("Stack (mpp): out of memory while accumulating "
+			                  "frames — reduce the memory ratio in Preferences.\n"));
+			return MPP_ENOMEM;
+		}
+		if (wr.cancelled || wr.image.empty()) return MPP_EINTR;
+		stacked = wr.image;
+	} else {
+		const auto loop = mpp::stack_apply_shifts_streamed(
+		    provider, run->num_frames, num_layers, *run->aps, apq,
+		    run->shifts, offsets, frame_brightness, sorted_idx,
+		    intersection, *cfg, run->included, stack_threads, stack_provider_safe,
+		    stack_mem_budget);
+		if (loop.oom) {
+			siril_log_error(_("Stack (mpp): out of memory while accumulating "
+			                  "frames — reduce the memory ratio in Preferences.\n"));
+			return MPP_ENOMEM;
+		}
+		if (loop.state.dim_y == 0) return MPP_EINTR;   /* cancellation sentinel */
+		stacked = mpp::stack_merge_alignment_point_buffers(
+		    loop.state, loop.border, *run->aps, *cfg);
 	}
-	if (loop.state.dim_y == 0) return MPP_EINTR;   /* cancellation sentinel */
-	const cv::Mat stacked = mpp::stack_merge_alignment_point_buffers(
-	    loop.state, loop.border, *run->aps, *cfg);
 
 	/* Pack stacked into the caller-supplied fits. The caller allocates the
 	 * shell (`fits out = {0};`); we fill its members and own `data`. For
@@ -2174,6 +2417,7 @@ extern "C" void mpp_write_quality_to_regdata(sequence *seq, int layer,
  * default in both cfgs, so they never spuriously trigger a regeneration. */
 static bool ap_placement_cfg_differs(const mpp_config_t *a, const mpp_config_t *b) {
 	return a->alignment_points_half_box_width        != b->alignment_points_half_box_width
+	    || a->alignment_points_step                  != b->alignment_points_step
 	    || a->alignment_points_search_width          != b->alignment_points_search_width
 	    || a->alignment_points_brightness_threshold  != b->alignment_points_brightness_threshold
 	    || a->alignment_points_contrast_threshold    != b->alignment_points_contrast_threshold

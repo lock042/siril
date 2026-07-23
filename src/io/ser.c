@@ -41,6 +41,18 @@
 
 static gboolean user_warned = FALSE;
 
+/* Demosaicing algorithm for SER CFA frame reads. RCD has been the
+ * hard-coded choice for this path (shared across the whole application —
+ * see MPP_PSS_DIFFS.md §1); the setter exists for the mpp_improve debayer
+ * experiments so the planetary stacker can A/B algorithms per run. Set it
+ * before a (possibly parallel) read pass and restore afterwards — reads
+ * only, so concurrent ser_read_frame calls are safe once set. */
+static interpolation_method ser_debayer_method = BAYER_RCD;
+
+void ser_set_debayer_method(interpolation_method method) {
+	ser_debayer_method = method;
+}
+
 static int ser_write_header(struct ser_struct *ser_file);
 static int ser_write_image_for_writer(struct seqwriter_data *writer, fits *image, int index);
 static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *fit, int frame_no);
@@ -917,7 +929,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 		 * Windows where there is no memory overcommit); returning the
 		 * un-demosaiced fits with naxes[2] = 3 and stale pdata would
 		 * crash the caller. */
-		if (debayer(fit, BAYER_RCD, bayer_pattern)) {
+		if (debayer(fit, ser_debayer_method, bayer_pattern)) {
 			siril_log_error(_("Could not debayer SER frame %d\n"), frame_no);
 			return SER_GENERIC_ERROR;
 		}

@@ -62,9 +62,6 @@
 // anyone is likely to use with Siril, though there are some large
 // ones such as scanner profiles)...
 #define BUFFER_SIZE 65536
-#define MAX_RETRIES 3
-#define PIPE_NAME "\\\\.\\pipe\\mypipe"
-#define SOCKET_PORT 12345
 
 #define PIP_TIMEOUT_SECONDS 300
 #define PIP_MAX_RETRIES 3
@@ -1412,6 +1409,15 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 }
 
 gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_info_t* info, gboolean show_samples, gboolean recalculate) {
+	if (!conn->thread_claimed) {
+		const char* error_msg = _("Processing thread is not claimed: unable to update the background samples. "
+								"This is a script error: claim_thread() has either not been called or has failed, or "
+								"the thread has been released too early.");
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_error("Error in send_response\n");
+		return FALSE;
+	}
+
 	// Open shared memory
 	void* shm_ptr = NULL;
 #ifdef _WIN32
@@ -1524,6 +1530,15 @@ gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_inf
 }
 
 gboolean handle_set_image_header_request(Connection* conn, const incoming_image_info_t* info) {
+	if (!conn->thread_claimed) {
+		const char* error_msg = _("Processing thread is not claimed: unable to update the image header. "
+								"This is a script error: claim_thread() has either not been called or has failed, or "
+								"the thread has been released too early.");
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_error("Error in send_response\n");
+		return FALSE;
+	}
+
 	// Open shared memory
 	void* shm_ptr = NULL;
 	#ifdef _WIN32
@@ -1610,6 +1625,15 @@ cleanup:
 }
 
 gboolean handle_set_iccprofile_request(Connection* conn, const incoming_image_info_t* info) {
+	if (!conn->thread_claimed) {
+		const char* error_msg = _("Processing thread is not claimed: unable to update the ICC profile. "
+								"This is a script error: claim_thread() has either not been called or has failed, or "
+								"the thread has been released too early.");
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_error("Error in send_response\n");
+		return FALSE;
+	}
+
 	// Open shared memory
 	void* shm_ptr = NULL;
 	#ifdef _WIN32
@@ -1786,6 +1810,15 @@ gboolean handle_add_user_polygon_request(Connection* conn, const incoming_image_
 }
 
 gboolean handle_mask_update_polygon_request(Connection* conn, const incoming_image_info_t* info) {
+	if (!conn->thread_claimed) {
+		const char* error_msg = _("Processing thread is not claimed: unable to update the current image mask. "
+								"This is a script error: claim_thread() has either not been called or has failed, or "
+								"the thread has been released too early.");
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_error("Error in send_response\n");
+		return FALSE;
+	}
+
 	// Check if image is loaded first
 	if (!(single_image_is_loaded() || sequence_is_loaded())) {
 		siril_log_debug("Failed to modify mask with user polygon: no image loaded\n");

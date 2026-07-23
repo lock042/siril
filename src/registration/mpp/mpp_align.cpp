@@ -294,8 +294,10 @@ MultilevelShiftResult multilevel_correlation(const cv::Mat &ref_full_f32,
                                              int x_low, int x_high,
                                              int gauss_width, int search_width,
                                              bool subpixel_solve,
-                                             const cv::Mat &weight_matrix_first_phase) {
+                                             const cv::Mat &weight_matrix_first_phase,
+                                             bool zero_mean) {
 	MultilevelShiftResult result;
+	const int method = zero_mean ? cv::TM_CCOEFF_NORMED : cv::TM_CCORR_NORMED;
 	const int sw2 = 4;
 	const int sw1 = (search_width - sw2) / 2;
 	const int index_ext = sw1 * 2;
@@ -317,7 +319,7 @@ MultilevelShiftResult multilevel_correlation(const cv::Mat &ref_full_f32,
 	fwin_blurred.convertTo(fwin_f32, CV_32F);
 
 	cv::Mat ccr1;
-	cv::matchTemplate(fwin_f32, ref_first_phase_f32, ccr1, cv::TM_CCORR_NORMED);
+	cv::matchTemplate(fwin_f32, ref_first_phase_f32, ccr1, method);
 	cv::Point max1;
 	if (!weight_matrix_first_phase.empty()) {
 		cv::Mat weighted;
@@ -357,7 +359,7 @@ MultilevelShiftResult multilevel_correlation(const cv::Mat &ref_full_f32,
 	fwin2.convertTo(fwin2_f32, CV_32F);
 
 	cv::Mat ccr2;
-	cv::matchTemplate(fwin2_f32, ref_full_f32, ccr2, cv::TM_CCORR_NORMED);
+	cv::matchTemplate(fwin2_f32, ref_full_f32, ccr2, method);
 	cv::Point max2;
 	cv::minMaxLoc(ccr2, nullptr, nullptr, nullptr, &max2);
 	const int shift_y2 = sw2 - max2.y;
@@ -394,9 +396,9 @@ AlignShiftResult align_shift_one_frame(const cv::Mat &ref_window_f32,
                                        int y_low, int y_high,
                                        int x_low, int x_high,
                                        const mpp_config_t &cfg) {
-	/* Sub-pixel ON unconditionally: the parabolic-fit residual is the
-	 * only thing that gives Bayer drizzle's cross-frame CFA-phase
-	 * coverage. Cheap (4 extra reads per frame on the phase-2 correlation
+	/* Sub-pixel ON unconditionally: the parabolic-fit residual is what
+	 * keeps global registration accurate enough for cv::resize output
+	 * upscaling. Cheap (4 extra reads per frame on the phase-2 correlation
 	 * surface, gated on the same success path). The previous integer
 	 * rounding wasted that information. */
 	const MultilevelShiftResult r = multilevel_correlation(
