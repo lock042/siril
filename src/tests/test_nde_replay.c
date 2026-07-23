@@ -24,6 +24,8 @@
 #include "core/processing.h"
 #include "core/op_descriptors.h"
 #include "core/nde_history.h"
+#include "core/nde_checkpoint.h"
+#include "core/nde_replay.h"
 #include "algos/geometry.h"
 
 cominfo com;
@@ -93,4 +95,116 @@ Test(nde_replay, worker_flag_reports_hook_failure) {
 	free(args);
 	clearfits(f);
 	free(f);
+}
+
+/* ---------------- P2.D: chain build / validate / replay ---------------- */
+
+/* Build a Tier-A chain artificially: baseline + captured records, exactly
+ * what the capture sites produce, without driving the full gfit swap path. */
+
+Test(nde_replay, chain_replays_bit_exact) {
+	fits *f = flis_test_make_mono_fits(8, 8, 0.0f);
+	for (int i = 0; i < 64; i++)
+		f->fdata[i] = i / 64.0f;    /* asymmetric so mirrors matter */
+
+	nde_checkpoint_baseline_ensure(f, -1);
+	struct mirror_args ma = { 0 };
+	ma.x_axis = TRUE;
+	cr_assert(nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m1") > 0);
+	cr_assert(nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m2") > 0);
+
+	nde_chain *chain = nde_chain_build(-1);
+	cr_assert(chain->replayable, "all-Tier-A chain with baseline must be replayable (first reason: %s)",
+	          chain->reasons->len ? (char *)g_ptr_array_index(chain->reasons, 0) : "none");
+	cr_assert_eq(chain->records->len, 2);
+
+	gchar *errmsg = NULL;
+	fits *result = nde_chain_replay(chain, &errmsg);
+	cr_assert_not_null(result, "replay failed: %s", errmsg ? errmsg : "?");
+	/* mirrorx twice is the identity: the result must equal the baseline
+	 * (== f, untouched) bit-exactly */
+	cr_assert_eq(result->rx, 8);
+	cr_assert(memcmp(result->fdata, f->fdata, 64 * sizeof(float)) == 0,
+	          "mirror+mirror must reproduce the baseline bit-exactly");
+	clearfits(result); free(result);
+	nde_chain_free(chain);
+
+	/* single-record chain equals a direct application of the op */
+	nde_history_on_undo(2);   /* retire m2; live chain = [m1] */
+	chain = nde_chain_build(-1);
+	cr_assert(chain->replayable);
+	cr_assert_eq(chain->records->len, 1);
+	result = nde_chain_replay(chain, &errmsg);
+	cr_assert_not_null(result, "replay failed: %s", errmsg ? errmsg : "?");
+	fits *expected = calloc(1, sizeof(fits));
+	copyfits(f, expected, CP_DEEPCOPY | CP_ALLOC, -1);
+	mirrorx(expected, FALSE);
+	cr_assert(memcmp(result->fdata, expected->fdata, 64 * sizeof(float)) == 0,
+	          "single-op replay must equal direct application");
+	clearfits(expected); free(expected);
+	clearfits(result); free(result);
+	nde_chain_free(chain);
+
+	nde_history_attach(NULL);
+	clearfits(f); free(f);
+}
+
+Test(nde_replay, chain_blockers_are_reported) {
+	fits *f = flis_test_make_mono_fits(4, 4, 0.5f);
+
+	/* opaque record → not replayable */
+	nde_checkpoint_baseline_ensure(f, -1);
+	nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, -1, "opaque");
+	nde_chain *chain = nde_chain_build(-1);
+	cr_assert(!chain->replayable);
+	cr_assert_eq(chain->reasons->len, 1);
+	cr_assert(strstr(g_ptr_array_index(chain->reasons, 0), "opaque") != NULL);
+	nde_chain_free(chain);
+	nde_history_attach(NULL);
+
+	/* mask-active record → not replayable */
+	nde_checkpoint_baseline_ensure(f, -1);
+	nde_record *rec = nde_record_new();
+	rec->op_id = g_strdup("geometry.mirrorx");
+	rec->op_version = 1;
+	rec->tier = NDE_TIER_A;
+	rec->params = g_strdup("x_axis=1");
+	rec->mask_active = TRUE;
+	nde_history_append(rec);
+	chain = nde_chain_build(-1);
+	cr_assert(!chain->replayable);
+	cr_assert(strstr(g_ptr_array_index(chain->reasons, 0), "mask") != NULL);
+	nde_chain_free(chain);
+	nde_history_attach(NULL);
+
+	/* missing baseline → not replayable */
+	struct mirror_args ma = { 0 };
+	nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m");
+	nde_checkpoint_purge();
+	chain = nde_chain_build(-1);
+	cr_assert(!chain->replayable);
+	cr_assert(strstr(g_ptr_array_index(chain->reasons, 0), "baseline") != NULL);
+	nde_chain_free(chain);
+	nde_history_attach(NULL);
+
+	/* unknown op id → not replayable */
+	nde_checkpoint_baseline_ensure(f, -1);
+	rec = nde_record_new();
+	rec->op_id = g_strdup("future.unknown_op");
+	rec->op_version = 1;
+	rec->tier = NDE_TIER_A;
+	nde_history_append(rec);
+	chain = nde_chain_build(-1);
+	cr_assert(!chain->replayable);
+	cr_assert(strstr(g_ptr_array_index(chain->reasons, 0), "unknown") != NULL);
+	nde_chain_free(chain);
+	nde_history_attach(NULL);
+
+	/* empty history: trivially "replayable", nothing to do */
+	chain = nde_chain_build(-1);
+	cr_assert(chain->replayable);
+	cr_assert_eq(chain->records->len, 0);
+	nde_chain_free(chain);
+
+	clearfits(f); free(f);
 }

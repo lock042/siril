@@ -95,6 +95,7 @@ src_files = [
   'core/masks.c',
   'core/nde_checkpoint.c',
   'core/nde_history.c',
+  'core/nde_replay.c',
   'core/op_descriptor.c',
   'core/OS_utils.c',
   'core/pipe.c',

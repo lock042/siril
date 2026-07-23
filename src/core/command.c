@@ -53,6 +53,8 @@
 #include "core/processing.h"
 #include "core/op_descriptors.h"
 #include "core/nde_history.h"
+#include "core/nde_checkpoint.h"
+#include "core/nde_replay.h"
 #include "core/sequence_filtering.h"
 #include "core/OS_utils.h"
 #include "core/siril_date.h"
@@ -16721,6 +16723,85 @@ int process_flis_history(int nb) {
 		}
 	}
 	g_ptr_array_unref(snap);
+	return CMD_OK;
+}
+
+/* flis_replay_check worker (nde-phase2-3-plan.md P2.D): one job-slot
+ * occupancy for the whole chain.  Validation reasons or the replay
+ * deviation report go to the log; return value is unused (script
+ * sequencing waits on the job, not the retval). */
+static gpointer replay_check_worker(gpointer p) {
+	gint item_id = GPOINTER_TO_INT(p);
+	nde_chain *chain = nde_chain_build(item_id);
+	if (!chain->replayable) {
+		siril_log_warning(_("History is not replayable:\n"));
+		for (guint i = 0; i < chain->reasons->len; i++)
+			siril_log_message("  - %s\n", (char *)g_ptr_array_index(chain->reasons, i));
+	} else if (chain->records->len == 0) {
+		siril_log_info(_("No replayable records — nothing to check\n"));
+	} else {
+		gchar *errmsg = NULL;
+		fits *result = nde_chain_replay(chain, &errmsg);
+		if (!result) {
+			siril_log_error(_("Replay failed: %s\n"), errmsg ? errmsg : "?");
+		} else {
+			fits *current = gfit;
+			if (item_id >= 0) {
+				flis_layer_t *lay = flis_layer_get_by_id(item_id);
+				current = lay ? lay->fit : NULL;
+			}
+			if (!current) {
+				siril_log_error(_("Cannot locate the current pixels to compare against\n"));
+			} else {
+				g_rw_lock_reader_lock(&current->rwlock);
+				if (result->rx != current->rx || result->ry != current->ry
+				    || result->naxes[2] != current->naxes[2]
+				    || result->type != current->type) {
+					siril_log_warning(_("Replayed %u record(s), but the result geometry differs from the current image (%ux%ux%ld vs %ux%ux%ld)\n"),
+					                  chain->records->len,
+					                  result->rx, result->ry, result->naxes[2],
+					                  current->rx, current->ry, current->naxes[2]);
+				} else {
+					size_t n = (size_t)current->rx * current->ry
+					           * (current->naxes[2] ? current->naxes[2] : 1);
+					double max_dev = 0.0, sum_dev = 0.0;
+					for (size_t i = 0; i < n; i++) {
+						double a, b;
+						if (current->type == DATA_FLOAT) {
+							a = result->fdata[i];
+							b = current->fdata[i];
+						} else {
+							a = result->data[i];
+							b = current->data[i];
+						}
+						double d = fabs(a - b);
+						if (d > max_dev) max_dev = d;
+						sum_dev += d;
+					}
+					siril_log_info(_("Replayed %u record(s) successfully: max deviation %.3g, mean %.3g (small numerical drift is expected)\n"),
+					               chain->records->len, max_dev, sum_dev / n);
+				}
+				g_rw_lock_reader_unlock(&current->rwlock);
+			}
+			clearfits(result);
+			free(result);
+		}
+		g_free(errmsg);
+	}
+	nde_chain_free(chain);
+	siril_add_idle(end_generic, NULL);
+	return GINT_TO_POINTER(0);
+}
+
+int process_flis_replay_check(int nb) {
+	(void)nb;
+	if (processing_is_reserved_for_python()) {
+		siril_log_error(_("The processing thread is reserved by a Python script; try again later\n"));
+		return CMD_GENERIC_ERROR;
+	}
+	gint item_id = nde_checkpoint_active_item_id();
+	if (!start_in_new_thread(replay_check_worker, GINT_TO_POINTER(item_id)))
+		return CMD_GENERIC_ERROR;
 	return CMD_OK;
 }
 

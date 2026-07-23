@@ -50,11 +50,18 @@ typedef struct op_descriptor {
 	float       mem_ratio;    /* default; args->mem_ratio != 0 overrides */
 	guint32     flags;
 
-	/* Reserved for nondestructive-editing work (flis-nde-sketch.md §11): always
-	 * NULL in this MR.  Present so the NDE branch adds implementations without
-	 * changing this struct or any call site. */
+	/* Nondestructive-editing serialization (flis-nde-sketch.md §11): both
+	 * set for Tier-A (replayable) ops, both NULL otherwise. */
 	gchar    *(*serialize)(gconstpointer user);
 	gpointer  (*deserialize)(const gchar *blob, int version);
+
+	/* Optional replay preparation (nde-phase2-3-plan.md decision 6): called
+	 * by the replay driver after deserialize and before applying the record,
+	 * with the parsed params table and the fits the record will run on.
+	 * For ops whose inputs live outside the params struct — background
+	 * extraction reinstalls its recorded sample positions here.  Return
+	 * non-zero to abort the replay.  NULL for everything else. */
+	int (*replay_pre)(gpointer user, GHashTable *kv, fits *target);
 } op_descriptor;
 
 /* Fill args fields from args->op, if set.  No-op when args->op == NULL, so the

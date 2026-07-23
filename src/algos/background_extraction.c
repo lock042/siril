@@ -166,6 +166,38 @@ static gpointer remove_gradient_deserialize(const gchar *blob, int version) {
  * commands share remove_gradient_image_hook. Default label "Background
  * extraction"; the "Automatic gradient removal" sites and the GUI mem_ratios
  * are per-site overrides. mem_ratio default 0 (command sites do no mem check). */
+/* Replay preparation (nde-phase2-3-plan.md decision 6): the image hook reads
+ * com.grad_samples, an external input the params struct cannot carry, so the
+ * record's `samples=` key holds the EFFECTIVE positions that were used
+ * (dither/randomize/grad-descent make param-only re-placement
+ * nondeterministic).  Rebuild the global list from those positions against
+ * the replay input; statistics are recomputed by add_background_sample and
+ * no gradient descent is applied — the positions are already post-descent.
+ * NOTE: this replaces any live com.grad_samples (the hook's contract is
+ * global by design); replay runs in the exclusive job slot, so no concurrent
+ * Background Extraction can be mid-flight. */
+static int remove_gradient_replay_pre(gpointer user, GHashTable *kv, fits *target) {
+	(void)user;
+	free_background_sample_list(com.grad_samples);
+	com.grad_samples = NULL;
+	const char *samples = nde_kv_get_str(kv, "samples");
+	if (!samples || !*samples)
+		return 0;   /* no recorded samples (auto model): param-only replay */
+	gchar **pairs = g_strsplit(samples, ":", -1);
+	for (gchar **p = pairs; *p; p++) {
+		gchar **xy = g_strsplit(*p, ",", 2);
+		if (xy[0] && xy[1]) {
+			point pt = { g_ascii_strtod(xy[0], NULL),
+			             g_ascii_strtod(xy[1], NULL) };
+			com.grad_samples = add_background_sample(com.grad_samples,
+			                                         target, pt, FALSE);
+		}
+		g_strfreev(xy);
+	}
+	g_strfreev(pairs);
+	return 0;
+}
+
 const op_descriptor op_desc_remove_gradient = {
 	.id = "bkg.remove_gradient", .version = 1,
 	.image_hook = remove_gradient_image_hook,
@@ -174,6 +206,7 @@ const op_descriptor op_desc_remove_gradient = {
 	.mem_ratio = 0.0f,
 	.flags = 0,
 	.serialize = remove_gradient_serialize, .deserialize = remove_gradient_deserialize,
+	.replay_pre = remove_gradient_replay_pre,
 };
 
 #define NPARAM_POLY4 15		// Number of parameters used with 4rd order
