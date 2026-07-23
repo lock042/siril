@@ -26,6 +26,28 @@
 void destroy_mtf_data(void *args); /* forward decl */
 #include "core/siril_log.h"
 #include "algos/statistics.h"
+#include "core/op_descriptors.h"
+
+/* Op descriptors — single source of truth for the MTF stretch ops.
+ * process_mtf picks the forward/inverse descriptor via its `inverse` flag; the
+ * autostretch / histogram sites share op_desc_mtf with a description override. */
+const op_descriptor op_desc_mtf = {
+	.id = "stretch.mtf", .version = 1,
+	.image_hook = mtf_single_image_hook,
+	.log_hook = mtf_log_hook,
+	.description = N_("Midtones Transfer Function"),
+	.mem_ratio = 1.0f,
+	.flags = OP_MASK_CAPABLE,
+};
+
+const op_descriptor op_desc_mtf_inverse = {
+	.id = "stretch.mtf_inverse", .version = 1,
+	.image_hook = invmtf_single_image_hook,
+	.log_hook = invmtf_log_hook,
+	.description = N_("Inverse Midtones Transfer Function"),
+	.mem_ratio = 1.0f,
+	.flags = OP_MASK_CAPABLE,
+};
 
 void apply_linked_mtf_to_fits(fits *from, fits *to, struct mtf_params params, gboolean multithreaded) {
 

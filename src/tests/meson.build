@@ -59,6 +59,24 @@ if criterion_dep.found()
 
      test('soper_test', soper_exec, suite: 'arithmetic')
 
+     op_descriptor_exec = executable('test_op_descriptor',
+                                     'test_op_descriptor.c',
+                                     dependencies : [siril_dep, criterion_dep],
+                                     link_args : siril_link_arg,
+                                     c_args : siril_c_flag,
+                                     cpp_args : siril_cpp_flag)
+
+     test('test_op_descriptor', op_descriptor_exec)
+
+     wavelet_denoise_exec = executable('wavelet_denoise_test',
+                                       'wavelet_denoise_test.c',
+                                       dependencies : [siril_dep, criterion_dep],
+                                       link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                       c_args : siril_c_flag,
+                                       cpp_args : siril_cpp_flag)
+
+     test('wavelet_denoise_test', wavelet_denoise_exec, suite: 'science')
+
      photometry_exec = executable('photometry_test',
                                   'photometry_test.c',
                                   dependencies : [siril_dep, criterion_dep],
@@ -122,13 +140,22 @@ if criterion_dep.found()
      test('mpp_sidecar_test', mpp_sidecar_exec, suite: 'mpp')
 
      gps_exec = executable('qhy_gps_test',
-                           'qhy_gps_test.c',
+                           ['qhy_gps_test.c', 'download_files.c'],
                            dependencies : [siril_dep, criterion_dep],
                            link_args : siril_link_arg,
                            c_args : siril_c_flag,
                            cpp_args : siril_cpp_flag)
 
      test('qhy_gps_test', gps_exec)
+
+     streaks_exec = executable('streaks_test',
+                           ['streaks_test.c', 'download_files.c'],
+                           dependencies : [siril_dep, criterion_dep],
+                           link_args : siril_link_arg,
+                           c_args : siril_c_flag,
+                           cpp_args : siril_cpp_flag)
+
+     test('streaks_test', streaks_exec)
 
      harmonize_img_t_exec = executable('harmonize_img_t_test',
                                        'harmonize_img_t_test.cpp',

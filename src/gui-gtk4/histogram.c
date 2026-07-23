@@ -23,6 +23,7 @@
 #include <math.h>
 #include <float.h>
 #include "core/siril.h"
+#include "core/op_descriptors.h"
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/icc_profile.h"
@@ -336,11 +337,9 @@ static void histo_recompute(gboolean for_preview) {
 		}
 
 		args->fit = fit;
-		args->mem_ratio = 1.0f;
-		args->image_hook = mtf_single_image_hook;
-		args->log_hook = mtf_log_hook;
+		args->op = &op_desc_mtf;
 		args->idle_function = mtf_single_image_idle;
-		args->description = _("Midtone Transfer Function");
+		args->description = _("Midtone Transfer Function");  // override: variant label
 		args->verbose = FALSE;
 		args->user = data;
 		args->max_threads = com.max_thread;
@@ -387,11 +386,10 @@ static void histo_recompute(gboolean for_preview) {
 		}
 
 		args->fit = fit;
-		args->mem_ratio = (_payne_colourstretchmodel == COL_SAT) ? 2.0f : 1.0f;
-		args->image_hook = ght_single_image_hook;
-		args->log_hook = ght_log_hook;
+		args->op = &op_desc_ghs;
+		args->mem_ratio = (_payne_colourstretchmodel == COL_SAT) ? 2.0f : 1.0f;  // override: computed
 		args->idle_function = ght_single_image_idle;
-		args->description = _("Generalized Hyperbolic Transform");
+		args->description = _("Generalized Hyperbolic Transform");  // override: variant label
 		args->verbose = FALSE;
 		args->user = data;
 		args->max_threads = com.max_thread;
@@ -1500,11 +1498,9 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			}
 
 			args->fit = gfit;
-			args->mem_ratio = 1.0f;
-			args->image_hook = mtf_single_image_hook;
-			args->log_hook = mtf_log_hook;
+			args->op = &op_desc_mtf;
 			args->idle_function = mtf_single_image_idle;
-			args->description = _("Histogram Transformation");
+			args->description = _("Histogram Transformation");  // override: variant label
 			args->verbose = TRUE;
 			args->user = data;
 			args->max_threads = com.max_thread;
@@ -1550,11 +1546,9 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			}
 
 			args->fit = gfit;
-			args->mem_ratio = (_payne_colourstretchmodel == COL_SAT) ? 2.0f : 1.0f;
-			args->image_hook = ght_single_image_hook;
-			args->log_hook = ght_log_hook;
+			args->op = &op_desc_ghs;
+			args->mem_ratio = (_payne_colourstretchmodel == COL_SAT) ? 2.0f : 1.0f;  // override: computed
 			args->idle_function = ght_single_image_idle;
-			args->description = _("Generalised Hyperbolic Stretch");
 			args->verbose = TRUE;
 			args->user = data;
 			args->max_threads = com.max_thread;

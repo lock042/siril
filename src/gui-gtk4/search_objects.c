@@ -21,6 +21,7 @@
 #include <gtk/gtk.h>
 
 #include "core/siril.h"
+#include "core/op_descriptors.h"
 #include "core/processing.h"
 #include "core/processing_thread.h"
 #include "core/siril_log.h"
@@ -45,15 +46,12 @@ void search_object(GtkEditable *entry) {
 		return;
 	}
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = catsearch_image_hook;
-	args->description = _("Catalog search");
+	args->op = &op_desc_catsearch;
 	args->verbose = TRUE;
 	args->command_updates_gfit = FALSE;
 	args->command = FALSE;
 	args->idle_function = end_process_catsearch;
 	args->user = query_args;
-	args->log_hook = catsearch_log_hook;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
