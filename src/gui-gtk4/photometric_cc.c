@@ -19,6 +19,7 @@
  */
 
 #include <stdio.h>
+#include "core/op_descriptors.h"
 #include <string.h>
 #include <math.h>
 #include <float.h>
@@ -244,9 +245,8 @@ static void start_photometric_cc(gboolean spcc) {
 
 	struct generic_img_args *img_args = calloc(1, sizeof(struct generic_img_args));
 	img_args->fit = gfit;
-	img_args->image_hook = photometric_cc_image_hook;
-	img_args->log_hook = photometric_cc_log_hook;
-	img_args->description = spcc ? _("SPCC") : _("PCC");
+	img_args->op = &op_desc_photometric_cc;
+	img_args->description = spcc ? _("SPCC") : _("PCC");  // override: variant label
 	img_args->verbose = TRUE;
 	img_args->user = pcc_args;
 	if (!start_in_new_thread(generic_image_worker, img_args)) {

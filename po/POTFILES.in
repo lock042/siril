@@ -129,6 +129,7 @@ src/filters/clahe.c
 src/filters/cosmetic_correction.c
 src/filters/curve_transform.c
 src/filters/da3d/DA3D.cpp
+src/filters/deconvolution.c
 src/filters/epf.c
 src/filters/fft.c
 src/filters/ght.c

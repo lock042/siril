@@ -19,6 +19,7 @@
  */
 
 #include "core/siril.h"
+#include "core/op_descriptors.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "core/processing.h"
@@ -109,10 +110,8 @@ void on_linearmatch_apply_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 	args->fit = gfit;
-	args->image_hook = linear_match_image_hook;
-	args->log_hook = linear_match_log_hook;
+	args->op = &op_desc_linear_match;
 	args->idle_function = end_generic_image_reset_cursor;
-	args->description = _("Linear Match");
 	args->verbose = TRUE;
 	args->user = data;
 	set_cursor_waiting(TRUE);

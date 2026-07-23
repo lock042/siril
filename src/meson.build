@@ -93,6 +93,7 @@ src_files = [
   'core/icc_profile.c',
   'core/initfile.c',
   'core/masks.c',
+  'core/op_descriptor.c',
   'core/OS_utils.c',
   'core/pipe.c',
   'core/preprocess.c',

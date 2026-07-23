@@ -99,4 +99,3 @@ void sample_mutex_unlock();
 void apply_background_cancel();
 
 #endif /* SRC_ALGOS_BACKGROUND_EXTRACTION_H_ */
-

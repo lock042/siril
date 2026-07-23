@@ -20,6 +20,7 @@
 
 #include <glib.h>
 #include "core/siril.h"
+#include "core/op_descriptors.h"
 #include "algos/colors.h"
 #include "core/proto.h"
 #include "core/icc_profile.h"
@@ -450,10 +451,8 @@ void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
 	} else {
 		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 		args->fit = gfit;
-		args->image_hook = icc_convert_to_hook;
-		args->log_hook = icc_convert_to_log_hook;
+		args->op = &op_desc_icc_convert;
 		args->idle_function = icc_convert_to_idle;
-		args->description = _("ICC color space conversion");
 		args->verbose = TRUE;
 		args->user = icc_args;
 		if (!start_in_new_thread(generic_image_worker, args))

@@ -40,6 +40,22 @@
 #include <jconfig.h>
 #endif
 
+#include "core/op_descriptors.h"
+
+/* Op descriptor for ICC colour-space conversion, the one ICC op that still
+ * rewrites pixels through generic_image_worker (non-FLIS path). The site flags
+ * skip_generic_undo (siril_colorspace_transform writes its own FITS history),
+ * so no mem check is needed here. Assign/remove no longer touch pixels — they
+ * go through icc_state_worker — so they have no descriptor. */
+const op_descriptor op_desc_icc_convert = {
+	.id = "icc.convert", .version = 1,
+	.image_hook = icc_convert_to_hook,
+	.log_hook = icc_convert_to_log_hook,
+	.description = N_("ICC color space conversion"),
+	.mem_ratio = 0.0f,
+	.flags = 0,
+};
+
 static GMutex monitor_profile_mutex;
 static GMutex soft_proof_profile_mutex;
 static GMutex default_profiles_mutex;

@@ -23,6 +23,7 @@
 #include <locale.h>
 #include <gdk/gdk.h>
 #include "core/siril.h"
+#include "core/op_descriptors.h"
 #include "core/proto.h"
 #include "core/siril_date.h"
 #include "core/command.h"
@@ -831,14 +832,12 @@ void on_bdeconv_roi_preview_clicked(GtkButton *button, gpointer user_data) {
 		}
 
 		worker_args->fit = args->fit;
-		worker_args->mem_ratio = 4.0f; // Deconvolution needs significant memory
-		worker_args->image_hook = deconvolve_image_hook;
+		worker_args->op = &op_desc_deconvolve;
 		worker_args->idle_function = deconvolve_img_idle;
-		worker_args->description = _("Deconvolution Preview");
+		worker_args->description = _("Deconvolution Preview");  // override: variant label
 		worker_args->verbose = TRUE;
 		// worker_args->mask_aware = TRUE; // TODO: Need to implement mask setup in gui.roi.fit
 		worker_args->user = args; // Passed to deconvolve
-		worker_args->log_hook = deconvolve_log_hook;
 		worker_args->max_threads = com.max_thread;
 		worker_args->for_preview = TRUE;
 		worker_args->for_roi = is_roi;
@@ -889,14 +888,11 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 		worker_args->fit = gfit; // Apply always runs on gfit unless ROI is active
 		args->fit = gfit;
 
-		worker_args->mem_ratio = 4.0f; // Deconvolution needs significant memory
-		worker_args->image_hook = deconvolve_image_hook;
+		worker_args->op = &op_desc_deconvolve;
 		worker_args->idle_function = deconvolve_img_idle;
-		worker_args->description = _("Deconvolution");
 		worker_args->verbose = TRUE;
 		worker_args->mask_aware = TRUE;
 		worker_args->user = args;
-		worker_args->log_hook = deconvolve_log_hook;
 		worker_args->max_threads = com.max_thread;
 		worker_args->for_preview = FALSE;
 		worker_args->for_roi = FALSE;
@@ -935,14 +931,11 @@ void on_bdeconv_estimate_clicked(GtkButton *button, gpointer user_data) {
 		}
 
 		worker_args->fit = gfit;
-		worker_args->mem_ratio = 3.0f; // PSF estimation memory requirement
-		worker_args->image_hook = estimate_only_image_hook;
+		worker_args->op = &op_desc_psf_estimate;
 		worker_args->idle_function = estimate_img_idle;
-		worker_args->description = _("PSF Estimation");
 		worker_args->verbose = TRUE;
 		worker_args->user = args;
 		worker_args->for_preview = TRUE; // not really for preview but it prevents undo_save_state being called
-		worker_args->log_hook = makepsf_log_hook;
 		worker_args->max_threads = com.max_thread;
 
 		start_in_new_thread(generic_image_worker, worker_args);
