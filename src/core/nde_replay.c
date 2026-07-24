@@ -161,18 +161,33 @@ static nde_chain *chain_build_excluding(gint item_id, gint64 exclude_record_id) 
 			/* Canvas records targeting other layers (or the canvas itself,
 			 * target -1) move positions, not this item's pixels: ignore. */
 			break;
-		case NDE_SCOPE_DOCUMENT:
-			if (rec->target_item_id == item_id &&
-			    (!g_strcmp0(rec->op_id, "layer.merge_down") ||
-			     !g_strcmp0(rec->op_id, "document.flatten"))) {
+		case NDE_SCOPE_DOCUMENT: {
+			gboolean destructive = !g_strcmp0(rec->op_id, "layer.merge_down") ||
+			                       !g_strcmp0(rec->op_id, "document.flatten");
+			gboolean structural = destructive ||
+			                      !g_strcmp0(rec->op_id, "layer.add") ||
+			                      !g_strcmp0(rec->op_id, "layer.duplicate") ||
+			                      !g_strcmp0(rec->op_id, "layer.remove") ||
+			                      !g_strcmp0(rec->op_id, "layer.reorder");
+			if (destructive && rec->target_item_id == item_id) {
 				/* The item's pixels were destructively replaced by a
 				 * composite of other layers — nothing to replay from. */
 				add_reason(chain, _("record %" G_GINT64_FORMAT " (%s) replaced this layer's pixels with a composite — not replayable"),
 				           rec->record_id, rec->op_id);
+			} else if (!structural) {
+				/* FAIL CLOSED: a non-structural DOCUMENT-scope record
+				 * mutated pixels document-wide (icc.convert via the layer
+				 * worker today; unknown ops from newer builds tomorrow).
+				 * Every layer's chain spans it, so no layer chain that
+				 * contains records on both sides can replay without it. */
+				add_reason(chain, _("record %" G_GINT64_FORMAT " (%s) applies to the whole document — not replayable"),
+				           rec->record_id, rec->op_id ? rec->op_id : "?");
 			}
-			/* layer.add is embodied in the baseline; property/structure
-			 * records don't touch this item's pixels: ignore. */
+			/* Known structural records not targeting this item: layer.add
+			 * is embodied in the baseline; the rest don't touch this
+			 * item's pixels — ignore. */
 			break;
+		}
 		default:
 			break;
 		}

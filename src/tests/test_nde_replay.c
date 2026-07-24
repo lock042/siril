@@ -995,3 +995,44 @@ Test(nde_replay, compositing_state_records_do_not_block_chains) {
 
 	golden_teardown(NULL, f);
 }
+
+Test(nde_replay, document_scope_pixel_ops_block_chains) {
+	/* A DOCUMENT-scope record that is not a known structural op mutated
+	 * pixels document-wide (FLIS icc.convert) — it must fail closed as a
+	 * chain blocker, or an amend spanning it would replay without the
+	 * transform and commit wrong pixels. */
+	fits *f = flis_test_make_mono_fits(8, 8, 0.5f);
+	nde_checkpoint_baseline_ensure(f, -1);
+	struct mirror_args ma = { 0 };
+	nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m");
+	nde_capture_opaque("icc.convert", NDE_SCOPE_DOCUMENT, -1, "Converted profile");
+	nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m2");
+
+	nde_chain *chain = nde_chain_build(-1);
+	cr_assert(!chain->replayable,
+	          "a document-wide pixel record must block the chain");
+	cr_assert(strstr(g_ptr_array_index(chain->reasons, 0), "whole document") != NULL);
+	nde_chain_free(chain);
+
+	/* and it is NOT deletable: removing a document-wide pixel record
+	 * would require recomputing EVERY layer's chain, but the delete
+	 * machinery recomputes only the target item — cross-layer
+	 * consistency demands the refusal (multi-layer recompute is
+	 * phase-4+ territory). */
+	gint64 doc_id;
+	{
+		GPtrArray *snap = nde_history_snapshot(NULL);
+		doc_id = ((nde_record *)g_ptr_array_index(snap, 1))->record_id;
+		g_ptr_array_unref(snap);
+	}
+	gfit = f;
+	cr_assert(reserve_thread());
+	gchar *err = NULL;
+	gboolean ok = nde_delete_execute(doc_id, &err);
+	unreserve_thread();
+	cr_assert(!ok, "document-wide records must refuse deletion");
+	cr_assert_not_null(err);
+	g_free(err);
+
+	golden_teardown(NULL, f);
+}
