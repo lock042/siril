@@ -1680,6 +1680,87 @@ static void write_nde_base_hdus(fitsfile *fptr, GPtrArray *records) {
     g_hash_table_destroy(seen);
 }
 
+/* ===================================================================== */
+/* NDE_CKPT — barrier output checkpoints (nde phase 4, plan P4.3)         */
+/*                                                                       */
+/* One image HDU per LIVE barrier record that has an in-session output   */
+/* checkpoint, EXTNAME='NDE_CKPT', RECORD_ID=<record_id>, FLIS_ID=<item>.*/
+/* Written after NDE_BASE, LOSSLESSLY via the SAME force-GZIP/quantize-0 */
+/* wrapper NDE_BASE uses (shared, not copied) — a float checkpoint would */
+/* poison the tail replay if quantised.  A barrier is Tier B, or Tier A  */
+/* with a mask active at capture.                                        */
+/* ===================================================================== */
+
+/* Write @f as one NDE_CKPT image HDU tagged with @record_id / @item_id.  @f
+ * must carry a valid pixel buffer.  Compression is assumed already lossless. */
+static int write_nde_ckpt_hdu(fitsfile *fptr, fits *f, gint64 record_id, gint item_id) {
+    int status = 0;
+    f->naxes[0] = f->rx;
+    f->naxes[1] = f->ry;
+    if (fits_create_img(fptr, f->bitpix, f->naxis, f->naxes, &status)) {
+        report_fits_error(status);
+        return 1;
+    }
+    if (f->bitpix == USHORT_IMG) {
+        double bzero = 32768.0, bscale = 1.0;
+        fits_write_key(fptr, TDOUBLE, "BZERO",  &bzero,  "Unsigned 16-bit offset", &status);
+        fits_write_key(fptr, TDOUBLE, "BSCALE", &bscale, "Scale factor",           &status);
+        status = 0;
+    }
+
+    fitsfile *saved_fptr = f->fptr;
+    f->fptr = fptr;
+    int ret = save_opened_fits(f);
+    f->fptr = saved_fptr;
+    if (ret) return 1;
+
+    LONGLONG rid = record_id;
+    int id = item_id;
+    fits_write_key(fptr, TLONGLONG, "RECORD_ID", &rid, "NDE record ID",  &status);
+    fits_write_key(fptr, TINT,      "FLIS_ID",   &id,  "FLIS item ID",   &status);
+    fits_write_key(fptr, TSTRING,   "FLIS_TYPE", (void *)"NDE_CKPT", "FLIS HDU type", &status);
+    fits_write_key(fptr, TSTRING,   "EXTNAME",   (void *)"NDE_CKPT", "Extension name", &status);
+    if (status) { report_fits_error(status); return 1; }
+    return 0;
+}
+
+/* Write one NDE_CKPT HDU per LIVE barrier record in @records that has an
+ * in-session output checkpoint, pulling each from the checkpoint store.
+ * Barriers = Tier B, or Tier A with mask_active.  Shares NDE_BASE's lossless
+ * compression wrapper so checkpoints round-trip bit-exactly whatever the
+ * user's compression pref; restored after.  Records without a checkpoint
+ * (pre-phase-4, deleted, or truncated) simply produce no HDU. */
+static void write_nde_ckpt_hdus(fitsfile *fptr, GPtrArray *records) {
+    gboolean wrote_any = FALSE;
+    for (guint i = 0; i < records->len; i++) {
+        nde_record *rec = g_ptr_array_index(records, i);
+        gboolean barrier = rec->tier == NDE_TIER_B ||
+                           (rec->tier == NDE_TIER_A && rec->mask_active);
+        if (!barrier)
+            continue;
+        if (!nde_checkpoint_output_exists(rec->record_id))
+            continue;   /* no checkpoint captured/retained for this barrier */
+        fits *ck = nde_checkpoint_output_get(rec->record_id);
+        if (!ck)
+            continue;
+        if (!wrote_any) {
+            if (nde_base_set_lossless(fptr)) {
+                clearfits(ck);
+                free(ck);
+                break;
+            }
+            wrote_any = TRUE;
+        }
+        if (write_nde_ckpt_hdu(fptr, ck, rec->record_id, rec->target_item_id))
+            siril_log_warning(_("FLIS: failed to write NDE checkpoint for record %" G_GINT64_FORMAT "\n"),
+                              rec->record_id);
+        clearfits(ck);
+        free(ck);
+    }
+    if (wrote_any)
+        nde_base_restore_compression(fptr);
+}
+
 /* Read one cell of a fixed-width ASCII column as a heap string; NULL for an
  * empty cell (which is how NULL record fields were written).  Trailing
  * blanks are trimmed — fixed-width A columns are space-padded on disk, so
@@ -1853,6 +1934,74 @@ static GPtrArray *read_nde_base_hdus(fitsfile *fptr, int nhdus, nde_history *his
         g_ptr_array_add(out, b);
     }
     g_hash_table_destroy(live_ids);
+    return out;
+}
+
+/* One in-flight checkpoint read during load: a record_id + owning item_id +
+ * its reconstructed fits.  Adopted into the store AFTER nde_history_attach
+ * (which purges), then freed. */
+typedef struct {
+    gint64  record_id;
+    gint    item_id;
+    fits   *fit;
+} nde_ckpt_load_t;
+
+static void nde_ckpt_load_free(gpointer p) {
+    nde_ckpt_load_t *c = p;
+    if (!c) return;
+    if (c->fit) { clearfits(c->fit); free(c->fit); }
+    g_free(c);
+}
+
+/*
+ * Read every NDE_CKPT image HDU (located by EXTNAME scan) into a GPtrArray of
+ * nde_ckpt_load_t.  Only checkpoints whose RECORD_ID is present in @hist's
+ * loaded records are adopted (the loader-side of the "records in the history"
+ * gate); others are skipped.  Returns NULL when there is no history or no
+ * checkpoint HDUs.  Leaves @fptr at an arbitrary HDU.
+ */
+static GPtrArray *read_nde_ckpt_hdus(fitsfile *fptr, int nhdus, nde_history *hist) {
+    if (!hist || !hist->records || hist->records->len == 0)
+        return NULL;
+    /* Set of record_ids present in the loaded history. */
+    GHashTable *rec_ids = g_hash_table_new_full(g_int64_hash, g_int64_equal,
+                                                g_free, NULL);
+    for (guint i = 0; i < hist->records->len; i++) {
+        nde_record *rec = g_ptr_array_index(hist->records, i);
+        gint64 *k = g_new(gint64, 1);
+        *k = rec->record_id;
+        g_hash_table_add(rec_ids, k);
+    }
+
+    GPtrArray *out = NULL;
+    for (int h = 2; h <= nhdus; h++) {
+        int status = 0;
+        char extname[FLEN_VALUE] = { 0 };
+        if (fits_movabs_hdu(fptr, h, NULL, &status)) { status = 0; continue; }
+        fits_read_key(fptr, TSTRING, "EXTNAME", extname, NULL, &status); status = 0;
+        if (g_ascii_strcasecmp(extname, "NDE_CKPT"))
+            continue;
+        LONGLONG record_id = 0;
+        int item_id = -1;
+        fits_read_key(fptr, TLONGLONG, "RECORD_ID", &record_id, NULL, &status); status = 0;
+        fits_read_key(fptr, TINT,      "FLIS_ID",   &item_id,   NULL, &status); status = 0;
+        gint64 rid = (gint64)record_id;
+        if (!g_hash_table_contains(rec_ids, &rid))
+            continue;   /* checkpoint for a record not in the loaded history */
+        fits *f = load_layer_from_hdu(fptr, h);
+        if (!f) {
+            siril_log_warning(_("FLIS: failed to read NDE checkpoint HDU %d\n"), h);
+            continue;
+        }
+        if (!out)
+            out = g_ptr_array_new_with_free_func(nde_ckpt_load_free);
+        nde_ckpt_load_t *c = g_new0(nde_ckpt_load_t, 1);
+        c->record_id = rid;
+        c->item_id   = item_id;
+        c->fit       = f;
+        g_ptr_array_add(out, c);
+    }
+    g_hash_table_destroy(rec_ids);
     return out;
 }
 
@@ -2079,6 +2228,9 @@ int save_flis(const gchar *filename) {
         /* NDE baselines ride after FLIS_HIST (plan P2.C), one lossless image
          * HDU per item that has a live record and a captured baseline. */
         write_nde_base_hdus(fptr, nde_records);
+        /* NDE output checkpoints ride after NDE_BASE (plan P4.3), one lossless
+         * image HDU per live barrier record that has an in-session checkpoint. */
+        write_nde_ckpt_hdus(fptr, nde_records);
     }
     if (nde_records)
         g_ptr_array_unref(nde_records);
@@ -2273,6 +2425,11 @@ int load_flis(const gchar *filename) {
      * checkpoint store AFTER nde_history_attach() (attach purges the store).
      * Pre-phase-2 files simply have no NDE_BASE HDUs → chains not replayable. */
     GPtrArray *nde_baselines = read_nde_base_hdus(fptr, nhdus, nde_hist);
+    /* NDE output checkpoints (plan P4.3): read the NDE_CKPT HDUs while the file
+     * is open, for record_ids present in the loaded history.  Adopted into the
+     * store AFTER nde_history_attach() (attach purges the store).  Pre-phase-4
+     * files simply have no NDE_CKPT HDUs → barriers stay full blockers. */
+    GPtrArray *nde_ckpts = read_nde_ckpt_hdus(fptr, nhdus, nde_hist);
     guint nde_hash_scope = 0, nde_hash_present = 0;
     gboolean nde_hash_mismatch = FALSE;
 
@@ -2459,6 +2616,7 @@ int load_flis(const gchar *filename) {
         g_slist_free_full(groups, (GDestroyNotify)flis_group_free);
         nde_history_free(nde_hist);
         if (nde_baselines) g_ptr_array_unref(nde_baselines);
+        if (nde_ckpts) g_ptr_array_unref(nde_ckpts);
         return 1;
     }
 
@@ -2543,6 +2701,17 @@ int load_flis(const gchar *filename) {
             nde_checkpoint_baseline_adopt(b->fit, b->item_id);
         }
         g_ptr_array_unref(nde_baselines);
+    }
+
+    /* Adopt the persisted output checkpoints (plan P4.3) — also AFTER attach,
+     * since attach purges the store.  Only checkpoints for record_ids present
+     * in the loaded history were read (read_nde_ckpt_hdus). */
+    if (nde_ckpts) {
+        for (guint i = 0; i < nde_ckpts->len; i++) {
+            nde_ckpt_load_t *c = g_ptr_array_index(nde_ckpts, i);
+            nde_checkpoint_output_adopt(c->fit, c->record_id, c->item_id);
+        }
+        g_ptr_array_unref(nde_ckpts);
     }
 
     siril_log_message(_("FLIS: loaded %d layer(s) from %s (%dx%d canvas)\n"),

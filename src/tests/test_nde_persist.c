@@ -408,3 +408,188 @@ Test(nde_persist, pre_phase2_no_baseline_loads) {
 	              "no baseline HDU → not replayable");
 	clearfits(seed); free(seed);
 }
+
+/* ---- NDE_CKPT output-checkpoint persistence (plan P4.3) --------------- */
+
+/* Count NDE_CKPT HDUs in the saved file. */
+static int count_ckpt_hdus(const char *path) {
+	int status = 0, nhdus = 0, found = 0;
+	fitsfile *fptr = NULL;
+	fits_open_diskfile(&fptr, path, READONLY, &status);
+	cr_assert_eq(status, 0);
+	fits_get_num_hdus(fptr, &nhdus, &status);
+	for (int h = 2; h <= nhdus; h++) {
+		char extname[FLEN_VALUE] = { 0 };
+		fits_movabs_hdu(fptr, h, NULL, &status); status = 0;
+		fits_read_key(fptr, TSTRING, "EXTNAME", extname, NULL, &status); status = 0;
+		if (!g_ascii_strcasecmp(extname, "NDE_CKPT")) found++;
+	}
+	fits_close_file(fptr, &status);
+	return found;
+}
+
+/* A checkpointed barrier round-trips its output checkpoint bit-exactly
+ * (float), keyed by record_id. */
+Test(nde_persist, ckpt_roundtrip_float_exact) {
+	flis_layer_t *l = flis_test_add_layer(flis_test_make_mono_fits(12, 10, 0.25f), "base");
+	gint lid = l->item_id;
+	/* A Tier-B barrier record + its output checkpoint. */
+	gint64 bid = append_full("python.set_pixeldata", 1, NULL, "freehand",
+	                         NDE_TIER_B, NDE_SCOPE_LAYER, lid, FALSE);
+	fits *post = ramp_float(12, 10, 1, 0.7f);
+	nde_checkpoint_output_store(post, bid, lid);
+
+	cr_assert_eq(save_flis(tmppath), 0);
+	cr_assert_eq(count_ckpt_hdus(tmppath), 1, "one barrier checkpoint HDU expected");
+
+	flis_free_layers(com.uniq);
+	nde_history_attach(NULL);
+	cr_assert(!nde_checkpoint_output_exists(bid), "purge must clear the store");
+	cr_assert_eq(load_flis(tmppath), 0);
+
+	cr_assert(nde_checkpoint_output_exists(bid), "checkpoint must be adopted on load");
+	fits *got = nde_checkpoint_output_get(bid);
+	assert_float_exact(got, post);
+	clearfits(got); free(got);
+	clearfits(post); free(post);
+}
+
+/* Same, ushort — cheap enough to check both types. */
+Test(nde_persist, ckpt_roundtrip_ushort_exact) {
+	flis_layer_t *l = flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.5f), "base");
+	gint lid = l->item_id;
+	gint64 bid = append_full("color.rgb_align", 1, NULL, "RGB align",
+	                         NDE_TIER_B, NDE_SCOPE_LAYER, lid, FALSE);
+	fits *post = ramp_ushort(8, 8, 1, 2000);
+	nde_checkpoint_output_store(post, bid, lid);
+
+	cr_assert_eq(save_flis(tmppath), 0);
+	cr_assert_eq(count_ckpt_hdus(tmppath), 1);
+
+	flis_free_layers(com.uniq);
+	nde_history_attach(NULL);
+	cr_assert_eq(load_flis(tmppath), 0);
+
+	cr_assert(nde_checkpoint_output_exists(bid));
+	fits *got = nde_checkpoint_output_get(bid);
+	cr_assert_not_null(got);
+	cr_assert_eq(got->type, DATA_USHORT);
+	size_t n = (size_t)post->rx * post->ry * post->naxes[2];
+	for (size_t i = 0; i < n; i++)
+		cr_assert_eq(got->data[i], post->data[i],
+		             "ushort checkpoint pixel %zu: %u != %u", i, got->data[i], post->data[i]);
+	clearfits(got); free(got);
+	clearfits(post); free(post);
+}
+
+/* The checkpoint must round-trip LOSSLESSLY under the user's lossy tile
+ * compression, exactly like NDE_BASE (decision 4). */
+Test(nde_persist, ckpt_lossless_under_user_compression) {
+	flis_layer_t *l = flis_test_add_layer(flis_test_make_mono_fits(16, 16, 0.25f), "base");
+	gint lid = l->item_id;
+	gint64 bid = append_full("python.set_pixeldata", 1, NULL, "freehand",
+	                         NDE_TIER_B, NDE_SCOPE_LAYER, lid, FALSE);
+	fits *post = ramp_float(16, 16, 1, 0.33f);
+	nde_checkpoint_output_store(post, bid, lid);
+
+	com.pref.comp.fits_enabled = TRUE;
+	com.pref.comp.fits_method = 0;          /* RICE */
+	com.pref.comp.fits_quantization = 16.0;
+	int rc = save_flis(tmppath);
+	com.pref.comp.fits_enabled = FALSE;
+	cr_assert_eq(rc, 0);
+
+	flis_free_layers(com.uniq);
+	nde_history_attach(NULL);
+	cr_assert_eq(load_flis(tmppath), 0);
+
+	cr_assert(nde_checkpoint_output_exists(bid));
+	fits *got = nde_checkpoint_output_get(bid);
+	assert_float_exact(got, post);   /* bit-exact despite fits_enabled */
+	clearfits(got); free(got);
+	clearfits(post); free(post);
+}
+
+/* A barrier WITHOUT a checkpoint (pre-phase-4 capture) writes no HDU; a
+ * non-barrier Tier-A record never writes one either. */
+Test(nde_persist, barrier_without_checkpoint_writes_no_hdu) {
+	flis_layer_t *l = flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.25f), "base");
+	gint lid = l->item_id;
+	/* barrier, but no checkpoint stored */
+	append_full("python.set_pixeldata", 1, NULL, "freehand",
+	            NDE_TIER_B, NDE_SCOPE_LAYER, lid, FALSE);
+	/* a Tier-A record — not a barrier, never checkpointed */
+	append_full("stretch.asinh", 1, "beta=5", "Asinh",
+	            NDE_TIER_A, NDE_SCOPE_LAYER, lid, FALSE);
+
+	cr_assert_eq(save_flis(tmppath), 0);
+	cr_assert_eq(count_ckpt_hdus(tmppath), 0,
+	             "no in-session checkpoint → no NDE_CKPT HDU");
+}
+
+/* A deleted/truncated barrier's checkpoint is dropped from the store, so it
+ * is not written on the next save (only LIVE, retained checkpoints persist). */
+Test(nde_persist, truncated_barrier_checkpoint_not_written) {
+	flis_layer_t *l = flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.25f), "base");
+	gint lid = l->item_id;
+	gint64 bid = append_full("python.set_pixeldata", 1, NULL, "freehand",
+	                         NDE_TIER_B, NDE_SCOPE_LAYER, lid, FALSE);
+	fits *post = ramp_float(8, 8, 1, 0.5f);
+	nde_checkpoint_output_store(post, bid, lid);
+	cr_assert(nde_checkpoint_output_exists(bid));
+
+	/* Undo the barrier then append: the dead-tail truncation drops its
+	 * checkpoint (P4.2 lifecycle) — the surviving record is not a barrier. */
+	nde_history_on_undo(bid);
+	append_full("stretch.asinh", 1, "beta=5", "Asinh",
+	            NDE_TIER_A, NDE_SCOPE_LAYER, lid, FALSE);
+	cr_assert(!nde_checkpoint_output_exists(bid),
+	          "truncation must drop the barrier's checkpoint");
+
+	cr_assert_eq(save_flis(tmppath), 0);
+	cr_assert_eq(count_ckpt_hdus(tmppath), 0,
+	             "a truncated barrier's checkpoint must not be persisted");
+	clearfits(post); free(post);
+}
+
+/* Pre-phase-4 file (NDE_CKPT HDUs deleted): loads fine, adopts no checkpoint
+ * — the barrier stays a full blocker (decision 5 analogue). */
+Test(nde_persist, pre_phase4_no_ckpt_loads) {
+	flis_layer_t *l = flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.25f), "base");
+	gint lid = l->item_id;
+	gint64 bid = append_full("python.set_pixeldata", 1, NULL, "freehand",
+	                         NDE_TIER_B, NDE_SCOPE_LAYER, lid, FALSE);
+	fits *post = ramp_float(8, 8, 1, 0.6f);
+	nde_checkpoint_output_store(post, bid, lid);
+	cr_assert_eq(save_flis(tmppath), 0);
+
+	/* Delete every NDE_CKPT HDU, mimicking a pre-phase-4 writer. */
+	int status = 0, nhdus = 0;
+	fitsfile *fptr = NULL;
+	fits_open_diskfile(&fptr, tmppath, READWRITE, &status);
+	cr_assert_eq(status, 0);
+	fits_get_num_hdus(fptr, &nhdus, &status);
+	gboolean deleted = FALSE;
+	for (int h = 2; h <= nhdus; ) {
+		char extname[FLEN_VALUE] = { 0 };
+		fits_movabs_hdu(fptr, h, NULL, &status); status = 0;
+		fits_read_key(fptr, TSTRING, "EXTNAME", extname, NULL, &status); status = 0;
+		if (!g_ascii_strcasecmp(extname, "NDE_CKPT")) {
+			fits_delete_hdu(fptr, NULL, &status); status = 0;
+			deleted = TRUE;
+			fits_get_num_hdus(fptr, &nhdus, &status);
+		} else {
+			h++;
+		}
+	}
+	fits_close_file(fptr, &status);
+	cr_assert(deleted, "fixture: no NDE_CKPT HDU found to delete");
+
+	flis_free_layers(com.uniq);
+	nde_history_attach(NULL);
+	cr_assert_eq(load_flis(tmppath), 0, "missing checkpoints must load gracefully");
+	cr_assert_eq(nde_history_live_count(), 1, "history still loads");
+	cr_assert_not(nde_checkpoint_output_exists(bid),
+	              "no NDE_CKPT HDU → barrier stays a full blocker");
+	clearfits(post); free(post);
+}
