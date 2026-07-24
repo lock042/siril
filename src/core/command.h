@@ -289,6 +289,8 @@ int process_flis_layer_info(int nb);
 int process_flis_group_info(int nb);
 int process_flis_history(int nb);
 int process_flis_replay_check(int nb);
+int process_flis_amend(int nb);
+int process_flis_hist_delete(int nb);
 
 /* FLIS file operations (stage 2.3) */
 int process_flis_promote(int nb);

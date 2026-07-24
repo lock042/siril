@@ -1164,6 +1164,52 @@ Test(flis_cmd, history_bad_format_rejected) {
 	cr_assert_eq(process_flis_history(2), CMD_ARG_ERROR);
 }
 
+/* flis_amend / flis_hist_delete (P3.C): the success path spawns a
+ * processing job the direct-call harness cannot join, so it is covered by
+ * the siril-cli e2e script; here we lock down the argument parsing, which
+ * runs (and returns) before any job is submitted. */
+Test(flis_cmd, amend_no_args_rejected) {
+	load_two_layer_fixture();
+	word[0] = "flis_amend"; word[1] = NULL;
+	cr_assert_eq(process_flis_amend(1), CMD_WRONG_N_ARG);
+}
+
+Test(flis_cmd, amend_missing_params_rejected) {
+	load_two_layer_fixture();
+	word[0] = "flis_amend"; word[1] = "1"; word[2] = NULL;
+	cr_assert_eq(process_flis_amend(2), CMD_WRONG_N_ARG);
+}
+
+Test(flis_cmd, amend_non_numeric_id_rejected) {
+	load_two_layer_fixture();
+	word[0] = "flis_amend"; word[1] = "notanumber"; word[2] = "beta=60"; word[3] = NULL;
+	cr_assert_eq(process_flis_amend(3), CMD_ARG_ERROR);
+}
+
+Test(flis_cmd, amend_trailing_junk_id_rejected) {
+	load_two_layer_fixture();
+	word[0] = "flis_amend"; word[1] = "1x"; word[2] = "beta=60"; word[3] = NULL;
+	cr_assert_eq(process_flis_amend(3), CMD_ARG_ERROR);
+}
+
+Test(flis_cmd, hist_delete_no_args_rejected) {
+	load_two_layer_fixture();
+	word[0] = "flis_hist_delete"; word[1] = NULL;
+	cr_assert_eq(process_flis_hist_delete(1), CMD_WRONG_N_ARG);
+}
+
+Test(flis_cmd, hist_delete_non_numeric_id_rejected) {
+	load_two_layer_fixture();
+	word[0] = "flis_hist_delete"; word[1] = "abc"; word[2] = NULL;
+	cr_assert_eq(process_flis_hist_delete(2), CMD_ARG_ERROR);
+}
+
+Test(flis_cmd, hist_delete_empty_id_rejected) {
+	load_two_layer_fixture();
+	word[0] = "flis_hist_delete"; word[1] = ""; word[2] = NULL;
+	cr_assert_eq(process_flis_hist_delete(2), CMD_ARG_ERROR);
+}
+
 /* End-to-end: a property command records provenance that flis_history then
  * reports (combined Part A + Part D assertion vehicle). */
 Test(flis_cmd, setopacity_then_history_reports_ok) {

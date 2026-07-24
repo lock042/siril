@@ -16805,6 +16805,61 @@ int process_flis_replay_check(int nb) {
 	return CMD_OK;
 }
 
+/* Parse a decimal record id from an argument, rejecting garbage (trailing
+ * junk, empty, non-numeric).  Records are identified by their record_id
+ * (a positive integer as printed by flis_history). */
+static gboolean parse_record_id_arg(const char *arg, gint64 *out) {
+	if (!arg || !*arg) return FALSE;
+	char *end = NULL;
+	gint64 v = g_ascii_strtoll(arg, &end, 10);
+	if (end == arg || !end || *end != '\0')
+		return FALSE;
+	*out = v;
+	return TRUE;
+}
+
+/* flis_amend / flis_hist_delete (nde-phase2-3-plan.md P3.C): thin parsers
+ * that funnel into the amend/delete commit machinery in nde_replay.c.  No
+ * logic beyond argument parsing and the python-reservation guard; the
+ * _start wrappers spawn the job and own the whole replay+swap+commit. */
+int process_flis_amend(int nb) {
+	if (nb < 3) {
+		siril_log_error(_("Usage: flis_amend <record_id> <params>\n"));
+		return CMD_WRONG_N_ARG;
+	}
+	gint64 record_id;
+	if (!parse_record_id_arg(word[1], &record_id)) {
+		siril_log_error(_("Invalid record id: '%s'\n"), word[1]);
+		return CMD_ARG_ERROR;
+	}
+	if (processing_is_reserved_for_python()) {
+		siril_log_error(_("The processing thread is reserved by a Python script; try again later\n"));
+		return CMD_GENERIC_ERROR;
+	}
+	if (!nde_amend_start(record_id, word[2]))
+		return CMD_GENERIC_ERROR;
+	return CMD_OK;
+}
+
+int process_flis_hist_delete(int nb) {
+	if (nb < 2) {
+		siril_log_error(_("Usage: flis_hist_delete <record_id>\n"));
+		return CMD_WRONG_N_ARG;
+	}
+	gint64 record_id;
+	if (!parse_record_id_arg(word[1], &record_id)) {
+		siril_log_error(_("Invalid record id: '%s'\n"), word[1]);
+		return CMD_ARG_ERROR;
+	}
+	if (processing_is_reserved_for_python()) {
+		siril_log_error(_("The processing thread is reserved by a Python script; try again later\n"));
+		return CMD_GENERIC_ERROR;
+	}
+	if (!nde_delete_start(record_id))
+		return CMD_GENERIC_ERROR;
+	return CMD_OK;
+}
+
 int process_flis_layer_info(int nb) {
 	if (nb < 2) {
 		siril_log_error(_("Usage: flis_layer_info <id|\"name\">\n"));
