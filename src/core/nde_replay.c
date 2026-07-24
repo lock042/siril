@@ -103,6 +103,25 @@ static gboolean is_compositing_state_op(const char *op_id) {
 	                 !g_strcmp0(op_id, "layer.set_visible"));
 }
 
+/* POLICY predicates — see nde_replay.h.  Liveness and trial-chain
+ * replayability are the execute path's job, not these. */
+gboolean nde_record_amendable(const nde_record *rec) {
+	if (!rec || rec->tier != NDE_TIER_A)
+		return FALSE;
+	const op_descriptor *op = op_descriptor_by_id(rec->op_id);
+	return op && op->deserialize;
+}
+
+gboolean nde_record_deletable(const nde_record *rec) {
+	if (!rec)
+		return FALSE;
+	if (rec->scope == NDE_SCOPE_DOCUMENT)
+		return FALSE;
+	if (is_compositing_state_op(rec->op_id))
+		return FALSE;
+	return TRUE;
+}
+
 /* @exclude_record_id != 0 builds the TRIAL chain for a pending delete: the
  * excluded record is neither a member nor a blocker — a delete never needs
  * to replay the deleted step, only the survivors (so deleting the single
@@ -271,24 +290,25 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 		if (rec->record_id == record_id) {
 			found = TRUE;
 			item_id = rec->target_item_id;
-			if (new_params && rec->tier != NDE_TIER_A) {
+			if (new_params && !nde_record_amendable(rec)) {
 				/* Amend needs editable params.  DELETE does not: removing
 				 * an opaque record is well-defined — the trial chain never
 				 * replays the deleted step, so deleting the one opaque
 				 * record in a chain regains editability around it. */
 				*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) is opaque and cannot be edited"),
 				                       record_id, rec->op_id ? rec->op_id : "?");
-			} else if (!new_params && rec->scope == NDE_SCOPE_DOCUMENT) {
-				/* Deleting a structural step cannot resurrect what it
-				 * destroyed (merge/flatten/remove) or un-create a layer. */
-				*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) is a structural step and cannot be deleted"),
-				                       record_id, rec->op_id ? rec->op_id : "?");
-			} else if (!new_params && is_compositing_state_op(rec->op_id)) {
-				/* Opacity/blend/visibility records describe compositing
-				 * state, not pixels — deleting the record would not revert
-				 * the state and would only make the log lie. */
-				*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) records a layer-property change and cannot be deleted"),
-				                       record_id, rec->op_id ? rec->op_id : "?");
+			} else if (!new_params && !nde_record_deletable(rec)) {
+				/* Structural (DOCUMENT scope) steps cannot resurrect what
+				 * they destroyed or un-create a layer; compositing-state
+				 * records (opacity/blend/visibility) describe live FLIS
+				 * state, not pixels — deleting either would only make the
+				 * log lie. */
+				if (rec->scope == NDE_SCOPE_DOCUMENT)
+					*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) is a structural step and cannot be deleted"),
+					                       record_id, rec->op_id ? rec->op_id : "?");
+				else
+					*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) records a layer-property change and cannot be deleted"),
+					                       record_id, rec->op_id ? rec->op_id : "?");
 			}
 			break;
 		}

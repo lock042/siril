@@ -49,6 +49,8 @@
 #include "core/processing.h"
 #include "core/undo.h"
 #include "core/nde_history.h"
+#include "core/nde_replay.h"    /* nde_record_amendable/deletable, amend/delete_start */
+#include "core/op_descriptor.h" /* op_descriptor_by_id for the edit round-trip check */
 #include "core/gui_iface.h"
 #include "io/image_format_flis.h"
 #include "io/single_image.h"
@@ -120,6 +122,11 @@ struct _NdeHistRowItem {
 	gchar   *target;     /* layer name / "canvas" / "document" / "deleted layer" */
 	gchar   *detail;     /* popover + tooltip text */
 	gboolean dead;       /* beyond live_count (undone) → dimmed */
+	/* Edit/Delete UI state (P3.D) — resolved at refresh from the snapshot. */
+	gint64   record_id;
+	gboolean amendable;  /* nde_record_amendable() — Tier A + deserializer */
+	gboolean deletable;  /* nde_record_deletable() — not structural/compositing */
+	gchar   *params;     /* raw kv blob copy (NULL when the record has none) */
 };
 
 G_DEFINE_TYPE(NdeHistRowItem, nde_hist_row_item, G_TYPE_OBJECT)
@@ -130,6 +137,7 @@ static void nde_hist_row_item_finalize(GObject *obj) {
 	g_free(self->summary);
 	g_free(self->target);
 	g_free(self->detail);
+	g_free(self->params);
 	G_OBJECT_CLASS(nde_hist_row_item_parent_class)->finalize(obj);
 }
 static void nde_hist_row_item_class_init(NdeHistRowItemClass *klass) {
@@ -190,6 +198,9 @@ struct flis_panel {
 	GtkWidget  *hist_list;
 	GtkWidget  *hist_popover;        /* lazy; parented to hist_list */
 	GtkWidget  *hist_popover_label;
+	GtkWidget  *hist_edit_btn;       /* "Edit parameters…" in the popover */
+	GtkWidget  *hist_delete_btn;     /* "Delete step" in the popover */
+	NdeHistRowItem *hist_popover_row;/* row the popover currently targets (ref held) */
 
 	/* Refresh suppression: TRUE while we're programmatically syncing
 	 * widget state to the model, so signal handlers don't loop back. */
@@ -1138,6 +1149,219 @@ static void on_hist_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer 
 		gtk_widget_remove_css_class(row, "dim-label");
 }
 
+/* Consequence line shown before any amend/delete runs: an edit recomputes
+ * the image from the baseline and clears the undo stack (no meta-undo,
+ * sketch §7 decision 1).  Shared by the delete confirmation and the edit
+ * dialog so the wording stays identical. */
+#define HIST_EDIT_CONSEQUENCE \
+	_("This recomputes the image from the edit history and clears the undo history.")
+
+/* ---- parameter editor (amend) --------------------------------------------
+ * A modal window with one GtkEntry per key (keys sorted), an inline error
+ * label, and Cancel / Apply.  Apply folds the confirmation in: the
+ * consequence line is shown permanently in the dialog, so a click on Apply
+ * validates, then amends directly — no second confirm popup.  The window is
+ * destroyed on close; no state outlives it. */
+struct hist_edit_ctx {
+	GtkWidget *window;
+	GtkWidget *error_label;
+	gint64     record_id;
+	GPtrArray *keys;      /* gchar*, sorted — parallel to entries */
+	GPtrArray *entries;   /* GtkWidget* (GtkEntry), same order */
+};
+
+static void hist_edit_ctx_free(gpointer p) {
+	struct hist_edit_ctx *ctx = p;
+	g_ptr_array_unref(ctx->keys);
+	g_ptr_array_unref(ctx->entries);
+	g_free(ctx);
+}
+
+static void on_hist_edit_cancel(GtkButton *b, gpointer u) {
+	(void)b;
+	struct hist_edit_ctx *ctx = u;
+	gtk_window_destroy(GTK_WINDOW(ctx->window));
+}
+
+/* Round-trip the assembled blob through the record's op deserializer as a
+ * client-side check (mirrors destroy_user in nde_replay.c). */
+static gboolean hist_params_valid(gint64 record_id, const gchar *blob) {
+	const nde_record *rec = NULL;
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	for (guint i = 0; snap && i < snap->len; i++) {
+		const nde_record *r = g_ptr_array_index(snap, i);
+		if (r->record_id == record_id) { rec = r; break; }
+	}
+	gboolean ok = FALSE;
+	if (rec) {
+		const op_descriptor *op = op_descriptor_by_id(rec->op_id);
+		if (op && op->deserialize) {
+			gpointer user = op->deserialize(blob, rec->op_version);
+			if (user) {
+				/* destructor-first convention (see nde_replay.c) */
+				void (*d)(void *) = *(void (**)(void *))user;
+				if (d) d(user); else free(user);
+				ok = TRUE;
+			}
+		}
+	}
+	if (snap)
+		g_ptr_array_unref(snap);
+	return ok;
+}
+
+static void on_hist_edit_apply(GtkButton *b, gpointer u) {
+	(void)b;
+	struct hist_edit_ctx *ctx = u;
+	/* Rebuild the blob over the entries in the SAME sorted key order; the
+	 * builder re-escapes the values. */
+	GString *kv = nde_kv_start();
+	for (guint i = 0; i < ctx->keys->len; i++) {
+		const char *key = g_ptr_array_index(ctx->keys, i);
+		GtkWidget  *entry = g_ptr_array_index(ctx->entries, i);
+		const char *val = gtk_editable_get_text(GTK_EDITABLE(entry));
+		nde_kv_add_str(kv, key, val ? val : "");
+	}
+	gchar *blob = nde_kv_end(kv);
+
+	if (!hist_params_valid(ctx->record_id, blob)) {
+		gtk_label_set_text(GTK_LABEL(ctx->error_label),
+		                   _("These parameters are not valid for this operation"));
+		gtk_widget_set_visible(ctx->error_label, TRUE);
+		g_free(blob);
+		return;   /* keep the dialog open */
+	}
+
+	gint64 record_id = ctx->record_id;
+	gtk_window_destroy(GTK_WINDOW(ctx->window));   /* frees ctx via close */
+	nde_amend_start(record_id, blob);              /* refresh via nde_history_changed */
+	g_free(blob);
+}
+
+static void open_hist_edit_dialog(NdeHistRowItem *r) {
+	GtkWidget *window = gtk_window_new();
+	gtk_window_set_title(GTK_WINDOW(window),
+	                     r->summary ? r->summary : _("Edit parameters"));
+	gtk_window_set_modal(GTK_WINDOW(window), TRUE);
+	gtk_window_set_transient_for(GTK_WINDOW(window),
+	                             g_panel ? GTK_WINDOW(g_panel->window) : NULL);
+	gtk_window_set_default_size(GTK_WINDOW(window), 360, -1);
+
+	GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+	gtk_widget_set_margin_start (box, 12);
+	gtk_widget_set_margin_end   (box, 12);
+	gtk_widget_set_margin_top   (box, 12);
+	gtk_widget_set_margin_bottom(box, 12);
+	gtk_window_set_child(GTK_WINDOW(window), box);
+
+	struct hist_edit_ctx *ctx = g_new0(struct hist_edit_ctx, 1);
+	ctx->window    = window;
+	ctx->record_id = r->record_id;
+	ctx->keys      = g_ptr_array_new_with_free_func(g_free);
+	ctx->entries   = g_ptr_array_new();
+
+	GtkWidget *grid = gtk_grid_new();
+	gtk_grid_set_row_spacing   (GTK_GRID(grid), 6);
+	gtk_grid_set_column_spacing(GTK_GRID(grid), 8);
+
+	GHashTable *kv = nde_kv_parse(r->params);   /* values already unescaped */
+	GList *keys = g_list_sort(g_hash_table_get_keys(kv), (GCompareFunc)g_strcmp0);
+	int row = 0;
+	for (GList *l = keys; l; l = l->next, row++) {
+		const char *key = l->data;
+		const char *val = g_hash_table_lookup(kv, key);
+		GtkWidget *label = gtk_label_new(key);
+		gtk_label_set_xalign(GTK_LABEL(label), 0.0f);
+		GtkWidget *entry = gtk_entry_new();
+		gtk_editable_set_text(GTK_EDITABLE(entry), val ? val : "");
+		gtk_widget_set_hexpand(entry, TRUE);
+		gtk_grid_attach(GTK_GRID(grid), label, 0, row, 1, 1);
+		gtk_grid_attach(GTK_GRID(grid), entry, 1, row, 1, 1);
+		g_ptr_array_add(ctx->keys, g_strdup(key));
+		g_ptr_array_add(ctx->entries, entry);
+	}
+	g_list_free(keys);
+	g_hash_table_unref(kv);
+	gtk_box_append(GTK_BOX(box), grid);
+
+	ctx->error_label = gtk_label_new(NULL);
+	gtk_label_set_wrap(GTK_LABEL(ctx->error_label), TRUE);
+	gtk_label_set_xalign(GTK_LABEL(ctx->error_label), 0.0f);
+	gtk_widget_add_css_class(ctx->error_label, "error");
+	gtk_widget_set_visible(ctx->error_label, FALSE);
+	gtk_box_append(GTK_BOX(box), ctx->error_label);
+
+	GtkWidget *consequence = gtk_label_new(HIST_EDIT_CONSEQUENCE);
+	gtk_label_set_wrap(GTK_LABEL(consequence), TRUE);
+	gtk_label_set_xalign(GTK_LABEL(consequence), 0.0f);
+	gtk_widget_add_css_class(consequence, "dim-label");
+	gtk_box_append(GTK_BOX(box), consequence);
+
+	GtkWidget *bbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	gtk_widget_set_halign(bbox, GTK_ALIGN_END);
+	GtkWidget *cancel = gtk_button_new_with_label(_("Cancel"));
+	GtkWidget *apply  = gtk_button_new_with_label(_("Apply"));
+	gtk_widget_add_css_class(apply, "suggested-action");
+	gtk_box_append(GTK_BOX(bbox), cancel);
+	gtk_box_append(GTK_BOX(bbox), apply);
+	gtk_box_append(GTK_BOX(box), bbox);
+
+	/* ctx lifetime follows the window. */
+	g_object_set_data_full(G_OBJECT(window), "hist-edit-ctx", ctx,
+	                       hist_edit_ctx_free);
+	g_signal_connect(cancel, "clicked", G_CALLBACK(on_hist_edit_cancel), ctx);
+	g_signal_connect(apply,  "clicked", G_CALLBACK(on_hist_edit_apply),  ctx);
+	gtk_window_present(GTK_WINDOW(window));
+}
+
+static void on_hist_edit_clicked(GtkButton *b, gpointer u) {
+	(void)b; (void)u;
+	if (!g_panel || !g_panel->hist_popover_row)
+		return;
+	NdeHistRowItem *r = g_panel->hist_popover_row;
+	if (!r->amendable || !r->params)
+		return;
+	gtk_popover_popdown(GTK_POPOVER(g_panel->hist_popover));
+	open_hist_edit_dialog(r);
+}
+
+static void on_hist_delete_clicked(GtkButton *b, gpointer u) {
+	(void)b; (void)u;
+	if (!g_panel || !g_panel->hist_popover_row)
+		return;
+	NdeHistRowItem *r = g_panel->hist_popover_row;
+	if (!r->deletable)
+		return;
+	gtk_popover_popdown(GTK_POPOVER(g_panel->hist_popover));
+
+	gchar *msg = g_strdup_printf("%s\n\n%s",
+	                             r->summary ? r->summary : "",
+	                             HIST_EDIT_CONSEQUENCE);
+	gboolean confirmed = siril_confirm_dialog(_("Delete this step?"), msg,
+	                                          _("_Delete"));
+	g_free(msg);
+	if (confirmed)
+		nde_delete_start(r->record_id);   /* refresh via nde_history_changed */
+}
+
+/* First applicable reason a row's Edit/Delete button is greyed out, in plain
+ * language; NULL when the button is enabled.  @is_edit selects the extra
+ * amendable/deletable requirement. */
+static const char *hist_action_disabled_reason(const NdeHistRowItem *r,
+                                                gboolean is_edit) {
+	if (r->dead)
+		return _("This step has been undone");
+	if (nde_history_is_stale())
+		return _("The image was modified outside the recorded history");
+	if (processing_is_job_active())
+		return _("Not available while processing");
+	if (is_edit && (!r->amendable || !r->params))
+		return _("Opaque steps cannot be edited");
+	if (!is_edit && !r->deletable)
+		return _("Structural steps cannot be deleted");
+	return NULL;
+}
+
 static void on_hist_row_activate(GtkListView *lv, guint position, gpointer u) {
 	(void)u;
 	GListModel *model = G_LIST_MODEL(gtk_list_view_get_model(lv));
@@ -1146,18 +1370,49 @@ static void on_hist_row_activate(GtkListView *lv, guint position, gpointer u) {
 	if (!g_panel->hist_popover) {
 		g_panel->hist_popover = gtk_popover_new();
 		gtk_widget_set_parent(g_panel->hist_popover, GTK_WIDGET(lv));
+
+		GtkWidget *pbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+		gtk_widget_set_margin_start (pbox, 6);
+		gtk_widget_set_margin_end   (pbox, 6);
+		gtk_widget_set_margin_top   (pbox, 6);
+		gtk_widget_set_margin_bottom(pbox, 6);
+
 		g_panel->hist_popover_label = gtk_label_new(NULL);
 		gtk_label_set_selectable(GTK_LABEL(g_panel->hist_popover_label), TRUE);
+		gtk_label_set_xalign(GTK_LABEL(g_panel->hist_popover_label), 0.0f);
 		gtk_widget_add_css_class(g_panel->hist_popover_label, "monospace");
-		gtk_widget_set_margin_start (g_panel->hist_popover_label, 6);
-		gtk_widget_set_margin_end   (g_panel->hist_popover_label, 6);
-		gtk_widget_set_margin_top   (g_panel->hist_popover_label, 6);
-		gtk_widget_set_margin_bottom(g_panel->hist_popover_label, 6);
-		gtk_popover_set_child(GTK_POPOVER(g_panel->hist_popover),
-		                      g_panel->hist_popover_label);
+		gtk_box_append(GTK_BOX(pbox), g_panel->hist_popover_label);
+
+		GtkWidget *actions = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+		gtk_widget_set_halign(actions, GTK_ALIGN_END);
+		g_panel->hist_edit_btn   = gtk_button_new_with_label(_("Edit parameters…"));
+		g_panel->hist_delete_btn = gtk_button_new_with_label(_("Delete step"));
+		gtk_widget_add_css_class(g_panel->hist_delete_btn, "destructive-action");
+		gtk_box_append(GTK_BOX(actions), g_panel->hist_edit_btn);
+		gtk_box_append(GTK_BOX(actions), g_panel->hist_delete_btn);
+		gtk_box_append(GTK_BOX(pbox), actions);
+
+		g_signal_connect(g_panel->hist_edit_btn,   "clicked",
+		                 G_CALLBACK(on_hist_edit_clicked),   NULL);
+		g_signal_connect(g_panel->hist_delete_btn, "clicked",
+		                 G_CALLBACK(on_hist_delete_clicked), NULL);
+
+		gtk_popover_set_child(GTK_POPOVER(g_panel->hist_popover), pbox);
 	}
 	gtk_label_set_text(GTK_LABEL(g_panel->hist_popover_label),
 	                   r->detail ? r->detail : "");
+
+	/* Remember the targeted row for the action callbacks. */
+	g_clear_object(&g_panel->hist_popover_row);
+	g_panel->hist_popover_row = g_object_ref(r);
+
+	const char *edit_off = hist_action_disabled_reason(r, TRUE);
+	const char *del_off  = hist_action_disabled_reason(r, FALSE);
+	gtk_widget_set_sensitive(g_panel->hist_edit_btn,   edit_off == NULL);
+	gtk_widget_set_sensitive(g_panel->hist_delete_btn, del_off == NULL);
+	gtk_widget_set_tooltip_text(g_panel->hist_edit_btn,   edit_off);
+	gtk_widget_set_tooltip_text(g_panel->hist_delete_btn, del_off);
+
 	gtk_popover_popup(GTK_POPOVER(g_panel->hist_popover));
 	g_object_unref(r);
 }
@@ -1179,6 +1434,10 @@ static void refresh_history(void) {
 			item->target  = hist_target_label(rec);
 			item->detail  = build_hist_detail(rec);
 			item->dead    = (i >= live);
+			item->record_id = rec->record_id;
+			item->amendable = nde_record_amendable(rec);
+			item->deletable = nde_record_deletable(rec);
+			item->params    = (rec->params && *rec->params) ? g_strdup(rec->params) : NULL;
 			g_list_store_append(g_panel->hist_store, item);
 			g_object_unref(item);
 		}

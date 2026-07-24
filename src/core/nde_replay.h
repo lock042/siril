@@ -69,6 +69,23 @@ nde_chain *nde_chain_build(gint item_id);
 
 void nde_chain_free(nde_chain *chain);
 
+/* ---- policy predicates (shared by the History panel and edit_execute) ----
+ * POLICY only: these answer "could this record ever be edited / deleted?"
+ * from the record's own kind, so the UI can grey out buttons without a
+ * replay.  They do NOT check liveness or whether the surviving trial chain
+ * is actually replayable — the execute path (nde_amend_execute /
+ * nde_delete_execute) is the authority on both.                             */
+struct nde_record;
+
+/** TRUE for a Tier-A record whose op has a registered deserializer (so its
+ *  params can be parsed, edited and round-tripped). */
+gboolean nde_record_amendable(const struct nde_record *rec);
+
+/** TRUE unless the record is structural (DOCUMENT scope) or records
+ *  compositing state (layer.set_opacity/blend/visible) — those cannot be
+ *  meaningfully deleted from the log. */
+gboolean nde_record_deletable(const struct nde_record *rec);
+
 /**
  * Replay the chain from the item's baseline into a freshly allocated fits
  * (caller clearfits()+free()s).  NULL on failure with a heap message in
