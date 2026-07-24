@@ -124,6 +124,10 @@ void nde_snapstore_deposit(const fits *state, gint item_id, gint64 record_id);
  *  evict pool entries POST(K >= record_id) and PRE(K > record_id). */
 void nde_snapstore_invalidate_from(gint item_id, gint64 record_id);
 
+/** Evict pool entries tagged with @record_id (the record was deleted or
+ *  truncated — any item, PRE and POST alike). */
+void nde_snapstore_evict_record(gint64 record_id);
+
 /** Evict the whole pool (document change). */
 void nde_snapstore_pool_purge(void);
 

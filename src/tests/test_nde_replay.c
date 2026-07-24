@@ -27,6 +27,7 @@
 #include "core/op_descriptor.h"
 #include "core/nde_history.h"
 #include "core/nde_checkpoint.h"
+#include "core/nde_snapstore.h"
 #include "core/nde_replay.h"
 #include "algos/geometry.h"
 #include "filters/asinh.h"
@@ -1530,4 +1531,135 @@ Test(nde_replay, golden_synthstar_from_stashed_stars) {
 
 	clear_stars_list(FALSE);
 	golden_teardown(result, f);
+}
+
+/* ---------------- C3: cached restarts + deposits + invalidation -------- */
+
+Test(nde_replay, second_amend_restarts_from_cached_deposit) {
+	com.pref.nde_cache_mb = 256;   /* fixture memsets com — enable the pool */
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	asinh_params *u1 = calloc(1, sizeof(*u1));
+	u1->beta = 10.0f; u1->clip_mode = RESCALE;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, u1), 0);
+	asinh_params *u2 = calloc(1, sizeof(*u2));
+	u2->beta = 20.0f; u2->clip_mode = RESCALE;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, u2), 0);
+	gint64 id1 = 1, id2 = 2;
+
+	/* first amend of record 2: no cache yet — replays from the baseline
+	 * and deposits POST(1), POST(2) as it goes */
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_amend_execute(id2, "beta=30;offset=0;human=0;clip_mode=1", &err),
+	          "first amend failed: %s", err ? err : "?");
+	unreserve_thread();
+	cr_assert(nde_snapstore_has(-1, id1, TRUE),
+	          "the replay must deposit POST(record 1)");
+
+	/* second amend of record 2: must restart from the POST(1) deposit —
+	 * exactly one record replayed, and a cache hit in the stats */
+	nde_snapstore_stats_reset();
+	cr_assert(reserve_thread());
+	cr_assert(nde_amend_execute(id2, "beta=40;offset=0;human=0;clip_mode=1", &err),
+	          "second amend failed: %s", err ? err : "?");
+	unreserve_thread();
+	nde_snapstore_stats_t st;
+	nde_snapstore_stats(&st);
+	cr_assert(st.hits >= 1, "the second amend must hit the cached restart");
+	cr_assert_eq(st.deposits, 1,
+	             "restarting at the edit means exactly ONE record replayed (one deposit)");
+
+	/* cache-restart result must equal a from-baseline computation */
+	fits *expected = nde_checkpoint_baseline_get(-1);
+	cr_assert_not_null(expected);
+	{
+		asinh_params *e1 = calloc(1, sizeof(*e1));
+		e1->beta = 10.0f; e1->clip_mode = RESCALE;
+		apply_direct(&op_desc_asinh, e1, expected);
+		asinh_params *e2 = calloc(1, sizeof(*e2));
+		e2->beta = 40.0f; e2->clip_mode = RESCALE;
+		apply_direct(&op_desc_asinh, e2, expected);
+	}
+	assert_pixels_bit_exact(gfit, expected, "cached-restart-amend");
+	clearfits(expected); free(expected);
+
+	golden_teardown(NULL, f);
+}
+
+Test(nde_replay, upstream_amend_invalidates_stale_deposits) {
+	com.pref.nde_cache_mb = 256;   /* fixture memsets com — enable the pool */
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	asinh_params *u1 = calloc(1, sizeof(*u1));
+	u1->beta = 10.0f; u1->clip_mode = RESCALE;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, u1), 0);
+	asinh_params *u2 = calloc(1, sizeof(*u2));
+	u2->beta = 20.0f; u2->clip_mode = RESCALE;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, u2), 0);
+
+	gchar *err = NULL;
+	/* seed the cache: amend record 2 (deposits POST(1) w/ beta 10 state) */
+	cr_assert(reserve_thread());
+	cr_assert(nde_amend_execute(2, "beta=30;offset=0;human=0;clip_mode=1", &err));
+	/* amend record 1: the old POST(1)/POST(2) are stale for the new chain
+	 * and must be replaced, not reused */
+	cr_assert(nde_amend_execute(1, "beta=15;offset=0;human=0;clip_mode=1", &err));
+	/* now amend record 2 again: its cached restart POST(1) must reflect
+	 * beta 15, or the result diverges */
+	cr_assert(nde_amend_execute(2, "beta=40;offset=0;human=0;clip_mode=1", &err));
+	unreserve_thread();
+
+	fits *expected = nde_checkpoint_baseline_get(-1);
+	{
+		asinh_params *e1 = calloc(1, sizeof(*e1));
+		e1->beta = 15.0f; e1->clip_mode = RESCALE;
+		apply_direct(&op_desc_asinh, e1, expected);
+		asinh_params *e2 = calloc(1, sizeof(*e2));
+		e2->beta = 40.0f; e2->clip_mode = RESCALE;
+		apply_direct(&op_desc_asinh, e2, expected);
+	}
+	assert_pixels_bit_exact(gfit, expected, "post-invalidation-amend");
+	clearfits(expected); free(expected);
+
+	golden_teardown(NULL, f);
+}
+
+Test(nde_replay, truncation_evicts_pool_deposits) {
+	com.pref.nde_cache_mb = 256;   /* fixture memsets com — enable the pool */
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	asinh_params *u1 = calloc(1, sizeof(*u1));
+	u1->beta = 10.0f; u1->clip_mode = RESCALE;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, u1), 0);
+	asinh_params *u2 = calloc(1, sizeof(*u2));
+	u2->beta = 20.0f; u2->clip_mode = RESCALE;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, u2), 0);
+
+	/* seed pool deposits via a verify replay */
+	nde_chain *chain = nde_chain_build(-1);
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	fits *r = nde_chain_replay(chain, &err);
+	unreserve_thread();
+	cr_assert_not_null(r);
+	clearfits(r); free(r);
+	nde_chain_free(chain);
+	cr_assert(nde_snapstore_has(-1, 2, TRUE));
+
+	/* undo record 2 then append: truncation must evict its deposit */
+	nde_history_on_undo(2);
+	struct mirror_args *m = calloc(1, sizeof(*m));
+	m->x_axis = TRUE;
+	cr_assert_eq(apply_op_real(&op_desc_mirrorx, m), 0);
+	cr_assert(!nde_snapstore_has(-1, 2, TRUE),
+	          "a truncated record's pool deposit must be evicted");
+
+	golden_teardown(NULL, f);
 }

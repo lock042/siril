@@ -447,6 +447,19 @@ void nde_snapstore_invalidate_from(gint item_id, gint64 record_id) {
 	pool_release(doomed);
 }
 
+static gboolean pick_record(nde_snap *s, gpointer user) {
+	const gint64 *id = user;
+	return s->tag.record_id == *id;
+}
+
+void nde_snapstore_evict_record(gint64 record_id) {
+	GPtrArray *doomed = g_ptr_array_new();
+	g_mutex_lock(&store_mutex);
+	pool_collect_locked(doomed, pick_record, &record_id);
+	g_mutex_unlock(&store_mutex);
+	pool_release(doomed);
+}
+
 void nde_snapstore_pool_purge(void) {
 	GPtrArray *doomed = g_ptr_array_new();
 	g_mutex_lock(&store_mutex);

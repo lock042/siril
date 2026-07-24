@@ -34,6 +34,7 @@
 #include "core/op_descriptor.h"
 #include "core/nde_history.h"
 #include "core/nde_checkpoint.h"
+#include "core/nde_snapstore.h"
 #include "core/nde_replay.h"
 #include "io/image_format_fits.h"
 #include "io/image_format_flis.h"
@@ -296,6 +297,10 @@ static fits *replay_apply_records(fits *scratch, const nde_chain *chain,
 			                       rec->record_id, rec->op_id);
 			goto fail;
 		}
+		/* Convergence C3: deposit the intermediate state so the NEXT edit
+		 * restarts here instead of the baseline.  Pure cache — silent when
+		 * the budget pref is 0 or the write fails. */
+		nde_snapstore_deposit(scratch, chain->item_id, rec->record_id);
 	}
 	return scratch;
 
@@ -344,6 +349,55 @@ fits *nde_chain_replay_tail(const nde_chain *chain, gchar **err) {
 /* ======================================================================= */
 /* Amend-and-replay commit machinery (phase 3, P3.B)                       */
 /* ======================================================================= */
+
+/* Convergence C3: find the LATEST usable cached restart for an edit of
+ * record @edit_id on the (trial) @chain, at-or-before the edit boundary.
+ * Candidate states for restarting at member index j (state embodying
+ * members [0..j-1]) are PRE(boundary id) and POST(members[j-1].id); for a
+ * DELETE, PRE-states of members positioned after the deleted record embody
+ * the deleted op and are invalid — bounding the j==e candidate by @edit_id
+ * itself (its own PRE) covers both edit kinds.  Falls back to the chain's
+ * phase-4 restart (barrier checkpoint or baseline) at tail_start.
+ * Returns the restart state (caller owns) and *start_idx, or NULL+@err. */
+static fits *resolve_edit_restart(const nde_chain *chain, gint64 edit_id,
+                                  guint *start_idx, gchar **err) {
+	/* e = the edit boundary: first member at-or-after the edit id.  For an
+	 * amend the member with edit_id sits at e; for a delete it is absent
+	 * and e is where it used to be. */
+	guint e = chain->records->len;
+	for (guint i = 0; i < chain->records->len; i++) {
+		const nde_record *rec = g_ptr_array_index(chain->records, i);
+		if (rec->record_id >= edit_id) {
+			e = i;
+			break;
+		}
+	}
+	for (guint j = e; j > chain->tail_start; j--) {
+		gint64 pre_id = (j == e) ? edit_id :
+				((const nde_record *)g_ptr_array_index(chain->records, j))->record_id;
+		fits *state = nde_snapstore_lookup(chain->item_id, pre_id, FALSE);
+		if (!state) {
+			const nde_record *prev = g_ptr_array_index(chain->records, j - 1);
+			state = nde_snapstore_lookup(chain->item_id, prev->record_id, TRUE);
+		}
+		if (state) {
+			*start_idx = j;
+			return state;
+		}
+	}
+	/* Fall back to the phase-4 restart point. */
+	fits *start = chain->restart_ckpt_id > 0 ?
+			nde_checkpoint_output_get(chain->restart_ckpt_id) :
+			nde_checkpoint_baseline_get(chain->item_id);
+	if (!start) {
+		*err = g_strdup(chain->restart_ckpt_id > 0 ?
+				_("failed to load the barrier checkpoint") :
+				_("failed to load the baseline checkpoint"));
+		return NULL;
+	}
+	*start_idx = chain->tail_start;
+	return start;
+}
 
 /* Shared core of amend (new_params != NULL) and delete (new_params == NULL).
  * Job context: the caller owns the processing slot, so capture, undo and
@@ -477,14 +531,23 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 	}
 
 	gui_iface.set_progress(0.f, _("Recomputing edit history..."));
-	/* Replay the tail from its restart point (the last barrier's output
-	 * checkpoint, or the baseline when no barrier remains).  The frozen
-	 * prefix's effect is embodied in the restart pixels, so this is both
-	 * faster than a full replay and the only correct option when the
-	 * prefix is not replayable at all. */
-	fits *result = nde_chain_replay_tail(chain, err);
+	/* Convergence C3 invalidation, BEFORE replay: pool states at-or-after
+	 * the edit describe the OLD chain and must not survive (they are never
+	 * consulted as restarts for THIS edit, but they would be stale for the
+	 * next one).  The replay below re-deposits fresh states as it goes. */
+	nde_snapstore_invalidate_from(item_id, record_id);
+	/* Restart from the LATEST cached state at-or-before the edit (undo/redo
+	 * entries, prior deposits, barrier checkpoints) rather than always the
+	 * tail start — the frozen prefix's effect is embodied in the restart
+	 * pixels either way. */
+	guint start_idx = 0;
+	fits *start = resolve_edit_restart(chain, record_id, &start_idx, err);
+	fits *result = start ? replay_apply_records(start, chain, start_idx, err) : NULL;
 	nde_chain_free(chain);
 	if (!result) {
+		/* Deposits made by a failed replay describe an uncommitted chain —
+		 * drop them along with anything else at-or-after the edit. */
+		nde_snapstore_invalidate_from(item_id, record_id);
 		gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
 		return FALSE;
 	}

@@ -29,6 +29,7 @@
 #include "core/op_descriptor.h"
 #include "core/nde_history.h"
 #include "core/nde_checkpoint.h"
+#include "core/nde_snapstore.h"
 #include "io/image_format_flis.h"
 
 /* Leaf lock guarding the CURRENT document's log (com.uniq->nde_history and
@@ -104,12 +105,16 @@ static void truncate_dead_locked(nde_history *h, GArray *dropped) {
 	}
 }
 
-/* Release the output checkpoints of dropped records; consumes @ids. */
+/* Release the output checkpoints AND cache-pool entries of dropped
+ * records; consumes @ids. */
 static void drop_output_checkpoints(GArray *ids) {
 	if (!ids)
 		return;
-	for (guint i = 0; i < ids->len; i++)
-		nde_checkpoint_output_drop(g_array_index(ids, gint64, i));
+	for (guint i = 0; i < ids->len; i++) {
+		gint64 id = g_array_index(ids, gint64, i);
+		nde_checkpoint_output_drop(id);
+		nde_snapstore_evict_record(id);
+	}
 	g_array_unref(ids);
 }
 
@@ -227,10 +232,12 @@ guint nde_history_live_count(void) {
 
 void nde_history_attach(nde_history *h) {
 	/* The document's log is being replaced (load / close / new document),
-	 * so its in-session baselines no longer describe anything — drop them.
-	 * The FLIS loader adopts fresh NDE_BASE baselines AFTER this call.
-	 * Purge is a separate LEAF lock, taken outside the nde history mutex. */
+	 * so its in-session baselines and cached intermediate states no longer
+	 * describe anything — drop them.  The FLIS loader adopts fresh
+	 * NDE_BASE baselines AFTER this call.  Purges take separate LEAF
+	 * locks, outside the nde history mutex. */
 	nde_checkpoint_purge();
+	nde_snapstore_pool_purge();
 	if (!com.uniq) {
 		nde_history_free(h);
 		return;
