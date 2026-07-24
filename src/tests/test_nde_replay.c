@@ -1663,3 +1663,120 @@ Test(nde_replay, truncation_evicts_pool_deposits) {
 
 	golden_teardown(NULL, f);
 }
+
+/* ---------------- C3.5: reordering ---------------- */
+
+/* Build the standard reorder fixture: asinh(15) then mtf — deliberately
+ * non-commuting so order changes the pixels. */
+static void reorder_fixture_apply(void) {
+	asinh_params *u1 = calloc(1, sizeof(*u1));
+	u1->beta = 15.0f; u1->offset = 0.02f; u1->clip_mode = RESCALE;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, u1), 0);
+	struct mtf_data *u2 = create_mtf_data();
+	u2->linked = TRUE;
+	u2->params.midtones = 0.35f;
+	u2->params.shadows = 0.02f;
+	u2->params.highlights = 0.98f;
+	u2->params.do_red = u2->params.do_green = u2->params.do_blue = TRUE;
+	u2->auto_display_compensation = FALSE;
+	cr_assert_eq(apply_op_real(&op_desc_mtf, u2), 0);
+}
+
+static void reorder_expected_mtf_then_asinh(fits *dst, float asinh_beta) {
+	struct mtf_data *e2 = create_mtf_data();
+	e2->linked = TRUE;
+	e2->params.midtones = 0.35f;
+	e2->params.shadows = 0.02f;
+	e2->params.highlights = 0.98f;
+	e2->params.do_red = e2->params.do_green = e2->params.do_blue = TRUE;
+	e2->auto_display_compensation = FALSE;
+	apply_direct(&op_desc_mtf, e2, dst);
+	asinh_params *e1 = calloc(1, sizeof(*e1));
+	e1->beta = asinh_beta; e1->offset = 0.02f; e1->clip_mode = RESCALE;
+	apply_direct(&op_desc_asinh, e1, dst);
+}
+
+Test(nde_replay, reorder_replays_in_new_order) {
+	com.pref.nde_cache_mb = 256;
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+	reorder_fixture_apply();   /* records: 1=asinh, 2=mtf */
+
+	/* no-op move: after record 1 == current position */
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_reorder_execute(2, 1, TRUE, &err), "no-op move failed: %s", err ? err : "?");
+	/* the real move: mtf before asinh */
+	gboolean ok = nde_reorder_execute(2, 1, FALSE, &err);
+	unreserve_thread();
+	cr_assert(ok, "reorder failed: %s", err ? err : "?");
+
+	/* log order is now [2, 1] with ids and timestamps preserved */
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	cr_assert_eq(snap->len, 2);
+	cr_assert_eq(((nde_record *)g_ptr_array_index(snap, 0))->record_id, 2);
+	cr_assert_eq(((nde_record *)g_ptr_array_index(snap, 1))->record_id, 1);
+	g_ptr_array_unref(snap);
+
+	/* pixels equal mtf-then-asinh applied from the baseline */
+	fits *expected = nde_checkpoint_baseline_get(-1);
+	cr_assert_not_null(expected);
+	reorder_expected_mtf_then_asinh(expected, 15.0f);
+	assert_pixels_bit_exact(gfit, expected, "reorder");
+	clearfits(expected); free(expected);
+
+	/* the undo history was cleared (no meta-undo) */
+	cr_assert_null(com.undo_stack);
+
+	/* post-reorder amend with NON-monotonic member ids: amend record 1
+	 * (now the LAST member) — the positional resolver must restart from
+	 * the state after record 2 (first member), not misread ids */
+	cr_assert(reserve_thread());
+	ok = nde_amend_execute(1, "beta=40;offset=0.0199999996;human=0;clip_mode=1", &err);
+	unreserve_thread();
+	cr_assert(ok, "post-reorder amend failed: %s", err ? err : "?");
+	expected = nde_checkpoint_baseline_get(-1);
+	reorder_expected_mtf_then_asinh(expected, 40.0f);
+	assert_pixels_bit_exact(gfit, expected, "post-reorder-amend");
+	clearfits(expected); free(expected);
+
+	golden_teardown(NULL, f);
+}
+
+Test(nde_replay, reorder_refusals) {
+	com.pref.nde_cache_mb = 256;
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	/* A1(asinh), B(opaque w/ checkpoint), A2(mirrorx): moving A2 before A1
+	 * crosses the barrier — refused */
+	asinh_params *u1 = calloc(1, sizeof(*u1));
+	u1->beta = 15.0f; u1->clip_mode = RESCALE;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, u1), 0);
+	gfit->fdata[3] = 0.99f;
+	gint64 b_id = nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, -1, "freehand", gfit);
+	struct mirror_args *m = calloc(1, sizeof(*m));
+	m->x_axis = TRUE;
+	cr_assert_eq(apply_op_real(&op_desc_mirrorx, m), 0);
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(!nde_reorder_execute(3, 1, FALSE, &err));
+	cr_assert(strstr(err, "locked") != NULL, "got: %s", err);
+	g_clear_pointer(&err, g_free);
+	/* the barrier itself cannot be reordered */
+	cr_assert(!nde_reorder_execute(b_id, 3, TRUE, &err));
+	cr_assert(strstr(err, "cannot be reordered") != NULL, "got: %s", err);
+	g_clear_pointer(&err, g_free);
+	/* structural anchor from another scope refuses via membership */
+	nde_capture_structural("layer.set_opacity", NDE_SCOPE_LAYER, -1,
+	                       g_strdup("opacity=0.5"), "opacity");
+	cr_assert(!nde_reorder_execute(3, 4, TRUE, &err));
+	cr_assert(strstr(err, "not part of the same editable history") != NULL, "got: %s", err);
+	g_clear_pointer(&err, g_free);
+	unreserve_thread();
+
+	golden_teardown(NULL, f);
+}

@@ -169,6 +169,17 @@ gboolean nde_history_amend(gint64 record_id, const gchar *new_params, gchar **er
  */
 gboolean nde_history_delete(gint64 record_id, gchar **err);
 
+/**
+ * Move LIVE record @record_id to sit immediately before LIVE record
+ * @before_id (@before_id == 0 ⇒ move to the end of the live prefix), then
+ * truncate the dead tail.  Positions are global log positions; pixel-
+ * safety (chain membership, freeze rules) is nde_reorder_execute's job —
+ * this is the log-side commit only.  Record ids and timestamps are
+ * unchanged (ids are therefore no longer monotonic in log order after a
+ * reorder — position, not id, is the order).
+ */
+gboolean nde_history_reorder(gint64 record_id, gint64 before_id, gchar **err);
+
 /** Stale flag accessors (load-time PIXHASH mismatch). */
 void     nde_history_set_stale(gboolean stale);
 gboolean nde_history_is_stale(void);

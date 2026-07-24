@@ -593,3 +593,27 @@ Test(nde_persist, pre_phase4_no_ckpt_loads) {
 	              "no NDE_CKPT HDU → barrier stays a full blocker");
 	clearfits(post); free(post);
 }
+
+Test(nde_persist, reordered_history_persists_in_new_order) {
+	flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "base");
+	append_full("a.a", 1, "k=1", "a", NDE_TIER_A, NDE_SCOPE_LAYER, -1, FALSE);
+	append_full("b.b", 1, "k=2", "b", NDE_TIER_A, NDE_SCOPE_LAYER, -1, FALSE);
+	append_full("c.c", 1, "k=3", "c", NDE_TIER_A, NDE_SCOPE_LAYER, -1, FALSE);
+
+	/* log-level move: record 3 before record 1 → order [3, 1, 2] */
+	gchar *err = NULL;
+	cr_assert(nde_history_reorder(3, 1, &err), "reorder failed: %s", err ? err : "?");
+
+	cr_assert_eq(save_flis(tmppath), 0);
+	flis_free_layers(com.uniq);
+	nde_history_attach(NULL);
+	cr_assert_eq(load_flis(tmppath), 0);
+
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	cr_assert_eq(snap->len, 3);
+	cr_assert_eq(((nde_record *)g_ptr_array_index(snap, 0))->record_id, 3);
+	cr_assert_eq(((nde_record *)g_ptr_array_index(snap, 1))->record_id, 1);
+	cr_assert_eq(((nde_record *)g_ptr_array_index(snap, 2))->record_id, 2);
+	cr_assert_str_eq(((nde_record *)g_ptr_array_index(snap, 0))->op_id, "c.c");
+	g_ptr_array_unref(snap);
+}

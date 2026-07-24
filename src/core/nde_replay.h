@@ -140,6 +140,18 @@ gboolean nde_delete_execute(gint64 record_id, gchar **err);
 gboolean nde_amend_start(gint64 record_id, const gchar *new_params);
 gboolean nde_delete_start(gint64 record_id);
 
+/**
+ * Reorder (C3.5): move live Tier-A chain member @record_id so it sits
+ * before (@after == FALSE) or after (@after == TRUE) chain member
+ * @anchor_id of the SAME item.  Both the old and the new position must
+ * lie in the editable tail (crossing an opaque barrier refuses with the
+ * locked reason).  Replays from the earliest affected position's cached
+ * restart and commits atomically like amend/delete.  A no-op move
+ * returns TRUE without replaying.
+ */
+gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after, gchar **err);
+gboolean nde_reorder_start(gint64 record_id, gint64 anchor_id, gboolean after);
+
 #ifdef __cplusplus
 }
 #endif

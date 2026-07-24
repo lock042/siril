@@ -17419,6 +17419,42 @@ int process_flis_amend(int nb) {
 	return CMD_OK;
 }
 
+int process_flis_hist_move(int nb) {
+	if (nb < 3) {
+		siril_log_error(_("Usage: flis_hist_move <record_id> {-before=<id>|-after=<id>}\n"));
+		return CMD_WRONG_N_ARG;
+	}
+	gint64 record_id;
+	if (!parse_record_id_arg(word[1], &record_id)) {
+		siril_log_error(_("Invalid record id: '%s'\n"), word[1]);
+		return CMD_ARG_ERROR;
+	}
+	gint64 anchor_id = 0;
+	gboolean after = FALSE;
+	if (g_str_has_prefix(word[2], "-before=")) {
+		if (!parse_record_id_arg(word[2] + 8, &anchor_id)) {
+			siril_log_error(_("Invalid record id: '%s'\n"), word[2] + 8);
+			return CMD_ARG_ERROR;
+		}
+	} else if (g_str_has_prefix(word[2], "-after=")) {
+		after = TRUE;
+		if (!parse_record_id_arg(word[2] + 7, &anchor_id)) {
+			siril_log_error(_("Invalid record id: '%s'\n"), word[2] + 7);
+			return CMD_ARG_ERROR;
+		}
+	} else {
+		siril_log_error(_("Usage: flis_hist_move <record_id> {-before=<id>|-after=<id>}\n"));
+		return CMD_ARG_ERROR;
+	}
+	if (processing_is_reserved_for_python()) {
+		siril_log_error(_("The processing thread is reserved by a Python script; try again later\n"));
+		return CMD_GENERIC_ERROR;
+	}
+	if (!nde_reorder_start(record_id, anchor_id, after))
+		return CMD_GENERIC_ERROR;
+	return CMD_OK;
+}
+
 int process_flis_hist_delete(int nb) {
 	if (nb < 2) {
 		siril_log_error(_("Usage: flis_hist_delete <record_id>\n"));

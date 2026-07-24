@@ -359,21 +359,18 @@ fits *nde_chain_replay_tail(const nde_chain *chain, gchar **err) {
  * itself (its own PRE) covers both edit kinds.  Falls back to the chain's
  * phase-4 restart (barrier checkpoint or baseline) at tail_start.
  * Returns the restart state (caller owns) and *start_idx, or NULL+@err. */
-static fits *resolve_edit_restart(const nde_chain *chain, gint64 edit_id,
+static fits *resolve_edit_restart(const nde_chain *chain, guint e,
+                                  gint64 boundary_pre_id,
                                   guint *start_idx, gchar **err) {
-	/* e = the edit boundary: first member at-or-after the edit id.  For an
-	 * amend the member with edit_id sits at e; for a delete it is absent
-	 * and e is where it used to be. */
-	guint e = chain->records->len;
-	for (guint i = 0; i < chain->records->len; i++) {
-		const nde_record *rec = g_ptr_array_index(chain->records, i);
-		if (rec->record_id >= edit_id) {
-			e = i;
-			break;
-		}
-	}
+	/* @e is the POSITIONAL edit boundary in @chain (callers know it: the
+	 * amended member's index, the deleted member's former index, or the
+	 * earliest affected index of a reorder).  Position, not id — after a
+	 * committed reorder chain member ids are no longer monotonic in array
+	 * order.  @boundary_pre_id is the id whose PRE-state marks boundary e
+	 * (the edit record itself for amend/delete; the first affected member
+	 * of the ORIGINAL order for a reorder). */
 	for (guint j = e; j > chain->tail_start; j--) {
-		gint64 pre_id = (j == e) ? edit_id :
+		gint64 pre_id = (j == e) ? boundary_pre_id :
 				((const nde_record *)g_ptr_array_index(chain->records, j))->record_id;
 		fits *state = nde_snapstore_lookup(chain->item_id, pre_id, FALSE);
 		if (!state) {
@@ -499,13 +496,18 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 	}
 
 	/* Amend: substitute the record's params in the trial chain.  (Delete
-	 * needs no edit here — chain_build_excluding already omitted it.) */
+	 * needs no edit here — chain_build_excluding already omitted it.)
+	 * Track the POSITIONAL boundary for the restart resolver: the amended
+	 * member's index, or — for a delete — the index the removed member
+	 * used to occupy, which equals its surviving-prefix length. */
+	guint boundary = chain->records->len;
 	if (new_params) {
 		nde_record *target_rec = NULL;
 		for (guint i = chain->tail_start; i < chain->records->len; i++) {
 			nde_record *rec = g_ptr_array_index(chain->records, i);
 			if (rec->record_id == record_id) {
 				target_rec = rec;
+				boundary = i;
 				break;
 			}
 		}
@@ -540,8 +542,10 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 	 * entries, prior deposits, barrier checkpoints) rather than always the
 	 * tail start — the frozen prefix's effect is embodied in the restart
 	 * pixels either way. */
+	if (!new_params)
+		boundary = (guint)pos_idx;   /* the deleted member's former index */
 	guint start_idx = 0;
-	fits *start = resolve_edit_restart(chain, record_id, &start_idx, err);
+	fits *start = resolve_edit_restart(chain, boundary, record_id, &start_idx, err);
 	fits *result = start ? replay_apply_records(start, chain, start_idx, err) : NULL;
 	nde_chain_free(chain);
 	if (!result) {
@@ -612,11 +616,183 @@ gboolean nde_delete_execute(gint64 record_id, gchar **err) {
 	return edit_execute(record_id, NULL, err);
 }
 
+gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after, gchar **err) {
+	g_return_val_if_fail(err != NULL, FALSE);
+	*err = NULL;
+	if (anchor_id <= 0 || record_id == anchor_id) {
+		*err = g_strdup(_("invalid move target"));
+		return FALSE;
+	}
+
+	/* Locate + policy-check the moved record among the LIVE records. */
+	gint item_id = 0;
+	gboolean found = FALSE;
+	GPtrArray *live = nde_history_snapshot(NULL);
+	for (guint i = 0; live && i < live->len; i++) {
+		const nde_record *rec = g_ptr_array_index(live, i);
+		if (rec->record_id == record_id) {
+			found = TRUE;
+			item_id = rec->target_item_id;
+			if (!nde_record_amendable(rec) || !nde_record_deletable(rec))
+				*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) cannot be reordered"),
+				                       record_id, rec->op_id ? rec->op_id : "?");
+			break;
+		}
+	}
+	if (live)
+		g_ptr_array_unref(live);
+	if (!found) {
+		*err = g_strdup_printf(_("no live record with id %" G_GINT64_FORMAT), record_id);
+		return FALSE;
+	}
+	if (*err)
+		return FALSE;
+
+	/* Member positions come from the chain — position, not id, is the
+	 * order (ids stop being monotonic after the first reorder). */
+	nde_chain *chain = nde_chain_build(item_id);
+	gint i_old = -1, i_anchor_member = -1;
+	for (guint i = 0; i < chain->records->len; i++) {
+		const nde_record *rec = g_ptr_array_index(chain->records, i);
+		if (rec->record_id == record_id)
+			i_old = (gint)i;
+		if (rec->record_id == anchor_id)
+			i_anchor_member = (gint)i;
+	}
+	if (i_old < 0) {
+		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " does not affect this image's pixels"),
+		                       record_id);
+		nde_chain_free(chain);
+		return FALSE;
+	}
+	if (i_anchor_member < 0) {
+		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " is not part of the same editable history"),
+		                       anchor_id);
+		nde_chain_free(chain);
+		return FALSE;
+	}
+	gint i_insert = i_anchor_member + (after ? 1 : 0);   /* pre-removal coords */
+	gint dest = (i_insert > i_old) ? i_insert - 1 : i_insert;
+	if (dest == i_old) {
+		nde_chain_free(chain);
+		return TRUE;   /* no-op move */
+	}
+	guint min_idx = (guint)MIN(i_old, dest);
+	if (min_idx < chain->tail_start) {
+		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " is locked by a later opaque step"),
+		                       record_id);
+		nde_chain_free(chain);
+		return FALSE;
+	}
+	if (!chain->tail_replayable) {
+		GString *rs = g_string_new(_("the history is not replayable: "));
+		for (guint i = 0; i < chain->reasons->len; i++) {
+			if (i)
+				g_string_append(rs, "; ");
+			g_string_append(rs, g_ptr_array_index(chain->reasons, i));
+		}
+		*err = g_string_free(rs, FALSE);
+		nde_chain_free(chain);
+		return FALSE;
+	}
+
+	/* Restart boundary: the first affected position of the ORIGINAL order;
+	 * conservative invalidation floor: the smallest id among affected
+	 * members (over-eviction is safe — the pool is cache). */
+	gint64 boundary_pre_id =
+			((const nde_record *)g_ptr_array_index(chain->records, min_idx))->record_id;
+	gint64 inval_min = boundary_pre_id;
+	for (guint i = min_idx; i < chain->records->len; i++) {
+		const nde_record *rec = g_ptr_array_index(chain->records, i);
+		if (rec->record_id < inval_min)
+			inval_min = rec->record_id;
+	}
+
+	/* Log-side target: a GLOBAL before-id for nde_history_reorder — the
+	 * live record right after the anchor for an 'after' move (0 = end). */
+	gint64 log_before_id = anchor_id;
+	if (after) {
+		log_before_id = 0;
+		GPtrArray *snap2 = nde_history_snapshot(NULL);
+		for (guint i = 0; snap2 && i < snap2->len; i++) {
+			const nde_record *rec = g_ptr_array_index(snap2, i);
+			if (rec->record_id == anchor_id) {
+				if (i + 1 < snap2->len)
+					log_before_id = ((const nde_record *)g_ptr_array_index(snap2, i + 1))->record_id;
+				break;
+			}
+		}
+		if (snap2)
+			g_ptr_array_unref(snap2);
+	}
+
+	/* Permute the trial chain in place (records + parallel flags). */
+	nde_record *moved = g_ptr_array_steal_index(chain->records, (guint)i_old);
+	g_ptr_array_insert(chain->records, dest, moved);
+	guint8 fl = g_array_index(chain->member_flags, guint8, i_old);
+	g_array_remove_index(chain->member_flags, (guint)i_old);
+	g_array_insert_val(chain->member_flags, (guint)dest, fl);
+
+	gui_iface.set_progress(0.f, _("Recomputing edit history..."));
+	nde_snapstore_invalidate_from(item_id, inval_min);
+	guint start_idx = 0;
+	fits *start = resolve_edit_restart(chain, min_idx, boundary_pre_id, &start_idx, err);
+	fits *result = start ? replay_apply_records(start, chain, start_idx, err) : NULL;
+	nde_chain_free(chain);
+	if (!result) {
+		nde_snapstore_invalidate_from(item_id, inval_min);
+		gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
+		return FALSE;
+	}
+
+	/* Atomic commit — mirrors edit_execute's tail. */
+	fits *target = gfit;
+	if (item_id >= 0) {
+		flis_layer_t *lay = flis_layer_get_by_id(item_id);
+		target = lay ? lay->fit : NULL;
+	}
+	if (!target) {
+		*err = g_strdup(_("the record's target layer no longer exists"));
+		clearfits(result);
+		free(result);
+		gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
+		return FALSE;
+	}
+	g_rw_lock_writer_lock(&target->rwlock);
+	fits_swap_all_except_rwlock(target, result);
+	g_rw_lock_writer_unlock(&target->rwlock);
+
+	gboolean log_ok = nde_history_reorder(record_id, log_before_id, err);
+	if (!log_ok) {
+		g_rw_lock_writer_lock(&target->rwlock);
+		fits_swap_all_except_rwlock(target, result);
+		g_rw_lock_writer_unlock(&target->rwlock);
+		clearfits(result);
+		free(result);
+		gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
+		return FALSE;
+	}
+	clearfits(result);
+	free(result);
+
+	undo_flush();   /* no meta-undo (sketch §7) */
+	invalidate_stats_from_fit(target);
+	gui_iface.invalidate_histogram();
+	if (is_current_image_flis())
+		gui_iface.flis_invalidate_composite();
+	if (target == gfit)
+		notify_gfit_data_modified();
+	gui_iface.set_progress(PROGRESS_DONE, _("Edit history updated"));
+	return TRUE;
+}
+
 /* ---- job wrappers ------------------------------------------------------ */
 
 struct nde_edit_job {
 	gint64 record_id;
-	gchar *new_params;   /* NULL = delete */
+	gchar *new_params;   /* NULL = delete or reorder */
+	gint64 anchor_id;    /* != 0 = reorder */
+	gboolean after;
 };
 
 static gboolean nde_edit_done_idle(gpointer p) {
@@ -629,7 +805,9 @@ static gboolean nde_edit_done_idle(gpointer p) {
 static gpointer nde_edit_worker(gpointer p) {
 	struct nde_edit_job *job = p;
 	gchar *errmsg = NULL;
-	gboolean ok = edit_execute(job->record_id, job->new_params, &errmsg);
+	gboolean ok = job->anchor_id ?
+			nde_reorder_execute(job->record_id, job->anchor_id, job->after, &errmsg) :
+			edit_execute(job->record_id, job->new_params, &errmsg);
 	if (!ok)
 		siril_log_error(_("Edit history change failed: %s\n"), errmsg ? errmsg : "?");
 	g_free(errmsg);
@@ -662,4 +840,20 @@ gboolean nde_amend_start(gint64 record_id, const gchar *new_params) {
 
 gboolean nde_delete_start(gint64 record_id) {
 	return nde_edit_start(record_id, NULL);
+}
+
+gboolean nde_reorder_start(gint64 record_id, gint64 anchor_id, gboolean after) {
+	if (processing_is_reserved_for_python()) {
+		siril_log_error(_("The processing thread is reserved by a Python script; try again later\n"));
+		return FALSE;
+	}
+	struct nde_edit_job *job = g_new0(struct nde_edit_job, 1);
+	job->record_id = record_id;
+	job->anchor_id = anchor_id;
+	job->after = after;
+	if (!start_in_new_thread(nde_edit_worker, job)) {
+		g_free(job);
+		return FALSE;
+	}
+	return TRUE;
 }

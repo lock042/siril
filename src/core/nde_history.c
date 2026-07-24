@@ -384,6 +384,51 @@ gboolean nde_history_delete(gint64 record_id, gchar **err) {
 	return ok;
 }
 
+gboolean nde_history_reorder(gint64 record_id, gint64 before_id, gchar **err) {
+	g_return_val_if_fail(err != NULL, FALSE);
+	*err = NULL;
+	if (!com.uniq || !com.uniq->nde_history) {
+		*err = g_strdup(_("no edit history"));
+		return FALSE;
+	}
+	gboolean ok = FALSE;
+	GArray *dropped = g_array_new(FALSE, FALSE, sizeof(gint64));
+	g_mutex_lock(&nde_mutex);
+	{
+		nde_history *h = com.uniq->nde_history;
+		gint idx = find_mutable_locked(h, record_id, FALSE, err);
+		gint dest = -1;
+		if (idx >= 0) {
+			if (before_id == 0) {
+				dest = (gint)h->live_count;
+			} else {
+				dest = find_index_locked(h, before_id);
+				if (dest < 0 || (guint)dest >= h->live_count) {
+					*err = g_strdup_printf(_("no live record with id %" G_GINT64_FORMAT " to move before"),
+					                       before_id);
+					dest = -1;
+				} else if (before_id == record_id) {
+					*err = g_strdup(_("cannot move a record before itself"));
+					dest = -1;
+				}
+			}
+		}
+		if (idx >= 0 && dest >= 0) {
+			nde_record *rec = g_ptr_array_steal_index(h->records, idx);
+			if (dest > idx)
+				dest--;   /* removal shifted the target left */
+			g_ptr_array_insert(h->records, dest, rec);
+			truncate_dead_locked(h, dropped);
+			ok = TRUE;
+		}
+	}
+	g_mutex_unlock(&nde_mutex);
+	drop_output_checkpoints(dropped);
+	if (ok)
+		nde_history_notify_panel();
+	return ok;
+}
+
 void nde_history_set_stale(gboolean stale) {
 	if (!com.uniq)
 		return;

@@ -87,6 +87,7 @@ static command commands[] = {
 	{"flis_group_info", 1, "flis_group_info <gid|\"name\">", process_flis_group_info, STR_FLIS_GROUP_INFO, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_group_list", 0, "flis_group_list [-format=text|csv]", process_flis_group_list, STR_FLIS_GROUP_LIST, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_hist_delete", 1, "flis_hist_delete <record_id>", process_flis_hist_delete, STR_FLIS_HIST_DELETE, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"flis_hist_move", 2, "flis_hist_move <record_id> {-before=<id>|-after=<id>}", process_flis_hist_move, STR_FLIS_HIST_MOVE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"flis_history", 0, "flis_history [-format=text|csv]", process_flis_history, STR_FLIS_HISTORY, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"flis_info", 0, "flis_info", process_flis_info, STR_FLIS_INFO, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_layer_info", 1, "flis_layer_info <id|\"name\">", process_flis_layer_info, STR_FLIS_LAYER_INFO, TRUE, REQ_CMD_FLIS_IMAGE},
