@@ -155,8 +155,12 @@ void nde_history_free(nde_history *h);
 gboolean nde_history_amend(gint64 record_id, const gchar *new_params, gchar **err);
 
 /**
- * Remove live Tier-A record @record_id from the log and truncate the dead
- * tail.  Same failure contract as nde_history_amend.
+ * Remove LIVE record @record_id from the log and truncate the dead tail.
+ * Unlike amend this accepts Tier-B records — deleting an opaque step is
+ * well-defined (its removal never requires replaying it) and is how a
+ * chain regains editability around a one-off opaque operation.  Policy
+ * checks beyond liveness (structural / compositing-state records) live in
+ * nde_delete_execute, which is the only sanctioned caller path.
  */
 gboolean nde_history_delete(gint64 record_id, gchar **err);
 

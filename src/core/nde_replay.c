@@ -94,7 +94,20 @@ static void validate_member(nde_chain *chain, const nde_record *rec) {
 	destroy_user(user);
 }
 
-nde_chain *nde_chain_build(gint item_id) {
+/* Compositing-state records (opacity/blend/visibility commits) are not
+ * pixel operations: the compositor applies them from live FLIS state, so
+ * they are neither chain members nor blockers. */
+static gboolean is_compositing_state_op(const char *op_id) {
+	return op_id && (!g_strcmp0(op_id, "layer.set_opacity") ||
+	                 !g_strcmp0(op_id, "layer.set_blend") ||
+	                 !g_strcmp0(op_id, "layer.set_visible"));
+}
+
+/* @exclude_record_id != 0 builds the TRIAL chain for a pending delete: the
+ * excluded record is neither a member nor a blocker — a delete never needs
+ * to replay the deleted step, only the survivors (so deleting the single
+ * opaque record in a chain regains editability of everything around it). */
+static nde_chain *chain_build_excluding(gint item_id, gint64 exclude_record_id) {
 	nde_chain *chain = g_new0(nde_chain, 1);
 	chain->item_id = item_id;
 	chain->records = g_ptr_array_new();
@@ -105,6 +118,10 @@ nde_chain *nde_chain_build(gint item_id) {
 	for (guint i = 0; chain->snapshot && i < chain->snapshot->len; i++) {
 		nde_record *rec = g_ptr_array_index(chain->snapshot, i);
 		gboolean member = FALSE;
+		if (exclude_record_id && rec->record_id == exclude_record_id)
+			continue;
+		if (is_compositing_state_op(rec->op_id))
+			continue;
 		switch (rec->scope) {
 		case NDE_SCOPE_LAYER:
 			member = (rec->target_item_id == item_id);
@@ -151,6 +168,10 @@ nde_chain *nde_chain_build(gint item_id) {
 
 	chain->replayable = (chain->reasons->len == 0);
 	return chain;
+}
+
+nde_chain *nde_chain_build(gint item_id) {
+	return chain_build_excluding(item_id, 0);
 }
 
 void nde_chain_free(nde_chain *chain) {
@@ -250,9 +271,25 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 		if (rec->record_id == record_id) {
 			found = TRUE;
 			item_id = rec->target_item_id;
-			if (rec->tier != NDE_TIER_A)
+			if (new_params && rec->tier != NDE_TIER_A) {
+				/* Amend needs editable params.  DELETE does not: removing
+				 * an opaque record is well-defined — the trial chain never
+				 * replays the deleted step, so deleting the one opaque
+				 * record in a chain regains editability around it. */
 				*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) is opaque and cannot be edited"),
 				                       record_id, rec->op_id ? rec->op_id : "?");
+			} else if (!new_params && rec->scope == NDE_SCOPE_DOCUMENT) {
+				/* Deleting a structural step cannot resurrect what it
+				 * destroyed (merge/flatten/remove) or un-create a layer. */
+				*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) is a structural step and cannot be deleted"),
+				                       record_id, rec->op_id ? rec->op_id : "?");
+			} else if (!new_params && is_compositing_state_op(rec->op_id)) {
+				/* Opacity/blend/visibility records describe compositing
+				 * state, not pixels — deleting the record would not revert
+				 * the state and would only make the log lie. */
+				*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) records a layer-property change and cannot be deleted"),
+				                       record_id, rec->op_id ? rec->op_id : "?");
+			}
 			break;
 		}
 	}
@@ -265,7 +302,10 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 	if (*err)
 		return FALSE;
 
-	nde_chain *chain = nde_chain_build(item_id);
+	/* For a delete, build the TRIAL chain directly: the deleted record is
+	 * excluded from membership AND from the blockers, so its own
+	 * opaqueness/mask state cannot veto its removal. */
+	nde_chain *chain = chain_build_excluding(item_id, new_params ? 0 : record_id);
 	if (!chain->replayable) {
 		GString *s = g_string_new(_("the history is not replayable: "));
 		for (guint i = 0; i < chain->reasons->len; i++) {
@@ -278,24 +318,23 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 		return FALSE;
 	}
 
-	/* Substitute (amend) or drop (delete) the record in the trial chain. */
-	nde_record *target_rec = NULL;
-	guint chain_idx = 0;
-	for (guint i = 0; i < chain->records->len; i++) {
-		nde_record *rec = g_ptr_array_index(chain->records, i);
-		if (rec->record_id == record_id) {
-			target_rec = rec;
-			chain_idx = i;
-			break;
-		}
-	}
-	if (!target_rec) {
-		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " does not affect this image's pixels"),
-		                       record_id);
-		nde_chain_free(chain);
-		return FALSE;
-	}
+	/* Amend: substitute the record's params in the trial chain.  (Delete
+	 * needs no edit here — chain_build_excluding already omitted it.) */
 	if (new_params) {
+		nde_record *target_rec = NULL;
+		for (guint i = 0; i < chain->records->len; i++) {
+			nde_record *rec = g_ptr_array_index(chain->records, i);
+			if (rec->record_id == record_id) {
+				target_rec = rec;
+				break;
+			}
+		}
+		if (!target_rec) {
+			*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " does not affect this image's pixels"),
+			                       record_id);
+			nde_chain_free(chain);
+			return FALSE;
+		}
 		/* Validate the new params against the op before replaying. */
 		const op_descriptor *op = op_descriptor_by_id(target_rec->op_id);
 		gpointer trial = (op && op->deserialize) ?
@@ -309,8 +348,6 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 		destroy_user(trial);
 		g_free(target_rec->params);
 		target_rec->params = g_strdup(new_params);
-	} else {
-		g_ptr_array_remove_index(chain->records, chain_idx);  /* view only */
 	}
 
 	gui_iface.set_progress(0.f, _("Recomputing edit history..."));

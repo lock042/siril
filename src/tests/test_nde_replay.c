@@ -877,3 +877,121 @@ Test(nde_replay, amend_failures_leave_everything_untouched) {
 	clearfits(&before);
 	golden_teardown(NULL, f);
 }
+
+Test(nde_replay, deleting_opaque_record_regains_editability) {
+	/* [asinh, opaque freehand, mirrorx]: blocked; delete the opaque step
+	 * and the chain becomes fully editable again, with the freehand
+	 * contribution removed by construction. */
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	asinh_params *u = calloc(1, sizeof(*u));
+	u->beta = 15.0f;
+	u->offset = 0.02f;
+	u->clip_mode = RESCALE;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, u), 0);
+
+	/* simulate a python freehand edit: poke pixels + opaque record, the
+	 * same shape the set_pixeldata handler produces */
+	gfit->fdata[5] = 0.999f;
+	gfit->fdata[6] = 0.001f;
+	gint64 opaque_id = nde_capture_opaque("python.set_pixeldata",
+	                                      NDE_SCOPE_LAYER, -1, "freehand");
+	cr_assert(opaque_id > 0);
+
+	struct mirror_args *m = calloc(1, sizeof(*m));
+	m->x_axis = TRUE;
+	cr_assert_eq(apply_op_real(&op_desc_mirrorx, m), 0);
+
+	/* blocked while the opaque record lives */
+	nde_chain *chain = nde_chain_build(-1);
+	cr_assert(!chain->replayable);
+	nde_chain_free(chain);
+
+	/* expected post-delete pixels: mirrorx(asinh(baseline)) */
+	fits *expected = nde_checkpoint_baseline_get(-1);
+	cr_assert_not_null(expected);
+	{
+		asinh_params *eu = calloc(1, sizeof(*eu));
+		eu->beta = 15.0f; eu->offset = 0.02f; eu->clip_mode = RESCALE;
+		struct generic_img_args *eargs = calloc(1, sizeof(*eargs));
+		eargs->fit = expected;
+		eargs->op = &op_desc_asinh;
+		eargs->user = eu;
+		eargs->nde_replay = TRUE;
+		eargs->mem_ratio = -1.0f;
+		eargs->max_threads = 1;
+		cr_assert_eq(GPOINTER_TO_INT(generic_image_worker(eargs)), 0);
+		free_generic_img_args(eargs);
+		mirrorx(expected, FALSE);
+	}
+
+	cr_assert(reserve_thread());
+	gchar *err = NULL;
+	gboolean ok = nde_delete_execute(opaque_id, &err);
+	unreserve_thread();
+	cr_assert(ok, "deleting the opaque record failed: %s", err ? err : "?");
+
+	assert_pixels_bit_exact(gfit, expected, "post-opaque-delete");
+
+	/* the chain is replayable again, and upstream records are editable */
+	chain = nde_chain_build(-1);
+	cr_assert(chain->replayable, "chain must be replayable after the opaque delete");
+	cr_assert_eq(chain->records->len, 2);
+	nde_chain_free(chain);
+
+	gint64 asinh_id;
+	{
+		GPtrArray *snap = nde_history_snapshot(NULL);
+		asinh_id = ((nde_record *)g_ptr_array_index(snap, 0))->record_id;
+		g_ptr_array_unref(snap);
+	}
+	cr_assert(reserve_thread());
+	ok = nde_amend_execute(asinh_id, "beta=40;offset=0.0199999996;human=0;clip_mode=1", &err);
+	unreserve_thread();
+	cr_assert(ok, "amending upstream of the deleted opaque failed: %s", err ? err : "?");
+
+	clearfits(expected);
+	free(expected);
+	golden_teardown(NULL, f);
+}
+
+Test(nde_replay, compositing_state_records_do_not_block_chains) {
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	asinh_params *u = calloc(1, sizeof(*u));
+	u->beta = 15.0f;
+	u->clip_mode = RESCALE;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, u), 0);
+
+	/* a property commit as Part A captures it: Tier A, LAYER scope, no
+	 * descriptor — it must be neither a member nor a blocker */
+	nde_capture_structural("layer.set_opacity", NDE_SCOPE_LAYER, -1,
+	                       g_strdup("opacity=0.5"), "opacity");
+
+	nde_chain *chain = nde_chain_build(-1);
+	cr_assert(chain->replayable,
+	          "property records must not block the chain (first reason: %s)",
+	          chain->reasons->len ? (char *)g_ptr_array_index(chain->reasons, 0) : "none");
+	cr_assert_eq(chain->records->len, 1, "property records are not chain members");
+	nde_chain_free(chain);
+
+	/* and deleting a property record is refused with a clear message */
+	gint64 prop_id;
+	{
+		GPtrArray *snap = nde_history_snapshot(NULL);
+		prop_id = ((nde_record *)g_ptr_array_index(snap, 1))->record_id;
+		g_ptr_array_unref(snap);
+	}
+	cr_assert(reserve_thread());
+	gchar *err = NULL;
+	cr_assert(!nde_delete_execute(prop_id, &err));
+	unreserve_thread();
+	cr_assert(strstr(err, "property") != NULL, "got: %s", err);
+	g_free(err);
+
+	golden_teardown(NULL, f);
+}

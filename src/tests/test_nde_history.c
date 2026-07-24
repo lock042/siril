@@ -491,16 +491,15 @@ Test(nde_history, amend_rejections) {
 	(void)a;
 }
 
-Test(nde_history, delete_removes_live_tier_a_only) {
+Test(nde_history, delete_removes_live_records) {
 	gint64 a = append_tier_a("geometry.mirrorx", "x_axis=1");
 	gint64 b = append_op("python.set_pixeldata");           /* Tier B */
 	gint64 c = append_tier_a("geometry.binning", "factor=2;mean=0");
 	gchar *err = NULL;
 
-	/* Tier B refuses */
-	cr_assert(!nde_history_delete(b, &err));
-	g_clear_pointer(&err, g_free);
-	/* unknown id refuses */
+	/* Tier B IS deletable at the log level (deleting an opaque step is
+	 * well-defined — policy checks live in nde_delete_execute), but this
+	 * test keeps b as a survivor, so only assert the unknown-id refusal. */
 	cr_assert(!nde_history_delete(999, &err));
 	g_clear_pointer(&err, g_free);
 

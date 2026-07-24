@@ -225,10 +225,13 @@ void nde_history_attach(nde_history *h) {
 	nde_history_notify_panel();
 }
 
-/* Shared head of amend/delete: find the record and enforce the live +
- * Tier-A contract.  Mutex held by the caller.  Returns the index or -1
+/* Shared head of amend/delete: find the record and enforce the LIVE
+ * contract (plus Tier A when @require_tier_a — amend needs editable
+ * params; delete may remove opaque records, whose removal never requires
+ * replaying them).  Mutex held by the caller.  Returns the index or -1
  * with *err set. */
-static gint find_mutable_locked(nde_history *h, gint64 record_id, gchar **err) {
+static gint find_mutable_locked(nde_history *h, gint64 record_id,
+                                gboolean require_tier_a, gchar **err) {
 	gint idx = h ? find_index_locked(h, record_id) : -1;
 	if (idx < 0) {
 		*err = g_strdup_printf(_("no record with id %" G_GINT64_FORMAT), record_id);
@@ -239,7 +242,7 @@ static gint find_mutable_locked(nde_history *h, gint64 record_id, gchar **err) {
 		return -1;
 	}
 	nde_record *rec = g_ptr_array_index(h->records, idx);
-	if (rec->tier != NDE_TIER_A) {
+	if (require_tier_a && rec->tier != NDE_TIER_A) {
 		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) is opaque and cannot be edited"),
 		                       record_id, rec->op_id ? rec->op_id : "?");
 		return -1;
@@ -261,7 +264,7 @@ gboolean nde_history_amend(gint64 record_id, const gchar *new_params, gchar **er
 	int op_version = 0;
 	g_mutex_lock(&nde_mutex);
 	{
-		gint idx = find_mutable_locked(com.uniq->nde_history, record_id, err);
+		gint idx = find_mutable_locked(com.uniq->nde_history, record_id, TRUE, err);
 		if (idx >= 0) {
 			nde_record *rec = g_ptr_array_index(com.uniq->nde_history->records, idx);
 			op_id = g_strdup(rec->op_id);
@@ -301,7 +304,7 @@ gboolean nde_history_amend(gint64 record_id, const gchar *new_params, gchar **er
 	g_mutex_lock(&nde_mutex);
 	{
 		nde_history *h = com.uniq->nde_history;
-		gint idx = find_mutable_locked(h, record_id, err);
+		gint idx = find_mutable_locked(h, record_id, TRUE, err);
 		if (idx >= 0) {
 			nde_record *rec = g_ptr_array_index(h->records, idx);
 			g_free(rec->params);
@@ -336,7 +339,7 @@ gboolean nde_history_delete(gint64 record_id, gchar **err) {
 	g_mutex_lock(&nde_mutex);
 	{
 		nde_history *h = com.uniq->nde_history;
-		gint idx = find_mutable_locked(h, record_id, err);
+		gint idx = find_mutable_locked(h, record_id, FALSE, err);
 		if (idx >= 0) {
 			g_ptr_array_remove_index(h->records, idx);  /* free func frees it */
 			h->live_count--;
