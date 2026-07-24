@@ -28,6 +28,7 @@
 #include "flis_test_helpers.h"
 #include "core/undo.h"
 #include "core/nde_history.h"
+#include "core/nde_snapstore.h"
 
 cominfo com;
 fits *gfit;
@@ -96,8 +97,7 @@ Test(flis_undo_gui, save_clears_redo_stack) {
 	 * filename-mode entry with no actual file; otherwise undo_free_item
 	 * would try to g_close(0) and emit a GLib warning). */
 	historic *fake = g_new0(historic, 1);
-	fake->fd = -1;
-	fake->mask_fd = -1;
+	fake->mask_fd = -1;   /* snap NULL via g_new0 — no pixels */
 	com.redo_stack = g_list_prepend(com.redo_stack, fake);
 	cr_assert_eq(g_list_length(com.redo_stack), 1);
 
@@ -249,7 +249,7 @@ Test(flis_undo_gui, props_undo_redo_round_trip) {
 	historic *h = (historic *)com.redo_stack->data;
 	cr_assert_not_null(h->layer_props,
 	                   "redo counterpart must be props-flavoured, not a pixel snapshot");
-	cr_assert(h->fd < 0, "props counterpart must not carry a pixel swap file");
+	cr_assert_null(h->snap, "props counterpart must not carry a pixel snapshot");
 
 	cr_assert_eq(undo_display_data(REDO), 0);
 	cr_assert_float_eq(l->opacity, 0.9f, 1e-6, "redo must reapply the property change");
@@ -333,4 +333,65 @@ Test(flis_undo_gui, nde_undo_redo_moves_live_count) {
 	cr_assert_eq(undo_display_data(REDO), 0);
 	cr_assert_eq(nde_history_live_count(), 2, "redo must revive the coupled record");
 	nde_history_attach(NULL);
+}
+
+/* ----- C2: pixel snapshots live in the shared store (convergence) ----- */
+
+Test(flis_undo_gui, snapstore_pre_post_tags_follow_undo_redo) {
+	flis_layer_t *a = flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.25f), "a");
+	gfit = a->fit;
+	uniq_set_active_layer(com.uniq, 0);
+
+	/* a pixel op: record + coupled pixel undo entry (the worker's order:
+	 * capture, save undo, tag) */
+	nde_record *rec = nde_record_new();
+	rec->op_id = g_strdup("geometry.mirrorx");
+	rec->op_version = 1;
+	rec->tier = NDE_TIER_A;
+	rec->params = g_strdup("x_axis=1");
+	gint64 id = nde_history_append(rec);
+	cr_assert(id > 0);
+	cr_assert_eq(undo_save_state(gfit, "op"), 0);
+	undo_tag_top_nde_record(id);
+
+	gint item = a->item_id;
+	cr_assert(nde_snapstore_has(item, id, FALSE),
+	          "a tagged undo entry must register its snapshot as PRE(record)");
+	cr_assert(!nde_snapstore_has(item, id, TRUE));
+
+	/* mutate then undo: the popped entry dies (PRE deregisters) and the
+	 * redo counterpart registers the current state as POST(record) */
+	gfit->fdata[0] = 0.9f;
+	cr_assert_eq(undo_display_data(UNDO), 0);
+	cr_assert(!nde_snapstore_has(item, id, FALSE),
+	          "the freed undo entry's PRE tag must vanish with it");
+	cr_assert(nde_snapstore_has(item, id, TRUE),
+	          "the redo counterpart must register POST(record)");
+
+	/* the POST snapshot holds the mutated (post-op) pixels */
+	fits *post = nde_snapstore_lookup(item, id, TRUE);
+	cr_assert_not_null(post);
+	cr_assert_float_eq(post->fdata[0], 0.9f, 1e-6,
+	                   "POST must hold the state after the record");
+	clearfits(post); free(post);
+
+	/* redo: POST dies with the popped redo entry; the fresh undo
+	 * counterpart re-registers PRE */
+	cr_assert_eq(undo_display_data(REDO), 0);
+	cr_assert(!nde_snapstore_has(item, id, TRUE));
+	cr_assert(nde_snapstore_has(item, id, FALSE),
+	          "redo's undo-stack counterpart must register PRE(record)");
+	fits *pre = nde_snapstore_lookup(item, id, FALSE);
+	cr_assert_not_null(pre);
+	cr_assert_float_eq(pre->fdata[0], 0.25f, 1e-6,
+	                   "PRE must hold the state before the record");
+	clearfits(pre); free(pre);
+
+	/* flush releases everything — the no-meta-undo invalidation path */
+	undo_flush();
+	cr_assert(!nde_snapstore_has(item, id, FALSE));
+	cr_assert(!nde_snapstore_has(item, id, TRUE));
+
+	nde_history_attach(NULL);
+	gfit = NULL;
 }

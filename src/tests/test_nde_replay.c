@@ -764,8 +764,7 @@ Test(nde_replay, amend_execute_recomputes_pixels_and_log) {
 
 	/* a fake undo entry that the amend must flush (no meta-undo) */
 	historic *fake = g_new0(historic, 1);
-	fake->fd = -1;
-	fake->mask_fd = -1;
+	fake->mask_fd = -1;   /* snap NULL via g_new0 — no pixels */
 	com.undo_stack = g_list_prepend(com.undo_stack, fake);
 
 	/* amend beta 15 → 40 */

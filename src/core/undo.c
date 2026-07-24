@@ -44,6 +44,7 @@
 #include "io/annotation_catalogues.h"
 #include "core/undo.h"
 #include "core/nde_history.h"
+#include "core/nde_snapstore.h"
 #include "core/proto.h"
 #include "algos/statistics.h"
 #include "algos/siril_wcs.h"
@@ -73,44 +74,6 @@ static void swap_mark_delete_on_close(int fd, const gchar *path) {
 #endif
 }
 
-/* Returns an open fd on success, -1 on error.
- * The file is marked delete-on-close on both POSIX and Windows: it vanishes
- * automatically when the fd is closed, even if Siril is killed. */
-static int undo_build_swapfile(fits *fit) {
-	char name[] = "siril_swp-XXXXXX";
-	gchar *nameBuff = g_build_filename(com.pref.swap_dir, name, NULL);
-#ifndef _WIN32
-	int fd = g_mkstemp(nameBuff);
-#else
-	int fd = g_mkstemp_full(nameBuff, _O_RDWR | _O_CREAT | _O_EXCL | _O_BINARY | _O_TEMPORARY, 
-    _S_IREAD | _S_IWRITE);
-#endif
-	if (fd < 0) {
-		siril_log_error(_("File I/O Error: Unable to create swap file in %s: [%s]\n"),
-				com.pref.swap_dir, strerror(errno));
-		g_free(nameBuff);
-		return -1;
-	}
-	swap_mark_delete_on_close(fd, nameBuff);
-	g_free(nameBuff);
-
-	size_t size = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
-	errno = 0;
-	ssize_t written = -1;
-	if (fit->type == DATA_USHORT)
-		written = write(fd, fit->data, size * sizeof(WORD));
-	else if (fit->type == DATA_FLOAT)
-		written = write(fd, fit->fdata, size * sizeof(float));
-
-	if (written == -1) {
-		siril_log_error(_("File I/O Error: Unable to write swap file: [%s]\n"), strerror(errno));
-		g_close(fd, NULL);
-		return -1;
-	}
-	return fd;
-}
-
-/* Returns an open fd on success, -1 if there is no mask (not an error), -2 on error. */
 static int undo_build_mask_swapfile(fits *fit) {
 	if (!fit->mask || !fit->mask->data)
 		return -1;  /* no mask - not an error */
@@ -562,18 +525,12 @@ static int restore_layer_entry(flis_layer_t *lay, const historic_layer_entry_t *
 }
 
 static void undo_free_item(historic *h) {
-	/* fd-mode: closing the fd is all that is needed on both platforms — the
-	 * file was marked delete-on-close at creation (POSIX unlink / Windows
-	 * FileDispositionInfo) so the OS reclaims it here automatically. */
-	if (h->fd >= 0)
-		g_close(h->fd, NULL);
+	/* Main pixels: drop the entry's snapshot reference; the store's swap
+	 * file vanishes with the last owner (and any tag registry entry with
+	 * it).  Masks keep the legacy fd/filename mechanisms. */
+	nde_snap_unref(h->snap);
 	if (h->mask_fd >= 0)
 		g_close(h->mask_fd, NULL);
-	/* filename-mode (FLIS): explicitly unlink + free the path strings. */
-	if (h->filename) {
-		g_unlink(h->filename);
-		g_free(h->filename);
-	}
 	if (h->mask_filename) {
 		g_unlink(h->mask_filename);
 		g_free(h->mask_filename);
@@ -601,18 +558,18 @@ static void undo_free_item(historic *h) {
 /* Save current gfit pixels to a new swap file and push the resulting historic
  * entry to *stack. label is the operation name (may be empty, not NULL). */
 static int undo_push_to(GList **stack, fits *fit, const char *label) {
-	int fd = undo_build_swapfile(fit);
-	if (fd < 0)
+	nde_snap *snap = nde_snap_create(fit);
+	if (!snap)
 		return 1;
 
 	int mask_fd = undo_build_mask_swapfile(fit);
 	if (mask_fd == -2) {  /* -1 means "no mask", -2 means error */
-		g_close(fd, NULL);  /* delete-on-close cleans up the swap file */
+		nde_snap_unref(snap);
 		return 1;
 	}
 
 	historic *h = g_new0(historic, 1);
-	h->fd = fd;
+	h->snap = snap;
 	h->mask_fd = mask_fd;  /* -1 if no mask, >= 0 if mask exists */
 	h->mask_bitpix = (fit->mask && fit->mask->data) ? fit->mask->bitpix : 0;
 	h->rx = fit->rx;
@@ -655,42 +612,13 @@ static int undo_push_to(GList **stack, fits *fit, const char *label) {
 	return 0;
 }
 
-static int undo_get_data_ushort(fits *fit, historic *hist) {
-	if (lseek(hist->fd, 0, SEEK_SET) == (off_t)-1) {
-		printf("Error seeking swap file: [%s]\n", strerror(errno));
+/* Restore the entry's main pixels into @fit via the snapshot store
+ * (realloc + pdata rewiring + stats invalidation), then re-apply the
+ * metadata the entry carries itself (WCS, focal length) — historic_struct
+ * remains the authority for those, exactly as before C2. */
+static int undo_get_data(fits *fit, historic *hist) {
+	if (!hist->snap || nde_snap_read_into(hist->snap, fit))
 		return 1;
-	}
-
-	errno = 0;
-	fit->rx = fit->naxes[0] = hist->rx;
-	fit->ry = fit->naxes[1] = hist->ry;
-
-	size_t n = fit->naxes[0] * fit->naxes[1];
-	size_t size = n * fit->naxes[2] * sizeof(WORD);
-	WORD *buf = calloc(1, size);
-	/* Cast size to ssize_t so a -1 return from read() compares as negative,
-	 * not as SIZE_MAX after silent promotion (which would mask errors). */
-	if (read(hist->fd, buf, size) < (ssize_t)size) {
-		printf("Undo Read failed with error [%s]\n", strerror(errno));
-		free(buf);
-		return 1;
-	}
-	/* need to reallocate data as size may have changed */
-	WORD *newdata = (WORD*) realloc(fit->data, size);
-	if (!newdata) {
-		PRINT_ALLOC_ERR;
-		free(buf);
-		return 1;
-	}
-	fit->data = newdata;
-	memcpy(fit->data, buf, size);
-	fit->pdata[RLAYER] = fit->data;
-	if (fit->naxes[2] > 1) {
-		fit->pdata[GLAYER] = fit->data + n;
-		fit->pdata[BLAYER] = fit->data + n * 2;
-	} else {
-		fit->pdata[GLAYER] = fit->pdata[BLAYER] = fit->pdata[RLAYER];
-	}
 	memcpy(&fit->keywords.wcsdata, &hist->wcsdata, sizeof(wcs_info));
 	/* Always free the existing wcslib first: assigning the deepcopy result
 	 * directly to fit->keywords.wcslib would leak a previously-set struct. */
@@ -704,60 +632,6 @@ static int undo_get_data_ushort(fits *fit, historic *hist) {
 		reset_wcsdata(fit);
 	}
 	fit->keywords.focal_length = hist->focal_length;
-
-	full_stats_invalidation_from_fit(fit);
-	free(buf);
-	return 0;
-}
-
-static int undo_get_data_float(fits *fit, historic *hist) {
-	if (lseek(hist->fd, 0, SEEK_SET) == (off_t)-1) {
-		printf("Error seeking swap file: [%s]\n", strerror(errno));
-		return 1;
-	}
-
-	errno = 0;
-	fit->rx = fit->naxes[0] = hist->rx;
-	fit->ry = fit->naxes[1] = hist->ry;
-
-	size_t n = fit->naxes[0] * fit->naxes[1];
-	size_t size = n * fit->naxes[2] * sizeof(float);
-	float *buf = calloc(1, size);
-	if (read(hist->fd, buf, size) < (ssize_t)size) {
-		printf("Undo Read failed with error [%s]\n", strerror(errno));
-		free(buf);
-		return 1;
-	}
-	/* need to reallocate data as size may have changed */
-	float *newdata = (float*) realloc(fit->fdata, size);
-	if (!newdata) {
-		PRINT_ALLOC_ERR;
-		free(buf);
-		return 1;
-	}
-	fit->fdata = newdata;
-	memcpy(fit->fdata, buf, size);
-	fit->fpdata[RLAYER] = fit->fdata;
-	if (fit->naxes[2] > 1) {
-		fit->fpdata[GLAYER] = fit->fdata + n;
-		fit->fpdata[BLAYER] = fit->fdata + n * 2;
-	} else {
-		fit->fpdata[GLAYER] = fit->fpdata[BLAYER] = fit->fpdata[RLAYER];
-	}
-	memcpy(&fit->keywords.wcsdata, &hist->wcsdata, sizeof(wcs_info));
-	free_wcs(fit);
-	if (hist->wcslib) {
-		int status = -1;
-		fit->keywords.wcslib = wcs_deepcopy(hist->wcslib, &status);
-		if (status)
-			siril_log_debug("could not copy wcslib struct\n");
-	} else {
-		reset_wcsdata(fit);
-	}
-	fit->keywords.focal_length = hist->focal_length;
-
-	full_stats_invalidation_from_fit(fit);
-	free(buf);
 	return 0;
 }
 
@@ -854,7 +728,7 @@ static int undo_restore_plain(fits *fit, historic *hist) {
 			if (fit == gfit)
 				gui_iface.on_precision_changed();
 		}
-		retval = undo_get_data_ushort(fit, hist);
+		retval = undo_get_data(fit, hist);
 	} else if (hist->type == DATA_FLOAT) {
 		if (fit->type != DATA_FLOAT) {
 			size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
@@ -862,7 +736,7 @@ static int undo_restore_plain(fits *fit, historic *hist) {
 			if (fit == gfit)
 				gui_iface.on_precision_changed();
 		}
-		retval = undo_get_data_float(fit, hist);
+		retval = undo_get_data(fit, hist);
 	} else {
 		retval = 1;
 	}
@@ -985,7 +859,7 @@ static int undo_restore(fits *fit, historic *hist) {
 			                  hist->flis_layer_id);
 			return 1;
 		}
-		/* Pixels + pmask via plain restore (uses hist->fd path) — into the
+		/* Pixels via the snapshot store + pmask via plain restore — into the
 		 * entry's own layer fit, which is gfit only when that layer is
 		 * still the active one. */
 		int rv = undo_restore_plain(lay->fit, hist);
@@ -1004,7 +878,7 @@ static int undo_restore(fits *fit, historic *hist) {
 	}
 
 	/* Property-only: no pixel swap, just apply props to the layer. */
-	if (!hist->filename && hist->fd < 0 && hist->layer_props
+	if (!hist->snap && hist->layer_props
 	    && hist->flis_layer_id != FLIS_UNDO_LAYER_NONE) {
 		if (!is_current_image_flis()) return 1;
 		flis_layer_t *layer = flis_layer_get_by_id(hist->flis_layer_id);
@@ -1019,7 +893,7 @@ static int undo_restore(fits *fit, historic *hist) {
 	}
 
 	/* Atomic lmask-move: lmask_layer_id = source, lmask_dest_layer_id = dest. */
-	if (!hist->filename && hist->fd < 0 && !hist->layer_props
+	if (!hist->snap && !hist->layer_props
 	    && hist->lmask_layer_id != FLIS_UNDO_LAYER_NONE
 	    && hist->lmask_dest_layer_id != FLIS_UNDO_LAYER_NONE) {
 		if (!is_current_image_flis()) return 1;
@@ -1035,7 +909,7 @@ static int undo_restore(fits *fit, historic *hist) {
 	}
 
 	/* Layer reorder: swap saved layer_order values back. */
-	if (!hist->filename && hist->fd < 0 && !hist->layer_props
+	if (!hist->snap && !hist->layer_props
 	    && hist->reorder_layer_a_id != FLIS_UNDO_LAYER_NONE) {
 		if (!is_current_image_flis()) return 1;
 		flis_layer_t *a = flis_layer_get_by_id(hist->reorder_layer_a_id);
@@ -1051,7 +925,7 @@ static int undo_restore(fits *fit, historic *hist) {
 	}
 
 	/* Lmask add/remove (no move, no reorder, no compound). */
-	if (!hist->filename && hist->fd < 0 && !hist->layer_props
+	if (!hist->snap && !hist->layer_props
 	    && hist->lmask_layer_id != FLIS_UNDO_LAYER_NONE) {
 		if (!is_current_image_flis()) return 1;
 		flis_layer_t *layer = flis_layer_get_by_id(hist->lmask_layer_id);
@@ -1102,7 +976,14 @@ gboolean is_redo_available() {
 void undo_tag_top_nde_record(gint64 record_id) {
 	if (!record_id || !com.undo_stack)
 		return;
-	((historic *)com.undo_stack->data)->nde_record_id = record_id;
+	historic *h = com.undo_stack->data;
+	h->nde_record_id = record_id;
+	/* Convergence C2: the entry's pixel snapshot IS the state just before
+	 * the record — index it so cached-restart resolution (C3) can find it.
+	 * The item id convention matches the chain's (-1 = plain image, which
+	 * is what FLIS_UNDO_LAYER_NONE happens to be). */
+	if (h->snap)
+		nde_snap_set_tag(h->snap, h->flis_layer_id, record_id, FALSE);
 }
 
 int undo_save_state(fits *fit, const char *message, ...) {
@@ -1199,8 +1080,16 @@ int undo_display_data(int dir) {
 				return 1;
 			}
 			/* the counterpart inherits the provenance coupling so a later
-			 * redo moves live_count forward again (nde sketch §13.3) */
-			((historic *)com.redo_stack->data)->nde_record_id = top->nde_record_id;
+			 * redo moves live_count forward again (nde sketch §13.3).  Its
+			 * snapshot holds the CURRENT state = the state just AFTER the
+			 * record — index it as POST for cached-restart resolution. */
+			{
+				historic *cp = com.redo_stack->data;
+				cp->nde_record_id = top->nde_record_id;
+				if (cp->snap && cp->nde_record_id)
+					nde_snap_set_tag(cp->snap, cp->flis_layer_id,
+					                 cp->nde_record_id, TRUE);
+			}
 
 			siril_log_message(_("Undo: %s\n"), top->history);
 
@@ -1283,8 +1172,16 @@ int undo_display_data(int dir) {
 				g_rw_lock_writer_unlock(&gfit->rwlock);
 				return 1;
 			}
-			/* see UNDO case: keep the provenance coupling round-trippable */
-			((historic *)com.undo_stack->data)->nde_record_id = top->nde_record_id;
+			/* see UNDO case: keep the provenance coupling round-trippable.
+			 * This counterpart holds the state just BEFORE re-applying the
+			 * record — index it as PRE. */
+			{
+				historic *cp = com.undo_stack->data;
+				cp->nde_record_id = top->nde_record_id;
+				if (cp->snap && cp->nde_record_id)
+					nde_snap_set_tag(cp->snap, cp->flis_layer_id,
+					                 cp->nde_record_id, FALSE);
+			}
 
 			siril_log_message(_("Redo: %s\n"), top->history);
 
@@ -1387,7 +1284,6 @@ int undo_flush() {
  * so the dispatcher's first matching branch wins. */
 static historic *flis_alloc_historic(const char *message) {
 	historic *h = g_new0(historic, 1);
-	h->fd = -1;
 	h->mask_fd = -1;
 	h->flis_layer_id        = FLIS_UNDO_LAYER_NONE;
 	h->lmask_layer_id       = FLIS_UNDO_LAYER_NONE;
@@ -1492,9 +1388,8 @@ static int undo_push_counterpart_to(GList **stack, fits *fit, const historic *to
 		h->icc_profile  = NULL;
 		h->mask_bitpix  = (lay->fit->mask && lay->fit->mask->data)
 		                  ? lay->fit->mask->bitpix : 0;
-		int fd = undo_build_swapfile(lay->fit);
-		if (fd < 0) { undo_free_item(h); return 1; }
-		h->fd = fd;
+		h->snap = nde_snap_create(lay->fit);
+		if (!h->snap) { undo_free_item(h); return 1; }
 		int mfd = undo_build_mask_swapfile(lay->fit);
 		if (mfd == -2) { undo_free_item(h); return 1; }
 		h->mask_fd = mfd;
@@ -1512,7 +1407,7 @@ static int undo_push_counterpart_to(GList **stack, fits *fit, const historic *to
 	}
 
 	/* Property-only. */
-	if (!top->filename && top->fd < 0 && top->layer_props
+	if (!top->snap && top->layer_props
 	    && top->flis_layer_id != FLIS_UNDO_LAYER_NONE) {
 		if (!is_current_image_flis()) return 1;
 		flis_layer_t *lay = flis_layer_get_by_id(top->flis_layer_id);
@@ -1527,7 +1422,7 @@ static int undo_push_counterpart_to(GList **stack, fits *fit, const historic *to
 
 	/* Atomic lmask-move: restoring {src, dest} moves the mask dest→src, so
 	 * the counterpart is the same pair with the roles swapped. */
-	if (!top->filename && top->fd < 0 && !top->layer_props
+	if (!top->snap && !top->layer_props
 	    && top->lmask_layer_id != FLIS_UNDO_LAYER_NONE
 	    && top->lmask_dest_layer_id != FLIS_UNDO_LAYER_NONE) {
 		historic *h = flis_alloc_historic(top->history);
@@ -1538,7 +1433,7 @@ static int undo_push_counterpart_to(GList **stack, fits *fit, const historic *to
 	}
 
 	/* Layer reorder: capture the two layers' current order values. */
-	if (!top->filename && top->fd < 0 && !top->layer_props
+	if (!top->snap && !top->layer_props
 	    && top->reorder_layer_a_id != FLIS_UNDO_LAYER_NONE) {
 		if (!is_current_image_flis()) return 1;
 		flis_layer_t *a = flis_layer_get_by_id(top->reorder_layer_a_id);
@@ -1554,7 +1449,7 @@ static int undo_push_counterpart_to(GList **stack, fits *fit, const historic *to
 	}
 
 	/* Lmask add/remove: capture the layer's current mask state. */
-	if (!top->filename && top->fd < 0 && !top->layer_props
+	if (!top->snap && !top->layer_props
 	    && top->lmask_layer_id != FLIS_UNDO_LAYER_NONE) {
 		if (!is_current_image_flis()) return 1;
 		flis_layer_t *lay = flis_layer_get_by_id(top->lmask_layer_id);
@@ -1818,10 +1713,10 @@ int undo_save_flis_layer_full(fits *fit_snapshot,
 	h->mask_bitpix  = (fit_snapshot->mask && fit_snapshot->mask->data)
 	                  ? fit_snapshot->mask->bitpix : 0;
 
-	/* Pixel + pmask: use the fd path so undo_restore_plain can read them. */
-	int fd = undo_build_swapfile(fit_snapshot);
-	if (fd < 0) { undo_free_item(h); return 1; }
-	h->fd = fd;
+	/* Pixels via the snapshot store so undo_restore_plain can read them;
+	 * pmask keeps the legacy fd path. */
+	h->snap = nde_snap_create(fit_snapshot);
+	if (!h->snap) { undo_free_item(h); return 1; }
 	int mfd = undo_build_mask_swapfile(fit_snapshot);
 	if (mfd == -2) { undo_free_item(h); return 1; }
 	h->mask_fd = mfd;

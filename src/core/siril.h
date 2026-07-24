@@ -899,16 +899,15 @@ typedef struct {
 } historic_layer_entry_t;
 
 struct historic_struct {
-	/* Pixel/mask swap files — two storage modes coexist on the same struct:
-	 *   fd-mode      (legacy):  fd >= 0,  filename == NULL
-	 *   filename-mode (FLIS):   fd == -1, filename != NULL
-	 * fd-mode uses delete-on-close for orphan-safety on crash; filename-mode
-	 * is required by multi-layer FLIS undo because keeping N file descriptors
-	 * open per undo entry blows the OS fd limit at modest layer counts.
-	 * undo_free_item handles both cases uniformly. */
-	int fd;             /* open fd for the swap file; -1 if filename used or none */
+	/* Main pixel snapshot — since convergence phase C2 this lives in the
+	 * shared refcounted snapshot store (core/nde_snapstore.h): the entry
+	 * owns one reference; NULL means the flavour saved no pixels
+	 * (props-only, icc-only, reorder, pmask-only...).  Masks below and the
+	 * compound per-layer entries keep the legacy fd/filename swap files
+	 * (delete-on-close for orphan-safety; filename-mode for compound
+	 * entries because N open fds per entry would blow the fd limit). */
+	struct nde_snap *snap;
 	int mask_fd;        /* open fd for the mask swap file; -1 if filename used or none */
-	char *filename;     /* path to swap file; non-NULL only in filename-mode */
 	char *mask_filename;/* path to mask swap file; non-NULL only in filename-mode */
 	char history[FLEN_VALUE];
 	int rx, ry, nchans;
