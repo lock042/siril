@@ -225,6 +225,131 @@ void nde_history_attach(nde_history *h) {
 	nde_history_notify_panel();
 }
 
+/* Shared head of amend/delete: find the record and enforce the live +
+ * Tier-A contract.  Mutex held by the caller.  Returns the index or -1
+ * with *err set. */
+static gint find_mutable_locked(nde_history *h, gint64 record_id, gchar **err) {
+	gint idx = h ? find_index_locked(h, record_id) : -1;
+	if (idx < 0) {
+		*err = g_strdup_printf(_("no record with id %" G_GINT64_FORMAT), record_id);
+		return -1;
+	}
+	if ((guint)idx >= h->live_count) {
+		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " has been undone — redo it first"), record_id);
+		return -1;
+	}
+	nde_record *rec = g_ptr_array_index(h->records, idx);
+	if (rec->tier != NDE_TIER_A) {
+		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) is opaque and cannot be edited"),
+		                       record_id, rec->op_id ? rec->op_id : "?");
+		return -1;
+	}
+	return idx;
+}
+
+gboolean nde_history_amend(gint64 record_id, const gchar *new_params, gchar **err) {
+	g_return_val_if_fail(err != NULL, FALSE);
+	*err = NULL;
+	if (!com.uniq || !com.uniq->nde_history) {
+		*err = g_strdup(_("no edit history"));
+		return FALSE;
+	}
+
+	/* Validate the new params OUTSIDE the leaf mutex (deserializers may
+	 * allocate freely).  The op id is read under the mutex first. */
+	gchar *op_id = NULL;
+	int op_version = 0;
+	g_mutex_lock(&nde_mutex);
+	{
+		gint idx = find_mutable_locked(com.uniq->nde_history, record_id, err);
+		if (idx >= 0) {
+			nde_record *rec = g_ptr_array_index(com.uniq->nde_history->records, idx);
+			op_id = g_strdup(rec->op_id);
+			op_version = rec->op_version;
+		}
+	}
+	g_mutex_unlock(&nde_mutex);
+	if (!op_id)
+		return FALSE;
+
+	const op_descriptor *op = op_descriptor_by_id(op_id);
+	if (!op || !op->deserialize) {
+		*err = g_strdup_printf(_("operation '%s' cannot be edited by this build"), op_id);
+		g_free(op_id);
+		return FALSE;
+	}
+	gpointer trial = op->deserialize(new_params, op_version);
+	if (!trial) {
+		*err = g_strdup_printf(_("the new parameters for '%s' failed to parse"), op_id);
+		g_free(op_id);
+		return FALSE;
+	}
+	/* destructor-first convention */
+	void (*destroy)(void *) = *(void (**)(void *))trial;
+	if (destroy)
+		destroy(trial);
+	else
+		free(trial);
+	g_free(op_id);
+
+	/* Strings prepared before locking (§6a discipline). */
+	gchar *params_copy = g_strdup(new_params);
+	gchar *ts = nde_iso8601_now();
+	gchar *impl = nde_impl_string();
+
+	gboolean ok = FALSE;
+	g_mutex_lock(&nde_mutex);
+	{
+		nde_history *h = com.uniq->nde_history;
+		gint idx = find_mutable_locked(h, record_id, err);
+		if (idx >= 0) {
+			nde_record *rec = g_ptr_array_index(h->records, idx);
+			g_free(rec->params);
+			rec->params = params_copy;
+			g_free(rec->timestamp);
+			rec->timestamp = ts;
+			g_free(rec->impl);
+			rec->impl = impl;
+			truncate_dead_locked(h);
+			ok = TRUE;
+		}
+	}
+	g_mutex_unlock(&nde_mutex);
+	if (!ok) {
+		g_free(params_copy);
+		g_free(ts);
+		g_free(impl);
+		return FALSE;
+	}
+	nde_history_notify_panel();
+	return TRUE;
+}
+
+gboolean nde_history_delete(gint64 record_id, gchar **err) {
+	g_return_val_if_fail(err != NULL, FALSE);
+	*err = NULL;
+	if (!com.uniq || !com.uniq->nde_history) {
+		*err = g_strdup(_("no edit history"));
+		return FALSE;
+	}
+	gboolean ok = FALSE;
+	g_mutex_lock(&nde_mutex);
+	{
+		nde_history *h = com.uniq->nde_history;
+		gint idx = find_mutable_locked(h, record_id, err);
+		if (idx >= 0) {
+			g_ptr_array_remove_index(h->records, idx);  /* free func frees it */
+			h->live_count--;
+			truncate_dead_locked(h);
+			ok = TRUE;
+		}
+	}
+	g_mutex_unlock(&nde_mutex);
+	if (ok)
+		nde_history_notify_panel();
+	return ok;
+}
+
 void nde_history_set_stale(gboolean stale) {
 	if (!com.uniq)
 		return;

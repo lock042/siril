@@ -408,3 +408,119 @@ Test(nde_history, capture_from_descriptor) {
 	cr_assert_null(rec->params);
 	g_ptr_array_unref(snap);
 }
+
+/* ---------------- P3.A: amend / delete ---------------- */
+
+static gint64 append_tier_a(const char *op_id, const char *params) {
+	nde_record *rec = nde_record_new();
+	rec->op_id = g_strdup(op_id);
+	rec->op_version = 1;
+	rec->tier = NDE_TIER_A;
+	rec->params = g_strdup(params);
+	rec->summary = g_strdup(op_id);
+	rec->timestamp = g_strdup("2026-01-01T00:00:00Z");
+	rec->impl = g_strdup("test");
+	return nde_history_append(rec);
+}
+
+Test(nde_history, amend_updates_params_and_truncates_dead_tail) {
+	gint64 a = append_tier_a("geometry.mirrorx", "x_axis=1");
+	gint64 c = append_tier_a("geometry.binning", "factor=2;mean=1");
+	nde_history_on_undo(c);              /* dead tail: [c] */
+	cr_assert_eq(nde_history_live_count(), 1);
+
+	gchar *err = NULL;
+	cr_assert(nde_history_amend(a, "x_axis=0", &err), "amend failed: %s", err ? err : "?");
+	cr_assert_null(err);
+
+	guint live = 0;
+	GPtrArray *all = nde_history_snapshot_all(&live);
+	cr_assert_eq(all->len, 1, "the dead tail must be truncated by an amend");
+	cr_assert_eq(live, 1);
+	nde_record *rec = g_ptr_array_index(all, 0);
+	cr_assert_eq(rec->record_id, a, "record id must be preserved");
+	cr_assert_str_eq(rec->params, "x_axis=0");
+	cr_assert_str_neq(rec->timestamp, "2026-01-01T00:00:00Z", "timestamp must refresh");
+	cr_assert_str_neq(rec->impl, "test", "impl must refresh");
+	g_ptr_array_unref(all);
+}
+
+Test(nde_history, amend_rejections) {
+	gchar *err = NULL;
+
+	/* no history at all */
+	cr_assert(!nde_history_amend(1, "x_axis=0", &err));
+	cr_assert_not_null(err);
+	g_clear_pointer(&err, g_free);
+
+	gint64 a = append_tier_a("geometry.mirrorx", "x_axis=1");
+	gint64 b = append_op("python.set_pixeldata");          /* Tier B */
+	gint64 c = append_tier_a("future.unknown_op", "k=1");  /* Tier A, unknown op */
+	gint64 d = append_tier_a("geometry.crop", "x=0;y=0;w=2;h=2");
+
+	/* unknown id */
+	cr_assert(!nde_history_amend(999, "x_axis=0", &err));
+	g_clear_pointer(&err, g_free);
+
+	/* Tier B */
+	cr_assert(!nde_history_amend(b, "x=1", &err));
+	cr_assert(strstr(err, "opaque") != NULL);
+	g_clear_pointer(&err, g_free);
+
+	/* unknown op */
+	cr_assert(!nde_history_amend(c, "k=2", &err));
+	g_clear_pointer(&err, g_free);
+
+	/* unparsable params (crop requires its geometry keys) */
+	cr_assert(!nde_history_amend(d, "nonsense=only", &err));
+	cr_assert_not_null(err);
+	g_clear_pointer(&err, g_free);
+
+	/* dead record */
+	nde_history_on_undo(d);
+	cr_assert(!nde_history_amend(d, "x=0;y=0;w=1;h=1", &err));
+	cr_assert(strstr(err, "undone") != NULL);
+	g_clear_pointer(&err, g_free);
+
+	/* nothing was modified by the failures */
+	guint live = 0;
+	GPtrArray *all = nde_history_snapshot_all(&live);
+	cr_assert_eq(all->len, 4);
+	cr_assert_str_eq(((nde_record *)g_ptr_array_index(all, 0))->params, "x_axis=1");
+	g_ptr_array_unref(all);
+	(void)a;
+}
+
+Test(nde_history, delete_removes_live_tier_a_only) {
+	gint64 a = append_tier_a("geometry.mirrorx", "x_axis=1");
+	gint64 b = append_op("python.set_pixeldata");           /* Tier B */
+	gint64 c = append_tier_a("geometry.binning", "factor=2;mean=0");
+	gchar *err = NULL;
+
+	/* Tier B refuses */
+	cr_assert(!nde_history_delete(b, &err));
+	g_clear_pointer(&err, g_free);
+	/* unknown id refuses */
+	cr_assert(!nde_history_delete(999, &err));
+	g_clear_pointer(&err, g_free);
+
+	/* delete the first record; ids of the others are untouched */
+	cr_assert(nde_history_delete(a, &err), "delete failed: %s", err ? err : "?");
+	cr_assert_eq(nde_history_live_count(), 2);
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	cr_assert_eq(((nde_record *)g_ptr_array_index(snap, 0))->record_id, b);
+	cr_assert_eq(((nde_record *)g_ptr_array_index(snap, 1))->record_id, c);
+	g_ptr_array_unref(snap);
+
+	/* delete with a dead tail: undo c, delete b?  b is Tier B — use c:
+	 * append d, undo d, then delete c must drop the dead d too */
+	gint64 d = append_tier_a("geometry.mirrorx", "x_axis=1");
+	nde_history_on_undo(d);
+	cr_assert(nde_history_delete(c, &err), "delete failed: %s", err ? err : "?");
+	guint live = 0;
+	GPtrArray *all = nde_history_snapshot_all(&live);
+	cr_assert_eq(all->len, 1, "dead tail must be truncated by a delete");
+	cr_assert_eq(live, 1);
+	cr_assert_eq(((nde_record *)g_ptr_array_index(all, 0))->record_id, b);
+	g_ptr_array_unref(all);
+}

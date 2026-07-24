@@ -733,3 +733,147 @@ Test(nde_replay, golden_bge_command_path_captures_samples) {
 
 	golden_teardown(result, f);
 }
+
+/* ---------------- P3.B: amend / delete commit machinery ---------------- */
+
+Test(nde_replay, amend_execute_recomputes_pixels_and_log) {
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	asinh_params *u = calloc(1, sizeof(*u));
+	u->beta = 15.0f;
+	u->offset = 0.02f;
+	u->human_luminance = FALSE;
+	u->clip_mode = RESCALE;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, u), 0);
+
+	gint64 rec_id;
+	{
+		GPtrArray *snap = nde_history_snapshot(NULL);
+		rec_id = ((nde_record *)g_ptr_array_index(snap, 0))->record_id;
+		g_ptr_array_unref(snap);
+	}
+	fits before = { 0 };
+	copyfits(gfit, &before, CP_DEEPCOPY | CP_ALLOC, -1);
+
+	/* a fake undo entry that the amend must flush (no meta-undo) */
+	historic *fake = g_new0(historic, 1);
+	fake->fd = -1;
+	fake->mask_fd = -1;
+	com.undo_stack = g_list_prepend(com.undo_stack, fake);
+
+	/* amend beta 15 → 40 */
+	cr_assert(reserve_thread());
+	gchar *err = NULL;
+	gboolean ok = nde_amend_execute(rec_id,
+			"beta=40;offset=0.0199999996;human=0;clip_mode=1", &err);
+	unreserve_thread();
+	cr_assert(ok, "amend failed: %s", err ? err : "?");
+	cr_assert_null(com.undo_stack, "amend must flush the undo stack");
+
+	/* pixels actually changed, and the log carries the new params */
+	size_t n = (size_t)gfit->rx * gfit->ry;
+	gboolean changed = FALSE;
+	for (size_t i = 0; i < n && !changed; i++)
+		changed = (gfit->fdata[i] != before.fdata[i]);
+	cr_assert(changed, "amended params must change the pixels");
+	{
+		GPtrArray *snap = nde_history_snapshot(NULL);
+		nde_record *rec = g_ptr_array_index(snap, 0);
+		cr_assert_eq(rec->record_id, rec_id);
+		cr_assert(strstr(rec->params, "beta=40") != NULL, "params: %s", rec->params);
+		g_ptr_array_unref(snap);
+	}
+
+	/* self-consistency: replaying the amended chain reproduces the new
+	 * pixels bit-exactly */
+	fits *result = replay_current_chain(1);
+	assert_pixels_bit_exact(result, gfit, "amended-chain");
+
+	clearfits(&before);
+	golden_teardown(result, f);
+}
+
+Test(nde_replay, delete_execute_removes_step_from_pixels_and_log) {
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	asinh_params *u = calloc(1, sizeof(*u));
+	u->beta = 15.0f;
+	u->offset = 0.02f;
+	u->clip_mode = RESCALE;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, u), 0);
+	struct mirror_args *m = calloc(1, sizeof(*m));
+	m->x_axis = TRUE;
+	cr_assert_eq(apply_op_real(&op_desc_mirrorx, m), 0);
+
+	gint64 asinh_id;
+	{
+		GPtrArray *snap = nde_history_snapshot(NULL);
+		asinh_id = ((nde_record *)g_ptr_array_index(snap, 0))->record_id;
+		g_ptr_array_unref(snap);
+	}
+
+	/* expected pixels after deleting the asinh step: mirrorx(baseline) */
+	fits *expected = nde_checkpoint_baseline_get(-1);
+	cr_assert_not_null(expected);
+	mirrorx(expected, FALSE);
+
+	cr_assert(reserve_thread());
+	gchar *err = NULL;
+	gboolean ok = nde_delete_execute(asinh_id, &err);
+	unreserve_thread();
+	cr_assert(ok, "delete failed: %s", err ? err : "?");
+
+	cr_assert_eq(nde_history_live_count(), 1, "one record must remain");
+	assert_pixels_bit_exact(gfit, expected, "post-delete");
+
+	clearfits(expected);
+	free(expected);
+	golden_teardown(NULL, f);
+}
+
+Test(nde_replay, amend_failures_leave_everything_untouched) {
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	asinh_params *u = calloc(1, sizeof(*u));
+	u->beta = 15.0f;
+	u->clip_mode = RESCALE;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, u), 0);
+	gint64 rec_id;
+	{
+		GPtrArray *snap = nde_history_snapshot(NULL);
+		rec_id = ((nde_record *)g_ptr_array_index(snap, 0))->record_id;
+		g_ptr_array_unref(snap);
+	}
+	fits before = { 0 };
+	copyfits(gfit, &before, CP_DEEPCOPY | CP_ALLOC, -1);
+
+	cr_assert(reserve_thread());
+	gchar *err = NULL;
+	/* unknown record */
+	cr_assert(!nde_amend_execute(999, "beta=40", &err));
+	g_clear_pointer(&err, g_free);
+	/* unparsable params */
+	cr_assert(!nde_amend_execute(rec_id, "nonsense=only", &err));
+	cr_assert_not_null(err);
+	g_clear_pointer(&err, g_free);
+	/* delete of unknown record */
+	cr_assert(!nde_delete_execute(999, &err));
+	g_clear_pointer(&err, g_free);
+	unreserve_thread();
+
+	/* nothing changed */
+	assert_pixels_bit_exact(gfit, &before, "untouched-pixels");
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	cr_assert_eq(snap->len, 1);
+	cr_assert(strstr(((nde_record *)g_ptr_array_index(snap, 0))->params, "beta=15") != NULL);
+	g_ptr_array_unref(snap);
+
+	clearfits(&before);
+	golden_teardown(NULL, f);
+}

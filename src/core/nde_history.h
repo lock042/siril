@@ -139,6 +139,27 @@ void nde_history_attach(nde_history *h);
 /** Free a detached history object (also used by free_image_data via attach(NULL)). */
 void nde_history_free(nde_history *h);
 
+/* ---- amend-and-replay log mutations (phase 3, nde-phase2-3-plan.md P3.A) --
+ * These are the LOG-side commits: the pixel side must already have been
+ * replayed and swapped in successfully (nde_amend_execute / P3.B owns the
+ * ordering).  Both operate on LIVE Tier-A records only.  Callers must own
+ * the processing slot so capture/undo cannot interleave.                    */
+
+/**
+ * Replace @record_id's params with @new_params (validated by a deserialize
+ * round-trip against the record's op), refresh its timestamp and impl, keep
+ * its record_id, and truncate the dead tail (it described a pixel lineage
+ * that no longer exists).  FALSE + heap message in @err on unknown/dead
+ * record, Tier-B record, unknown op or unparsable params.
+ */
+gboolean nde_history_amend(gint64 record_id, const gchar *new_params, gchar **err);
+
+/**
+ * Remove live Tier-A record @record_id from the log and truncate the dead
+ * tail.  Same failure contract as nde_history_amend.
+ */
+gboolean nde_history_delete(gint64 record_id, gchar **err);
+
 /** Stale flag accessors (load-time PIXHASH mismatch). */
 void     nde_history_set_stale(gboolean stale);
 gboolean nde_history_is_stale(void);

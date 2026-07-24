@@ -77,6 +77,31 @@ void nde_chain_free(nde_chain *chain);
  */
 struct ffit *nde_chain_replay(const nde_chain *chain, gchar **err);
 
+/* ---- amend-and-replay commit machinery (phase 3, P3.B) ------------------
+ * An amend/delete recomputes the target's pixels from the baseline through
+ * the modified chain, then commits atomically: scratch replay first, a
+ * single writer-locked swap into the target fits, then the log-side commit
+ * (nde_history_amend/delete) and an undo_flush() — there is no meta-undo
+ * (sketch §7 decision, UI confirms before calling).  Failure at any
+ * pre-commit stage leaves pixels and log untouched.                        */
+
+/**
+ * Job-context implementations (the caller owns the processing slot; the
+ * _start wrappers and tests call these).  @new_params is the full new kv
+ * blob for the record.  FALSE + heap @err message on any failure.
+ */
+gboolean nde_amend_execute(gint64 record_id, const gchar *new_params, gchar **err);
+gboolean nde_delete_execute(gint64 record_id, gchar **err);
+
+/**
+ * Spawn the edit as a processing job (refuses while the thread is reserved
+ * for a Python script; errors are logged).  For the command layer and the
+ * History panel.  @new_params NULL is not a delete — use the dedicated
+ * wrapper.  Returns FALSE when the job could not start.
+ */
+gboolean nde_amend_start(gint64 record_id, const gchar *new_params);
+gboolean nde_delete_start(gint64 record_id);
+
 #ifdef __cplusplus
 }
 #endif
