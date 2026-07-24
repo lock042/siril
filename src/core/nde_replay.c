@@ -59,39 +59,32 @@ static void add_reason(nde_chain *chain, const char *fmt, ...) {
 	va_end(ap);
 }
 
-/* Validate one chain member; every problem becomes a reason. */
-static void validate_member(nde_chain *chain, const nde_record *rec) {
-	if (rec->tier != NDE_TIER_A) {
-		add_reason(chain, _("record %" G_GINT64_FORMAT " (%s) is opaque — not replayable"),
-		           rec->record_id, rec->op_id ? rec->op_id : "?");
-		return;
-	}
+/* First reason @rec cannot be replayed (heap string, caller frees), or NULL
+ * when it replays.  The chain build decides whether an invalid member is a
+ * hard blocker (no output checkpoint) or a barrier restart point. */
+static gchar *member_invalid_reason(const nde_record *rec) {
+	if (rec->tier != NDE_TIER_A)
+		return g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) is opaque — not replayable"),
+		                       rec->record_id, rec->op_id ? rec->op_id : "?");
 	if (rec->mask_active)
-		add_reason(chain, _("record %" G_GINT64_FORMAT " (%s) ran with an active mask — mask replay is not supported yet"),
-		           rec->record_id, rec->op_id);
+		return g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) ran with an active mask — mask replay is not supported yet"),
+		                       rec->record_id, rec->op_id);
 	const op_descriptor *op = op_descriptor_by_id(rec->op_id);
-	if (!op) {
-		add_reason(chain, _("record %" G_GINT64_FORMAT ": unknown operation '%s'"),
-		           rec->record_id, rec->op_id ? rec->op_id : "?");
-		return;
-	}
-	if (!op->deserialize) {
-		add_reason(chain, _("record %" G_GINT64_FORMAT " (%s) has no parameter deserializer"),
-		           rec->record_id, rec->op_id);
-		return;
-	}
-	if (rec->op_version > op->version) {
-		add_reason(chain, _("record %" G_GINT64_FORMAT " (%s) was written by a newer version (v%d > v%d)"),
-		           rec->record_id, rec->op_id, rec->op_version, op->version);
-		return;
-	}
+	if (!op)
+		return g_strdup_printf(_("record %" G_GINT64_FORMAT ": unknown operation '%s'"),
+		                       rec->record_id, rec->op_id ? rec->op_id : "?");
+	if (!op->deserialize)
+		return g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) has no parameter deserializer"),
+		                       rec->record_id, rec->op_id);
+	if (rec->op_version > op->version)
+		return g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) was written by a newer version (v%d > v%d)"),
+		                       rec->record_id, rec->op_id, rec->op_version, op->version);
 	gpointer user = op->deserialize(rec->params, rec->op_version);
-	if (!user) {
-		add_reason(chain, _("record %" G_GINT64_FORMAT " (%s): parameters failed to parse"),
-		           rec->record_id, rec->op_id);
-		return;
-	}
+	if (!user)
+		return g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s): parameters failed to parse"),
+		                       rec->record_id, rec->op_id);
 	destroy_user(user);
+	return NULL;
 }
 
 /* Compositing-state records (opacity/blend/visibility commits) are not
@@ -132,7 +125,11 @@ static nde_chain *chain_build_excluding(gint item_id, gint64 exclude_record_id) 
 	chain->records = g_ptr_array_new();
 	chain->reasons = g_ptr_array_new_with_free_func(g_free);
 	chain->snapshot = nde_history_snapshot(NULL);
+	chain->member_flags = g_array_new(FALSE, TRUE, sizeof(guint8));
 	gboolean is_flis = is_current_image_flis();
+	/* Barrier tracking (phase 4): tail_possible follows the LAST freeze
+	 * cause in document order — TRUE when it left a restart point. */
+	gboolean tail_possible = TRUE;
 
 	for (guint i = 0; chain->snapshot && i < chain->snapshot->len; i++) {
 		nde_record *rec = g_ptr_array_index(chain->snapshot, i);
@@ -174,6 +171,8 @@ static nde_chain *chain_build_excluding(gint item_id, gint64 exclude_record_id) 
 				 * composite of other layers — nothing to replay from. */
 				add_reason(chain, _("record %" G_GINT64_FORMAT " (%s) replaced this layer's pixels with a composite — not replayable"),
 				           rec->record_id, rec->op_id);
+				chain->tail_start = chain->records->len;
+				tail_possible = FALSE;
 			} else if (!structural) {
 				/* FAIL CLOSED: a non-structural DOCUMENT-scope record
 				 * mutated pixels document-wide (icc.convert via the layer
@@ -182,6 +181,8 @@ static nde_chain *chain_build_excluding(gint item_id, gint64 exclude_record_id) 
 				 * contains records on both sides can replay without it. */
 				add_reason(chain, _("record %" G_GINT64_FORMAT " (%s) applies to the whole document — not replayable"),
 				           rec->record_id, rec->op_id ? rec->op_id : "?");
+				chain->tail_start = chain->records->len;
+				tail_possible = FALSE;
 			}
 			/* Known structural records not targeting this item: layer.add
 			 * is embodied in the baseline; the rest don't touch this
@@ -192,15 +193,45 @@ static nde_chain *chain_build_excluding(gint item_id, gint64 exclude_record_id) 
 			break;
 		}
 		if (member) {
-			validate_member(chain, rec);
+			gchar *invalid = member_invalid_reason(rec);
+			guint8 flags = 0;
+			if (invalid) {
+				flags = NDE_CHAIN_MEMBER_BARRIER;
+				if (nde_checkpoint_output_exists(rec->record_id)) {
+					/* Barrier WITH a restart point: everything after it
+					 * stays editable — informational, not a blocker. */
+					g_free(invalid);
+					tail_possible = TRUE;
+					chain->restart_ckpt_id = rec->record_id;
+				} else {
+					/* Checkpoint-less barrier (pre-phase-4 capture): hard
+					 * blocker for itself and everything after it. */
+					g_ptr_array_add(chain->reasons, invalid);
+					tail_possible = FALSE;
+				}
+			}
 			g_ptr_array_add(chain->records, rec);
+			g_array_append_val(chain->member_flags, flags);
+			if (flags)
+				chain->tail_start = chain->records->len;
 		}
 	}
 
-	if (chain->records->len && !nde_checkpoint_baseline_exists(item_id))
+	gboolean baseline_missing = chain->records->len &&
+	                            !nde_checkpoint_baseline_exists(item_id);
+	if (baseline_missing)
 		add_reason(chain, _("no baseline checkpoint — the file predates baselines, or the history began before this build"));
 
-	chain->replayable = (chain->reasons->len == 0);
+	/* Full-chain verdict: no freeze cause anywhere and the baseline exists. */
+	chain->replayable = (chain->reasons->len == 0) && chain->tail_start == 0;
+	/* Tail verdict: with no freeze cause the tail IS the whole chain; with
+	 * one, the last freeze cause must have left a restart checkpoint (the
+	 * tail members themselves are valid by construction — an invalid member
+	 * always moves tail_start past itself). */
+	if (chain->tail_start == 0)
+		chain->tail_replayable = chain->replayable;
+	else
+		chain->tail_replayable = tail_possible;
 	return chain;
 }
 
@@ -215,24 +246,15 @@ void nde_chain_free(nde_chain *chain) {
 	if (chain->snapshot)
 		g_ptr_array_unref(chain->snapshot);
 	g_ptr_array_unref(chain->reasons);
+	g_array_unref(chain->member_flags);
 	g_free(chain);
 }
 
-fits *nde_chain_replay(const nde_chain *chain, gchar **err) {
-	g_return_val_if_fail(chain != NULL, NULL);
-	g_return_val_if_fail(err != NULL, NULL);
-	*err = NULL;
-	if (!chain->replayable) {
-		*err = g_strdup(_("chain is not replayable"));
-		return NULL;
-	}
-	fits *scratch = nde_checkpoint_baseline_get(chain->item_id);
-	if (!scratch) {
-		*err = g_strdup(_("failed to load the baseline checkpoint"));
-		return NULL;
-	}
-
-	for (guint i = 0; i < chain->records->len; i++) {
+/* Apply members [from..end) to @scratch (consumed on failure).  Returns
+ * @scratch on success, NULL + @err on failure. */
+static fits *replay_apply_records(fits *scratch, const nde_chain *chain,
+                                  guint from, gchar **err) {
+	for (guint i = from; i < chain->records->len; i++) {
 		const nde_record *rec = g_ptr_array_index(chain->records, i);
 		if (!processing_should_continue()) {
 			*err = g_strdup(_("cancelled"));
@@ -281,6 +303,42 @@ fail:
 	clearfits(scratch);
 	free(scratch);
 	return NULL;
+}
+
+fits *nde_chain_replay(const nde_chain *chain, gchar **err) {
+	g_return_val_if_fail(chain != NULL, NULL);
+	g_return_val_if_fail(err != NULL, NULL);
+	*err = NULL;
+	if (!chain->replayable) {
+		*err = g_strdup(_("chain is not replayable"));
+		return NULL;
+	}
+	fits *scratch = nde_checkpoint_baseline_get(chain->item_id);
+	if (!scratch) {
+		*err = g_strdup(_("failed to load the baseline checkpoint"));
+		return NULL;
+	}
+	return replay_apply_records(scratch, chain, 0, err);
+}
+
+fits *nde_chain_replay_tail(const nde_chain *chain, gchar **err) {
+	g_return_val_if_fail(chain != NULL, NULL);
+	g_return_val_if_fail(err != NULL, NULL);
+	*err = NULL;
+	if (!chain->tail_replayable) {
+		*err = g_strdup(_("the editable tail is not replayable"));
+		return NULL;
+	}
+	fits *start = chain->restart_ckpt_id > 0 ?
+			nde_checkpoint_output_get(chain->restart_ckpt_id) :
+			nde_checkpoint_baseline_get(chain->item_id);
+	if (!start) {
+		*err = g_strdup(chain->restart_ckpt_id > 0 ?
+				_("failed to load the barrier checkpoint") :
+				_("failed to load the baseline checkpoint"));
+		return NULL;
+	}
+	return replay_apply_records(start, chain, chain->tail_start, err);
 }
 
 /* ======================================================================= */
@@ -337,11 +395,44 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 	if (*err)
 		return FALSE;
 
-	/* For a delete, build the TRIAL chain directly: the deleted record is
-	 * excluded from membership AND from the blockers, so its own
-	 * opaqueness/mask state cannot veto its removal. */
+	/* Position/freeze check on the CURRENT chain (phase-4 barrier model):
+	 * edits are permitted only in the editable tail — records strictly
+	 * after the last freeze cause — plus the delete of the last barrier
+	 * itself.  Everything earlier is hard-frozen: recomputing it would
+	 * require recomputing a later opaque step, which is impossible. */
+	nde_chain *pos = nde_chain_build(item_id);
+	gint pos_idx = -1;
+	for (guint i = 0; i < pos->records->len; i++) {
+		const nde_record *rec = g_ptr_array_index(pos->records, i);
+		if (rec->record_id == record_id) {
+			pos_idx = (gint)i;
+			break;
+		}
+	}
+	if (pos_idx < 0) {
+		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " does not affect this image's pixels"),
+		                       record_id);
+		nde_chain_free(pos);
+		return FALSE;
+	}
+	gboolean in_tail = (guint)pos_idx >= pos->tail_start;
+	gboolean is_last_barrier = !new_params && pos->tail_start > 0 &&
+			(guint)pos_idx == pos->tail_start - 1 &&
+			(g_array_index(pos->member_flags, guint8, pos_idx) & NDE_CHAIN_MEMBER_BARRIER);
+	if (!in_tail && !is_last_barrier) {
+		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " is locked by a later opaque step"),
+		                       record_id);
+		nde_chain_free(pos);
+		return FALSE;
+	}
+	nde_chain_free(pos);
+
+	/* For a delete, build the TRIAL chain: the deleted record is excluded
+	 * from membership AND from the blockers, so its own opaqueness/mask
+	 * state cannot veto its removal.  (Deleting the last barrier makes the
+	 * trial's restart point fall back to the previous barrier/baseline.) */
 	nde_chain *chain = chain_build_excluding(item_id, new_params ? 0 : record_id);
-	if (!chain->replayable) {
+	if (!chain->tail_replayable) {
 		GString *s = g_string_new(_("the history is not replayable: "));
 		for (guint i = 0; i < chain->reasons->len; i++) {
 			if (i)
@@ -357,7 +448,7 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 	 * needs no edit here — chain_build_excluding already omitted it.) */
 	if (new_params) {
 		nde_record *target_rec = NULL;
-		for (guint i = 0; i < chain->records->len; i++) {
+		for (guint i = chain->tail_start; i < chain->records->len; i++) {
 			nde_record *rec = g_ptr_array_index(chain->records, i);
 			if (rec->record_id == record_id) {
 				target_rec = rec;
@@ -386,7 +477,12 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 	}
 
 	gui_iface.set_progress(0.f, _("Recomputing edit history..."));
-	fits *result = nde_chain_replay(chain, err);
+	/* Replay the tail from its restart point (the last barrier's output
+	 * checkpoint, or the baseline when no barrier remains).  The frozen
+	 * prefix's effect is embodied in the restart pixels, so this is both
+	 * faster than a full replay and the only correct option when the
+	 * prefix is not replayable at all. */
+	fits *result = nde_chain_replay_tail(chain, err);
 	nde_chain_free(chain);
 	if (!result) {
 		gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));

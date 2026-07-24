@@ -17088,15 +17088,24 @@ int process_flis_history(int nb) {
 static gpointer replay_check_worker(gpointer p) {
 	gint item_id = GPOINTER_TO_INT(p);
 	nde_chain *chain = nde_chain_build(item_id);
-	if (!chain->replayable) {
+	if (chain->records->len == 0) {
+		siril_log_info(_("No replayable records — nothing to check\n"));
+	} else if (!chain->replayable && !chain->tail_replayable) {
 		siril_log_warning(_("History is not replayable:\n"));
 		for (guint i = 0; i < chain->reasons->len; i++)
 			siril_log_message("  - %s\n", (char *)g_ptr_array_index(chain->reasons, i));
-	} else if (chain->records->len == 0) {
-		siril_log_info(_("No replayable records — nothing to check\n"));
+	} else if (!chain->replayable && chain->records->len == chain->tail_start) {
+		/* barrier-last: nothing beyond its checkpoint to verify */
+		siril_log_info(_("%u step(s) are frozen behind an opaque barrier and the last step is the barrier itself — nothing to verify\n"),
+		               chain->tail_start);
 	} else {
+		guint frozen = chain->replayable ? 0 : chain->tail_start;
+		if (frozen)
+			siril_log_info(_("%u step(s) are frozen behind an opaque barrier; verifying the last %u step(s) from its checkpoint\n"),
+			               frozen, chain->records->len - frozen);
 		gchar *errmsg = NULL;
-		fits *result = nde_chain_replay(chain, &errmsg);
+		fits *result = chain->replayable ? nde_chain_replay(chain, &errmsg)
+		                                 : nde_chain_replay_tail(chain, &errmsg);
 		if (!result) {
 			siril_log_error(_("Replay failed: %s\n"), errmsg ? errmsg : "?");
 		} else {
@@ -17113,7 +17122,7 @@ static gpointer replay_check_worker(gpointer p) {
 				    || result->naxes[2] != current->naxes[2]
 				    || result->type != current->type) {
 					siril_log_warning(_("Replayed %u record(s), but the result geometry differs from the current image (%ux%ux%ld vs %ux%ux%ld)\n"),
-					                  chain->records->len,
+					                  chain->records->len - (chain->replayable ? 0 : chain->tail_start),
 					                  result->rx, result->ry, result->naxes[2],
 					                  current->rx, current->ry, current->naxes[2]);
 				} else {
@@ -17134,7 +17143,8 @@ static gpointer replay_check_worker(gpointer p) {
 						sum_dev += d;
 					}
 					siril_log_info(_("Replayed %u record(s) successfully: max deviation %.3g, mean %.3g (small numerical drift is expected)\n"),
-					               chain->records->len, max_dev, sum_dev / n);
+					               chain->records->len - (chain->replayable ? 0 : chain->tail_start),
+					               max_dev, sum_dev / n);
 				}
 				g_rw_lock_reader_unlock(&current->rwlock);
 			}

@@ -44,12 +44,25 @@ extern "C" {
 
 struct ffit;
 
+/* Per-member flag bits in nde_chain.member_flags. */
+#define NDE_CHAIN_MEMBER_BARRIER 0x1  /* non-replayable member (Tier B / mask) */
+
 typedef struct {
 	gint       item_id;    /* layer item_id; -1 = plain single image */
 	GPtrArray *records;    /* chain members: nde_record* views into ->snapshot */
 	GPtrArray *snapshot;   /* owns the records (live-prefix deep copy) */
-	gboolean   replayable; /* TRUE when reasons is empty */
-	GPtrArray *reasons;    /* gchar*: why the chain cannot be replayed */
+	gboolean   replayable; /* the WHOLE chain replays from the baseline */
+	GPtrArray *reasons;    /* gchar*: hard blockers (checkpoint-less barriers,
+	                        * document-wide records, missing baseline...) */
+
+	/* Phase-4 barrier model (nde-phase4-plan.md).  A barrier is a member
+	 * that cannot be replayed; with an output checkpoint it is a restart
+	 * point instead of a hard blocker.  records[tail_start..] is the
+	 * editable tail (everything strictly after the last freeze cause). */
+	GArray    *member_flags;    /* guint8 per member (NDE_CHAIN_MEMBER_*) */
+	guint      tail_start;      /* first tail member index (== len ⇒ empty tail) */
+	gboolean   tail_replayable; /* the tail applies cleanly from its restart point */
+	gint64     restart_ckpt_id; /* record id of the restart checkpoint; 0 = baseline */
 } nde_chain;
 
 /**
@@ -87,12 +100,20 @@ gboolean nde_record_amendable(const struct nde_record *rec);
 gboolean nde_record_deletable(const struct nde_record *rec);
 
 /**
- * Replay the chain from the item's baseline into a freshly allocated fits
- * (caller clearfits()+free()s).  NULL on failure with a heap message in
- * @err (caller g_free()s).  Honours cancellation between records
- * (processing_should_continue()).  Job-slot contract in the file header.
+ * Replay the WHOLE chain from the item's baseline into a freshly allocated
+ * fits (caller clearfits()+frees()s).  Requires chain->replayable.  NULL on
+ * failure with a heap message in @err (caller g_free()s).  Honours
+ * cancellation between records.  Job-slot contract in the file header.
  */
 struct ffit *nde_chain_replay(const nde_chain *chain, gchar **err);
+
+/**
+ * Replay only the editable tail, starting from the chain's restart point
+ * (the last barrier's output checkpoint, or the baseline when there is no
+ * barrier).  Requires chain->tail_replayable.  An empty tail returns the
+ * restart pixels themselves.  Same ownership/err/job contract as above.
+ */
+struct ffit *nde_chain_replay_tail(const nde_chain *chain, gchar **err);
 
 /* ---- amend-and-replay commit machinery (phase 3, P3.B) ------------------
  * An amend/delete recomputes the target's pixels from the baseline through

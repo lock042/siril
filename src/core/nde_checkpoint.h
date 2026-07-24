@@ -87,11 +87,29 @@ gboolean nde_checkpoint_baseline_exists(gint item_id);
  */
 void nde_checkpoint_baseline_adopt(const fits *src, gint item_id);
 
-/** Drop the baseline for @item_id (a layer was removed). */
+/** Drop the baseline AND output checkpoints for @item_id (layer removed). */
 void nde_checkpoint_drop(gint item_id);
 
-/** Drop every baseline (document closed / new document loaded). */
+/** Drop every checkpoint (document closed / new document loaded). */
 void nde_checkpoint_purge(void);
+
+/* ---- output checkpoints (phase-4 barriers, nde-phase4-plan.md) ----------
+ * A barrier record's POST-op pixels, keyed by record_id: the restart point
+ * that lets everything after the barrier stay editable.  Same lossless /
+ * leaf-lock discipline as baselines; a checkpoint dies with its record
+ * (delete, dead-tail truncation), its layer (drop) or the document
+ * (purge).                                                                */
+
+/** Store @post as the output checkpoint of @record_id (overwrites). */
+void nde_checkpoint_output_store(const fits *post, gint64 record_id, gint item_id);
+
+/** Load a copy of @record_id's output checkpoint (caller clears+frees). */
+fits *nde_checkpoint_output_get(gint64 record_id);
+
+gboolean nde_checkpoint_output_exists(gint64 record_id);
+
+/** Drop one output checkpoint (its record was deleted or truncated). */
+void nde_checkpoint_output_drop(gint64 record_id);
 
 /**
  * Active FLIS layer item_id for baseline targeting, or −1 for a plain image.

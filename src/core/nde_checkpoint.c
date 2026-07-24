@@ -208,6 +208,30 @@ static void cp_table_ensure_locked(void) {
 		                                 NULL, (GDestroyNotify)swap_snapshot_free);
 }
 
+/* Output-checkpoint table (phase-4 barriers): record_id -> post-op pixels.
+ * Declared here because drop/purge below cover both tables. */
+typedef struct {
+	swap_snapshot *snap;
+	gint item_id;      /* owning layer, for drop-by-layer */
+} output_ckpt;
+
+/* gint64* (owned) -> output_ckpt*.  Shares cp_mutex (still a strict leaf:
+ * swap I/O runs outside it, exactly like the baseline table). */
+static GHashTable *out_table;
+
+static void output_ckpt_free(gpointer p) {
+	output_ckpt *c = p;
+	swap_snapshot_free(c->snap);
+	g_free(c);
+}
+
+static void out_table_ensure_locked(void) {
+	if (!out_table)
+		out_table = g_hash_table_new_full(g_int64_hash, g_int64_equal,
+		                                  g_free, output_ckpt_free);
+}
+
+
 void nde_checkpoint_baseline_ensure(const fits *pre, gint item_id) {
 	if (!pre)
 		return;
@@ -281,18 +305,80 @@ void nde_checkpoint_drop(gint item_id) {
 	g_mutex_lock(&cp_mutex);
 	if (cp_table)
 		g_hash_table_remove(cp_table, GINT_TO_POINTER(item_id));
+	if (out_table) {
+		/* output checkpoints of a dying layer die with it */
+		GHashTableIter it;
+		gpointer k, v;
+		g_hash_table_iter_init(&it, out_table);
+		while (g_hash_table_iter_next(&it, &k, &v)) {
+			output_ckpt *c = v;
+			if (c->item_id == item_id)
+				g_hash_table_iter_remove(&it);
+		}
+	}
 	g_mutex_unlock(&cp_mutex);
 }
 
 void nde_checkpoint_purge(void) {
-	GHashTable *doomed = NULL;
+	GHashTable *doomed = NULL, *doomed_out = NULL;
 	g_mutex_lock(&cp_mutex);
 	doomed = cp_table;
 	cp_table = NULL;
+	doomed_out = out_table;
+	out_table = NULL;
 	g_mutex_unlock(&cp_mutex);
 	/* Destroy (which closes fds -> deletes files) outside the lock. */
 	if (doomed)
 		g_hash_table_destroy(doomed);
+	if (doomed_out)
+		g_hash_table_destroy(doomed_out);
+}
+
+/* ======================================================================= */
+/* Output checkpoints (phase-4 barriers) — keyed by record_id              */
+/* ======================================================================= */
+
+void nde_checkpoint_output_store(const fits *post, gint64 record_id, gint item_id) {
+	if (!post || record_id <= 0)
+		return;
+	swap_snapshot *s = swap_snapshot_write(post);   /* outside the lock */
+	if (!s)
+		return;
+	output_ckpt *c = g_new0(output_ckpt, 1);
+	c->snap = s;
+	c->item_id = item_id;
+	gint64 *key = g_new(gint64, 1);
+	*key = record_id;
+	g_mutex_lock(&cp_mutex);
+	out_table_ensure_locked();
+	g_hash_table_insert(out_table, key, c);   /* overwrite = refresh */
+	g_mutex_unlock(&cp_mutex);
+}
+
+fits *nde_checkpoint_output_get(gint64 record_id) {
+	g_mutex_lock(&cp_mutex);
+	output_ckpt *c = out_table ?
+	    g_hash_table_lookup(out_table, &record_id) : NULL;
+	swap_snapshot *s = c ? c->snap : NULL;
+	g_mutex_unlock(&cp_mutex);
+	if (!s)
+		return NULL;
+	return swap_snapshot_read(s);   /* outside the lock, same rationale as
+	                                 * nde_checkpoint_baseline_get */
+}
+
+gboolean nde_checkpoint_output_exists(gint64 record_id) {
+	g_mutex_lock(&cp_mutex);
+	gboolean e = out_table && g_hash_table_contains(out_table, &record_id);
+	g_mutex_unlock(&cp_mutex);
+	return e;
+}
+
+void nde_checkpoint_output_drop(gint64 record_id) {
+	g_mutex_lock(&cp_mutex);
+	if (out_table)
+		g_hash_table_remove(out_table, &record_id);
+	g_mutex_unlock(&cp_mutex);
 }
 
 gint nde_checkpoint_active_item_id(void) {

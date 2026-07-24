@@ -90,10 +90,27 @@ void nde_history_free(nde_history *h) {
 	g_free(h);
 }
 
-/* Drop records beyond live_count.  Mutex held by caller. */
-static void truncate_dead_locked(nde_history *h) {
-	while (h->records->len > h->live_count)
+/* Drop records beyond live_count.  Mutex held by caller.  The ids of the
+ * dropped records are collected into @dropped (when non-NULL) so the caller
+ * can release their output checkpoints AFTER unlocking — nde_checkpoint's
+ * lock is a separate leaf and must never nest inside this one. */
+static void truncate_dead_locked(nde_history *h, GArray *dropped) {
+	while (h->records->len > h->live_count) {
+		if (dropped) {
+			nde_record *rec = g_ptr_array_index(h->records, h->records->len - 1);
+			g_array_append_val(dropped, rec->record_id);
+		}
 		g_ptr_array_remove_index(h->records, h->records->len - 1);
+	}
+}
+
+/* Release the output checkpoints of dropped records; consumes @ids. */
+static void drop_output_checkpoints(GArray *ids) {
+	if (!ids)
+		return;
+	for (guint i = 0; i < ids->len; i++)
+		nde_checkpoint_output_drop(g_array_index(ids, gint64, i));
+	g_array_unref(ids);
 }
 
 gint64 nde_history_append(nde_record *rec) {
@@ -104,16 +121,18 @@ gint64 nde_history_append(nde_record *rec) {
 		nde_record_free(rec);
 		return 0;
 	}
+	GArray *dropped = g_array_new(FALSE, FALSE, sizeof(gint64));
 	g_mutex_lock(&nde_mutex);
 	if (!com.uniq->nde_history)
 		com.uniq->nde_history = nde_history_new();
 	nde_history *h = com.uniq->nde_history;
-	truncate_dead_locked(h);
+	truncate_dead_locked(h, dropped);
 	rec->record_id = h->next_record_id++;
 	g_ptr_array_add(h->records, rec);
 	h->live_count = h->records->len;
 	gint64 id = rec->record_id;
 	g_mutex_unlock(&nde_mutex);
+	drop_output_checkpoints(dropped);
 	return id;
 }
 
@@ -301,6 +320,7 @@ gboolean nde_history_amend(gint64 record_id, const gchar *new_params, gchar **er
 	gchar *impl = nde_impl_string();
 
 	gboolean ok = FALSE;
+	GArray *dropped = g_array_new(FALSE, FALSE, sizeof(gint64));
 	g_mutex_lock(&nde_mutex);
 	{
 		nde_history *h = com.uniq->nde_history;
@@ -313,11 +333,12 @@ gboolean nde_history_amend(gint64 record_id, const gchar *new_params, gchar **er
 			rec->timestamp = ts;
 			g_free(rec->impl);
 			rec->impl = impl;
-			truncate_dead_locked(h);
+			truncate_dead_locked(h, dropped);
 			ok = TRUE;
 		}
 	}
 	g_mutex_unlock(&nde_mutex);
+	drop_output_checkpoints(dropped);
 	if (!ok) {
 		g_free(params_copy);
 		g_free(ts);
@@ -336,18 +357,21 @@ gboolean nde_history_delete(gint64 record_id, gchar **err) {
 		return FALSE;
 	}
 	gboolean ok = FALSE;
+	GArray *dropped = g_array_new(FALSE, FALSE, sizeof(gint64));
 	g_mutex_lock(&nde_mutex);
 	{
 		nde_history *h = com.uniq->nde_history;
 		gint idx = find_mutable_locked(h, record_id, FALSE, err);
 		if (idx >= 0) {
+			g_array_append_val(dropped, record_id);  /* its own checkpoint */
 			g_ptr_array_remove_index(h->records, idx);  /* free func frees it */
 			h->live_count--;
-			truncate_dead_locked(h);
+			truncate_dead_locked(h, dropped);
 			ok = TRUE;
 		}
 	}
 	g_mutex_unlock(&nde_mutex);
+	drop_output_checkpoints(dropped);
 	if (ok)
 		nde_history_notify_panel();
 	return ok;

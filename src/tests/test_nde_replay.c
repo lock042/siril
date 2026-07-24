@@ -1036,3 +1036,194 @@ Test(nde_replay, document_scope_pixel_ops_block_chains) {
 
 	golden_teardown(NULL, f);
 }
+
+/* ---------------- P4.1: barrier model ---------------- */
+
+/* Apply one op headlessly to @f via the replay-flag worker (no capture). */
+static void apply_direct(const op_descriptor *op, gpointer user, fits *f) {
+	struct generic_img_args *args = calloc(1, sizeof(*args));
+	args->fit = f;
+	args->op = op;
+	args->user = user;
+	args->nde_replay = TRUE;
+	args->mem_ratio = -1.0f;
+	args->max_threads = 1;
+	cr_assert_eq(GPOINTER_TO_INT(generic_image_worker(args)), 0);
+	free_generic_img_args(args);
+}
+
+Test(nde_replay, barrier_checkpoint_enables_tail_editing) {
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	/* A1: asinh(15) */
+	asinh_params *u1 = calloc(1, sizeof(*u1));
+	u1->beta = 15.0f; u1->offset = 0.02f; u1->clip_mode = RESCALE;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, u1), 0);
+
+	/* B: opaque freehand + output checkpoint (what P4.3's capture wiring
+	 * will store automatically at every barrier capture) */
+	gfit->fdata[3] = 0.987f;
+	gint64 b_id = nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, -1, "freehand");
+	nde_checkpoint_output_store(gfit, b_id, -1);
+
+	/* A2: asinh(20) */
+	asinh_params *u2 = calloc(1, sizeof(*u2));
+	u2->beta = 20.0f; u2->offset = 0.0f; u2->clip_mode = RESCALE;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, u2), 0);
+	gint64 a1_id = b_id - 1, a2_id = b_id + 1;
+
+	nde_chain *chain = nde_chain_build(-1);
+	cr_assert(!chain->replayable, "the full chain crosses an opaque record");
+	cr_assert(chain->tail_replayable, "the tail restarts from the barrier checkpoint");
+	cr_assert_eq(chain->records->len, 3);
+	cr_assert_eq(chain->tail_start, 2);
+	cr_assert_eq(chain->restart_ckpt_id, b_id);
+	cr_assert(g_array_index(chain->member_flags, guint8, 1) & NDE_CHAIN_MEMBER_BARRIER);
+	cr_assert_eq(chain->reasons->len, 0, "a checkpointed barrier is not a blocker");
+
+	/* tail replay reproduces the current pixels bit-exactly */
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	fits *result = nde_chain_replay_tail(chain, &err);
+	unreserve_thread();
+	cr_assert_not_null(result, "tail replay failed: %s", err ? err : "?");
+	assert_pixels_bit_exact(result, gfit, "tail");
+	clearfits(result); free(result);
+	nde_chain_free(chain);
+
+	/* frozen prefix refuses both amend and delete */
+	cr_assert(reserve_thread());
+	cr_assert(!nde_amend_execute(a1_id, "beta=99;offset=0;human=0;clip_mode=1", &err));
+	cr_assert(strstr(err, "locked") != NULL, "got: %s", err);
+	g_clear_pointer(&err, g_free);
+	cr_assert(!nde_delete_execute(a1_id, &err));
+	cr_assert(strstr(err, "locked") != NULL, "got: %s", err);
+	g_clear_pointer(&err, g_free);
+
+	/* tail amend works and replays from the checkpoint, not the baseline */
+	gboolean ok = nde_amend_execute(a2_id, "beta=50;offset=0;human=0;clip_mode=1", &err);
+	unreserve_thread();
+	cr_assert(ok, "tail amend failed: %s", err ? err : "?");
+	fits *expected = nde_checkpoint_output_get(b_id);
+	cr_assert_not_null(expected);
+	{
+		asinh_params *eu = calloc(1, sizeof(*eu));
+		eu->beta = 50.0f; eu->offset = 0.0f; eu->clip_mode = RESCALE;
+		apply_direct(&op_desc_asinh, eu, expected);
+	}
+	assert_pixels_bit_exact(gfit, expected, "tail-amend");
+	clearfits(expected); free(expected);
+
+	/* delete of the (last) barrier: replay falls back to the baseline and
+	 * the freehand poke disappears */
+	cr_assert(reserve_thread());
+	ok = nde_delete_execute(b_id, &err);
+	unreserve_thread();
+	cr_assert(ok, "barrier delete failed: %s", err ? err : "?");
+	expected = nde_checkpoint_baseline_get(-1);
+	cr_assert_not_null(expected);
+	{
+		asinh_params *e1 = calloc(1, sizeof(*e1));
+		e1->beta = 15.0f; e1->offset = 0.02f; e1->clip_mode = RESCALE;
+		apply_direct(&op_desc_asinh, e1, expected);
+		asinh_params *e2 = calloc(1, sizeof(*e2));
+		e2->beta = 50.0f; e2->offset = 0.0f; e2->clip_mode = RESCALE;
+		apply_direct(&op_desc_asinh, e2, expected);
+	}
+	assert_pixels_bit_exact(gfit, expected, "post-barrier-delete");
+	cr_assert(!nde_checkpoint_output_exists(b_id),
+	          "the deleted barrier's checkpoint must be dropped");
+	clearfits(expected); free(expected);
+
+	golden_teardown(NULL, f);
+}
+
+Test(nde_replay, non_last_barrier_delete_refused_and_ckpt_less_barrier_blocks) {
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	struct mirror_args *m1 = calloc(1, sizeof(*m1));
+	m1->x_axis = TRUE;
+	cr_assert_eq(apply_op_real(&op_desc_mirrorx, m1), 0);   /* A1 */
+
+	gfit->fdata[5] = 0.911f;
+	gint64 b1 = nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, -1, "b1");
+	nde_checkpoint_output_store(gfit, b1, -1);
+	fits b1_pixels = { 0 };
+	copyfits(gfit, &b1_pixels, CP_DEEPCOPY | CP_ALLOC, -1);
+
+	struct mirror_args *m2 = calloc(1, sizeof(*m2));
+	m2->x_axis = TRUE;
+	cr_assert_eq(apply_op_real(&op_desc_mirrorx, m2), 0);   /* A2 */
+
+	gfit->fdata[6] = 0.077f;
+	gint64 b2 = nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, -1, "b2");
+	/* no checkpoint for b2 (a pre-phase-4 capture) */
+
+	struct mirror_args *m3 = calloc(1, sizeof(*m3));
+	m3->x_axis = TRUE;
+	cr_assert_eq(apply_op_real(&op_desc_mirrorx, m3), 0);   /* A3 */
+
+	nde_chain *chain = nde_chain_build(-1);
+	cr_assert(!chain->replayable);
+	cr_assert(!chain->tail_replayable, "a checkpoint-less last barrier blocks the tail");
+	cr_assert_eq(chain->tail_start, 4);
+	cr_assert(chain->reasons->len >= 1);
+	nde_chain_free(chain);
+
+	/* give b2 its checkpoint: the tail unfreezes, but b1 stays locked */
+	nde_checkpoint_output_store(gfit /* wrong pixels for realism but fine for the model */, b2, -1);
+	/* recompute a CORRECT b2 checkpoint: state right after b2 = mirrorx
+	 * applied since... easier: the model checks only existence; pixel
+	 * correctness for tail replay uses A3-on-b2ckpt below, so store the
+	 * true post-b2 state: current is A3(b2); b2 = mirrorx(current) since
+	 * A3 is an involution. */
+	{
+		fits post_b2 = { 0 };
+		copyfits(gfit, &post_b2, CP_DEEPCOPY | CP_ALLOC, -1);
+		mirrorx(&post_b2, FALSE);
+		nde_checkpoint_output_store(&post_b2, b2, -1);
+		clearfits(&post_b2);
+	}
+	chain = nde_chain_build(-1);
+	cr_assert(chain->tail_replayable);
+	cr_assert_eq(chain->restart_ckpt_id, b2);
+	nde_chain_free(chain);
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	/* non-last barrier: delete refused */
+	cr_assert(!nde_delete_execute(b1, &err));
+	cr_assert(strstr(err, "locked") != NULL, "got: %s", err);
+	g_clear_pointer(&err, g_free);
+	/* last barrier: delete works; pixels = A3(A2(b1_ckpt)) = b1 pixels
+	 * (mirror twice), the b2 poke gone */
+	gboolean ok = nde_delete_execute(b2, &err);
+	unreserve_thread();
+	cr_assert(ok, "last-barrier delete failed: %s", err ? err : "?");
+	assert_pixels_bit_exact(gfit, &b1_pixels, "post-b2-delete");
+
+	clearfits(&b1_pixels);
+	golden_teardown(NULL, f);
+}
+
+Test(nde_replay, truncation_drops_output_checkpoints) {
+	fits *f = flis_test_make_mono_fits(8, 8, 0.5f);
+	gfit = f;
+	nde_checkpoint_baseline_ensure(f, -1);
+	gint64 b = nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, -1, "b");
+	nde_checkpoint_output_store(f, b, -1);
+	cr_assert(nde_checkpoint_output_exists(b));
+
+	/* undo the record, then append: the dead tail truncation must drop
+	 * the checkpoint with the record */
+	nde_history_on_undo(b);
+	nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, -1, "b2");
+	cr_assert(!nde_checkpoint_output_exists(b),
+	          "truncated records must lose their output checkpoints");
+
+	golden_teardown(NULL, f);
+}
