@@ -49,6 +49,84 @@
  * skip_generic_undo (siril_colorspace_transform writes its own FITS history),
  * so no mem check is needed here. Assign/remove no longer touch pixels — they
  * go through icc_state_worker — so they have no descriptor. */
+/* NDE serializers (phase 4.5 Convention 4 — ICC profile source).  The record
+ * stores how the target profile was obtained (profile_source: builtin token /
+ * file path + sha / embedded blob) plus the rendering intent, so a plain-image
+ * conversion replays the pixel transform onto a scratch fits.  A pre-batch
+ * record has no profile_source key → deserialize returns NULL (non-replayable).
+ * Manufactured Tier-B icc records in the unit tests (nde_capture_opaque) are
+ * unaffected: those carry no params, so they never reach this serializer. */
+static gchar *icc_convert_serialize(gconstpointer user) {
+	const struct icc_data *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_int(kv, "intent", (gint64)d->intent);
+	if (d && d->profile_source)
+		nde_kv_add_str(kv, "profile_source", d->profile_source);
+	/* For a file source, pin the file bytes so replay refuses a changed file. */
+	if (d && d->profile_source && g_str_has_prefix(d->profile_source, "file:")) {
+		const char *path = d->profile_source + strlen("file:");
+		gint64 size = 0;
+		gchar *sha = nde_file_sha256(path, &size);
+		if (sha) {
+			nde_kv_add_str(kv, "profile_sha256", sha);
+			g_free(sha);
+		}
+	}
+	/* the SOURCE profile (blob), so replay converts from the right space */
+	if (d && d->src_profile_source)
+		nde_kv_add_str(kv, "src_profile_source", d->src_profile_source);
+	return nde_kv_end(kv);
+}
+
+static gpointer icc_convert_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_icc_convert.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	const char *source = nde_kv_get_str(kv, "profile_source");
+	gint64 intent = 0;
+	if (!source || !*source || !nde_kv_get_int(kv, "intent", &intent)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	const char *sha = nde_kv_get_str(kv, "profile_sha256");
+	cmsHPROFILE profile = icc_profile_from_source(source, sha);
+	if (!profile) {
+		/* missing/changed file, bad blob, or unknown builtin → non-replayable */
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct icc_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destroy_fn = free_icc_data;
+		d->profile = profile;
+		d->intent = (cmsUInt32Number)intent;
+		d->profile_source = g_strdup(source);
+		const char *src = nde_kv_get_str(kv, "src_profile_source");
+		if (src && *src)
+			d->src_profile_source = g_strdup(src);
+	} else {
+		cmsCloseProfile(profile);
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
+
+/* replay_pre: recreate the pinned SOURCE profile and install it as src_override
+ * so the hook converts FROM the right colour space (com.uniq's live profile
+ * no longer reflects this chain step).  A record without a src_profile_source
+ * predates source pinning → not replayable. */
+static int icc_convert_replay_pre(gpointer user, GHashTable *kv, fits *target) {
+	(void)target;
+	struct icc_data *d = user;
+	const char *src = nde_kv_get_str(kv, "src_profile_source");
+	if (!src || !*src)
+		src = d->src_profile_source;
+	if (!src || !*src)
+		return 1;
+	d->src_override = icc_profile_from_source(src, NULL);
+	return d->src_override ? 0 : 1;
+}
+
 const op_descriptor op_desc_icc_convert = {
 	.id = "icc.convert", .version = 1,
 	.image_hook = icc_convert_to_hook,        /* plain-image path */
@@ -57,6 +135,8 @@ const op_descriptor op_desc_icc_convert = {
 	.description = N_("ICC color space conversion"),
 	.mem_ratio = 0.0f,
 	.flags = 0,
+	.serialize = icc_convert_serialize, .deserialize = icc_convert_deserialize,
+	.replay_pre = icc_convert_replay_pre,
 };
 
 static GMutex monitor_profile_mutex;
@@ -342,6 +422,93 @@ cmsHPROFILE gray_rec709trcv2() {
 
 cmsHPROFILE srgb_monitor_perceptual() {
 	return cmsOpenProfileFromMem(sRGB_v4_ICC_preference_icc, sRGB_v4_ICC_preference_icc_len);
+}
+
+/* ---- NDE Convention 4: profile source <-> cmsHPROFILE (shared helper) ------
+ *
+ * The named built-ins map a stable token to a generator.  The table is the
+ * single source of truth used by BOTH the command parser (which turns a CLI
+ * token into a profile) and the NDE deserializer (which recreates the profile
+ * from a stored "builtin:<name>" source), so the two can never diverge. */
+typedef cmsHPROFILE (*icc_builtin_fn)(void);
+static const struct { const char *name; icc_builtin_fn make; } icc_builtins[] = {
+	{ "srgblinear",    srgb_linear },
+	{ "srgb",          srgb_trc },
+	{ "srgbv2",        srgb_trcv2 },
+	{ "rec2020linear", rec2020_linear },
+	{ "rec2020",       rec2020_trc },
+	{ "rec2020v2",     rec2020_trcv2 },
+	{ "graylinear",    gray_linear },
+	{ "graysrgb",      gray_srgbtrc },
+	{ "graysrgbv2",    gray_srgbtrcv2 },
+	{ "grayrec2020",   gray_rec709trc },
+	{ "grayrec2020v2", gray_rec709trcv2 },
+	{ "srgbmonitor",   srgb_monitor_perceptual },
+};
+
+gchar *icc_source_for_builtin(const char *builtin_name) {
+	return g_strdup_printf("builtin:%s", builtin_name);
+}
+
+gchar *icc_source_blob_from_profile(cmsHPROFILE profile) {
+	if (!profile)
+		return NULL;
+	guint32 len = 0;
+	unsigned char *bytes = get_icc_profile_data(profile, &len);
+	if (!bytes || len == 0) {
+		free(bytes);
+		return NULL;
+	}
+	gchar *b64 = g_base64_encode(bytes, len);
+	free(bytes);
+	gchar *src = g_strconcat("blob:", b64, NULL);
+	g_free(b64);
+	return src;
+}
+
+cmsHPROFILE icc_profile_from_source(const char *source, const char *expect_sha256) {
+	if (!source || !*source)
+		return NULL;
+	const char *builtin = source;
+	if (g_str_has_prefix(source, "builtin:"))
+		builtin = source + strlen("builtin:");
+	else if (g_str_has_prefix(source, "file:")) {
+		const char *path = source + strlen("file:");
+		if (!*path)
+			return NULL;
+		gint64 size = 0;
+		gchar *sha = nde_file_sha256(path, &size);
+		if (!sha) {
+			siril_log_error(_("ICC profile file missing or unreadable: %s\n"), path);
+			return NULL;
+		}
+		gboolean ok = (!expect_sha256 || !*expect_sha256 ||
+		               !g_ascii_strcasecmp(sha, expect_sha256));
+		g_free(sha);
+		if (!ok) {
+			siril_log_error(_("ICC profile file changed since capture: %s\n"), path);
+			return NULL;
+		}
+		return cmsOpenProfileFromFile(path, "r");
+	}
+	else if (g_str_has_prefix(source, "blob:")) {
+		const char *b64 = source + strlen("blob:");
+		gsize len = 0;
+		guchar *bytes = g_base64_decode(b64, &len);
+		if (!bytes || len == 0) {
+			g_free(bytes);
+			return NULL;
+		}
+		cmsHPROFILE p = cmsOpenProfileFromMem(bytes, (cmsUInt32Number)len);
+		g_free(bytes);
+		return p;
+	}
+	/* bare token or builtin: — look up the generator table */
+	for (size_t i = 0; i < G_N_ELEMENTS(icc_builtins); i++) {
+		if (!g_ascii_strcasecmp(builtin, icc_builtins[i].name))
+			return icc_builtins[i].make();
+	}
+	return NULL;
 }
 
 void export_profile(cmsHPROFILE profile, const char *provided_filename) {
@@ -1717,6 +1884,10 @@ void free_icc_data(void *p) {
 	if (!args) return;
 	if (args->profile)
 		cmsCloseProfile(args->profile);
+	if (args->src_override)
+		cmsCloseProfile(args->src_override);
+	g_free(args->profile_source);
+	g_free(args->src_profile_source);
 	free(args);
 }
 
@@ -1832,11 +2003,20 @@ gpointer icc_state_worker(gpointer p) {
  * FLIS documents convert through icc_convert_flis_layer_hook instead. */
 int icc_convert_to_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 	struct icc_data *args = (struct icc_data *)gargs->user;
-	cmsHPROFILE src_profile = current_icc_profile();
-	if (!current_image_color_managed() || !src_profile) {
+	/* Replay uses the SOURCE profile pinned in the record (src_override,
+	 * installed by replay_pre) so the transform runs FROM the correct source
+	 * rather than com.uniq's live profile, which no longer reflects this chain
+	 * step.  A live apply reads the source from com.uniq as before. */
+	cmsHPROFILE src_profile = args->src_override ? args->src_override
+	                                             : current_icc_profile();
+	if (!src_profile || (!args->src_override && !current_image_color_managed())) {
 		siril_log_error(_("Image has no color profile assigned to convert from. Assign a profile first.\n"));
 		return 1;
 	}
+	/* NDE (Convention 4): pin the source profile as a blob so replay converts
+	 * from the right source.  Done at the live apply only (src_override unset). */
+	if (!args->src_override && !args->src_profile_source)
+		args->src_profile_source = icc_source_blob_from_profile(src_profile);
 	gchar *prof_desc = siril_color_profile_get_description(args->profile);
 
 	/* Pixels and profile must revert together: save the combined entry
@@ -1883,19 +2063,36 @@ int icc_convert_to_hook(struct generic_img_args *gargs, fits *fit, int threads) 
 	/* Land the new document profile; the pixel side lands at the swap.
 	 * No current_image_color_manage() — the image is already managed
 	 * (the guard above requires it), so the call would only buy a
-	 * pointless main-thread hop for the unchanged status icon. */
-	current_image_set_icc_profile(copyICCProfile(args->profile));
+	 * pointless main-thread hop for the unchanged status icon.
+	 *
+	 * NDE replay-safety (Convention 4): current_image_set_icc_profile() and
+	 * refresh_icc_transforms() mutate GLOBAL colour-management state (com.uniq's
+	 * profile, the display transform).  The swap-path condition matches the
+	 * baseline/undo/capture gates above (gargs->fit == gfit && !for_preview):
+	 * on a real apply @fit is gfit's private working copy but gargs->fit IS
+	 * gfit, whereas during replay gargs->fit is a scratch fits — so replay onto
+	 * scratch performs the pixel transform only and leaves com.uniq / the
+	 * display untouched.  The fit->history append targets @fit itself and is
+	 * harmless on scratch, but is gated the same way for symmetry (a replayed
+	 * chain rebuilds HISTORY from the record chain). */
+	gboolean swap_path = (gargs->fit == gfit && !gargs->for_preview);
 	gchar *summary = g_strdup_printf(_("Converted to ICC profile: %s"), prof_desc ? prof_desc : "?");
-	fit->history = g_slist_append(fit->history, g_strdup(summary));
+	if (swap_path) {
+		current_image_set_icc_profile(copyICCProfile(args->profile));
+		fit->history = g_slist_append(fit->history, g_strdup(summary));
+	}
 	g_free(prof_desc);
-	refresh_icc_transforms();
+	if (swap_path)
+		refresh_icc_transforms();
 	/* NDE provenance: only now, after the transform succeeded and on the
 	 * swap-path condition (never on preview or a private working copy) —
 	 * but WITHOUT the com.script exclusion the undo save carries: scripts
 	 * must leave provenance; that exclusion exists for undo cost only
-	 * (sketch §13.1).  icc.convert is serializer-less → Tier B. */
+	 * (sketch §13.1).  Phase 4.5 Convention 4: icc.convert now has a
+	 * serializer, so a plain-image conversion captures as Tier A (replayable)
+	 * — pass @args so the serializer can read the stashed profile_source. */
 	if (!gargs->for_preview && gargs->fit == gfit) {
-		gint64 rid = nde_capture_from_descriptor(&op_desc_icc_convert, NULL, summary, fit);
+		gint64 rid = nde_capture_from_descriptor(&op_desc_icc_convert, args, summary, fit);
 		if (save_undo && !undo_err)
 			undo_tag_top_nde_record(rid);
 	}

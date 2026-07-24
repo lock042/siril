@@ -37,6 +37,12 @@
 #include "core/op_descriptors.h"
 
 /* Op descriptor — single source of truth for this operation (op_descriptor.h) */
+/* PERMANENT Tier B (maintainer verdict, NDE phase 4.5): filters.fft keeps NO
+ * serializer BY DESIGN.  Its forward/inverse transform operates on a tmpdir
+ * multi-file lifecycle (separate modulus/phase files the user manages between
+ * an fftd and a later ffti), which a params blob cannot capture; checkpoints
+ * are the intended editability UX for it.  Do NOT add serialize/deserialize
+ * here — a future coverage sweep must not "fix" this. */
 const op_descriptor op_desc_fft = {
 	.id = "filters.fft", .version = 1,
 	.image_hook = fft_image_hook,

@@ -178,9 +178,43 @@ struct icc_data {
 	destructor destroy_fn;      /* Must be first member */
 	cmsHPROFILE profile;        /* owned; freed by free_icc_data */
 	cmsUInt32Number intent;     /* rendering intent for convert_to */
+	/* NDE (phase 4.5 Convention 4): how @profile was obtained, stashed at the
+	 * construction site BEFORE the profile was created, so the conversion can
+	 * be replayed.  One of "builtin:<name>", "file:<abs path>" or "blob:<base64
+	 * of cmsSaveProfileToMem>" (the "working" profile is embedded as a blob
+	 * since its meaning floats with user settings).  Owned; freed by
+	 * free_icc_data. */
+	gchar *profile_source;
+	/* NDE (Convention 4): the SOURCE colour profile the conversion was FROM,
+	 * pinned as a blob at capture (the live com.uniq profile has no stable
+	 * identifier).  Needed so a replay onto a scratch fits uses the correct
+	 * source rather than com.uniq's live (post-conversion) profile.  Owned. */
+	gchar *src_profile_source;
+	/* Replay-only: the recreated source profile installed by replay_pre; when
+	 * set, the hook converts FROM this instead of current_icc_profile().  Owned
+	 * by the struct (freed by free_icc_data). */
+	cmsHPROFILE src_override;
 };
 
 void free_icc_data(void *p);
+
+/* Recreate a cmsHPROFILE from a Convention-4 profile_source string (shared by
+ * the command parser and the NDE deserializer — one definition).  For a
+ * "file:" source, @expect_sha256 (lowercase hex, may be NULL) is verified
+ * against the file bytes before opening; a mismatch fails.  Returns a new
+ * cmsHPROFILE (caller cmsCloseProfile) or NULL on any error.  When the source
+ * is a builtin token, @source may be either "builtin:<name>" or a bare "<name>"
+ * so the command parser can share the lookup table. */
+cmsHPROFILE icc_profile_from_source(const char *source, const char *expect_sha256);
+
+/* Build the Convention-4 profile_source string for @profile obtained from the
+ * builtin token @builtin_name (e.g. "srgb"); returns "builtin:<name>" (heap). */
+gchar *icc_source_for_builtin(const char *builtin_name);
+
+/* Build the Convention-4 profile_source string embedding @profile as a base64
+ * blob of cmsSaveProfileToMem (used for the settings-dependent "working"
+ * profile and GUI-target profiles with no stable identifier).  NULL on error. */
+gchar *icc_source_blob_from_profile(cmsHPROFILE profile);
 int icc_convert_to_hook(struct generic_img_args *args, fits *fit, int threads);
 gchar *icc_convert_to_log_hook(gpointer p, log_hook_detail detail);
 

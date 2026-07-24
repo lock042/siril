@@ -2332,7 +2332,16 @@ gpointer generic_layer_worker(gpointer p) {
 	gint64 nde_rec_id = 0;
 	if (!retval && args->op) {
 		const op_descriptor *op = args->op;
-		gboolean tier_a = op->serialize != NULL;   /* none today → Tier B */
+		/* Layer-worker ops act on the WHOLE document (DOCUMENT scope) and are
+		 * hard blockers in nde_chain_build (a document-wide pixel record fails
+		 * closed).  So they are recorded Tier B (opaque) here even when the
+		 * descriptor carries a serializer: icc.convert's single-image serializer
+		 * (phase 4.5 Convention 4) only encodes the target profile for the
+		 * plain-image pixel transform — it does NOT describe the multi-layer +
+		 * tint conversion a FLIS document undergoes, which must stay a full
+		 * blocker (phase-4 model).  Keeping it Tier B keeps the record honestly
+		 * opaque rather than carrying misleading, unreplayable params. */
+		gboolean tier_a = FALSE;
 		nde_record *rec = nde_record_new();
 		rec->op_id = g_strdup(op->id ? op->id : "opaque.unknown");
 		rec->op_version = op->version;

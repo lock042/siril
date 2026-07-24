@@ -1019,6 +1019,7 @@ void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointe
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
 	args->op = &op_desc_synthstar;
+	args->user = new_synthstar_data();  /* stashes the effective star list for NDE replay */
 	args->verbose = TRUE;
 	if (!start_in_new_thread(generic_image_worker, args))
 		free_generic_img_args(args);

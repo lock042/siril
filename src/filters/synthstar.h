@@ -3,6 +3,20 @@
 
 #include "core/processing.h"
 
+/* Minimal destructor-first params struct for star.synthstar (formerly
+ * paramless): carries only the effective star list stashed for NDE replay
+ * (phase 4.5 Convention 2). */
+struct synthstar_data {
+	destructor destroy_fn;   /* must be first member */
+	gchar *stars_blob;       /* "x,y,A,fwhmx,fwhmy,beta,sat,profile" tuples, ':'-joined */
+};
+
+struct synthstar_data *new_synthstar_data(void);
+
+/* Star-list <-> blob codec (Convention 2), shared with unpurple. */
+gchar *synthstar_stars_to_blob(psf_star **stars, int nb_stars);
+psf_star **synthstar_stars_from_blob(const char *blob, int *nb_out);
+
 /* generic_image_worker hooks and log_hooks */
 int synthstar_image_hook(struct generic_img_args *args, fits *fit, int threads);
 gchar *synthstar_log_hook(gpointer p, log_hook_detail detail);

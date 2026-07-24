@@ -37,6 +37,158 @@
 #include "filters/synthstar.h"
 #include "opencv/opencv.h"
 #include "core/op_descriptors.h"
+#include "core/nde_history.h"
+
+/* ---- captured effective star list (NDE phase 4.5 Convention 2) ------------
+ *
+ * synthstar and unpurple both derive their output from com.stars (or, when the
+ * list is empty, from a fresh star detection that reads com.pref — so param-only
+ * replay would be nondeterministic).  To make replay deterministic we stash the
+ * EFFECTIVE star list that was actually consumed as a `stars=` blob (BGE
+ * effective_samples pattern): a `:`-separated list of per-star tuples, fields in
+ * the FIXED order `x,y,A,fwhmx,fwhmy,beta,sat,profile` with %.9g floats and ints
+ * for sat (has_saturated) and profile (starprofile).  Only the fields the
+ * consuming hooks read are stored.  Shared by synthstar (which owns the codec)
+ * and unpurple (which includes synthstar.h). */
+
+/* Serialize the consumed star list into "x,y,A,fwhmx,fwhmy,beta,sat,profile"
+ * tuples joined by ':'.  Returns NULL when the list is empty. */
+gchar *synthstar_stars_to_blob(psf_star **stars, int nb_stars) {
+	if (!stars || nb_stars < 1)
+		return NULL;
+	GString *s = g_string_new(NULL);
+	char b[8][G_ASCII_DTOSTR_BUF_SIZE];
+	gboolean first = TRUE;
+	for (int i = 0; i < nb_stars; i++) {
+		const psf_star *st = stars[i];
+		if (!st)
+			continue;
+		g_ascii_formatd(b[0], sizeof b[0], "%.9g", st->xpos);
+		g_ascii_formatd(b[1], sizeof b[1], "%.9g", st->ypos);
+		g_ascii_formatd(b[2], sizeof b[2], "%.9g", st->A);
+		g_ascii_formatd(b[3], sizeof b[3], "%.9g", st->fwhmx);
+		g_ascii_formatd(b[4], sizeof b[4], "%.9g", st->fwhmy);
+		g_ascii_formatd(b[5], sizeof b[5], "%.9g", st->beta);
+		g_string_append_printf(s, "%s%s,%s,%s,%s,%s,%s,%d,%d",
+				first ? "" : ":", b[0], b[1], b[2], b[3], b[4], b[5],
+				st->has_saturated ? 1 : 0, (int)st->profile);
+		first = FALSE;
+	}
+	if (!s->len) {
+		g_string_free(s, TRUE);
+		return NULL;
+	}
+	return g_string_free(s, FALSE);
+}
+
+/* Reconstruct a NULL-terminated psf_star array from a `stars=` blob; *nb_out
+ * (if non-NULL) receives the count.  NULL for an empty/absent blob.  Free with
+ * free_fitted_stars().  Only the stashed fields are set; everything else is
+ * zero (calloc) — the hooks read exactly the stashed fields. */
+psf_star **synthstar_stars_from_blob(const char *blob, int *nb_out) {
+	if (nb_out)
+		*nb_out = 0;
+	if (!blob || !*blob)
+		return NULL;
+	gchar **tuples = g_strsplit(blob, ":", -1);
+	guint n = g_strv_length(tuples);
+	if (n < 1) {
+		g_strfreev(tuples);
+		return NULL;
+	}
+	psf_star **stars = malloc((size_t)(n + 1) * sizeof(psf_star *));
+	if (!stars) {
+		g_strfreev(tuples);
+		return NULL;
+	}
+	int count = 0;
+	for (guint i = 0; i < n; i++) {
+		gchar **f = g_strsplit(tuples[i], ",", 8);
+		if (g_strv_length(f) == 8) {
+			psf_star *st = new_psf_star();
+			if (st) {
+				st->xpos  = g_ascii_strtod(f[0], NULL);
+				st->ypos  = g_ascii_strtod(f[1], NULL);
+				st->A     = g_ascii_strtod(f[2], NULL);
+				st->fwhmx = g_ascii_strtod(f[3], NULL);
+				st->fwhmy = g_ascii_strtod(f[4], NULL);
+				st->beta  = g_ascii_strtod(f[5], NULL);
+				st->has_saturated = (g_ascii_strtoll(f[6], NULL, 10) != 0);
+				st->profile = (starprofile)g_ascii_strtoll(f[7], NULL, 10);
+				stars[count++] = st;
+			}
+		}
+		g_strfreev(f);
+	}
+	stars[count] = NULL;
+	if (count < 1) {
+		free(stars);
+		return NULL;
+	}
+	if (nb_out)
+		*nb_out = count;
+	return stars;
+}
+
+/* Minimal destructor-first params struct for synthstar (was paramless).  Only
+ * carries the stashed effective star list so replay can reinstall it. */
+static void free_synthstar_data(void *p) {
+	struct synthstar_data *d = p;
+	if (!d)
+		return;
+	g_free(d->stars_blob);
+	free(d);
+}
+
+struct synthstar_data *new_synthstar_data(void) {
+	struct synthstar_data *d = calloc(1, sizeof(struct synthstar_data));
+	if (d)
+		d->destroy_fn = free_synthstar_data;
+	return d;
+}
+
+static gchar *synthstar_serialize(gconstpointer user) {
+	const struct synthstar_data *d = user;
+	GString *kv = nde_kv_start();
+	if (d && d->stars_blob && *d->stars_blob)
+		nde_kv_add_str(kv, "stars", d->stars_blob);
+	return nde_kv_end(kv);
+}
+
+static gpointer synthstar_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_synthstar.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	const char *stars = nde_kv_get_str(kv, "stars");
+	/* The stars= key is required: a pre-batch record (no key) is not
+	 * deterministically replayable, so it stays honestly non-replayable. */
+	if (!stars || !*stars) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct synthstar_data *d = new_synthstar_data();
+	if (d)
+		d->stars_blob = g_strdup(stars);
+	g_hash_table_unref(kv);
+	return d;
+}
+
+/* replay_pre: rebuild com.stars from the stashed blob so the hook's normal
+ * snapshot_com_stars() path consumes it unchanged (no hook branch).  The
+ * reconstructed list stays live after replay, exactly as a fresh detection
+ * would; replace_com_stars frees any existing list.  Replay runs in the
+ * exclusive job slot, so no concurrent star operation is mid-flight. */
+static int synthstar_replay_pre(gpointer user, GHashTable *kv, fits *target) {
+	(void)target;
+	struct synthstar_data *d = user;
+	const char *stars = nde_kv_get_str(kv, "stars");
+	int nb = 0;
+	psf_star **arr = synthstar_stars_from_blob(stars ? stars : d->stars_blob, &nb);
+	if (!arr || nb < 1)
+		return 1;
+	replace_com_stars(arr);   /* installs + frees any previous list */
+	return 0;
+}
 
 /* Op descriptors — single source of truth for these ops (op_descriptor.h) */
 const op_descriptor op_desc_synthstar = {
@@ -46,8 +198,17 @@ const op_descriptor op_desc_synthstar = {
 	.description = N_("Synthetic stars"),
 	.mem_ratio = 0.0f,
 	.flags = 0,
+	.serialize = synthstar_serialize, .deserialize = synthstar_deserialize,
+	.replay_pre = synthstar_replay_pre,
 };
 
+/* star.unclip stays Tier B (no serializer) by verified verdict: its
+ * reprofile_saturated_stars() runs its OWN per-channel findstar_worker() which
+ * reads com.pref.starfinder_conf (sigma/roundness/radius/profile/min_beta/
+ * min_A/max_A/relax_checks/convergence) — the detection is NOT internal with
+ * hardcoded settings, so it is not a deterministic paramless op and Convention
+ * 2's com.stars stash does not describe what it consumes.  Checkpoints keep the
+ * downstream chain editable.  Do not add a serializer. */
 const op_descriptor op_desc_unclip = {
 	.id = "star.unclip", .version = 1,
 	.image_hook = unclip_image_hook,
@@ -57,7 +218,7 @@ const op_descriptor op_desc_unclip = {
 	.flags = 0,
 };
 
-int generate_synthstars(fits *fit);
+int generate_synthstars(fits *fit, gchar **stars_blob_out);
 int reprofile_saturated_stars(fits *fit);
 
 void makeairy(float *psf, const int size, const float lum, const float xoff, const float yoff, float wavelength, float aperture, float focal_length, float pixel_size, float obstruction) {
@@ -323,7 +484,13 @@ int starcount(psf_star **stars) {
 
 /* generic_image_worker hooks */
 int synthstar_image_hook(struct generic_img_args *args, fits *fit, int threads) {
-	return generate_synthstars(fit) < 0 ? 1 : 0;
+	struct synthstar_data *d = (struct synthstar_data *)args->user;
+	/* Stash the effective star list into the params struct so the worker's NDE
+	 * capture (which runs after the hook returns) can serialize it.  During
+	 * replay d->stars_blob is already set (replay_pre reinstalled com.stars);
+	 * generate_synthstars re-derives the same blob from the reinstalled list,
+	 * which is a harmless no-op overwrite of an identical string. */
+	return generate_synthstars(fit, d ? &d->stars_blob : NULL) < 0 ? 1 : 0;
 }
 
 gchar *synthstar_log_hook(gpointer p, log_hook_detail detail) {
@@ -338,7 +505,7 @@ gchar *unclip_log_hook(gpointer p, log_hook_detail detail) {
 	return g_strdup(_("Unclip stars"));
 }
 
-int generate_synthstars(fits *fit) {
+int generate_synthstars(fits *fit, gchar **stars_blob_out) {
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
 	gui_iface.set_progress(PROGRESS_RESET, _("Star synthesis (full star mask creation): processing..."));
@@ -411,6 +578,14 @@ int generate_synthstars(fits *fit) {
 		return -1;
 	} else {
 		siril_log_message(_("Synthesizing %d stars...\n"), nb_stars);
+	}
+
+	/* NDE (Convention 2): stash the EFFECTIVE consumed star list now that it is
+	 * final (whether taken from com.stars or freshly detected).  The worker's
+	 * capture block serializes it after the hook returns. */
+	if (stars_blob_out) {
+		g_free(*stars_blob_out);
+		*stars_blob_out = synthstar_stars_to_blob(stars, nb_stars);
 	}
 
 	if (fit->type == DATA_USHORT) {

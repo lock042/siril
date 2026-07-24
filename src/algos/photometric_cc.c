@@ -46,6 +46,72 @@
 #include "core/gui_iface.h"
 #include "photometric_cc.h"
 #include "core/op_descriptors.h"
+#include "core/nde_history.h"
+
+/* NDE serializers (phase 4.5 Convention 3 — effective white balance).
+ * Maintainer contract: replay applies the COMPUTED kw[3] coefficients and
+ * bg[3] background factors — the catalog/network/FWHM pipeline never re-runs.
+ * The serializer emits kw0..2/bg0..2 (the replayable payload) plus the POD
+ * identity keys (catalog, spcc flag, t0/t1) which are informational for the
+ * panel.  A record captured before this batch has no kw keys, so the
+ * deserializer returns NULL — keeping old records honestly non-replayable. */
+static gchar *photometric_cc_serialize(gconstpointer user) {
+	const struct photometric_cc_data *d = user;
+	GString *kv = nde_kv_start();
+	/* on-disk value: enum order is frozen by the NDE format — do not reorder */
+	nde_kv_add_int(kv, "catalog", d->catalog);
+	nde_kv_add_bool(kv, "spcc", d->spcc);
+	nde_kv_add_double(kv, "t0", d->t0);
+	nde_kv_add_double(kv, "t1", d->t1);
+	/* effective (computed) values — the replayable payload */
+	if (d->have_effective) {
+		nde_kv_add_float(kv, "kw0", d->eff_kw[0]);
+		nde_kv_add_float(kv, "kw1", d->eff_kw[1]);
+		nde_kv_add_float(kv, "kw2", d->eff_kw[2]);
+		nde_kv_add_float(kv, "bg0", d->eff_bg[0]);
+		nde_kv_add_float(kv, "bg1", d->eff_bg[1]);
+		nde_kv_add_float(kv, "bg2", d->eff_bg[2]);
+	}
+	return nde_kv_end(kv);
+}
+
+static gpointer photometric_cc_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_photometric_cc.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	float kw[3], bg[3];
+	/* The kw/bg keys are required: a record without them predates this batch
+	 * and is not replayable (no computed matrix to reapply). */
+	if (!nde_kv_get_float(kv, "kw0", &kw[0]) ||
+	    !nde_kv_get_float(kv, "kw1", &kw[1]) ||
+	    !nde_kv_get_float(kv, "kw2", &kw[2]) ||
+	    !nde_kv_get_float(kv, "bg0", &bg[0]) ||
+	    !nde_kv_get_float(kv, "bg1", &bg[1]) ||
+	    !nde_kv_get_float(kv, "bg2", &bg[2])) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct photometric_cc_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destroy_fn = free_photometric_cc_data;
+		gint64 catalog = 0;
+		nde_kv_get_int(kv, "catalog", &catalog);
+		d->catalog = (siril_cat_index)catalog;
+		nde_kv_get_bool(kv, "spcc", &d->spcc);
+		double t0 = 0, t1 = 0;
+		nde_kv_get_double(kv, "t0", &t0);
+		nde_kv_get_double(kv, "t1", &t1);
+		d->t0 = (float)t0;
+		d->t1 = (float)t1;
+		for (int c = 0; c < 3; c++) {
+			d->eff_kw[c] = kw[c];
+			d->eff_bg[c] = bg[c];
+		}
+		d->have_effective = TRUE;
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
 
 /* Op descriptor — PCC and SPCC are the same logical op; sites keep the
  * spectro?"SPCC":"PCC" ternary as a per-site description override. */
@@ -56,6 +122,7 @@ const op_descriptor op_desc_photometric_cc = {
 	.description = N_("PCC"),
 	.mem_ratio = 0.0f,
 	.flags = 0,
+	.serialize = photometric_cc_serialize, .deserialize = photometric_cc_deserialize,
 };
 
 static const cmsCIEXYZ D65 = {0.95045471, 1.0, 1.08905029};
@@ -894,6 +961,15 @@ int photometric_cc(struct photometric_cc_data *args) {
 		ret = get_pcc_white_balance_coeffs(args, kw);
 
 	if (!ret) {
+		/* NDE (Convention 3): stash the COMPUTED coefficients + background
+		 * factors actually applied, immediately before the apply, on both the
+		 * PCC and SPCC paths.  The worker's capture block serializes them so
+		 * replay applies these values directly with no catalog/network/FWHM. */
+		for (int c = 0; c < 3; c++) {
+			args->eff_kw[c] = kw[c];
+			args->eff_bg[c] = bg[c];
+		}
+		args->have_effective = TRUE;
 		ret = apply_photometric_color_correction(args->fit, kw, bg);
 		if (!ret) {
 /*
@@ -926,6 +1002,20 @@ void free_photometric_cc_data(void *p) {
 int photometric_cc_image_hook(struct generic_img_args *img_args, fits *fit, int threads) {
 	struct photometric_cc_data *args = (struct photometric_cc_data *)img_args->user;
 	args->fit = fit;  /* use the hook's fit, not gfit directly */
+
+	/* NDE replay fast path (Convention 3): a deserialized record carries the
+	 * COMPUTED white-balance coefficients + background factors — apply them
+	 * directly, skipping catalog/network/FWHM/detection entirely.  This runs
+	 * headlessly on a scratch fits (fit != gfit, no GUI), which is exactly what
+	 * apply_photometric_color_correction needs (pure pixel arithmetic + stats
+	 * invalidation; no GUI calls in that path). */
+	if (args->have_effective) {
+		if (!isrgb(fit)) {
+			siril_log_message(_("Photometric color correction will do nothing for monochrome images\n"));
+			return 0;
+		}
+		return apply_photometric_color_correction(fit, args->eff_kw, args->eff_bg);
+	}
 
 	if (!has_wcs(fit)) {
 		siril_log_error(_("Cannot run the standalone photometric color calibration on this image because it has no WCS data or it is not supported\n"));

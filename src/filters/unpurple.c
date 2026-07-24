@@ -31,6 +31,84 @@
 #include "filters/unpurple.h"
 #include "core/gui_iface.h"
 #include "core/op_descriptors.h"
+#include "core/nde_history.h"
+
+/* NDE serializers (phase 4.5 Convention 2 — captured effective star list).
+ *
+ * When withstarmask is TRUE the binary star mask is GENERATED from com.stars at
+ * the construction site, so we stash the effective star list (`stars=` blob,
+ * shared codec in synthstar.c) and regenerate the mask at replay:
+ * generate_binary_starmask needs only the target fits + threshold + com.stars,
+ * which replay_pre reinstalls from the blob before calling it.  When
+ * withstarmask is FALSE there is no external input and the op serializes as
+ * plain POD (no stars key). */
+static gchar *unpurple_serialize(gconstpointer user) {
+	const struct unpurpleargs *p = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_double(kv, "mod_b", p->mod_b);
+	nde_kv_add_double(kv, "thresh", p->thresh);
+	nde_kv_add_bool(kv, "withstarmask", p->withstarmask);
+	if (p->withstarmask && p->stars_blob && *p->stars_blob)
+		nde_kv_add_str(kv, "stars", p->stars_blob);
+	return nde_kv_end(kv);
+}
+
+static gpointer unpurple_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_unpurple.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	double mod_b, thresh;
+	gboolean withstarmask;
+	if (!nde_kv_get_double(kv, "mod_b", &mod_b) ||
+	    !nde_kv_get_double(kv, "thresh", &thresh) ||
+	    !nde_kv_get_bool(kv, "withstarmask", &withstarmask)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	const char *stars = nde_kv_get_str(kv, "stars");
+	/* A withstarmask record with no stars= key predates this batch and cannot
+	 * be regenerated deterministically → non-replayable. */
+	if (withstarmask && (!stars || !*stars)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct unpurpleargs *p = new_unpurple_args();
+	if (p) {
+		p->mod_b = mod_b;
+		p->thresh = thresh;
+		p->withstarmask = withstarmask;
+		p->applying = TRUE;
+		if (stars && *stars)
+			p->stars_blob = g_strdup(stars);
+	}
+	g_hash_table_unref(kv);
+	return p;
+}
+
+/* replay_pre: for the mask variant, reinstall com.stars from the stash and
+ * regenerate the binary star mask against the replay target, then point
+ * params->starmask at it (needs-freeing).  The POD variant is a no-op. */
+static int unpurple_replay_pre(gpointer user, GHashTable *kv, fits *target) {
+	struct unpurpleargs *p = user;
+	if (!p->withstarmask)
+		return 0;
+	const char *stars = nde_kv_get_str(kv, "stars");
+	int nb = 0;
+	psf_star **arr = synthstar_stars_from_blob(stars ? stars : p->stars_blob, &nb);
+	if (!arr || nb < 1)
+		return 1;
+	replace_com_stars(arr);   /* installs + frees any previous list */
+	p->starmask = calloc(1, sizeof(fits));
+	if (!p->starmask)
+		return 1;
+	if (generate_binary_starmask(target, &p->starmask, p->thresh, NULL)) {
+		free(p->starmask);
+		p->starmask = NULL;
+		return 1;
+	}
+	p->starmask_needs_freeing = TRUE;
+	return 0;
+}
 
 /* Op descriptor — single source of truth for this operation (op_descriptor.h) */
 const op_descriptor op_desc_unpurple = {
@@ -40,6 +118,8 @@ const op_descriptor op_desc_unpurple = {
 	.description = N_("Unpurple Filter"),
 	.mem_ratio = 2.0f,
 	.flags = OP_MASK_CAPABLE,
+	.serialize = unpurple_serialize, .deserialize = unpurple_deserialize,
+	.replay_pre = unpurple_replay_pre,
 };
 
 /*****************************************************************************
@@ -66,6 +146,7 @@ void free_unpurple_args(void *ptr) {
 		free(args->starmask);
 		args->starmask = NULL;
 	}
+	g_free(args->stars_blob);
 	free(ptr);
 }
 
@@ -77,7 +158,8 @@ static gboolean is_purple(float red, float green, float blue) {
 	return (h >= 0.40f && h <= 0.99f) && (s >= 0.0f) && (v >= 0.0f);
 }
 
-int generate_binary_starmask(fits *fit, fits **star_mask, double threshold) {
+int generate_binary_starmask(fits *fit, fits **star_mask, double threshold,
+                             gchar **stars_blob_out) {
 	gboolean stars_needs_freeing = FALSE;
 	psf_star **stars = NULL;
 	int channel = 1;
@@ -116,6 +198,13 @@ int generate_binary_starmask(fits *fit, fits **star_mask, double threshold) {
 		if (stars_needs_freeing)
 			free_fitted_stars(stars);
 		return -1;
+	}
+
+	/* NDE (Convention 2): stash the EFFECTIVE consumed star list now that it is
+	 * final (from com.stars or freshly detected by peaker above). */
+	if (stars_blob_out) {
+		g_free(*stars_blob_out);
+		*stars_blob_out = synthstar_stars_to_blob(stars, nb_stars);
 	}
 
 	siril_log_message(_("Creating binary star mask for %d stars...\n"), nb_stars);

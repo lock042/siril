@@ -94,7 +94,7 @@ static int unpurple_process_with_worker(gboolean for_preview, gboolean for_roi) 
 				return 1;
 			}
 
-			if (generate_binary_starmask(params->fit, &params->starmask, params->thresh)) {
+			if (generate_binary_starmask(params->fit, &params->starmask, params->thresh, &params->stars_blob)) {
 				free_unpurple_args(params);
 				return 1;
 			}

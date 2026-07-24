@@ -38,6 +38,9 @@
 #include "filters/curve_transform.h"
 #include "algos/colors.h"
 #include "algos/background_extraction.h"
+#include "filters/synthstar.h"
+#include "algos/PSF.h"
+#include "algos/star_finder.h"
 #include "io/image_format_fits.h"
 
 cominfo com;
@@ -1475,4 +1478,57 @@ Test(nde_replay, truncation_drops_output_checkpoints) {
 	          "truncated records must lose their output checkpoints");
 
 	golden_teardown(NULL, f);
+}
+
+/* ---------------- phase 4.5 Convention 2: synthstar golden replay ----------
+ *
+ * synthstar is detection-free when com.stars is populated: install a
+ * manufactured star list, apply synthstar via the real capture path (which
+ * stashes the effective star list into the record), then replay from the
+ * baseline into a scratch fits.  replay_pre reinstalls the stashed stars, so
+ * the hook renders the identical PSFs → bit-exact. */
+static psf_star **make_replay_test_stars(int n, int rx, int ry) {
+	psf_star **stars = malloc((size_t)(n + 1) * sizeof(psf_star *));
+	for (int i = 0; i < n; i++) {
+		psf_star *s = new_psf_star();
+		s->xpos = 4.0 + 3.0 * i;
+		s->ypos = 4.0 + 2.0 * i;
+		if (s->xpos > rx - 2) s->xpos = rx - 2;
+		if (s->ypos > ry - 2) s->ypos = ry - 2;
+		s->A = 0.5 + 0.1 * i;
+		s->fwhmx = 2.5;
+		s->fwhmy = 2.5;
+		s->beta = 4.0;
+		s->has_saturated = FALSE;
+		s->profile = PSF_GAUSSIAN;
+		stars[i] = s;
+	}
+	stars[n] = NULL;
+	return stars;
+}
+
+Test(nde_replay, golden_synthstar_from_stashed_stars) {
+	fits *f = flis_test_make_mono_fits(24, 20, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	/* manufactured com.stars so synthstar skips detection entirely */
+	replace_com_stars(make_replay_test_stars(3, f->rx, f->ry));
+
+	struct synthstar_data *u = new_synthstar_data();
+	cr_assert_eq(apply_op_real(&op_desc_synthstar, u), 0);
+
+	/* the captured record is Tier A and carries the effective star list */
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	cr_assert_eq(snap->len, 1);
+	nde_record *rec = g_ptr_array_index(snap, 0);
+	cr_assert_eq(rec->tier, NDE_TIER_A, "synthstar with stars is Tier A");
+	cr_assert(strstr(rec->params, "stars=") != NULL, "params: %s", rec->params);
+	g_ptr_array_unref(snap);
+
+	fits *result = replay_current_chain(1);
+	assert_pixels_bit_exact(result, gfit, "synthstar-stashed-stars");
+
+	clear_stars_list(FALSE);
+	golden_teardown(result, f);
 }

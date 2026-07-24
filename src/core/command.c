@@ -511,6 +511,7 @@ int process_synthstar(int nb) {
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
 	args->op = &op_desc_synthstar;
+	args->user = new_synthstar_data();  /* stashes the effective star list for NDE replay */
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->command_updates_gfit = TRUE;
@@ -2055,7 +2056,7 @@ int process_unpurple(int nb) {
 			return CMD_GENERIC_ERROR;
 		}
 
-		if (generate_binary_starmask(gfit, &params->starmask, thresh)) {
+		if (generate_binary_starmask(gfit, &params->starmask, thresh, &params->stars_blob)) {
 			free_unpurple_args(params);
 			return CMD_GENERIC_ERROR;
 		}
@@ -15000,31 +15001,41 @@ int process_icc_convert_to(int nb) {
 			return CMD_GENERIC_ERROR;
 		}
 	}
+	/* NDE (Convention 4): resolve the profile via the shared source→profile
+	 * helper and stash how it was obtained (builtin token, file path, or an
+	 * embedded blob for the settings-dependent "working" profile) so the
+	 * conversion can be replayed. */
 	cmsHPROFILE profile = NULL;
-	if (!g_ascii_strncasecmp(arg, "srgblinear", 10)) {
-		profile = srgb_linear();
-	} else if (!g_ascii_strncasecmp(arg, "srgb", 4)) {
-		profile = srgb_trc();
-	} else if (!g_ascii_strncasecmp(arg, "rec2020linear", 13)) {
-		profile = rec2020_linear();
-	} else if (!g_ascii_strncasecmp(arg, "rec2020", 7)) {
-		profile = rec2020_trc();
-	} else if (!g_ascii_strncasecmp(arg, "graysrgb", 8)) {
-		profile = gray_srgbtrc();
-	} else if (!g_ascii_strncasecmp(arg, "grayrec2020", 11)) {
-		profile = gray_rec709trc();
-	} else if (!g_ascii_strncasecmp(arg, "graylinear", 10)) {
-		profile = gray_linear();
-	} else if (!g_ascii_strncasecmp(arg, "working", 7)) {
-		/* Composite-aware: a FLIS document is always RGB. */
+	gchar *profile_source = NULL;
+	static const char *icc_tokens[][2] = {
+		/* longest-prefix first so "srgblinear" wins over "srgb", etc. */
+		{ "srgblinear", "srgblinear" }, { "srgb", "srgb" },
+		{ "rec2020linear", "rec2020linear" }, { "rec2020", "rec2020" },
+		{ "graysrgb", "graysrgb" }, { "grayrec2020", "grayrec2020" },
+		{ "graylinear", "graylinear" },
+	};
+	for (size_t i = 0; i < G_N_ELEMENTS(icc_tokens); i++) {
+		if (!g_ascii_strncasecmp(arg, icc_tokens[i][0], strlen(icc_tokens[i][0]))) {
+			profile_source = icc_source_for_builtin(icc_tokens[i][1]);
+			profile = icc_profile_from_source(profile_source, NULL);
+			break;
+		}
+	}
+	if (!profile && !g_ascii_strncasecmp(arg, "working", 7)) {
+		/* Composite-aware: a FLIS document is always RGB.  "working" floats
+		 * with user settings, so embed the actual profile as a blob. */
 		gboolean mono = (is_current_image_flis()
 		                 ? flis_composite_naxes2() : (guint)gfit->naxes[2]) == 1;
 		profile = copyICCProfile(mono ? com.icc.mono_standard : com.icc.working_standard);
-	} else if (g_file_test(arg, G_FILE_TEST_EXISTS) && g_file_test(arg, G_FILE_TEST_IS_REGULAR)) {
+		profile_source = icc_source_blob_from_profile(profile);
+	}
+	if (!profile && g_file_test(arg, G_FILE_TEST_EXISTS) && g_file_test(arg, G_FILE_TEST_IS_REGULAR)) {
 		profile = cmsOpenProfileFromFile(arg, "r");
+		profile_source = g_strconcat("file:", arg, NULL);
 	}
 	if (!profile) {
 		siril_log_error(_("Error opening ICC profile.\n"));
+		g_free(profile_source);
 		return CMD_GENERIC_ERROR;
 	}
 
@@ -15032,6 +15043,7 @@ int process_icc_convert_to(int nb) {
 	icc_args->destroy_fn = free_icc_data;
 	icc_args->profile = profile;
 	icc_args->intent = intent;
+	icc_args->profile_source = profile_source;
 
 	if (is_current_image_flis()) {
 		/* Converting a FLIS rewrites every layer's pixels — a layer-stack

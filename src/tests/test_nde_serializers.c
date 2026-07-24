@@ -54,6 +54,11 @@
 #include "filters/nlbayes/call_nlbayes.h"
 #include "filters/linear_match.h"
 #include "filters/epf.h"
+#include "filters/synthstar.h"
+#include "filters/unpurple.h"
+#include "algos/PSF.h"
+#include "algos/photometric_cc.h"
+#include "core/icc_profile.h"
 
 cominfo com;	// the core data struct
 fits *gfit;	// currently loaded image (a pointer)
@@ -589,6 +594,10 @@ static const char *phase1_ids[] = {
 	/* phase 4.5 batch 1 — file operands (Convention 1) */
 	"arith.imoper", "arith.addmax", "arith.fdiv",
 	"color.linear_match", "filters.cosme", "filters.epf",
+	/* phase 4.5 batch 2 — star lists (Conv. 2), PCC/SPCC (Conv. 3), ICC (Conv. 4).
+	 * star.unclip stays Tier B by verdict (its findstar reads com.pref); fft +
+	 * wrecons stay permanently Tier B by design. */
+	"star.synthstar", "filters.unpurple", "color.photometric_cc", "icc.convert",
 };
 
 Test(nde_serializers, serializer_set_is_phase1) {
@@ -1233,4 +1242,311 @@ Test(nde_serializers, epf_file_guide_roundtrip) {
 	               op_desc_epf.version), "guided record without guide token must yield NULL");
 	g_free(blob); g_free(sha);
 	g_remove(path); g_free(path);
+}
+
+/* ==================================================================== *
+ *  phase 4.5 batch 2 — Conventions 2 (stars), 3 (PCC/SPCC), 4 (ICC).   *
+ * ==================================================================== */
+
+/* ---- Convention 2: star-list blob codec + synthstar/unpurple ---- */
+
+/* Build a small manufactured psf_star array with distinctive fields. */
+static psf_star **make_test_stars(int n) {
+	psf_star **stars = malloc((size_t)(n + 1) * sizeof(psf_star *));
+	for (int i = 0; i < n; i++) {
+		psf_star *s = new_psf_star();
+		s->xpos = 10.5 + i;            /* exactly representable at %.9g */
+		s->ypos = 20.25 + 2 * i;
+		s->A = 0.75 + 0.03125 * i;
+		s->fwhmx = 3.5 + 0.5 * i;
+		s->fwhmy = 2.75 + 0.25 * i;
+		s->beta = 4.0 + i;
+		s->has_saturated = (i % 2) ? TRUE : FALSE;
+		s->profile = (i % 2) ? PSF_MOFFAT_BFREE : PSF_GAUSSIAN;
+		stars[i] = s;
+	}
+	stars[n] = NULL;
+	return stars;
+}
+
+Test(nde_serializers, star_blob_roundtrip) {
+	const int n = 4;
+	psf_star **in = make_test_stars(n);
+	gchar *blob = synthstar_stars_to_blob(in, n);
+	cr_assert_not_null(blob);
+
+	int nb = 0;
+	psf_star **out = synthstar_stars_from_blob(blob, &nb);
+	cr_assert_not_null(out);
+	cr_assert_eq(nb, n, "star count mismatch: %d vs %d", nb, n);
+	for (int i = 0; i < n; i++) {
+		/* the stashed fields must survive with %.9g precision (exactly
+		 * representable test values → bit-exact) */
+		cr_assert_float_eq(out[i]->xpos,  in[i]->xpos,  0.0, "xpos %d", i);
+		cr_assert_float_eq(out[i]->ypos,  in[i]->ypos,  0.0, "ypos %d", i);
+		cr_assert_float_eq(out[i]->A,     in[i]->A,     0.0, "A %d", i);
+		cr_assert_float_eq(out[i]->fwhmx, in[i]->fwhmx, 0.0, "fwhmx %d", i);
+		cr_assert_float_eq(out[i]->fwhmy, in[i]->fwhmy, 0.0, "fwhmy %d", i);
+		cr_assert_float_eq(out[i]->beta,  in[i]->beta,  0.0, "beta %d", i);
+		cr_assert_eq(out[i]->has_saturated, in[i]->has_saturated, "sat %d", i);
+		cr_assert_eq((int)out[i]->profile, (int)in[i]->profile, "profile %d", i);
+	}
+	/* re-serialization must reproduce the identical on-disk string (the
+	 * on-disk representation is the contract) */
+	gchar *blob2 = synthstar_stars_to_blob(out, nb);
+	cr_assert_str_eq(blob2, blob);
+
+	free_fitted_stars(in);
+	free_fitted_stars(out);
+	g_free(blob); g_free(blob2);
+
+	/* empty / NULL cases */
+	cr_assert_null(synthstar_stars_to_blob(NULL, 0));
+	cr_assert_null(synthstar_stars_from_blob("", &nb));
+	cr_assert_eq(nb, 0);
+}
+
+Test(nde_serializers, synthstar_roundtrip) {
+	const op_descriptor *op = op_descriptor_by_id("star.synthstar");
+	cr_assert_not_null(op);
+	cr_assert_not_null(op->serialize);
+	struct synthstar_data *in = new_synthstar_data();
+	psf_star **stars = make_test_stars(3);
+	in->stars_blob = synthstar_stars_to_blob(stars, 3);
+	free_fitted_stars(stars);
+
+	gchar *blob = op->serialize(in);
+	cr_assert_not_null(blob);
+	struct synthstar_data *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert_str_eq(out->stars_blob, in->stars_blob);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(op, blob);
+	/* a record with no stars= key predates the batch → non-replayable */
+	cr_assert_null(op->deserialize("", op->version),
+	               "synthstar without a stars key must yield NULL");
+	FREE_VIA_DESTRUCTOR(in);
+	g_free(blob);
+}
+
+Test(nde_serializers, unpurple_roundtrip_pod) {
+	const op_descriptor *op = op_descriptor_by_id("filters.unpurple");
+	cr_assert_not_null(op);
+	struct unpurpleargs *in = new_unpurple_args();
+	in->mod_b = 0.375;
+	in->thresh = 0.125;
+	in->withstarmask = FALSE;   /* POD variant: no external input */
+	gchar *blob = op->serialize(in);
+	cr_assert_not_null(blob);
+	struct unpurpleargs *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert_float_eq(out->mod_b, in->mod_b, 0.0);
+	cr_assert_float_eq(out->thresh, in->thresh, 0.0);
+	cr_assert_eq(out->withstarmask, FALSE);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(op, blob);
+	FREE_VIA_DESTRUCTOR(in);
+	g_free(blob);
+}
+
+Test(nde_serializers, unpurple_roundtrip_starmask) {
+	const op_descriptor *op = op_descriptor_by_id("filters.unpurple");
+	cr_assert_not_null(op);
+	struct unpurpleargs *in = new_unpurple_args();
+	in->mod_b = 0.5;
+	in->thresh = 0.25;
+	in->withstarmask = TRUE;
+	psf_star **stars = make_test_stars(2);
+	in->stars_blob = synthstar_stars_to_blob(stars, 2);
+	free_fitted_stars(stars);
+
+	gchar *blob = op->serialize(in);
+	cr_assert_not_null(blob);
+	struct unpurpleargs *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->withstarmask, TRUE);
+	cr_assert_str_eq(out->stars_blob, in->stars_blob);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(op, blob);
+	/* a withstarmask record missing its stars= key is not replayable */
+	cr_assert_null(op->deserialize("mod_b=0.5;thresh=0.25;withstarmask=1",
+	               op->version),
+	               "withstarmask record without stars must yield NULL");
+	FREE_VIA_DESTRUCTOR(in);
+	g_free(blob);
+}
+
+/* ---- Convention 3: PCC/SPCC effective white balance ---- */
+
+Test(nde_serializers, photometric_cc_roundtrip) {
+	const op_descriptor *op = op_descriptor_by_id("color.photometric_cc");
+	cr_assert_not_null(op);
+	cr_assert_not_null(op->serialize);
+	struct photometric_cc_data in = { 0 };
+	in.spcc = TRUE;
+	in.t0 = -2.5f;
+	in.t1 = 2.0f;
+	in.have_effective = TRUE;
+	in.eff_kw[0] = 1.0f;    in.eff_kw[1] = 0.75f;   in.eff_kw[2] = 0.5f;
+	in.eff_bg[0] = 0.125f;  in.eff_bg[1] = 0.0625f; in.eff_bg[2] = 0.25f;
+
+	gchar *blob = op->serialize(&in);
+	cr_assert_not_null(blob);
+	struct photometric_cc_data *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert(out->have_effective);
+	cr_assert_eq(out->spcc, TRUE);
+	for (int c = 0; c < 3; c++) {
+		cr_assert(memcmp(&out->eff_kw[c], &in.eff_kw[c], sizeof(float)) == 0,
+		          "kw%d not bit-exact", c);
+		cr_assert(memcmp(&out->eff_bg[c], &in.eff_bg[c], sizeof(float)) == 0,
+		          "bg%d not bit-exact", c);
+	}
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(op, blob);
+	/* a record without the kw keys (pre-batch) must be non-replayable */
+	cr_assert_null(op->deserialize("catalog=1;spcc=0;t0=-2;t1=2", op->version),
+	               "PCC record without kw keys must yield NULL");
+	g_free(blob);
+}
+
+/* Golden apply-the-branch test: construct params with have_effective and known
+ * kw/bg on a small RGB fixture, run the hook's fast path, and compare against a
+ * hand-computed expected using the exact formula in
+ * apply_photometric_color_correction: bg_mean = (bg0+bg1+bg2)/3;
+ * offset[c] = -bg[c]*kw[c] + bg_mean; out = in*kw[c] + offset[c]. */
+Test(nde_serializers, photometric_cc_apply_branch_golden) {
+	/* 2x2 RGB float fixture */
+	fits f = { 0 };
+	f.rx = f.naxes[0] = 2;
+	f.ry = f.naxes[1] = 2;
+	f.naxes[2] = 3;
+	f.type = DATA_FLOAT;
+	size_t n = 4;
+	f.fdata = calloc(n * 3, sizeof(float));
+	f.fpdata[0] = f.fdata;
+	f.fpdata[1] = f.fdata + n;
+	f.fpdata[2] = f.fdata + 2 * n;
+	float inpix[3] = { 0.4f, 0.6f, 0.2f };
+	for (int c = 0; c < 3; c++)
+		for (size_t i = 0; i < n; i++)
+			f.fpdata[c][i] = inpix[c];
+
+	float kw[3] = { 1.0f, 0.75f, 0.5f };
+	float bg[3] = { 0.1f, 0.2f, 0.05f };
+	cr_assert_eq(apply_photometric_color_correction(&f, kw, bg), 0);
+
+	float bg_mean = (bg[0] + bg[1] + bg[2]) / 3.f;
+	for (int c = 0; c < 3; c++) {
+		float offset = -bg[c] * kw[c] + bg_mean;
+		float expect = inpix[c] * kw[c] + offset;
+		for (size_t i = 0; i < n; i++)
+			cr_assert_float_eq(f.fpdata[c][i], expect, 1e-6,
+			                   "channel %d: got %g expect %g", c,
+			                   f.fpdata[c][i], expect);
+	}
+	free(f.fdata);
+}
+
+/* ---- Convention 4: ICC profile source ---- */
+
+Test(nde_serializers, icc_convert_builtin_roundtrip) {
+	const op_descriptor *op = op_descriptor_by_id("icc.convert");
+	cr_assert_not_null(op);
+	cr_assert_not_null(op->serialize);
+	struct icc_data in = { 0 };
+	in.destroy_fn = free_icc_data;
+	in.intent = 1;   /* INTENT_RELATIVE_COLORIMETRIC */
+	in.profile_source = icc_source_for_builtin("srgb");
+	in.profile = icc_profile_from_source(in.profile_source, NULL);
+	cr_assert_not_null(in.profile);
+
+	gchar *blob = op->serialize(&in);
+	cr_assert_not_null(blob);
+	struct icc_data *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert_str_eq(out->profile_source, in.profile_source);
+	cr_assert_eq(out->intent, in.intent);
+	cr_assert_not_null(out->profile);
+	/* same builtin → same colour space */
+	cr_assert_eq(cmsGetColorSpace(out->profile), cmsGetColorSpace(in.profile));
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(op, blob);
+	/* pre-batch record (no profile_source) → non-replayable */
+	cr_assert_null(op->deserialize("intent=1", op->version),
+	               "icc record without profile_source must yield NULL");
+	g_free(blob);
+	cmsCloseProfile(in.profile);
+	g_free(in.profile_source);
+}
+
+Test(nde_serializers, icc_convert_blob_roundtrip) {
+	const op_descriptor *op = op_descriptor_by_id("icc.convert");
+	cr_assert_not_null(op);
+	cmsHPROFILE src = srgb_trc();
+	cr_assert_not_null(src);
+	struct icc_data in = { 0 };
+	in.destroy_fn = free_icc_data;
+	in.intent = 0;
+	in.profile_source = icc_source_blob_from_profile(src);   /* embedded blob */
+	cr_assert_not_null(in.profile_source);
+	cr_assert(g_str_has_prefix(in.profile_source, "blob:"));
+	in.profile = icc_profile_from_source(in.profile_source, NULL);
+	cr_assert_not_null(in.profile);
+
+	gchar *blob = op->serialize(&in);
+	struct icc_data *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert_not_null(out->profile);
+	/* the reopened profile describes the same colour space as the original */
+	cr_assert_eq(cmsGetColorSpace(out->profile), cmsGetColorSpace(src));
+	FREE_VIA_DESTRUCTOR(out);
+	g_free(blob);
+	cmsCloseProfile(src);
+	cmsCloseProfile(in.profile);
+	g_free(in.profile_source);
+}
+
+Test(nde_serializers, icc_convert_file_hash_mismatch_refused) {
+	const op_descriptor *op = op_descriptor_by_id("icc.convert");
+	cr_assert_not_null(op);
+	/* write a real profile file to a temp path */
+	GError *e = NULL;
+	gchar *dir = g_dir_make_tmp("siril_icc_XXXXXX", &e);
+	cr_assert_not_null(dir, "temp dir: %s", e ? e->message : "?");
+	gchar *path = g_build_filename(dir, "prof.icc", NULL);
+	cmsHPROFILE src = srgb_trc();
+	guint32 len = 0;
+	unsigned char *bytes = get_icc_profile_data(src, &len);
+	cr_assert(len > 0);
+	cr_assert(g_file_set_contents(path, (char *)bytes, len, NULL));
+
+	struct icc_data in = { 0 };
+	in.destroy_fn = free_icc_data;
+	in.intent = 0;
+	in.profile_source = g_strconcat("file:", path, NULL);
+	in.profile = icc_profile_from_source(in.profile_source, NULL);
+	cr_assert_not_null(in.profile);
+
+	gchar *blob = op->serialize(&in);
+	cr_assert(strstr(blob, "profile_sha256=") != NULL,
+	          "file source must pin the hash");
+	/* clean deserialize succeeds */
+	struct icc_data *ok = op->deserialize(blob, op->version);
+	cr_assert_not_null(ok, "unchanged file must deserialize");
+	FREE_VIA_DESTRUCTOR(ok);
+
+	/* tamper one byte → hash mismatch → refusal (NULL) */
+	bytes[0] ^= 0xFF;
+	cr_assert(g_file_set_contents(path, (char *)bytes, len, NULL));
+	cr_assert_null(op->deserialize(blob, op->version),
+	               "a changed profile file must be refused at replay");
+
+	g_free(blob);
+	free(bytes);
+	cmsCloseProfile(src);
+	cmsCloseProfile(in.profile);
+	g_free(in.profile_source);
+	g_remove(path); g_free(path);
+	g_rmdir(dir); g_free(dir);
 }

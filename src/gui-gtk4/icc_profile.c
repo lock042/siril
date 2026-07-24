@@ -43,6 +43,10 @@
 #include "core/siril_log.h"
 
 static cmsHPROFILE target = NULL; // Target profile for the GUI tool
+/* NDE (Convention 4): how `target` was chosen, kept in lockstep with it so the
+ * ICC conversion can be replayed.  "builtin:<name>" for the combo built-ins,
+ * "file:<abs path>" for a chosen profile file. */
+static gchar *target_source = NULL;
 
 static void export_elle_stone_profiles() {
 	cmsHPROFILE profile;
@@ -435,6 +439,11 @@ void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
 	icc_args->destroy_fn = free_icc_data;
 	icc_args->profile = copyICCProfile(target);
 	icc_args->intent = com.pref.icc.export_intent;
+	/* NDE (Convention 4): stash how the target was chosen so the conversion is
+	 * replayable; fall back to embedding the profile bytes as a blob if the
+	 * source string is somehow unset. */
+	icc_args->profile_source = target_source ? g_strdup(target_source)
+	                                         : icc_source_blob_from_profile(target);
 
 	if (is_current_image_flis()) {
 		/* Converting a FLIS rewrites every layer's pixels — a layer-stack
@@ -470,7 +479,9 @@ void on_icc_target_combo_changed(GObject *obj, GParamSpec *pspec, gpointer user_
 		cmsCloseProfile(target);
 		target = NULL;
 	}
+	g_clear_pointer(&target_source, g_free);
 	GtkLabel *mfr_label = NULL, *copyright_label = NULL;
+	const char *builtin = NULL;
 	switch (target_index) {
 		case NONE:
 			mfr_label = (GtkLabel*) lookup_widget("icc_target_mfr_label");
@@ -480,27 +491,22 @@ void on_icc_target_combo_changed(GObject *obj, GParamSpec *pspec, gpointer user_
 			gtk_label_set_text(mfr_label, "");
 			return;
 		case SRGB_LINEAR:
-			target = srgb_linear();
-			break;
+			target = srgb_linear();      builtin = "srgblinear";    break;
 		case SRGB_TRC:
-			target = srgb_trc();
-			break;
+			target = srgb_trc();         builtin = "srgb";          break;
 		case REC2020_LINEAR:
-			target = rec2020_linear();
-			break;
+			target = rec2020_linear();   builtin = "rec2020linear"; break;
 		case REC2020_TRC:
-			target = rec2020_trc();
-			break;
+			target = rec2020_trc();      builtin = "rec2020";       break;
 		case GRAY_LINEAR:
-			target = gray_linear();
-			break;
+			target = gray_linear();      builtin = "graylinear";    break;
 		case GRAY_SRGBTRC:
-			target = gray_srgbtrc();
-			break;
+			target = gray_srgbtrc();     builtin = "graysrgb";      break;
 		case GRAY_REC709TRC:
-			target = gray_rec709trc();
-			break;
+			target = gray_rec709trc();   builtin = "grayrec2020";   break;
 	}
+	if (builtin)
+		target_source = icc_source_for_builtin(builtin);
 	set_target_information();
 }
 
@@ -509,6 +515,7 @@ void on_icc_target_filechooser_file_set(GtkWidget* filechooser, gpointer* user_d
 		cmsCloseProfile(target);
 		target = NULL;
 	}
+	g_clear_pointer(&target_source, g_free);
 	GtkDropDown* target_combo = (GtkDropDown*) lookup_widget("icc_target_combo");
 	g_signal_handlers_block_by_func(target_combo, on_icc_target_combo_changed, NULL);
 	gtk_drop_down_set_selected(target_combo, 0);
@@ -516,6 +523,9 @@ void on_icc_target_filechooser_file_set(GtkWidget* filechooser, gpointer* user_d
 	gchar *filename = siril_file_chooser_get_filename(filechooser);
 	if (filename) {
 		target = cmsOpenProfileFromFile(filename, "r");
+		/* NDE (Convention 4): pin the chosen file by absolute path. */
+		if (target)
+			target_source = g_strconcat("file:", filename, NULL);
 	} else {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Could not load file"), _("Error getting filename from widget."));
 		/* GTK4: gtk_file_chooser_unselect_all removed */;
@@ -532,6 +542,7 @@ void on_icc_target_filechooser_file_set(GtkWidget* filechooser, gpointer* user_d
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Profile error"), _("Error: profile does not describe a RGB color space. Using non-RGB color spaces (e.g. CIE La*b*, XYZ, HSL) as image working spaces is not supported, though these color spaces may be used internally for some operations."));
 			cmsCloseProfile(target);
 			target = NULL;
+			g_clear_pointer(&target_source, g_free);
 			/* GTK4: gtk_file_chooser_unselect_all removed */;
 		}
 	}

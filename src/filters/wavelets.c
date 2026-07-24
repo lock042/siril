@@ -37,10 +37,14 @@
  * command / GUI-apply / preview sites use different progress labels, kept as
  * per-site description overrides. */
 
-/* wavelets.wrecons is deferred (Category C): the hook reads a decomposition
- * transform file (r/g/b_rawdata.wave in the tmpdir) produced by a separate
- * `wavelet` decomposition step that is not itself a descriptor op — the pixel
- * output is not determined by wrecons_data alone. */
+/* PERMANENT Tier B (maintainer verdict, NDE phase 4.5): wavelets.wrecons keeps
+ * NO serializer BY DESIGN.  The hook reads a decomposition transform file
+ * (r/g/b_rawdata.wave in the tmpdir) produced by a separate `wavelet`
+ * decomposition step that is not itself a descriptor op — the pixel output is
+ * not determined by wrecons_data alone, and that tmpdir multi-file lifecycle
+ * cannot live in a params blob.  Checkpoints are the intended editability UX.
+ * Do NOT add serialize/deserialize here — a future coverage sweep must not
+ * "fix" this. */
 const op_descriptor op_desc_wrecons = {
 	.id = "wavelets.wrecons", .version = 1,
 	.image_hook = wrecons_image_hook,
