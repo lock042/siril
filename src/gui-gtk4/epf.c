@@ -53,6 +53,8 @@ GtkCheckButton *guided_filter_selfguide = NULL, *epf_preview = NULL;
 
 // Static for loaded guide image
 static fits loaded_fit = { 0 };
+// Path of the loaded guide image, pinned into the record (phase 4.5 Convention 1)
+static gchar *loaded_fit_path = NULL;
 
 static void on_guided_filter_guideimage_picked(GtkWidget *button, const gchar *path, gpointer user_data);
 
@@ -128,6 +130,8 @@ static int epf_process_with_worker(gboolean for_preview, gboolean for_roi) {
 		} else {
 			if (loaded_fit.rx != 0) {
 				params->guidefit = &loaded_fit;
+				/* pin the separate guide image for NDE replay (Convention 1) */
+				params->guide_path = g_strdup(loaded_fit_path);
 			} else {
 				free_epf_args(params);
 				return 1;
@@ -302,6 +306,7 @@ void on_guided_filter_selfguide_toggled(GtkCheckButton *button, gpointer user_da
 	gboolean active = siril_toggle_get_active(GTK_WIDGET(button));
 	if (active) {
 		clearfits(&loaded_fit);
+		g_clear_pointer(&loaded_fit_path, g_free);
 		/* GTK4: gtk_file_chooser_unselect_all removed */;
 		gtk_widget_set_sensitive(GTK_WIDGET(guided_filter_selfguide), FALSE);
 	}
@@ -314,6 +319,7 @@ void on_guided_filter_selfguide_toggled(GtkCheckButton *button, gpointer user_da
 static void on_guided_filter_guideimage_picked(GtkWidget *button, const gchar *path, gpointer user_data) {
 	(void)button; (void)user_data;
 	clearfits(&loaded_fit);
+	g_clear_pointer(&loaded_fit_path, g_free);
 	if (!path) return;
 	if (readfits(path, &loaded_fit, NULL, FALSE)) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
@@ -327,6 +333,7 @@ static void on_guided_filter_guideimage_picked(GtkWidget *button, const gchar *p
 		clearfits(&loaded_fit);
 		return;
 	}
+	loaded_fit_path = g_strdup(path);
 	gtk_widget_set_sensitive(GTK_WIDGET(guided_filter_selfguide), TRUE);
 	siril_toggle_set_active(GTK_WIDGET(guided_filter_selfguide), FALSE);
 	update_image *param = malloc(sizeof(update_image));

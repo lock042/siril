@@ -18,6 +18,8 @@ struct epfargs {
 	ep_filter_t filter;
 	gboolean verbose;
 	gboolean applying;
+	char *guide_path;       /* pinned guide-image path for a file guide (phase 4.5
+	                         * Convention 1); NULL for self-guide / non-guided */
 };
 
 gchar *epf_log_hook(gpointer p, log_hook_detail detail);

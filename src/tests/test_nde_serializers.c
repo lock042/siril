@@ -29,6 +29,7 @@
 
 #include <criterion/criterion.h>
 #include <string.h>
+#include <unistd.h>
 #include "core/siril.h"
 #include "core/op_descriptor.h"
 #include "core/op_descriptors.h"
@@ -51,6 +52,8 @@
 #include "algos/wavelet_denoise.h"
 #include "filters/cosmetic_correction.h"
 #include "filters/nlbayes/call_nlbayes.h"
+#include "filters/linear_match.h"
+#include "filters/epf.h"
 
 cominfo com;	// the core data struct
 fits *gfit;	// currently loaded image (a pointer)
@@ -583,6 +586,9 @@ static const char *phase1_ids[] = {
 	"color.grey_flat", "cfa.fix_xtrans",
 	"filters.banding", "filters.clahe", "filters.cosmetic",
 	"filters.rgradient", "wavelets.atrous",
+	/* phase 4.5 batch 1 — file operands (Convention 1) */
+	"arith.imoper", "arith.addmax", "arith.fdiv",
+	"color.linear_match", "filters.cosme", "filters.epf",
 };
 
 Test(nde_serializers, serializer_set_is_phase1) {
@@ -965,4 +971,266 @@ Test(nde_serializers, atrous_roundtrip) {
 	FREE_VIA_DESTRUCTOR(out);
 	CHECK_MALFORMED(&op_desc_atrous, blob);
 	g_free(blob);
+}
+
+/* ------------------------------------------------------------------ *
+ *  phase 4.5 batch 1 — file operands (Convention 1).                 *
+ *                                                                    *
+ *  These serializers hash the operand FILE at capture, so each test *
+ *  writes a small temp file and asserts operand_path/_sha256/_size   *
+ *  round-trip alongside the POD.  The arith structs are file-local   *
+ *  to command.c, so (as elsewhere) we mirror their layout — the      *
+ *  on-disk keys are the contract, not the struct symbol.             *
+ * ------------------------------------------------------------------ */
+
+/* Write @content to a fresh temp file; return the heap path (caller g_free). */
+static gchar *write_temp_operand(const char *content) {
+	GError *e = NULL;
+	gchar *path = NULL;
+	gint fd = g_file_open_tmp("nde_operand_XXXXXX", &path, &e);
+	cr_assert(fd >= 0, "could not create temp operand: %s", e ? e->message : "?");
+	close(fd);
+	cr_assert(g_file_set_contents(path, content, -1, &e),
+	          "could not write temp operand: %s", e ? e->message : "?");
+	return path;
+}
+
+/* command.c: struct imoper_data { destructor; image_operator oper;
+ *                                 char *filename; gboolean force_to_float; } */
+struct t_imoper_data { destructor destroy_fn; int oper; char *filename; gboolean ftf; };
+Test(nde_serializers, imoper_roundtrip) {
+	const op_descriptor *op = op_descriptor_by_id("arith.imoper");
+	cr_assert_not_null(op);
+	gchar *path = write_temp_operand("imoper operand bytes\n");
+	gint64 size = 0;
+	gchar *sha = nde_file_sha256(path, &size);
+	cr_assert_not_null(sha);
+
+	struct t_imoper_data in = { 0 };
+	in.oper = 2;            /* OPER_MUL */
+	in.filename = path;
+	in.ftf = TRUE;
+	gchar *blob = op->serialize(&in);
+	cr_assert_not_null(blob);
+	struct t_imoper_data *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->oper, in.oper);
+	cr_assert_eq(out->ftf, in.ftf);
+	cr_assert_str_eq(out->filename, path);
+	/* the blob pins the file hash+size computed at capture */
+	GHashTable *kv = nde_kv_parse(blob);
+	cr_assert_str_eq(nde_kv_get_str(kv, "operand_sha256"), sha);
+	gint64 blob_size = 0;
+	cr_assert(nde_kv_get_int(kv, "operand_size", &blob_size));
+	cr_assert_eq(blob_size, size);
+	g_hash_table_unref(kv);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(op, blob);
+	/* a record without the operand keys must not deserialize */
+	cr_assert_null(op->deserialize("oper=0;force_to_float=1", op->version),
+	               "missing operand_path must yield NULL");
+	g_free(blob); g_free(sha);
+	g_remove(path); g_free(path);
+}
+
+/* command.c: struct addmax_data { destructor; fits *operand_fit;
+ *                                 char *operand_path; gboolean force_to_float; } */
+struct t_addmax_data { destructor destroy_fn; void *operand_fit; char *operand_path; gboolean ftf; };
+Test(nde_serializers, addmax_roundtrip) {
+	const op_descriptor *op = op_descriptor_by_id("arith.addmax");
+	cr_assert_not_null(op);
+	gchar *path = write_temp_operand("addmax operand bytes 12345\n");
+	gint64 size = 0;
+	gchar *sha = nde_file_sha256(path, &size);
+	cr_assert_not_null(sha);
+
+	struct t_addmax_data in = { 0 };
+	in.operand_path = path;
+	in.ftf = FALSE;
+	gchar *blob = op->serialize(&in);
+	cr_assert_not_null(blob);
+	struct t_addmax_data *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->ftf, in.ftf);
+	cr_assert_str_eq(out->operand_path, path);
+	cr_assert_null(out->operand_fit, "deserialize must not touch the filesystem");
+	GHashTable *kv = nde_kv_parse(blob);
+	cr_assert_str_eq(nde_kv_get_str(kv, "operand_sha256"), sha);
+	g_hash_table_unref(kv);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(op, blob);
+	cr_assert_null(op->deserialize("force_to_float=0", op->version),
+	               "missing operand_path must yield NULL");
+	g_free(blob); g_free(sha);
+	g_remove(path); g_free(path);
+}
+
+/* command.c: struct fdiv_data { destructor; fits *operand_fit; float norm;
+ *                               char *operand_path; gboolean force_to_float; } */
+struct t_fdiv_data { destructor destroy_fn; void *operand_fit; float norm; char *operand_path; gboolean ftf; };
+Test(nde_serializers, fdiv_roundtrip) {
+	const op_descriptor *op = op_descriptor_by_id("arith.fdiv");
+	cr_assert_not_null(op);
+	gchar *path = write_temp_operand("fdiv operand bytes abcdef\n");
+	gint64 size = 0;
+	gchar *sha = nde_file_sha256(path, &size);
+	cr_assert_not_null(sha);
+
+	struct t_fdiv_data in = { 0 };
+	in.norm = 65535.0f + 0.03125f;
+	in.operand_path = path;
+	in.ftf = TRUE;
+	gchar *blob = op->serialize(&in);
+	cr_assert_not_null(blob);
+	struct t_fdiv_data *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert(memcmp(&out->norm, &in.norm, sizeof(float)) == 0);
+	cr_assert_eq(out->ftf, in.ftf);
+	cr_assert_str_eq(out->operand_path, path);
+	cr_assert_null(out->operand_fit, "deserialize must not touch the filesystem");
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(op, blob);
+	cr_assert_null(op->deserialize("norm=1;force_to_float=1", op->version),
+	               "missing operand_path must yield NULL");
+	g_free(blob); g_free(sha);
+	g_remove(path); g_free(path);
+}
+
+Test(nde_serializers, linear_match_roundtrip) {
+	gchar *path = write_temp_operand("linear match ref bytes\n");
+	gint64 size = 0;
+	gchar *sha = nde_file_sha256(path, &size);
+	cr_assert_not_null(sha);
+
+	struct linear_match_data in = { 0 };
+	in.low = 0.05 + 0.03125; in.high = 0.95 + 0.03125;
+	in.force_to_float = TRUE;
+	in.operand_path = path;
+	gchar *blob = op_desc_linear_match.serialize(&in);
+	cr_assert_not_null(blob);
+	struct linear_match_data *out = op_desc_linear_match.deserialize(blob, op_desc_linear_match.version);
+	cr_assert_not_null(out);
+	cr_assert(memcmp(&out->low, &in.low, sizeof(double)) == 0);
+	cr_assert(memcmp(&out->high, &in.high, sizeof(double)) == 0);
+	cr_assert_eq(out->force_to_float, in.force_to_float);
+	cr_assert_str_eq(out->operand_path, path);
+	GHashTable *kv = nde_kv_parse(blob);
+	cr_assert_str_eq(nde_kv_get_str(kv, "operand_sha256"), sha);
+	g_hash_table_unref(kv);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_linear_match, blob);
+	cr_assert_null(op_desc_linear_match.deserialize("low=0;high=1;force_to_float=1", op_desc_linear_match.version),
+	               "missing operand_path must yield NULL");
+	g_free(blob); g_free(sha);
+	g_remove(path); g_free(path);
+}
+
+Test(nde_serializers, cosme_roundtrip) {
+	gchar *path = write_temp_operand("P 10 20 H\n");
+	gint64 size = 0;
+	gchar *sha = nde_file_sha256(path, &size);
+	cr_assert_not_null(sha);
+
+	struct cosme_data in = { 0 };
+	in.is_cfa = 1;
+	in.file = g_file_new_for_path(path);
+	gchar *blob = op_desc_cosme.serialize(&in);
+	cr_assert_not_null(blob);
+	g_object_unref(in.file);
+	struct cosme_data *out = op_desc_cosme.deserialize(blob, op_desc_cosme.version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->is_cfa, in.is_cfa);
+	cr_assert_null(out->file, "deserialize must not touch the filesystem");
+	GHashTable *kv = nde_kv_parse(blob);
+	cr_assert_str_eq(nde_kv_get_str(kv, "operand_path"), path);
+	cr_assert_str_eq(nde_kv_get_str(kv, "operand_sha256"), sha);
+	g_hash_table_unref(kv);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_cosme, blob);
+	cr_assert_null(op_desc_cosme.deserialize("is_cfa=0", op_desc_cosme.version),
+	               "missing operand_path must yield NULL");
+	g_free(blob); g_free(sha);
+	g_remove(path); g_free(path);
+}
+
+/* EPF: bilateral serializes plain POD (no operand keys); self-guided emits
+ * guide=self; a file guide pins the guide image. */
+Test(nde_serializers, epf_bilateral_roundtrip) {
+	struct epfargs in = { 0 };
+	in.d = 5.0 + 0.03125; in.sigma_col = 11.0 + 0.1;
+	in.sigma_space = 8.0 + 0.03125; in.mod = 0.75 + 0.03125;
+	in.filter = EP_BILATERAL;
+	in.guidefit = NULL;
+	gchar *blob = op_desc_epf.serialize(&in);
+	cr_assert_not_null(blob);
+	struct epfargs *out = op_desc_epf.deserialize(blob, op_desc_epf.version);
+	cr_assert_not_null(out);
+	cr_assert(memcmp(&out->d, &in.d, sizeof(double)) == 0);
+	cr_assert(memcmp(&out->sigma_col, &in.sigma_col, sizeof(double)) == 0);
+	cr_assert(memcmp(&out->sigma_space, &in.sigma_space, sizeof(double)) == 0);
+	cr_assert(memcmp(&out->mod, &in.mod, sizeof(double)) == 0);
+	cr_assert_eq(out->filter, in.filter);
+	/* no operand keys for a non-guided filter */
+	GHashTable *kv = nde_kv_parse(blob);
+	cr_assert_null(nde_kv_get_str(kv, "guide"));
+	cr_assert_null(nde_kv_get_str(kv, "operand_path"));
+	g_hash_table_unref(kv);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_epf, blob);
+	g_free(blob);
+}
+
+Test(nde_serializers, epf_self_guide_roundtrip) {
+	fits target = { 0 };
+	struct epfargs in = { 0 };
+	in.d = 5.0; in.sigma_col = 11.0; in.sigma_space = 8.0; in.mod = 1.0;
+	in.filter = EP_GUIDED;
+	in.fit = &target;
+	in.guidefit = &target;    /* self-guide: guidefit == fit */
+	gchar *blob = op_desc_epf.serialize(&in);
+	cr_assert_not_null(blob);
+	GHashTable *kv = nde_kv_parse(blob);
+	cr_assert_str_eq(nde_kv_get_str(kv, "guide"), "self");
+	cr_assert_null(nde_kv_get_str(kv, "operand_path"), "self-guide has no file operand");
+	g_hash_table_unref(kv);
+	struct epfargs *out = op_desc_epf.deserialize(blob, op_desc_epf.version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->filter, EP_GUIDED);
+	cr_assert_null(out->guide_path);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_epf, blob);
+	g_free(blob);
+}
+
+Test(nde_serializers, epf_file_guide_roundtrip) {
+	gchar *path = write_temp_operand("epf guide image bytes\n");
+	gint64 size = 0;
+	gchar *sha = nde_file_sha256(path, &size);
+	cr_assert_not_null(sha);
+
+	fits target = { 0 }, guide = { 0 };
+	struct epfargs in = { 0 };
+	in.d = 5.0; in.sigma_col = 11.0; in.sigma_space = 8.0; in.mod = 1.0;
+	in.filter = EP_GUIDED;
+	in.fit = &target;
+	in.guidefit = &guide;      /* separate guide → file operand */
+	in.guide_path = path;
+	gchar *blob = op_desc_epf.serialize(&in);
+	cr_assert_not_null(blob);
+	struct epfargs *out = op_desc_epf.deserialize(blob, op_desc_epf.version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->filter, EP_GUIDED);
+	cr_assert_str_eq(out->guide_path, path);
+	GHashTable *kv = nde_kv_parse(blob);
+	cr_assert_str_eq(nde_kv_get_str(kv, "guide"), "file");
+	cr_assert_str_eq(nde_kv_get_str(kv, "operand_path"), path);
+	cr_assert_str_eq(nde_kv_get_str(kv, "operand_sha256"), sha);
+	g_hash_table_unref(kv);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_epf, blob);
+	/* a guided record missing its guide token is not replayable */
+	cr_assert_null(op_desc_epf.deserialize("d=5;sigma_col=11;sigma_space=8;mod=1;filter=1",
+	               op_desc_epf.version), "guided record without guide token must yield NULL");
+	g_free(blob); g_free(sha);
+	g_remove(path); g_free(path);
 }

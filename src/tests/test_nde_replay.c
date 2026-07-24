@@ -38,6 +38,7 @@
 #include "filters/curve_transform.h"
 #include "algos/colors.h"
 #include "algos/background_extraction.h"
+#include "io/image_format_fits.h"
 
 cominfo com;
 fits *gfit;
@@ -1285,25 +1286,34 @@ Test(nde_replay, capture_tier_a_checkpoint_only_when_mask_active) {
 }
 
 /* The generic_image_worker capture block stores an output checkpoint for a
- * serializer-less (Tier B) op applied via the real path.  op_desc_epf (the
- * edge-preserving filter) has no serialize/deserialize, so it captures as a
- * barrier; its bilateral variant runs headlessly on a small fixture with no
- * external inputs.  After the swap gfit holds the post-op pixels, which the
- * worker must have stored under the fresh record's id. */
+ * serializer-less (Tier B) op applied via the real path.  (This coverage used
+ * op_desc_epf before phase 4.5 upgraded EPF to Tier A — Convention 1 file
+ * operands — so it now drives op_desc_bg (stats.bg): a genuinely
+ * serializer-less op with no external inputs that runs headlessly.  It does not
+ * mutate pixels, so the stored checkpoint equals gfit after the op, which is
+ * exactly the barrier-restart invariant under test.)  bg needs a heap user with
+ * a destructor; we mirror its command.c-local struct layout (destructor-first,
+ * plain free destructor). */
+struct t_bg_data {
+	void (*destructor)(void *);
+	rectangle selection;
+	gboolean has_selection;
+	double bg_values[3];
+	guint16 us_bg_values[3];
+	int nchannels;
+};
 Test(nde_replay, worker_block_stores_checkpoint_for_serializerless_op) {
 	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
 	fill_mono_gradient(f);
 	gfit = f;
 
-	struct epfargs *u = new_epf_args();
+	const op_descriptor *bg = op_descriptor_by_id("stats.bg");
+	cr_assert_not_null(bg);
+	cr_assert_null(bg->serialize, "stats.bg must stay serializer-less for this test");
+	struct t_bg_data *u = calloc(1, sizeof(*u));
 	cr_assert_not_null(u);
-	u->filter      = EP_BILATERAL;
-	u->guidefit    = NULL;
-	u->d           = 0.0;
-	u->sigma_col   = 10.0;
-	u->sigma_space = 8.0;
-	u->mod         = 1.0;
-	cr_assert_eq(apply_op_real(&op_desc_epf, u), 0);
+	u->destructor = free;
+	cr_assert_eq(apply_op_real(bg, u), 0);
 
 	/* one live record, Tier B (no serializer) */
 	cr_assert_eq(nde_history_live_count(), 1);
@@ -1311,7 +1321,7 @@ Test(nde_replay, worker_block_stores_checkpoint_for_serializerless_op) {
 	{
 		GPtrArray *snap = nde_history_snapshot(NULL);
 		nde_record *rec = g_ptr_array_index(snap, 0);
-		cr_assert_eq(rec->tier, NDE_TIER_B, "epf is serializer-less → Tier B");
+		cr_assert_eq(rec->tier, NDE_TIER_B, "stats.bg is serializer-less → Tier B");
 		rid = rec->record_id;
 		g_ptr_array_unref(snap);
 	}
@@ -1320,10 +1330,133 @@ Test(nde_replay, worker_block_stores_checkpoint_for_serializerless_op) {
 	          "the worker block must checkpoint a serializer-less barrier op");
 	fits *ck = nde_checkpoint_output_get(rid);
 	cr_assert_not_null(ck);
-	assert_pixels_bit_exact(ck, gfit, "worker-epf-checkpoint");
+	assert_pixels_bit_exact(ck, gfit, "worker-bg-checkpoint");
 	clearfits(ck); free(ck);
 
 	golden_teardown(NULL, f);
+}
+
+/* ---------------- phase 4.5: file-operand replay_pre (Convention 1) --------
+ *
+ * imoper (arith.imoper) pins its operand file: the hook re-reads it from the
+ * recorded path and replay_pre verifies existence/size/sha before the apply.
+ * These tests write a real operand FITS to a temp file, drive the op through
+ * the real capture path (apply_op_real), and check that (a) the chain replays
+ * bit-exact against the temp operand and (b) tampering one byte makes both
+ * replay_pre and a full chain replay fail with the surfaced error.
+ *
+ * imoper_data is file-local to command.c; we mirror its layout (the on-disk
+ * keys are the contract) so the real serializer/hook read our heap struct. */
+struct t_imoper_data { void (*destructor)(void *); int oper; char *filename; gboolean ftf; };
+
+/* Mirror free_imoper_data (command.c, file-local): free filename then struct. */
+static void t_imoper_destroy(void *p) {
+	struct t_imoper_data *d = p;
+	if (!d) return;
+	free(d->filename);
+	free(d);
+}
+
+/* Save @op_fit to a fresh temp .fit and return its heap path (caller g_free +
+ * g_remove).  Uses a temp dir + a ".fit" name so set_right_extension keeps it
+ * verbatim. */
+static gchar *save_temp_operand_fits(fits *op_fit, gchar **dir_out) {
+	GError *e = NULL;
+	gchar *dir = g_dir_make_tmp("nde_replay_XXXXXX", &e);
+	cr_assert_not_null(dir, "temp dir: %s", e ? e->message : "?");
+	gchar *path = g_build_filename(dir, "operand.fit", NULL);
+	cr_assert_eq(savefits(path, op_fit), 0, "savefits failed for %s", path);
+	if (dir_out) *dir_out = dir; else g_free(dir);
+	return path;
+}
+
+Test(nde_replay, golden_imoper_file_operand) {
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	/* operand: a constant 0.1 image of the same geometry */
+	fits *op_fit = flis_test_make_mono_fits(16, 12, 0.1f);
+	gchar *dir = NULL;
+	gchar *path = save_temp_operand_fits(op_fit, &dir);
+	clearfits(op_fit); free(op_fit);
+
+	struct t_imoper_data *u = calloc(1, sizeof(*u));
+	cr_assert_not_null(u);
+	/* mirror process_imoper: OPER_ADD, strdup filename, force_to_float TRUE.
+	 * The worker frees this heap struct via its destructor after the op. */
+	u->destructor = t_imoper_destroy;
+	u->oper = 0;                            /* OPER_ADD */
+	u->filename = strdup(path);
+	u->ftf = TRUE;
+
+	cr_assert_eq(apply_op_real(&op_desc_imoper, u), 0);
+
+	/* the captured record is Tier A and pins the operand path + hash */
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	nde_record *rec = g_ptr_array_index(snap, 0);
+	cr_assert_eq(rec->tier, NDE_TIER_A, "imoper with operand keys is Tier A");
+	cr_assert(strstr(rec->params, "operand_path=") != NULL);
+	cr_assert(strstr(rec->params, "operand_sha256=") != NULL);
+	g_ptr_array_unref(snap);
+
+	fits *result = replay_current_chain(1);
+	assert_pixels_bit_exact(result, gfit, "imoper-file-operand");
+	golden_teardown(result, f);
+
+	g_remove(path); g_free(path);
+	g_rmdir(dir); g_free(dir);
+}
+
+Test(nde_replay, imoper_replay_pre_verifies_and_tamper_fails) {
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	fits *op_fit = flis_test_make_mono_fits(16, 12, 0.2f);
+	gchar *dir = NULL;
+	gchar *path = save_temp_operand_fits(op_fit, &dir);
+	clearfits(op_fit); free(op_fit);
+
+	struct t_imoper_data *u = calloc(1, sizeof(*u));
+	u->destructor = t_imoper_destroy;
+	u->oper = 0;
+	u->filename = strdup(path);
+	u->ftf = TRUE;
+	cr_assert_eq(apply_op_real(&op_desc_imoper, u), 0);
+
+	/* build the chain BEFORE tampering — it captures the record's params */
+	nde_chain *chain = nde_chain_build(-1);
+	cr_assert(chain->replayable);
+
+	/* matched file: replay_pre must accept (a clean replay succeeds) */
+	cr_assert(reserve_thread());
+	gchar *err = NULL;
+	fits *ok_res = nde_chain_replay(chain, &err);
+	unreserve_thread();
+	cr_assert_not_null(ok_res, "clean replay failed: %s", err ? err : "?");
+	clearfits(ok_res); free(ok_res); g_free(err); err = NULL;
+
+	/* tamper ONE byte in the operand file: replay_pre must now fail, and the
+	 * whole chain replay must fail with the surfaced error. */
+	gchar *bytes = NULL; gsize len = 0;
+	cr_assert(g_file_get_contents(path, &bytes, &len, NULL));
+	cr_assert(len > 3000, "fits should be larger than its header");
+	bytes[len - 1] ^= 0xFF;     /* flip the last data byte */
+	cr_assert(g_file_set_contents(path, bytes, len, NULL));
+	g_free(bytes);
+
+	cr_assert(reserve_thread());
+	fits *bad_res = nde_chain_replay(chain, &err);
+	unreserve_thread();
+	cr_assert_null(bad_res, "replay must fail after the operand was tampered");
+	cr_assert_not_null(err);
+	g_free(err);
+	nde_chain_free(chain);
+
+	golden_teardown(NULL, f);
+	g_remove(path); g_free(path);
+	g_rmdir(dir); g_free(dir);
 }
 
 Test(nde_replay, truncation_drops_output_checkpoints) {

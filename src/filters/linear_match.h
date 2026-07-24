@@ -28,9 +28,12 @@ struct linear_match_data {
 	fits ref;                   /* Reference image (owned by this struct) */
 	double low;
 	double high;
+	char *operand_path;         /* pinned reference path (phase 4.5 Convention 1) */
+	gboolean force_to_float;    /* readfits force_float used at construction */
 };
 
-struct linear_match_data *new_linear_match_data(fits *ref_fit, double low, double high);
+struct linear_match_data *new_linear_match_data(fits *ref_fit, double low, double high,
+                                                const char *ref_path);
 void free_linear_match_data(void *p);
 int linear_match_image_hook(struct generic_img_args *args, fits *fit, int threads);
 gchar *linear_match_log_hook(gpointer p, log_hook_detail detail);

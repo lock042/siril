@@ -260,6 +260,29 @@ gchar   *nde_kv_end(GString *kv);
  */
 GHashTable *nde_kv_parse(const char *blob);
 
+/**
+ * Streamed SHA-256 of the file at @path (lowercase hex of the raw FILE bytes,
+ * NOT the decoded pixels — Convention 1 of the external-input serializers).
+ * On success returns a newly-allocated hex string (caller g_free()s) and,
+ * when @size_out is non-NULL, stores the file size in bytes.  Returns NULL
+ * (and leaves @size_out untouched) when the file is missing or unreadable.
+ * Reads in bounded chunks so arbitrarily large operands hash in constant RAM.
+ */
+gchar *nde_file_sha256(const char *path, gint64 *size_out);
+
+/**
+ * Verify a pinned file operand for replay (Convention 1): re-hash the file at
+ * @path and check it against @expect_size / @expect_sha256 (lowercase hex).
+ * Returns TRUE only when the file exists, its size matches, and its SHA-256
+ * matches.  On any failure logs a clear siril_log_error naming @path first
+ * ("operand file missing or changed") so the replay driver's generic
+ * "replay preparation failed" is preceded by an actionable line.  A NULL or
+ * empty @path fails.  @expect_sha256 NULL/empty skips the hash comparison
+ * (size-only) but the streamed read still detects unreadable files.
+ */
+gboolean nde_operand_verify(const char *path, gint64 expect_size,
+                            const char *expect_sha256);
+
 /** Lookup helpers; the typed variants return FALSE when absent/unparsable. */
 const char *nde_kv_get_str(GHashTable *kv, const char *key);
 gboolean    nde_kv_get_int(GHashTable *kv, const char *key, gint64 *out);

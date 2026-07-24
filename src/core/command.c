@@ -1141,6 +1141,64 @@ static void free_imoper_data(void *data) {
 	free(imoper);
 }
 
+/* NDE serializers (phase 4.5 Convention 1 — file operands).  imoper_image_hook
+ * loads the operand from data->filename itself, so the serializer just PINS
+ * that path (hash+size computed from the file at capture) and replay_pre only
+ * VERIFIES it — no filesystem load here.  oper/force_to_float are POD. */
+static gchar *imoper_serialize(gconstpointer user) {
+	const struct imoper_data *d = user;
+	GString *kv = nde_kv_start();
+	/* on-disk value: enum order is frozen by the NDE format — do not reorder */
+	nde_kv_add_int(kv, "oper", d->oper);
+	nde_kv_add_bool(kv, "force_to_float", d->force_to_float);
+	nde_kv_add_str(kv, "operand_path", d->filename ? d->filename : "");
+	gint64 size = 0;
+	gchar *sha = nde_file_sha256(d->filename, &size);
+	if (sha) {
+		nde_kv_add_str(kv, "operand_sha256", sha);
+		nde_kv_add_int(kv, "operand_size", size);
+		g_free(sha);
+	}
+	return nde_kv_end(kv);
+}
+
+static gpointer imoper_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_imoper.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	gint64 oper;
+	gboolean force_to_float;
+	const char *path = nde_kv_get_str(kv, "operand_path");
+	/* records captured before phase 4.5 lack the operand keys → not
+	 * replayable (they stay honestly Tier B-flagged at capture time). */
+	if (!nde_kv_get_int(kv, "oper", &oper) ||
+	    !nde_kv_get_bool(kv, "force_to_float", &force_to_float) ||
+	    !path || !*path) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct imoper_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destructor = free_imoper_data;
+		d->oper = (image_operator)oper;
+		d->force_to_float = force_to_float;
+		d->filename = strdup(path);
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
+
+/* replay_pre: verify the pinned operand file (existence/size/sha); the hook
+ * itself reads data->filename, so nothing is loaded here. */
+static int imoper_replay_pre(gpointer user, GHashTable *kv, fits *target) {
+	(void)user; (void)target;
+	const char *path = nde_kv_get_str(kv, "operand_path");
+	gint64 expect_size = 0;
+	nde_kv_get_int(kv, "operand_size", &expect_size);
+	const char *sha = nde_kv_get_str(kv, "operand_sha256");
+	return nde_operand_verify(path, expect_size, sha) ? 0 : 1;
+}
+
 // Image processing hook for imoper
 static int imoper_image_hook(struct generic_img_args *args, fits *fit, int threads) {
 	struct imoper_data *data = (struct imoper_data *)args->user;
@@ -1292,6 +1350,8 @@ int process_imoper(int nb) {
 struct addmax_data {
 	void (*destructor)(void *);
 	fits *operand_fit;
+	char *operand_path;      /* pinned operand path (phase 4.5 Convention 1) */
+	gboolean force_to_float; /* readfits force_float used at construction */
 };
 
 static void addmax_destructor(void *p) {
@@ -1300,6 +1360,7 @@ static void addmax_destructor(void *p) {
 		clearfits(data->operand_fit);
 		free(data->operand_fit);
 	}
+	free(data->operand_path);
 	free(data);
 }
 
@@ -1311,6 +1372,65 @@ static int addmax_image_hook(struct generic_img_args *args, fits *fit, int threa
 
 static gchar *addmax_log_hook(gpointer p, log_hook_detail detail) {
 	return g_strdup_printf(_("Add max operation"));
+}
+
+/* NDE serializers (phase 4.5 Convention 1).  The hook consumes a pre-loaded
+ * operand_fit; the params struct pins the source path (+hash/size) and
+ * replay_pre readfits() it into operand_fit (freed by addmax_destructor). */
+static gchar *addmax_serialize(gconstpointer user) {
+	const struct addmax_data *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_bool(kv, "force_to_float", d->force_to_float);
+	nde_kv_add_str(kv, "operand_path", d->operand_path ? d->operand_path : "");
+	gint64 size = 0;
+	gchar *sha = nde_file_sha256(d->operand_path, &size);
+	if (sha) {
+		nde_kv_add_str(kv, "operand_sha256", sha);
+		nde_kv_add_int(kv, "operand_size", size);
+		g_free(sha);
+	}
+	return nde_kv_end(kv);
+}
+
+static gpointer addmax_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_addmax.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	gboolean force_to_float;
+	const char *path = nde_kv_get_str(kv, "operand_path");
+	if (!nde_kv_get_bool(kv, "force_to_float", &force_to_float) ||
+	    !path || !*path) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct addmax_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destructor = addmax_destructor;
+		d->force_to_float = force_to_float;
+		d->operand_path = strdup(path);
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
+
+static int addmax_replay_pre(gpointer user, GHashTable *kv, fits *target) {
+	(void)target;
+	struct addmax_data *d = user;
+	const char *path = nde_kv_get_str(kv, "operand_path");
+	gint64 expect_size = 0;
+	nde_kv_get_int(kv, "operand_size", &expect_size);
+	const char *sha = nde_kv_get_str(kv, "operand_sha256");
+	if (!nde_operand_verify(path, expect_size, sha))
+		return 1;
+	fits *operand_fit = calloc(1, sizeof(fits));
+	if (!operand_fit)
+		return 1;
+	if (readfits(path, operand_fit, NULL, d->force_to_float)) {
+		free(operand_fit);
+		return 1;
+	}
+	d->operand_fit = operand_fit;   /* freed by addmax_destructor */
+	return 0;
 }
 
 int process_addmax(int nb) {
@@ -1346,7 +1466,8 @@ int process_addmax(int nb) {
 		return CMD_ALLOC_ERROR;
 	}
 
-	if (readfits(filename, operand_fit, NULL, gfit->type == DATA_FLOAT)) {
+	gboolean force_to_float = (gfit->type == DATA_FLOAT);
+	if (readfits(filename, operand_fit, NULL, force_to_float)) {
 		free(operand_fit);
 		return CMD_INVALID_IMAGE;
 	}
@@ -1361,6 +1482,9 @@ int process_addmax(int nb) {
 	}
 	data->destructor = addmax_destructor;
 	data->operand_fit = operand_fit;
+	/* pin the operand for NDE replay (phase 4.5 Convention 1) */
+	data->operand_path = strdup(filename);
+	data->force_to_float = force_to_float;
 
 	/* Allocate and initialize generic_img_args */
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
@@ -1394,6 +1518,8 @@ struct fdiv_data {
 	void (*destructor)(void *);
 	fits *operand_fit;
 	float norm;
+	char *operand_path;      /* pinned operand path (phase 4.5 Convention 1) */
+	gboolean force_to_float; /* readfits force_float used at construction */
 };
 
 static void fdiv_destructor(void *p) {
@@ -1402,6 +1528,7 @@ static void fdiv_destructor(void *p) {
 		clearfits(data->operand_fit);
 		free(data->operand_fit);
 	}
+	free(data->operand_path);
 	free(data);
 }
 
@@ -1414,6 +1541,69 @@ static int fdiv_image_hook(struct generic_img_args *args, fits *fit, int threads
 static gchar *fdiv_log_hook(gpointer p, log_hook_detail detail) {
 	struct fdiv_data *args = (struct fdiv_data*) p;
 	return g_strdup_printf(_("Image division with normalization: %.6f"), args->norm);
+}
+
+/* NDE serializers (phase 4.5 Convention 1).  norm is POD; the operand is
+ * pinned by path and readfits()-loaded by replay_pre into operand_fit (freed
+ * by fdiv_destructor). */
+static gchar *fdiv_serialize(gconstpointer user) {
+	const struct fdiv_data *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_float(kv, "norm", d->norm);
+	nde_kv_add_bool(kv, "force_to_float", d->force_to_float);
+	nde_kv_add_str(kv, "operand_path", d->operand_path ? d->operand_path : "");
+	gint64 size = 0;
+	gchar *sha = nde_file_sha256(d->operand_path, &size);
+	if (sha) {
+		nde_kv_add_str(kv, "operand_sha256", sha);
+		nde_kv_add_int(kv, "operand_size", size);
+		g_free(sha);
+	}
+	return nde_kv_end(kv);
+}
+
+static gpointer fdiv_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_fdiv.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	float norm;
+	gboolean force_to_float;
+	const char *path = nde_kv_get_str(kv, "operand_path");
+	if (!nde_kv_get_float(kv, "norm", &norm) ||
+	    !nde_kv_get_bool(kv, "force_to_float", &force_to_float) ||
+	    !path || !*path) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct fdiv_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destructor = fdiv_destructor;
+		d->norm = norm;
+		d->force_to_float = force_to_float;
+		d->operand_path = strdup(path);
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
+
+static int fdiv_replay_pre(gpointer user, GHashTable *kv, fits *target) {
+	(void)target;
+	struct fdiv_data *d = user;
+	const char *path = nde_kv_get_str(kv, "operand_path");
+	gint64 expect_size = 0;
+	nde_kv_get_int(kv, "operand_size", &expect_size);
+	const char *sha = nde_kv_get_str(kv, "operand_sha256");
+	if (!nde_operand_verify(path, expect_size, sha))
+		return 1;
+	fits *operand_fit = calloc(1, sizeof(fits));
+	if (!operand_fit)
+		return 1;
+	if (readfits(path, operand_fit, NULL, d->force_to_float)) {
+		free(operand_fit);
+		return 1;
+	}
+	d->operand_fit = operand_fit;   /* freed by fdiv_destructor */
+	return 0;
 }
 
 int process_fdiv(int nb) {
@@ -1460,7 +1650,8 @@ int process_fdiv(int nb) {
 		return CMD_ALLOC_ERROR;
 	}
 
-	if (readfits(filename, operand_fit, NULL, !com.pref.force_16bit)) {
+	gboolean force_to_float = !com.pref.force_16bit;
+	if (readfits(filename, operand_fit, NULL, force_to_float)) {
 		free(operand_fit);
 		return CMD_INVALID_IMAGE;
 	}
@@ -1476,6 +1667,9 @@ int process_fdiv(int nb) {
 	data->destructor = fdiv_destructor;
 	data->operand_fit = operand_fit;
 	data->norm = norm;
+	/* pin the operand for NDE replay (phase 4.5 Convention 1) */
+	data->operand_path = strdup(filename);
+	data->force_to_float = force_to_float;
 
 	/* Allocate and initialize generic_img_args */
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
@@ -1989,6 +2183,7 @@ int process_epf(int nb) {
 		 g_free(filename);
 		 return CMD_ARG_ERROR;
 	}
+	gchar *guide_path = NULL;   /* pinned guide path for NDE replay (Convention 1) */
 	if (filename != NULL)
 		filter = EP_GUIDED; // passing guideimage name is enough to set to guided
 	if (filter == EP_GUIDED) {
@@ -2001,7 +2196,8 @@ int process_epf(int nb) {
 				g_free(filename);
 				return CMD_ARG_ERROR;
 			}
-			g_free(filename);
+			guide_path = filename;   /* take ownership; freed below */
+			filename = NULL;
 			guide_needs_freeing = TRUE;
 		} else {
 			guidefit = gfit;
@@ -2012,6 +2208,7 @@ int process_epf(int nb) {
 				clearfits(guidefit);
 				free(guidefit);
 			}
+			g_free(guide_path);
 			return CMD_ARG_ERROR;
 		}
 	}
@@ -2028,6 +2225,7 @@ int process_epf(int nb) {
 			clearfits(guidefit);
 			free(guidefit);
 		}
+		g_free(guide_path);
 		return CMD_GENERIC_ERROR;
 	}
 
@@ -2041,6 +2239,9 @@ int process_epf(int nb) {
 	params->filter = filter;
 	params->verbose = TRUE;
 	params->applying = TRUE;
+	/* pin a separate guide image for NDE replay (phase 4.5 Convention 1);
+	 * self-guide (guidefit == gfit) needs no path.  Takes ownership. */
+	params->guide_path = guide_path;   /* NULL for self/non-guided */
 
 	// Allocate worker args
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
@@ -4418,7 +4619,7 @@ int process_linear_match(int nb) {
 	if (readfits(word[1], &ref, NULL, gfit->type == DATA_FLOAT))
 		return CMD_INVALID_IMAGE;
 
-	struct linear_match_data *data = new_linear_match_data(&ref, low, high);
+	struct linear_match_data *data = new_linear_match_data(&ref, low, high, word[1]);
 	if (!data) {
 		clearfits(&ref);
 		return CMD_ALLOC_ERROR;
@@ -18253,16 +18454,22 @@ const op_descriptor op_desc_imoper = {
 	.id = "arith.imoper", .version = 1, .image_hook = imoper_image_hook,
 	.log_hook = imoper_log_hook, .description = N_("Image addition"),
 	.mem_ratio = 2.0f, .flags = OP_MASK_CAPABLE,
+	.serialize = imoper_serialize, .deserialize = imoper_deserialize,
+	.replay_pre = imoper_replay_pre,
 };
 const op_descriptor op_desc_addmax = {
 	.id = "arith.addmax", .version = 1, .image_hook = addmax_image_hook,
 	.log_hook = addmax_log_hook, .description = N_("Add max"),
 	.mem_ratio = 1.0f, .flags = OP_MASK_CAPABLE,
+	.serialize = addmax_serialize, .deserialize = addmax_deserialize,
+	.replay_pre = addmax_replay_pre,
 };
 const op_descriptor op_desc_fdiv = {
 	.id = "arith.fdiv", .version = 1, .image_hook = fdiv_image_hook,
 	.log_hook = fdiv_log_hook, .description = N_("Image division"),
 	.mem_ratio = 1.0f, .flags = OP_MASK_CAPABLE,
+	.serialize = fdiv_serialize, .deserialize = fdiv_deserialize,
+	.replay_pre = fdiv_replay_pre,
 };
 const op_descriptor op_desc_fmul = {
 	.id = "arith.fmul", .version = 1, .image_hook = fmul_image_hook,

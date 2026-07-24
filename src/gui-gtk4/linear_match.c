@@ -96,9 +96,10 @@ void on_linearmatch_apply_clicked(GtkButton *button, gpointer user_data) {
 		g_free(filename);
 		return;
 	}
-	g_free(filename);
 
-	struct linear_match_data *data = new_linear_match_data(&ref, low, high);
+	/* pass the path so the record pins the reference (phase 4.5 Convention 1) */
+	struct linear_match_data *data = new_linear_match_data(&ref, low, high, filename);
+	g_free(filename);
 	if (!data) {
 		clearfits(&ref);
 		return;

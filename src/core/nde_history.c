@@ -649,3 +649,63 @@ gboolean nde_kv_get_float(GHashTable *kv, const char *key, float *out) {
 	*out = (float)v;
 	return TRUE;
 }
+
+/* ======================================================================= */
+/* External-input operands (phase 4.5 Convention 1)                        */
+/* ======================================================================= */
+
+gchar *nde_file_sha256(const char *path, gint64 *size_out) {
+	if (!path || !*path)
+		return NULL;
+	FILE *f = g_fopen(path, "rb");
+	if (!f)
+		return NULL;
+	GChecksum *ck = g_checksum_new(G_CHECKSUM_SHA256);
+	if (!ck) {
+		fclose(f);
+		return NULL;
+	}
+	guchar buf[64 * 1024];
+	gint64 total = 0;
+	size_t n;
+	gboolean io_error = FALSE;
+	while ((n = fread(buf, 1, sizeof buf, f)) > 0) {
+		g_checksum_update(ck, buf, n);
+		total += (gint64)n;
+	}
+	if (ferror(f))
+		io_error = TRUE;
+	fclose(f);
+	if (io_error) {
+		g_checksum_free(ck);
+		return NULL;
+	}
+	gchar *hex = g_strdup(g_checksum_get_string(ck));
+	g_checksum_free(ck);
+	if (size_out)
+		*size_out = total;
+	return hex;
+}
+
+gboolean nde_operand_verify(const char *path, gint64 expect_size,
+                            const char *expect_sha256) {
+	if (!path || !*path) {
+		siril_log_error(_("operand file missing or changed: (no path recorded)\n"));
+		return FALSE;
+	}
+	gint64 size = 0;
+	gchar *sha = nde_file_sha256(path, &size);
+	if (!sha) {
+		siril_log_error(_("operand file missing or changed: %s\n"), path);
+		return FALSE;
+	}
+	gboolean ok = TRUE;
+	if (size != expect_size)
+		ok = FALSE;
+	if (expect_sha256 && *expect_sha256 && g_ascii_strcasecmp(sha, expect_sha256) != 0)
+		ok = FALSE;
+	g_free(sha);
+	if (!ok)
+		siril_log_error(_("operand file missing or changed: %s\n"), path);
+	return ok;
+}

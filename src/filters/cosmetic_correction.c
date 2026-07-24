@@ -42,7 +42,7 @@
 /* NDE serializers for filters.cosmetic (auto-detect path).  autoDetectThreaded
  * reads sigma[2], amount and is_cfa; fit/seq/seqEntry/threading are runtime
  * context and are skipped.  (filters.cosme is a distinct op that reads a .lst
- * file operand — deferred, no serializer.) */
+ * file operand — pinned via Convention 1; its serializers are below.) */
 static gchar *cosmetic_serialize(gconstpointer user) {
 	const struct cosmetic_data *d = user;
 	GString *kv = nde_kv_start();
@@ -89,6 +89,62 @@ const op_descriptor op_desc_cosmetic = {
 	.serialize = cosmetic_serialize, .deserialize = cosmetic_deserialize,
 };
 
+/* NDE serializers for filters.cosme (phase 4.5 Convention 1 — file operand).
+ * The op reads a .lst defect file via a GFile; is_cfa is POD.  The serializer
+ * extracts the path from the GFile and pins it (+hash/size at capture);
+ * replay_pre verifies and rebuilds the GFile into params->file (freed by
+ * free_cosme_data's g_clear_object). */
+static gchar *cosme_serialize(gconstpointer user) {
+	const struct cosme_data *d = user;
+	gchar *path = d->file ? g_file_get_path(d->file) : NULL;
+	GString *kv = nde_kv_start();
+	nde_kv_add_int(kv, "is_cfa", d->is_cfa);
+	nde_kv_add_str(kv, "operand_path", path ? path : "");
+	gint64 size = 0;
+	gchar *sha = nde_file_sha256(path, &size);
+	if (sha) {
+		nde_kv_add_str(kv, "operand_sha256", sha);
+		nde_kv_add_int(kv, "operand_size", size);
+		g_free(sha);
+	}
+	g_free(path);
+	return nde_kv_end(kv);
+}
+
+static gpointer cosme_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_cosme.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	gint64 is_cfa;
+	const char *path = nde_kv_get_str(kv, "operand_path");
+	if (!nde_kv_get_int(kv, "is_cfa", &is_cfa) ||
+	    !path || !*path) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct cosme_data *d = new_cosme_data();
+	if (d) {
+		d->is_cfa = (int)is_cfa;
+		d->file = NULL;   /* rebuilt in replay_pre after verification */
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
+
+static int cosme_replay_pre(gpointer user, GHashTable *kv, fits *target) {
+	(void)target;
+	struct cosme_data *d = user;
+	const char *path = nde_kv_get_str(kv, "operand_path");
+	gint64 expect_size = 0;
+	nde_kv_get_int(kv, "operand_size", &expect_size);
+	const char *sha = nde_kv_get_str(kv, "operand_sha256");
+	if (!nde_operand_verify(path, expect_size, sha))
+		return 1;
+	g_clear_object(&d->file);
+	d->file = g_file_new_for_path(path);
+	return 0;
+}
+
 const op_descriptor op_desc_cosme = {
 	.id = "filters.cosme", .version = 1,
 	.image_hook = cosme_image_hook_generic,
@@ -96,6 +152,8 @@ const op_descriptor op_desc_cosme = {
 	.description = N_("Cosmetic Correction"),
 	.mem_ratio = 1.0f,
 	.flags = 0,
+	.serialize = cosme_serialize, .deserialize = cosme_deserialize,
+	.replay_pre = cosme_replay_pre,
 };
 
 static int autoDetect(fits *fit, int layer, const double sig[2], long *icold, long *ihot,

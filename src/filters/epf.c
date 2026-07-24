@@ -30,6 +30,119 @@
 
 #include "filters/epf.h"
 #include "core/op_descriptors.h"
+#include "core/nde_history.h"
+
+/* NDE serializers (phase 4.5 Convention 1 — file operands).
+ *
+ * The bilateral filter and self-guided filter take no external file: bilateral
+ * (guidefit == NULL) serializes plain POD; the self-guided filter emits the
+ * token guide=self and replay_pre points guidefit at the replay target.  A
+ * guided filter with a SEPARATE guide image pins that file by path (+hash/size
+ * at capture) and replay_pre readfits() it into a fresh heap guidefit (freed by
+ * free_epf_args via guide_needs_freeing).  At capture a self-guide is detected
+ * by guidefit == fit (both the command and GUI self-guide sites set that). */
+static gchar *epf_serialize(gconstpointer user) {
+	const struct epfargs *p = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_double(kv, "d", p->d);
+	nde_kv_add_double(kv, "sigma_col", p->sigma_col);
+	nde_kv_add_double(kv, "sigma_space", p->sigma_space);
+	nde_kv_add_double(kv, "mod", p->mod);
+	/* on-disk value: enum order is frozen by the NDE format — do not reorder */
+	nde_kv_add_int(kv, "filter", p->filter);
+	if (p->filter == EP_GUIDED && p->guidefit) {
+		if (p->guidefit == p->fit) {
+			nde_kv_add_str(kv, "guide", "self");
+		} else {
+			nde_kv_add_str(kv, "guide", "file");
+			nde_kv_add_str(kv, "operand_path", p->guide_path ? p->guide_path : "");
+			gint64 size = 0;
+			gchar *sha = nde_file_sha256(p->guide_path, &size);
+			if (sha) {
+				nde_kv_add_str(kv, "operand_sha256", sha);
+				nde_kv_add_int(kv, "operand_size", size);
+				g_free(sha);
+			}
+		}
+	}
+	return nde_kv_end(kv);
+}
+
+static gpointer epf_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_epf.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	double d, sigma_col, sigma_space, mod;
+	gint64 filter;
+	if (!nde_kv_get_double(kv, "d", &d) ||
+	    !nde_kv_get_double(kv, "sigma_col", &sigma_col) ||
+	    !nde_kv_get_double(kv, "sigma_space", &sigma_space) ||
+	    !nde_kv_get_double(kv, "mod", &mod) ||
+	    !nde_kv_get_int(kv, "filter", &filter)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	const char *guide = nde_kv_get_str(kv, "guide");
+	/* A guided record must carry a guide token (self/file); a file guide must
+	 * carry a path.  A record without these (pre-phase-4.5 guided capture) is
+	 * not replayable. */
+	if (filter == EP_GUIDED) {
+		if (!guide) {
+			g_hash_table_unref(kv);
+			return NULL;
+		}
+		if (!strcmp(guide, "file")) {
+			const char *path = nde_kv_get_str(kv, "operand_path");
+			if (!path || !*path) {
+				g_hash_table_unref(kv);
+				return NULL;
+			}
+		}
+	}
+	struct epfargs *p = new_epf_args();
+	if (p) {
+		p->d = d;
+		p->sigma_col = sigma_col;
+		p->sigma_space = sigma_space;
+		p->mod = mod;
+		p->filter = (ep_filter_t)filter;
+		if (guide && !strcmp(guide, "file"))
+			p->guide_path = strdup(nde_kv_get_str(kv, "operand_path"));
+	}
+	g_hash_table_unref(kv);
+	return p;
+}
+
+/* replay_pre: bind guidefit for a guided filter.  self → point at the target;
+ * file → verify + readfits into a fresh heap fits (guide_needs_freeing so
+ * free_epf_args releases it).  Bilateral / no-guide records skip this. */
+static int epf_replay_pre(gpointer user, GHashTable *kv, fits *target) {
+	struct epfargs *p = user;
+	if (p->filter != EP_GUIDED)
+		return 0;
+	const char *guide = nde_kv_get_str(kv, "guide");
+	if (guide && !strcmp(guide, "self")) {
+		p->guidefit = target;   /* not owned; guide_needs_freeing stays FALSE */
+		return 0;
+	}
+	const char *path = nde_kv_get_str(kv, "operand_path");
+	gint64 expect_size = 0;
+	nde_kv_get_int(kv, "operand_size", &expect_size);
+	const char *sha = nde_kv_get_str(kv, "operand_sha256");
+	if (!nde_operand_verify(path, expect_size, sha))
+		return 1;
+	fits *guidefit = calloc(1, sizeof(fits));
+	if (!guidefit)
+		return 1;
+	/* both construction sites load the guide image with force_float == FALSE */
+	if (readfits(path, guidefit, NULL, FALSE)) {
+		free(guidefit);
+		return 1;
+	}
+	p->guidefit = guidefit;
+	p->guide_needs_freeing = TRUE;   /* freed by free_epf_args */
+	return 0;
+}
 
 /* Op descriptor — single source of truth for this operation (op_descriptor.h) */
 const op_descriptor op_desc_epf = {
@@ -39,6 +152,8 @@ const op_descriptor op_desc_epf = {
 	.description = N_("Edge Preserving Filter"),
 	.mem_ratio = 3.0f,
 	.flags = OP_MASK_CAPABLE,
+	.serialize = epf_serialize, .deserialize = epf_deserialize,
+	.replay_pre = epf_replay_pre,
 };
 
 /*****************************************************************************
@@ -65,6 +180,7 @@ void free_epf_args(void *ptr) {
 		free(args->guidefit);
 		args->guidefit = NULL;
 	}
+	free(args->guide_path);
 	free(ptr);
 }
 
