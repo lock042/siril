@@ -127,6 +127,12 @@ struct _NdeHistRowItem {
 	gboolean amendable;  /* nde_record_amendable() — Tier A + deserializer */
 	gboolean deletable;  /* nde_record_deletable() — not structural/compositing */
 	gchar   *params;     /* raw kv blob copy (NULL when the record has none) */
+	/* Phase-4 barrier freeze state (nde-phase4-plan.md P4.4), from the
+	 * per-item chain verdicts computed once per distinct item in
+	 * refresh_history — no per-row replay. */
+	gboolean frozen;     /* at-or-before the item's last barrier (chain member) */
+	gboolean barrier;    /* an opaque restart-point member */
+	gboolean last_barrier;/* the most recent barrier: Edit off, Delete unlocks */
 };
 
 G_DEFINE_TYPE(NdeHistRowItem, nde_hist_row_item, G_TYPE_OBJECT)
@@ -1113,6 +1119,12 @@ static void on_hist_row_setup(GtkListItemFactory *f, GtkListItem *item, gpointer
 	GtkWidget *badge = gtk_label_new(NULL);
 	gtk_widget_add_css_class(badge, "dim-label");
 
+	/* Lock indicator for frozen/barrier rows — matches the layer-lock icon
+	 * used elsewhere in the panel.  Hidden on ordinary rows. */
+	GtkWidget *lock = gtk_image_new_from_icon_name("changes-prevent-symbolic");
+	gtk_widget_add_css_class(lock, "dim-label");
+	gtk_widget_set_visible(lock, FALSE);
+
 	GtkWidget *summary = gtk_label_new(NULL);
 	gtk_label_set_xalign(GTK_LABEL(summary), 0.0f);
 	gtk_label_set_ellipsize(GTK_LABEL(summary), PANGO_ELLIPSIZE_END);
@@ -1122,9 +1134,11 @@ static void on_hist_row_setup(GtkListItemFactory *f, GtkListItem *item, gpointer
 	gtk_widget_add_css_class(target, "dim-label");
 
 	gtk_box_append(GTK_BOX(row), badge);
+	gtk_box_append(GTK_BOX(row), lock);
 	gtk_box_append(GTK_BOX(row), summary);
 	gtk_box_append(GTK_BOX(row), target);
 	g_object_set_data(G_OBJECT(item), "hist-badge",   badge);
+	g_object_set_data(G_OBJECT(item), "hist-lock",    lock);
 	g_object_set_data(G_OBJECT(item), "hist-summary", summary);
 	g_object_set_data(G_OBJECT(item), "hist-target",  target);
 	gtk_list_item_set_child(item, row);
@@ -1135,6 +1149,7 @@ static void on_hist_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer 
 	NdeHistRowItem *r = gtk_list_item_get_item(item);
 	GtkWidget *row     = gtk_list_item_get_child(item);
 	GtkWidget *badge   = g_object_get_data(G_OBJECT(item), "hist-badge");
+	GtkWidget *lock    = g_object_get_data(G_OBJECT(item), "hist-lock");
 	GtkWidget *summary = g_object_get_data(G_OBJECT(item), "hist-summary");
 	GtkWidget *target  = g_object_get_data(G_OBJECT(item), "hist-target");
 	if (!r || !row) return;
@@ -1142,8 +1157,11 @@ static void on_hist_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer 
 	gtk_label_set_text(GTK_LABEL(summary), r->summary ? r->summary : "");
 	gtk_label_set_text(GTK_LABEL(target),  r->target  ? r->target  : "");
 	gtk_widget_set_tooltip_text(row, r->detail);
-	/* undone records stay visible but dimmed (§16) */
-	if (r->dead)
+	/* Barrier and frozen rows carry the lock icon (subtle, next to the
+	 * badge); a dead row keeps its dimming — dead wins over frozen. */
+	gtk_widget_set_visible(lock, r->barrier || r->frozen);
+	/* Undone records (§16) and frozen prefixes both read as dimmed. */
+	if (r->dead || r->frozen)
 		gtk_widget_add_css_class(row, "dim-label");
 	else
 		gtk_widget_remove_css_class(row, "dim-label");
@@ -1355,6 +1373,12 @@ static const char *hist_action_disabled_reason(const NdeHistRowItem *r,
 		return _("The image was modified outside the recorded history");
 	if (processing_is_job_active())
 		return _("Not available while processing");
+	/* A frozen prefix step (before the last opaque step) is fully locked;
+	 * the last opaque step itself can still be deleted to unlock the rest. */
+	if (r->frozen && !r->last_barrier)
+		return _("Locked by a later opaque step");
+	if (r->last_barrier && is_edit)
+		return _("Opaque steps cannot be edited");
 	if (is_edit && (!r->amendable || !r->params))
 		return _("Opaque steps cannot be edited");
 	if (!is_edit && !r->deletable)
@@ -1411,10 +1435,46 @@ static void on_hist_row_activate(GtkListView *lv, guint position, gpointer u) {
 	gtk_widget_set_sensitive(g_panel->hist_edit_btn,   edit_off == NULL);
 	gtk_widget_set_sensitive(g_panel->hist_delete_btn, del_off == NULL);
 	gtk_widget_set_tooltip_text(g_panel->hist_edit_btn,   edit_off);
-	gtk_widget_set_tooltip_text(g_panel->hist_delete_btn, del_off);
+	/* Deleting the last opaque step is the moment the freeze feature is
+	 * discoverable — spell out that it unlocks the earlier steps. */
+	gtk_widget_set_tooltip_text(g_panel->hist_delete_btn,
+	                            del_off ? del_off :
+	                            (r->last_barrier
+	                             ? _("Deleting this opaque step unlocks the steps before it")
+	                             : NULL));
 
 	gtk_popover_popup(GTK_POPOVER(g_panel->hist_popover));
 	g_object_unref(r);
+}
+
+/* Per-record freeze marks derived from the P4.1 chain verdicts (P4.4).
+ * frozen/barrier/last_barrier mirror NdeHistRowItem; keyed by record_id. */
+typedef struct { gboolean frozen, barrier, last_barrier; } hist_freeze_mark;
+
+/* Fold one item's chain into @map (record_id → hist_freeze_mark).  A chain
+ * member at index < tail_start is frozen; the member at tail_start-1 that is
+ * itself a barrier is "the last barrier" (frozen for Edit, still deletable).
+ * Members at index >= tail_start are free and get no mark.  Non-member
+ * records (structural/document-wide) never appear here — left unmarked. */
+static void hist_fold_chain_marks(GHashTable *map, const nde_chain *chain) {
+	if (!chain || !chain->records)
+		return;
+	guint tail = chain->tail_start;
+	for (guint i = 0; i < chain->records->len; i++) {
+		const nde_record *rec = g_ptr_array_index(chain->records, i);
+		guint8 flags = (chain->member_flags && i < chain->member_flags->len)
+		             ? g_array_index(chain->member_flags, guint8, i) : 0;
+		gboolean is_barrier = (flags & NDE_CHAIN_MEMBER_BARRIER) != 0;
+		if (i >= tail)
+			continue;   /* editable tail — no mark */
+		hist_freeze_mark *m = g_new0(hist_freeze_mark, 1);
+		m->frozen  = TRUE;
+		m->barrier = is_barrier;
+		/* The barrier immediately before the tail is the one whose deletion
+		 * regains editability of the prefix. */
+		m->last_barrier = is_barrier && (i == tail - 1);
+		g_hash_table_insert(map, g_memdup2(&rec->record_id, sizeof(gint64)), m);
+	}
 }
 
 /* Rebuild the mirror store from a snapshot.  Main thread only. */
@@ -1425,6 +1485,28 @@ static void refresh_history(void) {
 	GPtrArray *snap = nde_history_snapshot_all(&live);
 	guint total = snap ? snap->len : 0;
 	g_list_store_remove_all(g_panel->hist_store);
+
+	/* Build the freeze-verdict map once per DISTINCT target item present in
+	 * the snapshot (records are tens, items a handful): reuse the real P4.1
+	 * chain verdicts rather than re-deriving the barrier rules here.  This is
+	 * a snapshot+validate pass only (nde_chain_build never replays). */
+	GHashTable *freeze = g_hash_table_new_full(g_int64_hash, g_int64_equal,
+	                                           g_free, g_free);
+	if (snap) {
+		GHashTable *seen = g_hash_table_new(g_direct_hash, g_direct_equal);
+		for (guint i = 0; i < snap->len; i++) {
+			const nde_record *rec = g_ptr_array_index(snap, i);
+			gpointer key = GINT_TO_POINTER(rec->target_item_id);
+			if (g_hash_table_contains(seen, key))
+				continue;
+			g_hash_table_add(seen, key);
+			nde_chain *chain = nde_chain_build(rec->target_item_id);
+			hist_fold_chain_marks(freeze, chain);
+			nde_chain_free(chain);
+		}
+		g_hash_table_destroy(seen);
+	}
+
 	if (snap) {
 		for (guint i = 0; i < snap->len; i++) {
 			const nde_record *rec = g_ptr_array_index(snap, i);
@@ -1438,11 +1520,25 @@ static void refresh_history(void) {
 			item->amendable = nde_record_amendable(rec);
 			item->deletable = nde_record_deletable(rec);
 			item->params    = (rec->params && *rec->params) ? g_strdup(rec->params) : NULL;
+			const hist_freeze_mark *m = g_hash_table_lookup(freeze, &rec->record_id);
+			if (m) {
+				item->frozen       = m->frozen;
+				item->barrier      = m->barrier;
+				item->last_barrier = m->last_barrier;
+			}
+			/* Frozen rows explain why they are locked in the detail text. */
+			if (item->frozen && !item->last_barrier) {
+				gchar *d = g_strconcat(item->detail, "\n",
+				                       _("Locked by a later opaque step"), NULL);
+				g_free(item->detail);
+				item->detail = d;
+			}
 			g_list_store_append(g_panel->hist_store, item);
 			g_object_unref(item);
 		}
 		g_ptr_array_unref(snap);
 	}
+	g_hash_table_destroy(freeze);
 	gtk_revealer_set_reveal_child(GTK_REVEALER(g_panel->hist_stale_revealer),
 	                              nde_history_is_stale());
 	gtk_widget_set_visible(g_panel->hist_fits_hint,
