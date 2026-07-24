@@ -39,6 +39,7 @@
 #include "filters/ght.h"
 #include "filters/asinh.h"
 #include "filters/scnr.h"
+#include "filters/saturation.h"
 #include "filters/median.h"
 #include "algos/colors.h"
 #include "filters/curve_transform.h"
@@ -566,6 +567,8 @@ static const char *phase1_ids[] = {
 	"stretch.asinh", "filters.scnr", "filters.median", "color.ccm",
 	/* batch 3 — curves, background extraction */
 	"stretch.curves", "bkg.remove_gradient",
+	/* post-phase-3 additions (maintainer-requested coverage) */
+	"color.saturation",
 };
 
 Test(nde_serializers, serializer_set_is_phase1) {
@@ -583,4 +586,23 @@ Test(nde_serializers, serializer_set_is_phase1) {
 		cr_assert(found, "descriptor '%s' has a serializer but is not in the "
 		                 "expected phase-1 set", op->id);
 	}
+}
+
+Test(nde_serializers, saturation_roundtrip) {
+	saturation_params in = { 0 };
+	in.coeff = 0.35;
+	in.background_factor = 1.1;
+	in.h_min = 346.0;
+	in.h_max = 20.0;
+	gchar *blob = op_desc_saturation.serialize(&in);
+	cr_assert_not_null(blob);
+	saturation_params *out = op_desc_saturation.deserialize(blob, op_desc_saturation.version);
+	cr_assert_not_null(out);
+	cr_assert(memcmp(&out->coeff, &in.coeff, sizeof(double)) == 0);
+	cr_assert(memcmp(&out->background_factor, &in.background_factor, sizeof(double)) == 0);
+	cr_assert(memcmp(&out->h_min, &in.h_min, sizeof(double)) == 0);
+	cr_assert(memcmp(&out->h_max, &in.h_max, sizeof(double)) == 0);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_saturation, blob);
+	g_free(blob);
 }
