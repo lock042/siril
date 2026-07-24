@@ -412,6 +412,11 @@ struct pref_struct {
 	                        // whose display buffer fits go eager (no tiling); larger ones
 	                        // use the tiled lazy renderer capped at this many MB resident
 
+	int nde_cache_mb; // DISK budget (MB) for the nondestructive-editing snapshot
+	                  // cache pool (swap files): intermediate states deposited by
+	                  // history-edit replays so successive edits restart near the
+	                  // edit point. 0 disables the pool (correctness unaffected).
+
 	gboolean script_check_requires;	// check the requires command in scripts
 	gboolean pipe_check_requires;	// check the requires command in pipes
 

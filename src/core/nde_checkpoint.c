@@ -19,224 +19,56 @@
  */
 
 /*
- * NDE baseline checkpoint store — see nde_checkpoint.h for the contract and
- * flis-nde-sketch.md §1/§7 for the design.  Baselines are pre-op pixel
- * snapshots kept in delete-on-close swap files, keyed by layer item_id.
+ * NDE checkpoint tables — baselines per layer item and barrier output
+ * checkpoints per record.  Since convergence phase C1
+ * (nde-convergence-plan.md) the pixel payloads live in the shared
+ * refcounted snapshot store (nde_snapstore.[ch]); this module only OWNS
+ * references and keys them.  The public API is unchanged from phase 2.
+ *
+ * Locking: cp_mutex guards the two tables and is a strict LEAF — but
+ * nde_snap_unref() may take the snapstore's own leaf mutex, so releases
+ * follow the STEAL-THEN-UNREF pattern: detach the reference under
+ * cp_mutex, unref after unlocking.  Snapshot creation/reading (swap I/O)
+ * always runs outside cp_mutex.  Table lookups take a reference with the
+ * atomic nde_snap_ref() (no snapstore lock) before unlocking.
+ *
+ * Tagging: baselines register in the snapstore tag registry as
+ * POST(record 0) of their item; barrier outputs as POST(record_id).  The
+ * registry is how C3's cached-restart resolution finds them alongside
+ * undo-owned and pool snapshots — one lookup path for every source.
  */
-
-#include <stdlib.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <string.h>
-#include <unistd.h>
-#ifdef _WIN32
-#include <windows.h>
-#include <io.h>  /* _get_osfhandle */
-#endif
 
 #include "core/siril.h"
 #include "core/siril_log.h"
+#include "core/nde_snapstore.h"
 #include "core/nde_checkpoint.h"
-#include "io/image_format_fits.h"
 #include "io/image_format_flis.h"
-#include "algos/siril_wcs.h"
 
 /* ======================================================================= */
-/* Factored swap-file storage (flis-nde-sketch.md §7 decision 13)          */
-/*                                                                         */
-/* A clean pair writing/reading a fits' pixel payload + geometry to/from a */
-/* delete-on-close swap file, kept deliberately independent of the         */
-/* checkpoint registry so it can later become the shared snapshot store.   */
-/* Mirrors undo.c's undo_build_swapfile / undo_get_data_* (the statics     */
-/* there are not exported; this is the factored equivalent).               */
+/* Tables (LEAF lock; steal-then-unref for releases)                       */
 /* ======================================================================= */
 
-/* One stored pixel snapshot: an open, delete-on-close fd plus the geometry
- * and metadata needed to reconstruct an equivalent fits on read. */
-typedef struct {
-	int        fd;            /* open swap-file fd; delete-on-close */
-	guint      rx, ry;
-	guint      nchans;
-	data_type  type;
-	wcs_info   wcsdata;
-	wcsprm_t  *wcslib;        /* deep copy; freed with the snapshot */
-	double     focal_length;
-} swap_snapshot;
-
-/* Mark @fd delete-on-close so the swap file vanishes when the fd closes,
- * even on abnormal termination (mirrors undo.c's swap_mark_delete_on_close). */
-static void swap_mark_delete_on_close(int fd, const gchar *path) {
-#ifndef _WIN32
-	(void)fd;
-	(void) g_unlink(path);
-#else
-	(void)path;
-	HANDLE h = (HANDLE)_get_osfhandle(fd);
-	if (h != INVALID_HANDLE_VALUE) {
-		FILE_DISPOSITION_INFO fdi = { .DeleteFile = TRUE };
-		(void) SetFileInformationByHandle(h, FileDispositionInfo, &fdi, sizeof(fdi));
-	}
-#endif
-}
-
-/* Deep-copy @src's pixels + geometry into a fresh delete-on-close swap file.
- * Returns a heap swap_snapshot (free with swap_snapshot_free) or NULL on
- * error.  Performs file I/O only — no lock is taken here. */
-static swap_snapshot *swap_snapshot_write(const fits *src) {
-	if (!src)
-		return NULL;
-	if (src->type != DATA_USHORT && src->type != DATA_FLOAT)
-		return NULL;
-	if ((src->type == DATA_USHORT && !src->data) ||
-	    (src->type == DATA_FLOAT && !src->fdata))
-		return NULL;
-
-	gchar *nameBuff = g_build_filename(com.pref.swap_dir, "siril_ndeb-XXXXXX", NULL);
-#ifndef _WIN32
-	int fd = g_mkstemp(nameBuff);
-#else
-	int fd = g_mkstemp_full(nameBuff, _O_RDWR | _O_CREAT | _O_EXCL | _O_BINARY | _O_TEMPORARY,
-	    _S_IREAD | _S_IWRITE);
-#endif
-	if (fd < 0) {
-		siril_log_error(_("File I/O Error: Unable to create checkpoint swap file in %s: [%s]\n"),
-		                com.pref.swap_dir, strerror(errno));
-		g_free(nameBuff);
-		return NULL;
-	}
-	swap_mark_delete_on_close(fd, nameBuff);
-	g_free(nameBuff);
-
-	size_t n = (size_t)src->naxes[0] * src->naxes[1] * src->naxes[2];
-	errno = 0;
-	ssize_t written = -1;
-	if (src->type == DATA_USHORT)
-		written = write(fd, src->data, n * sizeof(WORD));
-	else
-		written = write(fd, src->fdata, n * sizeof(float));
-	if (written < 0) {
-		siril_log_error(_("File I/O Error: Unable to write checkpoint swap file: [%s]\n"),
-		                strerror(errno));
-		g_close(fd, NULL);
-		return NULL;
-	}
-
-	swap_snapshot *s = g_new0(swap_snapshot, 1);
-	s->fd           = fd;
-	s->rx           = src->rx;
-	s->ry           = src->ry;
-	s->nchans       = (guint)src->naxes[2];
-	s->type         = src->type;
-	s->wcsdata      = src->keywords.wcsdata;
-	s->wcslib       = NULL;
-	if (src->keywords.wcslib) {
-		int wstatus = -1;
-		s->wcslib = wcs_deepcopy(src->keywords.wcslib, &wstatus);
-		if (wstatus)
-			siril_log_debug("nde checkpoint: could not copy wcslib struct\n");
-	}
-	s->focal_length = src->keywords.focal_length;
-	return s;
-}
-
-/* Reconstruct a fully-owned fits from @s (caller clearfits()+frees).  Reads
- * the swap file back bit-exactly.  File I/O only — no lock is taken. */
-static fits *swap_snapshot_read(const swap_snapshot *s) {
-	if (!s)
-		return NULL;
-	fits *out = NULL;
-	if (new_fit_image(&out, (int)s->rx, (int)s->ry, (int)s->nchans, s->type))
-		return NULL;
-
-	size_t n = (size_t)s->rx * s->ry * s->nchans;
-	size_t bytes = n * (s->type == DATA_USHORT ? sizeof(WORD) : sizeof(float));
-	void *dst = (s->type == DATA_USHORT) ? (void *)out->data : (void *)out->fdata;
-
-	if (lseek(s->fd, 0, SEEK_SET) == (off_t)-1) {
-		siril_log_error(_("nde checkpoint: error seeking swap file: [%s]\n"), strerror(errno));
-		clearfits(out);
-		free(out);
-		return NULL;
-	}
-	errno = 0;
-	if (read(s->fd, dst, bytes) < (ssize_t)bytes) {
-		siril_log_error(_("nde checkpoint: read failed with error [%s]\n"), strerror(errno));
-		clearfits(out);
-		free(out);
-		return NULL;
-	}
-
-	memcpy(&out->keywords.wcsdata, &s->wcsdata, sizeof(wcs_info));
-	free_wcs(out);
-	if (s->wcslib) {
-		int wstatus = -1;
-		out->keywords.wcslib = wcs_deepcopy(s->wcslib, &wstatus);
-		if (wstatus)
-			siril_log_debug("nde checkpoint: could not copy wcslib struct\n");
-	} else {
-		reset_wcsdata(out);
-	}
-	out->keywords.focal_length = s->focal_length;
-	return out;
-}
-
-static void swap_snapshot_free(swap_snapshot *s) {
-	if (!s)
-		return;
-	if (s->fd >= 0)
-		g_close(s->fd, NULL);   /* delete-on-close removes the file */
-	if (s->wcslib) {
-		wcsfree(s->wcslib);
-		free(s->wcslib);
-	}
-	g_free(s);
-}
-
-/* ======================================================================= */
-/* Registry (LEAF lock — never held across the swap I/O above)             */
-/* ======================================================================= */
-
-/* item_id (GINT_TO_POINTER) -> swap_snapshot*.  Guarded by cp_mutex, which
- * is a strict leaf: swap_snapshot_write/read/free (file I/O, fits copies)
- * all run OUTSIDE the lock; only the hash-table pointer op is inside. */
 static GMutex      cp_mutex;
-static GHashTable *cp_table;   /* created lazily */
+static GHashTable *cp_table;    /* item_id (GINT_TO_POINTER) -> nde_snap* (ref held) */
+static GHashTable *out_table;   /* gint64* (owned key) -> nde_snap* (ref held) */
 
-static void cp_table_ensure_locked(void) {
+static void cp_tables_ensure_locked(void) {
 	if (!cp_table)
 		cp_table = g_hash_table_new_full(g_direct_hash, g_direct_equal,
-		                                 NULL, (GDestroyNotify)swap_snapshot_free);
-}
-
-/* Output-checkpoint table (phase-4 barriers): record_id -> post-op pixels.
- * Declared here because drop/purge below cover both tables. */
-typedef struct {
-	swap_snapshot *snap;
-	gint item_id;      /* owning layer, for drop-by-layer */
-} output_ckpt;
-
-/* gint64* (owned) -> output_ckpt*.  Shares cp_mutex (still a strict leaf:
- * swap I/O runs outside it, exactly like the baseline table). */
-static GHashTable *out_table;
-
-static void output_ckpt_free(gpointer p) {
-	output_ckpt *c = p;
-	swap_snapshot_free(c->snap);
-	g_free(c);
-}
-
-static void out_table_ensure_locked(void) {
+		                                 NULL, NULL /* values unref'd manually */);
 	if (!out_table)
 		out_table = g_hash_table_new_full(g_int64_hash, g_int64_equal,
-		                                  g_free, output_ckpt_free);
+		                                  g_free, NULL /* values unref'd manually */);
 }
 
+/* ======================================================================= */
+/* Baselines                                                               */
+/* ======================================================================= */
 
 void nde_checkpoint_baseline_ensure(const fits *pre, gint item_id) {
 	if (!pre)
 		return;
-	/* Fast path: bail without any copy if a baseline already exists.  The
-	 * table lookup takes the leaf lock only. */
+	/* Fast path: bail without any copy if a baseline already exists. */
 	g_mutex_lock(&cp_mutex);
 	gboolean exists = cp_table &&
 	    g_hash_table_contains(cp_table, GINT_TO_POINTER(item_id));
@@ -244,19 +76,19 @@ void nde_checkpoint_baseline_ensure(const fits *pre, gint item_id) {
 	if (exists)
 		return;
 
-	/* Prepare the (expensive) swap copy OUTSIDE the lock. */
-	swap_snapshot *s = swap_snapshot_write(pre);
+	/* Prepare the (expensive) snapshot OUTSIDE the lock. */
+	nde_snap *s = nde_snap_create(pre);
 	if (!s)
 		return;
+	nde_snap_set_tag(s, item_id, 0, TRUE);   /* baseline = POST(0) */
 
-	/* Re-check under the lock: another thread may have won the race between
-	 * our exists check and here.  First writer keeps its snapshot; the loser
-	 * frees its own — the baseline must reflect the pre-FIRST-op pixels. */
+	/* Re-check under the lock: first writer keeps its snapshot — the
+	 * baseline must reflect the pre-FIRST-op pixels. */
 	g_mutex_lock(&cp_mutex);
-	cp_table_ensure_locked();
+	cp_tables_ensure_locked();
 	if (g_hash_table_contains(cp_table, GINT_TO_POINTER(item_id))) {
 		g_mutex_unlock(&cp_mutex);
-		swap_snapshot_free(s);
+		nde_snap_unref(s);
 		return;
 	}
 	g_hash_table_insert(cp_table, GINT_TO_POINTER(item_id), s);
@@ -266,31 +98,33 @@ void nde_checkpoint_baseline_ensure(const fits *pre, gint item_id) {
 void nde_checkpoint_baseline_adopt(const fits *src, gint item_id) {
 	if (!src)
 		return;
-	/* Prepare the copy outside the lock. */
-	swap_snapshot *s = swap_snapshot_write(src);
+	nde_snap *s = nde_snap_create(src);   /* outside the lock */
 	if (!s)
 		return;
+	nde_snap_set_tag(s, item_id, 0, TRUE);
+	nde_snap *old = NULL;
 	g_mutex_lock(&cp_mutex);
-	cp_table_ensure_locked();
-	/* Overwrite: on load the on-disk baseline is authoritative.  The
-	 * hash table's destroy-func frees any previous snapshot. */
+	cp_tables_ensure_locked();
+	old = g_hash_table_lookup(cp_table, GINT_TO_POINTER(item_id));
+	if (old)
+		g_hash_table_steal(cp_table, GINT_TO_POINTER(item_id));
 	g_hash_table_insert(cp_table, GINT_TO_POINTER(item_id), s);
 	g_mutex_unlock(&cp_mutex);
+	nde_snap_unref(old);   /* on-disk baseline is authoritative on load */
 }
 
 fits *nde_checkpoint_baseline_get(gint item_id) {
-	/* Take a private handle to the snapshot under the lock, then do the
-	 * read OUTSIDE it.  The snapshot cannot be freed underneath us because
-	 * purge/drop only run on the same threads that mutate the document (no
-	 * concurrent free with a live get in the single-slot model), and the
-	 * read only touches the fd + immutable geometry. */
 	g_mutex_lock(&cp_mutex);
-	swap_snapshot *s = cp_table ?
+	nde_snap *s = cp_table ?
 	    g_hash_table_lookup(cp_table, GINT_TO_POINTER(item_id)) : NULL;
+	if (s)
+		nde_snap_ref(s);   /* atomic — no snapstore lock */
 	g_mutex_unlock(&cp_mutex);
 	if (!s)
 		return NULL;
-	return swap_snapshot_read(s);
+	fits *out = nde_snap_read(s);   /* I/O outside the lock */
+	nde_snap_unref(s);
+	return out;
 }
 
 gboolean nde_checkpoint_baseline_exists(gint item_id) {
@@ -301,77 +135,49 @@ gboolean nde_checkpoint_baseline_exists(gint item_id) {
 	return e;
 }
 
-void nde_checkpoint_drop(gint item_id) {
-	g_mutex_lock(&cp_mutex);
-	if (cp_table)
-		g_hash_table_remove(cp_table, GINT_TO_POINTER(item_id));
-	if (out_table) {
-		/* output checkpoints of a dying layer die with it */
-		GHashTableIter it;
-		gpointer k, v;
-		g_hash_table_iter_init(&it, out_table);
-		while (g_hash_table_iter_next(&it, &k, &v)) {
-			output_ckpt *c = v;
-			if (c->item_id == item_id)
-				g_hash_table_iter_remove(&it);
-		}
-	}
-	g_mutex_unlock(&cp_mutex);
-}
-
-void nde_checkpoint_purge(void) {
-	GHashTable *doomed = NULL, *doomed_out = NULL;
-	g_mutex_lock(&cp_mutex);
-	doomed = cp_table;
-	cp_table = NULL;
-	doomed_out = out_table;
-	out_table = NULL;
-	g_mutex_unlock(&cp_mutex);
-	/* Destroy (which closes fds -> deletes files) outside the lock. */
-	if (doomed)
-		g_hash_table_destroy(doomed);
-	if (doomed_out)
-		g_hash_table_destroy(doomed_out);
-}
-
 /* ======================================================================= */
-/* Output checkpoints (phase-4 barriers) — keyed by record_id              */
+/* Output checkpoints (phase-4 barriers)                                   */
 /* ======================================================================= */
 
-void nde_checkpoint_output_store(const fits *post, gint64 record_id, gint item_id) {
-	if (!post || record_id <= 0)
+static void output_insert(const fits *src, gint64 record_id, gint item_id) {
+	if (!src || record_id <= 0)
 		return;
-	swap_snapshot *s = swap_snapshot_write(post);   /* outside the lock */
+	nde_snap *s = nde_snap_create(src);   /* outside the lock */
 	if (!s)
 		return;
-	output_ckpt *c = g_new0(output_ckpt, 1);
-	c->snap = s;
-	c->item_id = item_id;
+	nde_snap_set_tag(s, item_id, record_id, TRUE);
 	gint64 *key = g_new(gint64, 1);
 	*key = record_id;
+	nde_snap *old = NULL;
+	gpointer old_key = NULL;
 	g_mutex_lock(&cp_mutex);
-	out_table_ensure_locked();
-	g_hash_table_insert(out_table, key, c);   /* overwrite = refresh */
+	cp_tables_ensure_locked();
+	g_hash_table_steal_extended(out_table, &record_id, &old_key, (gpointer *)&old);
+	g_hash_table_insert(out_table, key, s);
 	g_mutex_unlock(&cp_mutex);
+	g_free(old_key);
+	nde_snap_unref(old);   /* NULL-safe */
+}
+
+void nde_checkpoint_output_store(const fits *post, gint64 record_id, gint item_id) {
+	output_insert(post, record_id, item_id);
 }
 
 void nde_checkpoint_output_adopt(const fits *src, gint64 record_id, gint item_id) {
-	/* Same as store(): overwrite is exactly the adopt semantics.  Kept as a
-	 * named entry point mirroring nde_checkpoint_baseline_adopt so the loader
-	 * reads clearly (on-disk checkpoint is authoritative on load). */
-	nde_checkpoint_output_store(src, record_id, item_id);
+	output_insert(src, record_id, item_id);
 }
 
 fits *nde_checkpoint_output_get(gint64 record_id) {
 	g_mutex_lock(&cp_mutex);
-	output_ckpt *c = out_table ?
-	    g_hash_table_lookup(out_table, &record_id) : NULL;
-	swap_snapshot *s = c ? c->snap : NULL;
+	nde_snap *s = out_table ? g_hash_table_lookup(out_table, &record_id) : NULL;
+	if (s)
+		nde_snap_ref(s);
 	g_mutex_unlock(&cp_mutex);
 	if (!s)
 		return NULL;
-	return swap_snapshot_read(s);   /* outside the lock, same rationale as
-	                                 * nde_checkpoint_baseline_get */
+	fits *out = nde_snap_read(s);
+	nde_snap_unref(s);
+	return out;
 }
 
 gboolean nde_checkpoint_output_exists(gint64 record_id) {
@@ -382,10 +188,79 @@ gboolean nde_checkpoint_output_exists(gint64 record_id) {
 }
 
 void nde_checkpoint_output_drop(gint64 record_id) {
+	nde_snap *old = NULL;
+	gpointer old_key = NULL;
 	g_mutex_lock(&cp_mutex);
 	if (out_table)
-		g_hash_table_remove(out_table, &record_id);
+		g_hash_table_steal_extended(out_table, &record_id, &old_key, (gpointer *)&old);
 	g_mutex_unlock(&cp_mutex);
+	g_free(old_key);
+	nde_snap_unref(old);
+}
+
+/* ======================================================================= */
+/* Drop / purge                                                            */
+/* ======================================================================= */
+
+void nde_checkpoint_drop(gint item_id) {
+	GPtrArray *doomed = g_ptr_array_new();
+	GPtrArray *doomed_keys = g_ptr_array_new_with_free_func(g_free);
+	g_mutex_lock(&cp_mutex);
+	if (cp_table) {
+		nde_snap *s = g_hash_table_lookup(cp_table, GINT_TO_POINTER(item_id));
+		if (s) {
+			g_hash_table_steal(cp_table, GINT_TO_POINTER(item_id));
+			g_ptr_array_add(doomed, s);
+		}
+	}
+	if (out_table) {
+		/* Output checkpoints of the dying layer die with it.  The owning
+		 * item is carried in the snapstore tag, set before insertion and
+		 * immutable afterwards — safe to read here. */
+		GHashTableIter it;
+		gpointer k, v;
+		g_hash_table_iter_init(&it, out_table);
+		while (g_hash_table_iter_next(&it, &k, &v)) {
+			nde_snap *s = v;
+			gint tag_item;
+			if (nde_snap_tag_get(s, &tag_item, NULL, NULL) && tag_item == item_id) {
+				g_ptr_array_add(doomed, s);
+				g_ptr_array_add(doomed_keys, k);
+				g_hash_table_iter_steal(&it);
+			}
+		}
+	}
+	g_mutex_unlock(&cp_mutex);
+	for (guint i = 0; i < doomed->len; i++)
+		nde_snap_unref(g_ptr_array_index(doomed, i));
+	g_ptr_array_unref(doomed);
+	g_ptr_array_unref(doomed_keys);   /* frees the stolen gint64 keys */
+}
+
+void nde_checkpoint_purge(void) {
+	GHashTable *t1 = NULL, *t2 = NULL;
+	g_mutex_lock(&cp_mutex);
+	t1 = cp_table;
+	cp_table = NULL;
+	t2 = out_table;
+	out_table = NULL;
+	g_mutex_unlock(&cp_mutex);
+	if (t1) {
+		GHashTableIter it;
+		gpointer k, v;
+		g_hash_table_iter_init(&it, t1);
+		while (g_hash_table_iter_next(&it, &k, &v))
+			nde_snap_unref(v);
+		g_hash_table_destroy(t1);
+	}
+	if (t2) {
+		GHashTableIter it;
+		gpointer k, v;
+		g_hash_table_iter_init(&it, t2);
+		while (g_hash_table_iter_next(&it, &k, &v))
+			nde_snap_unref(v);
+		g_hash_table_destroy(t2);
+	}
 }
 
 gint nde_checkpoint_active_item_id(void) {
