@@ -172,7 +172,7 @@ void on_button_bkg_neutralization_clicked(GtkButton *button, gpointer user_data)
 	background_neutralize(gfit, black_selection);
 	gint64 rid = nde_capture_opaque("color.background_neutralization",
 			NDE_SCOPE_LAYER, nde_active_layer_target(),
-			_("Background neutralization"));
+			_("Background neutralization"), gfit);
 	if (!undo_err)
 		undo_tag_top_nde_record(rid);
 	populate_roi();
@@ -307,7 +307,7 @@ void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) 
 	nde_checkpoint_baseline_ensure(gfit, nde_active_layer_target());
 	white_balance(gfit, is_manual, white_selection, black_selection);
 	gint64 rid = nde_capture_opaque("color.calibration", NDE_SCOPE_LAYER,
-			nde_active_layer_target(), _("Color Calibration"));
+			nde_active_layer_target(), _("Color Calibration"), gfit);
 	if (!undo_err)
 		undo_tag_top_nde_record(rid);
 
@@ -366,7 +366,7 @@ void negative_processing() {
 	nde_checkpoint_baseline_ensure(gfit, nde_active_layer_target());
 	pos_to_neg(gfit);
 	gint64 rid = nde_capture_from_descriptor(&op_desc_neg, NULL,
-			_("Negative Transformation"));
+			_("Negative Transformation"), gfit);
 	if (!undo_err)
 		undo_tag_top_nde_record(rid);
 	invalidate_stats_from_fit(gfit);

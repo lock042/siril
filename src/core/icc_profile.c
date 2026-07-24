@@ -1895,7 +1895,7 @@ int icc_convert_to_hook(struct generic_img_args *gargs, fits *fit, int threads) 
 	 * must leave provenance; that exclusion exists for undo cost only
 	 * (sketch §13.1).  icc.convert is serializer-less → Tier B. */
 	if (!gargs->for_preview && gargs->fit == gfit) {
-		gint64 rid = nde_capture_from_descriptor(&op_desc_icc_convert, NULL, summary);
+		gint64 rid = nde_capture_from_descriptor(&op_desc_icc_convert, NULL, summary, fit);
 		if (save_undo && !undo_err)
 			undo_tag_top_nde_record(rid);
 	}

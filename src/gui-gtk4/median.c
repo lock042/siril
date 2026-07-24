@@ -155,7 +155,12 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 			 * pre-op whole-image pixels into gfit — the baseline for this item.
 			 * The full-image (non-ROI) path is baselined by the worker itself. */
 			nde_checkpoint_baseline_ensure(gfit, nde_checkpoint_active_item_id());
-			rid = nde_capture_from_descriptor(&op_desc_median, params, summary);
+			/* No output checkpoint (post == NULL): at this point gfit holds
+			 * the PRE-op pixels (copy_backup_to_gfit above); the ROI median
+			 * runs in the worker below.  Median is Tier A with no mask here,
+			 * so it is not a barrier and post is ignored anyway — but pass
+			 * NULL to stay correct should a mask ever make it a barrier. */
+			rid = nde_capture_from_descriptor(&op_desc_median, params, summary, NULL);
 		}
 		if (!undo_save_state(gfit, "%s", summary) && gui.roi.active)
 			undo_tag_top_nde_record(rid);

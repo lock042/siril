@@ -355,6 +355,13 @@ void nde_checkpoint_output_store(const fits *post, gint64 record_id, gint item_i
 	g_mutex_unlock(&cp_mutex);
 }
 
+void nde_checkpoint_output_adopt(const fits *src, gint64 record_id, gint item_id) {
+	/* Same as store(): overwrite is exactly the adopt semantics.  Kept as a
+	 * named entry point mirroring nde_checkpoint_baseline_adopt so the loader
+	 * reads clearly (on-disk checkpoint is authoritative on load). */
+	nde_checkpoint_output_store(src, record_id, item_id);
+}
+
 fits *nde_checkpoint_output_get(gint64 record_id) {
 	g_mutex_lock(&cp_mutex);
 	output_ckpt *c = out_table ?

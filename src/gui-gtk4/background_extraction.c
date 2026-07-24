@@ -486,7 +486,7 @@ void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
 			if (nde_base)
 				nde_checkpoint_baseline_ensure(nde_base, nde_checkpoint_active_item_id());
 			gint64 rid = nde_capture_from_descriptor(&op_desc_remove_gradient,
-					&applied, summary);
+					&applied, summary, gfit);
 			if (!undo_save_state(get_preview_gfit_backup(), "%s", summary))
 				undo_tag_top_nde_record(rid);
 			g_free(summary);

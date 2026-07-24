@@ -781,7 +781,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 			if (lay) target = lay->item_id;
 		}
 		nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, target,
-		                   _("Python script pixel update"));
+		                   _("Python script pixel update"), fit);
 	}
 
 	// In all cases we have now finished with the shm and closed and unlinked it.
@@ -968,7 +968,7 @@ gboolean handle_set_image_mask_request(Connection *conn, fits *fit, incoming_ima
 			if (lay) target = lay->item_id;
 		}
 		nde_capture_opaque("python.set_mask", NDE_SCOPE_LAYER, target,
-		                   _("Python script mask update"));
+		                   _("Python script mask update"), fit);
 	}
 
 	// In all cases we have now finished with the shm and closed and unlinked it.

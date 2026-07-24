@@ -1878,7 +1878,18 @@ the_end:;
 		 * no-op if one already exists.  Prepared outside the leaf mutex. */
 		if (orig)
 			nde_checkpoint_baseline_ensure(orig, rec->target_item_id);
+		/* Barrier detection BEFORE append takes ownership of rec. */
+		gboolean nde_barrier = rec->tier == NDE_TIER_B ||
+				(rec->tier == NDE_TIER_A && rec->mask_active);
+		gint nde_target = rec->target_item_id;
 		nde_rec_id = nde_history_append(rec);
+		/* Output checkpoint (nde phase 4 P4.3): a barrier record stores its
+		 * POST-op pixels as the restart point that keeps the tail editable.
+		 * After the swap, gfit holds the post-op pixels (this block already
+		 * runs post-swap).  Stored OUTSIDE the history leaf mutex (append has
+		 * unlocked) and the stack writer lock (released above). */
+		if (nde_rec_id > 0 && nde_barrier)
+			nde_checkpoint_output_store(gfit, nde_rec_id, nde_target);
 		nde_history_notify_panel();
 	}
 

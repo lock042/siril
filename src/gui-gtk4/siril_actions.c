@@ -1039,7 +1039,7 @@ static void rgb_align_and_capture(int method, int undo_err, const char *summary)
 	if (rgb_align(method))
 		return;   /* failure: pixels unchanged, no provenance */
 	gint64 rid = nde_capture_opaque("color.rgb_align", NDE_SCOPE_LAYER,
-			target, summary);
+			target, summary, gfit);
 	if (!undo_err)
 		undo_tag_top_nde_record(rid);
 }

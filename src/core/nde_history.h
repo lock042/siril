@@ -48,6 +48,11 @@
 extern "C" {
 #endif
 
+/* The image type is `fits` (typedef of `struct ffit` in siril.h); forward-
+ * declare the tag so this header stays light (includers pull in siril.h). */
+struct ffit;
+typedef struct ffit fits;
+
 typedef enum {
 	NDE_SCOPE_LAYER    = 0,  /* affects the target layer's pixels only */
 	NDE_SCOPE_CANVAS   = 1,  /* changes canvas/layer geometry (crop, resample...) */
@@ -195,9 +200,15 @@ gint64 nde_capture_structural(const char *op_id, gint scope,
  * record id.  For mutations recorded for provenance only, with no replayable
  * parameters (python pixel/mask writes — sketch §13.2).  @summary and @op_id
  * are copied.  Same success-only capture discipline as nde_capture_structural.
+ *
+ * @post (may be NULL) is the POST-op image at capture: an opaque record is a
+ * barrier, so when @post is non-NULL its pixels are stored as the record's
+ * output checkpoint (the restart point that keeps the tail editable —
+ * nde-phase4 P4.3).  Pass NULL when no post-op image is available.
  */
 gint64 nde_capture_opaque(const char *op_id, gint scope,
-                          gint target_item_id, const char *summary);
+                          gint target_item_id, const char *summary,
+                          const fits *post);
 
 /**
  * Build+append a record for a descriptor-identified operation applied
@@ -209,10 +220,16 @@ gint64 nde_capture_opaque(const char *op_id, gint scope,
  * document.  Same success-only discipline: call it only once the pixels
  * have actually changed, right before saving the operation's undo entry,
  * and couple with undo_tag_top_nde_record() when that save succeeds.
+ *
+ * @post (may be NULL) is the POST-op image at capture: when the resolved
+ * record is a barrier (Tier B, or Tier A with a mask active) and @post is
+ * non-NULL, its pixels are stored as the record's output checkpoint
+ * (nde-phase4 P4.3).  Tier-A records without a mask ignore @post.
  */
 struct op_descriptor;
 gint64 nde_capture_from_descriptor(const struct op_descriptor *op,
-                                   gconstpointer params, const char *summary);
+                                   gconstpointer params, const char *summary,
+                                   const fits *post);
 
 /** Heap ISO 8601 UTC timestamp, matching FLIS layer CREATED/MODIFIED style. */
 gchar *nde_iso8601_now(void);

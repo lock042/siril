@@ -307,7 +307,7 @@ Test(nde_history, capture_structural_fills_fields_and_monotonic) {
 
 Test(nde_history, capture_opaque_is_tier_b_null_params) {
 	gint64 id = nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, 3,
-	                               "Python script pixel update");
+	                               "Python script pixel update", NULL);
 	cr_assert_eq(id, 1);
 	GPtrArray *snap = nde_history_snapshot(NULL);
 	nde_record *r = g_ptr_array_index(snap, 0);
@@ -377,7 +377,7 @@ Test(nde_history, capture_from_descriptor) {
 	/* Tier A: a descriptor with a serializer (crop is POD) */
 	struct crop_args ca = { 0 };
 	ca.area.x = 1; ca.area.y = 2; ca.area.w = 30; ca.area.h = 40;
-	gint64 id = nde_capture_from_descriptor(&op_desc_crop, &ca, "crop it");
+	gint64 id = nde_capture_from_descriptor(&op_desc_crop, &ca, "crop it", NULL);
 	cr_assert(id > 0);
 
 	GPtrArray *snap = nde_history_snapshot(NULL);
@@ -400,7 +400,7 @@ Test(nde_history, capture_from_descriptor) {
 		if (!all[i]->serialize)
 			opaque = all[i];
 	cr_assert_not_null(opaque, "expected at least one serializer-less descriptor");
-	id = nde_capture_from_descriptor(opaque, NULL, "opaque op");
+	id = nde_capture_from_descriptor(opaque, NULL, "opaque op", NULL);
 	cr_assert(id > 0);
 	snap = nde_history_snapshot(NULL);
 	rec = g_ptr_array_index(snap, snap->len - 1);

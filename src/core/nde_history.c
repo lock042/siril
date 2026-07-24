@@ -406,14 +406,31 @@ void nde_history_notify_panel(void) {
 /* Capture-site helpers                                                    */
 /* ======================================================================= */
 
+/* TRUE when @rec is a barrier: a live chain-member record that cannot be
+ * replayed — Tier B, or Tier A with a mask active at capture (nde-phase4
+ * plan "barrier model").  Barriers store their POST-op pixels as an output
+ * checkpoint so everything after them stays editable. */
+static gboolean record_is_barrier(const nde_record *rec) {
+	return rec->tier == NDE_TIER_B ||
+	       (rec->tier == NDE_TIER_A && rec->mask_active);
+}
+
 /* Shared tail for the one-call capture helpers: fill timestamp/impl, append
  * (which takes ownership and assigns the id) and notify the panel.  @rec is
- * fully owned; on no-document the append frees it and returns 0. */
-static gint64 capture_finish(nde_record *rec, const char *summary) {
+ * fully owned; on no-document the append frees it and returns 0.  When @post
+ * is non-NULL and the record is a barrier, store its POST-op pixels as the
+ * record's output checkpoint (nde-phase4 P4.3) — done AFTER append so the id
+ * is assigned, and OUTSIDE the history mutex (append has already unlocked). */
+static gint64 capture_finish(nde_record *rec, const char *summary,
+                             const fits *post) {
 	rec->summary   = g_strdup(summary);
 	rec->timestamp = nde_iso8601_now();
 	rec->impl      = nde_impl_string();
+	gboolean barrier   = record_is_barrier(rec);
+	gint     target_id = rec->target_item_id;
 	gint64 id = nde_history_append(rec);   /* takes ownership */
+	if (id > 0 && barrier && post)
+		nde_checkpoint_output_store(post, id, target_id);
 	nde_history_notify_panel();
 	return id;
 }
@@ -428,11 +445,14 @@ gint64 nde_capture_structural(const char *op_id, gint scope,
 	rec->target_item_id = target_item_id;
 	rec->tier           = NDE_TIER_A;
 	rec->params         = params;   /* ownership transferred */
-	return capture_finish(rec, summary);
+	/* Structural records are not chain members — never a barrier, no
+	 * checkpoint (post == NULL). */
+	return capture_finish(rec, summary, NULL);
 }
 
 gint64 nde_capture_opaque(const char *op_id, gint scope,
-                          gint target_item_id, const char *summary) {
+                          gint target_item_id, const char *summary,
+                          const fits *post) {
 	nde_record *rec = nde_record_new();
 	rec->op_id          = g_strdup(op_id);
 	rec->op_version     = 1;
@@ -440,11 +460,12 @@ gint64 nde_capture_opaque(const char *op_id, gint scope,
 	rec->target_item_id = target_item_id;
 	rec->tier           = NDE_TIER_B;
 	rec->params         = NULL;
-	return capture_finish(rec, summary);
+	return capture_finish(rec, summary, post);
 }
 
 gint64 nde_capture_from_descriptor(const op_descriptor *op,
-                                   gconstpointer params, const char *summary) {
+                                   gconstpointer params, const char *summary,
+                                   const fits *post) {
 	g_return_val_if_fail(op != NULL, 0);
 	nde_record *rec = nde_record_new();
 	gboolean tier_a = op->serialize != NULL;
@@ -459,7 +480,7 @@ gint64 nde_capture_from_descriptor(const op_descriptor *op,
 		rec->target_item_id = lay ? lay->item_id : -1;
 	}
 	rec->mask_active = gfit && gfit->mask && gfit->mask_active;
-	return capture_finish(rec, summary);
+	return capture_finish(rec, summary, post);
 }
 
 gchar *nde_iso8601_now(void) {

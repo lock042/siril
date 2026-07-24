@@ -161,7 +161,7 @@ static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 		fits *nde_base = get_preview_gfit_backup();
 		if (nde_base)
 			nde_checkpoint_baseline_ensure(nde_base, nde_checkpoint_active_item_id());
-		gint64 rid = nde_capture_from_descriptor(&op_desc_asinh, &applied, summary);
+		gint64 rid = nde_capture_from_descriptor(&op_desc_asinh, &applied, summary, gfit);
 
 		/* One entry captures the pre-stretch pixels (from the preview
 		 * backup) and the pre-stretch ICC profile together, so a single

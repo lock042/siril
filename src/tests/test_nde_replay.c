@@ -34,6 +34,7 @@
 #include "filters/ght.h"
 #include "filters/scnr.h"
 #include "filters/median.h"
+#include "filters/epf.h"
 #include "filters/curve_transform.h"
 #include "algos/colors.h"
 #include "algos/background_extraction.h"
@@ -120,8 +121,8 @@ Test(nde_replay, chain_replays_bit_exact) {
 	nde_checkpoint_baseline_ensure(f, -1);
 	struct mirror_args ma = { 0 };
 	ma.x_axis = TRUE;
-	cr_assert(nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m1") > 0);
-	cr_assert(nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m2") > 0);
+	cr_assert(nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m1", NULL) > 0);
+	cr_assert(nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m2", NULL) > 0);
 
 	nde_chain *chain = nde_chain_build(-1);
 	cr_assert(chain->replayable, "all-Tier-A chain with baseline must be replayable (first reason: %s)",
@@ -164,7 +165,7 @@ Test(nde_replay, chain_blockers_are_reported) {
 
 	/* opaque record → not replayable */
 	nde_checkpoint_baseline_ensure(f, -1);
-	nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, -1, "opaque");
+	nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, -1, "opaque", NULL);
 	nde_chain *chain = nde_chain_build(-1);
 	cr_assert(!chain->replayable);
 	cr_assert_eq(chain->reasons->len, 1);
@@ -189,7 +190,7 @@ Test(nde_replay, chain_blockers_are_reported) {
 
 	/* missing baseline → not replayable */
 	struct mirror_args ma = { 0 };
-	nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m");
+	nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m", NULL);
 	nde_checkpoint_purge();
 	chain = nde_chain_build(-1);
 	cr_assert(!chain->replayable);
@@ -897,7 +898,7 @@ Test(nde_replay, deleting_opaque_record_regains_editability) {
 	gfit->fdata[5] = 0.999f;
 	gfit->fdata[6] = 0.001f;
 	gint64 opaque_id = nde_capture_opaque("python.set_pixeldata",
-	                                      NDE_SCOPE_LAYER, -1, "freehand");
+	                                      NDE_SCOPE_LAYER, -1, "freehand", NULL);
 	cr_assert(opaque_id > 0);
 
 	struct mirror_args *m = calloc(1, sizeof(*m));
@@ -1004,9 +1005,9 @@ Test(nde_replay, document_scope_pixel_ops_block_chains) {
 	fits *f = flis_test_make_mono_fits(8, 8, 0.5f);
 	nde_checkpoint_baseline_ensure(f, -1);
 	struct mirror_args ma = { 0 };
-	nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m");
-	nde_capture_opaque("icc.convert", NDE_SCOPE_DOCUMENT, -1, "Converted profile");
-	nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m2");
+	nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m", NULL);
+	nde_capture_opaque("icc.convert", NDE_SCOPE_DOCUMENT, -1, "Converted profile", NULL);
+	nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m2", NULL);
 
 	nde_chain *chain = nde_chain_build(-1);
 	cr_assert(!chain->replayable,
@@ -1062,11 +1063,13 @@ Test(nde_replay, barrier_checkpoint_enables_tail_editing) {
 	u1->beta = 15.0f; u1->offset = 0.02f; u1->clip_mode = RESCALE;
 	cr_assert_eq(apply_op_real(&op_desc_asinh, u1), 0);
 
-	/* B: opaque freehand + output checkpoint (what P4.3's capture wiring
-	 * will store automatically at every barrier capture) */
+	/* B: opaque freehand + output checkpoint.  P4.3's capture wiring stores
+	 * the checkpoint automatically from the POST-op fits at a barrier
+	 * capture — exercise that path (pass gfit) rather than a manual store. */
 	gfit->fdata[3] = 0.987f;
-	gint64 b_id = nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, -1, "freehand");
-	nde_checkpoint_output_store(gfit, b_id, -1);
+	gint64 b_id = nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, -1, "freehand", gfit);
+	cr_assert(nde_checkpoint_output_exists(b_id),
+	          "barrier capture with a post fits must store an output checkpoint");
 
 	/* A2: asinh(20) */
 	asinh_params *u2 = calloc(1, sizeof(*u2));
@@ -1150,8 +1153,9 @@ Test(nde_replay, non_last_barrier_delete_refused_and_ckpt_less_barrier_blocks) {
 	cr_assert_eq(apply_op_real(&op_desc_mirrorx, m1), 0);   /* A1 */
 
 	gfit->fdata[5] = 0.911f;
-	gint64 b1 = nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, -1, "b1");
-	nde_checkpoint_output_store(gfit, b1, -1);
+	/* b1: barrier capture wires its own output checkpoint from gfit (P4.3). */
+	gint64 b1 = nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, -1, "b1", gfit);
+	cr_assert(nde_checkpoint_output_exists(b1));
 	fits b1_pixels = { 0 };
 	copyfits(gfit, &b1_pixels, CP_DEEPCOPY | CP_ALLOC, -1);
 
@@ -1160,8 +1164,8 @@ Test(nde_replay, non_last_barrier_delete_refused_and_ckpt_less_barrier_blocks) {
 	cr_assert_eq(apply_op_real(&op_desc_mirrorx, m2), 0);   /* A2 */
 
 	gfit->fdata[6] = 0.077f;
-	gint64 b2 = nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, -1, "b2");
-	/* no checkpoint for b2 (a pre-phase-4 capture) */
+	/* b2: pass NULL — simulate a pre-phase-4 capture with no checkpoint. */
+	gint64 b2 = nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, -1, "b2", NULL);
 
 	struct mirror_args *m3 = calloc(1, sizeof(*m3));
 	m3->x_axis = TRUE;
@@ -1210,18 +1214,130 @@ Test(nde_replay, non_last_barrier_delete_refused_and_ckpt_less_barrier_blocks) {
 	golden_teardown(NULL, f);
 }
 
+/* ---------------- P4.3: capture-wiring stores output checkpoints -------- */
+
+/* A barrier capture (Tier B) via nde_capture_opaque with a POST fits stores
+ * an output checkpoint keyed by the returned record id; without a fits it
+ * does not (the pre-phase-4 no-restart-point behaviour). */
+Test(nde_replay, capture_opaque_wires_output_checkpoint) {
+	fits *f = flis_test_make_mono_fits(8, 8, 0.3f);
+	gfit = f;
+	nde_checkpoint_baseline_ensure(f, -1);
+
+	/* with a post fits → checkpoint stored */
+	gint64 b = nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, -1,
+	                              "freehand", f);
+	cr_assert(b > 0);
+	cr_assert(nde_checkpoint_output_exists(b),
+	          "a Tier-B capture with a post fits must store an output checkpoint");
+	/* the stored pixels are the ones we passed */
+	fits *ck = nde_checkpoint_output_get(b);
+	cr_assert_not_null(ck);
+	assert_pixels_bit_exact(ck, f, "opaque-checkpoint");
+	clearfits(ck); free(ck);
+
+	/* without a post fits → no checkpoint (pre-phase-4 barrier) */
+	gint64 b2 = nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, -1,
+	                               "freehand-nockpt", NULL);
+	cr_assert(b2 > 0);
+	cr_assert(!nde_checkpoint_output_exists(b2),
+	          "a Tier-B capture with NULL post must NOT store a checkpoint");
+
+	golden_teardown(NULL, f);
+}
+
+/* A Tier-A capture is not a barrier: it stores no output checkpoint even when
+ * a post fits is supplied.  A Tier-A capture with a mask active IS a barrier
+ * and does store one. */
+Test(nde_replay, capture_tier_a_checkpoint_only_when_mask_active) {
+	fits *f = flis_test_make_mono_fits(8, 8, 0.4f);
+	gfit = f;
+	nde_checkpoint_baseline_ensure(f, -1);
+
+	/* Tier A, no mask → not a barrier → no checkpoint even with a post fits */
+	struct mirror_args ma = { 0 };
+	ma.x_axis = TRUE;
+	gint64 a = nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m", f);
+	cr_assert(a > 0);
+	cr_assert(!nde_checkpoint_output_exists(a),
+	          "a Tier-A capture without a mask is not a barrier — no checkpoint");
+
+	/* Tier A WITH a mask active → barrier → checkpoint stored.  The
+	 * descriptor path reads gfit->mask/mask_active, so install a minimal
+	 * mask (a non-NULL mask_t with mask_active is all the check needs). */
+	cr_assert_null(gfit->mask);
+	gfit->mask = calloc(1, sizeof(mask_t));
+	gfit->mask->bitpix = FLOAT_IMG;
+	gfit->mask->data = calloc((size_t)gfit->rx * gfit->ry, sizeof(float));
+	gfit->mask_active = TRUE;
+
+	gint64 am = nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m-masked", f);
+	cr_assert(am > 0);
+	cr_assert(nde_checkpoint_output_exists(am),
+	          "a Tier-A capture with a mask active is a barrier — checkpoint stored");
+
+	gfit->mask_active = FALSE;
+	free(gfit->mask->data);
+	free(gfit->mask);
+	gfit->mask = NULL;
+
+	golden_teardown(NULL, f);
+}
+
+/* The generic_image_worker capture block stores an output checkpoint for a
+ * serializer-less (Tier B) op applied via the real path.  op_desc_epf (the
+ * edge-preserving filter) has no serialize/deserialize, so it captures as a
+ * barrier; its bilateral variant runs headlessly on a small fixture with no
+ * external inputs.  After the swap gfit holds the post-op pixels, which the
+ * worker must have stored under the fresh record's id. */
+Test(nde_replay, worker_block_stores_checkpoint_for_serializerless_op) {
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	struct epfargs *u = new_epf_args();
+	cr_assert_not_null(u);
+	u->filter      = EP_BILATERAL;
+	u->guidefit    = NULL;
+	u->d           = 0.0;
+	u->sigma_col   = 10.0;
+	u->sigma_space = 8.0;
+	u->mod         = 1.0;
+	cr_assert_eq(apply_op_real(&op_desc_epf, u), 0);
+
+	/* one live record, Tier B (no serializer) */
+	cr_assert_eq(nde_history_live_count(), 1);
+	gint64 rid;
+	{
+		GPtrArray *snap = nde_history_snapshot(NULL);
+		nde_record *rec = g_ptr_array_index(snap, 0);
+		cr_assert_eq(rec->tier, NDE_TIER_B, "epf is serializer-less → Tier B");
+		rid = rec->record_id;
+		g_ptr_array_unref(snap);
+	}
+	/* the worker capture block stored the post-op pixels (== gfit now) */
+	cr_assert(nde_checkpoint_output_exists(rid),
+	          "the worker block must checkpoint a serializer-less barrier op");
+	fits *ck = nde_checkpoint_output_get(rid);
+	cr_assert_not_null(ck);
+	assert_pixels_bit_exact(ck, gfit, "worker-epf-checkpoint");
+	clearfits(ck); free(ck);
+
+	golden_teardown(NULL, f);
+}
+
 Test(nde_replay, truncation_drops_output_checkpoints) {
 	fits *f = flis_test_make_mono_fits(8, 8, 0.5f);
 	gfit = f;
 	nde_checkpoint_baseline_ensure(f, -1);
-	gint64 b = nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, -1, "b");
-	nde_checkpoint_output_store(f, b, -1);
+	/* barrier capture wires the checkpoint from the post fits (P4.3). */
+	gint64 b = nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, -1, "b", f);
 	cr_assert(nde_checkpoint_output_exists(b));
 
 	/* undo the record, then append: the dead tail truncation must drop
 	 * the checkpoint with the record */
 	nde_history_on_undo(b);
-	nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, -1, "b2");
+	nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, -1, "b2", NULL);
 	cr_assert(!nde_checkpoint_output_exists(b),
 	          "truncated records must lose their output checkpoints");
 

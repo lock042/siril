@@ -103,6 +103,14 @@ void nde_checkpoint_purge(void);
 /** Store @post as the output checkpoint of @record_id (overwrites). */
 void nde_checkpoint_output_store(const fits *post, gint64 record_id, gint item_id);
 
+/**
+ * Adopt @src as the output checkpoint of @record_id (owning layer @item_id),
+ * replacing any existing one.  Used by the FLIS loader to install persisted
+ * NDE_CKPT HDUs.  Deep-copies @src to a swap file; @src is NOT taken over
+ * (caller keeps ownership).  Mirrors nde_checkpoint_baseline_adopt.
+ */
+void nde_checkpoint_output_adopt(const fits *src, gint64 record_id, gint item_id);
+
 /** Load a copy of @record_id's output checkpoint (caller clears+frees). */
 fits *nde_checkpoint_output_get(gint64 record_id);
 
