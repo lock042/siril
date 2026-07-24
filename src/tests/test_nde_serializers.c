@@ -44,6 +44,13 @@
 #include "algos/colors.h"
 #include "filters/curve_transform.h"
 #include "algos/background_extraction.h"
+#include "filters/banding.h"
+#include "filters/clahe.h"
+#include "filters/rgradient.h"
+#include "filters/wavelets.h"
+#include "algos/wavelet_denoise.h"
+#include "filters/cosmetic_correction.h"
+#include "filters/nlbayes/call_nlbayes.h"
 
 cominfo com;	// the core data struct
 fits *gfit;	// currently loaded image (a pointer)
@@ -569,6 +576,13 @@ static const char *phase1_ids[] = {
 	"stretch.curves", "bkg.remove_gradient",
 	/* post-phase-3 additions (maintainer-requested coverage) */
 	"color.saturation",
+	/* Opus batch — remaining mechanically-serializable ops */
+	"arith.thresh", "arith.nozero", "arith.ffill", "arith.fill",
+	"arith.offset", "arith.limit", "arith.neg", "arith.fmul",
+	"filters.gauss", "filters.unsharp", "filters.ddp", "filters.denoise",
+	"color.grey_flat", "cfa.fix_xtrans",
+	"filters.banding", "filters.clahe", "filters.cosmetic",
+	"filters.rgradient", "wavelets.atrous",
 };
 
 Test(nde_serializers, serializer_set_is_phase1) {
@@ -604,5 +618,351 @@ Test(nde_serializers, saturation_roundtrip) {
 	cr_assert(memcmp(&out->h_max, &in.h_max, sizeof(double)) == 0);
 	FREE_VIA_DESTRUCTOR(out);
 	CHECK_MALFORMED(&op_desc_saturation, blob);
+	g_free(blob);
+}
+
+/* ------------------------------------------------------------------ *
+ *  Opus batch — remaining mechanically-serializable ops.             *
+ *                                                                    *
+ *  The arith/gauss/unsharp/ddp/denoise/fmul structs are file-local   *
+ *  to command.c, so (as with autoghs_unlinked above) we mirror their *
+ *  POD layout here — the on-disk keys are the contract, not the      *
+ *  struct symbol.  The filter-module ops (banding/clahe/cosmetic/    *
+ *  rgradient/atrous) have public headers and use the real structs.   *
+ * ------------------------------------------------------------------ */
+
+/* command.c: struct thresh_data { destructor; int type; int lo; int hi; } */
+struct t_thresh_data { destructor destroy_fn; int type; int lo; int hi; };
+Test(nde_serializers, thresh_roundtrip) {
+	const op_descriptor *op = op_descriptor_by_id("arith.thresh");
+	cr_assert_not_null(op);
+	struct t_thresh_data in = { 0 };
+	in.type = 2; in.lo = -3; in.hi = 41234;
+	gchar *blob = op->serialize(&in);
+	cr_assert_not_null(blob);
+	struct t_thresh_data *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->type, in.type);
+	cr_assert_eq(out->lo, in.lo);
+	cr_assert_eq(out->hi, in.hi);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(op, blob);
+	g_free(blob);
+}
+
+/* command.c: struct nozero_data { destructor; WORD level; } */
+struct t_nozero_data { destructor destroy_fn; guint16 level; };
+Test(nde_serializers, nozero_roundtrip) {
+	const op_descriptor *op = op_descriptor_by_id("arith.nozero");
+	cr_assert_not_null(op);
+	struct t_nozero_data in = { 0 };
+	in.level = 40000;
+	gchar *blob = op->serialize(&in);
+	cr_assert_not_null(blob);
+	struct t_nozero_data *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->level, in.level);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(op, blob);
+	g_free(blob);
+}
+
+/* command.c: struct ffill_data / fill_data { destructor; int level; rectangle area; } */
+struct t_fill_data { destructor destroy_fn; int level; rectangle area; };
+Test(nde_serializers, ffill_roundtrip) {
+	const op_descriptor *op = op_descriptor_by_id("arith.ffill");
+	cr_assert_not_null(op);
+	struct t_fill_data in = { 0 };
+	in.level = 137;
+	in.area.x = 5; in.area.y = -9; in.area.w = 320; in.area.h = 200;
+	gchar *blob = op->serialize(&in);
+	cr_assert_not_null(blob);
+	struct t_fill_data *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->level, in.level);
+	cr_assert_eq(out->area.x, in.area.x);
+	cr_assert_eq(out->area.y, in.area.y);
+	cr_assert_eq(out->area.w, in.area.w);
+	cr_assert_eq(out->area.h, in.area.h);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(op, blob);
+	g_free(blob);
+}
+
+Test(nde_serializers, fill_roundtrip) {
+	const op_descriptor *op = op_descriptor_by_id("arith.fill");
+	cr_assert_not_null(op);
+	struct t_fill_data in = { 0 };
+	in.level = 65000;
+	in.area.x = 1; in.area.y = 2; in.area.w = 3; in.area.h = 4;
+	gchar *blob = op->serialize(&in);
+	cr_assert_not_null(blob);
+	struct t_fill_data *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->level, in.level);
+	cr_assert_eq(out->area.w, in.area.w);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(op, blob);
+	g_free(blob);
+}
+
+/* command.c: struct offset_data { destructor; float level; } */
+struct t_offset_data { destructor destroy_fn; float level; };
+Test(nde_serializers, offset_roundtrip) {
+	const op_descriptor *op = op_descriptor_by_id("arith.offset");
+	cr_assert_not_null(op);
+	struct t_offset_data in = { 0 };
+	in.level = -12.5f + 0.1f;
+	gchar *blob = op->serialize(&in);
+	cr_assert_not_null(blob);
+	struct t_offset_data *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert(memcmp(&out->level, &in.level, sizeof(float)) == 0);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(op, blob);
+	g_free(blob);
+}
+
+/* command.c: struct limit_data { destroy_fn; OverrangeResponse method; } */
+struct t_limit_data { destructor destroy_fn; OverrangeResponse method; };
+Test(nde_serializers, limit_roundtrip) {
+	const op_descriptor *op = op_descriptor_by_id("arith.limit");
+	cr_assert_not_null(op);
+	struct t_limit_data in = { 0 };
+	in.method = RESPONSE_RESCALE_ALL;   /* 4 */
+	gchar *blob = op->serialize(&in);
+	cr_assert_not_null(blob);
+	struct t_limit_data *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->method, in.method);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(op, blob);
+	g_free(blob);
+}
+
+/* Paramless ops (arith.neg, color.grey_flat, cfa.fix_xtrans, stretch.log):
+ * empty blob is VALID; only a newer version fails. */
+static void check_paramless(const char *id) {
+	const op_descriptor *op = op_descriptor_by_id(id);
+	cr_assert_not_null(op, "%s missing", id);
+	cr_assert_not_null(op->serialize, "%s has no serializer", id);
+	gchar *blob = op->serialize(NULL);
+	cr_assert_not_null(blob);
+	cr_assert_str_eq(blob, "");
+	void *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	FREE_VIA_DESTRUCTOR(out);
+	cr_assert_null(op->deserialize(blob, op->version + 1));
+	g_free(blob);
+}
+
+Test(nde_serializers, neg_paramless)        { check_paramless("arith.neg"); }
+Test(nde_serializers, grey_flat_paramless)  { check_paramless("color.grey_flat"); }
+Test(nde_serializers, fix_xtrans_paramless) { check_paramless("cfa.fix_xtrans"); }
+
+/* command.c: struct fmul_data { destructor; float coeff; gboolean from8b; }
+ * from8b is intentionally NOT serialized (runtime UI-only). */
+struct t_fmul_data { destructor destroy_fn; float coeff; gboolean from8b; };
+Test(nde_serializers, fmul_roundtrip) {
+	const op_descriptor *op = op_descriptor_by_id("arith.fmul");
+	cr_assert_not_null(op);
+	struct t_fmul_data in = { 0 };
+	in.coeff = 2.5f + 0.1f;
+	in.from8b = TRUE;   /* must not affect the blob */
+	gchar *blob = op->serialize(&in);
+	cr_assert_not_null(blob);
+	cr_assert_null(strstr(blob, "from8b"), "from8b must not be serialized");
+	struct t_fmul_data *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert(memcmp(&out->coeff, &in.coeff, sizeof(float)) == 0);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(op, blob);
+	g_free(blob);
+}
+
+/* command.c: struct gauss_data { destructor; double sigma; } */
+struct t_gauss_data { destructor destroy_fn; double sigma; };
+Test(nde_serializers, gauss_roundtrip) {
+	const op_descriptor *op = op_descriptor_by_id("filters.gauss");
+	cr_assert_not_null(op);
+	struct t_gauss_data in = { 0 };
+	in.sigma = 3.0 + 0.1;
+	gchar *blob = op->serialize(&in);
+	cr_assert_not_null(blob);
+	struct t_gauss_data *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert(memcmp(&out->sigma, &in.sigma, sizeof(double)) == 0);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(op, blob);
+	g_free(blob);
+}
+
+/* command.c: struct unsharp_data { destructor; double sigma; double multi; } */
+struct t_unsharp_data { destructor destroy_fn; double sigma; double multi; };
+Test(nde_serializers, unsharp_roundtrip) {
+	const op_descriptor *op = op_descriptor_by_id("filters.unsharp");
+	cr_assert_not_null(op);
+	struct t_unsharp_data in = { 0 };
+	in.sigma = 5.0 + 0.1; in.multi = -0.5 + 0.03125;
+	gchar *blob = op->serialize(&in);
+	cr_assert_not_null(blob);
+	struct t_unsharp_data *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert(memcmp(&out->sigma, &in.sigma, sizeof(double)) == 0);
+	cr_assert(memcmp(&out->multi, &in.multi, sizeof(double)) == 0);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(op, blob);
+	g_free(blob);
+}
+
+/* command.c: struct ddp_data { destructor; float level; float coeff; float sigma; } */
+struct t_ddp_data { destructor destroy_fn; float level; float coeff; float sigma; };
+Test(nde_serializers, ddp_roundtrip) {
+	const op_descriptor *op = op_descriptor_by_id("filters.ddp");
+	cr_assert_not_null(op);
+	struct t_ddp_data in = { 0 };
+	in.level = 100.0f + 0.1f; in.coeff = 1.5f + 0.03125f; in.sigma = 3.0f + 0.1f;
+	gchar *blob = op->serialize(&in);
+	cr_assert_not_null(blob);
+	struct t_ddp_data *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert(memcmp(&out->level, &in.level, sizeof(float)) == 0);
+	cr_assert(memcmp(&out->coeff, &in.coeff, sizeof(float)) == 0);
+	cr_assert(memcmp(&out->sigma, &in.sigma, sizeof(float)) == 0);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(op, blob);
+	g_free(blob);
+}
+
+Test(nde_serializers, denoise_roundtrip) {
+	const op_descriptor *op = op_descriptor_by_id("filters.denoise");
+	cr_assert_not_null(op);
+	denoise_args in = { 0 };
+	in.modulation = 0.75f + 0.03125f;
+	in.sos = 4;
+	in.da3d = 1;
+	in.rho = 0.2f + 0.1f;
+	in.do_anscombe = TRUE;
+	in.do_cosme = FALSE;
+	in.suppress_artefacts = TRUE;
+	gchar *blob = op->serialize(&in);
+	cr_assert_not_null(blob);
+	denoise_args *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert(memcmp(&out->modulation, &in.modulation, sizeof(float)) == 0);
+	cr_assert_eq(out->sos, in.sos);
+	cr_assert_eq(out->da3d, in.da3d);
+	cr_assert(memcmp(&out->rho, &in.rho, sizeof(float)) == 0);
+	cr_assert_eq(out->do_anscombe, in.do_anscombe);
+	cr_assert_eq(out->do_cosme, in.do_cosme);
+	cr_assert_eq(out->suppress_artefacts, in.suppress_artefacts);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(op, blob);
+	g_free(blob);
+}
+
+Test(nde_serializers, banding_roundtrip) {
+	struct banding_data in = { 0 };
+	in.sigma = 2.0 + 0.1;
+	in.amount = 0.5 + 0.03125;
+	in.protect_highlights = TRUE;
+	in.applyRotation = FALSE;
+	gchar *blob = op_desc_banding.serialize(&in);
+	cr_assert_not_null(blob);
+	struct banding_data *out = op_desc_banding.deserialize(blob, op_desc_banding.version);
+	cr_assert_not_null(out);
+	cr_assert(memcmp(&out->sigma, &in.sigma, sizeof(double)) == 0);
+	cr_assert(memcmp(&out->amount, &in.amount, sizeof(double)) == 0);
+	cr_assert_eq(out->protect_highlights, in.protect_highlights);
+	cr_assert_eq(out->applyRotation, in.applyRotation);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_banding, blob);
+	g_free(blob);
+}
+
+Test(nde_serializers, clahe_roundtrip) {
+	clahe_params in = { 0 };
+	in.clip = 2.0 + 0.1;
+	in.tileSize = 16;
+	gchar *blob = op_desc_clahe.serialize(&in);
+	cr_assert_not_null(blob);
+	clahe_params *out = op_desc_clahe.deserialize(blob, op_desc_clahe.version);
+	cr_assert_not_null(out);
+	cr_assert(memcmp(&out->clip, &in.clip, sizeof(double)) == 0);
+	cr_assert_eq(out->tileSize, in.tileSize);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_clahe, blob);
+	g_free(blob);
+}
+
+Test(nde_serializers, cosmetic_roundtrip) {
+	struct cosmetic_data in = { 0 };
+	in.sigma[0] = 3.0 + 0.1; in.sigma[1] = 2.5 + 0.03125;
+	in.amount = 0.8 + 0.1;
+	in.is_cfa = TRUE;
+	gchar *blob = op_desc_cosmetic.serialize(&in);
+	cr_assert_not_null(blob);
+	struct cosmetic_data *out = op_desc_cosmetic.deserialize(blob, op_desc_cosmetic.version);
+	cr_assert_not_null(out);
+	cr_assert(memcmp(&out->sigma[0], &in.sigma[0], sizeof(double)) == 0);
+	cr_assert(memcmp(&out->sigma[1], &in.sigma[1], sizeof(double)) == 0);
+	cr_assert(memcmp(&out->amount, &in.amount, sizeof(double)) == 0);
+	cr_assert_eq(out->is_cfa, in.is_cfa);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_cosmetic, blob);
+	g_free(blob);
+}
+
+Test(nde_serializers, rgradient_roundtrip) {
+	struct rgradient_data in = { 0 };
+	in.xc = 512.5 + 0.1; in.yc = 384.0 + 0.03125;
+	in.dR = 3.0 + 0.1; in.da = -15.0 + 0.03125;
+	gchar *blob = op_desc_rgradient.serialize(&in);
+	cr_assert_not_null(blob);
+	struct rgradient_data *out = op_desc_rgradient.deserialize(blob, op_desc_rgradient.version);
+	cr_assert_not_null(out);
+	cr_assert(memcmp(&out->xc, &in.xc, sizeof(double)) == 0);
+	cr_assert(memcmp(&out->yc, &in.yc, sizeof(double)) == 0);
+	cr_assert(memcmp(&out->dR, &in.dR, sizeof(double)) == 0);
+	cr_assert(memcmp(&out->da, &in.da, sizeof(double)) == 0);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_rgradient, blob);
+	g_free(blob);
+}
+
+Test(nde_serializers, atrous_roundtrip) {
+	struct atrous_data in = { 0 };
+	in.nbr_plan = 5;
+	in.type = 1;
+	in.anscombe = TRUE;
+	for (int i = 0; i < 7; i++)
+		in.coef[i] = 0.5f + (float)i * 0.03125f;
+	in.denoise.enabled = TRUE;
+	in.denoise.method = 2;
+	in.denoise.k = 3.0f + 0.1f;
+	for (int i = 0; i < WD_MAX_PLAN; i++)
+		in.denoise.f[i] = 1.0f + (float)i * 0.03125f;
+	in.denoise.sigma_source = 1;
+	in.denoise.soft = TRUE;
+	in.denoise.anscombe = FALSE;
+	gchar *blob = op_desc_atrous.serialize(&in);
+	cr_assert_not_null(blob);
+	struct atrous_data *out = op_desc_atrous.deserialize(blob, op_desc_atrous.version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->nbr_plan, in.nbr_plan);
+	cr_assert_eq(out->type, in.type);
+	cr_assert_eq(out->anscombe, in.anscombe);
+	for (int i = 0; i < 7; i++)
+		cr_assert(memcmp(&out->coef[i], &in.coef[i], sizeof(float)) == 0);
+	cr_assert_eq(out->denoise.enabled, in.denoise.enabled);
+	cr_assert_eq(out->denoise.method, in.denoise.method);
+	cr_assert(memcmp(&out->denoise.k, &in.denoise.k, sizeof(float)) == 0);
+	for (int i = 0; i < WD_MAX_PLAN; i++)
+		cr_assert(memcmp(&out->denoise.f[i], &in.denoise.f[i], sizeof(float)) == 0);
+	cr_assert_eq(out->denoise.sigma_source, in.denoise.sigma_source);
+	cr_assert_eq(out->denoise.soft, in.denoise.soft);
+	cr_assert_eq(out->denoise.anscombe, in.denoise.anscombe);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_atrous, blob);
 	g_free(blob);
 }

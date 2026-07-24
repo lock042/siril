@@ -139,6 +139,31 @@
  * (included above) and defined at the end of this file, after their static
  * hook functions. */
 
+/* Shared NDE serializer for paramless ops (stretch.log, arith.neg,
+ * color.grey_flat, cfa.fix_xtrans): the hook takes no user parameters and is a
+ * pure function of the input pixels.  serialize emits an empty blob; the
+ * generic paramless deserializer returns a minimal destructor-first heap struct
+ * so replay has a valid (freeable) user pointer, even though the hook ignores
+ * it.  Any blob (including "") is accepted; only a newer format version fails,
+ * which is the version-gated wrapper's job. */
+struct paramless_data { destructor destroy_fn; };
+
+static gchar *paramless_serialize(gconstpointer user) {
+	(void)user;
+	GString *kv = nde_kv_start();
+	return nde_kv_end(kv);   /* "" */
+}
+
+static gpointer paramless_deserialize_v1(const gchar *blob, int version) {
+	if (version > 1)
+		return NULL;
+	(void)blob;   /* no keys required — any blob (incl. "") is accepted */
+	struct paramless_data *d = calloc(1, sizeof(*d));
+	if (d)
+		d->destroy_fn = free;
+	return d;
+}
+
 #define PRINT_DEPRECATED_WARNING(__new_function__) siril_log_error(_("This command is deprecated: %s should be used instead.\n"), __new_function__)
 #define PRINT_DEPRECATED_OPTION_WARNING(__option__, __new_function__) siril_log_error(_("The %s option is deprecated: %s should be used instead.\n"), __option__, __new_function__)
 
@@ -646,6 +671,53 @@ int denoise_image_hook(struct generic_img_args *args, fits *fit, int nb_threads)
 	}
 
 	return retval;
+}
+
+/* NDE serializers for filters.denoise.  The hook reads modulation, sos, da3d,
+ * rho, do_anscombe, do_cosme and suppress_artefacts; fit and previewing are
+ * runtime context and are skipped. */
+static gchar *denoise_serialize(gconstpointer user) {
+	const struct denoise_args *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_float(kv, "modulation", d->modulation);
+	nde_kv_add_int(kv, "sos", d->sos);
+	nde_kv_add_int(kv, "da3d", d->da3d);
+	nde_kv_add_float(kv, "rho", d->rho);
+	nde_kv_add_bool(kv, "do_anscombe", d->do_anscombe);
+	nde_kv_add_bool(kv, "do_cosme", d->do_cosme);
+	nde_kv_add_bool(kv, "suppress_artefacts", d->suppress_artefacts);
+	return nde_kv_end(kv);
+}
+
+static gpointer denoise_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_denoise.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	float modulation, rho;
+	gint64 sos, da3d;
+	gboolean do_anscombe, do_cosme, suppress_artefacts;
+	if (!nde_kv_get_float(kv, "modulation", &modulation) ||
+	    !nde_kv_get_int(kv, "sos", &sos) ||
+	    !nde_kv_get_int(kv, "da3d", &da3d) ||
+	    !nde_kv_get_float(kv, "rho", &rho) ||
+	    !nde_kv_get_bool(kv, "do_anscombe", &do_anscombe) ||
+	    !nde_kv_get_bool(kv, "do_cosme", &do_cosme) ||
+	    !nde_kv_get_bool(kv, "suppress_artefacts", &suppress_artefacts)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct denoise_args *d = new_denoise_args();
+	if (d) {
+		d->modulation = modulation;
+		d->sos = (unsigned int)sos;
+		d->da3d = (int)da3d;
+		d->rho = rho;
+		d->do_anscombe = do_anscombe;
+		d->do_cosme = do_cosme;
+		d->suppress_artefacts = suppress_artefacts;
+	}
+	g_hash_table_unref(kv);
+	return d;
 }
 
 /*****************************************************************************
@@ -1463,6 +1535,35 @@ static gchar *fmul_log_hook(gpointer p, log_hook_detail detail) {
 	return g_strdup_printf(_("Scalar multiplication: factor %.6f"), args->coeff);
 }
 
+/* NDE serializers for arith.fmul.  The hook's pixel math is soper(fit, coeff,
+ * OPER_MUL): only coeff affects output pixels.  from8b is a runtime-derived
+ * flag (the source image was 8-bit) that only triggers slider/stats UI
+ * refresh, not pixel values, so it is not serialized. */
+static gchar *fmul_serialize(gconstpointer user) {
+	const struct fmul_data *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_float(kv, "coeff", d->coeff);
+	return nde_kv_end(kv);
+}
+
+static gpointer fmul_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_fmul.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	float coeff;
+	if (!nde_kv_get_float(kv, "coeff", &coeff)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct fmul_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destructor = free;
+		d->coeff = coeff;
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
+
 // Main command function for fmul
 int process_fmul(int nb) {
 	gchar *end;
@@ -1540,6 +1641,34 @@ static int gauss_image_hook(struct generic_img_args *args, fits *fit, int thread
 static gchar *gauss_log_hook(gpointer p, log_hook_detail detail) {
 	struct gauss_data *data = (struct gauss_data*) p;
 	return g_strdup_printf(_("Gaussian blur: sigma = %f"), data->sigma);
+}
+
+/* NDE serializers for filters.gauss.  The hook reads only sigma
+ * (unsharp(fit, sigma, 0.0, TRUE)); the mask/from8b context is not part of
+ * this struct. */
+static gchar *gauss_serialize(gconstpointer user) {
+	const struct gauss_data *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_double(kv, "sigma", d->sigma);
+	return nde_kv_end(kv);
+}
+
+static gpointer gauss_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_gauss.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	double sigma;
+	if (!nde_kv_get_double(kv, "sigma", &sigma)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct gauss_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destructor = free;
+		d->sigma = sigma;
+	}
+	g_hash_table_unref(kv);
+	return d;
 }
 
 // Main command function for gauss
@@ -2709,6 +2838,35 @@ static int unsharp_cmd_image_hook(struct generic_img_args *args, fits *fit, int 
 static gchar *unsharp_log_hook(gpointer p, log_hook_detail detail) {
 	struct unsharp_data *data = (struct unsharp_data *) p;
 	return g_strdup_printf(_("Unsharp mask: sigma=%f, amount=%f"), data->sigma, data->multi);
+}
+
+/* NDE serializers for filters.unsharp.  The hook reads sigma and multi. */
+static gchar *unsharp_serialize(gconstpointer user) {
+	const struct unsharp_data *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_double(kv, "sigma", d->sigma);
+	nde_kv_add_double(kv, "multi", d->multi);
+	return nde_kv_end(kv);
+}
+
+static gpointer unsharp_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_unsharp.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	double sigma, multi;
+	if (!nde_kv_get_double(kv, "sigma", &sigma) ||
+	    !nde_kv_get_double(kv, "multi", &multi)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct unsharp_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destructor = free;
+		d->sigma = sigma;
+		d->multi = multi;
+	}
+	g_hash_table_unref(kv);
+	return d;
 }
 
 // Main command function for unsharp
@@ -4220,27 +4378,8 @@ static int log_image_hook(struct generic_img_args *args, fits *fit, int threads)
 	return loglut(fit);
 }
 
-/* NDE serializers for stretch.log — a paramless op (args->user is NULL, the
- * hook calls loglut(fit) unconditionally).  serialize emits an empty blob;
- * deserialize returns a minimal destructor-first heap struct so replay has a
- * valid (freeable) user pointer, even though the hook ignores it. */
-struct paramless_data { destructor destroy_fn; };
-
-static gchar *logstretch_serialize(gconstpointer user) {
-	(void)user;
-	GString *kv = nde_kv_start();
-	return nde_kv_end(kv);   /* "" */
-}
-
-static gpointer logstretch_deserialize(const gchar *blob, int version) {
-	if (version > op_desc_logstretch.version)
-		return NULL;
-	(void)blob;   /* no keys required — any blob (incl. "") is accepted */
-	struct paramless_data *d = calloc(1, sizeof(*d));
-	if (d)
-		d->destroy_fn = free;
-	return d;
-}
+/* stretch.log is paramless (args->user is NULL, the hook calls loglut(fit)
+ * unconditionally); it uses the shared paramless serializer pair. */
 
 int process_log(int nb){
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
@@ -7202,6 +7341,39 @@ static gchar *thresh_log_hook(gpointer p, log_hook_detail detail) {
 	return g_strdup_printf(_("Threshold: lo = %d, hi = %d"), args->lo, args->hi);
 }
 
+/* NDE serializers for arith.thresh.  The hook reads type, lo, hi. */
+static gchar *thresh_serialize(gconstpointer user) {
+	const struct thresh_data *d = user;
+	GString *kv = nde_kv_start();
+	/* on-disk value: enum order is frozen by the NDE format — do not reorder */
+	nde_kv_add_int(kv, "type", d->type);
+	nde_kv_add_int(kv, "lo", d->lo);
+	nde_kv_add_int(kv, "hi", d->hi);
+	return nde_kv_end(kv);
+}
+
+static gpointer thresh_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_thresh.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	gint64 type, lo, hi;
+	if (!nde_kv_get_int(kv, "type", &type) ||
+	    !nde_kv_get_int(kv, "lo", &lo) ||
+	    !nde_kv_get_int(kv, "hi", &hi)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct thresh_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destructor = free;
+		d->type = (thresh_type)type;
+		d->lo = (int)lo;
+		d->hi = (int)hi;
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
+
 // Unified threshold processing function
 int process_thresh(int nb) {
 	gboolean mask_aware = FALSE;
@@ -7391,6 +7563,32 @@ static gchar *nozero_log_hook(gpointer p, log_hook_detail detail) {
 	return g_strdup_printf(_("Replace zeros with %d"), args->level);
 }
 
+/* NDE serializers for arith.nozero.  The hook reads level (a WORD). */
+static gchar *nozero_serialize(gconstpointer user) {
+	const struct nozero_data *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_int(kv, "level", d->level);
+	return nde_kv_end(kv);
+}
+
+static gpointer nozero_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_nozero.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	gint64 level;
+	if (!nde_kv_get_int(kv, "level", &level)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct nozero_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destructor = free;
+		d->level = (WORD)level;
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
+
 int process_nozero(int nb) {
 	gchar *end;
 	int level = g_ascii_strtoull(word[1], &end, 10);
@@ -7458,6 +7656,38 @@ static gchar *ddp_log_hook(gpointer p, log_hook_detail detail) {
 		return g_strdup_printf(_("DDP: level %.3f, coeff %.3f, Sigma %.3f"), args->level, args->coeff, args->sigma);
 	}
 	return g_strdup_printf(_("Digital Development Processing: level %.3f, coeff %.3f, Sigma %.3f"), args->level, args->coeff, args->sigma);
+}
+
+/* NDE serializers for filters.ddp.  The hook reads level, coeff, sigma. */
+static gchar *ddp_serialize(gconstpointer user) {
+	const struct ddp_data *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_float(kv, "level", d->level);
+	nde_kv_add_float(kv, "coeff", d->coeff);
+	nde_kv_add_float(kv, "sigma", d->sigma);
+	return nde_kv_end(kv);
+}
+
+static gpointer ddp_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_ddp.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	float level, coeff, sigma;
+	if (!nde_kv_get_float(kv, "level", &level) ||
+	    !nde_kv_get_float(kv, "coeff", &coeff) ||
+	    !nde_kv_get_float(kv, "sigma", &sigma)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct ddp_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destructor = free;
+		d->level = level;
+		d->coeff = coeff;
+		d->sigma = sigma;
+	}
+	g_hash_table_unref(kv);
+	return d;
 }
 
 // Main command function
@@ -7621,6 +7851,41 @@ static int ffill_image_hook(struct generic_img_args *args, fits *fit, int thread
 static gchar *ffill_log_hook(gpointer p, log_hook_detail detail) {
 	struct ffill_data *args = (struct ffill_data*) p;
 	return g_strdup_printf(_("Fill mirrored region with level %d"), args->level);
+}
+
+/* NDE serializers for arith.ffill.  The hook reads level and the area
+ * rectangle (the mirrored region is derived from area at replay time). */
+static gchar *ffill_serialize(gconstpointer user) {
+	const struct ffill_data *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_int(kv, "level", d->level);
+	nde_kv_add_int(kv, "x", d->area.x);
+	nde_kv_add_int(kv, "y", d->area.y);
+	nde_kv_add_int(kv, "w", d->area.w);
+	nde_kv_add_int(kv, "h", d->area.h);
+	return nde_kv_end(kv);
+}
+
+static gpointer ffill_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_ffill.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	gint64 level, x, y, w, h;
+	if (!nde_kv_get_int(kv, "level", &level) ||
+	    !nde_kv_get_int(kv, "x", &x) || !nde_kv_get_int(kv, "y", &y) ||
+	    !nde_kv_get_int(kv, "w", &w) || !nde_kv_get_int(kv, "h", &h)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct ffill_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destructor = free;
+		d->level = (int)level;
+		d->area.x = (int)x; d->area.y = (int)y;
+		d->area.w = (int)w; d->area.h = (int)h;
+	}
+	g_hash_table_unref(kv);
+	return d;
 }
 
 int process_ffill(int nb) {
@@ -8305,6 +8570,41 @@ static gchar *fill_log_hook(gpointer p, log_hook_detail detail) {
 	return g_strdup_printf(_("Fill region with level %d"), args->level);
 }
 
+/* NDE serializers for arith.fill.  The hook reads level and the area
+ * rectangle. */
+static gchar *fill_serialize(gconstpointer user) {
+	const struct fill_data *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_int(kv, "level", d->level);
+	nde_kv_add_int(kv, "x", d->area.x);
+	nde_kv_add_int(kv, "y", d->area.y);
+	nde_kv_add_int(kv, "w", d->area.w);
+	nde_kv_add_int(kv, "h", d->area.h);
+	return nde_kv_end(kv);
+}
+
+static gpointer fill_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_fill.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	gint64 level, x, y, w, h;
+	if (!nde_kv_get_int(kv, "level", &level) ||
+	    !nde_kv_get_int(kv, "x", &x) || !nde_kv_get_int(kv, "y", &y) ||
+	    !nde_kv_get_int(kv, "w", &w) || !nde_kv_get_int(kv, "h", &h)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct fill_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destructor = free;
+		d->level = (int)level;
+		d->area.x = (int)x; d->area.y = (int)y;
+		d->area.w = (int)w; d->area.h = (int)h;
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
+
 int process_fill(int nb) {
 	rectangle area;
 	gchar *end;
@@ -8413,6 +8713,32 @@ static int offset_image_hook(struct generic_img_args *args, fits *fit, int threa
 static gchar *offset_log_hook(gpointer p, log_hook_detail detail) {
 	struct offset_data *args = (struct offset_data*) p;
 	return g_strdup_printf(_("Offset: %.0f"), args->level);
+}
+
+/* NDE serializers for arith.offset.  The hook reads level (a float). */
+static gchar *offset_serialize(gconstpointer user) {
+	const struct offset_data *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_float(kv, "level", d->level);
+	return nde_kv_end(kv);
+}
+
+static gpointer offset_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_offset.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	float level;
+	if (!nde_kv_get_float(kv, "level", &level)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct offset_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destructor = free;
+		d->level = level;
+	}
+	g_hash_table_unref(kv);
+	return d;
 }
 
 int process_offset(int nb) {
@@ -14674,6 +15000,35 @@ static gchar *limit_log_hook(gpointer p, log_hook_detail detail) {
 	return g_strdup_printf(_("Limit pixels (%s)"), method_str);
 }
 
+/* NDE serializers for arith.limit.  The hook reads method (an
+ * OverrangeResponse enum); the actual clip range is measured from the image at
+ * apply time. */
+static gchar *limit_serialize(gconstpointer user) {
+	const struct limit_data *d = user;
+	GString *kv = nde_kv_start();
+	/* on-disk value: enum order is frozen by the NDE format — do not reorder */
+	nde_kv_add_int(kv, "method", d->method);
+	return nde_kv_end(kv);
+}
+
+static gpointer limit_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_limit.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	gint64 method;
+	if (!nde_kv_get_int(kv, "method", &method)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct limit_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destroy_fn = free;
+		d->method = (OverrangeResponse)method;
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
+
 int process_limit(int nb) {
 	if (nb != 2)
 		return CMD_WRONG_N_ARG;
@@ -17870,16 +18225,19 @@ const op_descriptor op_desc_denoise = {
 	.id = "filters.denoise", .version = 1, .image_hook = denoise_image_hook,
 	.log_hook = denoise_log_hook, .description = N_("NL-Bayes Denoising"),
 	.mem_ratio = 3.0f, .flags = OP_MASK_CAPABLE,
+	.serialize = denoise_serialize, .deserialize = denoise_deserialize,
 };
 const op_descriptor op_desc_gauss = {
 	.id = "filters.gauss", .version = 1, .image_hook = gauss_image_hook,
 	.log_hook = gauss_log_hook, .description = N_("Gaussian blur"),
 	.mem_ratio = 2.0f, .flags = OP_MASK_CAPABLE,
+	.serialize = gauss_serialize, .deserialize = gauss_deserialize,
 };
 const op_descriptor op_desc_unsharp = {
 	.id = "filters.unsharp", .version = 1, .image_hook = unsharp_cmd_image_hook,
 	.log_hook = unsharp_log_hook, .description = N_("Unsharp mask"),
 	.mem_ratio = 2.0f, .flags = OP_MASK_CAPABLE,
+	.serialize = unsharp_serialize, .deserialize = unsharp_deserialize,
 };
 const op_descriptor op_desc_imoper = {
 	.id = "arith.imoper", .version = 1, .image_hook = imoper_image_hook,
@@ -17900,52 +18258,61 @@ const op_descriptor op_desc_fmul = {
 	.id = "arith.fmul", .version = 1, .image_hook = fmul_image_hook,
 	.log_hook = fmul_log_hook, .description = N_("Scalar multiplication"),
 	.mem_ratio = 1.0f, .flags = OP_MASK_CAPABLE,
+	.serialize = fmul_serialize, .deserialize = fmul_deserialize,
 };
 const op_descriptor op_desc_thresh = {
 	.id = "arith.thresh", .version = 1, .image_hook = thresh_image_hook,
 	.log_hook = thresh_log_hook, .description = N_("Threshold operation"),
 	.mem_ratio = 1.0f, .flags = OP_MASK_CAPABLE,
+	.serialize = thresh_serialize, .deserialize = thresh_deserialize,
 };
-/* neg has no log_hook (the op does not possess one) */
+/* neg has no log_hook (the op does not possess one); paramless serializer */
 const op_descriptor op_desc_neg = {
 	.id = "arith.neg", .version = 1, .image_hook = neg_image_hook,
 	.description = N_("Negative"), .mem_ratio = 1.0f, .flags = OP_MASK_CAPABLE,
+	.serialize = paramless_serialize, .deserialize = paramless_deserialize_v1,
 };
 const op_descriptor op_desc_nozero = {
 	.id = "arith.nozero", .version = 1, .image_hook = nozero_image_hook,
 	.log_hook = nozero_log_hook, .description = N_("Replace zeros"),
 	.mem_ratio = 1.0f, .flags = 0,
+	.serialize = nozero_serialize, .deserialize = nozero_deserialize,
 };
 const op_descriptor op_desc_ddp = {
 	.id = "filters.ddp", .version = 1, .image_hook = ddp_image_hook,
 	.log_hook = ddp_log_hook, .description = N_("Digital Development Processing"),
 	.mem_ratio = 2.0f, .flags = OP_MASK_CAPABLE,
+	.serialize = ddp_serialize, .deserialize = ddp_deserialize,
 };
 const op_descriptor op_desc_ffill = {
 	.id = "arith.ffill", .version = 1, .image_hook = ffill_image_hook,
 	.log_hook = ffill_log_hook, .description = N_("Fill mirrored region"),
 	.mem_ratio = 1.0f, .flags = OP_MASK_CAPABLE,
+	.serialize = ffill_serialize, .deserialize = ffill_deserialize,
 };
 const op_descriptor op_desc_fill = {
 	.id = "arith.fill", .version = 1, .image_hook = fill_image_hook,
 	.log_hook = fill_log_hook, .description = N_("Fill region"),
 	.mem_ratio = 1.0f, .flags = OP_MASK_CAPABLE,
+	.serialize = fill_serialize, .deserialize = fill_deserialize,
 };
 const op_descriptor op_desc_offset = {
 	.id = "arith.offset", .version = 1, .image_hook = offset_image_hook,
 	.log_hook = offset_log_hook, .description = N_("Offset"),
 	.mem_ratio = 1.0f, .flags = OP_MASK_CAPABLE,
+	.serialize = offset_serialize, .deserialize = offset_deserialize,
 };
-/* grey_flat has no log_hook */
+/* grey_flat has no log_hook; paramless serializer */
 const op_descriptor op_desc_grey_flat = {
 	.id = "color.grey_flat", .version = 1, .image_hook = grey_flat_image_hook,
 	.description = N_("Grey flat"), .mem_ratio = 1.0f, .flags = 0,
+	.serialize = paramless_serialize, .deserialize = paramless_deserialize_v1,
 };
-/* log stretch has no log_hook and does no memory check */
+/* log stretch has no log_hook and does no memory check; paramless serializer */
 const op_descriptor op_desc_logstretch = {
 	.id = "stretch.log", .version = 1, .image_hook = log_image_hook,
 	.description = N_("Log stretch"), .mem_ratio = 0.0f, .flags = 0,
-	.serialize = logstretch_serialize, .deserialize = logstretch_deserialize,
+	.serialize = paramless_serialize, .deserialize = paramless_deserialize_v1,
 };
 const op_descriptor op_desc_entropy = {
 	.id = "stats.entropy", .version = 1, .image_hook = entropy_image_hook,
@@ -17972,15 +18339,17 @@ const op_descriptor op_desc_findhot = {
 	.id = "cfa.findhot", .version = 1, .image_hook = findhot_image_hook,
 	.description = N_("Find Hot/Cold Pixels"), .mem_ratio = 0.0f, .flags = 0,
 };
-/* fix_xtrans has no log_hook */
+/* fix_xtrans has no log_hook; paramless serializer */
 const op_descriptor op_desc_fix_xtrans = {
 	.id = "cfa.fix_xtrans", .version = 1, .image_hook = fix_xtrans_image_hook,
 	.description = N_("Fix X-Trans artefacts"), .mem_ratio = 1.0f, .flags = 0,
+	.serialize = paramless_serialize, .deserialize = paramless_deserialize_v1,
 };
 const op_descriptor op_desc_limit = {
 	.id = "arith.limit", .version = 1, .image_hook = limit_image_hook,
 	.log_hook = limit_log_hook, .description = N_("Limit pixels"),
 	.mem_ratio = 0.0f, .flags = 0,
+	.serialize = limit_serialize, .deserialize = limit_deserialize,
 };
 const op_descriptor op_desc_stat = {
 	.id = "stats.stat", .version = 1, .image_hook = stat_cmd_image_hook,

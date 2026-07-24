@@ -41,6 +41,45 @@
 
 #include "banding.h"
 #include "core/op_descriptors.h"
+#include "core/nde_history.h"
+
+/* NDE serializers for filters.banding.  BandingEngine reads sigma, amount,
+ * protect_highlights and applyRotation; seq/seqEntry/fit are runtime context
+ * and are skipped. */
+static gchar *banding_serialize(gconstpointer user) {
+	const struct banding_data *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_double(kv, "sigma", d->sigma);
+	nde_kv_add_double(kv, "amount", d->amount);
+	nde_kv_add_bool(kv, "protect_highlights", d->protect_highlights);
+	nde_kv_add_bool(kv, "applyRotation", d->applyRotation);
+	return nde_kv_end(kv);
+}
+
+static gpointer banding_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_banding.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	double sigma, amount;
+	gboolean protect_highlights, applyRotation;
+	if (!nde_kv_get_double(kv, "sigma", &sigma) ||
+	    !nde_kv_get_double(kv, "amount", &amount) ||
+	    !nde_kv_get_bool(kv, "protect_highlights", &protect_highlights) ||
+	    !nde_kv_get_bool(kv, "applyRotation", &applyRotation)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct banding_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destroy_fn = free;
+		d->sigma = sigma;
+		d->amount = amount;
+		d->protect_highlights = protect_highlights;
+		d->applyRotation = applyRotation;
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
 
 /* Op descriptor — single source of truth for this operation (op_descriptor.h) */
 const op_descriptor op_desc_banding = {
@@ -50,6 +89,7 @@ const op_descriptor op_desc_banding = {
 	.description = N_("Canon Banding Reduction"),
 	.mem_ratio = 2.0f,
 	.flags = 0,
+	.serialize = banding_serialize, .deserialize = banding_deserialize,
 };
 
 static int BandingEngine(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation, threading_type threading);

@@ -37,6 +37,46 @@
 
 #include "cosmetic_correction.h"
 #include "core/op_descriptors.h"
+#include "core/nde_history.h"
+
+/* NDE serializers for filters.cosmetic (auto-detect path).  autoDetectThreaded
+ * reads sigma[2], amount and is_cfa; fit/seq/seqEntry/threading are runtime
+ * context and are skipped.  (filters.cosme is a distinct op that reads a .lst
+ * file operand — deferred, no serializer.) */
+static gchar *cosmetic_serialize(gconstpointer user) {
+	const struct cosmetic_data *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_double(kv, "sigma0", d->sigma[0]);
+	nde_kv_add_double(kv, "sigma1", d->sigma[1]);
+	nde_kv_add_double(kv, "amount", d->amount);
+	nde_kv_add_bool(kv, "is_cfa", d->is_cfa);
+	return nde_kv_end(kv);
+}
+
+static gpointer cosmetic_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_cosmetic.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	double sigma0, sigma1, amount;
+	gboolean is_cfa;
+	if (!nde_kv_get_double(kv, "sigma0", &sigma0) ||
+	    !nde_kv_get_double(kv, "sigma1", &sigma1) ||
+	    !nde_kv_get_double(kv, "amount", &amount) ||
+	    !nde_kv_get_bool(kv, "is_cfa", &is_cfa)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct cosmetic_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destroy_fn = free;
+		d->sigma[0] = sigma0;
+		d->sigma[1] = sigma1;
+		d->amount = amount;
+		d->is_cfa = is_cfa;
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
 
 /* Op descriptors — single source of truth for these ops (op_descriptor.h) */
 const op_descriptor op_desc_cosmetic = {
@@ -46,6 +86,7 @@ const op_descriptor op_desc_cosmetic = {
 	.description = N_("Cosmetic Correction"),
 	.mem_ratio = 0.0f,
 	.flags = 0,
+	.serialize = cosmetic_serialize, .deserialize = cosmetic_deserialize,
 };
 
 const op_descriptor op_desc_cosme = {

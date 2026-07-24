@@ -22,6 +22,38 @@
 #include "opencv/opencv.h"
 #include "clahe.h"
 #include "core/op_descriptors.h"
+#include "core/nde_history.h"
+
+/* NDE serializers for filters.clahe.  The hook reads clip and tileSize
+ * (cvClahe(fit, clip, tileSize)). */
+static gchar *clahe_serialize(gconstpointer user) {
+	const clahe_params *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_double(kv, "clip", d->clip);
+	nde_kv_add_int(kv, "tileSize", d->tileSize);
+	return nde_kv_end(kv);
+}
+
+static gpointer clahe_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_clahe.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	double clip;
+	gint64 tileSize;
+	if (!nde_kv_get_double(kv, "clip", &clip) ||
+	    !nde_kv_get_int(kv, "tileSize", &tileSize)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	clahe_params *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destroy_fn = free;
+		d->clip = clip;
+		d->tileSize = (int)tileSize;
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
 
 /* Op descriptor — single source of truth for this operation (op_descriptor.h) */
 const op_descriptor op_desc_clahe = {
@@ -31,6 +63,7 @@ const op_descriptor op_desc_clahe = {
 	.description = N_("CLAHE"),
 	.mem_ratio = 2.0f,
 	.flags = OP_MASK_CAPABLE,
+	.serialize = clahe_serialize, .deserialize = clahe_deserialize,
 };
 
 /* The actual CLAHE processing hook */

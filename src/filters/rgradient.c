@@ -28,6 +28,41 @@
 #include "io/image_format_fits.h"
 #include "rgradient.h"
 #include "core/op_descriptors.h"
+#include "core/nde_history.h"
+
+/* NDE serializers for filters.rgradient.  apply_rgradient_filter reads the
+ * centre (xc, yc), radial shift dR and angular shift da; fit is runtime
+ * context and is skipped. */
+static gchar *rgradient_serialize(gconstpointer user) {
+	const struct rgradient_data *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_double(kv, "xc", d->xc);
+	nde_kv_add_double(kv, "yc", d->yc);
+	nde_kv_add_double(kv, "dR", d->dR);
+	nde_kv_add_double(kv, "da", d->da);
+	return nde_kv_end(kv);
+}
+
+static gpointer rgradient_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_rgradient.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	double xc, yc, dR, da;
+	if (!nde_kv_get_double(kv, "xc", &xc) ||
+	    !nde_kv_get_double(kv, "yc", &yc) ||
+	    !nde_kv_get_double(kv, "dR", &dR) ||
+	    !nde_kv_get_double(kv, "da", &da)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct rgradient_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destroy_fn = free;
+		d->xc = xc; d->yc = yc; d->dR = dR; d->da = da;
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
 
 /* Op descriptor — single source of truth for this operation (op_descriptor.h) */
 const op_descriptor op_desc_rgradient = {
@@ -37,6 +72,7 @@ const op_descriptor op_desc_rgradient = {
 	.description = N_("Rotational Gradient"),
 	.mem_ratio = 3.0f,
 	.flags = OP_MASK_CAPABLE,
+	.serialize = rgradient_serialize, .deserialize = rgradient_deserialize,
 };
 
 /*****************************************************************************

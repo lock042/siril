@@ -31,10 +31,16 @@
 #include "algos/wavelet_denoise.h"
 #include "wavelets.h"
 #include "core/op_descriptors.h"
+#include "core/nde_history.h"
 
 /* Op descriptors — single source of truth for the wavelet ops. The wrecons
  * command / GUI-apply / preview sites use different progress labels, kept as
  * per-site description overrides. */
+
+/* wavelets.wrecons is deferred (Category C): the hook reads a decomposition
+ * transform file (r/g/b_rawdata.wave in the tmpdir) produced by a separate
+ * `wavelet` decomposition step that is not itself a descriptor op — the pixel
+ * output is not determined by wrecons_data alone. */
 const op_descriptor op_desc_wrecons = {
 	.id = "wavelets.wrecons", .version = 1,
 	.image_hook = wrecons_image_hook,
@@ -44,6 +50,87 @@ const op_descriptor op_desc_wrecons = {
 	.flags = 0,
 };
 
+/* NDE serializers for wavelets.atrous.  atrous_transform_image is a
+ * self-contained decompose+denoise+reconstruct that reads nbr_plan, type,
+ * anscombe, the per-layer coef[7] and the denoise sub-struct; seq/fit/seqEntry
+ * are runtime context and are skipped. */
+static gchar *atrous_serialize(gconstpointer user) {
+	const struct atrous_data *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_int(kv, "nbr_plan", d->nbr_plan);
+	nde_kv_add_int(kv, "type", d->type);
+	nde_kv_add_bool(kv, "anscombe", d->anscombe);
+	for (int i = 0; i < 7; i++) {
+		gchar key[8];
+		g_snprintf(key, sizeof key, "coef%d", i);
+		nde_kv_add_float(kv, key, d->coef[i]);
+	}
+	/* denoise sub-struct (all POD) */
+	nde_kv_add_bool(kv, "dn_enabled", d->denoise.enabled);
+	/* on-disk value: enum order is frozen by the NDE format — do not reorder */
+	nde_kv_add_int(kv, "dn_method", d->denoise.method);
+	nde_kv_add_float(kv, "dn_k", d->denoise.k);
+	for (int i = 0; i < WD_MAX_PLAN; i++) {
+		gchar key[12];
+		g_snprintf(key, sizeof key, "dn_f%d", i);
+		nde_kv_add_float(kv, key, d->denoise.f[i]);
+	}
+	/* on-disk value: enum order is frozen by the NDE format — do not reorder */
+	nde_kv_add_int(kv, "dn_sigma_source", d->denoise.sigma_source);
+	nde_kv_add_bool(kv, "dn_soft", d->denoise.soft);
+	nde_kv_add_bool(kv, "dn_anscombe", d->denoise.anscombe);
+	return nde_kv_end(kv);
+}
+
+static gpointer atrous_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_atrous.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	gint64 nbr_plan, type, dn_method, dn_sigma_source;
+	gboolean anscombe, dn_enabled, dn_soft, dn_anscombe;
+	float coef[7], dn_k, dn_f[WD_MAX_PLAN];
+	gboolean ok = nde_kv_get_int(kv, "nbr_plan", &nbr_plan) &&
+	              nde_kv_get_int(kv, "type", &type) &&
+	              nde_kv_get_bool(kv, "anscombe", &anscombe) &&
+	              nde_kv_get_bool(kv, "dn_enabled", &dn_enabled) &&
+	              nde_kv_get_int(kv, "dn_method", &dn_method) &&
+	              nde_kv_get_float(kv, "dn_k", &dn_k) &&
+	              nde_kv_get_int(kv, "dn_sigma_source", &dn_sigma_source) &&
+	              nde_kv_get_bool(kv, "dn_soft", &dn_soft) &&
+	              nde_kv_get_bool(kv, "dn_anscombe", &dn_anscombe);
+	for (int i = 0; ok && i < 7; i++) {
+		gchar key[8];
+		g_snprintf(key, sizeof key, "coef%d", i);
+		ok = nde_kv_get_float(kv, key, &coef[i]);
+	}
+	for (int i = 0; ok && i < WD_MAX_PLAN; i++) {
+		gchar key[12];
+		g_snprintf(key, sizeof key, "dn_f%d", i);
+		ok = nde_kv_get_float(kv, key, &dn_f[i]);
+	}
+	if (!ok) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct atrous_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destroy_fn = free;
+		d->nbr_plan = (int)nbr_plan;
+		d->type = (int)type;
+		d->anscombe = anscombe;
+		memcpy(d->coef, coef, sizeof coef);
+		d->denoise.enabled = dn_enabled;
+		d->denoise.method = (int)dn_method;
+		d->denoise.k = dn_k;
+		memcpy(d->denoise.f, dn_f, sizeof dn_f);
+		d->denoise.sigma_source = (int)dn_sigma_source;
+		d->denoise.soft = dn_soft;
+		d->denoise.anscombe = dn_anscombe;
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
+
 const op_descriptor op_desc_atrous = {
 	.id = "wavelets.atrous", .version = 1,
 	.image_hook = atrous_image_hook,
@@ -51,6 +138,7 @@ const op_descriptor op_desc_atrous = {
 	.description = N_("Wavelet transform"),
 	.mem_ratio = 0.0f,
 	.flags = 0,
+	.serialize = atrous_serialize, .deserialize = atrous_deserialize,
 };
 
 /************* wavelet transform worker (wavelet command and GUI compute path) *************/
