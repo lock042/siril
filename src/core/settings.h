@@ -226,6 +226,7 @@ struct gui_config {
 	gchar *first_start;		// use to display information at first use
 	gboolean silent_quit;
 	gboolean silent_linear;
+	gboolean silent_hist_move;	// don't confirm edit-history reorders
 	gboolean remember_windows;	// restore windows at their previous location
 	rectangle main_w_pos;
 	gint open_dialog_w;		// remembered width of the custom open-file dialog (0 = use default)

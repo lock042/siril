@@ -814,6 +814,9 @@ static gboolean nde_edit_done_idle(gpointer p) {
 	(void)p;
 	gui_iface.redraw_image(REDRAW_ALL);
 	gui_iface.flis_gui_update();
+	/* The edit flushed the undo stacks (no meta-undo) — refresh the
+	 * undo/redo buttons or they stay sensitive over an empty stack. */
+	gui_iface.update_menu_item();
 	return end_generic(NULL);
 }
 

@@ -115,6 +115,7 @@ preferences pref_init = {
 		.first_start = NULL,
 		.silent_quit = FALSE,
 		.silent_linear = FALSE,
+		.silent_hist_move = FALSE,
 		.remember_windows = TRUE,
 		.main_w_pos = {
 				.x = 0,
@@ -487,6 +488,7 @@ struct settings_access all_settings[] = {
 	{ "gui", "first_start", STYPE_STR, N_("first start of siril"), &com.pref.gui.first_start },
 	{ "gui", "silent_quit", STYPE_BOOL, N_("don't confirm quit when exiting"), &com.pref.gui.silent_quit },
 	{ "gui", "silent_linear", STYPE_BOOL, N_("don't confirm save when non linear mode"), &com.pref.gui.silent_linear },
+	{ "gui", "silent_hist_move", STYPE_BOOL, N_("don't confirm edit-history reorders"), &com.pref.gui.silent_hist_move },
 	{ "gui", "remember_windows", STYPE_BOOL, N_("remember window position"), &com.pref.gui.remember_windows },
 	{ "gui", "main_win_pos_x", STYPE_INT, N_("main window position"), &com.pref.gui.main_w_pos.x },
 	{ "gui", "main_win_pos_y", STYPE_INT, N_("main window position"), &com.pref.gui.main_w_pos.y },

@@ -59,6 +59,7 @@
 #include "gui-gtk4/gui_state.h"            /* gui.flis_layer_dragging */
 #include "gui-gtk4/callbacks.h"            /* set_GUI_CWD (header bar refresh) */
 #include "gui-gtk4/message_dialog.h"       /* siril_confirm_dialog */
+#include "core/initfile.h"                 /* writeinitfile — persist "don't ask again" */
 #include "gui-gtk4/utils.h"                /* siril_toggle_*, siril_drop_down_* */
 #include "registration/flis_register.h"    /* flis_register_layers primitive */
 #include "algos/geometry.h"                /* verbose_rotate_image for canvas dialog */
@@ -1397,13 +1398,18 @@ static void hist_move_clicked(gboolean up) {
 	gint64 record_id = r->record_id;
 	gtk_popover_popdown(GTK_POPOVER(g_panel->hist_popover));
 
-	gchar *msg = g_strdup_printf("%s\n\n%s",
-	                             r->summary ? r->summary : "",
-	                             HIST_EDIT_CONSEQUENCE);
-	gboolean confirmed = siril_confirm_dialog(up ? _("Move this step up?")
-	                                             : _("Move this step down?"),
-	                                          msg, _("_Move"));
-	g_free(msg);
+	gboolean confirmed = TRUE;
+	if (!com.pref.gui.silent_hist_move) {
+		gchar *msg = g_strdup_printf("%s\n\n%s",
+		                             r->summary ? r->summary : "",
+		                             HIST_EDIT_CONSEQUENCE);
+		confirmed = siril_confirm_dialog_and_remember(
+				up ? _("Move this step up?") : _("Move this step down?"),
+				msg, _("_Move"), &com.pref.gui.silent_hist_move);
+		g_free(msg);
+		if (com.pref.gui.silent_hist_move)
+			writeinitfile();   /* persist "don't ask again" right away */
+	}
 	if (confirmed)
 		/* Move up = before the previous member; Move down = after the next
 		 * member.  Refresh arrives via nde_history_changed. */
