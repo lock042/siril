@@ -152,6 +152,58 @@ gboolean nde_delete_start(gint64 record_id);
 gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after, gchar **err);
 gboolean nde_reorder_start(gint64 record_id, gint64 anchor_id, gboolean after);
 
+/* ---- amend preview (convergence C4) -------------------------------------
+ * While record K is being edited in its native dialog, the target image
+ * temporarily shows the chain up to K−1 (downstream steps hidden); the
+ * dialog previews against that state through the ordinary preview-backup
+ * machinery, and Apply routes the widget state back through the normal
+ * amend path.  Single instance: one step is editable at a time, and every
+ * history edit (amend/delete/reorder) is refused while a preview is
+ * installed.  The true pixels are swapped out wholesale (metadata
+ * included) and restored bit-exactly on end — Apply restores them FIRST,
+ * so a failed amend changes nothing.                                      */
+
+/** Ready callback for nde_amend_preview_start(): fires on the main thread
+ *  once the pre-K state is installed (@ok TRUE — open the dialog now) or
+ *  synthesis failed (@ok FALSE — state already cleaned up). */
+typedef void (*nde_amend_preview_ready_fn)(gboolean ok, gpointer user);
+
+/**
+ * Spawn the pre-K synthesis as a processing job and install the result
+ * into the record's target image.  Only the record's target may be the
+ * ACTIVE image (gfit): the dialog's preview pipeline works on gfit.
+ * Returns FALSE when the job could not start (a preview is already
+ * active, python owns the thread, ...) — @on_ready is not called then.
+ */
+gboolean nde_amend_preview_start(gint64 record_id,
+                                 nde_amend_preview_ready_fn on_ready,
+                                 gpointer user);
+
+/**
+ * Leave amend-preview mode.  Restores the true pixels first (bit-exact
+ * swap-back); with @apply TRUE then runs the normal amend of the edited
+ * record with @new_params (the full new kv blob) as a processing job.
+ * Cancelling when no preview is active is a tolerated no-op.
+ */
+gboolean nde_amend_preview_end(gboolean apply, const gchar *new_params);
+
+/** TRUE from a successful start until end (or a failed synthesis). */
+gboolean nde_amend_preview_active(void);
+
+/* Record identity/params for the dialog's pre-fill.  Valid only while
+ * active, between the ready callback and end. */
+gint64       nde_amend_preview_record_id(void);
+const gchar *nde_amend_preview_op_id(void);
+gint         nde_amend_preview_op_version(void);
+const gchar *nde_amend_preview_params(void);
+
+/**
+ * Job-context implementations (the caller owns the processing slot; the
+ * wrappers above and the tests call these).  FALSE + heap @err on failure.
+ */
+gboolean nde_amend_preview_begin_execute(gint64 record_id, gchar **err);
+gboolean nde_amend_preview_end_execute(gboolean apply, const gchar *new_params, gchar **err);
+
 #ifdef __cplusplus
 }
 #endif

@@ -15,6 +15,7 @@
 #include "core/undo.h"
 #include "core/nde_history.h"
 #include "core/nde_checkpoint.h"
+#include "core/nde_replay.h"
 #include "algos/statistics.h"
 #include "io/single_image.h"
 #include "gui-gtk4/callbacks.h"
@@ -29,6 +30,14 @@ static GtkSpinButton *asinh_spin_stretch = NULL, *asinh_spin_black = NULL;
 static GtkCheckButton *asinh_toggle_rgb = NULL, *asinh_preview_btn = NULL;
 static GtkDropDown *asinh_clipmode_combo = NULL;
 static GtkWidget *asinh_clip_settings_widget = NULL;
+static GtkWidget *asinh_amend_note = NULL;
+
+/* Amend mode (convergence C4): the dialog edits an existing history
+ * record.  gfit holds the pre-record state installed by
+ * nde_amend_preview_start; previews run against it through the ordinary
+ * backup machinery, and Apply/Cancel route through
+ * nde_amend_preview_end instead of a worker run + undo save. */
+static gboolean asinh_amend_mode = FALSE;
 
 static void asinh_dialog_init_statics(void) {
 	if (asinh_spin_stretch) return;
@@ -38,6 +47,7 @@ static void asinh_dialog_init_statics(void) {
 	asinh_clipmode_combo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "asinh_clipmode"));
 	asinh_preview_btn = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "asinh_preview"));
 	asinh_clip_settings_widget = GTK_WIDGET(gtk_builder_get_object(gui.builder, "asinh_clip_settings"));
+	asinh_amend_note = GTK_WIDGET(gtk_builder_get_object(gui.builder, "asinh_amend_note"));
 }
 
 // Original ICC profile, in case we don't apply a stretch and need to revert
@@ -194,6 +204,17 @@ static void apply_asinh_changes() {
 }
 
 void apply_asinh_cancel() {
+	if (asinh_amend_mode) {
+		/* Leave amend mode: drop the pre-record backup and restore the
+		 * true pixels (nothing was committed). */
+		cancel_pending_update();
+		cancel_and_wait_for_preview();
+		clear_backup();
+		nde_amend_preview_end(FALSE, NULL);
+		asinh_amend_mode = FALSE;
+		siril_close_dialog("asinh_dialog");
+		return;
+	}
 	asinh_close(TRUE, TRUE);
 	siril_close_dialog("asinh_dialog");
 }
@@ -207,12 +228,57 @@ gboolean asinh_hide_on_delete(GtkWidget *widget) {
 	return TRUE;
 }
 
+/* Fill the widgets from the amended record's current parameters through
+ * the op's own deserializer — the same struct the normal apply builds. */
+static void asinh_prefill_from_amend(void) {
+	asinh_params *p = op_desc_asinh.deserialize(nde_amend_preview_params(),
+	                                            nde_amend_preview_op_version());
+	if (!p)
+		return;
+	siril_toggle_set_active(GTK_WIDGET(asinh_toggle_rgb), p->human_luminance);
+	gtk_spin_button_set_value(asinh_spin_stretch, p->beta);
+	gtk_spin_button_set_value(asinh_spin_black, p->offset);
+	gtk_drop_down_set_selected(asinh_clipmode_combo, p->clip_mode);
+	if (p->destroy_fn)
+		p->destroy_fn(p);
+	else
+		free(p);
+}
+
 void on_asinh_dialog_show(GtkWidget *widget, gpointer user_data) {
 	asinh_dialog_init_statics();
 	gtk_widget_set_visible(asinh_clip_settings_widget, (gfit->naxes[2] == 3));
+	gtk_widget_set_visible(asinh_amend_note, asinh_amend_mode);
 
 	if (gui.rendering_mode == LINEAR_DISPLAY)
 		setup_stretch_sliders();
+
+	if (asinh_amend_mode) {
+		/* gfit already shows the pre-record state.  No ICC juggling (an
+		 * amend only changes pixels) and no ROI (previews are full-image
+		 * against the pre-record backup). */
+		if (original_icc) {
+			cmsCloseProfile(original_icc);
+			original_icc = NULL;
+		}
+		single_image_stretch_applied = FALSE;
+		if (gui.roi.active)
+			on_clear_roi();
+		copy_gfit_to_backup();   /* backup := pre-record state */
+
+		set_notify_block(TRUE);
+		siril_toggle_set_active(GTK_WIDGET(asinh_preview_btn), TRUE);
+		asinh_prefill_from_amend();
+		set_notify_block(FALSE);
+
+		/* One preview tick so the dialog opens showing the record applied
+		 * with its current parameters. */
+		update_image *param = malloc(sizeof(update_image));
+		param->update_preview_fn = asinh_update_preview;
+		param->show_preview = TRUE;
+		notify_update((gpointer) param);
+		return;
+	}
 
 	if (original_icc)
 		cmsCloseProfile(original_icc);
@@ -244,6 +310,27 @@ void on_asinh_dialog_show(GtkWidget *widget, gpointer user_data) {
 }
 
 void on_asinh_ok_clicked(GtkButton *button, gpointer user_data) {
+	if (asinh_amend_mode) {
+		/* Serialize the widget state through the SAME params struct and
+		 * serializer the normal apply uses, then route it through the
+		 * amend path.  preview_end restores the true pixels first (the
+		 * on-screen preview is discarded), then replays the edited
+		 * history — its tail replay starts from the pre-record state
+		 * this preview session deposited in the cache. */
+		cancel_pending_update();
+		cancel_and_wait_for_preview();
+		asinh_params applied = { 0 };
+		get_asinh_values(&applied.beta, &applied.offset,
+				&applied.human_luminance, &applied.clip_mode);
+		gchar *blob = op_desc_asinh.serialize(&applied);
+		clear_backup();
+		nde_amend_preview_end(TRUE, blob);
+		g_free(blob);
+		asinh_amend_mode = FALSE;
+		siril_close_dialog("asinh_dialog");
+		return;
+	}
+
 	if (!check_ok_if_cfa())
 		return;
 
@@ -294,10 +381,15 @@ gboolean on_asinh_dialog_close(GtkWindow *dialog, gpointer user_data) {
 
 void on_asinh_undo_clicked(GtkButton *button, gpointer user_data) {
 	set_notify_block(TRUE);
-	siril_toggle_set_active(GTK_WIDGET(asinh_toggle_rgb), TRUE);
-	gtk_spin_button_set_value(asinh_spin_black, 0);
-	gtk_spin_button_set_value(asinh_spin_stretch, 0);
-	gtk_drop_down_set_selected(asinh_clipmode_combo, 2);
+	if (asinh_amend_mode) {
+		/* Reset means "back to the record's recorded parameters" here. */
+		asinh_prefill_from_amend();
+	} else {
+		siril_toggle_set_active(GTK_WIDGET(asinh_toggle_rgb), TRUE);
+		gtk_spin_button_set_value(asinh_spin_black, 0);
+		gtk_spin_button_set_value(asinh_spin_stretch, 0);
+		gtk_drop_down_set_selected(asinh_clipmode_combo, 2);
+	}
 	siril_toggle_set_active(GTK_WIDGET(asinh_preview_btn), TRUE);
 	set_notify_block(FALSE);
 
@@ -334,4 +426,21 @@ void on_asinh_clipmode_changed(GObject *obj, GParamSpec *pspec, gpointer user_da
 	GtkDropDown *combo = GTK_DROP_DOWN(obj);
 	(void)pspec;
 	on_asinh_parameter_changed(GTK_WIDGET(combo), user_data);
+}
+
+/* ---- amend-mode entry (nde_editors registry) --------------------------- */
+
+static void asinh_amend_ready(gboolean ok, gpointer user) {
+	(void)user;
+	if (!ok)
+		return;   /* the core logged the reason; nothing was changed */
+	asinh_amend_mode = TRUE;
+	siril_open_dialog("asinh_dialog");
+}
+
+void asinh_open_amend(gint64 record_id) {
+	/* The dialog opens from the ready callback, once the pre-record state
+	 * has been synthesized and installed.  A synchronous refusal is
+	 * logged by the core and simply leaves everything unchanged. */
+	nde_amend_preview_start(record_id, asinh_amend_ready, NULL);
 }

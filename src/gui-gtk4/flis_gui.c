@@ -50,6 +50,7 @@
 #include "core/undo.h"
 #include "core/nde_history.h"
 #include "core/nde_replay.h"    /* nde_record_amendable/deletable, amend/delete_start */
+#include "gui-gtk4/nde_editors.h"
 #include "core/op_descriptor.h" /* op_descriptor_by_id for the edit round-trip check */
 #include "core/gui_iface.h"
 #include "io/image_format_flis.h"
@@ -127,6 +128,7 @@ struct _NdeHistRowItem {
 	gboolean amendable;  /* nde_record_amendable() — Tier A + deserializer */
 	gboolean deletable;  /* nde_record_deletable() — not structural/compositing */
 	gchar   *params;     /* raw kv blob copy (NULL when the record has none) */
+	gchar   *op_id;      /* descriptor id — native-editor registry key (C4) */
 	/* Phase-4 barrier freeze state (nde-phase4-plan.md P4.4), from the
 	 * per-item chain verdicts computed once per distinct item in
 	 * refresh_history — no per-row replay. */
@@ -144,6 +146,7 @@ static void nde_hist_row_item_finalize(GObject *obj) {
 	g_free(self->target);
 	g_free(self->detail);
 	g_free(self->params);
+	g_free(self->op_id);
 	G_OBJECT_CLASS(nde_hist_row_item_parent_class)->finalize(obj);
 }
 static void nde_hist_row_item_class_init(NdeHistRowItemClass *klass) {
@@ -1340,6 +1343,10 @@ static void on_hist_edit_clicked(GtkButton *b, gpointer u) {
 	if (!r->amendable || !r->params)
 		return;
 	gtk_popover_popdown(GTK_POPOVER(g_panel->hist_popover));
+	/* Native editor first (amend mode with live preview); the kv grid
+	 * remains the fallback for ops without one. */
+	if (nde_editor_open(r->op_id, r->record_id))
+		return;
 	open_hist_edit_dialog(r);
 }
 
@@ -1373,6 +1380,8 @@ static const char *hist_action_disabled_reason(const NdeHistRowItem *r,
 		return _("The image was modified outside the recorded history");
 	if (processing_is_job_active())
 		return _("Not available while processing");
+	if (nde_amend_preview_active())
+		return _("Another history step is being edited");
 	/* A frozen prefix step (before the last opaque step) is fully locked;
 	 * the last opaque step itself can still be deleted to unlock the rest. */
 	if (r->frozen && !r->last_barrier)
@@ -1520,6 +1529,7 @@ static void refresh_history(void) {
 			item->amendable = nde_record_amendable(rec);
 			item->deletable = nde_record_deletable(rec);
 			item->params    = (rec->params && *rec->params) ? g_strdup(rec->params) : NULL;
+			item->op_id     = g_strdup(rec->op_id);
 			const hist_freeze_mark *m = g_hash_table_lookup(freeze, &rec->record_id);
 			if (m) {
 				item->frozen       = m->frozen;

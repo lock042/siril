@@ -277,6 +277,7 @@ gui_filenames = [
   'annotate.c',
   'asinh.c',
   'banding.c',
+  'nde_editors.c',
   'clahe.c',
   'cosmetic_correction.c',
   'fft.c',

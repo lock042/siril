@@ -1780,3 +1780,167 @@ Test(nde_replay, reorder_refusals) {
 
 	golden_teardown(NULL, f);
 }
+
+/* ---------------- C4: amend preview ---------------- */
+
+Test(nde_replay, amend_preview_installs_pre_state_and_restores_bit_exact) {
+	com.pref.nde_cache_mb = 256;   /* fixture memsets com — enable the pool */
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	asinh_params *u1 = calloc(1, sizeof(*u1));
+	u1->beta = 10.0f; u1->clip_mode = RESCALE;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, u1), 0);
+	asinh_params *u2 = calloc(1, sizeof(*u2));
+	u2->beta = 20.0f; u2->clip_mode = RESCALE;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, u2), 0);
+
+	fits *expected_pre_k = nde_checkpoint_baseline_get(-1);
+	cr_assert_not_null(expected_pre_k);
+	{
+		asinh_params *e1 = calloc(1, sizeof(*e1));
+		e1->beta = 10.0f; e1->clip_mode = RESCALE;
+		apply_direct(&op_desc_asinh, e1, expected_pre_k);
+	}
+	fits expected_full = { 0 };
+	copyfits(gfit, &expected_full, CP_DEEPCOPY | CP_ALLOC, -1);
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_amend_preview_begin_execute(2, &err),
+	          "begin failed: %s", err ? err : "?");
+
+	/* the display now shows the chain up to record 1 only */
+	assert_pixels_bit_exact(gfit, expected_pre_k, "amend-preview-install");
+	cr_assert(nde_amend_preview_active());
+	cr_assert_eq(nde_amend_preview_record_id(), 2);
+	cr_assert_str_eq(nde_amend_preview_op_id(), "stretch.asinh");
+	cr_assert(strstr(nde_amend_preview_params(), "beta=20") != NULL,
+	          "pre-fill params: %s", nde_amend_preview_params());
+
+	/* every history edit is blocked while the preview is installed */
+	cr_assert(!nde_amend_execute(1, "beta=15;offset=0;human=0;clip_mode=1", &err));
+	cr_assert(strstr(err, "being edited") != NULL, "got: %s", err);
+	g_clear_pointer(&err, g_free);
+	cr_assert(!nde_delete_execute(1, &err));
+	g_clear_pointer(&err, g_free);
+	cr_assert(!nde_reorder_execute(2, 1, FALSE, &err));
+	g_clear_pointer(&err, g_free);
+
+	/* cancel: the true pixels come back bit-exactly, metadata included */
+	cr_assert(nde_amend_preview_end_execute(FALSE, NULL, &err),
+	          "cancel failed: %s", err ? err : "?");
+	unreserve_thread();
+	assert_pixels_bit_exact(gfit, &expected_full, "amend-preview-restore");
+	cr_assert(!nde_amend_preview_active());
+
+	clearfits(expected_pre_k); free(expected_pre_k);
+	clearfits(&expected_full);
+	golden_teardown(NULL, f);
+}
+
+Test(nde_replay, amend_preview_apply_uses_deposited_restart) {
+	com.pref.nde_cache_mb = 256;   /* fixture memsets com — enable the pool */
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	asinh_params *u1 = calloc(1, sizeof(*u1));
+	u1->beta = 10.0f; u1->clip_mode = RESCALE;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, u1), 0);
+	asinh_params *u2 = calloc(1, sizeof(*u2));
+	u2->beta = 20.0f; u2->clip_mode = RESCALE;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, u2), 0);
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_amend_preview_begin_execute(2, &err),
+	          "begin failed: %s", err ? err : "?");
+	/* synthesizing pre-K from the baseline deposited POST(1) */
+	cr_assert(nde_snapstore_has(-1, 1, TRUE),
+	          "pre-K synthesis must deposit intermediate states");
+
+	/* apply: restore-first, then the amend — whose tail replay must
+	 * restart from the POST(1) this preview session deposited (exactly
+	 * one record replayed = one deposit) */
+	nde_snapstore_stats_reset();
+	cr_assert(nde_amend_preview_end_execute(TRUE,
+			"beta=40;offset=0;human=0;clip_mode=1", &err),
+	          "apply failed: %s", err ? err : "?");
+	unreserve_thread();
+	cr_assert(!nde_amend_preview_active());
+	nde_snapstore_stats_t st;
+	nde_snapstore_stats(&st);
+	cr_assert(st.hits >= 1, "the amend must hit the preview's cached restart");
+	cr_assert_eq(st.deposits, 1,
+	             "restarting at the edit means exactly ONE record replayed");
+
+	/* result equals a from-baseline computation with the new params */
+	fits *expected = nde_checkpoint_baseline_get(-1);
+	cr_assert_not_null(expected);
+	{
+		asinh_params *e1 = calloc(1, sizeof(*e1));
+		e1->beta = 10.0f; e1->clip_mode = RESCALE;
+		apply_direct(&op_desc_asinh, e1, expected);
+		asinh_params *e2 = calloc(1, sizeof(*e2));
+		e2->beta = 40.0f; e2->clip_mode = RESCALE;
+		apply_direct(&op_desc_asinh, e2, expected);
+	}
+	assert_pixels_bit_exact(gfit, expected, "amend-preview-apply");
+	clearfits(expected); free(expected);
+
+	/* the log carries the new params */
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	nde_record *rec = g_ptr_array_index(snap, 1);
+	cr_assert_eq(rec->record_id, 2);
+	cr_assert(strstr(rec->params, "beta=40") != NULL, "params: %s", rec->params);
+	g_ptr_array_unref(snap);
+
+	golden_teardown(NULL, f);
+}
+
+Test(nde_replay, amend_preview_refusals) {
+	com.pref.nde_cache_mb = 256;
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	/* asinh, opaque-with-checkpoint, mirrorx: record 1 is frozen */
+	asinh_params *u1 = calloc(1, sizeof(*u1));
+	u1->beta = 15.0f; u1->clip_mode = RESCALE;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, u1), 0);
+	gfit->fdata[3] = 0.99f;
+	gint64 b_id = nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, -1, "freehand", gfit);
+	struct mirror_args *m = calloc(1, sizeof(*m));
+	m->x_axis = TRUE;
+	cr_assert_eq(apply_op_real(&op_desc_mirrorx, m), 0);
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	/* unknown id */
+	cr_assert(!nde_amend_preview_begin_execute(99, &err));
+	cr_assert(strstr(err, "no live record") != NULL, "got: %s", err);
+	g_clear_pointer(&err, g_free);
+	/* opaque record */
+	cr_assert(!nde_amend_preview_begin_execute(b_id, &err));
+	cr_assert(strstr(err, "opaque") != NULL, "got: %s", err);
+	g_clear_pointer(&err, g_free);
+	/* frozen prefix record */
+	cr_assert(!nde_amend_preview_begin_execute(1, &err));
+	cr_assert(strstr(err, "locked") != NULL, "got: %s", err);
+	g_clear_pointer(&err, g_free);
+	/* apply-end without an active preview fails; cancel-end is tolerated */
+	cr_assert(!nde_amend_preview_end_execute(TRUE, "beta=1", &err));
+	g_clear_pointer(&err, g_free);
+	cr_assert(nde_amend_preview_end_execute(FALSE, NULL, &err));
+	/* a second begin while one is installed refuses */
+	cr_assert(nde_amend_preview_begin_execute(3, &err), "begin failed: %s", err ? err : "?");
+	cr_assert(!nde_amend_preview_begin_execute(3, &err));
+	cr_assert(strstr(err, "already being edited") != NULL, "got: %s", err);
+	g_clear_pointer(&err, g_free);
+	cr_assert(nde_amend_preview_end_execute(FALSE, NULL, &err));
+	unreserve_thread();
+
+	golden_teardown(NULL, f);
+}

@@ -52,6 +52,12 @@ static void destroy_user(gpointer user) {
 		free(user);
 }
 
+/* C4: TRUE while an amend preview holds pre-K pixels in a target fits —
+ * every history edit must refuse then (a commit would swap pixels the
+ * preview's restore path is about to overwrite).  Defined with the amend
+ * preview machinery at the end of this file. */
+static gboolean amend_preview_installed(void);
+
 static void add_reason(nde_chain *chain, const char *fmt, ...) G_GNUC_PRINTF(2, 3);
 static void add_reason(nde_chain *chain, const char *fmt, ...) {
 	va_list ap;
@@ -251,11 +257,11 @@ void nde_chain_free(nde_chain *chain) {
 	g_free(chain);
 }
 
-/* Apply members [from..end) to @scratch (consumed on failure).  Returns
+/* Apply members [from..upto) to @scratch (consumed on failure).  Returns
  * @scratch on success, NULL + @err on failure. */
 static fits *replay_apply_records(fits *scratch, const nde_chain *chain,
-                                  guint from, gchar **err) {
-	for (guint i = from; i < chain->records->len; i++) {
+                                  guint from, guint upto, gchar **err) {
+	for (guint i = from; i < upto; i++) {
 		const nde_record *rec = g_ptr_array_index(chain->records, i);
 		if (!processing_should_continue()) {
 			*err = g_strdup(_("cancelled"));
@@ -323,7 +329,7 @@ fits *nde_chain_replay(const nde_chain *chain, gchar **err) {
 		*err = g_strdup(_("failed to load the baseline checkpoint"));
 		return NULL;
 	}
-	return replay_apply_records(scratch, chain, 0, err);
+	return replay_apply_records(scratch, chain, 0, chain->records->len, err);
 }
 
 fits *nde_chain_replay_tail(const nde_chain *chain, gchar **err) {
@@ -343,7 +349,7 @@ fits *nde_chain_replay_tail(const nde_chain *chain, gchar **err) {
 				_("failed to load the baseline checkpoint"));
 		return NULL;
 	}
-	return replay_apply_records(start, chain, chain->tail_start, err);
+	return replay_apply_records(start, chain, chain->tail_start, chain->records->len, err);
 }
 
 /* ======================================================================= */
@@ -402,6 +408,11 @@ static fits *resolve_edit_restart(const nde_chain *chain, guint e,
 static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **err) {
 	g_return_val_if_fail(err != NULL, FALSE);
 	*err = NULL;
+
+	if (amend_preview_installed()) {
+		*err = g_strdup(_("another history step is being edited — close its dialog first"));
+		return FALSE;
+	}
 
 	/* Locate the record among the LIVE records and pre-check it, for
 	 * user-facing errors before any heavy work.  (nde_history_amend/delete
@@ -546,7 +557,7 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 		boundary = (guint)pos_idx;   /* the deleted member's former index */
 	guint start_idx = 0;
 	fits *start = resolve_edit_restart(chain, boundary, record_id, &start_idx, err);
-	fits *result = start ? replay_apply_records(start, chain, start_idx, err) : NULL;
+	fits *result = start ? replay_apply_records(start, chain, start_idx, chain->records->len, err) : NULL;
 	nde_chain_free(chain);
 	if (!result) {
 		/* Deposits made by a failed replay describe an uncommitted chain —
@@ -619,6 +630,10 @@ gboolean nde_delete_execute(gint64 record_id, gchar **err) {
 gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after, gchar **err) {
 	g_return_val_if_fail(err != NULL, FALSE);
 	*err = NULL;
+	if (amend_preview_installed()) {
+		*err = g_strdup(_("another history step is being edited — close its dialog first"));
+		return FALSE;
+	}
 	if (anchor_id <= 0 || record_id == anchor_id) {
 		*err = g_strdup(_("invalid move target"));
 		return FALSE;
@@ -737,7 +752,7 @@ gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after,
 	nde_snapstore_invalidate_from(item_id, inval_min);
 	guint start_idx = 0;
 	fits *start = resolve_edit_restart(chain, min_idx, boundary_pre_id, &start_idx, err);
-	fits *result = start ? replay_apply_records(start, chain, start_idx, err) : NULL;
+	fits *result = start ? replay_apply_records(start, chain, start_idx, chain->records->len, err) : NULL;
 	nde_chain_free(chain);
 	if (!result) {
 		nde_snapstore_invalidate_from(item_id, inval_min);
@@ -852,6 +867,338 @@ gboolean nde_reorder_start(gint64 record_id, gint64 anchor_id, gboolean after) {
 	job->anchor_id = anchor_id;
 	job->after = after;
 	if (!start_in_new_thread(nde_edit_worker, job)) {
+		g_free(job);
+		return FALSE;
+	}
+	return TRUE;
+}
+
+/* ======================================================================= */
+/* Amend preview (convergence C4)                                          */
+/* ======================================================================= */
+
+/* Single instance.  While `installed`, the record's target fits holds the
+ * synthesized pre-K state and `saved` holds the true pixels, swapped out
+ * wholesale with fits_swap_all_except_rwlock — the restore is the reverse
+ * swap, bit-exact including metadata.  The heavy transitions (begin/end
+ * _execute) run in job context, so the processing slot serializes them;
+ * apv_mutex is a leaf guard for the flag reads that happen on other
+ * threads (GUI enablement, the edit_execute guard). */
+static GMutex apv_mutex;
+static struct {
+	gboolean active;     /* start accepted, until end / failed begin */
+	gboolean installed;  /* pre-K currently swapped into the target */
+	gint64   record_id;
+	gint     item_id;
+	gchar   *op_id;
+	gint     op_version;
+	gchar   *params;     /* the record's current kv blob, for pre-fill */
+	fits    *saved;      /* true pixels while installed (owned) */
+	nde_amend_preview_ready_fn on_ready;
+	gpointer on_ready_user;
+} apv;
+
+static gboolean amend_preview_installed(void) {
+	g_mutex_lock(&apv_mutex);
+	gboolean r = apv.installed;
+	g_mutex_unlock(&apv_mutex);
+	return r;
+}
+
+gboolean nde_amend_preview_active(void) {
+	g_mutex_lock(&apv_mutex);
+	gboolean r = apv.active;
+	g_mutex_unlock(&apv_mutex);
+	return r;
+}
+
+gint64       nde_amend_preview_record_id(void)  { return apv.record_id; }
+const gchar *nde_amend_preview_op_id(void)      { return apv.op_id; }
+gint         nde_amend_preview_op_version(void) { return apv.op_version; }
+const gchar *nde_amend_preview_params(void)     { return apv.params; }
+
+/* The fits a chain edit commits into: gfit for plain images, the layer's
+ * fit for FLIS items (same pointer when it is the active layer). */
+static fits *edit_target_fits(gint item_id) {
+	if (item_id < 0)
+		return gfit;
+	flis_layer_t *lay = flis_layer_get_by_id(item_id);
+	return lay ? lay->fit : NULL;
+}
+
+/* Swap @incoming into @target under the display-quiesce + writer-lock
+ * discipline of the commit path, then refresh the derived state.  After
+ * the call @incoming holds what @target held before. */
+static void apv_swap_into_target(fits *target, fits *incoming) {
+	gboolean is_display = (target == gfit);
+	if (is_display)
+		gui_iface.set_suppress_redraws(TRUE);
+	g_rw_lock_writer_lock(&target->rwlock);
+	fits_swap_all_except_rwlock(target, incoming);
+	g_rw_lock_writer_unlock(&target->rwlock);
+	if (is_display)
+		gui_iface.set_suppress_redraws(FALSE);
+	invalidate_stats_from_fit(target);
+	gui_iface.invalidate_histogram();
+	if (is_current_image_flis())
+		gui_iface.flis_invalidate_composite();
+	if (is_display)
+		notify_gfit_data_modified();
+}
+
+static void apv_clear_state_locked(void) {
+	apv.active = FALSE;
+	apv.installed = FALSE;
+	apv.record_id = 0;
+	apv.item_id = -1;
+	g_free(apv.op_id);    apv.op_id = NULL;
+	g_free(apv.params);   apv.params = NULL;
+	apv.op_version = 0;
+	apv.saved = NULL;
+}
+
+gboolean nde_amend_preview_begin_execute(gint64 record_id, gchar **err) {
+	g_return_val_if_fail(err != NULL, FALSE);
+	*err = NULL;
+
+	if (amend_preview_installed()) {
+		*err = g_strdup(_("another history step is already being edited"));
+		return FALSE;
+	}
+	if (gui_iface.is_preview_active()) {
+		/* Some dialog's preview backup is armed — its backup/restore
+		 * cycle and this install would fight over the same pixels. */
+		*err = g_strdup(_("close the open preview dialog first"));
+		return FALSE;
+	}
+
+	/* Locate + policy-check the record among the LIVE records. */
+	gint item_id = 0;
+	const gchar *op_id = NULL, *params = NULL;
+	gint op_version = 0;
+	gboolean found = FALSE;
+	GPtrArray *live = nde_history_snapshot(NULL);
+	for (guint i = 0; live && i < live->len; i++) {
+		const nde_record *rec = g_ptr_array_index(live, i);
+		if (rec->record_id == record_id) {
+			found = TRUE;
+			item_id = rec->target_item_id;
+			op_id = rec->op_id;
+			op_version = rec->op_version;
+			params = rec->params;
+			if (!nde_record_amendable(rec) || !rec->params)
+				*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) is opaque and cannot be edited"),
+				                       record_id, rec->op_id ? rec->op_id : "?");
+			break;
+		}
+	}
+	gchar *op_id_copy = op_id ? g_strdup(op_id) : NULL;
+	gchar *params_copy = params ? g_strdup(params) : NULL;
+	if (live)
+		g_ptr_array_unref(live);
+	if (!found) {
+		*err = g_strdup_printf(_("no live record with id %" G_GINT64_FORMAT), record_id);
+		goto fail_free;
+	}
+	if (*err)
+		goto fail_free;
+
+	/* The dialog's preview pipeline works on the DISPLAYED image; refuse a
+	 * record targeting a non-active FLIS layer rather than previewing one
+	 * image while showing another. */
+	if (item_id != nde_checkpoint_active_item_id()) {
+		*err = g_strdup(_("this step targets another layer — make that layer active first"));
+		goto fail_free;
+	}
+
+	/* Position/freeze check + synthesis on the CURRENT chain. */
+	nde_chain *chain = nde_chain_build(item_id);
+	gint e = -1;
+	for (guint i = 0; i < chain->records->len; i++) {
+		const nde_record *rec = g_ptr_array_index(chain->records, i);
+		if (rec->record_id == record_id) {
+			e = (gint)i;
+			break;
+		}
+	}
+	if (e < 0) {
+		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " does not affect this image's pixels"),
+		                       record_id);
+		nde_chain_free(chain);
+		goto fail_free;
+	}
+	if ((guint)e < chain->tail_start) {
+		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " is locked by a later opaque step"),
+		                       record_id);
+		nde_chain_free(chain);
+		goto fail_free;
+	}
+
+	/* Synthesize pre-K: latest cached state at-or-before K, then apply the
+	 * members between it and K.  The deposits made along the way are valid
+	 * for the CURRENT chain (nothing has been edited yet) and make the
+	 * eventual amend's tail replay restart adjacent to K. */
+	guint start_idx = 0;
+	fits *start = resolve_edit_restart(chain, (guint)e, record_id, &start_idx, err);
+	fits *pre_k = start ? replay_apply_records(start, chain, start_idx, (guint)e, err) : NULL;
+	nde_chain_free(chain);
+	if (!pre_k)
+		goto fail_free;
+
+	fits *target = edit_target_fits(item_id);
+	if (!target) {
+		*err = g_strdup(_("the record's target layer no longer exists"));
+		clearfits(pre_k);
+		free(pre_k);
+		goto fail_free;
+	}
+
+	/* Install: after the swap pre_k holds the TRUE pixels — that is the
+	 * stash the end path restores from. */
+	apv_swap_into_target(target, pre_k);
+
+	g_mutex_lock(&apv_mutex);
+	apv.active = TRUE;
+	apv.installed = TRUE;
+	apv.record_id = record_id;
+	apv.item_id = item_id;
+	apv.op_id = op_id_copy;
+	apv.op_version = op_version;
+	apv.params = params_copy;
+	apv.saved = pre_k;
+	g_mutex_unlock(&apv_mutex);
+	return TRUE;
+
+fail_free:
+	g_free(op_id_copy);
+	g_free(params_copy);
+	return FALSE;
+}
+
+gboolean nde_amend_preview_end_execute(gboolean apply, const gchar *new_params, gchar **err) {
+	g_return_val_if_fail(err != NULL, FALSE);
+	*err = NULL;
+
+	g_mutex_lock(&apv_mutex);
+	if (!apv.active) {
+		g_mutex_unlock(&apv_mutex);
+		if (apply) {
+			*err = g_strdup(_("no amend preview is active"));
+			return FALSE;
+		}
+		return TRUE;   /* tolerated: defensive cancels from destroy handlers */
+	}
+	gint64 record_id = apv.record_id;
+	gint item_id = apv.item_id;
+	fits *saved = apv.saved;
+	apv_clear_state_locked();
+	g_mutex_unlock(&apv_mutex);
+
+	/* Restore the true pixels FIRST (the plan's ordering contract): gfit
+	 * must hold the real image again before any amend runs, so a failed
+	 * amend changes nothing.  `saved` receives the pre-K/preview pixels
+	 * from the swap — superseded either way. */
+	if (saved) {
+		fits *target = edit_target_fits(item_id);
+		if (target) {
+			apv_swap_into_target(target, saved);
+		} else {
+			/* The layer vanished under the preview (should be unreachable:
+			 * edits are blocked while installed).  Nothing to restore into. */
+			siril_log_error(_("Amend preview: the target layer no longer exists\n"));
+		}
+		clearfits(saved);
+		free(saved);
+	}
+
+	if (apply)
+		return edit_execute(record_id, new_params, err);
+	return TRUE;
+}
+
+/* ---- GUI wrappers (job spawning + main-thread ready callback) ---------- */
+
+static gboolean apv_ready_idle(gpointer p) {
+	gboolean ok = (GPOINTER_TO_INT(p) == 0);
+	nde_amend_preview_ready_fn cb = apv.on_ready;
+	gpointer user = apv.on_ready_user;
+	apv.on_ready = NULL;
+	apv.on_ready_user = NULL;
+	gui_iface.redraw_image(REDRAW_ALL);
+	gboolean r = end_generic(NULL);
+	/* After end_generic: the slot is free, so the dialog the callback opens
+	 * can run its preview jobs immediately. */
+	if (cb)
+		cb(ok, user);
+	return r;
+}
+
+static gpointer apv_begin_worker(gpointer p) {
+	gint64 record_id = *(gint64 *)p;
+	g_free(p);
+	gchar *errmsg = NULL;
+	gboolean ok = nde_amend_preview_begin_execute(record_id, &errmsg);
+	if (!ok)
+		siril_log_error(_("Cannot edit this history step: %s\n"), errmsg ? errmsg : "?");
+	g_free(errmsg);
+	siril_add_idle(apv_ready_idle, GINT_TO_POINTER(ok ? 0 : 1));
+	return GINT_TO_POINTER(ok ? 0 : 1);
+}
+
+gboolean nde_amend_preview_start(gint64 record_id,
+                                 nde_amend_preview_ready_fn on_ready,
+                                 gpointer user) {
+	if (nde_amend_preview_active()) {
+		siril_log_error(_("Another history step is already being edited\n"));
+		return FALSE;
+	}
+	if (processing_is_reserved_for_python()) {
+		siril_log_error(_("The processing thread is reserved by a Python script; try again later\n"));
+		return FALSE;
+	}
+	apv.on_ready = on_ready;
+	apv.on_ready_user = user;
+	gint64 *id = g_new(gint64, 1);
+	*id = record_id;
+	if (!start_in_new_thread(apv_begin_worker, id)) {
+		apv.on_ready = NULL;
+		apv.on_ready_user = NULL;
+		g_free(id);
+		return FALSE;
+	}
+	return TRUE;
+}
+
+struct apv_end_job {
+	gboolean apply;
+	gchar *new_params;
+};
+
+static gpointer apv_end_worker(gpointer p) {
+	struct apv_end_job *job = p;
+	gchar *errmsg = NULL;
+	gboolean ok = nde_amend_preview_end_execute(job->apply, job->new_params, &errmsg);
+	if (!ok)
+		siril_log_error(_("Edit history change failed: %s\n"), errmsg ? errmsg : "?");
+	g_free(errmsg);
+	g_free(job->new_params);
+	g_free(job);
+	siril_add_idle(nde_edit_done_idle, NULL);
+	return GINT_TO_POINTER(ok ? 0 : 1);
+}
+
+gboolean nde_amend_preview_end(gboolean apply, const gchar *new_params) {
+	if (!nde_amend_preview_active())
+		return !apply;
+	if (processing_is_reserved_for_python()) {
+		siril_log_error(_("The processing thread is reserved by a Python script; try again later\n"));
+		return FALSE;
+	}
+	struct apv_end_job *job = g_new0(struct apv_end_job, 1);
+	job->apply = apply;
+	job->new_params = g_strdup(new_params);
+	if (!start_in_new_thread(apv_end_worker, job)) {
+		g_free(job->new_params);
 		g_free(job);
 		return FALSE;
 	}
