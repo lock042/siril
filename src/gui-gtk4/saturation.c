@@ -87,7 +87,7 @@ static void satu_prefill_from_amend(void) {
 	gtk_drop_down_set_selected(satu_combo, satu_hue_type);
 	gtk_range_set_value(satu_scale, satu_amount);
 	gtk_range_set_value(satu_scale_bkg, background_factor);
-	free(p);
+	free(p);   /* saturation_params is a plain POD, no destructor slot */
 }
 
 static int satu_update_preview(void);
@@ -172,10 +172,11 @@ static void satu_amend_ready(gboolean ok, gpointer user) {
 	siril_open_dialog("satu_dialog");
 }
 
-void satu_open_amend(gint64 record_id) {
+gboolean satu_open_amend(gint64 record_id) {
 	/* The dialog opens from the ready callback, once the pre-record state
 	 * has been synthesized and installed. */
 	nde_amend_preview_start(record_id, satu_amend_ready, NULL);
+	return TRUE;
 }
 
 static void satu_close(gboolean revert) {

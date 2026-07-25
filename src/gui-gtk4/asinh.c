@@ -438,9 +438,10 @@ static void asinh_amend_ready(gboolean ok, gpointer user) {
 	siril_open_dialog("asinh_dialog");
 }
 
-void asinh_open_amend(gint64 record_id) {
+gboolean asinh_open_amend(gint64 record_id) {
 	/* The dialog opens from the ready callback, once the pre-record state
 	 * has been synthesized and installed.  A synchronous refusal is
 	 * logged by the core and simply leaves everything unchanged. */
 	nde_amend_preview_start(record_id, asinh_amend_ready, NULL);
+	return TRUE;
 }

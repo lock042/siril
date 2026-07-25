@@ -27,7 +27,11 @@
 #include "gui-gtk4/saturation.h"
 #include "algos/background_extraction.h"
 
-typedef void (*nde_editor_open_fn)(gint64 record_id);
+/* Returns TRUE when the editor takes the record (even if entering amend
+ * mode is then refused — the core logs why); FALSE vetoes it, sending the
+ * caller to the kv-grid fallback (e.g. an unlinked MTF record the linked
+ * histogram sliders cannot represent). */
+typedef gboolean (*nde_editor_open_fn)(gint64 record_id);
 
 static const struct {
 	const char *op_id;
@@ -47,10 +51,8 @@ gboolean nde_editor_open(const gchar *op_id, gint64 record_id) {
 	if (!op_id)
 		return FALSE;
 	for (guint i = 0; i < G_N_ELEMENTS(editors); i++) {
-		if (!g_strcmp0(editors[i].op_id, op_id)) {
-			editors[i].open(record_id);
-			return TRUE;
-		}
+		if (!g_strcmp0(editors[i].op_id, op_id))
+			return editors[i].open(record_id);
 	}
 	return FALSE;
 }

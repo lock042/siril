@@ -1221,10 +1221,11 @@ static void curves_amend_ready(gboolean ok, gpointer user) {
 	siril_open_dialog("curves_dialog");
 }
 
-void curves_open_amend(gint64 record_id) {
+gboolean curves_open_amend(gint64 record_id) {
 	/* The dialog opens from the ready callback, once the pre-record state
 	 * has been synthesized and installed. */
 	nde_amend_preview_start(record_id, curves_amend_ready, NULL);
+	return TRUE;
 }
 
 

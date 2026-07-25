@@ -67,6 +67,10 @@ static int invocation = NO_STRETCH_SET_YET;
  * instead of a worker run + undo save. */
 static gboolean histo_amend_mode = FALSE;
 static GtkWidget *histo_amend_note = NULL;
+/* The amended record's auto_display_compensation, captured at prefill and
+ * re-serialized on Apply: adc is pixel-affecting but has no widget, so the
+ * recorded value must survive the amend round trip. */
+static gboolean histo_amend_adc = FALSE;
 
 static gboolean closing = FALSE;
 static gboolean sequence_working = FALSE;
@@ -907,6 +911,7 @@ static void histo_prefill_from_amend(void) {
 		do_channel[0] = d->params.do_red;
 		do_channel[1] = d->params.do_green;
 		do_channel[2] = d->params.do_blue;
+		histo_amend_adc = d->auto_display_compensation;
 		siril_toggle_set_active(GTK_WIDGET(toggles[0]), do_channel[0]);
 		if (toggles[1]) siril_toggle_set_active(GTK_WIDGET(toggles[1]), do_channel[1]);
 		if (toggles[2]) siril_toggle_set_active(GTK_WIDGET(toggles[2]), do_channel[2]);
@@ -927,6 +932,7 @@ static void histo_prefill_from_amend(void) {
 		do_channel[0] = p->do_red;
 		do_channel[1] = p->do_green;
 		do_channel[2] = p->do_blue;
+		histo_amend_adc = d->auto_display_compensation;
 		siril_toggle_set_active(GTK_WIDGET(toggles[0]), do_channel[0]);
 		if (toggles[1]) siril_toggle_set_active(GTK_WIDGET(toggles[1]), do_channel[1]);
 		if (toggles[2]) siril_toggle_set_active(GTK_WIDGET(toggles[2]), do_channel[2]);
@@ -1365,7 +1371,8 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 					.do_red = do_channel[0], .do_green = do_channel[1], .do_blue = do_channel[2]
 				},
 				.uparams = {}, .seqEntry = NULL,
-				.auto_display_compensation = FALSE, .is_preview = FALSE
+				/* preserve the record's adc — pixel-affecting, no widget */
+				.auto_display_compensation = histo_amend_adc, .is_preview = FALSE
 			};
 			blob = op_desc_mtf.serialize(&data);
 		} else if (invocation == GHT_STRETCH) {
@@ -1376,7 +1383,9 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 				.do_red = do_channel[0], .do_green = do_channel[1], .do_blue = do_channel[2],
 				.clip_mode = _clip_mode
 			};
-			struct ght_data data = { .params_ght = &params, .auto_display_compensation = FALSE };
+			struct ght_data data = { .params_ght = &params,
+				/* preserve the record's adc — pixel-affecting, no widget */
+				.auto_display_compensation = histo_amend_adc };
 			blob = op_desc_ghs.serialize(&data);
 		}
 		histo_amend_exit(TRUE, blob);
@@ -2519,21 +2528,15 @@ static void histo_amend_open(int _invocation) {
 	init_toggles();
 	invocation = _invocation;
 	fit = gfit;
-	if (original_icc)
+	/* No ICC juggling in amend mode (asinh template): an amend only changes
+	 * pixels, and icc_auto_assign_or_convert could CONVERT the installed
+	 * pre-record state, making the preview diverge from the replayed
+	 * commit. */
+	if (original_icc) {
 		cmsCloseProfile(original_icc);
-	original_icc = copyICCProfile(current_icc_profile());
-	icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_STRETCH);
-	single_image_stretch_applied = FALSE;
-	if (single_image_is_loaded()) {
-		if (original_icc)
-			cmsCloseProfile(original_icc);
-		original_icc = copyICCProfile(current_icc_profile());
-		icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_STRETCH);
-	} else {
-		if (original_icc)
-			cmsCloseProfile(original_icc);
 		original_icc = NULL;
 	}
+	single_image_stretch_applied = FALSE;
 	_payne_colourstretchmodel = gtk_drop_down_get_selected(GTK_DROP_DOWN(lookup_widget("combo_payne_colour_stretch_model")));
 	if (invocation == HISTO_STRETCH) {
 		setup_histo_dialog();
@@ -2561,10 +2564,33 @@ static void histo_ghs_amend_ready(gboolean ok, gpointer user) {
 	histo_amend_open(GHT_STRETCH);
 }
 
-void histogram_mtf_open_amend(gint64 record_id) {
+gboolean histogram_mtf_open_amend(gint64 record_id) {
+	/* Unlinked MTF records (e.g. autostretch captures) carry per-channel
+	 * parameter triples this dialog's linked sliders cannot represent —
+	 * amending one here would silently collapse it to a linked stretch.
+	 * Veto so the Edit button falls back to the kv-grid editor. */
+	gboolean linked = TRUE;
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	for (guint i = 0; snap && i < snap->len; i++) {
+		const nde_record *rec = g_ptr_array_index(snap, i);
+		if (rec->record_id == record_id) {
+			GHashTable *kv = rec->params ? nde_kv_parse(rec->params) : NULL;
+			if (kv) {
+				nde_kv_get_bool(kv, "linked", &linked);
+				g_hash_table_unref(kv);
+			}
+			break;
+		}
+	}
+	if (snap)
+		g_ptr_array_unref(snap);
+	if (!linked)
+		return FALSE;
 	nde_amend_preview_start(record_id, histo_mtf_amend_ready, NULL);
+	return TRUE;
 }
 
-void histogram_ghs_open_amend(gint64 record_id) {
+gboolean histogram_ghs_open_amend(gint64 record_id) {
 	nde_amend_preview_start(record_id, histo_ghs_amend_ready, NULL);
+	return TRUE;
 }

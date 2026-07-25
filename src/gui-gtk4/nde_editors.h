@@ -37,9 +37,12 @@
  */
 
 /** Open the native editor for a history record of op @op_id, if one is
- *  registered.  Returns TRUE when the op is handled by a native editor
- *  (even if entering amend mode was refused — the opener logs the
- *  reason); FALSE when the caller should fall back to the kv grid. */
+ *  registered.  Returns TRUE when the record is handled by a native
+ *  editor (even if entering amend mode was refused — the opener logs the
+ *  reason); FALSE when the caller should fall back to the kv grid: no
+ *  editor is registered for the op, or the editor vetoed this particular
+ *  record (e.g. an unlinked MTF stretch the histogram sliders cannot
+ *  represent). */
 gboolean nde_editor_open(const gchar *op_id, gint64 record_id);
 
 #endif /* SRC_GUI_NDE_EDITORS_H_ */

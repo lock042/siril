@@ -42,8 +42,8 @@ void toggle_histogram_window_visibility(int _invocation);
 
 /* Open the dialog in amend mode for a history record (nde_editors registry,
  * convergence C5).  MTF edits a stretch.mtf record; GHS a stretch.ghs one. */
-void histogram_mtf_open_amend(gint64 record_id);
-void histogram_ghs_open_amend(gint64 record_id);
+gboolean histogram_mtf_open_amend(gint64 record_id);
+gboolean histogram_ghs_open_amend(gint64 record_id);
 
 gboolean on_button_histo_close_clicked(GtkButton *button, gpointer user_data); // callback needed
 
