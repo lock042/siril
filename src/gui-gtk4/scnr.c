@@ -26,12 +26,14 @@
 #include "core/op_descriptors.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
+#include "core/nde_replay.h"
 #include "filters/scnr.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/siril_preview.h"
 #include "gui-gtk4/utils.h"
+#include "gui-gtk4/scnr.h"
 #include "io/single_image.h"
 
 static GtkToggleButton *scnr_roi_preview = NULL;
@@ -40,6 +42,15 @@ static GtkScale *scnr_scale = NULL;
 static GtkLabel *scnr_label56 = NULL;
 static GtkSpinButton *scnr_spin = NULL;
 static GtkCheckButton *scnr_preserve_light = NULL;
+static GtkWidget *scnr_amend_note = NULL;
+
+/* Amend mode (convergence C5): the dialog edits an existing history record.
+ * gfit holds the pre-record state installed by nde_amend_preview_start.  SCNR
+ * has no preview machinery (dialogs.c has_preview=FALSE), so there is no
+ * backup to arm or clear: the display simply shows the installed pre-record
+ * state while the form is open, and Apply/Cancel route through
+ * nde_amend_preview_end. */
+static gboolean scnr_amend_mode = FALSE;
 
 static void scnr_dialog_init_statics(void) {
 	if (scnr_roi_preview) return;
@@ -49,6 +60,25 @@ static void scnr_dialog_init_statics(void) {
 	scnr_label56 = GTK_LABEL(gtk_builder_get_object(gui.builder, "label56"));
 	scnr_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_scnr"));
 	scnr_preserve_light = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "preserve_light"));
+	scnr_amend_note = GTK_WIDGET(gtk_builder_get_object(gui.builder, "scnr_amend_note"));
+}
+
+void on_combo_scnr_changed(GObject *obj, GParamSpec *pspec, gpointer user_data);
+
+/* Fill the widgets from the amended record's current parameters through the
+ * op's own deserializer — the same struct the normal apply builds. */
+static void scnr_prefill_from_amend(void) {
+	struct scnr_data *p = op_desc_scnr.deserialize(nde_amend_preview_params(),
+	                                               nde_amend_preview_op_version());
+	if (!p)
+		return;
+	gtk_drop_down_set_selected(scnr_combo, p->type);
+	gtk_range_set_value(GTK_RANGE(scnr_scale), p->amount);
+	siril_toggle_set_active(GTK_WIDGET(scnr_preserve_light), p->preserve);
+	if (p->destroy_fn)
+		p->destroy_fn(p);
+	else
+		free(p);
 }
 
 static int scnr_process_with_worker(scnr_type type, double amount, gboolean preserve,
@@ -110,6 +140,25 @@ void scnr_change_between_roi_and_image(void) {
 
 void on_SCNR_dialog_show(GtkWidget *widget, gpointer user_data) {
 	scnr_dialog_init_statics();
+	gtk_widget_set_visible(scnr_amend_note, scnr_amend_mode);
+
+	if (scnr_amend_mode) {
+		/* gfit already shows the pre-record state.  SCNR has no preview,
+		 * so there is no backup and no ROI preview in amend mode: hide the
+		 * ROI preview button and clear any ROI (the amend display is the
+		 * whole pre-record image). */
+		gtk_widget_set_visible(GTK_WIDGET(scnr_roi_preview), FALSE);
+		if (gui.roi.active)
+			on_clear_roi();
+		set_notify_block(TRUE);
+		siril_toggle_set_active(GTK_WIDGET(scnr_roi_preview), FALSE);
+		scnr_prefill_from_amend();
+		set_notify_block(FALSE);
+		/* Enable the amount widgets according to the prefilled type. */
+		on_combo_scnr_changed(G_OBJECT(scnr_combo), NULL, NULL);
+		return;
+	}
+
 	roi_supported(TRUE);
 	gtk_widget_set_visible(GTK_WIDGET(scnr_roi_preview), gui.roi.active);
 
@@ -126,6 +175,14 @@ void on_SCNR_dialog_show(GtkWidget *widget, gpointer user_data) {
 }
 
 void on_SCNR_cancel_clicked(GtkButton *button, gpointer user_data) {
+	if (scnr_amend_mode) {
+		/* Leave amend mode: restore the true pixels (nothing committed).
+		 * No backup/preview machinery to tear down. */
+		nde_amend_preview_end(FALSE, NULL);
+		scnr_amend_mode = FALSE;
+		siril_close_dialog("SCNR_dialog");
+		return;
+	}
 	roi_supported(FALSE);
 
 	if (siril_toggle_get_active(GTK_WIDGET(scnr_roi_preview))) {
@@ -139,6 +196,23 @@ void on_SCNR_cancel_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_SCNR_Apply_clicked(GtkButton *button, gpointer user_data) {
+	if (scnr_amend_mode) {
+		/* Serialize the widget state through the SAME struct and serializer
+		 * the normal apply uses, then route it through the amend path.
+		 * preview_end restores the true pixels first, then replays the
+		 * edited history from the pre-record state this session deposited. */
+		struct scnr_data applied = { 0 };
+		applied.type = gtk_drop_down_get_selected(scnr_combo);
+		applied.amount = gtk_range_get_value(GTK_RANGE(scnr_scale));
+		applied.preserve = siril_toggle_get_active(GTK_WIDGET(scnr_preserve_light));
+		gchar *blob = op_desc_scnr.serialize(&applied);
+		nde_amend_preview_end(TRUE, blob);
+		g_free(blob);
+		scnr_amend_mode = FALSE;
+		siril_close_dialog("SCNR_dialog");
+		return;
+	}
+
 	int type = gtk_drop_down_get_selected(scnr_combo);
 	gboolean preserve = siril_toggle_get_active(GTK_WIDGET(scnr_preserve_light));
 	double amount = gtk_range_get_value(GTK_RANGE(scnr_scale));
@@ -200,4 +274,20 @@ void on_SCNR_roi_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 		param->show_preview = TRUE;
 		notify_update((gpointer) param);
 	}
+}
+
+/* ---- amend-mode entry (nde_editors registry) --------------------------- */
+
+static void scnr_amend_ready(gboolean ok, gpointer user) {
+	(void)user;
+	if (!ok)
+		return;   /* the core logged the reason; nothing was changed */
+	scnr_amend_mode = TRUE;
+	siril_open_dialog("SCNR_dialog");
+}
+
+void scnr_open_amend(gint64 record_id) {
+	/* The dialog opens from the ready callback, once the pre-record state
+	 * has been synthesized and installed. */
+	nde_amend_preview_start(record_id, scnr_amend_ready, NULL);
 }

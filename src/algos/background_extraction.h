@@ -104,4 +104,8 @@ void sample_mutex_lock();
 void sample_mutex_unlock();
 void apply_background_cancel();
 
+/* Open the dialog in amend mode for history record @record_id
+ * (nde_editors registry, convergence C5). */
+void bge_open_amend(gint64 record_id);
+
 #endif /* SRC_ALGOS_BACKGROUND_EXTRACTION_H_ */

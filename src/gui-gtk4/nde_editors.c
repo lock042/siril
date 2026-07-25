@@ -20,6 +20,12 @@
 
 #include "gui-gtk4/nde_editors.h"
 #include "gui-gtk4/asinh.h"
+#include "gui-gtk4/curves.h"
+#include "gui-gtk4/histogram.h"
+#include "gui-gtk4/scnr.h"
+#include "gui-gtk4/median.h"
+#include "gui-gtk4/saturation.h"
+#include "algos/background_extraction.h"
 
 typedef void (*nde_editor_open_fn)(gint64 record_id);
 
@@ -27,7 +33,14 @@ static const struct {
 	const char *op_id;
 	nde_editor_open_fn open;
 } editors[] = {
-	{ "stretch.asinh", asinh_open_amend },
+	{ "stretch.asinh",        asinh_open_amend },
+	{ "stretch.curves",       curves_open_amend },
+	{ "stretch.mtf",          histogram_mtf_open_amend },
+	{ "stretch.ghs",          histogram_ghs_open_amend },
+	{ "filters.scnr",         scnr_open_amend },
+	{ "filters.median",       median_open_amend },
+	{ "color.saturation",     satu_open_amend },
+	{ "bkg.remove_gradient",  bge_open_amend },
 };
 
 gboolean nde_editor_open(const gchar *op_id, gint64 record_id) {

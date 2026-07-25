@@ -39,6 +39,7 @@
 #include "core/undo.h"
 #include "core/nde_history.h"
 #include "core/nde_checkpoint.h"
+#include "core/nde_replay.h"
 #include "curves.h"
 #include "histogram.h"
 #include "histogram_utils.h"
@@ -95,6 +96,14 @@ static void curves_next_pressed(GtkGestureClick *gesture, int n_press,
 // Original ICC profile, in case we don't apply a stretch and need to revert
 static cmsHPROFILE original_icc = NULL;
 static gboolean single_image_stretch_applied = FALSE;
+static GtkWidget *curves_amend_note = NULL;
+
+/* Amend mode (convergence C5): the dialog edits an existing history record.
+ * gfit holds the pre-record state installed by nde_amend_preview_start; the
+ * record's point list opens in the real curve editor, previews run against
+ * the pre-record backup, and Apply/Cancel route through
+ * nde_amend_preview_end instead of a worker run + undo save. */
+static gboolean curves_amend_mode = FALSE;
 
 // compare function for points
 int compare_points(const void *a, const void *b) {
@@ -196,6 +205,8 @@ void curves_dialog_init_statics() {
 		curves_grid_toggle = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "curves_grid_toggle"));
 		// GtkViewport
 		curves_viewport = GTK_WIDGET(gtk_builder_get_object(gui.builder, "curves_viewport"));
+		// Amend-mode note
+		curves_amend_note = GTK_WIDGET(gtk_builder_get_object(gui.builder, "curves_amend_note"));
 	}
 }
 
@@ -428,6 +439,41 @@ static void reset_curve_points() {
 	init_curve_points();
 }
 
+/* Load the amended record's parameters into the dialog's editor state
+ * through the op's own deserializer.  Adopts the record's point list into
+ * the live curve_points (the same list the apply path reads), and sets the
+ * algorithm, channel toggles and interpolation combo. */
+static void curves_prefill_from_amend(void) {
+	struct curve_params *p = op_desc_curves.deserialize(
+			nde_amend_preview_params(), nde_amend_preview_op_version());
+	if (!p)
+		return;
+
+	/* Replace the current points with the record's.  Steal the deserialized
+	 * list (a fresh g_new'd point list) so its lifetime becomes ours; then
+	 * free the deserialized wrapper without touching the stolen list. */
+	g_list_free_full(curve_points, g_free);
+	curve_points = p->points;
+	p->points = NULL;
+	if (!curve_points)
+		init_curve_points();   /* degenerate record: keep a valid pair */
+	curve_points = g_list_sort(curve_points, (GCompareFunc) compare_points);
+	selected_point = (point *) curve_points->data;
+
+	algorithm = p->algorithm;
+	gtk_drop_down_set_selected(GTK_DROP_DOWN(curves_interpolation_combo), algorithm);
+	siril_toggle_set_active(GTK_WIDGET(curves_red_toggle),   p->do_channel[0]);
+	siril_toggle_set_active(GTK_WIDGET(curves_green_toggle), p->do_channel[1]);
+	siril_toggle_set_active(GTK_WIDGET(curves_blue_toggle),  p->do_channel[2]);
+	update_do_channel();
+
+	if (p->destroy_fn)
+		p->destroy_fn(p);   /* frees p (p->points already NULLed) */
+	else
+		free(p);
+	_update_entry_text();
+}
+
 static void adjust_curves_vport_size() {
 	int target_width, target_height, current_width, current_height;
 	double zoom = gtk_adjustment_get_value(curves_adj_zoom);
@@ -648,13 +694,50 @@ void on_curves_display_toggle(GtkToggleButton *togglebutton, gpointer user_data)
 void on_curves_window_show(GtkWidget *object, gpointer user_data) {
 	fit = gfit;
 	closing = FALSE;
+	curves_dialog_init_statics();
+	gtk_widget_set_visible(curves_amend_note, curves_amend_mode);
+
 	curves_startup();
 	_initialize_clip_text();
 	reset_cursors_and_values(TRUE);
 	compute_histo_for_fit(fit);
+
+	if (curves_amend_mode) {
+		/* No ROI in amend mode: previews are full-image against the
+		 * pre-record backup that curves_startup() just armed. */
+		roi_supported(FALSE);
+		remove_roi_callback(curves_histogram_change_between_roi_and_image);
+		if (gui.roi.active)
+			on_clear_roi();
+
+		/* Load the record's curve into the editor, then one preview tick so
+		 * the dialog opens showing the record applied with its points. */
+		curves_prefill_from_amend();
+		gtk_widget_queue_draw(curves_drawingarea);
+		curves_update_image();
+	}
+}
+
+/* Leave amend mode: tear down the histogram/backup state without touching
+ * the pixels (preview_end restores the true pixels wholesale), then run the
+ * amend (apply == TRUE with @blob) or discard it (apply == FALSE, blob NULL).
+ * Returns TRUE when it handled the amend case. */
+static gboolean curves_amend_exit(gboolean apply, gchar *blob) {
+	if (!curves_amend_mode)
+		return FALSE;
+	closing = TRUE;
+	cancel_pending_update();
+	cancel_and_wait_for_preview();
+	curves_close(FALSE, FALSE);   /* restores display histograms, drops backup; no ICC revert */
+	nde_amend_preview_end(apply, blob);
+	curves_amend_mode = FALSE;
+	siril_close_dialog("curves_dialog");
+	return TRUE;
 }
 
 void on_curves_close_button_clicked(GtkButton *button, gpointer user_data) {
+	if (curves_amend_exit(FALSE, NULL))
+		return;
 	closing = TRUE;
 	set_cursor_waiting(TRUE);
 	curves_close(TRUE, TRUE);
@@ -664,6 +747,14 @@ void on_curves_close_button_clicked(GtkButton *button, gpointer user_data) {
 
 void on_curves_reset_button_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
+	if (curves_amend_mode) {
+		/* Reset means "back to the record's recorded curve" here. */
+		curves_prefill_from_amend();
+		gtk_widget_queue_draw(curves_drawingarea);
+		curves_update_image();
+		set_cursor_waiting(FALSE);
+		return;
+	}
 	reset_cursors_and_values(FALSE);
 	curves_close(TRUE, FALSE);
 	curves_startup();
@@ -672,6 +763,22 @@ void on_curves_reset_button_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
+	if (curves_amend_mode) {
+		/* Serialize the current editor state through the SAME params struct
+		 * and serializer the normal apply uses, then route it through the
+		 * amend path. */
+		update_do_channel();
+		struct curve_params applied = {
+			.points = curve_points,
+			.algorithm = gtk_drop_down_get_selected(GTK_DROP_DOWN(curves_interpolation_combo)),
+			.do_channel = { do_channel[0], do_channel[1], do_channel[2] }
+		};
+		gchar *blob = op_desc_curves.serialize(&applied);
+		curves_amend_exit(TRUE, blob);
+		g_free(blob);
+		return;
+	}
+
 	if (!check_ok_if_cfa())
 		return;
 
@@ -791,6 +898,8 @@ void apply_curve_to_sequence(struct curve_data *curve_args) {
 }
 
 void apply_curves_cancel() {
+	if (curves_amend_exit(FALSE, NULL))
+		return;
 	set_cursor_waiting(TRUE);
 	curves_close(TRUE, TRUE);
 	set_cursor_waiting(FALSE);
@@ -1100,6 +1209,22 @@ void on_curves_preview_toggled(GtkCheckButton *button, gpointer user_data) {
 
 void on_curves_log_check_toggled(GtkCheckButton *button, gpointer user_data) {
 	gtk_widget_queue_draw(curves_drawingarea);
+}
+
+/* ---- amend-mode entry (nde_editors registry) --------------------------- */
+
+static void curves_amend_ready(gboolean ok, gpointer user) {
+	(void)user;
+	if (!ok)
+		return;   /* the core logged the reason; nothing was changed */
+	curves_amend_mode = TRUE;
+	siril_open_dialog("curves_dialog");
+}
+
+void curves_open_amend(gint64 record_id) {
+	/* The dialog opens from the ready callback, once the pre-record state
+	 * has been synthesized and installed. */
+	nde_amend_preview_start(record_id, curves_amend_ready, NULL);
 }
 
 
