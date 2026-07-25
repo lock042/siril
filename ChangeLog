@@ -46,6 +46,8 @@ siril-1.5.0
 * Added a nondestructive edit history to FLIS layered images: operations are recorded with their parameters, persisted in .flis files, shown in the Layers panel's History section and inspectable with the new `flis_history` command (!tbc)
 * FLIS files carrying an edit history remain readable by builds without the feature, but those builds drop the history on their next save; tile-compressed saves omit the per-layer pixel checksums used to warn about external edits (!tbc)
 * Opaque operations in an FLIS edit history (ICC conversions, Python pixel edits and the like) now store a restart checkpoint so later steps stay editable instead of freezing the whole history; deleting the most recent opaque step unlocks the steps before it. Saved .flis files grow by one embedded image per opaque step (!tbc)
+* History steps can be edited in their original dialogs: editing a recorded stretch, curve, SCNR, median or saturation step reopens its dialog pre-filled with the recorded parameters and previews live against the state just before that step; later steps are hidden during editing and recomputed on Apply. Background extraction steps open form-only. Editing history is much faster thanks to cached intermediate states (disk budget configurable with the core.nde_cache_mb setting) (!tbc)
+* History steps can be reordered: Move up/Move down in the History panel, or the new `flis_hist_move` command. Like other history edits this recomputes the image and clears the undo history (!tbc)
 
 **Fixes**
 * Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
