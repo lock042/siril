@@ -135,6 +135,13 @@ struct _NdeHistRowItem {
 	gboolean frozen;     /* at-or-before the item's last barrier (chain member) */
 	gboolean barrier;    /* an opaque restart-point member */
 	gboolean last_barrier;/* the most recent barrier: Edit off, Delete unlocks */
+	/* Reorder state (C5): the adjacent CHAIN members of the same item (not the
+	 * adjacent panel rows, which interleave other layers / structural records).
+	 * record_id 0 means no such neighbour.  *_in_tail says the neighbour lies
+	 * in the editable tail; in_tail says this row does. */
+	gboolean in_tail;
+	gint64   prev_member_id, next_member_id;
+	gboolean prev_in_tail,  next_in_tail;
 };
 
 G_DEFINE_TYPE(NdeHistRowItem, nde_hist_row_item, G_TYPE_OBJECT)
@@ -209,6 +216,8 @@ struct flis_panel {
 	GtkWidget  *hist_popover_label;
 	GtkWidget  *hist_edit_btn;       /* "Edit parameters…" in the popover */
 	GtkWidget  *hist_delete_btn;     /* "Delete step" in the popover */
+	GtkWidget  *hist_move_up_btn;    /* "Move up" in the popover (C5) */
+	GtkWidget  *hist_move_down_btn;  /* "Move down" in the popover (C5) */
 	NdeHistRowItem *hist_popover_row;/* row the popover currently targets (ref held) */
 
 	/* Refresh suppression: TRUE while we're programmatically syncing
@@ -1350,6 +1359,9 @@ static void on_hist_edit_clicked(GtkButton *b, gpointer u) {
 	open_hist_edit_dialog(r);
 }
 
+static const char *hist_move_disabled_reason(const NdeHistRowItem *r,
+                                             gboolean up);
+
 static void on_hist_delete_clicked(GtkButton *b, gpointer u) {
 	(void)b; (void)u;
 	if (!g_panel || !g_panel->hist_popover_row)
@@ -1367,6 +1379,45 @@ static void on_hist_delete_clicked(GtkButton *b, gpointer u) {
 	g_free(msg);
 	if (confirmed)
 		nde_delete_start(r->record_id);   /* refresh via nde_history_changed */
+}
+
+/* Move the popover's row before its previous chain member (@up) or after its
+ * next chain member.  The anchor is the ADJACENT CHAIN MEMBER of the same
+ * item, not the adjacent panel row.  Confirms first (a move rewrites the
+ * lineage, like Delete). */
+static void hist_move_clicked(gboolean up) {
+	if (!g_panel || !g_panel->hist_popover_row)
+		return;
+	NdeHistRowItem *r = g_panel->hist_popover_row;
+	if (hist_move_disabled_reason(r, up) != NULL)
+		return;
+	gint64 anchor = up ? r->prev_member_id : r->next_member_id;
+	if (!anchor)
+		return;
+	gint64 record_id = r->record_id;
+	gtk_popover_popdown(GTK_POPOVER(g_panel->hist_popover));
+
+	gchar *msg = g_strdup_printf("%s\n\n%s",
+	                             r->summary ? r->summary : "",
+	                             HIST_EDIT_CONSEQUENCE);
+	gboolean confirmed = siril_confirm_dialog(up ? _("Move this step up?")
+	                                             : _("Move this step down?"),
+	                                          msg, _("_Move"));
+	g_free(msg);
+	if (confirmed)
+		/* Move up = before the previous member; Move down = after the next
+		 * member.  Refresh arrives via nde_history_changed. */
+		nde_reorder_start(record_id, anchor, /*after=*/ up ? FALSE : TRUE);
+}
+
+static void on_hist_move_up_clicked(GtkButton *b, gpointer u) {
+	(void)b; (void)u;
+	hist_move_clicked(TRUE);
+}
+
+static void on_hist_move_down_clicked(GtkButton *b, gpointer u) {
+	(void)b; (void)u;
+	hist_move_clicked(FALSE);
 }
 
 /* First applicable reason a row's Edit/Delete button is greyed out, in plain
@@ -1395,6 +1446,38 @@ static const char *hist_action_disabled_reason(const NdeHistRowItem *r,
 	return NULL;
 }
 
+/* First applicable reason a row's Move up/down button is greyed out, in plain
+ * language; NULL when the button is enabled.  A move re-orders the record
+ * relative to its ADJACENT CHAIN MEMBER (@up: the previous member; else the
+ * next member).  The engine re-validates anyway; this mirrors it so the
+ * tooltip explains the first blocker.  Shares the generic disables with the
+ * Edit/Delete path. */
+static const char *hist_move_disabled_reason(const NdeHistRowItem *r,
+                                             gboolean up) {
+	if (r->dead)
+		return _("This step has been undone");
+	if (nde_history_is_stale())
+		return _("The image was modified outside the recorded history");
+	if (processing_is_job_active())
+		return _("Not available while processing");
+	if (nde_amend_preview_active())
+		return _("Another history step is being edited");
+	/* A move rewrites the pixel lineage, so it obeys the amend/delete policy:
+	 * the record must be amendable and deletable, and both it and the target
+	 * neighbour must lie in the editable tail (crossing an opaque barrier is
+	 * refused). */
+	if (!r->amendable || !r->deletable || !r->in_tail)
+		return _("Only steps after the last opaque step can be moved");
+	gint64 neighbour = up ? r->prev_member_id : r->next_member_id;
+	gboolean neighbour_in_tail = up ? r->prev_in_tail : r->next_in_tail;
+	if (!neighbour)
+		return up ? _("This is already the first movable step")
+		          : _("This is already the last movable step");
+	if (!neighbour_in_tail)
+		return _("Only steps after the last opaque step can be moved");
+	return NULL;
+}
+
 static void on_hist_row_activate(GtkListView *lv, guint position, gpointer u) {
 	(void)u;
 	GListModel *model = G_LIST_MODEL(gtk_list_view_get_model(lv));
@@ -1418,13 +1501,21 @@ static void on_hist_row_activate(GtkListView *lv, guint position, gpointer u) {
 
 		GtkWidget *actions = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
 		gtk_widget_set_halign(actions, GTK_ALIGN_END);
+		g_panel->hist_move_up_btn   = gtk_button_new_with_label(_("Move up"));
+		g_panel->hist_move_down_btn = gtk_button_new_with_label(_("Move down"));
 		g_panel->hist_edit_btn   = gtk_button_new_with_label(_("Edit parameters…"));
 		g_panel->hist_delete_btn = gtk_button_new_with_label(_("Delete step"));
 		gtk_widget_add_css_class(g_panel->hist_delete_btn, "destructive-action");
+		gtk_box_append(GTK_BOX(actions), g_panel->hist_move_up_btn);
+		gtk_box_append(GTK_BOX(actions), g_panel->hist_move_down_btn);
 		gtk_box_append(GTK_BOX(actions), g_panel->hist_edit_btn);
 		gtk_box_append(GTK_BOX(actions), g_panel->hist_delete_btn);
 		gtk_box_append(GTK_BOX(pbox), actions);
 
+		g_signal_connect(g_panel->hist_move_up_btn,   "clicked",
+		                 G_CALLBACK(on_hist_move_up_clicked),   NULL);
+		g_signal_connect(g_panel->hist_move_down_btn, "clicked",
+		                 G_CALLBACK(on_hist_move_down_clicked), NULL);
 		g_signal_connect(g_panel->hist_edit_btn,   "clicked",
 		                 G_CALLBACK(on_hist_edit_clicked),   NULL);
 		g_signal_connect(g_panel->hist_delete_btn, "clicked",
@@ -1441,8 +1532,14 @@ static void on_hist_row_activate(GtkListView *lv, guint position, gpointer u) {
 
 	const char *edit_off = hist_action_disabled_reason(r, TRUE);
 	const char *del_off  = hist_action_disabled_reason(r, FALSE);
+	const char *up_off   = hist_move_disabled_reason(r, TRUE);
+	const char *down_off = hist_move_disabled_reason(r, FALSE);
 	gtk_widget_set_sensitive(g_panel->hist_edit_btn,   edit_off == NULL);
 	gtk_widget_set_sensitive(g_panel->hist_delete_btn, del_off == NULL);
+	gtk_widget_set_sensitive(g_panel->hist_move_up_btn,   up_off == NULL);
+	gtk_widget_set_sensitive(g_panel->hist_move_down_btn, down_off == NULL);
+	gtk_widget_set_tooltip_text(g_panel->hist_move_up_btn,   up_off);
+	gtk_widget_set_tooltip_text(g_panel->hist_move_down_btn, down_off);
 	gtk_widget_set_tooltip_text(g_panel->hist_edit_btn,   edit_off);
 	/* Deleting the last opaque step is the moment the freeze feature is
 	 * discoverable — spell out that it unlocks the earlier steps. */
@@ -1457,31 +1554,48 @@ static void on_hist_row_activate(GtkListView *lv, guint position, gpointer u) {
 }
 
 /* Per-record freeze marks derived from the P4.1 chain verdicts (P4.4).
- * frozen/barrier/last_barrier mirror NdeHistRowItem; keyed by record_id. */
-typedef struct { gboolean frozen, barrier, last_barrier; } hist_freeze_mark;
+ * frozen/barrier/last_barrier mirror NdeHistRowItem; keyed by record_id.
+ * The reorder fields (C5) carry the adjacent same-chain members. */
+typedef struct {
+	gboolean frozen, barrier, last_barrier;
+	gboolean in_tail;
+	gint64   prev_member_id, next_member_id;
+	gboolean prev_in_tail, next_in_tail;
+} hist_freeze_mark;
 
 /* Fold one item's chain into @map (record_id → hist_freeze_mark).  A chain
  * member at index < tail_start is frozen; the member at tail_start-1 that is
  * itself a barrier is "the last barrier" (frozen for Edit, still deletable).
- * Members at index >= tail_start are free and get no mark.  Non-member
- * records (structural/document-wide) never appear here — left unmarked. */
+ * A mark is stashed for EVERY member (C5 reorder needs the tail members too);
+ * it records each member's adjacent chain members and their tail membership.
+ * Non-member records (structural/document-wide) never appear here. */
 static void hist_fold_chain_marks(GHashTable *map, const nde_chain *chain) {
 	if (!chain || !chain->records)
 		return;
 	guint tail = chain->tail_start;
-	for (guint i = 0; i < chain->records->len; i++) {
+	guint len = chain->records->len;
+	for (guint i = 0; i < len; i++) {
 		const nde_record *rec = g_ptr_array_index(chain->records, i);
 		guint8 flags = (chain->member_flags && i < chain->member_flags->len)
 		             ? g_array_index(chain->member_flags, guint8, i) : 0;
 		gboolean is_barrier = (flags & NDE_CHAIN_MEMBER_BARRIER) != 0;
-		if (i >= tail)
-			continue;   /* editable tail — no mark */
 		hist_freeze_mark *m = g_new0(hist_freeze_mark, 1);
-		m->frozen  = TRUE;
+		m->frozen  = (i < tail);
 		m->barrier = is_barrier;
 		/* The barrier immediately before the tail is the one whose deletion
 		 * regains editability of the prefix. */
 		m->last_barrier = is_barrier && (i == tail - 1);
+		m->in_tail = (i >= tail);
+		if (i > 0) {
+			const nde_record *p = g_ptr_array_index(chain->records, i - 1);
+			m->prev_member_id = p->record_id;
+			m->prev_in_tail   = ((i - 1) >= tail);
+		}
+		if (i + 1 < len) {
+			const nde_record *n = g_ptr_array_index(chain->records, i + 1);
+			m->next_member_id = n->record_id;
+			m->next_in_tail   = ((i + 1) >= tail);
+		}
 		g_hash_table_insert(map, g_memdup2(&rec->record_id, sizeof(gint64)), m);
 	}
 }
@@ -1535,6 +1649,11 @@ static void refresh_history(void) {
 				item->frozen       = m->frozen;
 				item->barrier      = m->barrier;
 				item->last_barrier = m->last_barrier;
+				item->in_tail        = m->in_tail;
+				item->prev_member_id = m->prev_member_id;
+				item->next_member_id = m->next_member_id;
+				item->prev_in_tail   = m->prev_in_tail;
+				item->next_in_tail   = m->next_in_tail;
 			}
 			/* Frozen rows explain why they are locked in the detail text. */
 			if (item->frozen && !item->last_barrier) {
