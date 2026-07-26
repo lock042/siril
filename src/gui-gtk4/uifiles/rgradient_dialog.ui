@@ -26,6 +26,19 @@
             <property name="orientation">vertical</property>
             <property name="spacing">10</property>
             <child>
+              <object class="GtkLabel" id="rgradient_amend_note">
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Editing a history step: later steps are temporarily hidden and will be recomputed when you apply. This recomputes the image from the edit history and clears the undo history.</property>
+                <property name="max-width-chars">48</property>
+                <property name="visible">0</property>
+                <property name="wrap">1</property>
+                <property name="xalign">0</property>
+                <style>
+                  <class name="dim-label"/>
+                </style>
+              </object>
+            </child>
+            <child>
               <object class="GtkBox">
                 <child>
                   <object class="GtkLabel" id="label178">
@@ -173,5 +186,6 @@
     <property name="title" translatable="yes">Rotational Gradient</property>
     <property name="width-request">400</property>
     <signal name="close-request" handler="rgradient_hide_on_delete"/>
+    <signal name="show" handler="on_rgradient_dialog_show"/>
   </object>
 </interface>

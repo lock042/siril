@@ -48,6 +48,18 @@
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/utils.h"
 #include "gui-gtk4/colors.h"
+#include "gui-gtk4/siril_preview.h"
+#include "core/nde_replay.h"
+
+/* Amend mode (convergence C5b): the CCM dialog edits a color.ccm history
+ * record.  gfit holds the pre-record state installed by
+ * nde_amend_preview_start.  CCM has no preview machinery (dialogs.c
+ * has_preview=FALSE), so there is no backup to arm or clear: the display shows
+ * the installed pre-record state while the form is open, and Apply/Cancel route
+ * through nde_amend_preview_end.  ICC is NOT touched in amend mode (skip-ICC
+ * rule): converting the installed pre-record pixels would make the preview
+ * diverge from the replayed commit. */
+static gboolean ccm_amend_mode = FALSE;
 
 void on_button_bkg_selection_clicked(GtkButton *button, gpointer user_data) {
 	static GtkSpinButton *selection_black_value[4] = { NULL, NULL, NULL, NULL };
@@ -548,6 +560,20 @@ void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
 		ccmSeqEntry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entryCCMSeq"));
 		ccm_restore_icc = GTK_WIDGET(gtk_builder_get_object(gui.builder, "ccm_restore_icc"));
 	}
+	if (ccm_amend_mode) {
+		/* Serialize the widget state through the SAME struct and serializer
+		 * the normal apply uses, then route it through the amend path.  No
+		 * ICC juggling and no sequence path in amend mode. */
+		struct ccm_data applied = { 0 };
+		get_ccm_values(applied.matrix, &applied.power);
+		gchar *blob = op_desc_ccm.serialize(&applied);
+		nde_amend_preview_end(TRUE, blob);
+		g_free(blob);
+		ccm_amend_mode = FALSE;
+		siril_close_dialog("ccm_dialog");
+		return;
+	}
+
 	struct ccm_data *args = new_ccm_data();
 	if (!args) {
 		PRINT_ALLOC_ERR;
@@ -705,10 +731,82 @@ void on_combo_ccm_preset_changed(GObject *obj, GParamSpec *pspec, gpointer user_
 }
 
 void on_ccm_close_clicked(GtkButton* button, gpointer user_data) {
+	if (ccm_amend_mode) {
+		/* Close does not apply — leave amend mode without committing (restore
+		 * the true pixels). */
+		nde_amend_preview_end(FALSE, NULL);
+		ccm_amend_mode = FALSE;
+	}
 	siril_close_dialog("ccm_dialog");
 }
 
 gboolean ccm_hide_on_delete(GtkWidget *widget) {
+	if (ccm_amend_mode) {
+		nde_amend_preview_end(FALSE, NULL);
+		ccm_amend_mode = FALSE;
+	}
 	siril_close_dialog("ccm_dialog");
+	return TRUE;
+}
+
+/* Fill the widgets from the amended record's current parameters through the
+ * op's own deserializer — the same struct the normal apply reads. */
+static void ccm_prefill_from_amend(void) {
+	struct ccm_data *p = op_desc_ccm.deserialize(nde_amend_preview_params(),
+	                                            nde_amend_preview_op_version());
+	if (!p)
+		return;
+	static GtkSpinButton *spin_ccm_power = NULL;
+	if (!spin_ccm_power)
+		spin_ccm_power = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_ccm_power"));
+	update_ccm_matrix(p->matrix);
+	gtk_spin_button_set_value(spin_ccm_power, p->power);
+	if (p->destroy_fn)
+		p->destroy_fn(p);
+	else
+		free(p);
+}
+
+void on_ccm_dialog_show(GtkWidget *widget, gpointer user_data) {
+	static GtkWidget *ccm_seq_check = NULL, *ccm_seq_entry = NULL, *ccm_restore_icc = NULL;
+	static GtkWidget *ccm_amend_note = NULL;
+	if (!ccm_amend_note) {
+		ccm_amend_note = GTK_WIDGET(gtk_builder_get_object(gui.builder, "ccm_amend_note"));
+		ccm_seq_check = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_apply_seq_ccm"));
+		ccm_seq_entry = GTK_WIDGET(gtk_builder_get_object(gui.builder, "entryCCMSeq"));
+		ccm_restore_icc = GTK_WIDGET(gtk_builder_get_object(gui.builder, "ccm_restore_icc"));
+	}
+	gtk_widget_set_visible(ccm_amend_note, ccm_amend_mode);
+	if (ccm_amend_mode) {
+		/* gfit already shows the pre-record state.  Sequence controls and the
+		 * ICC-restore affordance are meaningless in amend mode. */
+		if (gui.roi.active)
+			on_clear_roi();
+		gtk_widget_set_visible(ccm_seq_check, FALSE);
+		gtk_widget_set_visible(ccm_seq_entry, FALSE);
+		gtk_widget_set_sensitive(ccm_restore_icc, FALSE);
+		set_notify_block(TRUE);
+		ccm_prefill_from_amend();
+		set_notify_block(FALSE);
+	} else {
+		gtk_widget_set_visible(ccm_seq_check, TRUE);
+		gtk_widget_set_visible(ccm_seq_entry, TRUE);
+	}
+}
+
+/* ---- amend-mode entry (nde_editors registry) --------------------------- */
+
+static void ccm_amend_ready(gboolean ok, gpointer user) {
+	(void)user;
+	if (!ok)
+		return;   /* the core logged the reason; nothing was changed */
+	ccm_amend_mode = TRUE;
+	siril_open_dialog("ccm_dialog");
+}
+
+gboolean ccm_open_amend(gint64 record_id) {
+	/* The dialog opens from the ready callback, once the pre-record state
+	 * has been synthesized and installed. */
+	nde_amend_preview_start(record_id, ccm_amend_ready, NULL);
 	return TRUE;
 }

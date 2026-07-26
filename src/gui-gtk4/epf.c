@@ -38,6 +38,8 @@
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/siril_preview.h"
 #include "core/undo.h"
+#include "core/nde_replay.h"
+#include "core/nde_history.h"
 #include "opencv/opencv.h"
 
 // Statics declarations
@@ -50,6 +52,14 @@ GtkLabel *label176 = NULL, *label1 = NULL, *label177 = NULL;
 GtkScale *scale_epf_d = NULL;
 GtkSpinButton *spin_epf_d = NULL, *spin_epf_sigma_spatial = NULL, *spin_epf_sigma_col = NULL, *spin_epf_mod = NULL;
 GtkCheckButton *guided_filter_selfguide = NULL, *epf_preview = NULL;
+static GtkWidget *epf_amend_note = NULL;
+
+/* Amend mode (convergence C5b): the dialog edits an existing history record.
+ * gfit holds the pre-record state installed by nde_amend_preview_start;
+ * previews run against it through the ordinary backup machinery, and Apply/
+ * Cancel route through nde_amend_preview_end instead of a worker run + undo
+ * save. */
+static gboolean epf_amend_mode = FALSE;
 
 // Static for loaded guide image
 static fits loaded_fit = { 0 };
@@ -93,7 +103,52 @@ void epf_dialog_init_statics() {
 		// GtkToggleButton
 		guided_filter_selfguide = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "guided_filter_selfguide"));
 		epf_preview = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "epf_preview"));
+		epf_amend_note = GTK_WIDGET(gtk_builder_get_object(gui.builder, "epf_amend_note"));
 	}
+}
+
+/* Fill the widgets from the amended record's current parameters through the
+ * op's own deserializer — the same struct the normal apply builds.  A file-
+ * guide record is loaded back into loaded_fit so the guide pin survives the
+ * round trip; a self-guide re-arms the self-guide toggle. */
+static void epf_prefill_from_amend(void) {
+	struct epfargs *p = op_desc_epf.deserialize(nde_amend_preview_params(),
+	                                            nde_amend_preview_op_version());
+	if (!p)
+		return;
+	gtk_spin_button_set_value(spin_epf_d, p->d);
+	gtk_spin_button_set_value(spin_epf_sigma_col, p->sigma_col);
+	gtk_spin_button_set_value(spin_epf_sigma_spatial, p->sigma_space);
+	gtk_spin_button_set_value(spin_epf_mod, p->mod);
+	gtk_drop_down_set_selected(ep_filter_type, p->filter);
+
+	clearfits(&loaded_fit);
+	g_clear_pointer(&loaded_fit_path, g_free);
+	if (p->filter == EP_GUIDED) {
+		if (p->guide_path && *p->guide_path) {
+			/* file guide: reload the pinned guide image so Apply can re-pin
+			 * it exactly (dimensions already matched at capture). */
+			if (!readfits(p->guide_path, &loaded_fit, NULL, FALSE)) {
+				loaded_fit_path = g_strdup(p->guide_path);
+				gtk_widget_set_sensitive(GTK_WIDGET(guided_filter_selfguide), TRUE);
+				siril_toggle_set_active(GTK_WIDGET(guided_filter_selfguide), FALSE);
+			} else {
+				/* guide file gone: fall back to self-guide so the form is
+				 * still usable (the veto below should prevent reaching here). */
+				clearfits(&loaded_fit);
+				siril_toggle_set_active(GTK_WIDGET(guided_filter_selfguide), TRUE);
+			}
+		} else {
+			siril_toggle_set_active(GTK_WIDGET(guided_filter_selfguide), TRUE);
+		}
+	}
+	gtk_widget_set_visible(GTK_WIDGET(guide_image_widgets), p->filter != EP_BILATERAL);
+	gtk_widget_set_visible(GTK_WIDGET(epf_sigma_spatial_settings), p->filter == EP_BILATERAL);
+
+	if (p->destroy_fn)
+		p->destroy_fn(p);
+	else
+		free(p);
 }
 
 /* Helper function to get current widget values */
@@ -219,6 +274,19 @@ static void apply_epf_changes() {
 }
 
 void apply_epf_cancel() {
+	if (epf_amend_mode) {
+		/* Leave amend mode: drop the pre-record backup and restore the true
+		 * pixels (nothing was committed). */
+		cancel_pending_update();
+		cancel_and_wait_for_preview();
+		clearfits(&loaded_fit);
+		g_clear_pointer(&loaded_fit_path, g_free);
+		clear_backup();
+		nde_amend_preview_end(FALSE, NULL);
+		epf_amend_mode = FALSE;
+		siril_close_dialog("epf_dialog");
+		return;
+	}
 	epf_close(TRUE);
 	siril_close_dialog("epf_dialog");
 }
@@ -227,6 +295,31 @@ void apply_epf_cancel() {
 
 void on_epf_dialog_show(GtkWidget *widget, gpointer user_data) {
 	epf_dialog_init_statics();
+	gtk_widget_set_visible(epf_amend_note, epf_amend_mode);
+
+	if (epf_amend_mode) {
+		/* gfit already shows the pre-record state.  No ICC juggling (an
+		 * amend only changes pixels) and no ROI (previews are full-image
+		 * against the pre-record backup). */
+		if (gui.roi.active)
+			on_clear_roi();
+		clearfits(&loaded_fit);
+		g_clear_pointer(&loaded_fit_path, g_free);
+		copy_gfit_to_backup();   /* backup := pre-record state */
+
+		set_notify_block(TRUE);
+		siril_toggle_set_active(GTK_WIDGET(epf_preview), TRUE);
+		epf_prefill_from_amend();
+		set_notify_block(FALSE);
+
+		/* One preview tick so the dialog opens showing the record applied
+		 * with its current parameters. */
+		update_image *param = malloc(sizeof(update_image));
+		param->update_preview_fn = epf_update_preview;
+		param->show_preview = TRUE;
+		notify_update((gpointer) param);
+		return;
+	}
 
 	epf_startup();
 	clearfits(&loaded_fit);
@@ -251,6 +344,52 @@ void on_epf_cancel_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_epf_apply_clicked(GtkButton *button, gpointer user_data) {
+	if (epf_amend_mode) {
+		/* Serialize the widget state through the SAME epfargs struct and
+		 * serializer the normal apply builds, then route it through the
+		 * amend path.  guidefit + fit must be set so epf_serialize emits the
+		 * guide token (self / file + pinned path) just as a capture does. */
+		cancel_pending_update();
+		cancel_and_wait_for_preview();
+		struct epfargs *applied = new_epf_args();
+		if (!applied) {
+			PRINT_ALLOC_ERR;
+			return;
+		}
+		get_epf_values(&applied->d, &applied->sigma_col, &applied->sigma_space,
+				&applied->mod, &applied->filter);
+		applied->fit = gfit;
+		if (applied->filter == EP_GUIDED) {
+			if (siril_toggle_get_active(GTK_WIDGET(guided_filter_selfguide))) {
+				applied->guidefit = applied->fit;
+			} else if (loaded_fit.rx != 0) {
+				applied->guidefit = &loaded_fit;
+				applied->guide_path = g_strdup(loaded_fit_path);
+			} else {
+				/* guided with no guide image: cannot serialize faithfully */
+				free_epf_args(applied);
+				siril_message_dialog(GTK_MESSAGE_ERROR,
+						_("No guide image"),
+						_("Select a guide image or use self-guide before applying."));
+				return;
+			}
+		}
+		gchar *blob = op_desc_epf.serialize(applied);
+		/* free_epf_args would clearfits our loaded_fit guide; detach it */
+		if (applied->guidefit == &loaded_fit)
+			applied->guidefit = NULL;
+		applied->guide_needs_freeing = FALSE;
+		free_epf_args(applied);
+		clearfits(&loaded_fit);
+		g_clear_pointer(&loaded_fit_path, g_free);
+		clear_backup();
+		nde_amend_preview_end(TRUE, blob);
+		g_free(blob);
+		epf_amend_mode = FALSE;
+		siril_close_dialog("epf_dialog");
+		return;
+	}
+
 	if (!check_ok_if_cfa())
 		return;
 
@@ -271,6 +410,19 @@ void on_epf_dialog_close(GtkWindow *dialog, gpointer user_data) {
 }
 
 void on_epf_undo_clicked(GtkButton *button, gpointer user_data) {
+	if (epf_amend_mode) {
+		/* Reset means "back to the record's recorded parameters" here. */
+		set_notify_block(TRUE);
+		epf_prefill_from_amend();
+		siril_toggle_set_active(GTK_WIDGET(epf_preview), TRUE);
+		set_notify_block(FALSE);
+		copy_backup_to_gfit();
+		update_image *param = malloc(sizeof(update_image));
+		param->update_preview_fn = epf_update_preview;
+		param->show_preview = TRUE;
+		notify_update((gpointer) param);
+		return;
+	}
 	set_notify_block(TRUE);
 	gtk_spin_button_set_value(spin_epf_d, 0);
 	gtk_spin_button_set_value(spin_epf_sigma_col, 11);
@@ -362,4 +514,54 @@ void on_epf_preview_toggled(GtkCheckButton *button, gpointer user_data) {
 		param->show_preview = TRUE;
 		notify_update((gpointer) param);
 	}
+}
+
+/* ---- amend-mode entry (nde_editors registry) --------------------------- */
+
+static void epf_amend_ready(gboolean ok, gpointer user) {
+	(void)user;
+	if (!ok)
+		return;   /* the core logged the reason; nothing was changed */
+	epf_amend_mode = TRUE;
+	siril_open_dialog("epf_dialog");
+}
+
+gboolean epf_open_amend(gint64 record_id) {
+	/* A guided record pinning a SEPARATE guide file can only be represented
+	 * here if that file is still loadable at matching dimensions.  If it is
+	 * gone or resized, veto so the Edit button falls back to the kv-grid
+	 * editor rather than silently collapsing the record to a self-guide. */
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	gboolean ok = TRUE;
+	for (guint i = 0; snap && i < snap->len; i++) {
+		const nde_record *rec = g_ptr_array_index(snap, i);
+		if (rec->record_id != record_id)
+			continue;
+		GHashTable *kv = rec->params ? nde_kv_parse(rec->params) : NULL;
+		if (kv) {
+			const char *guide = nde_kv_get_str(kv, "guide");
+			if (guide && !strcmp(guide, "file")) {
+				const char *path = nde_kv_get_str(kv, "operand_path");
+				fits probe = { 0 };
+				if (!path || !*path || readfits(path, &probe, NULL, FALSE)) {
+					ok = FALSE;
+				} else {
+					if (probe.rx != gfit->rx || probe.ry != gfit->ry)
+						ok = FALSE;
+					clearfits(&probe);
+				}
+			}
+			g_hash_table_unref(kv);
+		}
+		break;
+	}
+	if (snap)
+		g_ptr_array_unref(snap);
+	if (!ok)
+		return FALSE;
+
+	/* The dialog opens from the ready callback, once the pre-record state
+	 * has been synthesized and installed. */
+	nde_amend_preview_start(record_id, epf_amend_ready, NULL);
+	return TRUE;
 }

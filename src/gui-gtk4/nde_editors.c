@@ -25,6 +25,13 @@
 #include "gui-gtk4/scnr.h"
 #include "gui-gtk4/median.h"
 #include "gui-gtk4/saturation.h"
+#include "gui-gtk4/epf.h"
+#include "gui-gtk4/clahe.h"
+#include "gui-gtk4/denoisegui.h"
+#include "gui-gtk4/banding.h"
+#include "gui-gtk4/colors.h"
+#include "gui-gtk4/cosmetic_correction.h"
+#include "gui-gtk4/rgradient.h"
 #include "algos/background_extraction.h"
 
 /* Returns TRUE when the editor takes the record (even if entering amend
@@ -45,6 +52,13 @@ static const struct {
 	{ "filters.median",       median_open_amend },
 	{ "color.saturation",     satu_open_amend },
 	{ "bkg.remove_gradient",  bge_open_amend },
+	{ "filters.epf",          epf_open_amend },
+	{ "filters.clahe",        clahe_open_amend },
+	{ "filters.denoise",      denoise_open_amend },
+	{ "filters.banding",      banding_open_amend },
+	{ "color.ccm",            ccm_open_amend },
+	{ "filters.cosmetic",     cosmetic_open_amend },
+	{ "filters.rgradient",    rgradient_open_amend },
 };
 
 gboolean nde_editor_open(const gchar *op_id, gint64 record_id) {
