@@ -829,7 +829,14 @@ static gpointer conductor_trampoline(gpointer p) {
 
 /* Reserve the slot and run @fn on a fresh off-worker conductor thread.  Returns
  * FALSE (reserving nothing) if the slot is busy or reserved — the caller then
- * reports the failure and must free @data itself. */
+ * reports the failure and must free @data itself.
+ *
+ * In a command-script / CLI / python-command context the call BLOCKS until the
+ * conductor finishes, preserving the "each command completes before the next
+ * one runs" contract (a scripted flis_amend followed by save/flis_replay_check
+ * must see the committed result, not race the replay).  A GUI panel action
+ * (neither com.script nor com.python_command set) returns immediately and the
+ * completion idle refreshes the display. */
 static gboolean replay_conductor_start(GThreadFunc fn, gpointer data) {
 	if (!replay_reserve_slot()) {
 		siril_log_error(_("The processing thread is busy; try again when the "
@@ -840,7 +847,10 @@ static gboolean replay_conductor_start(GThreadFunc fn, gpointer data) {
 	ctx[0] = (gpointer)fn;
 	ctx[1] = data;
 	GThread *t = g_thread_new("nde-replay", conductor_trampoline, ctx);
-	g_thread_unref(t);        /* detached; completion handled via idle */
+	if (com.script || com.python_command)
+		g_thread_join(t);     /* synchronous: caller waits for the commit */
+	else
+		g_thread_unref(t);    /* async: completion handled via idle */
 	return TRUE;
 }
 
