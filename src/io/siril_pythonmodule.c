@@ -3361,7 +3361,8 @@ static void execute_startup_scripts(void) {
 							NULL,                    /* argv_script  */
 							FALSE,                   /* is_temp_file */
 							FALSE,                   /* from_cli     */
-							FALSE);
+							FALSE,                   /* debug_mode   */
+							FALSE);                  /* for_replay   */
 	}
 }
 
@@ -3582,7 +3583,11 @@ gboolean pyc_matches_magic(const char *pyc_path, const char *expected_hex_magic)
 
 void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync,
 						gchar** argv_script, gboolean is_temp_file, gboolean from_cli,
-						gboolean debug_mode) {
+						gboolean debug_mode, gboolean for_replay) {
+	/* for_replay launches are always synchronous: the NDE replay conductor
+	 * blocks on the script and re-runs a Tier-C history step against gfit while
+	 * holding the SLOT_REPLAY reservation. */
+	g_return_if_fail(!for_replay || sync);
 	version_number none = { 0 };
 	if (compare_version(none, com.python_version) >= 0) {
 		if (com.python_init_thread) {
@@ -3780,6 +3785,12 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 			// Set the flag that a python script is running
 			com.python_script = TRUE;
 			siril_log_debug("***** com.python_script flag set\n");
+			/* Register this script's comm thread as an admitted identity for
+			 * the replay reservation.  Done only after a successful spawn (the
+			 * error paths below join the comm thread and return), and before
+			 * the subprocess can connect and issue any command. */
+			if (for_replay)
+				processing_register_replay_script(commstate.worker_thread);
 			// Prepend this process to the list of child processes
 			gchar *script_basename = g_path_get_basename(script_name);
 			gchar *childname = g_strdup_printf("%s %s", PYTHON_EXE, from_file ? script_basename : "script");
@@ -3850,6 +3861,10 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 #endif
 		// Handle cleanup directly (joins the worker and frees conn inline).
 		python_process_cleanup(child_pid, 0, cleanup);
+		/* Clear the admitted-script identity now the comm thread is joined,
+		 * before its GThread address could be reused by another thread. */
+		if (for_replay)
+			processing_unregister_replay_script();
 	} else {
 		/* Async: the child-watch fires python_process_cleanup() on the GTK main
 		 * loop when the process exits; it tears the worker + conn down via a

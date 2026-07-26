@@ -119,6 +119,18 @@ typedef enum {
 } slot_owner_t;
 static slot_owner_t slot_owner = SLOT_FREE;
 
+/* ── Replay owner identity (SLOT_REPLAY) ─────────────────────────────────
+*
+* While SLOT_REPLAY is held, background submissions are admitted only from the
+* replay's own threads: the conductor (which runs the chain, see nde_replay.c)
+* and the single Python script it launched to re-run a Tier-C step.  Identity
+* is the calling GThread itself — intrinsic and race-free, so a *different*
+* resident script issuing an unrelated cmd() mid-replay is correctly made to
+* wait rather than mistaken for ours.  Both protected by queue_mutex.
+*/
+static GThread *replay_conductor_thread = NULL;
+static GThread *replay_script_thread    = NULL;
+
 /* ── Pending-result cache ────────────────────────────────────────────────
 *
 * When a blocking submission completes (script / python-command context),
@@ -408,8 +420,23 @@ gboolean processing_submit_job(ProcessingFunc func, gpointer data) {
         }
     } else {
         g_mutex_lock(&queue_mutex);
-        while (slot_owner == SLOT_PYTHON)
-            g_cond_wait(&queue_cond, &queue_mutex);
+        for (;;) {
+            if (slot_owner == SLOT_PYTHON) {
+                g_cond_wait(&queue_cond, &queue_mutex);
+                continue;
+            }
+            if (slot_owner == SLOT_REPLAY) {
+                /* Admit the replay's own conductor and the one script it
+                 * launched; every other background caller waits until the
+                 * conductor releases (per-thread identity, no shared global). */
+                GThread *self = g_thread_self();
+                if (self == replay_conductor_thread || self == replay_script_thread)
+                    break;
+                g_cond_wait(&queue_cond, &queue_mutex);
+                continue;
+            }
+            break;   /* SLOT_FREE */
+        }
         g_mutex_unlock(&queue_mutex);
     }
 
@@ -501,6 +528,15 @@ int claim_thread_for_python(void) {
 
     g_mutex_lock(&queue_mutex);
 
+    /* The replay conductor already holds the slot exclusively on this
+     * script's behalf, so a claim from the replayed script is a no-op success:
+     * exclusivity is guaranteed and slot_owner stays SLOT_REPLAY (only the
+     * conductor releases it).  Its matching release is likewise a no-op. */
+    if (slot_owner == SLOT_REPLAY && g_thread_self() == replay_script_thread) {
+        g_mutex_unlock(&queue_mutex);
+        return 0;
+    }
+
     if (slot_owner != SLOT_FREE) {
         siril_log_warning(_("Processing thread is already reserved.\n"));
         g_mutex_unlock(&queue_mutex);
@@ -524,18 +560,96 @@ int claim_thread_for_python(void) {
 }
 
 void python_releases_thread(void) {
+    gboolean released = FALSE;
     g_mutex_lock(&queue_mutex);
-    if (slot_owner == SLOT_PYTHON)
+    if (slot_owner == SLOT_PYTHON) {
         slot_owner = SLOT_FREE;
+        released = TRUE;
+    }
+    /* A release from the replay's script (slot_owner == SLOT_REPLAY) is the
+     * no-op counterpart to its no-op claim: leave the reservation and the busy
+     * state to the conductor. */
     g_cond_broadcast(&queue_cond);   /* unblock any threads waiting in
                                         processing_submit_job              */
     g_mutex_unlock(&queue_mutex);
-    gui_iface.set_busy(FALSE);
+    if (released)
+        gui_iface.set_busy(FALSE);
 }
 
 gboolean processing_is_reserved_for_python(void) {
     g_mutex_lock(&queue_mutex);
     gboolean reserved = (slot_owner == SLOT_PYTHON);
+    g_mutex_unlock(&queue_mutex);
+    return reserved;
+}
+
+/*****************************************************************************
+*    N D E   R E P L A Y   R E S E R V A T I O N
+*****************************************************************************/
+
+gboolean replay_reserve_slot(void) {
+    /*
+    * Atomically reserve the slot for an NDE replay if — and only if — nothing
+    * else holds or is running it.  Unlike claim_thread_for_python this does
+    * not wait: an edit issued while a job or another reservation is active is
+    * refused (matching the historic start_in_new_thread busy guard), and the
+    * caller reports "stop it first".  Identity is bound separately by the
+    * conductor thread via replay_bind_conductor().
+    */
+    g_mutex_lock(&queue_mutex);
+    if (slot_owner != SLOT_FREE ||
+        g_atomic_int_get(&job_active_flag) ||
+        !g_queue_is_empty(&job_queue)) {
+        g_mutex_unlock(&queue_mutex);
+        return FALSE;
+    }
+    slot_owner = SLOT_REPLAY;
+    replay_conductor_thread = NULL;   /* bound by the conductor */
+    replay_script_thread = NULL;
+    g_mutex_unlock(&queue_mutex);
+    gui_iface.set_busy(TRUE);
+    return TRUE;
+}
+
+void replay_bind_conductor(void) {
+    /* Called by the conductor thread as its first action, before it runs any
+     * chain work, so its own re-entrant submissions (should a Tier-A op submit
+     * a sub-job) are admitted by the SLOT_REPLAY gate. */
+    g_mutex_lock(&queue_mutex);
+    replay_conductor_thread = g_thread_self();
+    g_mutex_unlock(&queue_mutex);
+}
+
+void replay_release_slot(void) {
+    g_mutex_lock(&queue_mutex);
+    if (slot_owner == SLOT_REPLAY) {
+        slot_owner = SLOT_FREE;
+        replay_conductor_thread = NULL;
+        replay_script_thread = NULL;
+    }
+    g_cond_broadcast(&queue_cond);   /* wake GUI / other-script waiters */
+    g_mutex_unlock(&queue_mutex);
+    gui_iface.set_busy(FALSE);
+}
+
+void processing_register_replay_script(GThread *comm_thread) {
+    g_mutex_lock(&queue_mutex);
+    replay_script_thread = comm_thread;
+    g_mutex_unlock(&queue_mutex);
+}
+
+void processing_unregister_replay_script(void) {
+    g_mutex_lock(&queue_mutex);
+    replay_script_thread = NULL;
+    /* The joined comm GThread's address must never match a future thread's;
+     * cleared here, before the join in the launch path frees it. */
+    g_cond_broadcast(&queue_cond);
+    g_mutex_unlock(&queue_mutex);
+}
+
+gboolean processing_is_reserved_for_replay(void) {
+    g_mutex_lock(&queue_mutex);
+    gboolean reserved = (slot_owner == SLOT_REPLAY);
     g_mutex_unlock(&queue_mutex);
     return reserved;
 }

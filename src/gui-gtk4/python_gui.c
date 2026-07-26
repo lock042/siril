@@ -3265,7 +3265,7 @@ void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer
 
 			// Execute the script with the path to the temp file instead of the text content
 			// Passing TRUE as the last parameter to indicate this is a temporary file
-			execute_python_script(temp_filename, TRUE, FALSE, script_args, TRUE, from_cli, python_debug);
+			execute_python_script(temp_filename, TRUE, FALSE, script_args, TRUE, from_cli, python_debug, FALSE);
 			g_strfreev(script_args);
 			g_free(text);
 			break;

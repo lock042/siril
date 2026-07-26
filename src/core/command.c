@@ -15852,7 +15852,7 @@ typedef struct _pyscript_data {
 
 gpointer execute_python_script_wrapper(gpointer user_data) {
 	pyscript_data *data = (pyscript_data*) user_data;
-	execute_python_script(data->script_name, TRUE, TRUE, data->argv_script, FALSE, data->from_cli, FALSE);
+	execute_python_script(data->script_name, TRUE, TRUE, data->argv_script, FALSE, data->from_cli, FALSE, FALSE);
 	// execute_python_script() frees data->script_name
 	g_strfreev(data->argv_script);
 	free(data);

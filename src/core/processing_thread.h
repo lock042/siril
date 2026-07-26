@@ -140,6 +140,32 @@ void python_releases_thread  (void);
 gboolean processing_is_reserved_for_python(void);
 
 /* --------------------------------------------------------------------------
+ * NDE replay reservation
+ * --------------------------------------------------------------------------
+ *
+ * The NDE replay conductor (nde_replay.c) runs off the worker thread so the
+ * worker stays free for any Tier-C step's script to drive via cmd().  It
+ * reserves the slot for the whole replay so GUI actions and unrelated scripts
+ * cannot steal it between the replayed script's commands, while admitting the
+ * conductor's own submissions and those of the single script it launched.
+ *
+ *   replay_reserve_slot()   — atomic try-reserve (FALSE if busy/reserved; does
+ *                             not wait).  Call before spawning the conductor.
+ *   replay_bind_conductor() — conductor's first action; registers its identity.
+ *   replay_release_slot()   — release + wake waiters.
+ *   processing_register_replay_script() / _unregister_replay_script() —
+ *                             set/clear the launched script's comm GThread as an
+ *                             admitted identity (see execute_python_script).
+ *   processing_is_reserved_for_replay() — guard predicate.
+ */
+gboolean replay_reserve_slot (void);
+void     replay_bind_conductor (void);
+void     replay_release_slot (void);
+void     processing_register_replay_script (GThread *comm_thread);
+void     processing_unregister_replay_script (void);
+gboolean processing_is_reserved_for_replay (void);
+
+/* --------------------------------------------------------------------------
  * Main public API
  * -------------------------------------------------------------------------- */
 
