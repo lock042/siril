@@ -403,7 +403,11 @@ int process_satu(int nb) {
 		return CMD_GENERIC_ERROR;
 	}
 
-	int retval = args->retval;
+	/* Read the result from the worker's cached return value, not from args:
+	 * generic_image_worker frees args via a synchronous completion idle before
+	 * start_in_new_thread returns (see the note in process_asinh), so
+	 * args->retval would be a use-after-free. */
+	int retval = GPOINTER_TO_INT(waiting_for_thread());
 
 	if (retval != 0) {
 		siril_log_error(_("Saturation enhancement failed\n"));
@@ -4736,8 +4740,14 @@ int process_asinh(int nb) {
 		return CMD_GENERIC_ERROR;
 	}
 
-	// Check return value
-	int retval = args->retval;
+	/* Read the return value from the worker's cached result, NOT from args:
+	 * for a command in GUI mode generic_image_worker disposes of args through a
+	 * synchronous completion idle (execute_idle_sync → free_generic_img_args)
+	 * before start_in_new_thread returns, so args->retval here is a
+	 * use-after-free.  It is benign headless (the freed value stays 0) but the
+	 * live GUI main loop can reuse the block, yielding a spurious non-zero and
+	 * a false "failed" (seen intermittently from python scripts). */
+	int retval = GPOINTER_TO_INT(waiting_for_thread());
 
 	// Resources are freed at the end of the generic image worker
 
