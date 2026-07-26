@@ -95,13 +95,29 @@ static gint cancel_flag = 0;
 */
 static gint job_active_flag = 0;
 
-/* ── Python reservation ──────────────────────────────────────────────────
+/* ── Slot reservation (owner) ────────────────────────────────────────────
 *
-* When python_reserved is TRUE, processing_submit_job blocks (on queue_cond)
-* until python_releases_thread() clears it.
+* The active slot can be reserved by a non-worker actor that needs to gate
+* other submissions.  slot_owner names who holds it:
+*
+*   SLOT_FREE    — no reservation; submissions follow the normal path.
+*   SLOT_PYTHON  — a Python script has claimed the slot (claim_thread_for_python).
+*                  processing_submit_job blocks background callers (on
+*                  queue_cond) and rejects GTK-main callers until
+*                  python_releases_thread() clears it.  Behaviour is identical
+*                  to the historic python_reserved bool.
+*   SLOT_REPLAY  — the NDE replay conductor owns the slot (see nde_replay.c).
+*                  Reserved for a later commit; the enum value is defined now so
+*                  the reservation surface has a single owner concept.
+*
 * Protected by queue_mutex.
 */
-static gboolean python_reserved = FALSE;
+typedef enum {
+    SLOT_FREE = 0,
+    SLOT_PYTHON,
+    SLOT_REPLAY,
+} slot_owner_t;
+static slot_owner_t slot_owner = SLOT_FREE;
 
 /* ── Pending-result cache ────────────────────────────────────────────────
 *
@@ -367,29 +383,32 @@ gboolean processing_submit_job(ProcessingFunc func, gpointer data) {
         return TRUE;
     }
 
-    /* ── Python-reservation gate ─────────────────────────────────────── */
+    /* ── Slot-reservation gate ───────────────────────────────────────── */
     /*
-    * If Python has reserved the slot, block until it is released — unless
-    * we are on the GTK main thread, where blocking would prevent idles from
-    * dispatching and deadlock the worker.  In that case return FALSE and
-    * let the caller handle the rejection.
+    * If the slot is reserved, block until it is released — unless we are on
+    * the GTK main thread, where blocking would prevent idles from dispatching
+    * and deadlock the worker.  In that case return FALSE and let the caller
+    * handle the rejection (any owner blocks a GTK-main submission).
     *
-    * Non-GTK background threads (script thread, Python thread, etc.) simply
-    * wait here; this is safe because none of them run the GTK main loop.
+    * Non-GTK background threads (script thread, Python thread, etc.) wait
+    * here while SLOT_PYTHON holds the slot; this is safe because none of them
+    * run the GTK main loop.  SLOT_REPLAY has an owner-aware admission rule
+    * (background submissions from the replay's own conductor / launched script
+    * pass through) added with the replay conductor.
     */
     if (g_main_context_is_owner(g_main_context_default())) {
         g_mutex_lock(&queue_mutex);
-        gboolean reserved = python_reserved;
+        gboolean reserved = (slot_owner != SLOT_FREE);
         g_mutex_unlock(&queue_mutex);
         if (reserved) {
             siril_log_warning(
-                _("Processing thread is reserved by Python; "
+                _("Processing thread is reserved; "
                   "cannot submit from GTK main thread.\n"));
             return FALSE;
         }
     } else {
         g_mutex_lock(&queue_mutex);
-        while (python_reserved)
+        while (slot_owner == SLOT_PYTHON)
             g_cond_wait(&queue_cond, &queue_mutex);
         g_mutex_unlock(&queue_mutex);
     }
@@ -482,8 +501,8 @@ int claim_thread_for_python(void) {
 
     g_mutex_lock(&queue_mutex);
 
-    if (python_reserved) {
-        siril_log_warning(_("Processing thread is already reserved by Python.\n"));
+    if (slot_owner != SLOT_FREE) {
+        siril_log_warning(_("Processing thread is already reserved.\n"));
         g_mutex_unlock(&queue_mutex);
         return 1;
     }
@@ -498,7 +517,7 @@ int claim_thread_for_python(void) {
         g_cond_wait(&queue_cond, &queue_mutex);
     }
 
-    python_reserved = TRUE;
+    slot_owner = SLOT_PYTHON;
     g_mutex_unlock(&queue_mutex);
     gui_iface.set_busy(TRUE);
     return 0;
@@ -506,7 +525,8 @@ int claim_thread_for_python(void) {
 
 void python_releases_thread(void) {
     g_mutex_lock(&queue_mutex);
-    python_reserved = FALSE;
+    if (slot_owner == SLOT_PYTHON)
+        slot_owner = SLOT_FREE;
     g_cond_broadcast(&queue_cond);   /* unblock any threads waiting in
                                         processing_submit_job              */
     g_mutex_unlock(&queue_mutex);
@@ -515,7 +535,7 @@ void python_releases_thread(void) {
 
 gboolean processing_is_reserved_for_python(void) {
     g_mutex_lock(&queue_mutex);
-    gboolean reserved = python_reserved;
+    gboolean reserved = (slot_owner == SLOT_PYTHON);
     g_mutex_unlock(&queue_mutex);
     return reserved;
 }
@@ -569,10 +589,10 @@ gboolean start_in_new_thread(ProcessingFunc func, gpointer data) {
         siril_log_warning(_("Warning: failed to add processing thread to child list\n"));
 
     /*
-    * Submit the job.  processing_submit_job handles the Python-reservation
+    * Submit the job.  processing_submit_job handles the slot-reservation
     * gate internally — we do NOT duplicate that check here to avoid a
-    * TOCTOU race (checking python_reserved, releasing the mutex, then
-    * having processing_submit_job re-check under the same mutex).
+    * TOCTOU race (checking slot_owner, releasing the mutex, then having
+    * processing_submit_job re-check under the same mutex).
     *
     * If submission fails, we must clean up the state we just acquired so
     * that the processing system is not left in a permanently broken state.
@@ -598,7 +618,7 @@ gboolean start_in_reserved_thread(ProcessingFunc func, gpointer data) {
     * busy" — even though the reservation was made legitimately.
     *
     * Instead we reproduce the submission path from start_in_new_thread while
-    * skipping only that guard.  The Python-reservation gate is handled
+    * skipping only that guard.  The slot-reservation gate is handled
     * inside processing_submit_job, avoiding a TOCTOU race.
     */
 
