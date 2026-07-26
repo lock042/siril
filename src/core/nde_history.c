@@ -313,6 +313,14 @@ gboolean nde_history_amend(gint64 record_id, const gchar *new_params, gchar **er
 		g_free(op_id);
 		return FALSE;
 	}
+	/* Regenerate the human summary from the NEW params while the deserialized
+	 * struct is still alive, so the panel row and log stop showing the
+	 * pre-amend values (params and pixels are already updated by the amend —
+	 * only the label lagged).  log_hook(SUMMARY) formats the params struct and
+	 * is param-pure for the amendable ops.  Ops without a log_hook captured a
+	 * param-independent description that does not go stale, so leave theirs
+	 * untouched (new_summary == NULL). */
+	gchar *new_summary = op->log_hook ? op->log_hook(trial, SUMMARY) : NULL;
 	/* destructor-first convention */
 	void (*destroy)(void *) = *(void (**)(void *))trial;
 	if (destroy)
@@ -340,6 +348,11 @@ gboolean nde_history_amend(gint64 record_id, const gchar *new_params, gchar **er
 			rec->timestamp = ts;
 			g_free(rec->impl);
 			rec->impl = impl;
+			if (new_summary) {
+				g_free(rec->summary);
+				rec->summary = new_summary;   /* ownership transferred */
+				new_summary = NULL;
+			}
 			truncate_dead_locked(h, dropped);
 			ok = TRUE;
 		}
@@ -350,6 +363,7 @@ gboolean nde_history_amend(gint64 record_id, const gchar *new_params, gchar **er
 		g_free(params_copy);
 		g_free(ts);
 		g_free(impl);
+		g_free(new_summary);
 		return FALSE;
 	}
 	nde_history_notify_panel();
