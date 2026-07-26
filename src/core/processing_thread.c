@@ -607,6 +607,11 @@ gboolean replay_reserve_slot(void) {
     replay_conductor_thread = NULL;   /* bound by the conductor */
     replay_script_thread = NULL;
     g_mutex_unlock(&queue_mutex);
+    /* The off-worker conductor never passes through the worker's per-job
+     * cancel_flag reset, so clear it here (as reserve_thread does): a stale
+     * cancel from a prior aborted op would otherwise abort the replay on its
+     * first processing_should_continue() check. */
+    g_atomic_int_set(&cancel_flag, 0);
     gui_iface.set_busy(TRUE);
     return TRUE;
 }

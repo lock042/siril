@@ -403,7 +403,7 @@ static fits *resolve_edit_restart(const nde_chain *chain, guint e,
 }
 
 /* Shared core of amend (new_params != NULL) and delete (new_params == NULL).
- * Job context: the caller owns the processing slot, so capture, undo and
+ * Conductor context: the caller holds SLOT_REPLAY, so capture, undo and
  * python cannot interleave with the replay or the commit. */
 static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **err) {
 	g_return_val_if_fail(err != NULL, FALSE);
@@ -801,6 +801,49 @@ gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after,
 	return TRUE;
 }
 
+/* ---- off-worker conductor ---------------------------------------------- */
+/*
+ * Every history edit (amend / delete / reorder / preview) runs on a dedicated
+ * conductor thread rather than the processing worker.  This is the single
+ * replay path: a chain may contain a Tier-C step whose script must drive gfit
+ * via cmd() on the (now free) worker while the conductor blocks on it, and a
+ * thread cannot free the worker it is itself running on.  Pure Tier-A chains
+ * take the same path — one code path, always exercised.
+ *
+ * The conductor holds SLOT_REPLAY for its whole run so GUI actions and other
+ * scripts cannot steal the worker between the replayed script's commands; the
+ * reservation gate admits the conductor's own submissions and those of the one
+ * script it launches (see processing_thread.c).  Tier-A records still run
+ * inline via generic_image_worker — its nde_replay path is thread-agnostic
+ * (no idles, no worker-TLS use), so off-worker execution is equivalent.
+ */
+static gpointer conductor_trampoline(gpointer p) {
+	GThreadFunc fn = ((gpointer *)p)[0];
+	gpointer data = ((gpointer *)p)[1];
+	g_free(p);
+	replay_bind_conductor();
+	fn(data);                 /* owns data; posts its own completion idle */
+	replay_release_slot();
+	return NULL;
+}
+
+/* Reserve the slot and run @fn on a fresh off-worker conductor thread.  Returns
+ * FALSE (reserving nothing) if the slot is busy or reserved — the caller then
+ * reports the failure and must free @data itself. */
+static gboolean replay_conductor_start(GThreadFunc fn, gpointer data) {
+	if (!replay_reserve_slot()) {
+		siril_log_error(_("The processing thread is busy; try again when the "
+		                  "current operation has finished\n"));
+		return FALSE;
+	}
+	gpointer *ctx = g_new(gpointer, 2);
+	ctx[0] = (gpointer)fn;
+	ctx[1] = data;
+	GThread *t = g_thread_new("nde-replay", conductor_trampoline, ctx);
+	g_thread_unref(t);        /* detached; completion handled via idle */
+	return TRUE;
+}
+
 /* ---- job wrappers ------------------------------------------------------ */
 
 struct nde_edit_job {
@@ -817,7 +860,10 @@ static gboolean nde_edit_done_idle(gpointer p) {
 	/* The edit flushed the undo stacks (no meta-undo) — refresh the
 	 * undo/redo buttons or they stay sensitive over an empty stack. */
 	gui_iface.update_menu_item();
-	return end_generic(NULL);
+	/* No end_generic: the conductor is not a worker job and frees the slot
+	 * itself via replay_release_slot (calling stop_processing_thread here
+	 * would set cancel_flag and poison the next operation). */
+	return G_SOURCE_REMOVE;
 }
 
 static gpointer nde_edit_worker(gpointer p) {
@@ -836,14 +882,10 @@ static gpointer nde_edit_worker(gpointer p) {
 }
 
 static gboolean nde_edit_start(gint64 record_id, const gchar *new_params) {
-	if (processing_is_reserved_for_python()) {
-		siril_log_error(_("The processing thread is reserved by a Python script; try again later\n"));
-		return FALSE;
-	}
 	struct nde_edit_job *job = g_new0(struct nde_edit_job, 1);
 	job->record_id = record_id;
 	job->new_params = g_strdup(new_params);
-	if (!start_in_new_thread(nde_edit_worker, job)) {
+	if (!replay_conductor_start(nde_edit_worker, job)) {
 		g_free(job->new_params);
 		g_free(job);
 		return FALSE;
@@ -861,15 +903,11 @@ gboolean nde_delete_start(gint64 record_id) {
 }
 
 gboolean nde_reorder_start(gint64 record_id, gint64 anchor_id, gboolean after) {
-	if (processing_is_reserved_for_python()) {
-		siril_log_error(_("The processing thread is reserved by a Python script; try again later\n"));
-		return FALSE;
-	}
 	struct nde_edit_job *job = g_new0(struct nde_edit_job, 1);
 	job->record_id = record_id;
 	job->anchor_id = anchor_id;
 	job->after = after;
-	if (!start_in_new_thread(nde_edit_worker, job)) {
+	if (!replay_conductor_start(nde_edit_worker, job)) {
 		g_free(job);
 		return FALSE;
 	}
@@ -884,9 +922,9 @@ gboolean nde_reorder_start(gint64 record_id, gint64 anchor_id, gboolean after) {
  * synthesized pre-K state and `saved` holds the true pixels, swapped out
  * wholesale with fits_swap_all_except_rwlock — the restore is the reverse
  * swap, bit-exact including metadata.  The heavy transitions (begin/end
- * _execute) run in job context, so the processing slot serializes them;
- * apv_mutex is a leaf guard for the flag reads that happen on other
- * threads (GUI enablement, the edit_execute guard). */
+ * _execute) run on the replay conductor holding SLOT_REPLAY, so the
+ * reservation serializes them; apv_mutex is a leaf guard for the flag reads
+ * that happen on other threads (GUI enablement, the edit_execute guard). */
 static GMutex apv_mutex;
 static struct {
 	gboolean active;     /* start accepted, until end / failed begin */
@@ -1128,12 +1166,12 @@ static gboolean apv_ready_idle(gpointer p) {
 	apv.on_ready = NULL;
 	apv.on_ready_user = NULL;
 	gui_iface.redraw_image(REDRAW_ALL);
-	gboolean r = end_generic(NULL);
-	/* After end_generic: the slot is free, so the dialog the callback opens
-	 * can run its preview jobs immediately. */
+	/* The conductor already released SLOT_REPLAY before this idle ran, so the
+	 * slot is free: the dialog the callback opens can run its preview jobs
+	 * immediately. */
 	if (cb)
 		cb(ok, user);
-	return r;
+	return G_SOURCE_REMOVE;
 }
 
 static gpointer apv_begin_worker(gpointer p) {
@@ -1155,15 +1193,11 @@ gboolean nde_amend_preview_start(gint64 record_id,
 		siril_log_error(_("Another history step is already being edited\n"));
 		return FALSE;
 	}
-	if (processing_is_reserved_for_python()) {
-		siril_log_error(_("The processing thread is reserved by a Python script; try again later\n"));
-		return FALSE;
-	}
 	apv.on_ready = on_ready;
 	apv.on_ready_user = user;
 	gint64 *id = g_new(gint64, 1);
 	*id = record_id;
-	if (!start_in_new_thread(apv_begin_worker, id)) {
+	if (!replay_conductor_start(apv_begin_worker, id)) {
 		apv.on_ready = NULL;
 		apv.on_ready_user = NULL;
 		g_free(id);
@@ -1193,14 +1227,10 @@ static gpointer apv_end_worker(gpointer p) {
 gboolean nde_amend_preview_end(gboolean apply, const gchar *new_params) {
 	if (!nde_amend_preview_active())
 		return !apply;
-	if (processing_is_reserved_for_python()) {
-		siril_log_error(_("The processing thread is reserved by a Python script; try again later\n"));
-		return FALSE;
-	}
 	struct apv_end_job *job = g_new0(struct apv_end_job, 1);
 	job->apply = apply;
 	job->new_params = g_strdup(new_params);
-	if (!start_in_new_thread(apv_end_worker, job)) {
+	if (!replay_conductor_start(apv_end_worker, job)) {
 		g_free(job->new_params);
 		g_free(job);
 		return FALSE;
