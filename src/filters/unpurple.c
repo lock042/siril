@@ -48,8 +48,16 @@ static gchar *unpurple_serialize(gconstpointer user) {
 	nde_kv_add_double(kv, "mod_b", p->mod_b);
 	nde_kv_add_double(kv, "thresh", p->thresh);
 	nde_kv_add_bool(kv, "withstarmask", p->withstarmask);
-	if (p->withstarmask && p->stars_blob && *p->stars_blob)
-		nde_kv_add_str(kv, "stars", p->stars_blob);
+	if (p->withstarmask) {
+		/* Provenance of the star set the mask was built from (see synthstar.h).
+		 * EXPLICIT ⇒ pin the list; DELEGATED ⇒ record the detection params. */
+		if (p->star_auto) {
+			nde_kv_add_bool(kv, "stars_auto", TRUE);
+			synthstar_conf_to_kv(kv, &p->star_conf);
+		} else if (p->stars_blob && *p->stars_blob) {
+			nde_kv_add_str(kv, "stars", p->stars_blob);
+		}
+	}
 	return nde_kv_end(kv);
 }
 
@@ -65,12 +73,23 @@ static gpointer unpurple_deserialize(const gchar *blob, int version) {
 		g_hash_table_unref(kv);
 		return NULL;
 	}
+	gboolean auto_d = FALSE;
+	nde_kv_get_bool(kv, "stars_auto", &auto_d);
 	const char *stars = nde_kv_get_str(kv, "stars");
-	/* A withstarmask record with no stars= key predates this batch and cannot
-	 * be regenerated deterministically → non-replayable. */
-	if (withstarmask && (!stars || !*stars)) {
-		g_hash_table_unref(kv);
-		return NULL;
+	star_finder_params conf;
+	/* A withstarmask record must carry a provenance: a pinned list (EXPLICIT)
+	 * or a complete detection conf (DELEGATED).  Anything else (e.g. a
+	 * pre-feature record) stays honestly non-replayable. */
+	if (withstarmask) {
+		if (auto_d) {
+			if (!synthstar_conf_from_kv(kv, &conf)) {
+				g_hash_table_unref(kv);
+				return NULL;
+			}
+		} else if (!stars || !*stars) {
+			g_hash_table_unref(kv);
+			return NULL;
+		}
 	}
 	struct unpurpleargs *p = new_unpurple_args();
 	if (p) {
@@ -78,30 +97,38 @@ static gpointer unpurple_deserialize(const gchar *blob, int version) {
 		p->thresh = thresh;
 		p->withstarmask = withstarmask;
 		p->applying = TRUE;
-		if (stars && *stars)
+		if (withstarmask && auto_d) {
+			p->star_auto = TRUE;
+			p->star_conf = conf;
+		} else if (stars && *stars) {
 			p->stars_blob = g_strdup(stars);
+		}
 	}
 	g_hash_table_unref(kv);
 	return p;
 }
 
-/* replay_pre: for the mask variant, reinstall com.stars from the stash and
- * regenerate the binary star mask against the replay target, then point
- * params->starmask at it (needs-freeing).  The POD variant is a no-op. */
+/* replay_pre: for the mask variant, rebuild the binary star mask against the
+ * replay target.  EXPLICIT ⇒ reinstall com.stars from the pinned blob and let
+ * the mask build consume it.  DELEGATED ⇒ re-detect with the recorded conf
+ * (ignoring com.stars).  The POD variant (no mask) is a no-op. */
 static int unpurple_replay_pre(gpointer user, GHashTable *kv, fits *target) {
+	(void)kv;
 	struct unpurpleargs *p = user;
 	if (!p->withstarmask)
 		return 0;
-	const char *stars = nde_kv_get_str(kv, "stars");
-	int nb = 0;
-	psf_star **arr = synthstar_stars_from_blob(stars ? stars : p->stars_blob, &nb);
-	if (!arr || nb < 1)
-		return 1;
-	replace_com_stars(arr);   /* installs + frees any previous list */
+	if (!p->star_auto) {
+		int nb = 0;
+		psf_star **arr = synthstar_stars_from_blob(p->stars_blob, &nb);
+		if (!arr || nb < 1)
+			return 1;
+		replace_com_stars(arr);   /* installs + frees any previous list */
+	}
 	p->starmask = calloc(1, sizeof(fits));
 	if (!p->starmask)
 		return 1;
-	if (generate_binary_starmask(target, &p->starmask, p->thresh, NULL)) {
+	const star_finder_params *ov = p->star_auto ? &p->star_conf : NULL;
+	if (generate_binary_starmask(target, &p->starmask, p->thresh, NULL, NULL, NULL, ov)) {
 		free(p->starmask);
 		p->starmask = NULL;
 		return 1;
@@ -159,17 +186,25 @@ static gboolean is_purple(float red, float green, float blue) {
 }
 
 int generate_binary_starmask(fits *fit, fits **star_mask, double threshold,
-                             gchar **stars_blob_out) {
+                             gchar **stars_blob_out, gboolean *auto_out,
+                             star_finder_params *conf_out,
+                             const star_finder_params *conf_override) {
 	gboolean stars_needs_freeing = FALSE;
 	psf_star **stars = NULL;
 	int channel = 1;
 	int nb_stars = 0;
+	/* DELEGATED replay: ignore com.stars and re-detect with the recorded conf.
+	 * Capture / EXPLICIT replay: consume com.stars, auto-detecting when empty. */
+	gboolean force_detect = (conf_override != NULL);
+	gboolean auto_detected = FALSE;
 
-	// Private, reader-locked copy of com.stars so the starmask loop below can
-	// run off the main thread without racing a concurrent free/replace.
-	stars = snapshot_com_stars(&nb_stars);
-	if (stars)
-		stars_needs_freeing = TRUE;
+	if (!force_detect) {
+		// Private, reader-locked copy of com.stars so the starmask loop below can
+		// run off the main thread without racing a concurrent free/replace.
+		stars = snapshot_com_stars(&nb_stars);
+		if (stars)
+			stars_needs_freeing = TRUE;
+	}
 
 	int dimx = fit->naxes[0];
 	int dimy = fit->naxes[1];
@@ -177,6 +212,7 @@ int generate_binary_starmask(fits *fit, fits **star_mask, double threshold,
 
 	// Do we have stars from Dynamic PSF or not?
 	if (nb_stars < 1) {
+		auto_detected = TRUE;
 		// snapshot_com_stars() can return a non-NULL (but empty) array if the
 		// first duplicate_psf failed; free it before peaker() overwrites stars.
 		// (stars / stars_needs_freeing are unconditionally reassigned just below.)
@@ -187,8 +223,13 @@ int generate_binary_starmask(fits *fit, fits **star_mask, double threshold,
 		input_image->fit = fit;
 		input_image->from_seq = NULL;
 		input_image->index_in_seq = -1;
-		stars = peaker(input_image, channel, &com.pref.starfinder_conf, &nb_stars,
-						NULL, FALSE, FALSE, 0, com.pref.starfinder_conf.profile, com.max_thread);
+		if (conf_override)
+			WITH_STARFINDER_CONF(conf_override,
+					stars = peaker(input_image, channel, &com.pref.starfinder_conf, &nb_stars,
+							NULL, FALSE, FALSE, 0, com.pref.starfinder_conf.profile, com.max_thread));
+		else
+			stars = peaker(input_image, channel, &com.pref.starfinder_conf, &nb_stars,
+							NULL, FALSE, FALSE, 0, com.pref.starfinder_conf.profile, com.max_thread);
 		free(input_image);
 		stars_needs_freeing = TRUE;
 	}
@@ -200,11 +241,20 @@ int generate_binary_starmask(fits *fit, fits **star_mask, double threshold,
 		return -1;
 	}
 
-	/* NDE (Convention 2): stash the EFFECTIVE consumed star list now that it is
-	 * final (from com.stars or freshly detected by peaker above). */
-	if (stars_blob_out) {
-		g_free(*stars_blob_out);
-		*stars_blob_out = synthstar_stars_to_blob(stars, nb_stars);
+	/* NDE Convention 2: record provenance for replay (capture only — an
+	 * override implies we are already replaying).  EXPLICIT ⇒ pin the effective
+	 * list; DELEGATED ⇒ record the detection params (the list is dropped, so
+	 * replay re-detects against amended upstream pixels). */
+	if (auto_out)
+		*auto_out = auto_detected;
+	if (!force_detect) {
+		if (auto_detected) {
+			if (conf_out)
+				*conf_out = com.pref.starfinder_conf;
+		} else if (stars_blob_out) {
+			g_free(*stars_blob_out);
+			*stars_blob_out = synthstar_stars_to_blob(stars, nb_stars);
+		}
 	}
 
 	siril_log_message(_("Creating binary star mask for %d stars...\n"), nb_stars);

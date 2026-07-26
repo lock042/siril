@@ -595,9 +595,10 @@ static const char *phase1_ids[] = {
 	"arith.imoper", "arith.addmax", "arith.fdiv",
 	"color.linear_match", "filters.cosme", "filters.epf",
 	/* phase 4.5 batch 2 — star lists (Conv. 2), PCC/SPCC (Conv. 3), ICC (Conv. 4).
-	 * star.unclip stays Tier B by verdict (its findstar reads com.pref); fft +
-	 * wrecons stay permanently Tier B by design. */
+	 * fft + wrecons stay permanently Tier B by design. */
 	"star.synthstar", "filters.unpurple", "color.photometric_cc", "icc.convert",
+	/* star provenance refinement: unclip promoted to Tier A (DELEGATED conf) */
+	"star.unclip",
 };
 
 Test(nde_serializers, serializer_set_is_phase1) {
@@ -1372,6 +1373,134 @@ Test(nde_serializers, unpurple_roundtrip_starmask) {
 	cr_assert_null(op->deserialize("mod_b=0.5;thresh=0.25;withstarmask=1",
 	               op->version),
 	               "withstarmask record without stars must yield NULL");
+	FREE_VIA_DESTRUCTOR(in);
+	g_free(blob);
+}
+
+/* ---- DELEGATED (auto-detect) provenance: detection-parameter codec ---- */
+
+/* A star_finder_params filled with distinct, recognisable values. */
+static star_finder_params make_test_sf_conf(void) {
+	star_finder_params sf = { 0 };
+	sf.radius = 13;
+	sf.sigma = 0.75;
+	sf.roundness = 0.42;
+	sf.focal_length = 530.0;
+	sf.pixel_size_x = 3.76;
+	sf.convergence = 2;
+	sf.relax_checks = TRUE;
+	sf.profile = PSF_MOFFAT_BFREE;
+	sf.min_beta = 1.5;
+	sf.min_A = 0.001;
+	sf.max_A = 0.9;
+	sf.max_r = 1.0;
+	return sf;
+}
+
+static void assert_sf_conf_eq(const star_finder_params *a, const star_finder_params *b) {
+	cr_assert_eq(a->radius, b->radius);
+	cr_assert_float_eq(a->sigma, b->sigma, 0.0);
+	cr_assert_float_eq(a->roundness, b->roundness, 0.0);
+	cr_assert_float_eq(a->focal_length, b->focal_length, 0.0);
+	cr_assert_float_eq(a->pixel_size_x, b->pixel_size_x, 0.0);
+	cr_assert_eq(a->convergence, b->convergence);
+	cr_assert_eq(a->relax_checks, b->relax_checks);
+	cr_assert_eq(a->profile, b->profile);
+	cr_assert_float_eq(a->min_beta, b->min_beta, 0.0);
+	cr_assert_float_eq(a->min_A, b->min_A, 0.0);
+	cr_assert_float_eq(a->max_A, b->max_A, 0.0);
+	cr_assert_float_eq(a->max_r, b->max_r, 0.0);
+}
+
+Test(nde_serializers, starfinder_conf_codec_roundtrip) {
+	star_finder_params in = make_test_sf_conf();
+	GString *kv = nde_kv_start();
+	synthstar_conf_to_kv(kv, &in);
+	gchar *blob = nde_kv_end(kv);
+	cr_assert_not_null(blob);
+	GHashTable *parsed = nde_kv_parse(blob);
+	star_finder_params out = { 0 };
+	cr_assert(synthstar_conf_from_kv(parsed, &out), "conf must parse");
+	assert_sf_conf_eq(&out, &in);
+	g_hash_table_unref(parsed);
+	/* a blob missing a required key must fail closed */
+	GHashTable *partial = nde_kv_parse("sf_radius=5;sf_sigma=1");
+	star_finder_params dummy = { 0 };
+	cr_assert(!synthstar_conf_from_kv(partial, &dummy),
+	          "an incomplete conf must not parse");
+	g_hash_table_unref(partial);
+	g_free(blob);
+}
+
+Test(nde_serializers, synthstar_roundtrip_delegated) {
+	const op_descriptor *op = op_descriptor_by_id("star.synthstar");
+	cr_assert_not_null(op);
+	struct synthstar_data *in = new_synthstar_data();
+	in->star_auto = TRUE;
+	in->star_conf = make_test_sf_conf();
+
+	gchar *blob = op->serialize(in);
+	cr_assert_not_null(blob);
+	/* the delegated form records the conf, NOT a star list */
+	cr_assert(strstr(blob, "stars_auto=1") != NULL, "blob: %s", blob);
+	cr_assert(strstr(blob, "sf_sigma=") != NULL, "blob: %s", blob);
+	cr_assert_null(strstr(blob, "stars="), "delegated must not pin a list: %s", blob);
+
+	struct synthstar_data *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->star_auto, TRUE);
+	cr_assert_null(out->stars_blob);
+	assert_sf_conf_eq(&out->star_conf, &in->star_conf);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(op, blob);
+	FREE_VIA_DESTRUCTOR(in);
+	g_free(blob);
+}
+
+Test(nde_serializers, unclip_roundtrip_delegated) {
+	const op_descriptor *op = op_descriptor_by_id("star.unclip");
+	cr_assert_not_null(op);
+	cr_assert_not_null(op->serialize);
+	struct synthstar_data *in = new_synthstar_data();
+	in->star_auto = TRUE;
+	in->star_conf = make_test_sf_conf();
+
+	gchar *blob = op->serialize(in);
+	cr_assert_not_null(blob);
+	struct synthstar_data *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->star_auto, TRUE);
+	assert_sf_conf_eq(&out->star_conf, &in->star_conf);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(op, blob);
+	/* unclip is always delegated: a blob with no conf is non-replayable */
+	cr_assert_null(op->deserialize("stars_auto=1", op->version),
+	               "unclip without a conf must yield NULL");
+	FREE_VIA_DESTRUCTOR(in);
+	g_free(blob);
+}
+
+Test(nde_serializers, unpurple_roundtrip_delegated) {
+	const op_descriptor *op = op_descriptor_by_id("filters.unpurple");
+	cr_assert_not_null(op);
+	struct unpurpleargs *in = new_unpurple_args();
+	in->mod_b = 0.5;
+	in->thresh = 0.25;
+	in->withstarmask = TRUE;
+	in->star_auto = TRUE;
+	in->star_conf = make_test_sf_conf();
+
+	gchar *blob = op->serialize(in);
+	cr_assert_not_null(blob);
+	cr_assert_null(strstr(blob, "stars="), "delegated must not pin a list: %s", blob);
+	struct unpurpleargs *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->withstarmask, TRUE);
+	cr_assert_eq(out->star_auto, TRUE);
+	cr_assert_null(out->stars_blob);
+	assert_sf_conf_eq(&out->star_conf, &in->star_conf);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(op, blob);
 	FREE_VIA_DESTRUCTOR(in);
 	g_free(blob);
 }

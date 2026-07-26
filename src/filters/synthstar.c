@@ -130,6 +130,49 @@ psf_star **synthstar_stars_from_blob(const char *blob, int *nb_out) {
 	return stars;
 }
 
+/* ---- detection-parameter codec (DELEGATED provenance) ---------------------
+ * Serialize the star_finder_params that a delegated (auto-detect) star op
+ * consumed, so replay re-detects with the SAME parameters rather than the
+ * user's current preferences.  All fields are detection-affecting. */
+void synthstar_conf_to_kv(GString *kv, const star_finder_params *sf) {
+	nde_kv_add_int(kv, "sf_radius", sf->radius);
+	nde_kv_add_double(kv, "sf_sigma", sf->sigma);
+	nde_kv_add_double(kv, "sf_roundness", sf->roundness);
+	nde_kv_add_double(kv, "sf_focal", sf->focal_length);
+	nde_kv_add_double(kv, "sf_pixsize", sf->pixel_size_x);
+	nde_kv_add_int(kv, "sf_convergence", sf->convergence);
+	nde_kv_add_bool(kv, "sf_relax", sf->relax_checks);
+	/* on-disk value: enum order is frozen by the NDE format — do not reorder */
+	nde_kv_add_int(kv, "sf_profile", sf->profile);
+	nde_kv_add_double(kv, "sf_min_beta", sf->min_beta);
+	nde_kv_add_double(kv, "sf_min_A", sf->min_A);
+	nde_kv_add_double(kv, "sf_max_A", sf->max_A);
+	nde_kv_add_double(kv, "sf_max_r", sf->max_r);
+}
+
+gboolean synthstar_conf_from_kv(GHashTable *kv, star_finder_params *out) {
+	gint64 radius, convergence, profile;
+	gboolean relax;
+	if (!nde_kv_get_int(kv, "sf_radius", &radius) ||
+	    !nde_kv_get_double(kv, "sf_sigma", &out->sigma) ||
+	    !nde_kv_get_double(kv, "sf_roundness", &out->roundness) ||
+	    !nde_kv_get_double(kv, "sf_focal", &out->focal_length) ||
+	    !nde_kv_get_double(kv, "sf_pixsize", &out->pixel_size_x) ||
+	    !nde_kv_get_int(kv, "sf_convergence", &convergence) ||
+	    !nde_kv_get_bool(kv, "sf_relax", &relax) ||
+	    !nde_kv_get_int(kv, "sf_profile", &profile) ||
+	    !nde_kv_get_double(kv, "sf_min_beta", &out->min_beta) ||
+	    !nde_kv_get_double(kv, "sf_min_A", &out->min_A) ||
+	    !nde_kv_get_double(kv, "sf_max_A", &out->max_A) ||
+	    !nde_kv_get_double(kv, "sf_max_r", &out->max_r))
+		return FALSE;
+	out->radius = (int)radius;
+	out->convergence = (int)convergence;
+	out->relax_checks = relax;
+	out->profile = (starprofile)profile;
+	return TRUE;
+}
+
 /* Minimal destructor-first params struct for synthstar (was paramless).  Only
  * carries the stashed effective star list so replay can reinstall it. */
 static void free_synthstar_data(void *p) {
@@ -147,11 +190,40 @@ struct synthstar_data *new_synthstar_data(void) {
 	return d;
 }
 
-static gchar *synthstar_serialize(gconstpointer user) {
-	const struct synthstar_data *d = user;
-	GString *kv = nde_kv_start();
-	if (d && d->stars_blob && *d->stars_blob)
+/* Emit either the EXPLICIT pinned list or the DELEGATED detection parameters
+ * (never both — provenance is decided at capture). */
+static void synthstar_provenance_to_kv(GString *kv, const struct synthstar_data *d) {
+	if (!d)
+		return;
+	if (d->star_auto) {
+		nde_kv_add_bool(kv, "stars_auto", TRUE);
+		synthstar_conf_to_kv(kv, &d->star_conf);
+	} else if (d->stars_blob && *d->stars_blob) {
 		nde_kv_add_str(kv, "stars", d->stars_blob);
+	}
+}
+
+/* Read provenance into @d.  FALSE (→ non-replayable) when neither an explicit
+ * stars= list nor a complete delegated conf is present. */
+static gboolean synthstar_provenance_from_kv(GHashTable *kv, struct synthstar_data *d) {
+	gboolean auto_d = FALSE;
+	nde_kv_get_bool(kv, "stars_auto", &auto_d);
+	if (auto_d) {
+		if (!synthstar_conf_from_kv(kv, &d->star_conf))
+			return FALSE;
+		d->star_auto = TRUE;
+		return TRUE;
+	}
+	const char *stars = nde_kv_get_str(kv, "stars");
+	if (!stars || !*stars)
+		return FALSE;
+	d->stars_blob = g_strdup(stars);
+	return TRUE;
+}
+
+static gchar *synthstar_serialize(gconstpointer user) {
+	GString *kv = nde_kv_start();
+	synthstar_provenance_to_kv(kv, user);
 	return nde_kv_end(kv);
 }
 
@@ -159,31 +231,29 @@ static gpointer synthstar_deserialize(const gchar *blob, int version) {
 	if (version > op_desc_synthstar.version)
 		return NULL;
 	GHashTable *kv = nde_kv_parse(blob);
-	const char *stars = nde_kv_get_str(kv, "stars");
-	/* The stars= key is required: a pre-batch record (no key) is not
-	 * deterministically replayable, so it stays honestly non-replayable. */
-	if (!stars || !*stars) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
 	struct synthstar_data *d = new_synthstar_data();
-	if (d)
-		d->stars_blob = g_strdup(stars);
+	/* Neither provenance present ⇒ a pre-feature record (or corrupt): stays
+	 * honestly non-replayable. */
+	if (d && !synthstar_provenance_from_kv(kv, d)) {
+		free_synthstar_data(d);
+		d = NULL;
+	}
 	g_hash_table_unref(kv);
 	return d;
 }
 
-/* replay_pre: rebuild com.stars from the stashed blob so the hook's normal
- * snapshot_com_stars() path consumes it unchanged (no hook branch).  The
- * reconstructed list stays live after replay, exactly as a fresh detection
- * would; replace_com_stars frees any existing list.  Replay runs in the
- * exclusive job slot, so no concurrent star operation is mid-flight. */
+/* replay_pre: EXPLICIT ⇒ reinstall com.stars from the pinned blob so the hook
+ * consumes it unchanged.  DELEGATED ⇒ nothing to do here: the hook re-detects
+ * with the recorded conf (passed via the data struct), ignoring com.stars.
+ * Replay runs in the exclusive job slot, so no concurrent star op is mid-
+ * flight. */
 static int synthstar_replay_pre(gpointer user, GHashTable *kv, fits *target) {
-	(void)target;
+	(void)target; (void)kv;
 	struct synthstar_data *d = user;
-	const char *stars = nde_kv_get_str(kv, "stars");
+	if (d->star_auto)
+		return 0;
 	int nb = 0;
-	psf_star **arr = synthstar_stars_from_blob(stars ? stars : d->stars_blob, &nb);
+	psf_star **arr = synthstar_stars_from_blob(d->stars_blob, &nb);
 	if (!arr || nb < 1)
 		return 1;
 	replace_com_stars(arr);   /* installs + frees any previous list */
@@ -202,13 +272,37 @@ const op_descriptor op_desc_synthstar = {
 	.replay_pre = synthstar_replay_pre,
 };
 
-/* star.unclip stays Tier B (no serializer) by verified verdict: its
- * reprofile_saturated_stars() runs its OWN per-channel findstar_worker() which
- * reads com.pref.starfinder_conf (sigma/roundness/radius/profile/min_beta/
- * min_A/max_A/relax_checks/convergence) — the detection is NOT internal with
- * hardcoded settings, so it is not a deterministic paramless op and Convention
- * 2's com.stars stash does not describe what it consumes.  Checkpoints keep the
- * downstream chain editable.  Do not add a serializer. */
+/* star.unclip is Tier A via DELEGATED provenance: reprofile_saturated_stars()
+ * always auto-detects per channel (it never consumes com.stars), reading
+ * com.pref.starfinder_conf.  We record those detection parameters and re-run
+ * detection at replay — faithful to "find stars automatically" intent and
+ * re-flowing upstream amends — rather than pinning a star list.  No
+ * replay_pre: the conf is passed to the hook via the data struct. */
+static gchar *unclip_serialize(gconstpointer user) {
+	const struct synthstar_data *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_bool(kv, "stars_auto", TRUE);
+	if (d)
+		synthstar_conf_to_kv(kv, &d->star_conf);
+	return nde_kv_end(kv);
+}
+
+static gpointer unclip_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_unclip.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	struct synthstar_data *d = new_synthstar_data();
+	if (d) {
+		d->star_auto = TRUE;
+		if (!synthstar_conf_from_kv(kv, &d->star_conf)) {
+			free_synthstar_data(d);
+			d = NULL;
+		}
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
+
 const op_descriptor op_desc_unclip = {
 	.id = "star.unclip", .version = 1,
 	.image_hook = unclip_image_hook,
@@ -216,10 +310,13 @@ const op_descriptor op_desc_unclip = {
 	.description = N_("Unclip stars"),
 	.mem_ratio = 0.0f,
 	.flags = 0,
+	.serialize = unclip_serialize, .deserialize = unclip_deserialize,
 };
 
-int generate_synthstars(fits *fit, gchar **stars_blob_out);
-int reprofile_saturated_stars(fits *fit);
+int generate_synthstars(fits *fit, struct synthstar_data *prov,
+                        const star_finder_params *conf_override);
+int reprofile_saturated_stars(fits *fit, star_finder_params *conf_out,
+                              const star_finder_params *conf_override);
 
 void makeairy(float *psf, const int size, const float lum, const float xoff, const float yoff, float wavelength, float aperture, float focal_length, float pixel_size, float obstruction) {
 	// wavelength is given in nm; pixel size in microns; aperture and focal length are given in mm. Convert all to metres for consistency
@@ -485,12 +582,13 @@ int starcount(psf_star **stars) {
 /* generic_image_worker hooks */
 int synthstar_image_hook(struct generic_img_args *args, fits *fit, int threads) {
 	struct synthstar_data *d = (struct synthstar_data *)args->user;
-	/* Stash the effective star list into the params struct so the worker's NDE
-	 * capture (which runs after the hook returns) can serialize it.  During
-	 * replay d->stars_blob is already set (replay_pre reinstalled com.stars);
-	 * generate_synthstars re-derives the same blob from the reinstalled list,
-	 * which is a harmless no-op overwrite of an identical string. */
-	return generate_synthstars(fit, d ? &d->stars_blob : NULL) < 0 ? 1 : 0;
+	/* Capture (nde_replay FALSE): generate_synthstars records the provenance
+	 * into @d (EXPLICIT pinned list, or DELEGATED conf) for the worker's NDE
+	 * capture that runs after the hook returns.  DELEGATED replay: pass the
+	 * recorded conf as an override so detection reproduces it. */
+	const star_finder_params *ov =
+			(args->nde_replay && d && d->star_auto) ? &d->star_conf : NULL;
+	return generate_synthstars(fit, d, ov) < 0 ? 1 : 0;
 }
 
 gchar *synthstar_log_hook(gpointer p, log_hook_detail detail) {
@@ -498,14 +596,26 @@ gchar *synthstar_log_hook(gpointer p, log_hook_detail detail) {
 }
 
 int unclip_image_hook(struct generic_img_args *args, fits *fit, int threads) {
-	return reprofile_saturated_stars(fit) < 0 ? 1 : 0;
+	struct synthstar_data *d = (struct synthstar_data *)args->user;
+	/* unclip always auto-detects (DELEGATED).  Capture: record the conf used
+	 * so the serializer can emit it.  Replay: reproduce it via the override. */
+	const star_finder_params *ov =
+			(args->nde_replay && d && d->star_auto) ? &d->star_conf : NULL;
+	star_finder_params used = { 0 };
+	int rc = reprofile_saturated_stars(fit, d ? &used : NULL, ov);
+	if (d && !args->nde_replay) {
+		d->star_auto = TRUE;
+		d->star_conf = used;
+	}
+	return rc < 0 ? 1 : 0;
 }
 
 gchar *unclip_log_hook(gpointer p, log_hook_detail detail) {
 	return g_strdup(_("Unclip stars"));
 }
 
-int generate_synthstars(fits *fit, gchar **stars_blob_out) {
+int generate_synthstars(fits *fit, struct synthstar_data *prov,
+                        const star_finder_params *conf_override) {
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
 	gui_iface.set_progress(PROGRESS_RESET, _("Star synthesis (full star mask creation): processing..."));
@@ -515,15 +625,23 @@ int generate_synthstars(fits *fit, gchar **stars_blob_out) {
 	float norm = 1.0f, invnorm = 1.0f;
 	int nb_stars = 0;
 	psf_star **stars = NULL;
+	/* DELEGATED replay: ignore com.stars and re-detect with the recorded conf
+	 * (installed transiently below).  Capture / EXPLICIT replay: consume
+	 * com.stars, auto-detecting only when it is empty. */
+	gboolean force_detect = (conf_override != NULL);
+	gboolean auto_detected = FALSE;
 
-	// Private, reader-locked copy of com.stars: the star-rendering loop below
-	// runs on a worker thread and must not deref a list another thread may free.
-	stars = snapshot_com_stars(&nb_stars);
-	int comstar_count = nb_stars;
-	if (stars)
-		stars_needs_freeing = TRUE;
+	if (!force_detect) {
+		// Private, reader-locked copy of com.stars: the star-rendering loop below
+		// runs on a worker thread and must not deref a list another thread may free.
+		stars = snapshot_com_stars(&nb_stars);
+		if (stars)
+			stars_needs_freeing = TRUE;
+	}
+	int comstar_count = nb_stars;   // 0 when force_detect
 
 	if (comstar_count < 1) {
+		auto_detected = TRUE;
 		// snapshot_com_stars() can return a non-NULL but empty array (first
 		// duplicate_psf OOM); free it before findstar_worker overwrites stars.
 		if (stars_needs_freeing) {
@@ -556,8 +674,13 @@ int generate_synthstars(fits *fit, gchar **stars_blob_out) {
 		sf_data->already_in_thread = TRUE;
 		sf_data->keep_stars = FALSE;
 
-		// Call the worker function
-		int retval = GPOINTER_TO_INT(findstar_worker(sf_data));
+		// Call the worker function (with the recorded conf installed when replaying)
+		int retval = 0;
+		if (conf_override)
+			WITH_STARFINDER_CONF(conf_override,
+					retval = GPOINTER_TO_INT(findstar_worker(sf_data)));
+		else
+			retval = GPOINTER_TO_INT(findstar_worker(sf_data));
 		free(sf_data);
 
 		if (retval != 0 || !stars) {
@@ -580,12 +703,21 @@ int generate_synthstars(fits *fit, gchar **stars_blob_out) {
 		siril_log_message(_("Synthesizing %d stars...\n"), nb_stars);
 	}
 
-	/* NDE (Convention 2): stash the EFFECTIVE consumed star list now that it is
-	 * final (whether taken from com.stars or freshly detected).  The worker's
-	 * capture block serializes it after the hook returns. */
-	if (stars_blob_out) {
-		g_free(*stars_blob_out);
-		*stars_blob_out = synthstar_stars_to_blob(stars, nb_stars);
+	/* NDE Convention 2: record provenance for replay (capture only — an
+	 * override implies we are already replaying).  EXPLICIT (com.stars used):
+	 * pin the effective list.  DELEGATED (auto-detected): record the detection
+	 * parameters and DROP the list, so replay re-detects against amended
+	 * upstream pixels. */
+	if (prov && !force_detect) {
+		if (auto_detected) {
+			prov->star_auto = TRUE;
+			prov->star_conf = com.pref.starfinder_conf;
+			g_clear_pointer(&prov->stars_blob, g_free);
+		} else {
+			prov->star_auto = FALSE;
+			g_free(prov->stars_blob);
+			prov->stars_blob = synthstar_stars_to_blob(stars, nb_stars);
+		}
 	}
 
 	if (fit->type == DATA_USHORT) {
@@ -840,9 +972,15 @@ int generate_synthstars(fits *fit, gchar **stars_blob_out) {
 
 // Fix up saturated stars only
 
-int reprofile_saturated_stars(fits *fit) {
+int reprofile_saturated_stars(fits *fit, star_finder_params *conf_out,
+                              const star_finder_params *conf_override) {
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
+	/* unclip always auto-detects (DELEGATED provenance).  Capture: report the
+	 * conf used so it can be recorded.  Replay: install the recorded conf
+	 * transiently around each channel's detection. */
+	if (conf_out)
+		*conf_out = conf_override ? *conf_override : com.pref.starfinder_conf;
 	char *msg = siril_log_info(_("Star synthesis (desaturating clipped star profiles): processing...\n"));
 	msg[strlen(msg) - 1] = '\0';
 	gui_iface.set_progress(PROGRESS_RESET, msg);
@@ -916,8 +1054,13 @@ int reprofile_saturated_stars(fits *fit) {
 		sf_data.stars = &stars;
 		sf_data.nb_stars = &nb_stars;
 
-		// Call the worker function
-		int retval = GPOINTER_TO_INT(findstar_worker(&sf_data));
+		// Call the worker function (with the recorded conf installed when replaying)
+		int retval = 0;
+		if (conf_override)
+			WITH_STARFINDER_CONF(conf_override,
+					retval = GPOINTER_TO_INT(findstar_worker(&sf_data)));
+		else
+			retval = GPOINTER_TO_INT(findstar_worker(&sf_data));
 
 		if (retval != 0 || !stars) {
 			siril_log_error(_("Star detection failed for channel %u\n"), chan);

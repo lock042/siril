@@ -1006,6 +1006,7 @@ void star_desaturate_activate(GSimpleAction *action, GVariant *parameter, gpoint
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
 	args->op = &op_desc_unclip;
+	args->user = new_synthstar_data();  /* records the detection conf for NDE replay */
 	args->verbose = TRUE;
 	if (!start_in_new_thread(generic_image_worker, args))
 		free_generic_img_args(args);

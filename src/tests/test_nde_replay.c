@@ -1533,6 +1533,62 @@ Test(nde_replay, golden_synthstar_from_stashed_stars) {
 	golden_teardown(result, f);
 }
 
+/* Stamp a round Gaussian star into a mono fits at (cx,cy). */
+static void stamp_star(fits *f, float cx, float cy, float amp, float fwhm) {
+	float sigma = fwhm / 2.3548f;
+	float inv2s2 = 1.0f / (2.0f * sigma * sigma);
+	int r = (int)(4.0f * sigma) + 1;
+	for (int y = (int)cy - r; y <= (int)cy + r; y++) {
+		for (int x = (int)cx - r; x <= (int)cx + r; x++) {
+			if (x < 0 || y < 0 || x >= (int)f->rx || y >= (int)f->ry)
+				continue;
+			float dx = x - cx, dy = y - cy;
+			float v = amp * expf(-(dx * dx + dy * dy) * inv2s2);
+			float *p = &f->fdata[x + (size_t)y * f->rx];
+			if (*p < v) *p = v;
+		}
+	}
+}
+
+/* DELEGATED provenance (star-detection refinement): unclip ALWAYS auto-detects
+ * (it never consumes com.stars), so its record must be Tier A carrying the
+ * detection PARAMETERS (stars_auto=1 + sf_*), NOT a pinned star list — and it
+ * must replay by re-detecting.  com.stars is left empty here so capture takes
+ * the auto-detect path; a detectable star field makes detection deterministic. */
+Test(nde_replay, unclip_delegated_records_conf_and_replays) {
+	fits *f = flis_test_make_mono_fits(128, 128, 0.02f);
+	stamp_star(f, 32.f, 40.f, 0.9f, 3.2f);
+	stamp_star(f, 80.f, 64.f, 0.8f, 3.0f);
+	stamp_star(f, 50.f, 96.f, 0.85f, 3.4f);
+	stamp_star(f, 100.f, 30.f, 0.75f, 3.1f);
+	gfit = f;
+
+	clear_stars_list(FALSE);   /* force the auto-detect (DELEGATED) path */
+
+	struct synthstar_data *u = new_synthstar_data();
+	cr_assert_eq(apply_op_real(&op_desc_unclip, u), 0);
+
+	/* the record is Tier A, delegated: conf recorded, no pinned list */
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	cr_assert_eq(snap->len, 1);
+	nde_record *rec = g_ptr_array_index(snap, 0);
+	cr_assert_eq(rec->tier, NDE_TIER_A, "unclip is now Tier A (delegated conf)");
+	cr_assert(strstr(rec->params, "stars_auto=1") != NULL, "params: %s", rec->params);
+	cr_assert(strstr(rec->params, "sf_sigma=") != NULL, "params: %s", rec->params);
+	cr_assert_null(strstr(rec->params, "stars="),
+	               "delegated unclip must not pin a star list: %s", rec->params);
+	g_ptr_array_unref(snap);
+
+	/* replay re-detects with the recorded conf and rebuilds a valid image */
+	fits *result = replay_current_chain(1);
+	cr_assert_not_null(result);
+	cr_assert_eq(result->rx, gfit->rx);
+	cr_assert_eq(result->ry, gfit->ry);
+
+	clear_stars_list(FALSE);
+	golden_teardown(result, f);
+}
+
 /* ---------------- C3: cached restarts + deposits + invalidation -------- */
 
 Test(nde_replay, second_amend_restarts_from_cached_deposit) {

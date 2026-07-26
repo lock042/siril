@@ -527,6 +527,7 @@ int process_unclip(int nb) {
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
 	args->op = &op_desc_unclip;
+	args->user = new_synthstar_data();  /* records the detection conf for NDE replay */
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->command_updates_gfit = TRUE;
@@ -2056,7 +2057,8 @@ int process_unpurple(int nb) {
 			return CMD_GENERIC_ERROR;
 		}
 
-		if (generate_binary_starmask(gfit, &params->starmask, thresh, &params->stars_blob)) {
+		if (generate_binary_starmask(gfit, &params->starmask, thresh,
+				&params->stars_blob, &params->star_auto, &params->star_conf, NULL)) {
 			free_unpurple_args(params);
 			return CMD_GENERIC_ERROR;
 		}
