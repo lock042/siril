@@ -24,6 +24,7 @@ void fit_get_photometry_data(fits *fit);
 int fit_stats(fitsfile *fptr, float *mini, float *maxi);
 int readfits(const char *filename, fits *fit, char *realname, gboolean force_float);
 void get_date_data_from_fitsfile(fitsfile *fptr, GDateTime **dt, double *exposure, double *livetime, unsigned int *stack_count);
+gchar *get_original_filename_from_fits(const gchar *filename);
 int import_metadata_from_fitsfile(fitsfile *fptr, fits *to);
 void clearfits(fits*);
 void clearfits_header(fits*);
@@ -33,14 +34,14 @@ int readfits_partial_all_layers(const char *filename, fits *fit, const rectangle
 int read_fits_metadata(fits *fit);
 int read_fits_metadata_from_path(const char *filename, fits *fit);
 int read_fits_metadata_from_path_first_HDU(const char *filename, fits *fit);
-void flip_buffer(int bitpix, void *buffer, const rectangle *area);
+gboolean flip_buffer(int bitpix, void *buffer, const rectangle *area);
 int read_opened_fits_partial(sequence *seq, int layer, int index, void *buffer,
 		const rectangle *area);
 int siril_fits_compress(fits *f);
 int save_opened_fits(fits *f);
 gchar *set_right_extension(const char *name);
 int savefits(const char *name, fits *f);
-int copyfits(fits *from, fits *to, unsigned char oper, int layer);
+int copyfits(fits *from, fits *to, unsigned int oper, int layer);
 void copy_fits_metadata(fits *from, fits *to);
 int copy_fits_from_file(const char *source, const char *destination);
 int save1fits16(const char *filename, fits *fit, int layer);
@@ -64,7 +65,16 @@ int extract_fits(fits *from, fits *to, int channel, gboolean to_float);
 void keep_only_first_channel(fits *fit);
 void fit_debayer_buffer(fits *fit, void *newbuf);
 
-GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr);
+/* Thumbnail extraction (GUI-only).
+ *
+ * extract_thumbnail_from_fits returns a malloc'd RGB888 byte buffer plus
+ * the thumbnail's dimensions and a g_malloc'd description string.  The
+ * caller frees the byte buffer with free() and the description with
+ * g_free().  The GTK4 browser wraps that raw buffer directly as a
+ * GdkTexture, so this stays gdk-pixbuf-free.
+ *
+ * Forward-declared in callers rather than included here to keep this
+ * core header gdk-pixbuf-free. */
 
 // internal read of FITS file, for FITS images and FITS sequences
 void manage_bitpix(fitsfile *fptr, int *bitpix, int *orig_bitpix);
@@ -81,12 +91,12 @@ int check_loaded_fits_params(fits *ref, ...);
 
 void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_sum);
 void merge_fits_headers_to_result(fits *result, gboolean do_sum, fits *f1,...);
-int get_xpsampled(double* xps, const gchar *filename, int i);
 void process_keyword_string_value(const char *input, char *output, gboolean condition);
 int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gchar *value, const gchar *comment, gboolean verbose, gboolean isfitseq);
 int associate_header_to_memfile(const char *header, fitsfile *fptr);
 int fits_parse_header_str(fits *fit, const char *header);
 int fits_swap_image_data(fits *a, fits *b);
+int fits_swap_all_except_rwlock(fits *a, fits *b);
 
 int save_wcs_fits(fits *f, const gchar *filename);
 int save_mask_fits(int rx, int ry, float *buffer, const gchar *name);

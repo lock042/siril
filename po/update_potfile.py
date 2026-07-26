@@ -9,42 +9,46 @@ from pathlib import Path
 import time
 
 def search_translation_strings(src_dir, exclude_dirs):
-    """Native Python implementation for searching translation strings _('...')"""
+    """Search for translation strings _('...') and N_('...') while ignoring C/C++ comments (// and /* */)."""
     matched_files = []
     total_files = 0
-    
-    print("Searching for files containing translation strings _('...')")
+
+    print("Searching for files containing translation strings _('...') or N_('...')")
     start_time = time.time()
-    
-    # List of extensions to search
-    extensions = ['.c', '.cpp']
-    
+
+    # List of extensions to search (including .h)
+    extensions = ['.c', '.cpp', '.h']
+
     for ext in extensions:
         for filepath in Path(src_dir).glob(f'**/*{ext}'):
             total_files += 1
             path_str = str(filepath)
-            
-            # Check if path contains an excluded directory
+
+            # Skip excluded directories
             if any(exclude_dir in path_str for exclude_dir in exclude_dirs):
                 continue
-                
-            # Check file content
+
             try:
                 with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
-                    # Search for translation patterns (_("..."))
                     content = f.read()
-                    # Regex that searches for _(" followed by ") with anything in between
-                    # This regex supports multi-line and concatenated strings
-                    pattern = r'_\s*\(\s*".*?"\s*\)'
-                    if re.search(pattern, content, re.DOTALL):
+
+                    # Remove block comments /* ... */
+                    content_no_block_comments = re.sub(r'/\*[\s\S]*?\*/', '', content)
+
+                    # Remove line comments // ...
+                    content_no_comments = re.sub(r'//.*', '', content_no_block_comments)
+
+                    # Search for _("...") or N_("...") patterns, handling nested quotes
+                    pattern = r'\b(?:_|N_)\(\s*"(?:[^"\\]|\\.|"(?=[^"]*"(?:(?:[^"\\]|\\.)*")*[^"]*$))*"\s*\)'
+                    if re.search(pattern, content_no_comments):
                         rel_path = os.path.relpath(filepath).replace('\\', '/')
                         matched_files.append(rel_path)
             except Exception as e:
                 print(f"Error reading {filepath}: {e}")
-    
+
     elapsed_time = time.time() - start_time
     print(f"Search completed in {elapsed_time:.2f} seconds, {total_files} files analyzed")
-    
+
     return matched_files
 
 def main():

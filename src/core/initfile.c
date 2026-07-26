@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -30,7 +30,6 @@
 #include "core/siril_app_dirs.h"
 #include "algos/photometry.h"
 #include "io/sequence.h"
-#include "gui/progress_and_log.h"
 #include "stacking/stacking.h"
 
 #include "initfile.h"
@@ -38,7 +37,6 @@
 #define STR_INDIR(x) #x
 #define STR(x) STR_INDIR(x)
 #define GLIB_CONFIG_FILE "config." STR(SIRIL_MAJOR_VERSION) "." STR(SIRIL_MINOR_VERSION) ".ini"
-static char *configfiles[] = { GLIB_CONFIG_FILE, "config.1.3.ini", "config.ini" };
 
 static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 	GError *error = NULL;
@@ -53,7 +51,7 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 			boolval = g_key_file_get_boolean(kf, desc->group, desc->key, &error);
 			if (error && error->code == G_KEY_FILE_ERROR_INVALID_VALUE) {
 				gchar* keystring = g_key_file_get_string(kf, desc->group, desc->key, NULL);
-				siril_log_message(_("error in config file for %s.%s: %s (value: %s)\n"),
+				siril_log_error(_("error in config file for %s.%s: %s (value: %s)\n"),
 						desc->group, desc->key, error->message, keystring);
 				g_free(keystring);
 				return 1;
@@ -64,7 +62,7 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 			intval = g_key_file_get_integer(kf, desc->group, desc->key, &error);
 			if (error && error->code == G_KEY_FILE_ERROR_INVALID_VALUE) {
 				gchar* keystring = g_key_file_get_string(kf, desc->group, desc->key, NULL);
-				siril_log_message(_("error in config file for %s.%s: %s (value: %s)\n"),
+				siril_log_error(_("error in config file for %s.%s: %s (value: %s)\n"),
 						desc->group, desc->key, error->message, keystring);
 				g_free(keystring);
 				return 1;
@@ -84,7 +82,7 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 			doubleval = g_key_file_get_double(kf, desc->group, desc->key, &error);
 			if (error && error->code == G_KEY_FILE_ERROR_INVALID_VALUE) {
 				gchar* keystring = g_key_file_get_string(kf, desc->group, desc->key, NULL);
-				siril_log_message(_("error in config file for %s.%s: %s (value: %s)\n"),
+				siril_log_error(_("error in config file for %s.%s: %s (value: %s)\n"),
 						desc->group, desc->key, error->message, keystring);
 				g_free(keystring);
 				return 1;
@@ -113,8 +111,7 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 				return 1;
 			}
 			if (desc->type == STYPE_STRDIR && !g_file_test(strval, G_FILE_TEST_IS_DIR)) {
-				siril_log_color_message(_("directory `%s' for config key %s.%s doesn't exist, not using it.\n"),
-						"salmon", strval, desc->group, desc->key);
+				siril_log_warning(_("directory `%s' for config key %s.%s doesn't exist, not using it.\n"), strval, desc->group, desc->key);
 				g_free(strval);
 				return 1;
 			}
@@ -141,17 +138,100 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 	return 0;
 }
 
+// Helper function to compare versions (for sorting)
+static gint compare_config_versions(const ConfigFile *a, const ConfigFile *b) {
+	if (a->major != b->major)
+		return b->major - a->major;  // Descending order
+	return b->minor - a->minor;
+}
+
+// Helper function to free ConfigFile
+static void free_config_file(ConfigFile *cf) {
+	g_free(cf->filename);
+	g_free(cf);
+}
+
 static gchar *get_initfile(const gchar *pathname) {
-	for (int i = 0; i < G_N_ELEMENTS(configfiles); i++) {
-		gchar *current = g_build_filename(pathname, configfiles[i], NULL);
-		if (g_file_test(current, G_FILE_TEST_EXISTS)) {
-			if (i > 0)
-				siril_log_message(_("Converting previous initfile: %s\n"), current);
-			return current;
-		}
-		g_free(current);
+	// Try the current version config file first
+	gchar *current = g_build_filename(pathname, GLIB_CONFIG_FILE, NULL);
+	if (g_file_test(current, G_FILE_TEST_EXISTS)) {
+		return current;
 	}
-	return NULL;
+	g_free(current);
+
+	// regex to match config files: config.X.Y.ini or config.ini
+	GError *error = NULL;
+	GRegex *regex = g_regex_new("^config(?:\\.(\\d+)\\.(\\d+))?\\.ini$", 0, 0, &error);
+	if (!regex) {
+		siril_log_error(_("Error creating regex: %s\n"), error->message);
+		g_clear_error(&error);
+		return NULL;
+	}
+
+	// List all files in the config directory
+	GDir *dir = g_dir_open(pathname, 0, &error);
+	if (!dir) {
+		g_regex_unref(regex);
+		if (error) {
+			g_clear_error(&error);
+		}
+		return NULL;
+	}
+
+	GSList *config_files = NULL;
+	const gchar *filename;
+
+	while ((filename = g_dir_read_name(dir)) != NULL) {
+		GMatchInfo *match_info;
+		if (g_regex_match(regex, filename, 0, &match_info)) {
+			ConfigFile *cf = g_new0(ConfigFile, 1);
+			cf->filename = g_strdup(filename);
+
+			// Extract version numbers (if present)
+			gchar *major_str = g_match_info_fetch(match_info, 1);
+			gchar *minor_str = g_match_info_fetch(match_info, 2);
+
+			if (major_str && major_str[0] != '\0') {
+				cf->major = atoi(major_str);
+				cf->minor = atoi(minor_str);
+			} else {
+				// config.ini has version 0.0
+				cf->major = 0;
+				cf->minor = 0;
+			}
+
+			g_free(major_str);
+			g_free(minor_str);
+			config_files = g_slist_prepend(config_files, cf);
+		}
+		g_match_info_free(match_info);
+	}
+
+	g_dir_close(dir);
+	g_regex_unref(regex);
+
+	// Sort by version (descending)
+	config_files = g_slist_sort(config_files, (GCompareFunc)compare_config_versions);
+
+	// Find the first config file with version <= current version
+	int current_major = SIRIL_MAJOR_VERSION;
+	int current_minor = SIRIL_MINOR_VERSION;
+
+	gchar *result = NULL;
+	for (GSList *l = config_files; l != NULL; l = l->next) {
+		ConfigFile *cf = l->data;
+		if (cf->major < current_major ||
+		    (cf->major == current_major && cf->minor <= current_minor)) {
+			result = g_build_filename(pathname, cf->filename, NULL);
+			if (cf->major < current_major || cf->minor < current_minor) {
+				siril_log_message(_("Converting previous initfile: %s\n"), result);
+			}
+			break;
+		}
+	}
+	g_slist_free_full(config_files, (GDestroyNotify)free_config_file);
+
+	return result;
 }
 
 /**
@@ -178,7 +258,7 @@ int read_keyfile(GKeyFile *kf) {
 		g_strfreev(keys);
 	}
 	g_strfreev(groups);
-	siril_debug_print("read %zd keys from key file\n", nb_keys_read);
+	siril_log_debug("read %zd keys from key file\n", nb_keys_read);
 	return nb_keys_read;
 }
 
@@ -187,14 +267,14 @@ int readinitfile(gchar *fname) {
 	GError *error = NULL;
 	if (!g_key_file_load_from_file(kf, fname, G_KEY_FILE_NONE, &error)) {
 		if (error != NULL) {
-			siril_log_color_message(_("Settings could not be loaded from %s: %s\n"), "red", fname, error->message);
+			siril_log_error(_("Settings could not be loaded from %s: %s\n"), fname, error->message);
 			g_clear_error(&error);
 		}
 		return 1;
 	}
 	com.pref.check_update = FALSE;
 	if (read_keyfile(kf) == 0)
-		siril_log_message(_("Warning: nothing could be read from the settings file\n"));
+		siril_log_warning(_("Warning: nothing could be read from the settings file\n"));
 	g_key_file_free(kf);
 	return 0;
 }
@@ -241,10 +321,10 @@ int checkinitfile() {
 
 int writeinitfile() {
 	if (!com.initfile) {
-		siril_debug_print("not saving settings, file not available\n");
+		siril_log_debug("not saving settings, file not available\n");
 		return 0;
 	}
-	siril_debug_print("saving ini file %s\n", com.initfile);
+	siril_log_debug("saving ini file %s\n", com.initfile);
 
 	GKeyFile *kf = g_key_file_new();
 	struct settings_access *desc = get_all_settings();
@@ -289,7 +369,7 @@ int writeinitfile() {
 
 	GError *error = NULL;
 	if (!g_key_file_save_to_file(kf, com.initfile, &error)) {
-		siril_log_color_message(_("Could not save the settings in %s: %s\n"), "salmon", com.initfile, error->message);
+		siril_log_warning(_("Could not save the settings in %s: %s\n"), com.initfile, error->message);
 		g_free(com.initfile);
 		com.initfile = NULL;
 		g_key_file_free(kf);

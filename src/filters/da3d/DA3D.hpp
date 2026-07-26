@@ -8,11 +8,11 @@
 #ifndef DA3D_DA3D_HPP_
 #define DA3D_DA3D_HPP_
 
-#include "Image.hpp"
+#include "algos/img_t/image.hpp"
 
 namespace da3d {
 
-Image DA3D(int &retval, const Image &noisy, const Image &guide, float sigma,
+img_t<float> DA3D(int &retval, const img_t<float> &noisy, const img_t<float> &guide, float sigma,
            int nthreads = 0, int r = 31, float sigma_s = 14.f,
            float gamma_r = .7f, float threshold = 2.f);
 

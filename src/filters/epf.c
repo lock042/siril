@@ -23,103 +23,124 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
+#include "core/gui_iface.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "opencv/opencv.h"
-#include "gui/callbacks.h"
-#include "gui/siril_preview.h"
 
 #include "filters/epf.h"
+#include "core/op_descriptors.h"
 
-gboolean end_epf(gpointer p) {
-	set_cursor_waiting(FALSE);
-	stop_processing_thread();
-	notify_gfit_modified();
-	return FALSE;
+/* Op descriptor — single source of truth for this operation (op_descriptor.h) */
+const op_descriptor op_desc_epf = {
+	.id = "filters.epf", .version = 1,
+	.image_hook = epf_image_hook,
+	.log_hook = epf_log_hook,
+	.description = N_("Edge Preserving Filter"),
+	.mem_ratio = 3.0f,
+	.flags = OP_MASK_CAPABLE,
+};
+
+/*****************************************************************************
+ *      E P F      A L L O C A T O R   A N D   D E S T R U C T O R          *
+ ****************************************************************************/
+
+/* Allocator for epfargs */
+struct epfargs *new_epf_args() {
+	struct epfargs *args = calloc(1, sizeof(struct epfargs));
+	if (args) {
+		args->destroy_fn = free_epf_args;
+	}
+	return args;
 }
 
-gpointer epfhandler (gpointer args) {
-	lock_roi_mutex();
-	struct epfargs *p = (struct epfargs*) args;
-	set_cursor_waiting(TRUE);
-	int retval = edge_preserving_filter(p);
-	unlock_roi_mutex();
-	if (!com.script)
-		siril_add_idle(end_epf, NULL);
-	return GINT_TO_POINTER(retval);
+/* Destructor for epfargs */
+void free_epf_args(void *ptr) {
+	struct epfargs *args = (struct epfargs *)ptr;
+	if (!args)
+		return;
+
+	if (args->guide_needs_freeing && args->guidefit) {
+		clearfits(args->guidefit);
+		free(args->guidefit);
+		args->guidefit = NULL;
+	}
+	free(ptr);
 }
 
-gpointer epf_filter (gpointer args) {
-	struct epfargs *p = (struct epfargs*) args;
-	set_cursor_waiting(TRUE);
-	int retval = edge_preserving_filter(p);
-	if (!com.script)
-		siril_add_idle(end_epf, NULL);
-	return GINT_TO_POINTER(retval);
+gchar *epf_log_hook(gpointer p, log_hook_detail detail) {
+	struct epfargs *args = (struct epfargs*) p;
+	gchar *message = NULL;
+	if (detail == SUMMARY)
+		message = g_strdup_printf(_("%s filter: d=%.2f, sig_col=%.2f, sig_spatial=%.2f, mod=%.2f"),
+								args->filter == EP_BILATERAL ? _("Bilateral") : _("Guided"),
+								args->d, args->sigma_col, args->sigma_space, args->mod);
+		else
+		message = g_strdup_printf(_("%s filter: d=%.3f, sigma_col=%.3f, sigma_spatial=%.3f, mod=%.3f"),
+								args->filter == EP_BILATERAL ? _("Bilateral") : _("Guided"),
+								args->d, args->sigma_col, args->sigma_space, args->mod);
+	return message;
 }
 
-int match_guide_to_roi(fits *guide, fits *guide_roi) {
+static int match_guide_to_roi(fits *guide, fits *guide_roi) {
 	int retval = 0;
-	if (!gui.roi.active)
+	if (!gui_iface.roi_is_active())
 		return 1;
+	fits *roi_fit = (fits*)gui_iface.get_roi_fit();
+	rectangle sel;
+	gui_iface.get_roi_selection(&sel);
 	uint32_t nchans = guide->naxes[2];
 	size_t npixels = guide->rx * guide->ry;
 	gboolean rgb = (nchans == 3);
-	size_t npixels_roi = gui.roi.fit.rx * gui.roi.fit.ry;
+	size_t npixels_roi = roi_fit->rx * roi_fit->ry;
 	copyfits(guide, guide_roi, CP_FORMAT, -1);
-	guide_roi->rx = guide_roi->naxes[0] = gui.roi.selection.w;
-	guide_roi->ry = guide_roi->naxes[1] = gui.roi.selection.h;
+	guide_roi->rx = guide_roi->naxes[0] = sel.w;
+	guide_roi->ry = guide_roi->naxes[1] = sel.h;
 	guide_roi->naxes[2] = nchans;
 	guide_roi->naxis = nchans == 1 ? 2 : 3;
 	if (guide->type == DATA_FLOAT) {
 		guide_roi->fdata = malloc(npixels_roi * nchans * sizeof(float));
 		if (!guide_roi->fdata)
 			retval = 1;
-		guide_roi->fpdata[0] = gui.roi.fit.fdata;
+		guide_roi->fpdata[0] = roi_fit->fdata;
 		guide_roi->fpdata[1] = rgb? guide_roi->fdata + npixels_roi : guide_roi->fdata;
 		guide_roi->fpdata[2] = rgb? guide_roi->fdata + 2 * npixels_roi : guide_roi->fdata;
 		for (uint32_t c = 0 ; c < nchans ; c++) {
-			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
-				float *srcindex = guide->fdata + (npixels * c) + ((guide->ry - y - gui.roi.selection.y) * guide->rx) + gui.roi.selection.x;
+			for (uint32_t y = 0; y < (uint32_t)sel.h ; y++) {
+				float *srcindex = guide->fdata + (npixels * c) + ((guide->ry - y - sel.y) * guide->rx) + sel.x;
 				float *destindex = guide_roi->fdata + (npixels_roi * c) + (guide_roi->rx * y);
-				memcpy(destindex, srcindex, (gui.roi.selection.w) * sizeof(float));
+				memcpy(destindex, srcindex, sel.w * sizeof(float));
 			}
 		}
 	} else {
 		guide_roi->data = malloc(npixels_roi * nchans * sizeof(WORD));
 		if (!guide_roi->data)
 			retval = 1;
-		guide_roi->pdata[0] = gui.roi.fit.data;
+		guide_roi->pdata[0] = roi_fit->data;
 		guide_roi->pdata[1] = rgb? guide_roi->data + npixels_roi : guide_roi->data;
 		guide_roi->pdata[2] = rgb? guide_roi->data + 2 * npixels_roi : guide_roi->data;
 		for (uint32_t c = 0 ; c < nchans ; c++) {
-			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
-				WORD *srcindex = guide->data + (npixels * c) + ((guide->ry - y - gui.roi.selection.y) * guide->rx) + gui.roi.selection.x;
+			for (uint32_t y = 0; y < (uint32_t)sel.h ; y++) {
+				WORD *srcindex = guide->data + (npixels * c) + ((guide->ry - y - sel.y) * guide->rx) + sel.x;
 				WORD *destindex = guide_roi->data + (npixels_roi * c) + (guide_roi->rx * y);
-				memcpy(destindex, srcindex, (gui.roi.selection.w) * sizeof(WORD));
+				memcpy(destindex, srcindex, sel.w * sizeof(WORD));
 			}
 		}
 	}
 	return retval;
 }
 
-int edge_preserving_filter(struct epfargs *args) {
+static int edge_preserving_filter(struct epfargs *args) {
 	fits *fit = args->fit;
 	fits *guide = args->guidefit;
 	double d = args->d;
 	double sigma_col = args->sigma_col;
 	double sigma_space = args->sigma_space;
 	double mod = args->mod;
-	gboolean verbose = args->verbose;
 	ep_filter_t filter_type = args->filter;
 
-	struct timeval t_start, t_end;
 	if (sigma_col <= 0.0 || (sigma_space <= 0.0 && filter_type == EP_BILATERAL))
 		return 1;
-	if (verbose) {
-		siril_log_color_message(_("Bilateral filter: processing...\n"), "green");
-		gettimeofday(&t_start, NULL);
-	}
 	sigma_col /= 100.0;
 
 	if (fit->naxes[2] == 1) {
@@ -160,7 +181,8 @@ int edge_preserving_filter(struct epfargs *args) {
 			break;
 		case EP_GUIDED:
 			guide_roi = calloc(1, sizeof(fits));
-			roi_fitting_needed = (fit == &gui.roi.fit && guide != &gui.roi.fit && gui.roi.active);
+			fits *roi_fit_ptr = (fits*)gui_iface.get_roi_fit();
+			roi_fitting_needed = (fit == roi_fit_ptr && guide != roi_fit_ptr && gui_iface.roi_is_active());
 			if (roi_fitting_needed)
 				match_guide_to_roi(guide, guide_roi);
 			guidance = roi_fitting_needed ? guide_roi : guide;
@@ -199,18 +221,17 @@ int edge_preserving_filter(struct epfargs *args) {
 		fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, ndata), DATA_USHORT);
 	}
 
-	if (fit == &gfit && args->applying && !com.script) {
-		populate_roi();
-		copy_gfit_to_backup();
-	}
-
-	if (verbose) {
-		gettimeofday(&t_end, NULL);
-		show_time(t_start, t_end);
-	}
-
-	if (args->guide_needs_freeing)
-		free(args->guidefit);
-	free(args);
+	/* No populate_roi() / notify here: generic_image_worker performs both
+	 * universally when args->fit == gfit. */
 	return 0;
 }
+
+/* The actual EPF processing hook */
+int epf_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	struct epfargs *params = (struct epfargs *)args->user;
+	if (!params)
+		return 1;
+	params->fit = fit;
+	return edge_preserving_filter(params);
+}
+

@@ -4,6 +4,7 @@
 #include <math.h> // for fabs() in test_double_eq
 #include <sys/time.h>
 #include "core/siril.h"
+#include "core/gtk_forward_decls.h"
 #ifdef HAVE_LIBTIFF
 #define uint64 uint64_hack_
 #define int64 int64_hack_
@@ -15,6 +16,12 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef enum {
+    ELLIPSIZE_START,
+    ELLIPSIZE_MIDDLE,
+    ELLIPSIZE_END
+} EllipsizePosition;
 
 /****************** image_formats_internal.h ******************/
 /* BMP */
@@ -44,9 +51,7 @@ int readpic(const char *name, fits *fit);
 
 /****************** image_formats_libraries.h ******************/
 #ifdef HAVE_LIBTIFF
-gboolean get_tiff_compression();
 int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose);
-void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright);
 int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		const char *description, const char *copyright,
 		gboolean tiff_compression, gboolean embeded_icc, gboolean verbose);
@@ -113,7 +118,6 @@ void swap_param(double*, double*);
 gchar* str_append(char **data, const char *newdata);
 char *format_basename(char *root, gboolean can_free);
 float compute_slope(WORD *lo, WORD *hi);
-gchar *siril_get_file_info(const gchar *filename, GdkPixbuf *pixbuf);
 gchar *siril_truncate_str(gchar *str, gint size);
 gchar **glist_to_array(GList *list, int *arg_count);
 gchar* url_cleanup(const gchar *uri_string);
@@ -136,9 +140,8 @@ gchar *siril_any_to_utf8 (const gchar  *str, gssize len, const gchar *warning_fo
 int siril_to_display(double fx, double fy, double *dx, double *dy, int ry);
 int display_to_siril(double dx, double dy, double *fx, double *fy, int ry);
 int fits_to_display(double fx, double fy, double *dx, double *dy, int ry);
-gchar *siril_file_chooser_get_filename(GtkFileChooser *chooser);
-GSList *siril_file_chooser_get_filenames(GtkFileChooser *chooser);
 int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_depth, gboolean force_even);
+OverrangeResponse apply_limits(fits *fit, double minval, double maxval, OverrangeResponse method);
 int count_lines_in_textfile(const gchar *filename);
 void copy_filename(const char *filename, char *truncated_filename, size_t max_length);
 gboolean is_string_numeric(const gchar *str);
@@ -151,7 +154,9 @@ gchar *find_file_recursively(gchar *basename, const gchar *top_path);
 char *strdupnullok(char *data);
 gchar* remove_extension_from_path(const gchar* filepath);
 gboolean delete_directory(const gchar *dir_path, GError **error);
+gboolean copy_directory_recursive (const gchar *src_dir, const gchar *dst_dir, GError **error);
 gchar *posix_path_separators(const gchar *path);
+gchar* ellipsize (const gchar *str, int n_chars, EllipsizePosition position);
 
 /****************** quantize.h ***************/
 int siril_fits_img_stats_ushort(WORD *array, long nx, long ny,
@@ -352,7 +357,7 @@ static inline BYTE truncate_to_BYTE(WORD x) {
  * Round WORD to BYTE with scaling (branchless)
  */
 static inline BYTE roundw_to_BYTE(WORD input) {
-	input = (input >= USHRT_MAX - 127) ? (USHRT_MAX - 127) : input;
+	input = (input >= USHRT_MAX - 128) ? (USHRT_MAX - 128) : input;
 	return (uint8_t)((input + 128) >> 8);
 }
 

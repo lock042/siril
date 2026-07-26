@@ -21,7 +21,30 @@ typedef enum {
 	BACKGROUND_INTER_POLY = 1,
 } background_interpolation;
 
+/* How the background model is built: from placed samples (the classic,
+ * sample-based extraction) or automatically, sample-free, on every pixel that
+ * survives an iterative robust rejection (AutoGradientRemoval). */
+typedef enum {
+	BACKGROUND_METHOD_SAMPLES = 0,
+	BACKGROUND_METHOD_AUTO = 1,
+} background_method;
+
+/* Parameters of the automatic (sample-free) model. Only the correction mode
+ * (subtract/divide) is shared with the sample-based method. */
+struct autograd_data {
+	double scale;             /* relative model scale (1-10), higher = smoother */
+	double smoothness;        /* extra regularisation of the final model */
+	gboolean protect;         /* structure protection on/off */
+	double protect_threshold; /* brightness above model treated as a structure */
+	double protect_amount;    /* how far the protection mask grows */
+	gboolean simplified;      /* use the stiff polynomial instead of the multiscale model */
+	int degree;               /* polynomial degree of the simplified model */
+	int downsample;           /* internal working scale factor (1, 2, 4, 8) */
+};
+
 struct background_data {
+	destructor destroy_fn;  /* Must be first member */
+	background_method method;
 	int nb_of_samples;
 	double tolerance;
 	background_correction correction;
@@ -35,6 +58,11 @@ struct background_data {
 	sequence *seq;
 	char *seqEntry;
 	gboolean is_cfa;
+	gboolean randomize;    /* use random dark-area sampling instead of grid */
+	gboolean grad_descent; /* optimize each sample position to a local dark minimum */
+	double border_value;        /* >0: exclude a border strip from sample placement */
+	gboolean border_is_percent; /* TRUE = border_value is % of image dimension; FALSE = pixels */
+	struct autograd_data autograd; /* parameters of the BACKGROUND_METHOD_AUTO model */
 };
 
 #define SAMPLE_SIZE 25		// must be odd to compute a radius
@@ -50,14 +78,18 @@ typedef struct sample {
 
 int get_background_sample_radius();
 void free_background_sample_list(GSList *list);
-GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size, const char **error, threading_type threads);
-GSList* add_background_sample(GSList *list, fits *fit, point pt);
+GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size, gboolean grad_descent, const char **error, threading_type threads, const rectangle *bbox);
+GSList* add_background_sample(GSList *list, fits *fit, point pt, gboolean grad_descent);
 GSList *add_background_samples(GSList *orig, fits *fit, GSList *pts);
 GSList* remove_background_sample(GSList *orig, fits *fit, point pt);
-int generate_background_samples(int nb_of_samples, double tolerance);
+int generate_background_samples(int nb_of_samples, double tolerance, gboolean randomize, gboolean grad_descent, const rectangle *override_bbox);
+/* dead code — no call sites; superseded by remove_gradient_image_hook:
 gpointer remove_gradient_from_image(gpointer p);
-gpointer remove_gradient_from_cfa_image(gpointer p);
+gpointer remove_gradient_from_cfa_image(gpointer p); */
 void apply_background_extraction_to_sequence(struct background_data *background_args);
+void free_background_data(void *p);
+int remove_gradient_image_hook(struct generic_img_args *gargs, fits *fit, int threads);
+gchar *remove_gradient_log_hook(gpointer p, log_hook_detail detail);
 
 gboolean background_sample_is_valid(background_sample *sample);
 gdouble background_sample_get_size(background_sample *sample);
@@ -67,4 +99,3 @@ void sample_mutex_unlock();
 void apply_background_cancel();
 
 #endif /* SRC_ALGOS_BACKGROUND_EXTRACTION_H_ */
-

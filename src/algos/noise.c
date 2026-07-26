@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -27,8 +27,7 @@
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "algos/statistics.h"
-#include "gui/utils.h"
-#include "gui/progress_and_log.h"
+#include "core/gui_iface.h"
 
 #include "noise.h"
 
@@ -37,7 +36,7 @@ static GThread *thread;
 static gboolean end_noise(gpointer p) {
 	struct noise_data *args = (struct noise_data *) p;
 	stop_processing_thread();
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 
 	if (args->display_start_end) {
 		struct timeval t_end;
@@ -54,9 +53,20 @@ gpointer noise_worker(gpointer p) {
 	args->mean_noise = 0.0;
 
 	if (args->display_start_end) {
-		siril_log_color_message(_("Noise standard deviation: calculating...\n"),
-				"green");
+		siril_log_info(_("Noise standard deviation: calculating...\n"));
 		gettimeofday(&args->t_start, NULL);
+	}
+
+	/* Only acquire the reader lock when the caller has explicitly requested
+	 * it (i.e. bgnoise_async, which launches a background thread that races
+	 * with other gfit consumers).  The bgnoise_image_hook() path runs under
+	 * generic_image_worker's writer lock — acquiring a reader lock on the
+	 * same rwlock from the same thread is undefined behaviour and would
+	 * self-deadlock or corrupt the lock state. */
+	gboolean rwlocked = FALSE;
+	if (args->lock_gfit) {
+		g_rw_lock_reader_lock(&gfit->rwlock);
+		rwlocked = TRUE;
 	}
 
 	imstats *stats[3];
@@ -83,13 +93,16 @@ gpointer noise_worker(gpointer p) {
 	}
 
 	if (retval) {
-		siril_log_message(_("Error: statistics computation failed.\n"));
+		siril_log_error(_("Error: statistics computation failed.\n"));
 		args->mean_noise = -1.0;
 	} else {
 		args->mean_noise = args->mean_noise / (double)args->fit->naxes[2];
 		if (args->fit->type == DATA_FLOAT)
 			args->mean_noise *= USHRT_MAX_DOUBLE;
 	}
+
+	if (rwlocked)
+		g_rw_lock_reader_unlock(&gfit->rwlock);
 
 	if (args->use_idle) {
 		siril_add_idle(end_noise, args);
@@ -101,34 +114,26 @@ gpointer noise_worker(gpointer p) {
 	return args;
 }
 
-// called by the GUI or the command, uses the processing thread
+// Forward declaration to avoid including command.h
+int process_bgnoise(int nb);
+
+// called by the GUI, uses the processing thread
 void evaluate_noise_in_image() {
-	if (get_thread_run()) {
+	if (processing_is_job_active()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}
-
-	set_cursor_waiting(TRUE);
-
-	/* Switch to console tab */
-	control_window_switch_to_tab(OUTPUT_LOGS);
-
-	struct noise_data *args = calloc(1, sizeof(struct noise_data));
-	args->fit = &gfit;
-	args->use_idle = TRUE;
-	args->display_results = TRUE;
-	args->display_start_end = TRUE;
-	memset(args->bgnoise, 0.0, sizeof(double[3]));
-	if (!start_in_new_thread(noise_worker, args)) {
-		free(args);
-	}
+	gui_iface.set_busy(TRUE);
+	gui_iface.show_panel("output_logs", TRUE);
+	// Use the command processor
+	process_bgnoise(0);
 }
 
 // called in general from another function like stacking,
 // bgnoise_await() has to be called to free resources
 void bgnoise_async(fits *fit, gboolean display_values) {
 	if (thread) {
-		siril_debug_print("bgnoise request ignored, still running\n");
+		siril_log_debug("bgnoise request ignored, still running\n");
 		return;
 	}
 	struct noise_data *args = calloc(1, sizeof(struct noise_data));
@@ -136,6 +141,7 @@ void bgnoise_async(fits *fit, gboolean display_values) {
 	args->use_idle = FALSE;
 	args->display_start_end = FALSE;
 	args->display_results = display_values;
+	args->lock_gfit = (fit == gfit);
 	memset(args->bgnoise, 0.0, sizeof(double[3]));
 
 	thread = g_thread_new("bgnoise", noise_worker, args);

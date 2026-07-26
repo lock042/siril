@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -21,8 +21,33 @@
 #include <glib.h>
 #include "mtf.h"
 #include "core/proto.h"
+#include "core/gui_iface.h"
+#include "core/processing.h"
+void destroy_mtf_data(void *args); /* forward decl */
 #include "core/siril_log.h"
 #include "algos/statistics.h"
+#include "core/op_descriptors.h"
+
+/* Op descriptors — single source of truth for the MTF stretch ops.
+ * process_mtf picks the forward/inverse descriptor via its `inverse` flag; the
+ * autostretch / histogram sites share op_desc_mtf with a description override. */
+const op_descriptor op_desc_mtf = {
+	.id = "stretch.mtf", .version = 1,
+	.image_hook = mtf_single_image_hook,
+	.log_hook = mtf_log_hook,
+	.description = N_("Midtones Transfer Function"),
+	.mem_ratio = 1.0f,
+	.flags = OP_MASK_CAPABLE,
+};
+
+const op_descriptor op_desc_mtf_inverse = {
+	.id = "stretch.mtf_inverse", .version = 1,
+	.image_hook = invmtf_single_image_hook,
+	.log_hook = invmtf_log_hook,
+	.description = N_("Inverse Midtones Transfer Function"),
+	.mem_ratio = 1.0f,
+	.flags = OP_MASK_CAPABLE,
+};
 
 void apply_linked_mtf_to_fits(fits *from, fits *to, struct mtf_params params, gboolean multithreaded) {
 
@@ -64,14 +89,19 @@ void apply_linked_mtf_to_fits(fits *from, fits *to, struct mtf_params params, gb
 		free(lut);
 	}
 	else if (from->type == DATA_FLOAT) {
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static) if(multithreaded)
-#endif
-		for (size_t j = 0; j < from->naxes[2] ; j++) {
+		float m = params.midtones, lo = params.shadows, hi = params.highlights;
+		float inv_range = (hi > lo) ? 1.f / (hi - lo) : 1.f;
+		float m_minus_1 = m - 1.f;
+		float two_m_minus_1 = 2.f * m - 1.f;
+		for (size_t j = 0; j < from->naxes[2]; j++) {
 			if (do_channel[j]) {
 				float *tolayer = to->fpdata[j], *fromlayer = from->fpdata[j];
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if(multithreaded)
+#endif
 				for (size_t i = 0; i < layersize; i++) {
-					tolayer[i] = MTFp(fromlayer[i], params);
+					float xp = fmaxf(0.f, fminf((fromlayer[i] - lo) * inv_range, 1.f));
+					tolayer[i] = (m_minus_1 * xp) / (two_m_minus_1 * xp - m);
 				}
 			} else
 				memcpy(to->fpdata[j], from->fpdata[j], layersize * sizeof(float));
@@ -108,7 +138,7 @@ float MTFp(float x, struct mtf_params params) {
 }
 
 void apply_linked_pseudoinverse_mtf_to_fits(fits *from, fits *to, struct mtf_params params, gboolean multithreaded) {
-// This is for use in reversing the pre-stretch applied to linear images for starnet++ input.
+// This is for use in reversing an MTF pre-stretch applied to linear images.
 // It does not support selected channels.
 	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
 	const size_t layersize = from->naxes[0] * from->naxes[1];
@@ -145,21 +175,123 @@ void apply_linked_pseudoinverse_mtf_to_fits(fits *from, fits *to, struct mtf_par
 		free(lut);
 	}
 	else if (from->type == DATA_FLOAT) {
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static) if(multithreaded)
-#endif
-		for (size_t j = 0; j < from->naxes[2] ; j++) {
+		float A = (params.shadows + params.highlights) * params.midtones - params.shadows;
+		float B_c = params.shadows * (1.f - params.midtones);
+		float C = 2.f * params.midtones - 1.f;
+		float D = 1.f - params.midtones;
+		for (size_t j = 0; j < from->naxes[2]; j++) {
 			if (do_channel[j]) {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if(multithreaded)
+#endif
 				for (size_t i = 0; i < layersize; i++) {
-					to->fpdata[j][i] = MTF_pseudoinverse(from->fpdata[j][i], params);
+					float y = from->fpdata[j][i];
+					to->fpdata[j][i] = (A * y + B_c) / (C * y + D);
 				}
 			} else
 				memcpy(to->fpdata[j], from->fpdata[j], layersize * sizeof(float));
 		}
-
 	}
 	else return;
 
+	invalidate_stats_from_fit(to);
+}
+
+void apply_unlinked_pseudoinverse_mtf_to_fits(fits *from, fits *to, struct mtf_params *params, gboolean multithreaded) {
+	// This is for use in reversing an MTF pre-stretch applied to linear images.
+	// It does not support selected channels.
+	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
+	const size_t layersize = from->naxes[0] * from->naxes[1];
+	g_assert(from->type == to->type);
+#ifdef _OPENMP
+	int threads = min(com.max_thread, 2); // not worth using many threads here
+#endif
+
+	// Log the parameters for each channel
+	if (from->naxes[2] == 3) {
+		siril_log_debug("Applying inverse MTF with values:\n"
+				"  Red:   %f, %f, %f\n"
+				"  Green: %f, %f, %f\n"
+				"  Blue:  %f, %f, %f\n",
+				params[0].shadows, params[0].midtones, params[0].highlights,
+				params[1].shadows, params[1].midtones, params[1].highlights,
+				params[2].shadows, params[2].midtones, params[2].highlights);
+	} else {
+		siril_log_debug("Applying inverse MTF with values %f, %f, %f\n",
+				params[0].shadows, params[0].midtones, params[0].highlights);
+	}
+
+	if (from->type == DATA_USHORT) {
+		float norm = (float)get_normalized_value(from);
+		float invnorm = 1.0f / norm;
+
+		// Set up a LUT for each channel
+		WORD **lut = malloc(from->naxes[2] * sizeof(WORD*));
+		for (size_t j = 0; j < from->naxes[2]; j++) {
+			lut[j] = malloc((USHRT_MAX + 1) * sizeof(WORD));
+		}
+
+		// Fill the LUTs
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(threads) schedule(static) if(multithreaded)
+#endif
+		for (size_t j = 0; j < from->naxes[2]; j++) {
+			const gboolean do_channel = (j == 0) ? params[j].do_red :
+			                            (j == 1) ? params[j].do_green :
+			                                       params[j].do_blue;
+			if (do_channel) {
+				for (int i = 0; i <= USHRT_MAX; i++) {
+					lut[j][i] = roundf_to_WORD(USHRT_MAX_SINGLE * MTF_pseudoinverse(i * invnorm, params[j]));
+				}
+			}
+		}
+
+		// Apply the LUTs
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if(multithreaded)
+#endif
+		for (size_t j = 0; j < from->naxes[2]; j++) {
+			const gboolean do_channel = (j == 0) ? params[j].do_red :
+			                            (j == 1) ? params[j].do_green :
+			                                       params[j].do_blue;
+			if (do_channel) {
+				for (size_t i = 0; i < layersize; i++) {
+					to->pdata[j][i] = lut[j][from->pdata[j][i]];
+				}
+			} else {
+				memcpy(to->pdata[j], from->pdata[j], layersize * sizeof(WORD));
+			}
+		}
+
+		// Free the LUTs
+		for (size_t j = 0; j < from->naxes[2]; j++) {
+			free(lut[j]);
+		}
+		free(lut);
+	}
+	else if (from->type == DATA_FLOAT) {
+		for (size_t j = 0; j < from->naxes[2]; j++) {
+			const gboolean do_chan = (j == 0) ? params[j].do_red :
+			                         (j == 1) ? params[j].do_green :
+			                                    params[j].do_blue;
+			if (do_chan) {
+				float A = (params[j].shadows + params[j].highlights) * params[j].midtones - params[j].shadows;
+				float B_c = params[j].shadows * (1.f - params[j].midtones);
+				float C = 2.f * params[j].midtones - 1.f;
+				float D = 1.f - params[j].midtones;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if(multithreaded)
+#endif
+				for (size_t i = 0; i < layersize; i++) {
+					float y = from->fpdata[j][i];
+					to->fpdata[j][i] = (A * y + B_c) / (C * y + D);
+				}
+			} else {
+				memcpy(to->fpdata[j], from->fpdata[j], layersize * sizeof(float));
+			}
+		}
+	}
+	else return;
 	invalidate_stats_from_fit(to);
 }
 
@@ -205,7 +337,7 @@ int find_linked_midtones_balance(fits *fit, float shadows_clipping, float target
 		result->midtones = MTF(m2, target_bg, 0.f, 1.f);
 		result->highlights = 1.0f;
 
-		siril_debug_print("autostretch: (%f, %f, %f)\n",
+		siril_log_debug("autostretch: (%f, %f, %f)\n",
 				result->shadows, result->midtones, result->highlights);
 	} else {
 		for (i = 0; i < nb_channels; ++i) {
@@ -255,8 +387,6 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 			for (int i = 0 ; i <= USHRT_MAX ; i++) { // Fill LUT
 				lut[i] = roundf_to_WORD(USHRT_MAX_SINGLE * MTFp(i * invnorm, params[chan]));
 			}
-			siril_log_message(_("Applying MTF to channel %d with values %f, %f, %f\n"), chan,
-					params[chan].shadows, params[chan].midtones, params[chan].highlights);
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
@@ -268,13 +398,16 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 	}
 	else if (from->type == DATA_FLOAT) {
 		for (int chan = 0; chan < (int)from->naxes[2]; chan++) {
-			siril_log_message(_("Applying MTF to channel %d with values %f, %f, %f\n"), chan,
-					params[chan].shadows, params[chan].midtones, params[chan].highlights);
+			float m = params[chan].midtones, lo = params[chan].shadows, hi = params[chan].highlights;
+			float inv_range = (hi > lo) ? 1.f / (hi - lo) : 1.f;
+			float m_minus_1 = m - 1.f;
+			float two_m_minus_1 = 2.f * m - 1.f;
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (threads > 1)
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (threads > 1)
 #endif
 			for (size_t i = 0; i < ndata; i++) {
-				to->fpdata[chan][i] = MTFp(from->fpdata[chan][i], params[chan]);
+				float xp = fmaxf(0.f, fminf((from->fpdata[chan][i] - lo) * inv_range, 1.f));
+				to->fpdata[chan][i] = (m_minus_1 * xp) / (two_m_minus_1 * xp - m);
 			}
 		}
 	}
@@ -318,7 +451,7 @@ int find_unlinked_midtones_balance(fits *fit, float shadows_clipping, float targ
 			results[i].midtones = MTF(m2, target_bg, 0.f, 1.f);
 			results[i].shadows = c0;
 			results[i].highlights = 1.0;
-			siril_debug_print("autostretch for channel %d: (%f, %f, %f)\n", i,
+			siril_log_debug("autostretch for channel %d: (%f, %f, %f)\n", i,
 					results[i].shadows, results[i].midtones, results[i].highlights);
 		}
 	} else {
@@ -335,7 +468,7 @@ int find_unlinked_midtones_balance(fits *fit, float shadows_clipping, float targ
 			results[i].midtones = 1.f - MTF(m2, target_bg, 0.f, 1.f);
 			results[i].shadows = 0.f;
 			results[i].highlights = c1;
-			siril_debug_print("autostretch for channel %d: (%f, %f, %f)\n", i,
+			siril_log_debug("autostretch for channel %d: (%f, %f, %f)\n", i,
 					results[i].shadows, results[i].midtones, results[i].highlights);
 		}
 
@@ -348,5 +481,83 @@ int find_unlinked_midtones_balance(fits *fit, float shadows_clipping, float targ
 int find_unlinked_midtones_balance_default(fits *fit, struct mtf_params *results) {
 	return find_unlinked_midtones_balance(fit,
 			AS_DEFAULT_SHADOWS_CLIPPING, AS_DEFAULT_TARGET_BACKGROUND, results);
+}
+
+/* ── MTF data lifecycle (moved from gui/histogram.c) ───────────────────── */
+
+struct mtf_data *create_mtf_data(void) {
+	struct mtf_data *data = calloc(1, sizeof(struct mtf_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	data->linked     = TRUE;
+	data->destroy_fn = destroy_mtf_data;
+	return data;
+}
+
+void destroy_mtf_data(void *args) {
+	if (!args) return;
+	struct mtf_data *data = (struct mtf_data *)args;
+	free(data->seqEntry);
+	free(data);
+}
+
+/* ── MTF processing hooks (moved from gui/histogram.c) ─────────────────── */
+
+gchar *generate_mtf_log_message(const struct mtf_data *data,
+		log_hook_detail detail) {
+	gchar *log_string = NULL;
+	if (!data->linked) {
+		if (detail == SUMMARY) {
+			float mid = (data->uparams[0].midtones + data->uparams[1].midtones + data->uparams[2].midtones) / 3.f;
+			float sh  = (data->uparams[0].shadows   + data->uparams[1].shadows   + data->uparams[2].shadows  ) / 3.f;
+			float hi  = (data->uparams[0].highlights + data->uparams[1].highlights + data->uparams[2].highlights) / 3.f;
+			log_string = g_strdup_printf(_("Unlinked MTF stretch (lo=%.6f, mid=%.6f, hi=%.6f)"), sh, mid, hi);
+		} else {
+			log_string = g_strdup_printf(
+				_("Unlinked MTF stretch (Ch 0: lo=%.6f, mid=%.6f, hi=%.6f; "
+				  "Ch 1: lo=%.6f, mid=%.6f, hi=%.6f; "
+				  "Ch 2: lo=%.6f, mid=%.6f, hi=%.6f)"),
+				data->uparams[0].shadows, data->uparams[0].midtones, data->uparams[0].highlights,
+				data->uparams[1].shadows, data->uparams[1].midtones, data->uparams[1].highlights,
+				data->uparams[2].shadows, data->uparams[2].midtones, data->uparams[2].highlights);
+		}
+	} else {
+		log_string = g_strdup_printf(_("Linked MTF stretch (mid=%.6f, lo=%.6f, hi=%.6f)"),
+			data->params.midtones, data->params.shadows, data->params.highlights);
+	}
+	return log_string;
+}
+
+gchar *mtf_log_hook(gpointer p, log_hook_detail detail) {
+	return generate_mtf_log_message((struct mtf_data *)p, detail);
+}
+
+gchar *invmtf_log_hook(gpointer p, log_hook_detail detail) {
+	struct mtf_data *data = (struct mtf_data *)p;
+	return g_strdup_printf(_("Inverse MTF stretch (lo=%.6f, mid=%.6f, hi=%.6f)"),
+		data->params.shadows, data->params.midtones, data->params.highlights);
+}
+
+int mtf_single_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	(void)threads;
+	struct mtf_data *data = (struct mtf_data *)args->user;
+	if (!data) return 1;
+	if (data->linked)
+		apply_linked_mtf_to_fits(fit, fit, data->params, TRUE);
+	else
+		apply_unlinked_mtf_to_fits(fit, fit, data->uparams);
+	if (data->auto_display_compensation)
+		gui_iface.apply_display_icc_compensation((gpointer)fit);
+	return 0;
+}
+
+int invmtf_single_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	(void)threads;
+	struct mtf_data *data = (struct mtf_data *)args->user;
+	if (!data) return 1;
+	apply_linked_pseudoinverse_mtf_to_fits(fit, fit, data->params, TRUE);
+	return 0;
 }
 

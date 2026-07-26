@@ -15,6 +15,12 @@
 
 
 /* first, types used here but that cannot be defined in siril.h because of the loop dependency */
+
+typedef enum {
+	SIRIL_THEME_SYSTEM = 0,  /* Follow system appearance */
+	SIRIL_THEME_DARK   = 1,
+	SIRIL_THEME_LIGHT  = 2,
+} siril_theme_t;
 typedef struct {
 	int x, y, w, h;
 } rectangle;
@@ -79,14 +85,6 @@ typedef enum {
 } starprofile;
 
 typedef enum {
-	NIL = 0,
-	V2 = 1,
-	V1MONO = 2,
-	V1RGB = 4,
-	TORCH = 8
-} starnet_version;
-
-typedef enum {
 	MMB_ZOOM_FIT,
 	MMB_ZOOM_100,
 	MMB_ZOOM_TOGGLE
@@ -122,6 +120,7 @@ struct astrometry_config {
 	// common to siril and asnet solvers
 	gboolean update_default_scale;	// update default focal length and pixel size from the result
 	int percent_scale_range;	// percent below and above the expected sampling to allow
+	int gaia_cache_duration;        // duration in days to keep the gaia local cache
 	int sip_correction_order;	// degrees of the polynomial correction
 	double radius_degrees;		// radius around the target coordinates (degrees)
 	int max_seconds_run;		// maximum seconds of CPU time to try solving
@@ -201,6 +200,8 @@ struct editor_config {
 	gboolean showspaces;
 	gboolean shownewlines;
 	gboolean minimap;
+	gboolean dynamic_wrap;
+	gboolean code_folding;
 };
 
 typedef enum {
@@ -227,11 +228,15 @@ struct gui_config {
 	gboolean silent_linear;
 	gboolean remember_windows;	// restore windows at their previous location
 	rectangle main_w_pos;
+	gint open_dialog_w;		// remembered width of the custom open-file dialog (0 = use default)
+	gint open_dialog_h;		// remembered height of the custom open-file dialog (0 = use default)
+	gint open_dialog_sidebar_pos;	// remembered sidebar|content divider position (0 = use default)
+	gint open_dialog_paned_pos;	// remembered list|preview divider position (0 = use default)
 	gint pan_position;
 	gboolean is_extended;
 	gboolean is_maximized;
 
-	gint combo_theme;	// index of the combobox theme
+	siril_theme_t combo_theme;
 	gdouble font_scale;	// font scale
 	gboolean icon_symbolic;	// icon style
 
@@ -243,8 +248,8 @@ struct gui_config {
 	gint thumbnail_size;
 
 	int position_compass;	// compass position, can be moved
-	gboolean catalog[11];	// 8 system catalogs and 2 user catalogs for annotations and 1
-				// short-lived catalogue for "who's in the field" annotations
+	gboolean catalog[11];	// 8 system catalogs and 2 user catalogs for annotations, 
+				// 1 for velocity vectors display
 				// see also cat in annotation_catalogues.c
 
 	gint selection_guides;	// number of elements of the grid guides
@@ -266,6 +271,7 @@ struct gui_config {
 	double mouse_speed_limit; // Defines a mximum step size for GDK_SCROLL_SMOOTH actions
 	struct mouse_config mouse_cfg; // String representation of mouse & scroll actions
 	struct editor_config editor_cfg; // Configuration for the script editor
+	gboolean mask_tints_vports; // Whether to show the mask as a red tint in the image mask_tints_vports
 };
 
 // TODO: is any of the following used for something else than providing the default GUI value?
@@ -399,6 +405,10 @@ struct pref_struct {
 
 	int hd_bitdepth; // Default bit depth for HD AutoStretch
 
+	int lazy_tile_cache_mb; // RAM budget (MB) for displaying very large images: images
+	                        // whose display buffer fits go eager (no tiling); larger ones
+	                        // use the tiled lazy renderer capped at this many MB resident
+
 	gboolean script_check_requires;	// check the requires command in scripts
 	gboolean pipe_check_requires;	// check the requires command in pipes
 
@@ -417,10 +427,7 @@ struct pref_struct {
 	gboolean use_checksum;  // Verify checksum in FITS header
 	gchar *copyright;	// User copyright when saving image as TIFF
 
-	gchar *starnet_exe;	// Location of starnet++ executable
-	gchar *starnet_weights;	// Location of StarNet weights file (optional, Torch based StarNet only)
 	gchar *asnet_dir;	// Location of solve-field or asnet-ansvr installation on Windows
-	gchar *graxpert_path; // Location of GraXpert executable
 
 	star_finder_params starfinder_conf;
 	struct prepro_config prepro;
@@ -436,9 +443,11 @@ struct pref_struct {
 	int max_slice_size; // Used when processing img_t in slices to limit the wisdom required
 	icc_params icc;
 	GSList *selected_scripts;
+	GSList *startup_scripts;
 	gboolean use_scripts_repository;
 	gboolean auto_script_update; // automatically update scripts repository at startup
 	gboolean drizz_weight_match_bitpix; // Drizzle weights match seq bitpix. Default: FALSE
+	int default_mask_bitpix; // Default bit depth for masks. 8, 16 or 32; -1 = same as image. Default: 8
 };
 
 typedef struct pref_struct preferences;

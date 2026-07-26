@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -21,6 +21,8 @@
 #ifndef SRC_CORE_SIRIL_LANGUAGE_H_
 #define SRC_CORE_SIRIL_LANGUAGE_H_
 
+#include <glib.h>
+
 typedef struct {
 	char *locale;
 	char *language_name;
@@ -28,8 +30,16 @@ typedef struct {
 
 
 void siril_language_parser_init();
-void siril_language_fill_combo(const gchar *language);
 void language_init(const gchar *language);
-gchar *get_interface_language();
+
+/* Helpers used by gui/preferences.c to populate/read the language combo.
+ * Not for use outside gui/. */
+GHashTable  *siril_language_get_full_list(void);
+gchar       *extract_locale_from_string(const gchar *str);
+gint         locale_compare(gconstpointer a, gconstpointer b);
+
+/* Defined in gui/preferences.c; declared here so gui/callbacks.c can call. */
+void  siril_language_fill_combo(const gchar *language);
+gchar *get_interface_language(void);
 
 #endif /* SRC_CORE_SIRIL_LANGUAGE_H_ */

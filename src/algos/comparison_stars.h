@@ -27,12 +27,16 @@ struct compstars_arg {
 	gchar *AAVSO_uri;
 	gboolean has_GUI;
 	int retval;
+	GSourceFunc notify_done; /* set by GUI layer; called as idle on completion */
 };
 
 typedef struct {
 	int index;
 	double dist;
 } compstar_dist;
+
+struct compstars_arg* init_compstars_arg();
+void free_compstars_arg(gpointer p);
 
 gpointer compstars_worker(gpointer arg);
 

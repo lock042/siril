@@ -43,7 +43,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "algos/demosaicing.h"
 
 #include <assert.h>
-#define _USE_MATH_DEFINES       /* needed for MS Windows to define M_PI */
+#define _USE_MATH_DEFINES       /* needed for MS Windows to define G_PI */
 #include <math.h>
 #include <stdlib.h>
 
@@ -514,7 +514,7 @@ do_kernel_gaussian(struct driz_param_t* p) {
 	 * in the numerator. */
 //    gaussian_efac = (2.3548f*2.3548f) * scale2 * ac / 2.0f;
 	gaussian_efac = (2.3548f * 2.3548f) * ac / (2.f * scale2);
-	gaussian_es = gaussian_efac / M_PI;
+	gaussian_es = gaussian_efac / G_PI;
 
     if (init_image_scanner(p, &s, &ymin, &ymax)) return 1;
 
@@ -825,9 +825,9 @@ do_kernel_turbo(struct driz_param_t* p) {
     BYTE *cfa = p->cfa;
     size_t cfadim = p->cfadim;
 
-    siril_debug_print("starting do_kernel_turbo\n");
+    siril_log_debug("starting do_kernel_turbo\n");
     ac = 1.0 / (p->pixel_fraction * p->pixel_fraction);
-    pfo = p->pixel_fraction / p->scale / 2.0;
+    pfo = p->pixel_fraction * p->scale / 2.0;
     scale2 = p->scale * p->scale;
 
     if (init_image_scanner(p, &s, &ymin, &ymax)) return 1;
@@ -925,7 +925,7 @@ do_kernel_turbo(struct driz_param_t* p) {
         }
     }
 
-    siril_debug_print("ending do_kernel_turbo\n");
+    siril_log_debug("ending do_kernel_turbo\n");
     return 0;
 }
 
@@ -950,7 +950,7 @@ do_kernel_square(struct driz_param_t* p) {
     size_t cfadim = p->cfadim;
 	integer_t maxarea = 0, mnii = 0, mxii = 0, mnjj = 0, mxjj = 0;
 
-    siril_debug_print("starting do_kernel_square\n");
+    siril_log_debug("starting do_kernel_square\n");
     dh = 0.5 * p->pixel_fraction;
     scale2 = p->scale * p->scale;
 
@@ -1094,7 +1094,7 @@ do_kernel_square(struct driz_param_t* p) {
     }
 
     printf("do_square max area: %d. (%d, %d) to (%d, %d)\n", maxarea, mnii, mnjj, mxii, mxjj);
-    siril_debug_print("ending do_kernel_square\n");
+    siril_log_debug("ending do_kernel_square\n");
     return 0;
 }
 
@@ -1123,7 +1123,7 @@ kernel_handler_map[] = {
 int
 dobox(struct driz_param_t* p) {
     kernel_handler_t kernel_handler = NULL;
-    siril_debug_print("starting dobox\n");
+    siril_log_debug("starting dobox\n");
 
     /* Set up a function pointer to handle the appropriate kernel */
     if (p->kernel < kernel_LAST) {
@@ -1138,6 +1138,6 @@ dobox(struct driz_param_t* p) {
         driz_error_set_message(p->error, _("Invalid kernel type"));
     }
 
-    siril_debug_print("ending dobox\n");
+    siril_log_debug("ending dobox\n");
     return driz_error_is_set(p->error);
 }

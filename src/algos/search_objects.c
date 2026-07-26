@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -20,6 +20,8 @@
 
 #include <math.h>
 #include "algos/search_objects.h"
+#include "core/proto.h"
+#include "core/gui_iface.h"
 #include "core/siril_log.h"
 #include "core/siril_date.h"
 #include "core/processing.h"
@@ -28,8 +30,17 @@
 #include "algos/siril_wcs.h"
 #include "algos/astrometry_solver.h"
 #include "io/remote_catalogues.h"
-#include "gui/dialogs.h"
-#include "gui/utils.h"
+#include "core/op_descriptors.h"
+
+/* Op descriptor for the catalog-search command. */
+const op_descriptor op_desc_catsearch = {
+	.id = "catalog.search", .version = 1,
+	.image_hook = catsearch_image_hook,
+	.log_hook = catsearch_log_hook,
+	.description = N_("Catalog search"),
+	.mem_ratio = 1.0f,
+	.flags = 0,
+};
 
 
 /* parse response from online catalogue lookups (search_in_online_catalogs()
@@ -55,10 +66,10 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 	case (QUERY_SERVER_SIMBAD_PHOTO):
 		// In case of a bad request...
 		if (nargs <= 2 || g_strrstr(buffer, "No known catalog") || g_strrstr(buffer, "incorrect id") || g_str_has_prefix(buffer, "!!")) {
-			siril_log_color_message(_("SIMBAD server returned:\n"), "red");
+			siril_log_error(_("SIMBAD server returned:\n"));
 			int max_lines = min(4, nargs); // we display 4 lines max
 			for (int i = 0; i < max_lines; i++)
-				siril_log_color_message(_("%s\n"), "red", token[i]);
+				siril_log_error(_("%s\n"), token[i]);
 			g_strfreev(token);
 			args->retval = 1;
 			return args->retval;
@@ -70,6 +81,7 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 			if (g_str_has_prefix(token[rank], "Coordinates(ICRS")) {
 				gchar **fields = g_strsplit(token[rank], " ", -1);
 				double hours = 0.0, min = 0.0, seconds = 0.0, degres = 0.0;
+				if (g_strv_length(fields) < 8) { g_strfreev(fields); rank++; continue; }
 				// RA
 				sscanf(fields[1], "%lf", &hours);
 				sscanf(fields[2], "%lf", &min);
@@ -93,19 +105,19 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 			// Finally, retrieve the B and V magnitudes
 			else if (g_str_has_prefix(token[rank], "Flux B")){
 				gchar **fields = g_strsplit(token[rank], " ", -1);
-				if (fields[3][0] != '~')
+				if (g_strv_length(fields) > 3 && fields[3][0] != '~')
 					sscanf(fields[3], "%lf", &Bmag);
 				g_strfreev(fields);
 			}
 			else if (g_str_has_prefix(token[rank], "Flux V")){
 				gchar **fields = g_strsplit(token[rank], " ", -1);
-				if (fields[3][0] != '~')
+				if (g_strv_length(fields) > 3 && fields[3][0] != '~')
 					sscanf(fields[3], "%lf", &Vmag);
 				g_strfreev(fields);
 			}
 			else if (g_str_has_prefix(token[rank], "Proper motions")){
 				gchar **fields = g_strsplit(token[rank], " ", -1);
-				if (fields[2][0] != '~') {
+				if (g_strv_length(fields) > 3 && fields[2][0] != '~') {
 					sscanf(fields[2], "%lf", &pmra);
 					sscanf(fields[3], "%lf", &pmdec);
 				}
@@ -131,10 +143,10 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 	// This is for a Miriade emphemcc search (SSO)
 	case QUERY_SERVER_EPHEMCC:
 		if (!g_str_has_prefix(buffer, "# Flag: 1")) {
-			siril_log_color_message(_("IMCCE server returned:\n"), "red");
+			siril_log_error(_("IMCCE server returned:\n"));
 			int max_lines = min(3, nargs); // we display 3 lines max
 			for (int i = 0; i < max_lines; i++)
-				siril_log_color_message(_("%s\n"), "red", token[i]);
+				siril_log_error(_("%s\n"), token[i]);
 			g_strfreev(token);
 			args->retval = 1;
 			return args->retval;
@@ -159,24 +171,44 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 			args->retval = 1;
 			return 1;
 		}
-		siril_debug_print("Object name: %s\n", objname);
+		siril_log_debug("Object name: %s\n", objname);
 		// Then, retrieve the data
 		gchar **fields = g_strsplit(token[4], ",", -1);
 		guint n = g_strv_length(fields);
 		if (n == 16) { // with site coordinates passed
-			ra = parse_hms(fields[2]);
-			dec = parse_dms(fields[3]);
+			if (g_utf8_strchr(fields[2], -1, ':'))
+				ra = parse_hms(fields[2]);
+			else
+				ra = g_strtod(fields[2], NULL);
+			if (g_utf8_strchr(fields[3], -1, ':'))
+				dec = parse_dms(fields[3]);
+			else
+				dec = g_strtod(fields[3], NULL);
 			vra = g_strtod(fields[13], NULL) * 60.; // vra stored in arcsec/hr but given in arcsec/min
 			vdec = g_strtod(fields[14], NULL) * 60.; // vdec stored in arcsec/hr but given in arcsec/min
 			mag = g_strtod(fields[9], NULL);
 		} else if (n == 11) { // with @500 passed
-			ra = parse_hms(fields[1]);
-			dec = parse_dms(fields[2]);
+			if (g_utf8_strchr(fields[1], -1, ':'))
+				ra = parse_hms(fields[1]);
+			else
+				ra = g_strtod(fields[1], NULL);
+			if (g_utf8_strchr(fields[2], -1, ':'))
+				dec = parse_dms(fields[2]);
+			else
+				dec = g_strtod(fields[2], NULL);
 			vra = g_strtod(fields[8], NULL) * 60.; // vra stored in arcsec/hr but given in arcsec/min
 			vdec = g_strtod(fields[9], NULL) * 60.; // vdec stored in arcsec/hr but given in arcsec/min
 			mag = g_strtod(fields[5], NULL);
 		} else {
-			siril_log_message(_("Could not parse the server response: %s\n"), token[4]);
+			siril_log_warning(_("Could not parse the server response: %s\n"), token[4]);
+			g_strfreev(token);
+			g_free(objname);
+			g_free(objtype);
+			args->retval = 1;
+			return 1;
+		}
+		if (isnan(ra) || isnan(dec) || isnan(vra) || isnan(vdec) || isnan(mag)) {
+			siril_log_warning(_("Could not parse the server response: %s\n"), token[4]);
 			g_strfreev(token);
 			g_free(objname);
 			g_free(objtype);
@@ -206,7 +238,7 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 		g_strfreev(fields);
 		break;
 	default:
-		siril_debug_print("unknown query catalogue\n");
+		siril_log_debug("unknown query catalogue\n");
 		break;
 	}
 	g_strfreev(token);
@@ -278,23 +310,6 @@ int cached_object_lookup(sky_object_query_args *args) {
 	}
 	return args->retval;
 }
-
-void search_object(GtkEntry *entry) {
-	if (!has_wcs(&gfit))
-		return;
-	control_window_switch_to_tab(OUTPUT_LOGS);
-	sky_object_query_args *args = init_sky_object_query();
-	args->name = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry)));
-	args->fit = &gfit;
-	if (!start_in_new_thread(catsearch_worker, args)) {
-		free_sky_object_query(args);
-	}
-}
-
-void on_search_objects_entry_activate(GtkEntry *entry, gpointer user_data) {
-	search_object(entry);
-}
-
 
 /********** object lookup for astrometry, can we merge both? ************/
 
@@ -417,54 +432,61 @@ static gchar *retrieve_site_coord(fits *fit) {
 // free the result with free
 char *search_in_online_catalogs(sky_object_query_args *args) {
 #ifndef HAVE_LIBCURL
-	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
+	siril_log_error(_("Siril was compiled without networking support, cannot do this operation\n"));
 	return NULL;
 #else
 	GString *string_url = NULL;
 	gchar *name = args->name;
+	/* The object name is user/file supplied and gets inserted into query URLs
+	 * (and, for SIMBAD, into an ADQL string literal). Percent-encode it so
+	 * metacharacters (& # ? ' space ...) cannot alter the URL structure, and
+	 * additionally double single quotes for the ADQL case so the name cannot
+	 * break out of the '...' literal. This also lets legitimate names that
+	 * contain quotes/plus/spaces (e.g. "Barnard's Star", "BD+30 3639") work. */
+	gchar *encoded_name = g_uri_escape_string(name, NULL, FALSE);
+	GString *adql = g_string_new(name);
+	g_string_replace(adql, "'", "''", 0);
+	gchar *encoded_adql_name = g_uri_escape_string(adql->str, NULL, FALSE);
+	g_string_free(adql, TRUE);
 	switch(args->server) {
 	case QUERY_SERVER_CDS:
-		string_url = g_string_new(name);
-		g_string_replace(string_url, "+", "%2B", 0);
-		g_string_replace(string_url, "-", "%2D", 0);
-		string_url = g_string_prepend(string_url, "/-oI/A?");
-		string_url = g_string_prepend(string_url, CDSSESAME);
+		string_url = g_string_new(CDSSESAME);
+		g_string_append(string_url, "/-oI/A?");
+		g_string_append(string_url, encoded_name);
 		siril_log_message(_("Searching %s in CDSESAME...\n"), name);
 		break;
 	case QUERY_SERVER_VIZIER:
-		string_url = g_string_new(name);
-		g_string_replace(string_url, "+", "%2B", 0);
-		g_string_replace(string_url, "-", "%2D", 0);
-		string_url = g_string_prepend(string_url, "/-oI/A?");
-		string_url = g_string_prepend(string_url, VIZIERSESAME);
+		string_url = g_string_new(VIZIERSESAME);
+		g_string_append(string_url, "/-oI/A?");
+		g_string_append(string_url, encoded_name);
 		siril_log_message(_("Searching %s in VIZIER...\n"), name);
 		break;
 	default:
 	case QUERY_SERVER_SIMBAD:
-		string_url = g_string_new(name);
-		g_string_replace(string_url, "+", "%2B", 0);
-		g_string_replace(string_url, "-", "%2D", 0);
-		string_url = g_string_prepend(string_url, SIMBADSESAME);
-		string_url = g_string_append(string_url, "';");
+		string_url = g_string_new(SIMBADSESAME);
+		g_string_append(string_url, encoded_adql_name);
+		g_string_append(string_url, "';");
 		siril_log_message(_("Searching %s in SIMBAD...\n"), name);
 		break;
 	case QUERY_SERVER_EPHEMCC:
 		// see https://ssp.imcce.fr/webservices/miriade/api/ephemcc/
 		if (!args->fit->keywords.date_obs) {
-			siril_log_color_message(_("This command only works on images that have observation date information\n"), "red");
+			siril_log_error(_("This command only works on images that have observation date information\n"));
 			g_string_free(string_url, TRUE);
+			g_free(encoded_name);
+			g_free(encoded_adql_name);
 			return NULL;
 		}
 		string_url = g_string_new(EPHEMCC);
-		g_string_append_printf(string_url, "&-name=%s:%s", args->prefix, name);
+		g_string_append_printf(string_url, "&-name=%s:%s", args->prefix, encoded_name);
 		gchar *formatted_date = date_time_to_FITS_date(args->fit->keywords.date_obs);
 		g_string_append_printf(string_url, "&-ep=%s", formatted_date);
 		gchar *formatted_site = retrieve_site_coord(args->fit);
 		g_string_append_printf(string_url, "&-observer=%s", formatted_site);
 		siril_log_message(_("Searching for solar system object %s on observation date %s\n"),
 				name, formatted_date);
-		if (args->fit->keywords.sitelat == DEFAULT_FLOAT_VALUE || args->fit->keywords.sitelong == DEFAULT_FLOAT_VALUE) {
-			siril_log_color_message(_("No topocentric data available. Set to geocentric, positions may be inaccurate\n"), "salmon");
+		if (!g_strcmp0(formatted_site, "@500")) {
+			siril_log_warning(_("No topocentric data available. Set to geocentric, positions may be inaccurate\n"));
 		} else {
 			double elev = (args->fit->keywords.siteelev < DEFAULT_DOUBLE_VALUE + 1.) ? 0. : args->fit->keywords.siteelev;
 			siril_log_message(_("at lat: %f, long: %f, alt: %f\n"), args->fit->keywords.sitelat,
@@ -475,18 +497,18 @@ char *search_in_online_catalogs(sky_object_query_args *args) {
 		break;
 	case QUERY_SERVER_SIMBAD_PHOTO:
 		// SIMBAD request to get the magnitudes (BVRIJ) in addition to coordinates for a particular star/object
-		string_url = g_string_new(name);
-		g_string_replace(string_url, "+", "%2B", 0);
-		g_string_replace(string_url, "-", "%2D", 0);
-		string_url = g_string_prepend(string_url, SIMBAD);
+		string_url = g_string_new(SIMBAD);
+		g_string_append(string_url, encoded_name);
 		siril_log_message(_("Searching %s in SIMBAD\n"), name);
 		break;
 	}
+	g_free(encoded_name);
+	g_free(encoded_adql_name);
 
 	gchar *url = g_string_free(string_url, FALSE);
 	gchar *cleaned_url = url_cleanup(url);
 	g_free(url);
-	siril_debug_print("URL: %s\n", cleaned_url);
+	siril_log_debug("URL: %s\n", cleaned_url);
 	gsize length;
 	int error;
 	char *result = fetch_url(cleaned_url, &length, &error, FALSE);
@@ -494,6 +516,32 @@ char *search_in_online_catalogs(sky_object_query_args *args) {
 	g_free(cleaned_url);
 	return result;
 #endif
+}
+
+int catsearch_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	sky_object_query_args *query_args = (sky_object_query_args *)args->user;
+
+	if (!has_wcs(fit)) {
+		siril_log_error(_("This command only works on plate solved images\n"));
+		return 1;
+	}
+
+	// Call the worker directly (it handles its own idle function)
+	gpointer result = catsearch_worker(query_args);
+
+	return GPOINTER_TO_INT(result);
+}
+
+
+gchar *catsearch_log_hook(gpointer p, log_hook_detail detail) {
+	sky_object_query_args *query_args = (sky_object_query_args *)p;
+	if (detail == SUMMARY) {
+		return g_strdup(_("Catalog search"));
+	}
+	if (query_args && query_args->name) {
+		return g_strdup_printf(_("Catalog search: %s"), query_args->name);
+	}
+	return g_strdup(_("Catalog search"));
 }
 
 gpointer catsearch_worker(gpointer p) {
@@ -512,11 +560,8 @@ gpointer catsearch_worker(gpointer p) {
 	}
 	gboolean found_it = !cached_object_lookup(args);
 
-	if (!com.script) { // we need to update GUI
-		siril_add_idle(end_process_catsearch, args); // this will free the args
-	} else {
-		free_sky_object_query(args);
-	}
+	if (!com.script)
+		gui_iface.execute_idle_sync(end_process_catsearch, args);
 
 	return GINT_TO_POINTER(!found_it);
 }

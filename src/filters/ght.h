@@ -34,4 +34,35 @@ void apply_sat_ght_to_fits(fits *fit, ght_params *params, gboolean multithreaded
 void apply_linked_ght_to_fbuf_indep(float* in, float* out, size_t layersize, size_t nchans, ght_params *params, gboolean multithreaded);
 void apply_linked_ght_to_Wbuf_indep(WORD* in, WORD* out, size_t layersize, size_t nchans, ght_params *params, gboolean multithreaded);
 void apply_ght_to_fits_channel(fits *from, fits *to, int channel, ght_params *params, gboolean multithreaded);
+
+/* Forward declaration so the parameter tag has file scope. */
+struct ght_data;
+/* Sequence-level application — called from command.c and gui/histogram.c */
+void apply_ght_to_sequence(struct ght_data *ght_args);
+
+/* GHT data lifecycle */
+struct ght_data *create_ght_data(void);
+void destroy_ght_data(void *args);
+
+/* Processing hooks — called via generic_image_worker */
+struct generic_img_args; /* forward decl to avoid including processing.h here */
+int ght_single_image_hook(struct generic_img_args *args, fits *fit, int threads);
+gchar *ght_log_hook(gpointer p, log_hook_detail detail);
+gchar *generate_ght_log_message(const ght_params *params);
+
+/*
+ * Processing data structure for GHT operations.  Defined here (not in
+ * gui/histogram.h) so that non-GTK translation units can allocate and free it
+ * without pulling in GTK headers.
+ */
+struct ght_data {
+	void (*destroy_fn)(void *args); /* destructor — first member */
+	fits *fit;
+	sequence *seq;
+	struct ght_params *params_ght;
+	char *seqEntry;
+	gboolean auto_display_compensation;
+	gboolean is_preview;
+};
+
 #endif

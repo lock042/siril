@@ -1,4 +1,10 @@
 # Build properties
+option('gtk',
+ type : 'boolean',
+ value : true,
+ description: 'Build the GTK4 GUI executable (default). When false, produces a headless CLI-only build (no GTK / GtkSourceView / X11 deps). The GUI lives in src/gui-gtk4.'
+)
+
 option('relocatable-bundle',
  type: 'combo',
  value: 'platform-default',
@@ -84,6 +90,12 @@ option('libcurl',
  description: 'Use libcurl for web access',
 )
 
+option('sqlite',
+ type: 'boolean',
+ value: true,
+ description: 'Use SQLite for caching online GAIA database',
+)
+
 option('criterion',
  type : 'boolean',
  value : false,
@@ -106,4 +118,10 @@ option('simd_logs',
  type : 'boolean',
  value : false,
  description : 'Enable loop vectorization analysis during build (clang only)'
+)
+
+option('legacy-x11-support',
+ type : 'boolean',
+ value : true,
+ description : 'GTK4 only: build the X11 drag-and-drop fallback that works around an upstream GTK X11 bug whereby gdk_drop_read_value_async never completes. Pulls in libX11. Linux/BSD only — ignored on macOS/Windows.'
 )

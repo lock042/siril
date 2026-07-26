@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -26,7 +26,6 @@
 #include "core/proto.h"
 #include "core/icc_profile.h"
 #include "core/processing.h"
-#include "core/undo.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "algos/colors.h"
@@ -44,10 +43,20 @@
 #include "io/image_format_fits.h" // For the datalink FITS functions
 #include "io/local_catalogues.h"
 #include "io/remote_catalogues.h"
-#include "gui/siril_plot.h"
-#include "gui/progress_and_log.h"
-#include "gui/photometric_cc.h"
+#include "core/gui_iface.h"
 #include "photometric_cc.h"
+#include "core/op_descriptors.h"
+
+/* Op descriptor — PCC and SPCC are the same logical op; sites keep the
+ * spectro?"SPCC":"PCC" ternary as a per-site description override. */
+const op_descriptor op_desc_photometric_cc = {
+	.id = "color.photometric_cc", .version = 1,
+	.image_hook = photometric_cc_image_hook,
+	.log_hook = photometric_cc_log_hook,
+	.description = N_("PCC"),
+	.mem_ratio = 0.0f,
+	.flags = 0,
+};
 
 static const cmsCIEXYZ D65 = {0.95045471, 1.0, 1.08905029};
 static const cmsCIEXYZ D50 = {0.964199999, 1.000000000, 0.824899998};
@@ -103,7 +112,7 @@ static void charity_temp_to_xyY(cmsCIExyY *xyY, cmsFloat64Number t) {
 		memset(xyY, 0.0, sizeof(cmsCIExyY));
 		return;
 	} else if (t > 1650.0) {
-		siril_debug_print("Error, excessive temperature value %f passed to charity_temp_to_xyY\n", t);
+		siril_log_debug("Error, excessive temperature value %f passed to charity_temp_to_xyY\n", t);
 		t = 1650.0;
 	}
 	gsl_interp *interp = gsl_interp_alloc(gsl_interp_cspline, NUM_POINTS_CHARITY);
@@ -142,13 +151,14 @@ static void TempK2rgb(float *r, float *g, float *b, float TempK, cmsHTRANSFORM t
 	*b = rgb[2] / maxval;
 }
 
-int make_selection_around_a_star(cat_item *star, rectangle *area, fits *fit) {
+int make_selection_around_a_star(cat_item *star, rectangle *area, fits *fit, struct phot_config *pset) {
 	/* make a selection around the star, coordinates are in display reference frame */
 	double fx = star->x, fy = star->y;
 	double dx, dy;
 	siril_to_display(fx, fy, &dx, &dy, fit->ry);
 
-	double outer = com.pref.phot_set.outer;
+	struct phot_config *phot_set = pset != NULL ? pset : &com.pref.phot_set;
+	double outer = phot_set->outer;
 	area->x = round_to_int(dx - outer);
 	area->y = round_to_int(dy - outer);
 	area->w = area->h = (int)ceil(outer * 2.0);
@@ -302,7 +312,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	g_free(str);
 
 	struct phot_config *ps = phot_set_adjusted_for_image(fit);
-	siril_debug_print("aperture: %2.1f%s\tinner: %2.1f\touter: %2.1f\n", ps->aperture, ps->force_radius?"":" (auto)", ps->inner, ps->outer);
+	siril_log_debug("aperture: %2.1f%s\tinner: %2.1f\touter: %2.1f\n", ps->aperture, ps->force_radius?"":" (auto)", ps->inner, ps->outer);
 	gint ngood = 0, progress = 0;
 	gint errors[PSF_ERR_MAX_VALUE] = { 0 };
 	double minwl[3], maxwl[3];
@@ -320,19 +330,19 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 #pragma omp parallel for num_threads(com.max_thread) schedule(guided) shared(progress, ngood)
 #endif
 	for (int i = 0; i < nb_stars; i++) {
-		if (!get_thread_run())
+		if (!processing_should_continue())
 			continue;
 		rectangle area = { 0 };
 		double flux[3] = { 0.0, 0.0, 0.0 };
 
 		// Update the progress bar
 		if (!(g_atomic_int_get(&progress) % 16))	// every 16 iterations
-			set_progress_bar_data(NULL, (double) progress / (double) nb_stars);
+			gui_iface.set_progress((double) progress / (double) nb_stars, NULL);
 		g_atomic_int_inc(&progress);
 
 		// Make a selection 'area' around the ith star in the list of cat_items passed to the function
-		if (make_selection_around_a_star(&stars[i], &area, fit)) {
-			siril_debug_print("star %d is outside image or too close to border\n", i);
+		if (make_selection_around_a_star(&stars[i], &area, fit, NULL)) {
+			siril_log_debug("star %d is outside image or too close to border\n", i);
 			g_atomic_int_inc(errors+PSF_ERR_OUT_OF_WINDOW);
 			continue;
 		}
@@ -354,7 +364,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		}
 		if (no_phot) {
 			g_atomic_int_inc(errors+error);
-			siril_debug_print("photometry failed for star %d, error %d\n", i, error);
+			siril_log_debug("photometry failed for star %d, error %d\n", i, error);
 			continue;
 		}
 
@@ -393,7 +403,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 
 		// Remove any results with NaNs
 		if (xisnanf(irg[i]) || xisnanf(ibg[i]) || xisnanf(crg[i]) || xisnanf(cbg[i])) {
-			siril_debug_print("flux ratio NAN for star %d\n", i);
+			siril_log_debug("flux ratio NAN for star %d\n", i);
 			irg[i] = DBL_MAX;
 			ibg[i] = DBL_MAX;
 			crg[i] = DBL_MAX;
@@ -456,7 +466,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		free(ibg);
 		free(crg);
 		free(cbg);
-		siril_log_message(_("Error: insufficient photometrically valid stars\n"));
+		siril_log_error(_("Error: insufficient photometrically valid stars\n"));
 		return 1;
 	}
 	maskrg = calloc(ngood, sizeof(gboolean));
@@ -466,8 +476,8 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		free(crg);
 		free(cbg);
 		free(maskrg);
-		siril_log_color_message(_("Error: unable to compute a fit to the data. "
-				"Check your sensor and filter selections are correct.\n"), "red");
+		siril_log_error(_("Error: unable to compute a fit to the data. "
+				"Check your sensor and filter selections are correct.\n"));
 		return 1;
 	}
 	maskbg = calloc(ngood, sizeof(gboolean));
@@ -478,11 +488,11 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		free(cbg);
 		free(maskrg);
 		free(maskbg);
-		siril_log_color_message(_("Error: unable to compute a fit to the data. "
-				"Check your sensor and filter selections are correct.\n"), "red");
+		siril_log_error(_("Error: unable to compute a fit to the data. "
+				"Check your sensor and filter selections are correct.\n"));
 		return 1;
 	}
-	siril_log_color_message(_("SPCC Linear Fits\n"), "green");
+	siril_log_info(_("SPCC Linear Fits\n"));
 	siril_log_message(_("Image R/G = %f + %f * Catalog R/G (sigma: %f)\n"), arg, brg, deviation[0]);
 	siril_log_message(_("Image B/G = %f + %f * Catalog B/G (sigma: %f)\n"), abg, bbg, deviation[1]);
 	double kr = 1.f / (arg + brg * wrg);
@@ -518,7 +528,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 				spl_datarg->cfgdata.point.radius = 1;
 				spl_datarg->cfgdata.point.sz = 2;
 				spl_datarg->cfgdata.line.sz = 2;
-				siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_datarg);
+				gui_iface.show_siril_plot(spl_datarg);
 			}
 		}
 
@@ -544,7 +554,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 				spl_databg->cfgdata.point.radius = 1;
 				spl_databg->cfgdata.point.sz = 2;
 				spl_databg->cfgdata.line.sz = 2;
-				siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_databg);
+				gui_iface.show_siril_plot(spl_databg);
 			}
 		}
 
@@ -557,7 +567,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	free(maskrg);
 	free(maskbg);
 	if (kw[RLAYER] < 0.f || kw[GLAYER] < 0.f || kw[BLAYER] < 0.f) {
-		siril_log_color_message(_("Error calculating white balance coefficients: kw contains negative values.\n"),"red");
+		siril_log_error(_("Error calculating white balance coefficients: kw contains negative values.\n"));
 		return 1;
 	}
 	siril_log_message(_("Found a solution for color calibration using %d stars. Factors:\n"), ngood);
@@ -566,7 +576,10 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	}
 
 	if (ngood < 20)
-		siril_log_color_message(_("The photometric color calibration has found a solution which may not be perfect because it did not rely on many stars\n"), ngood < 5 ? "red" : "salmon");
+		if (ngood < 5)
+			siril_log_error(_("The photometric color calibration has found a solution which may not be perfect because it did not rely on many stars\n"));
+		else
+			siril_log_warning(_("The photometric color calibration has found a solution which may not be perfect because it did not rely on many stars\n"));
 	else if (deviation[0] > 0.1 || deviation[1] > 0.1)
 		siril_log_message(_("The photometric color calibration seems to have found an imprecise solution, consider correcting the image gradient first\n"));
 
@@ -596,7 +609,7 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 	g_free(str);
 
 	struct phot_config *ps = phot_set_adjusted_for_image(fit);
-	siril_debug_print("aperture: %2.1f%s\tinner: %2.1f\touter: %2.1f\n", ps->aperture, ps->force_radius?"":" (auto)", ps->inner, ps->outer);
+	siril_log_debug("aperture: %2.1f%s\tinner: %2.1f\touter: %2.1f\n", ps->aperture, ps->force_radius?"":" (auto)", ps->inner, ps->outer);
 	gint ngood = 0, progress = 0;
 	gint errors[PSF_ERR_MAX_VALUE] = { 0 };
 
@@ -611,8 +624,8 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 	if (fit->icc_profile) {
 		profile = copyICCProfile(fit->icc_profile);
 		if (!fit_icc_is_linear(fit)) {
-			siril_log_color_message(_("Image color space is nonlinear. It is recommended to "
-					"apply photometric color calibration to linear images.\n"), "salmon");
+			siril_log_warning(_("Image color space is nonlinear. It is recommended to "
+					"apply photometric color calibration to linear images.\n"));
 		}
 	} else {
 		profile = siril_color_profile_linear_from_color_profile(com.icc.working_standard);
@@ -631,7 +644,7 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 		cmsCloseProfile(xyzprofile);
 	}
 	if (!transform) {
-		siril_log_color_message(_("Error: failed to set up colorspace transform.\n"), "red");
+		siril_log_error(_("Error: failed to set up colorspace transform.\n"));
 		free(ps);
 		return 1;
 	}
@@ -640,17 +653,17 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 #pragma omp parallel for num_threads(com.max_thread) schedule(guided) shared(progress, ngood)
 #endif
 	for (int i = 0; i < nb_stars; i++) {
-		if (!get_thread_run())
+		if (!processing_should_continue())
 			continue;
 		rectangle area = { 0 };
 		float flux[3] = { 0.f, 0.f, 0.f };
 		float r, g, b, bv;
 		if (!(g_atomic_int_get(&progress) % 16))	// every 16 iterations
-			set_progress_bar_data(NULL, (double) progress / (double) nb_stars);
+			gui_iface.set_progress((double) progress / (double) nb_stars, NULL);
 		g_atomic_int_inc(&progress);
 
-		if (make_selection_around_a_star(&stars[i], &area, fit)) {
-			siril_debug_print("star %d is outside image or too close to border\n", i);
+		if (make_selection_around_a_star(&stars[i], &area, fit, NULL)) {
+			siril_log_debug("star %d is outside image or too close to border\n", i);
 			g_atomic_int_inc(errors+PSF_ERR_OUT_OF_WINDOW);
 			continue;
 		}
@@ -667,7 +680,7 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 		}
 		if (no_phot) {
 			g_atomic_int_inc(errors + error);
-			siril_debug_print("photometry failed for star %d, error %d\n", i, error);
+			siril_log_debug("photometry failed for star %d, error %d\n", i, error);
 			continue;
 		}
 		// get r g b coefficient
@@ -693,7 +706,7 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 			data[RLAYER][i] = FLT_MAX;
 			data[GLAYER][i] = FLT_MAX;
 			data[BLAYER][i] = FLT_MAX;
-			siril_debug_print("flux ratio NAN for star %d\n", i);
+			siril_log_debug("flux ratio NAN for star %d\n", i);
 			g_atomic_int_inc(errors + PSF_ERR_FLUX_RATIO);
 			continue;
 		}
@@ -703,7 +716,7 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 	if (transform)
 		cmsDeleteTransform(transform);
 	free(ps);
-	if (!get_thread_run()) {
+	if (!processing_should_continue()) {
 		free(data[RLAYER]);
 		free(data[GLAYER]);
 		free(data[BLAYER]);
@@ -751,7 +764,10 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 		siril_log_message("K%d: %5.3lf\t(deviation: %.3f)\n", chan, kw[chan], deviation[chan]);
 	}
 	if (ngood < 20)
-		siril_log_color_message(_("The photometric color calibration has found a solution which may not be perfect because it did not rely on many stars\n"), ngood < 5 ? "red" : "salmon");
+		if (ngood < 5)
+			siril_log_error(_("The photometric color calibration has found a solution which may not be perfect because it did not rely on many stars\n"));
+		else
+			siril_log_warning(_("The photometric color calibration has found a solution which may not be perfect because it did not rely on many stars\n"));
 	else if (deviation[RLAYER] > 0.1 || deviation[GLAYER] > 0.1 || deviation[BLAYER] > 0.1)
 		siril_log_message(_("The photometric color calibration seems to have found an imprecise solution, consider correcting the image gradient first\n"));
 	free(data[RLAYER]);
@@ -769,7 +785,7 @@ int get_stats_coefficients(fits *fit, rectangle *area, float *bg, float t0, floa
 	for (int chan = 0; chan < 3; chan++) {
 		imstats *stat = statistics(NULL, -1, fit, chan, area, STATS_BASIC | STATS_MAD, MULTI_THREADED);
 		if (!stat) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
+			siril_log_error(_("Error: statistics computation failed.\n"));
 			return 1;
 		}
 		// Compute the robust median as the median of all points within t{0,1} * MAD of the channel median
@@ -798,17 +814,17 @@ int apply_photometric_color_correction(fits *fit, const float *kw, const float *
 
 	for (int chan = 0; chan < 3; chan++) {
 		if (isnan(kw[chan])) { // Check for NaN... If they are NaN the result image is junk
-			siril_log_color_message(_("Error computing coefficients: aborting...\n"), "red");
+			siril_log_error(_("Error computing coefficients: aborting...\n"));
 			return 1;
 		}
 		offset[chan] = (-bg[chan] * kw[chan] + bg_mean);
 	}
 	siril_log_message("After renormalization, the following coefficients are applied\n");
-	siril_log_color_message(_("White balance factors:\n"), "green");
+	siril_log_info(_("White balance factors:\n"));
 	for (int chan = 0; chan < 3; chan++) {
 		siril_log_message("K%d: %5.3f\n", chan, kw[chan]);
 	}
-	siril_log_color_message(_("Background reference:\n"), "green");
+	siril_log_info(_("Background reference:\n"));
 	for (int chan = 0; chan < 3; chan++) {
 		siril_log_message("B%d: %+.5e\n", chan, offset[chan]);
 	}
@@ -841,7 +857,7 @@ int photometric_cc(struct photometric_cc_data *args) {
 	// Moved here from gui/photometric_cc.c so it always applies. Once the command always calls photometric_cc_standalone()
 	// it can move there, rather than after the catalog download
 	if (args->fit->keywords.wcslib->lin.dispre == NULL) {
-		siril_log_color_message(_("Found linear plate solve data. For better result you should redo platesolving\n"), "salmon");
+		siril_log_warning(_("Found linear plate solve data. For better result you should redo platesolving\n"));
 	}
 
 	if (!isrgb(args->fit)) {
@@ -856,8 +872,7 @@ int photometric_cc(struct photometric_cc_data *args) {
 	/* we use the median of each channel to sort them by level and select
 	 * the reference channel expressed in terms of order of middle median value */
 	if (get_stats_coefficients(args->fit, bkg_sel, bg, args->t0, args->t1)) {
-		siril_log_message(_("failed to compute statistics on image, aborting\n"));
-		free(args);
+		siril_log_error(_("failed to compute statistics on image, aborting\n"));
 		return 1;
 	}
 
@@ -869,7 +884,7 @@ int photometric_cc(struct photometric_cc_data *args) {
 	siril_log_message(_("Photometry radii set to %.1f for inner and %.1f for outer\n"),
 			com.pref.phot_set.inner, com.pref.phot_set.outer);
 
-	set_progress_bar_data(_("Photometric color calibration in progress..."), PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, _("Photometric color calibration in progress..."));
 	int ret;
 	if (args->spcc)
 		ret = get_spcc_white_balance_coeffs(args, kw);
@@ -888,132 +903,156 @@ int photometric_cc(struct photometric_cc_data *args) {
 			invalidate_stats_from_fit(args->fit);
 		}
 	} else {
-		set_progress_bar_data(_("Photometric Color Calibration failed"), PROGRESS_DONE);
+		gui_iface.set_progress(PROGRESS_DONE, _("Photometric Color Calibration failed"));
 	}
 
 	com.pref.phot_set = backup;
-	free(args);
 	return ret;
 }
 
-/* photometric_cc is the entry point for the PCC following the call to the
- * plate solver which gives the star list. We can also run the PCC on a
- * plate-solved image without running plate solving again, this is what this
- * function does.
- */
-gpointer photometric_cc_standalone(gpointer p) {
-	struct photometric_cc_data *args = (struct photometric_cc_data *)p;
+void free_photometric_cc_data(void *p) {
+	struct photometric_cc_data *data = (struct photometric_cc_data *)p;
+	g_free(data->datalink_path);
+	free(data);
+}
 
-	if (!has_wcs(args->fit)) {
-		siril_log_color_message(_("Cannot run the standalone photometric color calibration on this image because it has no WCS data or it is not supported\n"), "red");
-		siril_add_idle(end_generic, NULL);
-		return GINT_TO_POINTER(1);
+/* photometric_cc_image_hook is the generic_image_worker hook for single-image
+ * PCC and SPCC.  The framework saves undo state and writes FITS history only
+ * on success (when the hook returns 0), so a catalog failure never produces a
+ * spurious undo entry and no manual history write is needed here.
+ */
+int photometric_cc_image_hook(struct generic_img_args *img_args, fits *fit, int threads) {
+	struct photometric_cc_data *args = (struct photometric_cc_data *)img_args->user;
+	args->fit = fit;  /* use the hook's fit, not gfit directly */
+
+	if (!has_wcs(fit)) {
+		siril_log_error(_("Cannot run the standalone photometric color calibration on this image because it has no WCS data or it is not supported\n"));
+		return 1;
 	}
 
 	/* run peaker to measure FWHM of the image to adjust photometry settings */
-	args->fwhm = measure_image_FWHM(args->fit, -1);
+	args->fwhm = measure_image_FWHM(fit, -1, NULL);
 	if (args->fwhm <= 0.0f) {
-		siril_log_message(_("Error computing FWHM for photometry settings adjustment\n"));
-		siril_add_idle(end_generic, NULL);
-		return GINT_TO_POINTER(1);
+		siril_log_error(_("Error computing FWHM for photometry settings adjustment\n"));
+		return 1;
 	}
 
 	/* get stars from a photometric catalog */
 	double ra, dec;
-	center2wcs(args->fit, &ra, &dec);
-	double resolution = get_wcs_image_resolution(args->fit);
+	center2wcs(fit, &ra, &dec);
+	double resolution = get_wcs_image_resolution(fit);
 	if ((ra == -1.0 && dec == -1.0) || resolution <= 0.0) {
-		siril_log_color_message(_("Cannot run the standalone photometric color calibration on this image because it has no WCS data or it is not supported\n"), "red");
-		siril_add_idle(end_generic, NULL);
-		return GINT_TO_POINTER(1);
+		siril_log_error(_("Cannot run the standalone photometric color calibration on this image because it has no WCS data or it is not supported\n"));
+		return 1;
 	}
 
 	int nb_stars = 0;
-	gboolean image_is_gfit = args->fit == &gfit;
-
-	uint64_t sqr_radius = ((uint64_t) gfit.rx * (uint64_t) gfit.rx + (uint64_t) gfit.ry * (uint64_t) gfit.ry) / 4;
+	uint64_t sqr_radius = ((uint64_t) fit->rx * (uint64_t) fit->rx + (uint64_t) fit->ry * (uint64_t) fit->ry) / 4;
 	double radius = resolution * sqrt((double)sqr_radius);	// in degrees
 	double mag = args->mag_mode == LIMIT_MAG_ABSOLUTE ?
-		args->magnitude_arg : compute_mag_limit_from_position_and_fov(ra, dec, radius * 2.0, BRIGHTEST_STARS * 2); // factor 2 on brightest_stars to account for the fact not all stars will be within image
+		args->magnitude_arg : compute_mag_limit_from_position_and_fov(ra, dec, radius * 2.0, BRIGHTEST_STARS * 2);
 	if (args->mag_mode == LIMIT_MAG_AUTO_WITH_OFFSET)
 		mag += args->magnitude_arg;
 
 	int retval = 0;
 	if (args->catalog == CAT_LOCAL_KSTARS || args->catalog == CAT_LOCAL_GAIA_ASTRO || args->catalog == CAT_LOCAL_GAIA_XPSAMP) {
-		siril_log_message(_("Getting stars from local catalogue %s for %s, with a radius of %.2f degrees and limit magnitude %.2f\n"), catalog_to_str(args->catalog), args->spcc ? _("SPCC") : _("PCC"), radius * 2.0,  mag);
+		siril_log_message(_("Getting stars from local catalogue %s for %s, with a radius of %.2f degrees and limit magnitude %.2f\n"), catalog_to_str(args->catalog), args->spcc ? _("SPCC") : _("PCC"), radius * 2.0, mag);
 	} else {
 		switch (args->catalog) {
 			case CAT_GAIADR3:
 				mag = min(mag, 18.0);
 				break;
 			case CAT_GAIADR3_DIRECT:
-				mag = min(mag, 17.6);	// most Gaia XP_SAMPLED spectra are for mag < 17.6
+			case CAT_REMOTE_GAIA_XPSAMP:
+			case CAT_REMOTE_GAIA_XPCTS:
+				mag = min(mag, 17.6);
 				break;
 			case CAT_APASS:
-				mag = min(mag, 17.0);	// in APASS, B is available for V < 17
+				mag = min(mag, 17.0);
 				break;
 			case CAT_NOMAD:
-				mag = min(mag, 18.0);	// in NOMAD, B is available for V < 18
+				mag = min(mag, 18.0);
 				break;
 			default:
-				siril_log_color_message(_("No valid catalog found.\n"), "red");
-				return GINT_TO_POINTER(1);
+				siril_log_error(_("No valid catalog found.\n"));
+				return 1;
 		}
-		siril_log_message(_("Getting stars from online catalogue %s for PCC, with a radius of %.2f degrees and limit magnitude %.2f\n"), catalog_to_str(args->catalog),radius * 2.0,  mag);
+		siril_log_message(_("Getting stars from online catalogue %s for PCC, with a radius of %.2f degrees and limit magnitude %.2f\n"), catalog_to_str(args->catalog), radius * 2.0, mag);
 	}
 
 	// preparing the catalogue query
-	siril_catalogue *siril_cat = siril_catalog_fill_from_fit(args->fit, args->catalog, mag);
+	siril_catalogue *siril_cat = siril_catalog_fill_from_fit(fit, args->catalog, mag);
 	// don't set phot if we are using GAIADR3, we use this catalog in a different way
 	siril_cat->phot = !(siril_cat->cat_index == CAT_GAIADR3_DIRECT);
 
-	/* Fetching the catalog*/
-	if (args->spcc && siril_cat->cat_index == CAT_GAIADR3_DIRECT) {
-		retval = siril_gaiadr3_datalink_query(siril_cat, XP_SAMPLED, &args->datalink_path, 5000);
-		if (args->datalink_path == NULL) {
-			retval = 1;
-		} else {
-			for (int i = 0 ; i < siril_cat->nbitems ; i++) {
-				// Read the xp_sampled data from the RAW-structured FITS returned from Gaia datalink
-				siril_cat->cat_items[i].xp_sampled = malloc(XPSAMPLED_LEN * sizeof(double));
-				get_xpsampled(siril_cat->cat_items[i].xp_sampled, args->datalink_path, i);
-			}
-		}
-	} else if (siril_catalog_conesearch(siril_cat) <= 0) {
+	/* Fetching the catalog */
+	if (siril_catalog_conesearch(siril_cat) <= 0) {
 		retval = 1;
 	}
-	// At this point siril_cat contains an array of cat_items (with with xp_sampled populated if doing SPCC)
 	nb_stars = siril_cat->nbitems;
 
 	/* project using WCS */
-	siril_catalog_project_with_WCS(siril_cat, args->fit, TRUE, FALSE);
+	siril_catalog_project_with_WCS(siril_cat, fit, TRUE, FALSE);
 	retval |= nb_stars == 0;
 
-	gboolean spcc = args->spcc; // Needed for the success message after args has been freed in photometric_cc()
 	if (!retval) {
-		if (!com.script) {
-			const gchar *algo = args->spcc ? _("SPCC") : _("PCC");
-			undo_save_state(args->fit, _("Photometric CC (algorithm: %s)"), algo);
-		}
 		args->ref_stars = siril_cat;
 		args->nb_stars = nb_stars;
-		retval = photometric_cc(args);	// args is freed from here
+		retval = photometric_cc(args);
+		/* photometric_cc no longer frees args; it is owned by generic_img_args->user */
 	} else {
-		free(args);
-		siril_log_color_message(_("Catalog error, no stars identified!\n"), "red");
+		siril_log_error(_("Catalog error, no stars identified!\n"));
 	}
-	args = NULL;
 	siril_catalog_free(siril_cat);
 
-	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 
-	if (!retval && image_is_gfit) {
-		if (spcc)
-			siril_log_color_message(_("Spectrophotometric Color Calibration succeeded.\n"), "green");
-		else
-			siril_log_color_message(_("Photometric Color Calibration succeeded.\n"), "green");
-		notify_gfit_modified();
-	}
-	else siril_add_idle(end_generic, NULL);
-	return GINT_TO_POINTER(retval);
+	return retval;
+}
+
+gchar *photometric_cc_log_hook(gpointer p, log_hook_detail detail) {
+	struct photometric_cc_data *args = (struct photometric_cc_data *)p;
+	return g_strdup(args->spcc ? _("Spectrophotometric Color Calibration") : _("Photometric Color Calibration"));
+}
+
+/* ── SPCC mirror management (moved from gui/photometric_cc.c) ─────────────── */
+
+/* Array of primary + fallback mirrors for the remote SPCC catalogue (xp_sampled). */
+gchar **spcc_mirrors = NULL;
+gchar **spcc_mirrors_desc = NULL;
+
+/* Mirror list for the xp_continuous catalogue. Populated as a NULL-terminated
+ * empty list until an online xp_continuous catalogue is published. When non-empty,
+ * siril_select_remote_gaia_xp_kind() will prefer it over xp_sampled. */
+gchar **spcc_mirrors_xpcts = NULL;
+
+void initialize_spcc_mirrors(void) {
+	g_strfreev(spcc_mirrors);
+	spcc_mirrors = g_new(gchar *, 2);
+	spcc_mirrors[0] = g_strdup("https://zenodo.org/records/17988559/files");
+	spcc_mirrors[1] = NULL;
+
+	g_strfreev(spcc_mirrors_desc);
+	spcc_mirrors_desc = g_new(gchar *, 2);
+	spcc_mirrors_desc[0] = g_strdup("Zenodo");
+	spcc_mirrors_desc[1] = NULL;
+
+	g_strfreev(spcc_mirrors_xpcts);
+	spcc_mirrors_xpcts = g_new(gchar *, 1);
+	spcc_mirrors_xpcts[0] = NULL;	/* Add xpcts mirror URLs here when the catalogue is published. */
+
+	/* Keep com.spcc_remote_catalogue_xpcts in sync with the head mirror so the
+	 * loader can use it without further plumbing once mirrors[0] is populated. */
+	if (spcc_mirrors_xpcts[0] && !com.spcc_remote_catalogue_xpcts)
+		com.spcc_remote_catalogue_xpcts = g_strdup(spcc_mirrors_xpcts[0]);
+}
+
+/* Return the preferred remote SPCC catalogue kind based on whether any
+ * xp_continuous mirror URLs have been configured. SPCC entry points should
+ * call this rather than hardcoding CAT_REMOTE_GAIA_XPSAMP, so that the day a
+ * mirror is added the new format is preferred automatically. */
+siril_cat_index siril_select_remote_gaia_xp_kind(void) {
+	if (spcc_mirrors_xpcts && spcc_mirrors_xpcts[0])
+		return CAT_REMOTE_GAIA_XPCTS;
+	return CAT_REMOTE_GAIA_XPSAMP;
 }

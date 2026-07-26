@@ -32,25 +32,25 @@ struct {
 extern char *word[MAX_COMMAND_WORDS];  // NULL terminated
 
 gboolean image_cfa_warning_check();
-gboolean get_followstar_idle(gpointer user_data);
 
 int	process_addmax(int nb);
 int	process_autostretch(int nb);
+int	process_autostretch_mask(int nb);
 int	process_autoghs(int nb);
 int	process_asinh(int nb);
 
 int	process_bg(int nb);
 int	process_bgnoise(int nb);
 int	process_binxy(int nb);
+int	process_blur_mask(int nb);
 int	process_denoise(int nb);
-gpointer run_nlbayes_on_fit(gpointer p);
-gpointer run_bm3d_on_fit(gpointer p);
 
 int	process_boxselect(int nb);
 
 int	process_calibrate(int nb);
 int	process_calibrate_single(int nb);
 int	process_capabilities(int nb);
+int	process_catmag_mono(int nb);
 int	process_catsearch(int nb);
 int	process_ccm(int nb);
 int	process_cd(int nb);
@@ -58,6 +58,7 @@ int	process_cdg(int nb);
 int	process_crop(int nb);
 int	process_clahe(int nb);
 int	process_clear(int nb);
+int	process_clear_mask(int nb);
 int	process_clearstar(int nb);
 int	process_close(int nb);
 int	process_conesearch(int nb);
@@ -65,20 +66,21 @@ int	process_convert(int nb);
 int	process_cosme(int nb);
 
 int	process_ddp(int nb);
+int	process_detect_streaks(int nb);
 int	process_disto(int nb);
 int	process_dumpheader(int nb);
 
 int	process_entropy(int nb);
 int	process_epf(int nb);
+int	process_eqcrop(int nb);
 int	process_exit(int nb);
 int	process_extract(int nb);
 int	process_extractGreen(int nb);
-int	extract_Ha(extraction_scaling scaling);
 int	process_extractHa(int nb);
-int	extract_HaOIII(extraction_scaling scaling);
 int	process_extractHaOIII(int nb);
 
 int	process_fdiv(int nb);
+int	process_feather_mask(int nb);
 int	process_fft(int nb);
 int	process_fill(int nb);
 int	process_ffill(int nb);
@@ -93,8 +95,10 @@ int	process_fmul(int nb);
 
 int	process_gauss(int nb);
 int	process_getref(int nb);
+int	process_gps(int nb);
 int	process_grey_flat(int nb);
 
+int	process_healpix(int nb);
 int	process_help(int nb);
 int	process_histo(int nb);
 
@@ -104,6 +108,7 @@ int	process_icc_assign(int nb);
 int	process_icc_convert_to(int nb);
 int	process_icc_remove(int nb);
 int	process_imoper(int nb);
+int	process_invert_mask(int nb);
 int	process_inspector(int nb);
 
 int	process_light_curve(int nb);
@@ -116,10 +121,18 @@ int	process_log(int nb);
 int	process_ls(int nb);
 
 int	process_makepsf(int nb);
+int process_mask_bitpix(int nb);
+int	process_mask_fmul(int nb);
+int	process_mask_from_channel(int nb);
+int process_mask_from_color(int nb);
+int	process_mask_from_lum(int nb);
+int	process_mask_from_stars(int nb);
+int	process_mask_threshold(int nb);
 int	process_merge(int nb);
 int	process_mirrorx(int nb);
 int	process_mirrorx_single(int nb);
 int	process_mirrory(int nb);
+int	process_mpp(int nb);
 int	process_mtf(int nb);
 
 int	process_neg(int nb);
@@ -148,6 +161,7 @@ int	process_pyscript(int nb);
 
 int	process_rebayer(int nb);
 int	process_register(int nb);
+int	process_register_mpp(int nb);
 int	process_resample(int nb);
 int	process_reloadscripts(int nb);
 int	process_requires(int nb);
@@ -178,7 +192,6 @@ int	process_savepng(int nb);
 int	process_savepnm(int nb);
 #ifdef HAVE_LIBTIFF
 int	process_savetif(int nb);
-int	process_starnet(int nb);
 #endif
 int	process_sb(int nb);
 int	process_scnr(int nb);
@@ -194,6 +207,7 @@ int	process_seq_extractHaOIII(int nb);
 int	process_seq_findstar(int nb);
 int	process_seq_fixbanding(int nb);
 int	process_seq_ght(int nb);
+int	process_seq_gps_extract(int nb);
 int	process_seq_header(int nb);
 int	process_seq_invght(int nb);
 int	process_seq_invmodasinh(int nb);
@@ -207,7 +221,6 @@ int	process_seq_resample(int nb);
 int	process_seq_rl(int nb);
 int	process_seq_sb(int nb);
 int	process_seq_split_cfa(int nb);
-int	process_seq_starnet(int nb);
 int	process_seq_stat(int nb);
 int	process_seq_tilt(int nb);
 int	process_seq_update_key(int nb);
@@ -226,14 +239,16 @@ int	process_set_mag_seq(int nb);
 int	process_set_mem(int nb);
 int	process_set_photometry(int nb);
 int	process_set_ref(int nb);
-int	process_subsky(int nb);
 int	process_spcc(int nb);
 int	process_spcc_list(int nb);
 int	process_split(int nb);
 int	process_split_cfa(int nb);
+int	process_ssr(int nb);
 int	process_stat(int nb);
 int	process_stackall(int nb);
+int	process_stack_mpp(int nb);
 int	process_stackone(int nb);
+int	process_subsky(int nb);
 int	process_synthstar(int nb);
 
 int	process_thresh(int nb);
@@ -252,6 +267,8 @@ int process_update_key(int nb);
 
 int	process_visu(int nb);
 
+int	process_atrous(int nb);
+int	process_seqatrous(int nb);
 int	process_wavelet(int nb);
 int	process_wiener(int nb);
 int	process_wrecons(int nb);
@@ -261,5 +278,6 @@ int process_start_ls(int nb);
 int process_livestack(int nb);
 int process_stop_ls(int nb);
 
-int process_show(int nb);
+int	process_show(int nb);
+
 #endif

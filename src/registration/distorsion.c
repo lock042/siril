@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -25,6 +25,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/siril_alloc.h"
 #include "core/siril_log.h"
 #include "algos/siril_wcs.h"
 #include "algos/PSF.h"
@@ -258,13 +259,13 @@ int init_disto_map(int rx, int ry, disto_data *disto) {
 		return 0;
 
 	if (!disto->xmap) {
-		disto->xmap = malloc(rx * ry *sizeof(float));
-		disto->ymap = malloc(rx * ry *sizeof(float));
+		disto->xmap = siril_malloc(rx * ry * sizeof(float));
+		disto->ymap = siril_malloc(rx * ry * sizeof(float));
 	}
 
 	if (!disto->xmap || !disto->ymap) {
-		free(disto->xmap);
-		free(disto->ymap);
+		siril_free(disto->xmap);
+		siril_free(disto->ymap);
 		disto->xmap = NULL;
 		disto->ymap = NULL;
 		return 2;
@@ -343,9 +344,9 @@ static gchar *get_wcs_filename(pathparse_mode mode, sequence *seq) {
 	gboolean found = FALSE;
 	if (com.pref.prepro.disto_lib && com.pref.prepro.use_disto_lib) { //we have a distortion master and we should use it
 		int status = 0; 
-		wcsname = path_parse(&gfit, com.pref.prepro.disto_lib, mode, &status);
+		wcsname = path_parse(gfit, com.pref.prepro.disto_lib, mode, &status);
 		if (status) {
-			siril_log_color_message(_("Could not parse the distortion master, aborting\n"), "red");
+			siril_log_error(_("Could not parse the distortion master, aborting\n"));
 			g_free(wcsname);
 			wcsname = NULL;
 		} else {
@@ -368,10 +369,10 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 	disto_data *disto = NULL;
 	switch (distoparam->index) {
 		case DISTO_IMAGE:
-			wcs = wcs_deepcopy(gfit.keywords.wcslib, NULL);
+			wcs = wcs_deepcopy(gfit->keywords.wcslib, NULL);
 			gchar *wcsname = get_wcs_filename(PATHPARSE_MODE_WRITE, seq);
-			if (!wcsname || save_wcs_fits(&gfit, wcsname)) {
-				siril_log_color_message(_("Could not save WCS file for distortion\n"), "red");
+			if (!wcsname || save_wcs_fits(gfit, wcsname)) {
+				siril_log_error(_("Could not save WCS file for distortion\n"));
 				wcsfree(wcs);
 				return NULL;
 			}
@@ -385,13 +386,13 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 			fits fit = { 0 };
 			int statusread = read_fits_metadata_from_path_first_HDU(distoparam->filename, &fit);
 			if (statusread) {
-				siril_log_color_message(_("Could not load FITS file for distortion\n"), "red");
+				siril_log_error(_("Could not load FITS file for distortion\n"));
 				clearfits(&fit);
 				return NULL;
 			}
 			wcs = wcs_deepcopy(fit.keywords.wcslib, &statusread);
 			if (statusread) {
-				siril_log_color_message(_("Could not copy WCS information for distortion\n"), "red");
+				siril_log_error(_("Could not copy WCS information for distortion\n"));
 				clearfits(&fit);
 				return NULL;
 			}
@@ -400,7 +401,7 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 				gchar *wcsname = get_wcs_filename(PATHPARSE_MODE_WRITE, seq);
 				distoparam->filename = wcsname;
 				if (!wcsname || save_wcs_fits(&fit, wcsname)) {
-					siril_log_color_message(_("Could not save WCS file for distortion\n"), "red");
+					siril_log_error(_("Could not save WCS file for distortion\n"));
 					wcsfree(wcs);
 					return NULL;
 				}
@@ -410,7 +411,7 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 		case DISTO_MASTER:
 			if (!distoparam->filename) {
 				if (!com.pref.prepro.disto_lib) {
-					siril_log_color_message(_("Sequence file points to master distorsion file but its specification is empty in the preferences\n"), "red");
+					siril_log_error(_("Sequence file points to master distorsion file but its specification is empty in the preferences\n"));
 					return NULL;
 				} else {
 					distoparam->filename = g_strdup(com.pref.prepro.disto_lib);
@@ -431,7 +432,7 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 			if (!seq->imgparam[i].incl)
 				continue;
 			if (seq_read_frame_metadata(seq, i, &fit)) {
-				siril_log_color_message(_("Could not load image# %d, aborting\n"), "red", i + 1);
+				siril_log_error(_("Could not load image# %d, aborting\n"), i + 1);
 				seq->imgparam[i].incl = FALSE;
 				clearfits(&fit);
 				free_disto_args(disto);
@@ -441,13 +442,13 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 			gchar *wcsname = path_parse(&fit, distoparam->filename, PATHPARSE_MODE_READ, &statusread);
 			clearfits(&fit);
 			if (statusread) {
-				siril_log_color_message(_("Could not parse master file name for distortion, aborting\n"), "red");
+				siril_log_error(_("Could not parse master file name for distortion, aborting\n"));
 				free_disto_args(disto);
 				return NULL;
 			}
 			statusread = read_fits_metadata_from_path_first_HDU(wcsname, &fit);
 			if (statusread) {
-				siril_log_color_message(_("Could not load master file for distortion, aborting\n"), "red");
+				siril_log_error(_("Could not load master file for distortion, aborting\n"));
 				clearfits(&fit);
 				free_disto_args(disto);
 				return NULL;
@@ -455,7 +456,7 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 			wcs = wcs_deepcopy(fit.keywords.wcslib, &statusread);
 			clearfits(&fit);
 			if (statusread) {
-				siril_log_color_message(_("Could not copy WCS information for distortion, aborting\n"), "red");
+				siril_log_error(_("Could not copy WCS information for distortion, aborting\n"));
 				free_disto_args(disto);
 				return NULL;
 			}
@@ -483,7 +484,7 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 		if (!wcs)
 			return disto;
 		if (!wcs->lin.dispre) {
-			siril_log_color_message(_("Selected file has no distortion information\n"), "red");
+			siril_log_error(_("Selected file has no distortion information\n"));
 			wcsfree(wcs);
 			g_free(distoparam->filename);
 			distoparam->index = DISTO_UNDEF;
@@ -525,9 +526,118 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 	}
 	*status = 0;
 	if (distoparam->index != DISTO_FILE_COMET || distoparam->filename != NULL)
-		siril_log_color_message(_("Distortion data is valid and will be used\n"), "green");
+		siril_log_info(_("Distortion data is valid and will be used\n"));
 	return disto;
 }
+
+// This function is used to init the disto data for the external reference in case of image or file disto spec
+// as we need to undistort the stars of the external reference to align them with the sequence stars. 
+// Ideally, the disto_params for ext_ref should be independant of the disto_params for the sequence,
+// But for simplicity, we have chosen to use same input:
+// If image is selected, we force the external reference to be solved:
+// - if it's solved but already undistorted (e.g. if the ref is an undistorted stack), we ignore
+// - if it contains distortion info, we use it to undistort stars of the external ref only
+// If file is selected, we apply the same model to external reference as the one we apply to the sequence
+// If master is selected, we fetch the master corresponding to the external reference
+// For all other cases, we return a NULL disto
+// Note: distoparam is left untouched as it is used by the main sequence
+disto_data *init_disto_data_ext(disto_params *distoparam, fits *ext_fit, int *status) {
+	*status = 1;
+	if (!distoparam)
+		return NULL;
+	struct wcsprm *wcs = NULL;
+	disto_data *disto = NULL;
+	int statusread = 0;
+	fits fit = { 0 };
+	if (has_wcs(ext_fit)) { 
+		// If the image is already solved, we can force to "image" distorsion (if any, it may well be a stack already undistorted), 
+		// even if the user has selected file or master, as we can safely assume it's better information that forcing that
+		// of another file or a master that may not exist for the external reference.
+		siril_log_debug("External reference distortion was %d, updating to DISTO_IMAGE if required\n", distoparam->index);
+		distoparam->index = DISTO_IMAGE;
+	}
+	switch (distoparam->index) {
+		case DISTO_UNDEF: // nothing to do
+		case DISTO_FILE_COMET: // cannot happen, not supported
+		case DISTO_FILES: // (astrometry registration) not supported yet
+			break;
+		case DISTO_IMAGE:
+			if (!ext_fit->keywords.wcslib->lin.dispre) {
+				siril_log_warning(_("External reference has no SIP information, its stars will not be undistorted to align\n"));
+				*status = 0;
+				return NULL;
+			} else {
+				wcs = wcs_deepcopy(ext_fit->keywords.wcslib, NULL);
+			}
+			break;
+		case DISTO_FILE:;
+			statusread = read_fits_metadata_from_path_first_HDU(distoparam->filename, &fit);
+			if (statusread) {
+				siril_log_error(_("Could not load FITS file for distortion\n"));
+				clearfits(&fit);
+				return NULL;
+			}
+			wcs = wcs_deepcopy(fit.keywords.wcslib, &statusread);
+			if (statusread) {
+				siril_log_error(_("Could not copy WCS information for distortion\n"));
+				clearfits(&fit);
+				return NULL;
+			}
+			clearfits(&fit);
+			break;
+		case DISTO_MASTER:
+		// If master is selected, we fetch the master corresponding to the external reference
+			if (!com.pref.prepro.disto_lib) {
+				siril_log_error(_("Sequence file points to master distorsion file but its specification is empty in the preferences\n"));
+				return NULL;
+			}
+			statusread = 0;
+			gchar *wcsname = path_parse(ext_fit, com.pref.prepro.disto_lib, PATHPARSE_MODE_READ, &statusread);
+			if (statusread) {
+				siril_log_error(_("Could not parse master file name for distortion, aborting\n"));
+				free_disto_args(disto);
+				return NULL;
+			}
+			statusread = read_fits_metadata_from_path_first_HDU(wcsname, &fit);
+			if (statusread) {
+				siril_log_error(_("Could not load master file for distortion, aborting\n"));
+				clearfits(&fit);
+				free_disto_args(disto);
+				return NULL;
+			}
+			wcs = wcs_deepcopy(fit.keywords.wcslib, &statusread);
+			clearfits(&fit);
+			if (statusread) {
+				siril_log_error(_("Could not copy WCS information for distortion, aborting\n"));
+				free_disto_args(disto);
+				return NULL;
+			}
+			break;
+		default:
+			return NULL;
+	}
+
+	// we only have one disto spec, we can init the disto structure
+	if (!wcs)
+		return NULL;
+	if (!wcs->lin.dispre) {
+		siril_log_error(_("Selected file has no distortion information\n"));
+		wcsfree(wcs);
+		return NULL;
+	}
+	disto = calloc(1, sizeof(disto_data));
+	disto[0].order = extract_SIP_order_and_matrices(wcs->lin.dispre, disto[0].A, disto[0].B, disto[0].AP, disto[0].BP);
+	disto[0].xref = wcs->crpix[0] - 1.; // -1 comes from the difference of convention between opencv and wcs
+	disto[0].yref = wcs->crpix[1] - 1.;
+	disto[0].dtype = DISTO_MAP_D2S;
+	wcsfree(wcs);
+
+	*status = 0;
+	siril_log_info(_("External reference: Distortion data is valid and will be used\n"));
+
+	return disto;
+}
+
 
 gboolean validate_disto_params(fits *reffit, const gchar *text, disto_source index, gchar **msg1, gchar **msg2) {
 	if (index == DISTO_UNDEF)
@@ -540,7 +650,7 @@ gboolean validate_disto_params(fits *reffit, const gchar *text, disto_source ind
 			return FALSE;
 		}
 		if (!reffit->keywords.wcslib->lin.dispre) {
-			*msg1 = g_strdup(_("You have selected undistortion from current image but it is not platesolved, perform astrometry first or disable distortion"));
+			*msg1 = g_strdup(_("You have selected undistortion from current image but it is has no distortion terms, perform astrometry with SIP enabled or disable distortion"));
 			if (msg2)
 				*msg2 = g_strdup(_("Platesolve current image with distortions"));
 			return FALSE;
@@ -618,8 +728,8 @@ void free_disto_args(disto_data *disto) {
 		return;
 	// we only need to free the maps for the 2 types which store them (disto has only one element in that case)
 	if (disto->dtype == DISTO_MAP_D2S || disto->dtype == DISTO_MAP_S2D) {
-		free(disto->xmap);
-		free(disto->ymap);
+		siril_free(disto->xmap);
+		siril_free(disto->ymap);
 	}
 	free(disto);
 }

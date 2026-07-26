@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -25,19 +25,10 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
-#include "core/undo.h"
-#include "core/OS_utils.h"
 #include "core/optimize_utils.h"
 #include "core/siril_log.h"
-#include "gui/image_display.h"
-#include "gui/utils.h"
-#include "gui/dialogs.h"
-#include "gui/progress_and_log.h"
-#include "gui/registration_preview.h"
 #include "io/image_format_fits.h"
-#include "io/single_image.h"
 #include "io/sequence.h"
-#include "io/ser.h"
 #include "algos/statistics.h"
 #include "algos/sorting.h"
 #include "algos/median_fast.h"
@@ -45,6 +36,27 @@
 #include "opencv/opencv.h"
 
 #include "cosmetic_correction.h"
+#include "core/op_descriptors.h"
+
+/* Op descriptors — single source of truth for these ops (op_descriptor.h) */
+const op_descriptor op_desc_cosmetic = {
+	.id = "filters.cosmetic", .version = 1,
+	.image_hook = cosmetic_image_hook_generic,
+	.log_hook = cosmetic_log_hook,
+	.description = N_("Cosmetic Correction"),
+	.mem_ratio = 0.0f,
+	.flags = 0,
+};
+
+const op_descriptor op_desc_cosme = {
+	.id = "filters.cosme", .version = 1,
+	.image_hook = cosme_image_hook_generic,
+	.log_hook = cosme_log_hook,
+	.description = N_("Cosmetic Correction"),
+	.mem_ratio = 1.0f,
+	.flags = 0,
+};
+
 static int autoDetect(fits *fit, int layer, const double sig[2], long *icold, long *ihot,
 		double amount, gboolean is_cfa, threading_type threads);
 
@@ -203,7 +215,7 @@ deviant_pixel* find_deviant_pixels(fits *fit, const double sig[2], long *icold,
 
 	stat = statistics(NULL, -1, fit, RLAYER, NULL, STATS_BASIC, SINGLE_THREADED);
 	if (!stat) {
-		siril_log_message(_("Error: statistics computation failed.\n"));
+		siril_log_error(_("Error: statistics computation failed.\n"));
 		return NULL;
 	}
 	sigma = stat->sigma;
@@ -363,8 +375,7 @@ int cosmetic_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		if (retval)
 			return retval;
 	}
-	siril_log_color_message(_("Image %d: %ld pixel corrected (%ld + %ld)\n"),
-			"bold", i, icold + ihot, icold, ihot);
+	siril_log_bold(_("Image %d: %ld pixels corrected (%ld + %ld)\n"), i, icold + ihot, icold, ihot);
 	return 0;
 }
 
@@ -398,8 +409,7 @@ static int cosmetic_mem_limits_hook(struct generic_seq_args *args, gboolean for_
 		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 
-		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
-				"red", args->description, mem_per_thread, mem_available);
+		siril_log_error(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"), args->description, mem_per_thread, mem_available);
 
 		g_free(mem_per_thread);
 		g_free(mem_available);
@@ -410,7 +420,7 @@ static int cosmetic_mem_limits_hook(struct generic_seq_args *args, gboolean for_
 			if (limit > max_queue_size)
 				limit = max_queue_size;
 		}
-		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+		siril_log_debug("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
 				required, MB_per_image, limit, for_writer ? "images" : "threads");
 #else
 		if (!for_writer)
@@ -447,42 +457,42 @@ void apply_cosmetic_to_sequence(struct cosmetic_data *cosme_args) {
 	}
 }
 
-// idle function executed at the end of the Cosmetic Correction processing
-gboolean end_autoDetect(gpointer p) {
-	stop_processing_thread();
-	notify_gfit_modified();
-	redraw(REMAP_ALL);
-	gui_function(redraw_previews, NULL);
-	set_cursor_waiting(FALSE);
-
-	return FALSE;
+gchar* cosmetic_log_hook(gpointer p, log_hook_detail detail) {
+	struct cosmetic_data *args = (struct cosmetic_data*) p;
+	gchar *message = NULL;
+	if (args->sigma[0] >= 0.0 && args->sigma[1] >= 0.0) {
+		message=g_strdup_printf(_("Cosmetic Correction applied (hot sigma %.2f, cold sigma %.2f, amount %.2f)..."), args->sigma[1], args->sigma[0], args->amount);
+	} else if (args->sigma[0] >= 0.0) {
+		message = g_strdup_printf(_("Cosmetic Correction applied (cold sigma %.2f, amount %.2f)..."), args->sigma[0], args->amount);
+	} else if (args->sigma[1] >= 0.0) {
+		message=g_strdup_printf(_("Cosmetic Correction applied (hot sigma %.2f, amount %.2f)..."), args->sigma[1], args->amount);
+	} else {
+		// Can't apply unless at least one of hot sigma and cold sigma are selected
+		message=g_strdup(_("Error, at least one of hot sigma and cold sigma must be provided"));
+	}
+	return message;
 }
 
 gpointer autoDetectThreaded(gpointer p) {
 	struct cosmetic_data *args = (struct cosmetic_data*) p;
-	struct timeval t_start, t_end;
 	int retval = 0, chan;
 	long icold, ihot;
-
-	siril_log_color_message(_("Cosmetic Correction: processing...\n"), "green");
-	gettimeofday(&t_start, NULL);
-
 	icold = ihot = 0L;
 	for (chan = 0; chan < args->fit->naxes[2]; chan++) {
 		retval = autoDetect(args->fit, chan, args->sigma, &icold, &ihot,
 				args->amount, args->is_cfa, args->threading);
 		if (retval)
 			break;
-	}
-	gettimeofday(&t_end, NULL);
-	show_time(t_start, t_end);
-	gchar *str = ngettext("%ld corrected pixel (%ld + %ld)\n", "%ld corrected pixels (%ld + %ld)\n", icold + ihot);
-	str = g_strdup_printf(str, icold + ihot, icold, ihot);
-	siril_log_message(str);
-	g_free(str);
+		const gchar *tmpl = ngettext(
+				"Channel %d: %ld corrected pixel (%ld + %ld)\n",
+				"Channel %d: %ld corrected pixels (%ld + %ld)\n",
+				icold + ihot);
 
-	free(args);
-	siril_add_idle(end_autoDetect, NULL);
+		gchar *str = g_strdup_printf(tmpl, chan, icold + ihot, icold, ihot);
+		siril_log_message(str);
+		g_free(str);
+	}
+
 	return GINT_TO_POINTER(retval);
 }
 
@@ -584,7 +594,6 @@ int cosme_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 	struct cosme_data *c_args = (struct cosme_data*) args->user;
 
 	int retval = apply_cosme_to_image(fit, c_args->file, c_args->is_cfa);
-//	g_object_unref(c_args->file);
 	return retval;
 }
 
@@ -631,7 +640,7 @@ static int autoDetect(fits *fit, int layer, const double sig[2], long *icold, lo
 	 * into account the Bayer pattern */
 	imstats *stat = statistics(NULL, -1, fit, layer, NULL, STATS_BASIC | STATS_AVGDEV, threading);
 	if (!stat) {
-		siril_log_message(_("Error: statistics computation failed.\n"));
+		siril_log_error(_("Error: statistics computation failed.\n"));
 		return 1;
 	}
 	int threads = check_threading(&threading);
@@ -747,82 +756,10 @@ static int autoDetect(fits *fit, int layer, const double sig[2], long *icold, lo
 	return 0;
 }
 
-void on_button_cosmetic_close_clicked(GtkButton *button, gpointer user_data) {
-	siril_close_dialog("cosmetic_dialog");
-}
+/* GUI callbacks moved to src/gui/cosmetic_correction.c */
 
-gboolean cosmetic_hide_on_delete(GtkWidget *widget) {
-	siril_close_dialog("cosmetic_dialog");
-	return TRUE;
-}
-
-void on_checkSigCosme_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	static GtkWidget *cosmeticApply = NULL;
-	static GtkToggleButton *checkCosmeSigCold = NULL;
-	static GtkToggleButton *checkCosmeSigHot = NULL;
-	gboolean checkCold, checkHot;
-
-	if (cosmeticApply == NULL) {
-		cosmeticApply = lookup_widget("button_cosmetic_ok");
-		checkCosmeSigCold = GTK_TOGGLE_BUTTON(lookup_widget("checkSigColdBox"));
-		checkCosmeSigHot = GTK_TOGGLE_BUTTON(lookup_widget("checkSigHotBox"));
-	}
-	checkCold = gtk_toggle_button_get_active(checkCosmeSigCold);
-	checkHot = gtk_toggle_button_get_active(checkCosmeSigHot);
-	gtk_widget_set_sensitive(cosmeticApply, checkCold || checkHot);
-}
-
-void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
-	GtkEntry *cosmeticSeqEntry;
-	GtkToggleButton *CFA, *seq;
-	GtkSpinButton *sigma[2];
-	GtkAdjustment *adjCosmeAmount;
-
-	CFA = GTK_TOGGLE_BUTTON(lookup_widget("cosmCFACheckBox"));
-	sigma[0] = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeColdBox"));
-	sigma[1] = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeHotBox"));
-	seq = GTK_TOGGLE_BUTTON(lookup_widget("checkCosmeticSeq"));
-	cosmeticSeqEntry = GTK_ENTRY(lookup_widget("entryCosmeticSeq"));
-	adjCosmeAmount = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjCosmeAmount"));
-
-	struct cosmetic_data *args = calloc(1, sizeof(struct cosmetic_data));
-
-	if (gtk_toggle_button_get_active(
-				GTK_TOGGLE_BUTTON(lookup_widget("checkSigColdBox"))))
-		args->sigma[0] = gtk_spin_button_get_value(sigma[0]);
-	else
-		args->sigma[0] = -1.0;
-
-	if (gtk_toggle_button_get_active(
-				GTK_TOGGLE_BUTTON(lookup_widget("checkSigHotBox"))))
-		args->sigma[1] = gtk_spin_button_get_value(sigma[1]);
-	else
-		args->sigma[1] = -1.0;
-
-	args->is_cfa = gtk_toggle_button_get_active(CFA);
-	args->amount = gtk_adjustment_get_value(adjCosmeAmount);
-
-	args->fit = &gfit;
-	args->seqEntry = strdup(gtk_entry_get_text(cosmeticSeqEntry));
-	set_cursor_waiting(TRUE);
-
-	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
-		if (args->seqEntry && args->seqEntry[0] == '\0') {
-			free(args->seqEntry);
-			args->seqEntry = strdup("cc_");
-		}
-		args->seq = &com.seq;
-		args->threading = SINGLE_THREADED;
-		gtk_toggle_button_set_active(seq, FALSE);
-		apply_cosmetic_to_sequence(args);
-	} else {
-		args->threading = MULTI_THREADED;
-		undo_save_state(&gfit, _("Cosmetic Correction"));
-		if (!start_in_new_thread(autoDetectThreaded, args)) {
-			free(args->seqEntry);
-			free(args);
-		}
-	}
+int cosmetic_image_hook_generic(struct generic_img_args *args, fits *fit, int nb_threads) {
+	return GPOINTER_TO_INT(autoDetectThreaded(args->user));
 }
 
 int denoise_hook_cosmetic(fits *fit) {
@@ -833,3 +770,70 @@ int denoise_hook_cosmetic(fits *fit) {
 	}
 	return 0;
 }
+
+/*****************************************************************************
+ *      C O S M E      A L L O C A T O R   A N D   D E S T R U C T O R      *
+ ****************************************************************************/
+
+/* Allocator for cosme_data */
+struct cosme_data *new_cosme_data() {
+	struct cosme_data *args = calloc(1, sizeof(struct cosme_data));
+	if (args) {
+		args->destroy_fn = free_cosme_data;
+	}
+	return args;
+}
+
+/* Destructor for cosme_data */
+void free_cosme_data(void *ptr) {
+	struct cosme_data *args = (struct cosme_data *)ptr;
+	if (!args)
+		return;
+
+	g_clear_object(&args->file);
+	if (args->prefix)
+		free(args->prefix);
+
+	free(ptr);
+}
+
+/* Allocator for cosme_data */
+struct cosmetic_data *new_cosmetic_data() {
+	struct cosmetic_data *args = calloc(1, sizeof(struct cosmetic_data));
+	if (args) {
+		args->destroy_fn = free_cosmetic_data;
+	}
+	return args;
+}
+
+/* Destructor for cosme_data */
+void free_cosmetic_data(void *ptr) {
+	struct cosmetic_data *args = (struct cosmetic_data *)ptr;
+	if (!args)
+		return;
+	free(args->seqEntry);
+	free(ptr);
+}
+
+/* Log hook for file-based cosmetic correction (cosme command path) */
+gchar *cosme_log_hook(gpointer p, log_hook_detail detail) {
+	struct cosme_data *args = (struct cosme_data *)p;
+	gchar *path = g_file_get_path(args->file);
+	gchar *basename = g_path_get_basename(path ? path : "");
+	gchar *msg = g_strdup_printf(_("Cosmetic correction (file: %s%s)"),
+			basename, args->is_cfa ? _(", CFA") : "");
+	g_free(basename);
+	g_free(path);
+	return msg;
+}
+
+/* Image processing hook for generic_image_worker */
+int cosme_image_hook_generic(struct generic_img_args *args, fits *fit, int nb_threads) {
+	struct cosme_data *params = (struct cosme_data *)args->user;
+	if (!params)
+		return 1;
+
+	return apply_cosme_to_image(fit, params->file, params->is_cfa);
+}
+
+/* cosme_idle moved to src/gui/cosmetic_correction.c */

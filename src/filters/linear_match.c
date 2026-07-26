@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -18,15 +18,30 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <string.h>
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/processing.h"
+#include "algos/fitting.h"
 #include "algos/statistics.h"
 #include "io/image_format_fits.h"
+#include "linear_match.h"
+#include "core/op_descriptors.h"
+
+/* Op descriptor — single source of truth for this operation (op_descriptor.h) */
+const op_descriptor op_desc_linear_match = {
+	.id = "color.linear_match", .version = 1,
+	.image_hook = linear_match_image_hook,
+	.log_hook = linear_match_log_hook,
+	.description = N_("Linear Match"),
+	.mem_ratio = 0.0f,
+	.flags = 0,
+};
 
 static void apply_linear_to_fits_ushort(fits *fit, const double *a, const double *b) {
 	size_t size = fit->rx * fit->ry;
 
-	invalidate_stats_from_fit(&gfit);
+	invalidate_stats_from_fit(fit);
 	for (int channel = 0; channel < fit->naxes[2]; channel++) {
 		for (size_t i = 0; i < size; i++) {
 			fit->pdata[channel][i] = round_to_WORD(fit->pdata[channel][i] * a[channel] + b[channel] * USHRT_MAX_DOUBLE);
@@ -37,7 +52,7 @@ static void apply_linear_to_fits_ushort(fits *fit, const double *a, const double
 static void apply_linear_to_fits_float(fits *fit, const double *a, const double *b) {
 	size_t size = fit->rx * fit->ry;
 
-	invalidate_stats_from_fit(&gfit);
+	invalidate_stats_from_fit(fit);
 	for (int channel = 0; channel < fit->naxes[2]; channel++) {
 		for (size_t i = 0; i < size; i++) {
 			fit->fpdata[channel][i] = fit->fpdata[channel][i] * a[channel] + b[channel];
@@ -51,4 +66,40 @@ void apply_linear_to_fits(fits *fit, double *a, double *b) {
 	} else if (fit->type == DATA_FLOAT) {
 		apply_linear_to_fits_float(fit, a, b);
 	}
+}
+
+struct linear_match_data *new_linear_match_data(fits *ref_fit, double low, double high) {
+	struct linear_match_data *data = calloc(1, sizeof(struct linear_match_data));
+	if (!data)
+		return NULL;
+	data->destroy_fn = free_linear_match_data;
+	data->low = low;
+	data->high = high;
+	/* Caller must have already loaded ref_fit; we take ownership of its data */
+	data->ref = *ref_fit;
+	/* Zero out the caller's copy so clearfits() won't free the same buffers */
+	memset(ref_fit, 0, sizeof(fits));
+	return data;
+}
+
+void free_linear_match_data(void *p) {
+	struct linear_match_data *data = (struct linear_match_data *)p;
+	if (!data)
+		return;
+	clearfits(&data->ref);
+	free(data);
+}
+
+int linear_match_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct linear_match_data *data = (struct linear_match_data *)args->user;
+	double a[3] = { 0.0 }, b[3] = { 0.0 };
+	if (find_linear_coeff(fit, &data->ref, data->low, data->high, a, b, NULL))
+		return 1;
+	apply_linear_to_fits(fit, a, b);
+	return 0;
+}
+
+gchar *linear_match_log_hook(gpointer p, log_hook_detail detail) {
+	struct linear_match_data *data = (struct linear_match_data *)p;
+	return g_strdup_printf(_("Linear match (low: %.3f, high: %.3f)"), data->low, data->high);
 }

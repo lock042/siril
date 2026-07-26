@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -33,6 +33,7 @@
 #endif
 
 #include "core/siril.h"
+#include "core/gui_iface.h"
 #include "core/proto.h"
 
 #include "signals.h"
@@ -49,7 +50,7 @@ static void signal_handled(int s) {
 		switch (s) {
 #ifndef _WIN32
 		case SIGINT: // useful for devs who often use CTRL+C
-			gtk_main_quit();
+			gui_iface.quit_application();
 			break;
 #endif
 		case SIGSEGV:

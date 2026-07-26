@@ -4,10 +4,11 @@
 #include <config.h>
 #endif
 
+#include <stdint.h>
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <glib/gprintf.h>
-#include <gtk/gtk.h>
+#include <gio/gio.h>
 #include <gsl/gsl_histogram.h>
 #ifdef _OPENMP
 #include <omp.h>
@@ -18,9 +19,26 @@
 
 #include "core/settings.h"
 
+#if defined(__cplusplus)
+  #define STATIC_ASSERT(cond, msg) static_assert(cond, msg)
+#else
+  #define STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
+#endif
+
 #define _(String) gettext (String)
 #define gettext_noop(String) String
 #define N_(String) gettext_noop (String)
+
+#if defined(__clang__)
+  #define FAST_MATH_PUSH _Pragma("clang fp contract(fast)")
+  #define FAST_MATH_POP  _Pragma("clang fp contract(off)")
+#elif defined(__GNUC__)
+  #define FAST_MATH_PUSH _Pragma("GCC optimize(\"fp-contract=fast\")")
+  #define FAST_MATH_POP  _Pragma("GCC optimize(\"fp-contract=off\")")
+#else
+  #define FAST_MATH_PUSH
+  #define FAST_MATH_POP
+#endif
 
 #ifdef SIRIL_OUTPUT_DEBUG
 #define DEBUG_TEST 1
@@ -36,7 +54,7 @@
 #endif
 
 /* https://stackoverflow.com/questions/1644868/define-macro-for-debug-printing-in-c */
-#define siril_debug_print(fmt, ...) \
+#define siril_log_debug(fmt, ...) \
 	do { if (DEBUG_TEST) fprintf(stdout, fmt, ##__VA_ARGS__); } while (0)
 
 #define PRINT_ALLOC_ERR fprintf(stderr, "Out of memory in %s (%s:%d) - aborting\n", __func__, __FILE__, __LINE__)
@@ -61,7 +79,7 @@
 
 #define SQR(x) ((x)*(x))
 #endif
-#define RADCONV (((3600.0 * 180.0) / M_PI) / 1.0E3)
+#define RADCONV (((3600.0 * 180.0) / G_PI) / 1.0E3)
 
 // Used for sanity checking reported sizes from image files.
 // Not a guarantee that the file will fit in memory
@@ -109,8 +127,9 @@ typedef unsigned short WORD;	// default type for internal image data
 
 typedef struct _SirilDialogEntry SirilDialogEntry;
 
-/* used for open and savedialog */
-typedef GtkWidget SirilWidget;
+// typedef for an args destructor function, for use in free_generic_seq_args and
+// free_generic_img_args
+typedef void (*destructor)(void *);
 
 #if (defined _WIN32) || (defined(OS_OSX))
 #define SIRIL_EOL "\r\n"
@@ -119,11 +138,27 @@ typedef GtkWidget SirilWidget;
 #endif
 
 typedef enum {
+	DETAILED,
+	SUMMARY
+} log_hook_detail;
+
+typedef enum {
 	RESPONSE_CANCEL = 1,
 	RESPONSE_CLIP,
 	RESPONSE_RESCALE_CLIPNEG,
 	RESPONSE_RESCALE_ALL
 } OverrangeResponse;
+
+/* Main window tab indices — used by gui_iface.switch_to_tab() */
+typedef enum {
+	FILE_CONVERSION,
+	IMAGE_SEQ,
+	PRE_PROC,
+	REGISTRATION,
+	PLOT,
+	STACKING,
+	OUTPUT_LOGS
+} main_tabs;
 
 typedef enum {
 	TYPEUNDEF = (1 << 1),
@@ -156,16 +191,30 @@ typedef enum {
 #define GREEN_VPORT 	1
 #define BLUE_VPORT 	2
 #define RGB_VPORT 	3
+#define MASK_VPORT 4
 #define MAXGRAYVPORT 	3	// 3 gray vports supported only (R, G, B)
 #define MAXCOLORVPORT	1	// 1 color vport supported only (RGB)
-#define MAXVPORT 	MAXGRAYVPORT + MAXCOLORVPORT
+#define MAXMASKVPORT	1	// 1 vport supported for mask display
+#define MAXVPORT 	MAXGRAYVPORT + MAXCOLORVPORT + MAXMASKVPORT
 
-/* defines for copyfits actions */
-#define CP_INIT		0x01	// initialize data array with 0s
-#define CP_ALLOC	0x02	// reallocs data array
-#define CP_COPYA	0x04	// copy data array content
-#define CP_FORMAT	0x08	// copy metadata
-#define CP_EXPAND	0x20	// expands a one-channel to a three channels
+/* defines for copyfits actions — a bitmask (passed as unsigned int).
+ * Individual bits select one element to copy; the groupings below the
+ * line are just OR-combinations, not new bits. */
+#define CP_INIT		0x0001	// initialize data array with 0s
+#define CP_ALLOC	0x0002	// reallocs data array
+#define CP_COPYA	0x0004	// copy data array content (also stats and ICC profile)
+#define CP_FORMAT	0x0008	// copy the scalar metadata keywords (clones them, then nulls the heap-owned pointers — copy those with the CP_* below)
+#define CP_COPYMASK	0x0010	// copy the mask
+#define CP_EXPAND	0x0020	// expands a one-channel to a three channels
+/* heap-owned metadata elements, each deep-copied independently */
+#define CP_WCS		0x0040	// deep-copy the WCS solution (wcslib)
+#define CP_HEADER	0x0080	// copy the raw FITS header text
+#define CP_HISTORY	0x0100	// copy the HISTORY list
+#define CP_UNKNOWNKEYS	0x0200	// copy the unparsed ("unknown") keywords
+#define CP_DATES	0x0400	// copy DATE and DATE-OBS
+/* convenience groupings */
+#define CP_METADATA_HEAP	(CP_WCS | CP_HEADER | CP_HISTORY | CP_UNKNOWNKEYS | CP_DATES)	// every heap-owned metadata element
+#define CP_DEEPCOPY		(CP_COPYA | CP_FORMAT | CP_COPYMASK | CP_METADATA_HEAP)	// deep-copy every element into an already-sized destination; OR with CP_ALLOC to also (re)allocate its data buffer (e.g. a fresh or stack-allocated fits)
 
 #define PREVIEW_NB 2
 
@@ -194,6 +243,11 @@ typedef struct fwhm_struct psf_star;
 typedef struct photometry_struct photometry;
 typedef struct tilt_struct sensor_tilt;
 
+typedef struct _mask_t {
+	uint8_t bitpix;
+	void *data;
+} mask_t; // A typedef for the mask
+
 typedef struct {
 	double x, y;
 } point;
@@ -205,6 +259,15 @@ typedef struct {
 typedef struct {
 	int x, y;
 } pointi;
+
+typedef struct _UserPolygon {
+	int id;
+	int n_points;
+	point *points;
+	double color[4]; /* RGBA components in [0, 1], indexed [R, G, B, A] */
+	gboolean fill;
+	gchar *legend;
+} __attribute__((packed)) UserPolygon;
 
 /* global structures */
 
@@ -255,6 +318,12 @@ typedef enum {
 	USER
 } sliders_mode;
 
+/* Script file extensions — defined here so non-GUI code can check without
+ * pulling in gui/script_menu.h. */
+#define SCRIPT_EXT    "ssf"
+#define PYSCRIPT_EXT  "py"
+#define PYCSCRIPT_EXT "pyc"
+
 typedef enum {
 	OPEN_IMAGE_ERROR = -1,
 	OPEN_IMAGE_OK = 0,
@@ -270,6 +339,12 @@ typedef enum {
 	OPENCV_NONE = 5 // this one will use the pixel-wise shift transform w/o opencv
 } opencv_interpolation;
 
+// Feather mode enum
+typedef enum {
+	FEATHER_INNER,	// Feather inward from the edge
+	FEATHER_OUTER,	// Feather outward from the edge
+	FEATHER_EDGE	// Feather equally inward and outward
+} feather_mode;
 
 typedef enum {
 	SEQ_REGULAR = 0,
@@ -296,9 +371,7 @@ typedef enum {
 
 typedef enum {
 	EXT_NONE,
-	EXT_STARNET,
 	EXT_ASNET,
-	EXT_GRAXPERT,
 	EXT_PYTHON,
 	INT_PROC_THREAD
 } external_program;
@@ -310,11 +383,11 @@ typedef enum {
 } extraction_scaling;
 
 typedef enum {
-	DISTO_UNDEF, // No distortion
-	DISTO_IMAGE, // Distortion from current image
-	DISTO_FILE,  // Distortion from given file
-	DISTO_MASTER, // Distortion from master files
-	DISTO_FILES, // Distortion stored in each file (true only from seq platesolve, even with no distortion, it will be checked upon reloading)
+	DISTO_UNDEF,	// No distortion
+	DISTO_IMAGE,	// Distortion from current image
+	DISTO_FILE,	// Distortion from given file
+	DISTO_MASTER,	// Distortion from master files
+	DISTO_FILES,	// Distortion stored in each file (true only from seq platesolve, even with no distortion, it will be checked upon reloading)
 	DISTO_FILE_COMET // special for cometary alignment, to be detected by apply reg. Enables to
 } disto_source;
 
@@ -326,7 +399,7 @@ typedef struct {
 	int filenum;		/* real file index in the sequence, i.e. for mars9.fit = 9 */
 	gboolean incl;		/* selected in the sequence, included for future processings? */
 	GDateTime *date_obs;	/* date of the observation, processed and copied from the header */
-	double airmass;     /* airmass of the image, used in photometry */
+	double airmass;		/* airmass of the image, used in photometry */
 	int rx, ry;
 } imgdata;
 
@@ -377,6 +450,9 @@ typedef struct {
 	pointf velocity; // shift velocity if DISTO_FILE_COMET
 } disto_params;
 
+// Early declaration
+struct generic_img_args;
+
 /* see explanation about sequence and single image management in io/sequence.c */
 
 struct sequ {
@@ -389,6 +465,10 @@ struct sequ {
 	unsigned int ry;	// first image height (or ref if set)
 	gboolean is_variable;	// sequence has images of different sizes (imgparam->r[xy])
 	gboolean is_drizzle; 	// sequence is a drizzle sequence, weights files are stored in ./drizzletmp
+	gboolean ext_ref;	// H matrices are absolute (relative to an external reference image)
+	gchar *ext_ref_path;	// path to the external reference image used for registration
+	unsigned int ext_ref_rx;	// external reference image width (or ref if set)
+	unsigned int ext_ref_ry;	// external reference image height (or ref if set)
 	int bitpix;		// image pixel format, from fits
 	int reference_image;	// reference image for registration
 	imgdata *imgparam;	// a structure for each image of the sequence
@@ -460,6 +540,21 @@ typedef struct {
 	char ord[FLEN_VALUE];		// regular, centered
 } dft_info;
 
+/* data from QHY Pro rolling shutter cameras with GPSBOX, stored in the header by NINA */
+struct gps_rs_data {
+	double exposure;			// exposure reported by the SDK, in seconds
+	int line_period;			// line cycle time, in nanoseconds (QHY GPS)
+	int crop_offset_x, crop_offset_y;
+	double end_offset0;			// result of GetQHYCCDRollingShutterEndOffset(0) in µs
+	GDateTime *end_vsync_date;		// the timestamp from metadata, probably of Vsync
+	int flag;				// the flag from GPS metadata, shifted
+	char readout_mode[FLEN_VALUE];
+
+	int ry;			// image height
+	int binning;		// binning value
+	gboolean top_down;	// track the capture settings and flips
+};
+
 typedef enum { DATA_USHORT, DATA_FLOAT, DATA_UNSUPPORTED } data_type;
 
 #define DEFAULT_DOUBLE_VALUE -999.0
@@ -473,38 +568,42 @@ typedef struct {
 	double bscale, bzero;
 	WORD lo;		// MIPS-LO key in FITS file, "Lower visualization cutoff"
 	WORD hi;		// MIPS-HI key in FITS file, "Upper visualization cutoff"
-	float flo, fhi; // Same but float format.
-	char program[FLEN_VALUE];           // Software that created this HDU
-	char filename[FLEN_VALUE];           // Original Filename
-	double data_max;	// used to check if 32b float is in the [0, 1] range
-	double data_min;	// used to check if 32b float is in the [0, 1] range
-	double pixel_size_x, pixel_size_y;	// XPIXSZ and YPIXSZ keys
-	unsigned int binning_x, binning_y;	// XBINNING and YBINNING keys
+	float flo, fhi;		// Same but float format.
+	char program[FLEN_VALUE];	// Software that created this HDU
+	char filename[FLEN_VALUE];	// Original Filename
+	double data_max;		// used to check if 32b float is in the [0, 1] range
+	double data_min;		// used to check if 32b float is in the [0, 1] range
+	double pixel_size_x, pixel_size_y; // XPIXSZ and YPIXSZ keys
+	unsigned int binning_x, binning_y; // XBINNING and YBINNING keys
 	char row_order[FLEN_VALUE];
-	GDateTime *date, *date_obs;		// creation and acquisition UTC dates
-	double mjd_obs;					// date-obs in Julian
-	double expstart, expend;		// Julian dates
-	char filter[FLEN_VALUE];		// FILTER key
-	char image_type[FLEN_VALUE];		// IMAGETYP key
-	char object[FLEN_VALUE];		// OBJECT key
-	char instrume[FLEN_VALUE];		// INSTRUME key
-	char telescop[FLEN_VALUE];		// TELESCOP key
-	char observer[FLEN_VALUE];		// OBSERVER key
+	GDateTime *date, *date_obs;	// creation and acquisition UTC dates
+	double mjd_obs;			// date-obs in Julian
+	double expstart, expend;	// Julian dates
+	struct gps_rs_data *gps_data;	// data for QHY Pro cameras, from NINA
+	gboolean date_and_exp_from_gps;	// date_obs and exposure are set from global shutter GPS
+	char gps_eutc[FLEN_VALUE];	// backup, see the note in gps_keys_handler_save
+	int gps_eflag;			// backup, same
+	char filter[FLEN_VALUE];	// FILTER key
+	char image_type[FLEN_VALUE];	// IMAGETYP key
+	char object[FLEN_VALUE];	// OBJECT key
+	char instrume[FLEN_VALUE];	// INSTRUME key
+	char telescop[FLEN_VALUE];	// TELESCOP key
+	char observer[FLEN_VALUE];	// OBSERVER key
 	double centalt, centaz;
-	double sitelat, sitelong;		// SITE LAT and LONG as double
-	char sitelat_str[FLEN_VALUE];		// SITE LATITUDE key as string
-	char sitelong_str[FLEN_VALUE];		// SITE LONGITUDE key as string
-	double siteelev;			// SITE ELEVATION key as double
-	char bayer_pattern[FLEN_VALUE];		// BAYERPAT key Bayer Pattern if available
+	double sitelat, sitelong;	// SITE LAT and LONG as double
+	char sitelat_str[FLEN_VALUE];	// SITE LATITUDE key as string
+	char sitelong_str[FLEN_VALUE];	// SITE LONGITUDE key as string
+	double siteelev;		// SITE ELEVATION key as double
+	char bayer_pattern[FLEN_VALUE];	// BAYERPAT key Bayer Pattern if available
 	int bayer_xoffset, bayer_yoffset;
-	double airmass;                   // relative optical path length through atmosphere.
+	double airmass;			// relative optical path length through atmosphere.
 	/* data obtained from FITS or RAW files */
 	double focal_length, flength, iso_speed, exposure, aperture, ccd_temp, set_temp;
 	double livetime;		// sum of exposures (s)
 	guint stackcnt;			// number of stacked frame
 	double cvf;			// Conversion factor (e-/adu)
 	int key_gain, key_offset;	// Gain, Offset values read in camera headers.
-	char focname[FLEN_VALUE]; // focuser name
+	char focname[FLEN_VALUE];	// focuser name
 	int focuspos, focussz;
 	double foctemp;
 
@@ -537,11 +636,11 @@ struct ffit {
 	 * For RGB images, naxes[2] is 3 and naxis is 3.
 	 * */
 
-	fkeywords keywords; // keywords structure
-	gboolean checksum; // flag to save checksum
+	fkeywords keywords;	// keywords structure
+	gboolean checksum;	// flag to save checksum
 
 	char *header;		// entire header of the FITS file. NULL for non-FITS file.
-	gchar *unknown_keys; // list of unknown keys
+	gchar *unknown_keys;	// list of unknown keys
 
 	/* data computed or set by Siril */
 	imstats **stats;	// stats of fit for each layer, null if naxes[2] is unknown
@@ -558,16 +657,43 @@ struct ffit {
 
 	gboolean top_down;	// image data is stored top-down, normally false for FITS, true for SER
 	gboolean debayer_checked; // whether bayer pattern has already been checked and adjusted or not. This is set true for SER upon opening, not for other formats
-	unsigned int orig_ry; // original ry of the image (only set when reading partial)
-	int x_offset, y_offset; // x and y offset of partial read wrt to original image
+	unsigned int orig_ry;	// original ry of the image (only set when reading partial)
+	int x_offset, y_offset;	// x and y offset of partial read wrt to original image
 	gboolean focalkey, pixelkey; // flag to define if pixel and focal lengths were read from prefs or from the header keys
 
-	GSList *history;	// Former HISTORY comments of FITS file
+	GSList *history;	// HISTORY comments of FITS file, list of gchar *
 
 	/* ICC Color Management data */
-	gboolean color_managed; // Whether color management applies to this FITS
+	gboolean color_managed;	// Whether color management applies to this FITS
 	cmsHPROFILE icc_profile; // ICC color management profile
+	mask_t* mask; // Mask for image operations
+	gboolean mask_active;	// Whether or not the mask is active
+
+	/* GRWLock for thread safety. Most issues around concurrent access to gfit are protected against by
+	 * the processing thread system fed by start_in_new_thread, which will only handle jobs serially.
+	 * However this does not protect against access from python connection threads, which only protects
+	 * pixel data access using `with siril.image_lock()`, and it doesn't protect against access from
+	 * idle functions.
+	 *
+	 * The GRWLock is only ever needed to control access to public fits structs (currently only gfit).
+	 * It is initialized properly as long as a fits* is allocated using calloc() or a fits is initialized
+	 * to { 0 }, and it MUST only ever be interacted with using g_rwlock_* functions to lock and unlock
+	 * for reading and writing. The lock is NOT copied from a source OR overwritten in a target by copyfits()
+	 *
+	 * Locking is done in high level functions, typically generic_*_worker or the simple threaded functions
+	 * that are run directly using start_in_new_thread as they don't require the full generic worker
+	 * framework. It should be avoided in low level fits handling functions as this is likely to cause
+	 * deadlocks.
+	 *
+	 * rwlock *MUST* be the last member in the struct
+	 */
+	GRWLock rwlock; // Protects concurrent access to this fits from processing workers and Python threads
 };
+
+STATIC_ASSERT(
+    offsetof(struct ffit, rwlock) == sizeof(struct ffit) - sizeof(((struct ffit *)0)->rwlock),
+    "rwlock must remain the last field in struct ffit"
+);
 
 typedef enum {
 	SPCC_RED = 1 << RLAYER,
@@ -666,16 +792,18 @@ typedef struct cut_struct {
 // Used in a GSList so we can choose what to stop if multiple children are running
 typedef struct _child_info {
 	GPid childpid; // Platform-agnostic way to store the child PID
-	external_program program; // type of program, eg EXT_STARNET, EXT_ASNET etc
+	external_program program; // type of program, eg EXT_ASNET, EXT_PYTHON etc
 	gchar *name; // argv[0], i.e. the executable name
 	GDateTime *datetime; // start time of program - distinguishes between multiple children with the same argv0
 } child_info;
 
 struct historic_struct {
-	char *filename;
+	int fd;		/* open fd for the swap file; -1 if none */
+	int mask_fd;	/* open fd for the mask swap file; -1 if none */
 	char history[FLEN_VALUE];
 	int rx, ry, nchans;
 	data_type type;
+	uint8_t mask_bitpix;
 	wcs_info wcsdata;
 	struct wcsprm *wcslib;
 	double focal_length;
@@ -683,49 +811,10 @@ struct historic_struct {
 	gboolean spcc_applied;
 };
 
-/* the structure storing information for each layer to be composed
- * (one layer = one source image) and one associated colour */
-typedef struct {
-	/* widgets data */
-	GtkButton *remove_button;
-	GtkDrawingArea *color_w;		// the simulated color chooser
-	GtkFileChooserButton *chooser;	// the file choosers
-	GtkLabel *label;				// the labels
-	GtkSpinButton *spinbutton_x;	// the X spin button
-	GtkSpinButton *spinbutton_y;	// the Y spin button
-	GtkSpinButton *spinbutton_r;	// the rotation spin button
-	GtkToggleButton *centerbutton;	// the button to set the center
-	double spinbutton_x_value;
-	double spinbutton_y_value;
-	double spinbutton_r_value;
-	/* useful data */
-	GdkRGBA color;					// real color of the layer in the image colorspace
-	GdkRGBA saturated_color;		// saturated color of the layer in the image colorspace
-	GdkRGBA display_color;			// color of the layer in the display colorspace
-	fits the_fit;					// the fits for layers
-	point center;
-} layer;
-
-/* The rendering of the main image is cached. As it can be much larger than the
- * widget in which it's displayed, it can take a lot of time to transform it
- * for rendering. Unfortunately, rendering is requested on each update of a
- * label, so every time the pointer moves above the image.
- * With the caching, the rendering is done once in a cache surface
- * (disp_surface) and this surface is just displayed on subsequent calls if the
- * image, the transform or the widget size has not changed.
- */
-struct image_view {
-	GtkWidget *drawarea;
-
-	guchar *buf;	// display buffer (image mapped to 3 times 8-bit)
-	int full_surface_stride;
-	int full_surface_height;
-	int view_width;	// drawing area size
-	int view_height;
-
-	cairo_surface_t *full_surface;
-	cairo_surface_t *disp_surface;	// the cache
-};
+/* struct layer, struct image_view, draw_data_t, and struct guiinf have been
+ * moved to src/gui/gui_state.h (plan step 1.2).  Only GUI translation units
+ * should include that header.  The forward typedef below lets non-GUI code
+ * name the type without accessing its fields. */
 
 typedef struct roi {
 	fits fit;
@@ -733,16 +822,6 @@ typedef struct roi {
 	gboolean active;
 	gboolean operation_supports_roi;
 } roi_t;
-
-typedef struct draw_data {
-	cairo_t *cr;	// the context to draw to
-	int vport;	// the viewport index to draw
-	double zoom;	// the current zoom value
-	gboolean neg_view;	// negative view
-	cairo_filter_t filter;	// the type of image filtering to use
-	guint image_width, image_height;	// image size
-	guint window_width, window_height;	// drawing area size
-} draw_data_t;
 
 struct gui_icc {
 	cmsHPROFILE monitor;
@@ -756,92 +835,6 @@ struct gui_icc {
 	guint sh_b;
 	guint sh_rgb;
 	gboolean iso12646;
-};
-
-/* The global data structure of siril gui */
-struct guiinf {
-	GtkBuilder *builder;		// the builder of the glade interface
-
-	/*********** rendering of gfit, the currently loaded image ***********/
-	struct image_view view[MAXVPORT];
-	int cvport;			// current viewport, index in the list vport above
-
-	cairo_matrix_t display_matrix;	// matrix used for image rendering (convert image to display coordinates)
-	cairo_matrix_t image_matrix;	// inverse of display_matrix (convert display to image coordinates)
-	double zoom_value;		// 1.0 is normal zoom, use get_zoom_val() to access it
-	point display_offset;		// image display offset
-
-	gboolean translating;		// the image is being translated
-
-	gboolean show_excluded;		// show excluded images in sequences
-
-	int selected_star;		// current selected star in the GtkListStore
-
-	gboolean show_wcs_grid;		// show the equatorial grid over the image
-	gboolean show_wcs_disto;		// show the distortions (if present) include in the wcs solution
-
-	psf_star *qphot;		// quick photometry result, highlight a star
-
-	point measure_start;	// quick alt-drag measurement
-	point measure_end;
-
-	GSList *user_polygons;	// user defined polygons for the overlay
-
-	void (*draw_extra)(draw_data_t *dd);
-
-	/* List of all scripts from the repository */
-	GSList* repo_scripts; // the list of selected scripts is in com.pref
-	/* gboolean to confirm the script repository has been opened without error */
-	gboolean script_repo_available;
-	gboolean spcc_repo_available;
-
-	/*********** Color mapping **********/
-	WORD lo, hi;			// the values of the cutoff sliders
-	gboolean cut_over;		// display values over hi as negative
-	sliders_mode sliders;		// lo/hi, minmax, user
-	display_mode rendering_mode;	// pixel value scaling, defaults to LINEAR_DISPLAY or default_rendering_mode if set in preferences
-	gboolean unlink_channels;	// only for autostretch
-	BYTE remap_index[3][USHRT_MAX + 1];	// abstracted here so it can be used for previews and is easier to change the bit depth
-	BYTE *hd_remap_index[3];	// HD remap indexes for the high precision LUTs.
-	guint hd_remap_max;		// the maximum index value to use for the HD LUT. Default is 2^22
-	gboolean use_hd_remap;		// use high definition LUT for auto-stretch
-	struct gui_icc icc;
-
-	/* selection rectangle for registration, FWHM, PSF, coords in com.selection */
-	gboolean drawing;		// true if the rectangle is being set (clicked motion)
-	cut_struct cut;				// Struct to hold data relating to intensity
-								// profile cuts
-	pointi start;			// where the mouse was originally clicked to
-	pointi origin;			// where the selection was originally located
-	gboolean freezeX, freezeY;	// locked axis during modification of a selection
-	double ratio;			// enforced ratio of the selection (default is 0: none)
-	double rotation;		// selection rotation for dynamic crop
-
-	/* alignment preview data */
-	cairo_surface_t *preview_surface[PREVIEW_NB];
-	GtkWidget *preview_area[PREVIEW_NB];
-	guchar *refimage_regbuffer;	// the graybuf[registration_layer] of the reference image
-	cairo_surface_t *refimage_surface;
-
-	int file_ext_filter;		// file extension filter for open/save dialogs
-
-	/* history of the command line. This is a circular buffer (cmd_history)
-	 * of size cmd_hist_size, position to be written is cmd_hist_current and
-	 * position being browser for display of the history is cmd_hist_display.
-	 */
-	char **cmd_history;		// the history of the command line
-	int cmd_hist_size;		// allocated size
-	int cmd_hist_current;		// current command index
-	int cmd_hist_display;		// displayed command index
-	layer* comp_layer_centering;	// pointer to the layer to center in RGB compositing tool
-
-	roi_t roi; // Region of interest struct
-	GSList *mouse_actions;
-	GSList *scroll_actions;
-	gboolean drawing_polygon; // whether drawing a polygon or not
-	GSList *drawing_polypoints; // list of points drawn in MOUSE_ACTION_DRAW_POLY mode
-	GdkRGBA poly_ink; // Color and alpha for drawing polygons
-	gboolean poly_fill; // Whether to fill drawn polygons
 };
 
 struct common_icc {
@@ -864,6 +857,8 @@ struct common_icc {
 /* The global data structure of siril core */
 struct cominf {
 	GResource *resource; // resources
+	gboolean headless;		// pure console, no GUI
+	gboolean quitting;		// application is shutting down; suppress display refreshes during teardown
 	gchar *wd;			// current working directory, where images and sequences are
 
 	preferences pref;		// some variables are stored in settings
@@ -874,43 +869,71 @@ struct cominf {
 
 	gsl_histogram *layers_hist[MAXVPORT]; // current image's histograms
 	gsl_histogram *sat_hist;
-					      // TODO: move in ffit?
 
-	gboolean headless;		// pure console, no GUI
+	// TODO: these three variables could / should be accessed using g_atomic_int_*
+	// (this would be a broad but light change with many read / write sites)
 	gboolean script;		// script being executed, always TRUE when headless is
-	gboolean python_script;	// python script being executed
 	gboolean python_command;	// python is running a Siril command
-	GThread *python_init_thread; // python initialization thread, used to monitor startup completion
-	GThread *thread;		// the thread for processing
-	GMutex mutex;			// a mutex we use for this thread
-	GMutex env_mutex;		// a mutex used for updating environment vars (g_setenv is not threadsafe)
-	GThread *python_thread;	// the thread for the python interpreter
-	char python_magic[9];	// magic number for the python interpreter, used to check .pyc compatibility
-	gboolean run_thread;		// the main thread loop condition
-	gboolean python_claims_thread;	// prevent other things acquiring the processing thread while a python script has it
 	gboolean stop_script;		// abort script execution, not just a command
+
+	// com.mutex is a general-purpose lock protecting several unrelated fields that are written from
+	// worker threads and read from the main thread (or vice-versa): the log-message ring buffer;
+	// gui.hi and gui.lo (snapshot these under the lock in remap_all_vports / make_index_for_current_display);
+	// com.selection (all four fields must be updated atomically); com.kernel / com.kernelsize /
+	// com.kernelchannels (written by reset_conv_kernel / get_kernel, read by drawing_the_PSF)
+	GMutex mutex;
+
+	// env_mutex guards g_setenv() / g_unsetenv() calls; those glib functions are not thread-safe so any
+	// thread that modifies the process environment must hold this lock
+	GMutex env_mutex;
+
+	// histogram_mutex guards layers_hist[] and sat_hist; held by worker threads that compute
+	// histograms and by the main thread when reading them for display
+	GMutex histogram_mutex;
+
+	// pref_mutex guards com.pref: generic_image_worker / generic_sequence_worker / generic_mask_worker
+	// hold a reader lock for their entire job duration (so all deep com.pref.* reads are implicitly
+	// covered); process_set_*() command handlers and Python pref writes hold a writer lock briefly
+	// around the actual writes, and the GUI operations in preferences.c hold reader / writer locks as
+	// required.
+	GRWLock pref_rwlock;
+
+	GThread *python_init_thread;	// python initialization thread, used to monitor startup completion
+	GThread *python_thread;		// the thread for the python interpreter
+	char python_magic[9];		// magic number for the python interpreter, used to check .pyc compatibility
+	gboolean python_script;		// python script being executed
 	GThread *script_thread;		// reads a script and executes its commands
 	gboolean script_thread_exited;	// boolean set by the script thread when it exits
 	GThread *update_scripts_thread;	// thread used to update the scripts repository, so the GUI can wait it
 
 	int max_images;			// max number of image threads used for parallel execution
 	int max_thread;			// max total number of threads used for parallel execution
-	int fftw_max_thread;	// max number of threads for FFTW execution
+	int fftw_max_thread;		// max number of threads for FFTW execution
 
 	rectangle selection;		// coordinates of the selection rectangle
 
+	// stars_lock guards com.stars (and star_is_seqdata): writer lock when adding, replacing,
+	// or freeing the star list; reader lock when iterating or reading star data from any other thread
+	GRWLock stars_lock;
 	psf_star **stars;		// list of stars detected in the current image
 	gboolean star_is_seqdata;	// the only star in stars belongs to seq, don't free it
+
 	double magOffset;		// offset to reduce the real magnitude, single image
 
 	/* history of operations, for the FITS header and the undo feature */
-	historic *history;		// the history of all operations on the current image
-	int hist_size;			// allocated size
-	int hist_current;		// current index
-	int hist_display;		// displayed index
+	GList *undo_stack;		// undo history: head = most recent saved state
+	GList *redo_stack;		// redo history: head = most recent undone state
 
 	/* all fields below are used by some specific features as a temporary storage */
 	GSList *grad_samples;		// list of samples for the background extraction
+
+	/* Multipoint planetary registration (REG_MPP) cached run. Lives from
+	 * Analyze success until close_sequence (or app exit). Forward-declared
+	 * as void* to avoid pulling registration/mpp.h into siril.h; access via
+	 * mpp_get_cached_run() / mpp_set_cached_run() / mpp_clear_cached_run()
+	 * declared in registration/mpp.h. The pointer's actual type is
+	 * struct mpp_run *. */
+	void *mpp_run;
 
 	GSList *found_object;		// list of objects found in the image from catalogues
 
@@ -922,14 +945,21 @@ struct cominf {
 	unsigned kernelsize;		// Holds size of kernel (kernel is square kernelsize * kernelsize)
 	unsigned kernelchannels;	// Holds number of channels for the kernel
 	struct common_icc icc;		// Holds common ICC color profile data
-	version_number python_version; // Holds the python version number
+	struct gui_icc gui_icc;		// Display ICC profiles (monitor, soft proof); initialized even headlessly
+	version_number python_version;	// Holds the python version number
 	GSList *children;		// List of children; children->data is of type child_info
+	gchar *spcc_remote_catalogue;	// Current preferred mirror for the remote xp_sampled catalogue
+	gchar *spcc_remote_catalogue_xpcts;	// Current preferred mirror for the remote xp_continuous catalogue (NULL until configured)
+
+	/* Repository / script state (not display state; lives here, not in guiinfo) */
+	GSList *repo_scripts;		// list of scripts from the remote repository
+	gboolean script_repo_available;	// remote script repository is reachable
+	gboolean spcc_repo_available;	// remote SPCC repository is reachable
 };
 
 #ifndef MAIN
-extern guiinfo gui;
 extern cominfo com;		// the main data struct
-extern fits gfit;		// currently loaded image
+extern fits *gfit;		// currently loaded image
 #endif
 
 #endif /*SIRIL */

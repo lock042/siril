@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -829,7 +829,7 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 		gboolean top_down = get_debayer_orientation(fit, NULL, NULL);
 		int offset = fit->ry % 6;
 		if (offset)
-			siril_debug_print("Image with an X-Trans sensor doesn't have a height multiple of 6\n");
+			siril_log_debug("Image with an X-Trans sensor doesn't have a height multiple of 6\n");
 		if (compile_XTrans_pattern(fit->keywords.bayer_pattern, xtrans, !top_down, offset))
 			return 1;
 	}
@@ -889,7 +889,7 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 		gboolean top_down = get_debayer_orientation(fit, NULL, NULL);
 		int offset = fit->ry % 6;
 		if (offset)
-			siril_debug_print("Image with an X-Trans sensor doesn't have a height multiple of 6\n");
+			siril_log_debug("Image with an X-Trans sensor doesn't have a height multiple of 6\n");
 		if (compile_XTrans_pattern(fit->keywords.bayer_pattern, xtrans, !top_down, offset))
 			return 1;
 	}

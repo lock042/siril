@@ -54,7 +54,9 @@ package links for your OS and options for your compiler.
 If link error occurs, or a segmentation fault happens on launch, add the missing
 functions in dummy.c
 
-## Debugging scripts
+This is very rarely used, it will probably not work.
+
+## Debugging tests
 
 With the autotools way, the script creates executables for the tests which can
 be debugged like any program. With the meson and criterion method, there are a
@@ -68,4 +70,3 @@ segmentation fault in the test. Debugging with gdb using the method [documented
 in criterion](https://criterion.readthedocs.io/en/master/debug.html), where the
 test is started in gdb but another remote gdb session is required to access it,
 works on linux and probably mac.
-

@@ -2,6 +2,7 @@
 #define SRC_ALGOS_ASTROMETRY_SOLVER_H_
 
 #include "core/siril.h"
+#include "core/gtk_forward_decls.h"
 #include "core/siril_world_cs.h"
 #include "io/remote_catalogues.h"
 #include "algos/search_objects.h"
@@ -152,7 +153,5 @@ gboolean end_process_catsearch(gpointer p);
 void update_coords();
 gboolean end_plate_solver(gpointer p);
 gboolean end_platesolve_sequence(gpointer p);
-
-void on_GtkButton_IPS_metadata_clicked(GtkButton *button, gpointer user_data);
 
 #endif /* SRC_ALGOS_ASTROMETRY_SOLVER_H_ */

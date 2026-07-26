@@ -106,7 +106,6 @@
 #include <string.h>
 
 #include "core/siril.h"
-#include "gui/utils.h"
 #include "algos/Def_Math.h"
 #include "algos/Def_Mem.h"
 #include "algos/Def_Wavelet.h"

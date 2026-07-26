@@ -11,7 +11,6 @@
 extern "C" {
 #endif
 #include "core/proto.h"
-#include "gui/progress_and_log.h"
 #ifdef __cplusplus
 }
 #endif
@@ -108,22 +107,37 @@ WORD *debayer_buffer_new_ushort(WORD *buf, int *width, int *height,
 	}
 
 	float **red = (float **)malloc(ry * sizeof(float *));
+	float **green = (float **)malloc(ry * sizeof(float *));
+	float **blue = (float **)malloc(ry * sizeof(float *));
+	if (!red || !green || !blue) {
+		PRINT_ALLOC_ERR;
+		free(red);
+		free(green);
+		free(blue);
+		free(newdata);
+		free(rawdata[0]);
+		free(rawdata);
+		return NULL;
+	}
 	red[0] = newdata;
 	for (i=1; i<ry; i++)
 		red[i] = red[i - 1] + rx;
 
-	float **green = (float **)malloc(ry * sizeof(float *));
 	green[0] = red[0] + nbpixels;
 	for (i=1; i<ry; i++)
 		green[i] = green[i - 1] + rx;
 
-	float **blue = (float **)malloc(ry * sizeof(float *));
 	blue[0] = green[0] + nbpixels;
 	for (i=1; i<ry; i++)
 		blue[i] = blue[i - 1] + rx;
 
-	// 3. process
-	siril_debug_print("calling librtprocess ushort (%d)\n", interpolation);
+	// 3. process — log once per session: at 16-thread parallel reads on a
+	// 40 k-frame Bayer SER this trace would otherwise flood the script log.
+	{
+		static int once = 0;
+		if (g_atomic_int_compare_and_exchange(&once, 0, 1))
+			siril_log_debug("calling librtprocess ushort (%d)\n", interpolation);
+	}
 	rpError retval;
 	switch (interpolation) {
 		case BAYER_VNG:
@@ -240,7 +254,7 @@ float *debayer_buffer_new_float(float *buf, int *width, int *height,
 	range = max - min;
 	if (range == 0.) {
 		free(rawdata);
-		siril_debug_print("Normalisation for debayering: min = max (%f)\n", min);
+		siril_log_debug("Normalisation for debayering: min = max (%f)\n", min);
 		return NULL;
 	}
 	factor = normvalue / range;
@@ -266,22 +280,35 @@ float *debayer_buffer_new_float(float *buf, int *width, int *height,
 	}
 
 	float **red = (float **)malloc(ry * sizeof(float *));
+	float **green = (float **)malloc(ry * sizeof(float *));
+	float **blue = (float **)malloc(ry * sizeof(float *));
+	if (!red || !green || !blue) {
+		PRINT_ALLOC_ERR;
+		free(red);
+		free(green);
+		free(blue);
+		free(newdata);
+		free(rawdata);
+		return NULL;
+	}
 	red[0] = newdata;
 	for (i = 1; i < ry; i++)
 		red[i] = red[i - 1] + rx;
 
-	float **green = (float **)malloc(ry * sizeof(float *));
 	green[0] = red[0] + nbpixels;
 	for (i = 1; i < ry; i++)
 		green[i] = green[i - 1] + rx;
 
-	float **blue = (float **)malloc(ry * sizeof(float *));
 	blue[0] = green[0] + nbpixels;
 	for (i = 1; i < ry; i++)
 		blue[i] = blue[i - 1] + rx;
 
-	// 3. process
-	siril_debug_print("calling librtprocess float (%d)\n", interpolation);
+	// 3. process — log once per session (see ushort path above for rationale).
+	{
+		static int once = 0;
+		if (g_atomic_int_compare_and_exchange(&once, 0, 1))
+			siril_log_debug("calling librtprocess float (%d)\n", interpolation);
+	}
 	rpError retval;
 	switch (interpolation) {
 		case BAYER_VNG:

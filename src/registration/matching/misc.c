@@ -46,7 +46,6 @@
 #include <stdarg.h>
 #include <string.h>
 #include <ctype.h>
-#include "gui/utils.h"
 #include "algos/PSF.h"
 #include "registration/matching/misc.h"
 #include "registration/matching/atpmatch.h"
@@ -523,53 +522,53 @@ print_trans
    switch (trans->order) {
 
    case AT_TRANS_LINEAR:  /* linear transformation */
-      siril_debug_print("TRANS:\nx00=%+15.9e x10=%+15.9e x01=%+15.9e\ny00=%+15.9e y10=%+15.9e y01=%+15.9e\n",
+      siril_log_debug("TRANS:\nx00=%+15.9e x10=%+15.9e x01=%+15.9e\ny00=%+15.9e y10=%+15.9e y01=%+15.9e\n",
             trans->x00, trans->x10, trans->x01, trans->y00, trans->y10, trans->y01);
       break;
 
    case AT_TRANS_QUADRATIC:  /* quadratic terms */
-      siril_debug_print("TRANS:\nx00=%+15.9e x10=%+15.9e x01=%+15.9e x20=%+15.9e x11=%+15.9e x02=%+15.9e\n",
+      siril_log_debug("TRANS:\nx00=%+15.9e x10=%+15.9e x01=%+15.9e x20=%+15.9e x11=%+15.9e x02=%+15.9e\n",
           trans->x00, trans->x10, trans->x01, trans->x20, trans->x11, trans->x02);
-      siril_debug_print("y00=%+15.9e y10=%+15.9e y01=%+15.9e y20=%+15.9e y11=%+15.9e y02=%+15.9e\n",
+      siril_log_debug("y00=%+15.9e y10=%+15.9e y01=%+15.9e y20=%+15.9e y11=%+15.9e y02=%+15.9e\n",
           trans->y00, trans->y10, trans->y01, trans->y20, trans->y11, trans->y02);
       break;
 
    case AT_TRANS_CUBIC:  /* cubic terms */
-      siril_debug_print("TRANS:\nx00=%+15.9e x10=%+15.9e x01=%+15.9e x20=%+15.9e x11=%+15.9e x02=%+15.9e x30=%+15.9e x21=%+15.9e x12=%+15.9e x03=%+15.9e\n",
+      siril_log_debug("TRANS:\nx00=%+15.9e x10=%+15.9e x01=%+15.9e x20=%+15.9e x11=%+15.9e x02=%+15.9e x30=%+15.9e x21=%+15.9e x12=%+15.9e x03=%+15.9e\n",
          trans->x00, trans->x10, trans->x01, trans->x20, trans->x11, trans->x02,
          trans->x30, trans->x21, trans->x12, trans->x03);
-      siril_debug_print("y00=%+15.9e y10=%+15.9e y01=%+15.9e y20=%+15.9e y11=%+15.9e y02=%+15.9e y30=%+15.9e y21=%+15.9e y12=%+15.9e y03=%+15.9e\n",
+      siril_log_debug("y00=%+15.9e y10=%+15.9e y01=%+15.9e y20=%+15.9e y11=%+15.9e y02=%+15.9e y30=%+15.9e y21=%+15.9e y12=%+15.9e y03=%+15.9e\n",
          trans->y00, trans->y10, trans->y01, trans->y20, trans->y11, trans->y02,
          trans->y30, trans->y21, trans->y12, trans->y03);
       break;
 
    case AT_TRANS_QUARTIC:  /* order 4 terms */
-      siril_debug_print("TRANS:\nx00=%+15.9e x10=%+15.9e x01=%+15.9e x20=%+15.9e x11=%+15.9e x02=%+15.9e x30=%+15.9e x21=%+15.9e x12=%+15.9e x03=%+15.9e\n",
+      siril_log_debug("TRANS:\nx00=%+15.9e x10=%+15.9e x01=%+15.9e x20=%+15.9e x11=%+15.9e x02=%+15.9e x30=%+15.9e x21=%+15.9e x12=%+15.9e x03=%+15.9e\n",
          trans->x00, trans->x10, trans->x01, trans->x20, trans->x11, trans->x02,
          trans->x30, trans->x21, trans->x12, trans->x03);
-      siril_debug_print("x40=%+15.9e x31=%+15.9e 22=%+15.9e x13=%+15.9e x04=%+15.9e\n",
+      siril_log_debug("x40=%+15.9e x31=%+15.9e 22=%+15.9e x13=%+15.9e x04=%+15.9e\n",
          trans->x40, trans->x31, trans->x22, trans->x13, trans->x04);
-      siril_debug_print("y00=%+15.9e y10=%+15.9e y01=%+15.9e y20=%+15.9e y11=%+15.9e y02=%+15.9e y30=%+15.9e y21=%+15.9e y12=%+15.9e y03=%+15.9e\n",
+      siril_log_debug("y00=%+15.9e y10=%+15.9e y01=%+15.9e y20=%+15.9e y11=%+15.9e y02=%+15.9e y30=%+15.9e y21=%+15.9e y12=%+15.9e y03=%+15.9e\n",
          trans->y00, trans->y10, trans->y01, trans->y20, trans->y11, trans->y02,
          trans->y30, trans->y21, trans->y12, trans->y03);
-      siril_debug_print("y40=%+15.9e y31=%+15.9e 22=%+15.9e y13=%+15.9e y04=%+15.9e\n",
+      siril_log_debug("y40=%+15.9e y31=%+15.9e 22=%+15.9e y13=%+15.9e y04=%+15.9e\n",
          trans->y40, trans->y31, trans->y22, trans->y13, trans->y04);
       break;
 
    case AT_TRANS_QUINTIC:  /* order 5 terms */
-      siril_debug_print("TRANS:\nx00=%+15.9e x10=%+15.9e x01=%+15.9e x20=%+15.9e x11=%+15.9e x02=%+15.9e x30=%+15.9e x21=%+15.9e x12=%+15.9e x03=%+15.9e\n",
+      siril_log_debug("TRANS:\nx00=%+15.9e x10=%+15.9e x01=%+15.9e x20=%+15.9e x11=%+15.9e x02=%+15.9e x30=%+15.9e x21=%+15.9e x12=%+15.9e x03=%+15.9e\n",
          trans->x00, trans->x10, trans->x01, trans->x20, trans->x11, trans->x02,
          trans->x30, trans->x21, trans->x12, trans->x03);
-      siril_debug_print("x40=%+15.9e x31=%+15.9e 22=%+15.9e x13=%+15.9e x04=%+15.9e\n",
+      siril_log_debug("x40=%+15.9e x31=%+15.9e 22=%+15.9e x13=%+15.9e x04=%+15.9e\n",
          trans->x40, trans->x31, trans->x22, trans->x13, trans->x04);
-      siril_debug_print("x50=%+15.9e x41=%+15.9e 32=%+15.9e x23=%+15.9e x14=%+15.9e x05=%+15.9e\n",
+      siril_log_debug("x50=%+15.9e x41=%+15.9e 32=%+15.9e x23=%+15.9e x14=%+15.9e x05=%+15.9e\n",
          trans->x50, trans->x41, trans->x32, trans->x23, trans->x14, trans->x05);
-      siril_debug_print("y00=%+15.9e y10=%+15.9e y01=%+15.9e y20=%+15.9e y11=%+15.9e y02=%+15.9e y30=%+15.9e y21=%+15.9e y12=%+15.9e y03=%+15.9e\n",
+      siril_log_debug("y00=%+15.9e y10=%+15.9e y01=%+15.9e y20=%+15.9e y11=%+15.9e y02=%+15.9e y30=%+15.9e y21=%+15.9e y12=%+15.9e y03=%+15.9e\n",
          trans->y00, trans->y10, trans->y01, trans->y20, trans->y11, trans->y02,
          trans->y30, trans->y21, trans->y12, trans->y03);
-      siril_debug_print("y40=%+15.9e y31=%+15.9e 22=%+15.9e y13=%+15.9e y04=%+15.9e\n",
+      siril_log_debug("y40=%+15.9e y31=%+15.9e 22=%+15.9e y13=%+15.9e y04=%+15.9e\n",
          trans->y40, trans->y31, trans->y22, trans->y13, trans->y04);
-      siril_debug_print("y50=%+15.9e y41=%+15.9e 32=%+15.9e y23=%+15.9e y14=%+15.9e y05=%+15.9e\n",
+      siril_log_debug("y50=%+15.9e y41=%+15.9e 32=%+15.9e y23=%+15.9e y14=%+15.9e y05=%+15.9e\n",
          trans->y50, trans->y41, trans->y32, trans->y23, trans->y14, trans->y05);
       break;
 

@@ -22,7 +22,7 @@ The application is divided into 2 binaries. The first one, siril, launches the p
 Prints the program name and version, then exits.
 
 .TP
-.B -i \fIconf_file\fR
+.B -i \fIconf_file\fR, --initfile=\fIconf_file\fR
 Starts \fBSiril\fP with the specified configuration file.
 
 .TP
@@ -42,7 +42,7 @@ Displays a brief usage summary.
 Starts siril in offline mode. No network functions will work in offline mode. After startup Siril may be put back into online mode using the built-in command \fBonline\fR.
 
 .TP
-.B -p
+.B -p, --pipe
 Starts \fBSiril\fP without the graphical user interface and uses named pipes to accept commands and print logs and status information. On POSIX systems, the named pipes are created in /tmp/siril_commands.in and /tmp/siril_commands.out.
 
 .TP
@@ -52,6 +52,10 @@ Provides an alternative path for the input pipe that receives the commands if \f
 .TP
 .B -w \fIoutput_pipe_path\fR, --outpipe=\fIoutput_pipe_path\fR
 Provides an alternative path for the output pipe that prints logs and status updates if \fB-p\fR is passed. The pipe can be created by an external program with the mkfifo(1) command.
+
+.TP
+.B --sync_spcc
+Fetches the current list of SPCC (Spectrophotometric Color Calibration) mirror servers from the internet and caches it locally, then exits. This is useful when running \fBsiril-cli\fP in environments where the mirror list has not been previously populated. Without this option, \fBsiril-cli\fP uses a hardcoded default mirror URL.
 
 .TP
 .B -d \fIworking_directory\fR, --directory=\fIworking_directory\fR
@@ -111,7 +115,7 @@ https://gitlab.com/free-astro/siril/-/issues
  Adrian Knagg-Baugh <aje dot baugh at gmail dot com>
 
 .SH COPYRIGHT
-Copyright \(co 2025 Free Software Foundation, Inc.
+Copyright \(co 2026 Free Software Foundation, Inc.
 License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.
 .br
 This is free software: you are free to change and redistribute it.

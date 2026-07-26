@@ -7,6 +7,11 @@
 //#define STACK_DEBUG
 
 #define MAX_IMAGES_FOR_OVERLAP 30 // if normalizing on overlaps with more than MAX_IMAGES_FOR_OVERLAP selected, it will trigger a warning
+
+/* Threshold below which #pragma omp simd reductions over a per-pixel frame
+ * stack are skipped in favour of plain scalar — the vector prologue/epilogue
+ * cost otherwise dominates. Matches SIRIL_STATS_FLOAT_SD_SIMD_THRESHOLD. */
+#define STACK_SIMD_N_THRESHOLD 16
 /* the stacking method */
 typedef int (*stack_method)(struct stacking_args *args);
 
@@ -24,6 +29,7 @@ typedef enum {
 	STACK_MEDIAN,
 	STACK_MAX,
 	STACK_MIN,
+	STACK_MPP,
 } stackMethod;
 
 /* identical to the combo box items */
@@ -101,6 +107,13 @@ struct stacking_args {
 	struct timeval t_start;
 	int retval;
 	fits result;
+
+	/* STACK_MPP only: per-call stack-side config overrides (drizzle factor,
+	 * stack-percent, etc.). NULL → use whatever the .mpp sidecar persisted
+	 * at register time. Owned by stack_function_handler; freed in
+	 * stacking_args_deep_free. Forward-declared as void* so this header
+	 * doesn't have to pull in mpp_config.h. Actual type: struct mpp_config. */
+	void *mpp_cfg;
 };
 
 /* configuration from the command line */
@@ -172,6 +185,7 @@ int stack_median(struct stacking_args *args);
 int stack_mean_with_rejection(struct stacking_args *args);
 int stack_addmax(struct stacking_args *args);
 int stack_addmin(struct stacking_args *args);
+int stack_mpp_handler(struct stacking_args *args); // STACK_MPP — reads .mpp sidecar, runs mpp_stack_apply
 void main_stack(struct stacking_args *args);
 void clean_end_stacking(struct stacking_args *args);
 gpointer stack_function_handler(gpointer p);

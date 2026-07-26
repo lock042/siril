@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -44,10 +44,15 @@ struct KeywordInfo {
     enum keywords_type type;    // type of the keyword
     const char *comment;    // comment
     void *data;    // pointer to the data in keyword struct
+    /* the read handler is used in two ways:
+     * - if fixed_value, it is called before the generic write, so it reads the data
+     * - if !fixed_value, it is called after, so it only modifies the read data
+     */
     special_handler_read_func special_handler_read;
+    // the save handler is always called, the generic save is called after it unless !is_saved
     special_handler_save_func special_handler_save;
-    gboolean is_saved;
-    gboolean fixed_value;
+    gboolean is_saved;    // rename to enable_generic_save?
+    gboolean fixed_value; // rename to enable_generic_read and invert usage?
     gboolean used;
 };
 

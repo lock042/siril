@@ -1,7 +1,10 @@
 #ifndef _SIRIL_STATS_H
 #define _SIRIL_STATS_H
 
+#include <math.h>
+
 struct stat_data {
+	destructor destroy_fn;
 	fits *fit;
 	int option;
 	rectangle selection;
@@ -10,6 +13,10 @@ struct stat_data {
 	gchar *csv_name;
 	const gchar *seqEntry;	// not used for stats
 	gboolean cfa;
+	imstats *stats[3]; // for stat_cmd_image_hook
+	gboolean has_selection; // for stat_cmd_image_hook
+	int nplane; // for stat_cmd_image_hook
+
 };
 
 #define NULL_STATS -999999.0
@@ -30,6 +37,9 @@ struct stat_data {
 #define STATS_LITENORM	(STATS_BASIC | STATS_MAD) // for faster normalization
 
 #include "core/siril.h"
+
+void free_stat_data(void *p);
+struct stat_data *alloc_stat_data();
 
 imstats* statistics(sequence *seq, int image_index, fits *fit, int layer,
 		rectangle *selection, int option, threading_type threads);
@@ -55,7 +65,46 @@ void apply_stats_to_sequence(struct stat_data *stat_args);
 float siril_stats_ushort_sd_64(const WORD data[], const int N);
 float siril_stats_ushort_sd_32(const WORD data[], const int N);
 float siril_stats_ushort_mad(const WORD* data, const size_t n, const double m, threading_type threads);
-float siril_stats_float_sd(const float data[], const int N, float *mean);
+
+/* Inlined in the header so callers in tight loops (e.g. per-pixel rejection)
+ * can avoid the call-site overhead and let the compiler specialise on N.
+ *
+ * N is the number of frames, so int is fine. Accumulating in double precision
+ * is important for accuracy.
+ *
+ * For small N the #pragma omp simd peel/tail scaffolding costs more than the
+ * vector body saves, so we fall through to a plain scalar loop that the
+ * compiler can still auto-vectorise where profitable. Threshold picked from
+ * profiling on the MR that introduced the SIMD path; tune if needed.
+ */
+#define SIRIL_STATS_FLOAT_SD_SIMD_THRESHOLD 24
+
+static inline float siril_stats_float_sd(const float data[], const int N, float *m) {
+	double sum = 0.0, vsum = 0.0;
+	float mean;
+
+	if (N < SIRIL_STATS_FLOAT_SD_SIMD_THRESHOLD) {
+		for (int i = 0; i < N; i++) sum += (double)data[i];
+		mean = (float)(sum / N);
+		for (int i = 0; i < N; i++) {
+			float d = data[i] - mean;
+			vsum += (double)(d * d);
+		}
+	} else {
+#pragma omp simd reduction(+:sum)
+		for (int i = 0; i < N; i++) sum += (double)data[i];
+		mean = (float)(sum / N);
+#pragma omp simd reduction(+:vsum)
+		for (int i = 0; i < N; i++) {
+			float d = data[i] - mean;
+			vsum += (double)(d * d);
+		}
+	}
+
+	if (m) *m = mean;
+	return sqrtf((float)(vsum / (N - 1)));
+}
+
 double siril_stats_float_mad(const float *data, const size_t n, const double m, threading_type threads, float *buffer);
 float siril_stats_trmean_from_sorted_data(const float trim, const float sorted_data[], const size_t stride, const size_t size);
 
@@ -71,4 +120,12 @@ int sos_update_noise_float(float *array, long nx, long ny, long nchans, double *
 double robust_median_w(fits *fit, rectangle *area, int chan, float lower, float upper);
 double robust_median_f(fits *fit, rectangle *area, int chan, float lower, float upper);
 int quick_minmax(fits *fit, double *minval, double *maxval);
+
+/* Histogram computation — implemented in gui/histogram_utils.c (GUI build)
+ * and headless_stubs.c (headless build).  Declared here so that non-GUI
+ * callers (e.g. core/command.c) can include this header rather than
+ * core/gui_calls.h. */
+gsl_histogram *computeHisto(fits *fit, int layer);
+gsl_histogram *computeHisto_Selection(fits *fit, int layer, rectangle *selection);
+
 #endif

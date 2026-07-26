@@ -1,6 +1,6 @@
 # This file is part of Siril, an astronomy image processor.
 # Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
-# Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+# Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
 # Reference site is https://siril.org
 #
 # Siril is free software: you can redistribute it and/or modify
@@ -27,7 +27,7 @@
 
 project('siril',
   ['c','cpp'],
-  version : '1.4.0-beta4',
+  version : '1.5.0',
   license : ['GPL3'],
   meson_version: '>=0.56.0',
   default_options : [
@@ -46,8 +46,17 @@ have_fftw3fomp = false
 have_fftw3fthreads = false
 have_fftw3fthreadsnolinkerarg = false
 
+# -Dgtk is a boolean:
+#   - true  → builds the GTK4 GUI from src/gui-gtk4 (default).
+#   - false → headless CLI-only build (no GTK / GtkSourceView / X11 deps).
+enable_gtk       = get_option('gtk')
+gui_subdir       = 'gui-gtk4'
+if enable_gtk
+  add_project_arguments('-DUSE_GTK4=1', language: ['c', 'cpp'])
+endif
 enable_openmp    = get_option('openmp')
 enable_libcurl   = get_option('libcurl')
+enable_sqlite    = get_option('sqlite')
 enable_exiv      = get_option('exiv2')
 enable_libraw    = get_option('libraw')
 enable_libtiff   = get_option('libtiff')
@@ -245,7 +254,33 @@ if platform_windows
 else
   gio_platform_dep = dependency('gio-unix-2.0', required : true, version: '>= 2.56.0')
 endif
-gtk_dep = dependency('gtk+-3.0', required : true, version: '>= 3.22.0')
+# GTK is required for GUI builds and entirely omitted in headless builds
+# (-Dgtk=false).  The GUI/core boundary is enforced by siril_lib being compiled
+# against core_dep (GTK-free); any gui/ header leakage into core sources would
+# fail to compile.
+#
+# 4.10 introduced GtkAlertDialog, GtkFileDialog, GtkColorDialog and
+# gtk_widget_add_css_class.  4.12 added gtk_column_view_scroll_to /
+# GTK_LIST_SCROLL_NONE which gui-gtk4/keywords_tree.c relies on, so
+# 4.12 is the effective floor for the GTK4 backend.
+if not enable_gtk
+  gtk_dep = no_dep
+else
+  gtk_dep = dependency('gtk4',     required : true, version: '>= 4.12.0')
+endif
+# libX11 is used by the GTK4 GDK X11 drag-and-drop fallback (see
+# src/gui-gtk4/single_image.c).  Gated by the legacy-x11-support option
+# and host OS — only built on Linux / BSD with GTK4; off elsewhere.
+enable_x11_dnd_fallback = (enable_gtk
+  and get_option('legacy-x11-support')
+  and host_machine.system() not in ['darwin', 'windows'])
+x11_dep = enable_x11_dnd_fallback ? dependency('x11', required : true) : no_dep
+# Cairo, Pango and gdk-pixbuf are used by io/siril_plot.c and io/ser.c which
+# are in the core library, so they are always required.
+cairo_dep = dependency('cairo', required : true, version: '>= 1.14.0')
+pango_dep = dependency('pango', required : true)
+pangocairo_dep = dependency('pangocairo', required : true)
+gdk_pixbuf_dep = dependency('gdk-pixbuf-2.0', required : true, version: '>= 2.36.0')
 gsl_dep = dependency('gsl', required : true)
 m_dep = cc.find_library('m', required : false)
 # lcms2 dependency for color management
@@ -282,10 +317,14 @@ else
 endif
 cairo_dep = dependency('cairo', required : true)
 kplot_dep = dependency('kplot', fallback : ['kplot', 'kplot_dep'], required : true)
-opencv4_dep = dependency('opencv4', required : true, version: '>= 4.2.0')
+opencv_dep = dependency('opencv5', version : '>= 5.0.0', required : false)
+if not opencv_dep.found()
+  opencv_dep = dependency('opencv4', version : '>= 4.2.0', required : true)
+endif
 # checking required opencv modules
-opencv_symbols = ['HAVE_OPENCV_CORE', 'HAVE_OPENCV_IMGPROC', 'HAVE_OPENCV_CALIB3D', 'HAVE_OPENCV_STITCHING']
-opencv_incdir = '-I'+opencv4_dep.get_variable(pkgconfig : 'includedir')
+opencv_calib_module = opencv_dep.version().version_compare('>= 5.0.0') ? 'HAVE_OPENCV_GEOMETRY' : 'HAVE_OPENCV_CALIB3D'
+opencv_symbols = ['HAVE_OPENCV_CORE', 'HAVE_OPENCV_IMGPROC', opencv_calib_module, 'HAVE_OPENCV_STITCHING']
+opencv_incdir = '-I'+opencv_dep.get_variable(pkgconfig : 'includedir')
 foreach s : opencv_symbols
   cpp.has_header_symbol('opencv2/opencv_modules.hpp', s, args: [opencv_incdir], required : true)
 endforeach
@@ -297,6 +336,7 @@ if not rtprocess_dep.found()
   # Call CMake with `-DBUILD_SHARED_LIBS=OFF`
   opt_var.add_cmake_defines({'BUILD_SHARED_LIBS': false})
   opt_var.add_cmake_defines({'OPTION_OMP': false})
+  opt_var.set_install(false)
   if get_option('buildtype').startswith('debug')
     opt_var.add_cmake_defines({'CMAKE_BUILD_TYPE': 'debug'})
   endif
@@ -314,6 +354,7 @@ if not htmesh_dep.found()
 
   # Call CMake with `-DCMAKE_CXX_FLAGS="-I$(abs_srcdir)/htmesh"
   opt_var.add_cmake_defines({'CMAKE_CXX_FLAGS': '-I'+meson.current_source_dir()+'/subprojects/htmesh'})
+  opt_var.set_install(false)
 if platform_windows
   opt_var.append_compile_args('cpp', '-Wno-unknown-pragmas')
 endif
@@ -324,7 +365,11 @@ endif
 else
   siril_cpp_flag += '-DHAVE_HTMESH'
 endif
-gtksourceview_dep = dependency('gtksourceview-4')
+if not enable_gtk
+  gtksourceview_dep = no_dep
+else
+  gtksourceview_dep = dependency('gtksourceview-5', required : true)
+endif
 
 healpix_dep = dependency('healpix_cxx', fallback : ['healpix_cxx', 'healpix_cxx_dep'], required : true, version: '>= 3.83')
 yyjson_dep = dependency('yyjson', required : false, version: '>= 0.10.0')
@@ -332,6 +377,7 @@ if not yyjson_dep.found()
   opt_var = cmake.subproject_options()
   # Call CMake with `-DCMAKE_CXX_FLAGS="-I$(abs_srcdir)/htmesh"
   opt_var.add_cmake_defines({'CMAKE_CXX_FLAGS': '-I'+meson.current_source_dir()+'/subprojects/yyjson'})
+  opt_var.set_install(false)
 if platform_windows
   opt_var.append_compile_args('cpp', '-Wno-unknown-pragmas')
 endif
@@ -353,7 +399,8 @@ if enable_openmp
     siril_cpp_flag += ['-Xpreprocessor', '-fopenmp']
     siril_c_flag += ['-Xpreprocessor', '-fopenmp']
   else
-  openmp_dep = dependency('openmp', required : true)
+  # 4.5 (Nov 2015) needed for `#pragma omp simd reduction(min:...) reduction(max:...)`
+  openmp_dep = dependency('openmp', version : '>=4.5', required : true)
   endif
 else
   message('OpenMP disabled')
@@ -436,12 +483,15 @@ endif
 libgit2_dep = no_dep
 if enable_libgit2
   libgit2_dep = dependency('libgit2', required : true)
-  if libgit2_dep.version().version_compare('>=1.8.1') and libgit2_dep.version().version_compare('<1.9.1')
+  if libgit2_dep.version().version_compare('>=1.8.1') and libgit2_dep.version().version_compare('<1.9.3')
     libgit2_warning='''
 
-        libgit2 with a version between 1.8.0 and 1.9.0 is known to have serious issues.
+        libgit2 with a version between 1.8.0 and 1.9.2 is known to have issues that
+        have previously caused problems with synchronising local repositories with gitlab.
+        In practice this has been resolved by changes made by gitlab to their HTTP responses,
+        but for confidence that the issue cannot recur you should build against libgit2
+        1.9.3 or later.
         https://github.com/libgit2/libgit2/issues/7090
-        Please update to 1.9.1 or later.
     '''
     warning(libgit2_warning)
     warnings += libgit2_warning
@@ -469,6 +519,11 @@ if enable_libcurl
   libcurl_dep = dependency('libcurl', required : true)
 endif
 
+sqlite_dep = no_dep
+if enable_sqlite
+  sqlite_dep = dependency('sqlite3', version: '>= 3.0')
+endif
+
 criterion_dep = no_dep
 if enable_criterion
   criterion_dep = dependency('criterion', required : true)
@@ -486,6 +541,8 @@ conf_data.set('SIRIL_UNSTABLE', stable ? false : 1)
 conf_data.set('SIRIL_OUTPUT_DEBUG', get_option('buildtype').startswith('debug') ? 1 : false)
 conf_data.set('ENABLE_RELOCATABLE_RESOURCES', relocatable_bundle ? 1 : false)
 conf_data.set('OS_OSX', platform_osx ? 1 : false)
+conf_data.set('HAVE_GTK', enable_gtk ? 1 : false, description : 'Build includes GTK GUI support.')
+conf_data.set('HAVE_X11_DND_FALLBACK', enable_x11_dnd_fallback ? 1 : false, description : 'GTK4 X11 drag-and-drop fallback compiled in (libX11 linked).')
 
 conf_data.set('SIRIL_MAJOR_VERSION', siril_version_major)
 conf_data.set('SIRIL_MINOR_VERSION', siril_version_minor)
@@ -538,6 +595,22 @@ if get_option('flatpak-id') != ''
   conf_data.set_quoted('FLATPAK_ID', get_option('flatpak-id'))
 endif
 
+if host_machine.system() == 'windows'
+  msystem = run_command('sh', '-c', 'echo $MSYSTEM', check: false).stdout().strip()
+  message('MSYSTEM: @0@'.format(msystem))
+  
+  # MSYSTEM will be: UCRT64, CLANG64, MINGW64, CLANGARM64, etc.
+  if msystem == 'UCRT64' or msystem == 'CLANG64' or msystem == 'CLANGARM64'
+    add_project_arguments('-DUSE_UCRT', language: ['c', 'cpp'])
+    message('Building with UCRT runtime')
+  else
+    message('Building with MSVCRT runtime')
+  endif
+  conf_data.set_quoted('SIRIL_BUILD_PLATFORM_ENV', msystem.to_lower())
+else
+  conf_data.set_quoted('SIRIL_BUILD_PLATFORM_ENV', '')
+endif
+
 # Check for available headers
 foreach header : [
     { 'm': 'HAVE_EXECINFO_H',     'v': 'execinfo.h' },
@@ -549,7 +622,7 @@ foreach header : [
 endforeach
 
 ## Dependencies configuration
-if opencv4_dep.version().version_compare('>=4.4.0')
+if opencv_dep.version().version_compare('>=4.4.0')
   conf_data.set('HAVE_CV44', 1, description : 'Using OpenCV 4.4 and all registration features.')
 else
   warning('OpenCV 4.4 was not found, using a lower version that does not support translation-only registration instead.')
@@ -651,29 +724,48 @@ else
   conf_data.set('HAVE_LIBCURL', false, description : 'Using Curl.')
 endif
 
+if sqlite_dep.found()
+  conf_data.set('HAVE_SQLITE', true, description : 'Using SQLite.')
+else
+  conf_data.set('HAVE_SQLITE', false, description : 'Using SQLite.')
+endif
+
 conf_data.set('HAVE_CXX11', true, description : 'Define to 1 if cpp compiler is C++11 compliant.')
 
 ## Git configuration
 git_data = configuration_data()
-git_data.set_quoted('SIRIL_GIT_VERSION_ABBREV', git_version)
-git_data.set_quoted('SIRIL_GIT_LAST_COMMIT_YEAR', git_last_commit_year)
+git_data.set('SIRIL_GIT_VERSION_ABBREV', git_version)
+git_data.set('SIRIL_GIT_LAST_COMMIT_YEAR', git_last_commit_year)
 
 ################################################################################
 # Externals dependencies
+#
+# core_dep — GTK-free subset used to compile siril_lib (the core static library).
+#            Any src_files source that includes <gtk/gtk.h> or <gdk/gdk.h>
+#            (directly or transitively) will fail to compile against core_dep,
+#            making the GUI boundary machine-checkable at build time.
+#
+# externals_dep — full dependency set including GTK.  Used by GUI source files
+#                 (src_files_gui), main.c, tests, and siril-cli (which links
+#                 GTK-free libraries but whose own source files are benign).
 
-externals_dep = declare_dependency(
+core_dep = declare_dependency(
   dependencies: [
     dbghelp,
     m_dep,
     glib_dep,
     gio_dep,
     gio_platform_dep,
-    gtk_dep,
+    cairo_dep,         # always required (io/siril_plot.c)
+    pango_dep,         # always required (io/siril_plot.c)
+    pangocairo_dep,    # always required (io/siril_plot.c)
+    gdk_pixbuf_dep,    # always required (io/image_format_fits.c thumbnails)
     lcms_dep,
     libcurl_dep,
+    sqlite_dep,
     libgit2_dep,
     gsl_dep,
-    opencv4_dep,
+    opencv_dep,
     rtprocess_dep,
     htmesh_dep,
     healpix_dep,
@@ -693,8 +785,16 @@ externals_dep = declare_dependency(
     openmp_dep,
     kplot_dep,
     ffmpeg,
-    gtksourceview_dep,
     yyjson_dep
+  ]
+)
+
+externals_dep = declare_dependency(
+  dependencies: [
+    core_dep,
+    gtk_dep,           # no_dep when -Dgtk=false
+    gtksourceview_dep, # no_dep when -Dgtk=false
+    x11_dep,           # no_dep on non-X11 / headless builds
   ]
 )
 
@@ -754,6 +854,7 @@ summary(
 
 summary(
   {
+    'gtk (GUI)' : enable_gtk,
     'openmp'    : get_option('openmp'),
     'arch_native' : get_option('arch_native'),
   }, section: 'Optional features'
@@ -773,6 +874,7 @@ summary(
     'libgit2'           : libgit2_dep.found(),
     'ffmpeg'            : ffmpeg_found,
     'libcurl'           : libcurl_dep.found(),
+    'sqlite'            : sqlite_dep.found(),
     'criterion'         : criterion_dep.found(),
   }, section: 'Optional dependencies'
 )

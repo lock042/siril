@@ -1,8 +1,6 @@
 #ifndef SRC_IO_SIRIL_PYTHONMODULE_H
 #define SRC_IO_SIRIL_PYTHONMODULE_H
 
-// Status codes for command responses
-#include <sys/cdefs.h>
 // siril_plot_data
 #include "io/siril_plot.h"
 
@@ -99,15 +97,76 @@ typedef enum {
 	CMD_GET_STF_LINKED = 82,
 	CMD_SET_STF_LINKED = 83,
 	CMD_SET_IMAGE_FILENAME = 84,
+	CMD_GET_SIRIL_LOG = 85,
+	CMD_SAVE_IMAGE_FILE = 86,
+	CMD_GET_IMAGE_MASK = 87,
+	CMD_SET_IMAGE_MASK = 88,
+	CMD_SET_IMAGE_MASK_STATE = 89,
+	CMD_GET_IMAGE_MASK_STATE = 90,
+	CMD_MASK_UPDATE_POLYGON = 91,
+	CMD_OPEN_DIALOG = 92,
 	CMD_ERROR = 0xFF
 } CommandType;
+
+typedef enum {
+	ABOUT_DIALOG = 0,
+	ANNOTATE_DIALOG = 1,
+	ASINH_DIALOG = 2,
+	ASTROMETRY_DIALOG = 3,
+	BACKGROUND_EXTRACTION_DIALOG = 4,
+	BDECONV_DIALOG = 5,
+	BINXY_DIALOG = 6,
+	CANON_FIXBANDING_DIALOG = 7,
+	CCM_DIALOG = 8,
+	CLAHE_DIALOG = 9,
+	COLOR_CALIBRATION = 10,
+	COMPSTARS = 11,
+	COMPOSITION_DIALOG = 12,
+	COSMETIC_DIALOG = 13,
+	CURVES_DIALOG = 14,
+	CWD_DIALOG = 15,
+	DENOISE_DIALOG = 16,
+	DIALOG_FFT = 17,
+	DIALOG_STAR_REMIX = 18,
+	EDGE_DIALOG = 19,
+	EPF_DIALOG = 20,
+	EXTRACT_CHANNEL_DIALOG = 21,
+	EXTRACT_WAVELETS_LAYERS_DIALOG = 22,
+	FILE_INFORMATION = 23,
+	GHT_DIALOG = 24,
+	HISTOGRAM_DIALOG = 25,
+	ICC_DIALOG = 26,
+	KEYWORDS_DIALOG = 27,
+	LINEARMATCH_DIALOG = 28,
+	MEDIAN_DIALOG = 29,
+	MERGE_CFA_DIALOG = 30,
+	NINA_LIGHT_CURVE = 31,
+	OPEN_DIALOG = 32,
+	PCC_DIALOG = 33,
+	PIXEL_MATH_DIALOG = 34,
+	PREFS_DIALOG = 35,
+	RESAMPLE_DIALOG = 36,
+	RGRADIENT_DIALOG = 37,
+	ROTATION_DIALOG = 38,
+	S_PCC_DIALOG = 39,
+	SATU_DIALOG = 40,
+	SAVEAS_DIALOG = 41,
+	SCNR_DIALOG = 42,
+	SEQLIST_DIALOG = 43,
+	SPLIT_CFA_DIALOG = 44,
+	STARS_LIST_WINDOW = 46,
+	STAT_WINDOW = 47,
+	UNPURPLE_DIALOG = 48,
+	WAVELETS_DIALOG = 49
+} DialogID;
 
 typedef enum {
 	LOG_WHITE = 0,
 	LOG_RED = 1,
 	LOG_SALMON = 2,
 	LOG_GREEN = 3,
-	LOG_BLUE = 4
+	LOG_BLUE = 4,
+	LOG_BOLD = 5
 } LogColor;
 
 // Config types matching python side
@@ -196,6 +255,18 @@ typedef struct {
 
 } CommunicationState;
 
+typedef struct {
+    guint32 width;
+    guint32 height;
+    guint32 channels;
+    guint32 data_type;  // 0 = WORD, 1 = float
+    guint64 image_size;
+    char image_shm_name[256];
+    guint64 header_size;
+    char header_shm_name[256];
+    char filename[256];
+} save_image_info_t;
+
 // Public functions
 //gpointer open_python_channel(gpointer user_data);
 //int release_python_channel();
@@ -203,12 +274,15 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 gboolean send_response(Connection *conn, uint8_t status, const void* data, uint32_t length);
 shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region, gboolean as_preview, gboolean linked);
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length);
+gboolean handle_set_image_mask_request(Connection *conn, fits *fit, incoming_image_info_t* info);
 siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size);
 gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info);
 gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_info_t* info, gboolean show_samples, gboolean recalculate);
 gboolean handle_set_image_header_request(Connection* conn, const incoming_image_info_t* info);
 gboolean handle_add_user_polygon_request(Connection* conn, const incoming_image_info_t* info);
+gboolean handle_mask_update_polygon_request(Connection* conn, const incoming_image_info_t* info);
 gboolean handle_set_iccprofile_request(Connection* conn, const incoming_image_info_t* info);
+gboolean handle_save_image_file_request(Connection *conn, const char* payload, size_t payload_length);
 void cleanup_shm_allocation(Connection *conn, const char* shm_name);
 shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_t total_bytes);
 void initialize_python_venv_in_thread();

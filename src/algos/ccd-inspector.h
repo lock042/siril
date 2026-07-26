@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -34,12 +34,9 @@ struct tilt_data {
 	float m, m1, m2, m3, m4, mr1, mr2;
 };
 
-void clear_sensor_tilt();
+void clear_sensor_tilt(void);
 int draw_sensor_tilt(fits *fit);
 
 void apply_tilt_to_sequence(struct tilt_data *tilt_args);
-
-void compute_aberration_inspector();
-void redraw_aberration_inspector();
 
 #endif /* SRC_ALGOS_CCD_INSPECTOR_H_ */

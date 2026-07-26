@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -52,7 +52,6 @@
 #include "core/siril.h"
 #include "core/icc_profile.h"
 #include "core/proto.h"
-#include "core/siril_actions.h"
 #include "core/initfile.h"
 #include "core/command_line_processor.h"
 #include "core/pipe.h"
@@ -60,17 +59,17 @@
 #include "core/siril_language.h"
 #include "core/siril_log.h"
 #include "core/siril_networking.h"
+#include "core/siril_update.h"
 #include "core/OS_utils.h"
 #include "algos/siril_random.h"
 #include "io/sequence.h"
 #include "io/conversion.h"
 #include "io/siril_pythonmodule.h"
-#include "gui/progress_and_log.h"
+#include "algos/photometric_cc.h" /* initialize_spcc_mirrors() */
 
 /* the global variables of the whole project */
 cominfo com;	// the core data struct
-guiinfo gui;	// the gui data struct
-fits gfit;	// currently loaded image
+fits *gfit = NULL;	// currently loaded image
 
 static gchar *main_option_directory = NULL;
 static gchar *main_option_script = NULL;
@@ -78,6 +77,7 @@ static gchar *main_option_initfile = NULL;
 static gchar *main_option_rpipe_path = NULL;
 static gchar *main_option_wpipe_path = NULL;
 static gboolean main_option_pipe = FALSE;
+static gboolean main_option_sync_spcc = FALSE;
 
 static gboolean _print_version_and_exit(const gchar *option_name,
 		const gchar *value, gpointer data, GError **error) {
@@ -117,6 +117,7 @@ static GOptionEntry main_option[] = {
 	{ "pipe", 'p', 0, G_OPTION_ARG_NONE, &main_option_pipe, N_("run in console mode with command and log stream through named pipes"), NULL },
 	{ "inpipe", 'r', 0, G_OPTION_ARG_FILENAME, &main_option_rpipe_path, N_("specify the path for the read pipe, the one receiving commands"), NULL },
 	{ "outpipe", 'w', 0, G_OPTION_ARG_FILENAME, &main_option_wpipe_path, N_("specify the path for the write pipe, the one outputting messages"), NULL },
+	{ "sync_spcc", 0, 0, G_OPTION_ARG_NONE, &main_option_sync_spcc, N_("fetch the current SPCC mirror list from the internet and cache it locally, then exit"), NULL },
 	{ "format", 'f', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_list_of_formats_and_exit, N_("print all supported image file formats (depending on installed libraries)" ), NULL },
 	{ "offline", 'o', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _set_offline, N_("start in offline mode"), NULL },
 	{ "version", 'v', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_version_and_exit, N_("print the application’s version"), NULL},
@@ -136,6 +137,10 @@ static void global_initialization() {
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
 	initialize_default_settings();	// com.pref
+
+	siril_log_debug("Initializing processing thread...\n");
+	processing_system_init();
+
 #ifdef HAVE_FFTW3F_OMP
 	fftwf_init_threads(); // Should really only be called once so do it at startup
 #endif
@@ -157,14 +162,11 @@ static void siril_app_activate(GApplication *application) {
 	com.headless = TRUE;
 	siril_initialize_rng();
 	global_initialization();
+	com.spcc_remote_catalogue = g_strdup("https://zenodo.org/records/17988559/files");
+	com.spcc_remote_catalogue_xpcts = NULL;	/* No xp_continuous catalogue published yet. */
 
 	/* initialize sequence-related stuff */
 	initialize_sequence(&com.seq, TRUE);
-
-	siril_log_color_message(_("Welcome to %s v%s\n"), "bold", PACKAGE, VERSION);
-
-	/* initialize converters (utilities used for different image types importing) */
-	gchar *supported_files = initialize_converters();
 
 	if (main_option_initfile) {
 		com.initfile = g_strdup(main_option_initfile);
@@ -177,6 +179,13 @@ static void siril_app_activate(GApplication *application) {
 
 	if (com.pref.lang)
 		language_init(com.pref.lang);
+
+	gchar *version_string = get_siril_version_string();
+	siril_log_message(_("Welcome to %s - CLI\n"), version_string);
+	g_free(version_string);
+
+	/* initialize converters (utilities used for different image types importing) */
+	gchar *supported_files = initialize_converters();
 
 	if (main_option_directory) {
 		gchar *cwd_forced;
@@ -201,8 +210,8 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	init_num_procs();
-	initialize_python_venv_in_thread();
-	initialize_profiles_and_transforms(); // color management
+	log_num_procs();
+	siril_log_message(_("Supported file types: %s\n"), supported_files);
 
 #if defined(HAVE_LIBCURL)
 	curl_global_init(CURL_GLOBAL_ALL);
@@ -237,6 +246,15 @@ static void siril_app_activate(GApplication *application) {
 	} else {
 		pipe_start(main_option_rpipe_path, main_option_wpipe_path);
 		read_pipe(main_option_rpipe_path);
+	}
+
+	initialize_python_venv_in_thread();
+	initialize_profiles_and_transforms(); // color management
+	initialize_spcc_mirrors();
+	if (main_option_sync_spcc) {
+		siril_check_spcc_mirrors(TRUE, TRUE);
+		g_free(supported_files);
+		exit(EXIT_SUCCESS);
 	}
 
 	g_free(supported_files);
@@ -342,6 +360,8 @@ int main(int argc, char *argv[]) {
 	GApplication *app;
 	const gchar *dir;
 	gint status;
+	com.headless = TRUE;
+	gfit = calloc(1, sizeof(fits));
 
 #if defined(ENABLE_RELOCATABLE_RESOURCES) && defined(OS_OSX)
 	// Remove macOS session identifier from command line arguments.
@@ -364,6 +384,9 @@ int main(int argc, char *argv[]) {
 #elif _WIN32
 	// suppression of annoying error boxes, hack from RawTherapee
 	SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
+	// avoid Python interfering with Siril's embedded Python
+	g_unsetenv("PYTHONPATH");
+	g_unsetenv("PYTHONHOME");
 #endif
 
 	initialize_siril_directories();
@@ -396,6 +419,9 @@ int main(int argc, char *argv[]) {
 		g_printerr("%s\n", help_msg);
 		g_free(help_msg);
 	}
+
+	// Shut down the processing thread
+	processing_system_shutdown();
 
 	cmsUnregisterPlugins(); // unregister any lcms2 plugins
 

@@ -99,7 +99,202 @@
   <update_contact>cyril_at_free-astro.org</update_contact>
   <content_rating type="oars-1.0"/>
   <releases>
-    <release version="1.4.0-beta4" date="2025-09-28">
+    <release version="1.4.4" type="stable" date="2026-06-17">
+      <url type="details">https://siril.org/download/1.4.4</url>
+      <description>
+        <p>
+          Maintenance release for the 1.4.x series, focusing on bug fixes and stability improvements.
+        </p>
+        <ul>
+          <li>Fixed several sequence-related issues, including file corruption (#1204), a crash when loading a sequence with an out-of-range reference image (#1950), and a regression when reading 16-bit FITSEQ files (#1946)</li>
+          <li>Fixed an incorrect "not enough disk space" error on macOS external APFS/HFS volumes</li>
+          <li>Fixed scripts in custom subfolders showing up under "Other" instead of their folder name on Windows</li>
+          <li>The script repository search now also matches the category column</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.4.3" type="stable" date="2026-05-07">
+      <url type="details">https://siril.org/download/1.4.3</url>
+      <description>
+        <p>
+          Maintenance release for the 1.4.x series. This version focuses on bug fixes,
+          stability improvements, and enhancements to the Python scripting interface.
+        </p>
+        <ul>
+          <li>Fixed several crashes and critical issues (headless undo state, Python module installation failure, loading some Hubble images)</li>
+          <li>Fixed FITSEQ handling issues, including browsing sequences with varying image sizes and individual frame reading</li>
+          <li>Fixed multiple functional bugs (incorrect dimension constraints in sirilpy, Windows pipes naming, file extension handling in Save As dialog)</li>
+          <li>Improved background extraction behavior and added support for None as a value for BAYERPAT</li>
+          <li>Enhanced Python interface with new features (SirilInterface.open_dialog(), automatic script execution at startup, -async option for pyscript)</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.4.2" type="stable" date="2026-02-18">
+      <url type="details">https://siril.org/download/1.4.2</url>
+      <description>
+        <p>
+          Maintenance release for the 1.4.x series. This version focuses on bug fixes, UI improvements,
+          Python scripting enhancements, and catalogue system optimizations.
+        </p>
+        <ul>
+          <li>Fixed crash in RGB composition when aligning RGB while L is loaded but not checked</li>
+          <li>Fixed data entry typos in Messier.csv</li>
+          <li>Fixed crash resulting from GTK code used in command functions</li>
+          <li>Reimplemented drag and drop and improved UI for GtkFileChooserButton</li>
+          <li>Added local caching of index ranges from remote SPCC catalogue and improved HTTP checks</li>
+          <li>Enabled Python methods to work with sequence frames as well as single images</li>
+          <li>Added new Windows build environment (UCRT64) to support up to 8192 files in a sequence</li>
+          <li>Improved robustness of Python virtual environment creation</li>
+          <li>Enhanced GPU detection and capabilities in sirilpy.gpuhelper</li>
+          <li>Added support for passing a list of sequence frame numbers to sirilpy.set_seq_frame_incl</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.4.1" type="stable" date="2025-01-05">
+      <url type="details">https://siril.org/download/1.4.1</url>
+      <description>
+        <p>
+          Maintenance release for the 1.4.0 series. This version focuses on build system
+          improvements, Python scripting fixes, and catalogue system enhancements.
+        </p>
+        <ul>
+          <li>
+            Fixed build error when compiled without libgit2, libjpeg and libcurl
+          </li>
+          <li>
+            Fixed issue with the tkfilebrowser submodule if duplicate filenames or bookmarks are present
+          </li>
+          <li>
+            Fixed too-strict condition and off-by-one error in sirilpy
+          </li>
+          <li>
+            Fixed sirilpy.FFit class data setter
+          </li>
+          <li>
+            Fixed remote catalogue to avoid dependency on Gaia Archive
+          </li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.4.0" type="stable" date="2025-12-05">
+      <url type="details">https://siril.org/download/1.4.0</url>
+      <description>
+        <p>
+          First stable release of the 1.4.0 series. This version marks a major milestone with
+          transformative features including Python scripting, color management, advanced Drizzle
+          implementation, and spectrophotometric calibration. This stable release includes final
+          bug fixes and improvements from the release candidate.
+        </p>
+        <ul>
+          <li>
+            Fixed RGB composition: compressed FITS files (.fit.fz, .fits.fz) now appear correctly in file selector
+          </li>
+          <li>
+            Fixed Gaia online catalogue status indicator for improved reliability
+          </li>
+          <li>
+            Enabled use of bad pixel map without requiring a master dark
+          </li>
+          <li>
+            Fixed catsearch function for solar system objects
+          </li>
+          <li>
+            Fixed empty CSV file exported by conesearch command when called from scripts
+          </li>
+          <li>
+            Improved SirilInterface.get_selection_star() with accurate photometry when computing PSF
+          </li>
+          <li>
+            Fixed get_image_history() to correctly update history with operations done since loading
+          </li>
+          <li>
+            Fixed Python environment variable handling within Siril app for Windows
+          </li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.4.0~rc2" date="2025-11-20">
+      <url type="details">https://siril.org/download/1.4.0-rc2</url>
+      <description>
+        <p>
+          Second release candidate of the 1.4.0 series, focusing on critical stability fixes
+          and platform-specific improvements. This version resolves memory issues, macOS Intel
+          compatibility problems, and various regression bugs discovered in RC1.
+        </p>
+        <ul>
+          <li>
+            Fixed crash on Intel macOS due to incorrect pragma simd clause
+          </li>
+          <li>
+            Fixed memory allocation issues during stacking on Windows
+          </li>
+          <li>
+            Fixed rejection stacking for 16-bit sequences
+          </li>
+          <li>
+            Fixed regression in pixelmath where FITS header keywords were not properly copied to result image
+          </li>
+          <li>
+            Fixed writing registration information for reference image with global registration
+          </li>
+          <li>
+            Fixed shared memory leak in set_seq_frame_pixeldata() Python function
+          </li>
+          <li>
+            Improved log message formatting to avoid double newlines
+          </li>
+          <li>
+            Increased sirilpy timeouts for better Python script reliability
+          </li>
+          <li>
+            Fixed typo in platesolve tooltip and error in meson configuration
+          </li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.4.0~rc1" date="2025-11-08">
+      <url type="details">https://siril.org/download/1.4.0-rc1</url>
+      <description>
+        <p>
+          First release candidate of the 1.4.0 series, focusing on stability and bug fixes ahead of the
+          final stable release. This version resolves critical crashes, improves stacking reliability,
+          and enhances Python integration for script developers.
+        </p>
+        <ul>
+          <li>
+            Fixed multiple critical crashes (seqstarnet, clearstar with Dynamic PSF, noise weights with overlap normalization)
+          </li>
+          <li>
+            Fixed XTrans sensor debayering issues introduced in beta4 and Bayer pattern interpretation after background extraction
+          </li>
+          <li>
+            Fixed Drizzle registration with compression enabled and global registration reference image handling
+          </li>
+          <li>
+            Improved stacking rejection algorithm to properly discard pixels with zero weight
+          </li>
+          <li>
+            Enhanced StarNet workflow using descreening for better star mask integration with recomposition tool
+          </li>
+          <li>
+            Fixed OIII extraction normalization strategy between B and G pixels for better color balance
+          </li>
+          <li>
+            Improved Python API with new SirilInterface methods (save_image_to_file, prefix arg for set_seq_frame_pixeldata)
+          </li>
+          <li>
+            Fixed various RGB composition, curves preview, and deconvolution issues
+          </li>
+          <li>
+            Enabled compiler optimizations through function inlining for improved performance
+          </li>
+          <li>
+            Added support for arbitrary script categories in preferences tree view
+          </li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.4.0~beta4" date="2025-09-28">
       <url type="details">https://siril.org/download/1.4.0-beta4</url>
       <description>
         <p>
@@ -138,7 +333,7 @@
         </ul>
       </description>
     </release>
-    <release version="1.4.0-beta3" date="2025-07-11">
+    <release version="1.4.0~beta3" date="2025-07-11">
       <url type="details">https://siril.org/download/1.4.0-beta3</url>
       <description>
         <p>
@@ -177,7 +372,7 @@
         </ul>
       </description>
     </release>
-    <release version="1.4.0-beta2" date="2025-05-21">
+    <release version="1.4.0~beta2" date="2025-05-21">
       <url type="details">https://siril.org/download/1.4.0-beta2</url>
       <description>
         <p>
@@ -222,7 +417,7 @@
         </ul>
       </description>
     </release>
-    <release version="1.4.0-beta1" date="2025-04-26">
+    <release version="1.4.0~beta1" date="2025-04-26">
       <url type="details">https://siril.org/download/1.4.0-beta1</url>
       <description>
         <p>

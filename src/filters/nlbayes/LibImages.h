@@ -15,24 +15,7 @@
 #include <vector>
 #include <string>
 #include <fftw3.h>
-
-/**
- * @brief Structure containing size informations of an image.
- *
- * @param width     : width of the image;
- * @param height    : height of the image;
- * @param nChannels : number of channels in the image;
- * @param wh        : equal to width * height. Provided for convenience;
- * @param whc       : equal to width * height * nChannels. Provided for convenience.
- **/
-struct ImageSize
-{
-	unsigned width;
-	unsigned height;
-	unsigned nChannels;
-	unsigned wh;
-	unsigned whc;
-};
+#include "algos/img_t/image.hpp"
 
 /**
  * @brief Load image, check the number of channels.
@@ -139,10 +122,10 @@ int computeDiff(
  * @return none.
  **/
 int addBoundary(
-	std::vector<float> const& i_im
-,	std::vector<float> &o_imSym
-,	const ImageSize &p_imSize
-,	const ImageSize &p_imSizeSym
+	img_t<float> const& i_im
+,	img_t<float> &o_imSym
+,	const unsigned p_widthSym
+,	const unsigned p_heightSym
 );
 
 /**
@@ -156,10 +139,10 @@ int addBoundary(
  * @return none.
  **/
 int removeBoundary(
-	std::vector<float> &o_im
-,	std::vector<float> const& i_imSym
-,	const ImageSize &p_imSize
-,	const ImageSize &p_imSizeSym
+	img_t<float> &o_im
+,	img_t<float> const& i_imSym
+,	const unsigned p_width
+,	const unsigned p_height
 );
 
 /**
@@ -174,9 +157,8 @@ int removeBoundary(
  * @return none.
  **/
 void symetrizeImage(
-	std::vector<float> const& i_im1
-,	std::vector<float> &o_im2
-,	const ImageSize p_imSize
+	img_t<float> const& i_im1
+,	img_t<float> &o_im2
 ,	const unsigned p_borderSize
 ,	const bool p_isForward
 );
@@ -191,8 +173,7 @@ void symetrizeImage(
  * @return none.
  **/
 void transformColorSpace(
-	std::vector<float> &io_im
-,	const ImageSize p_imSize
+	img_t<float> &io_im
 ,	const bool p_isForward
 );
 
@@ -209,10 +190,8 @@ void transformColorSpace(
  * @return EXIT_FAILURE in case of problems.
  **/
 int subDivide(
-	std::vector<float> const& i_im
-,	std::vector<std::vector<float> > &o_imSub
-,	const ImageSize &p_imSize
-,	ImageSize &p_imSizeSub
+	img_t<float> const& i_im
+,	std::vector<img_t<float> > &o_imSub
 ,	const unsigned p_N
 ,	const unsigned p_nb
 );
@@ -229,10 +208,8 @@ int subDivide(
  * @return EXIT_FAILURE in case of problems.
  **/
 int subBuild(
-	std::vector<float> &o_im
-,	std::vector<std::vector<float> > const& i_imSub
-,	const ImageSize &p_imSize
-,	ImageSize &p_imSizeSub
+	img_t<float> &o_im
+,	std::vector<img_t<float> > const& i_imSub
 ,	const unsigned p_N
 );
 

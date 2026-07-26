@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -28,7 +28,6 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "gui/progress_and_log.h"
 #include "algos/quality.h"
 
 static float SubSample(float *ptr, int img_wid, int x_size, int y_size);
@@ -214,7 +213,7 @@ static double Gradient(const float *buf, int width, int height) {
 			}
 	}
 	if (pixels == 0) {
-		siril_debug_print("Warning: pixels = 0 in Gradient(). Returning -1.0 to avoid div/0\n");
+		siril_log_debug("Warning: pixels = 0 in Gradient(). Returning -1.0 to avoid div/0\n");
 		val = -1.0;
 		goto end;
 	}

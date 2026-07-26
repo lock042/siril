@@ -1,7 +1,6 @@
 # List of Python files to install (outside of siril subdirectory)
 python_files = [
   'pyproject.toml',
-  'MANIFEST.in',
 ]
 
 # Install individual files (not inside subdirectories)

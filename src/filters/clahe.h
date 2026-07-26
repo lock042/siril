@@ -1,14 +1,18 @@
-#ifndef SRC_GUI_CLAHE_H_
-#define SRC_GUI_CLAHE_H_
+#ifndef SRC_FILTERS_CLAHE_H_
+#define SRC_FILTERS_CLAHE_H_
 
-/* Lucy-Richardson data from GUI */
-struct CLAHE_data {
-	fits *fit;
+#include "core/siril.h"
+#include "core/processing.h"
+
+typedef struct {
+	destructor destroy_fn;  /* Must be first member */
 	double clip;
 	int tileSize;
-};
+} clahe_params;
 
-gpointer clahe(gpointer p);
-void apply_clahe_cancel();
+int clahe_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
+gchar *clahe_log_hook(gpointer p, log_hook_detail detail);
 
-#endif /* SRC_GUI_CLAHE_H_ */
+/* apply_clahe_cancel() is declared in gui/clahe.h */
+
+#endif /* SRC_FILTERS_CLAHE_H_ */

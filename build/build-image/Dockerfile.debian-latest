@@ -10,11 +10,12 @@ RUN apt-get update -qyy \
         intltool \
         glib-networking \
         libexiv2-dev \
-        libgtk-3-dev \
+        libgtk-4-dev \
+        libx11-dev \
         libcfitsio-dev \
         libfftw3-dev \
         libgsl-dev \
-        libgtksourceview-4-dev \
+        libgtksourceview-5-dev \
         libopencv-dev \
         librsvg2-dev \
         libraw-dev \
@@ -35,7 +36,6 @@ RUN apt-get update -qyy \
         libcurl4-gnutls-dev \
         libgit2-dev \
         wcslib-dev \
-        meson \
         python3 \
         python3-pip \
         python3-venv \
@@ -46,5 +46,8 @@ RUN apt-get update -qyy \
         liblz4-dev \
         libpugixml-dev \
         libxisf-dev \
+        libsqlite3-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --break-system-packages meson!=1.10.0 ninja!=1.11.1

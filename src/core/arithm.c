@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -28,7 +28,6 @@
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "algos/statistics.h"
-#include "gui/progress_and_log.h"
 #include "io/image_format_fits.h"
 
 #include "arithm.h"
@@ -184,7 +183,7 @@ static int soper_float(fits *a, float scalar, image_operator oper) {
  */
 int soper(fits *a, float scalar, image_operator oper, gboolean conv_to_float) {
 	if (oper == OPER_DIV && scalar == 0.f) {
-		siril_log_message(_("Cannot divide by zero, aborting."));
+		siril_log_error(_("Cannot divide by zero, aborting."));
 		return 1;
 	}
 	if (a->type == DATA_USHORT) {
@@ -202,29 +201,32 @@ int descreen(fits *a, fits *b, gboolean allow_32bits, int threads) {
 	if (!a) return 1;
 	if (!b) return 1;
 	size_t ndata = a->rx * a->ry * a->naxes[2];
+
 	// Determine input types once before loop
 	gboolean a_is_ushort = (a->type == DATA_USHORT);
 	gboolean b_is_ushort = (b->type == DATA_USHORT);
+
 	// If a is ushort and allow_32bits is true, we need to convert a to float
 	if (a_is_ushort && allow_32bits) {
 		fit_replace_buffer(a, ushort_buffer_to_float(a->data, ndata), DATA_FLOAT);
 		a_is_ushort = FALSE;
 	}
+
 	// Vectorizable descreen with on-the-fly conversion
 	const float eps = 1e-6f;
+
 	if (a_is_ushort && b_is_ushort) {
 #pragma omp parallel for schedule(static) num_threads(threads) if(ndata > 50000)
 		for (size_t i = 0; i < ndata; i++) {
 			float ai = ushort_to_float_range(a->data[i]);
 			float bi = ushort_to_float_range(b->data[i]);
 			float denom = 1.f - bi;
-			// compute both versions
 			float subtracted = ai - bi;
-			float screened = subtracted / denom;
-			// mask: 1.0f if denom >= eps, else 0.0f
 			float mask = (denom >= eps) ? 1.f : 0.f;
-			// branchless blend
+			float denom_safe = denom + (1.f - mask);
+			float screened = subtracted / denom_safe;
 			float result = mask * screened + (1.f - mask) * subtracted;
+			result = fmaxf(0.f, fminf(1.f, result));
 			a->data[i] = roundf_to_WORD(result * USHRT_MAX_SINGLE);
 		}
 	} else if (a_is_ushort && !b_is_ushort) {
@@ -233,44 +235,44 @@ int descreen(fits *a, fits *b, gboolean allow_32bits, int threads) {
 			float ai = ushort_to_float_range(a->data[i]);
 			float bi = b->fdata[i];
 			float denom = 1.f - bi;
-			// compute both versions
 			float subtracted = ai - bi;
-			float screened = subtracted / denom;
-			// mask: 1.0f if denom >= eps, else 0.0f
 			float mask = (denom >= eps) ? 1.f : 0.f;
-			// branchless blend
+			float denom_safe = denom + (1.f - mask);
+			float screened = subtracted / denom_safe;
 			float result = mask * screened + (1.f - mask) * subtracted;
+			result = fmaxf(0.f, fminf(1.f, result));
 			a->data[i] = roundf_to_WORD(result * USHRT_MAX_SINGLE);
 		}
 	} else if (!a_is_ushort && b_is_ushort) {
-#pragma omp parallel for schedule(static) num_threads(com.max_thread) if(ndata > 50000)
+#pragma omp parallel for schedule(static) num_threads(threads) if(ndata > 50000)
 		for (size_t i = 0; i < ndata; i++) {
 			float ai = a->fdata[i];
 			float bi = ushort_to_float_range(b->data[i]);
 			float denom = 1.f - bi;
-			// compute both versions
 			float subtracted = ai - bi;
-			float screened = subtracted / denom;
-			// mask: 1.0f if denom >= eps, else 0.0f
-			float mask = (denom >= eps) ? 1.f : 0.f;
-			// branchless blend
+			// For float data, denom could be negative, so check absolute value
+			float abs_denom = (denom >= 0.f) ? denom : -denom;
+			float mask = (abs_denom >= eps) ? 1.f : 0.f;
+			float denom_safe = denom + (1.f - mask) * ((denom >= 0.f) ? 1.f : -1.f);
+			float screened = subtracted / denom_safe;
 			a->fdata[i] = mask * screened + (1.f - mask) * subtracted;
 		}
 	} else { // both float
-#pragma omp parallel for schedule(static) num_threads(com.max_thread) if(ndata > 50000)
+#pragma omp parallel for schedule(static) num_threads(threads) if(ndata > 50000)
 		for (size_t i = 0; i < ndata; i++) {
 			float ai = a->fdata[i];
 			float bi = b->fdata[i];
 			float denom = 1.f - bi;
-			// compute both versions
 			float subtracted = ai - bi;
-			float screened = subtracted / denom;
-			// mask: 1.0f if denom >= eps, else 0.0f
-			float mask = (denom >= eps) ? 1.f : 0.f;
-			// branchless blend
+			// For float data, denom could be negative, so check absolute value
+			float abs_denom = (denom >= 0.f) ? denom : -denom;
+			float mask = (abs_denom >= eps) ? 1.f : 0.f;
+			float denom_safe = denom + (1.f - mask) * ((denom >= 0.f) ? 1.f : -1.f);
+			float screened = subtracted / denom_safe;
 			a->fdata[i] = mask * screened + (1.f - mask) * subtracted;
 		}
 	}
+
 	return 0;
 }
 
@@ -344,7 +346,7 @@ static int imoper_to_ushort(fits *a, fits *b, image_operator oper, float factor)
 	size_t i, n = a->naxes[0] * a->naxes[1] * a->naxes[2];
 	if (!n) return 1;
 	if (memcmp(a->naxes, b->naxes, sizeof a->naxes)) {
-		siril_log_color_message(_("Images must have same dimensions.\n"), "red");
+		siril_log_error(_("Images must have same dimensions.\n"));
 		return 1;
 	}
 
@@ -457,7 +459,7 @@ int imoper_to_float(fits *a, fits *b, image_operator oper, float factor) {
 	float *result = NULL;
 
 	if (memcmp(a->naxes, b->naxes, sizeof a->naxes)) {
-		siril_log_color_message(_("Images must have same dimensions.\n"), "red");
+		siril_log_error(_("Images must have same dimensions.\n"));
 		return 1;
 	}
 
@@ -523,7 +525,7 @@ static int imoper_with_factor(fits *a, fits *b, image_operator oper, float facto
 	else {
 		if (a->type == DATA_USHORT)
 			return imoper_to_ushort(a, b, oper, factor);
-		siril_log_color_message(_("Image operations can only be kept 16 bits if first input images are 16 bits. Aborting.\n"), "red");
+		siril_log_error(_("Image operations can only be kept 16 bits if first input images are 16 bits. Aborting.\n"));
 	}
 	return 1;
 }
@@ -544,11 +546,11 @@ int addmax(fits *a, fits *b) {
 	size_t i, n = a->naxes[0] * a->naxes[1] * a->naxes[2];
 
 	if (memcmp(a->naxes, b->naxes, sizeof a->naxes)) {
-		siril_log_color_message(_("Images must have same dimensions.\n"), "red");
+		siril_log_error(_("Images must have same dimensions.\n"));
 		return 1;
 	}
 	if (a->type != b->type) {
-		siril_log_color_message(_("Images must have same data type.\n"), "red");
+		siril_log_error(_("Images must have same data type.\n"));
 		return 1;
 	}
 	g_assert(a->naxes[2] == 1 || a->naxes[2] == 3);
@@ -642,7 +644,7 @@ void gaussblur(float *y, float *x, int w, int h, float sigma) {
 	float *k = malloc(w * h * sizeof(float));
 	float (*kk)[w] = (void *)k;
 	float invss = 1/(sigma * sigma);
-	float alpha = invss / (M_PI);
+	float alpha = invss / (G_PI);
 	float scale = 1.f / (w * h);
 	float sum = 0;
 #ifdef _OPENMP

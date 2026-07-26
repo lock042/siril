@@ -4,6 +4,7 @@
 #include "sequence_filtering.h"
 #include "io/fits_sequence.h" // for fitseq
 #include "io/ser.h" // for struct ser_struct
+#include "processing_thread.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -163,9 +164,80 @@ struct _multi_split {
 	fits **images;
 };
 
+struct op_descriptor; // core/op_descriptor.h — per-op invariants, filled into args by the worker
+
+struct generic_img_args {
+	fits *fit; // input image to be processed
+	/* When set, the worker fills image_hook/log_hook/description/mem_ratio from
+	 * this descriptor (op_descriptor_fill_img_args()).  NULL for un-migrated
+	 * sites, which populate those fields directly as before. */
+	const struct op_descriptor *op;
+	float mem_ratio; 	// peak memory requirement as multiple of image size
+	/** function called to process the image
+	 *  Returns 0 on success, non-zero on error */
+	int (*image_hook)(struct generic_img_args *, fits *, int);
+	gchar* (*log_hook)(gpointer, log_hook_detail); // log hook
+	GSourceFunc idle_function; // idle function. Should be NULL when calling from command.c
+	int retval; // retval, useful for the idle_function, set by the worker
+	const char *description; // terse string description for progress messages
+	gboolean verbose; // enable verbose logging
+	/* Command requires gfit update: this should only be set in command.c
+	 * (when called from the GUI gfit updates should be done in an idle) */
+	gboolean command; // Marks this as a command (ie run from command.c) as opposed to a GUI operation
+	gboolean command_updates_gfit; // This command needs to update gfit
+	/** user data: pointer to operation-specific data. It is managed by the
+	 * caller and by convention MUST have a destructor as its
+	 first member, which is called in free_generic_img_args()
+	 */
+
+	gpointer user;
+	int max_threads; // number of threads to use for the operation
+	gboolean for_preview; // if TRUE, this is a preview operation and should not save undo
+	gboolean for_roi; // if TRUE, operation is being applied to ROI only
+	/* if TRUE, generic_image_worker does not create an undo state; provision
+	 * of an undo state (if any) is left to the caller. Two use cases:
+	 *  - operations that handle their own undo (e.g. stretches, which need to
+	 *    handle the "revert ICC if no stretch applied" issue);
+	 *  - measurement-only commands that don't modify the image (bgnoise, bg,
+	 *    stat, entropy, cdg), for which an undo state would be meaningless. */
+	gboolean skip_generic_undo;
+	gboolean mask_aware; // Whether the operation is mask-aware or not
+	gboolean has_mask;   // Captured from fit->mask before writer unlock; used by end_generic_image_update_gfit
+	/* DEPRECATED — the worker now calls populate_roi() automatically whenever
+	 * args->fit == gfit (and not script/python/headless), so callers no longer
+	 * need to set this.  Retained on the struct purely so existing call sites
+	 * continue to compile; the value is ignored. */
+	gboolean populate_roi_on_complete;
+};
+
+struct generic_mask_args {
+	fits *fit; // input image to be processed
+	/* When set, the worker fills mask_hook/log_hook/description/mem_ratio from
+	 * this descriptor (op_descriptor_fill_mask_args()). */
+	const struct op_descriptor *op;
+	float mem_ratio; 	// peak memory requirement as multiple of image size
+	/** function called to process the image
+	 *  Returns 0 on success, non-zero on error */
+	int (*mask_hook)(struct generic_mask_args *);
+	gchar* (*log_hook)(gpointer, log_hook_detail); // log hook
+	GSourceFunc idle_function; // idle function. Should be NULL when calling from command.c
+	int retval; // retval, useful for the idle_function, set by the worker
+	const char *description; // terse string description for progress messages
+	gboolean verbose; // enable verbose logging
+	/* Command requires gfit update: this should only be set in command.c
+	 * (when called from the GUI gfit updates should be done in an idle) */
+	gboolean command; // Marks this as a command (ie run from command.c) as opposed to a GUI operation
+	/** user data: pointer to operation-specific data. It is managed by the
+	 * caller and by convention MUST have a destructor as its
+	 first member, which is called in free_generic_img_args() */
+	gpointer user;
+	gboolean mask_creation; // states if this is a mask creation operation (mask is active on completion if TRUE)
+	int max_threads; // number of threads to use for the operation
+};
+
+void free_generic_img_args(struct generic_img_args *args);
 gpointer generic_sequence_worker(gpointer p);
 gboolean end_generic_sequence(gpointer p);
-
 /* default functions for some hooks */
 int seq_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer);
 int seq_prepare_hook(struct generic_seq_args *args);
@@ -178,28 +250,25 @@ int multi_prepare(struct generic_seq_args *args);
 int multi_save(struct generic_seq_args *args, int out_index, int in_index, fits *fit);
 int multi_finalize(struct generic_seq_args *args);
 
-gboolean start_in_new_thread(gpointer(*f)(gpointer p), gpointer p);
-gpointer waiting_for_thread();
-void stop_processing_thread();
-gboolean get_thread_run();
-
-gboolean start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p);
-gboolean reserve_thread();
-void unreserve_thread();
 
 // Functions to allow a python script to block other tasks from claiming the thread
-int claim_thread_for_python();
-void python_releases_thread();
 void check_python_flag();
 
 void kill_all_python_scripts(); // Used to prepare for resetting the venv
 
+/*
+ * processing_should_continue() — FOR USE INSIDE WORKER FUNCTIONS ONLY.
+ * Returns TRUE when no cancellation has been requested; FALSE when it has.
+ * Declared here (not in processing_thread.h) so only worker-facing code sees it.
+ */
+gboolean processing_should_continue (void);
+
 gboolean get_script_thread_run();
 void wait_for_script_thread();
 
-gboolean end_generic(gpointer arg);
 guint siril_add_idle(GSourceFunc idle_function, gpointer data);
 guint siril_add_pythonsafe_idle(GSourceFunc idle_function, gpointer data);
+void execute_idle_and_wait_for_it(gboolean (*idle)(gpointer), gpointer arg);
 
 struct generic_seq_args *create_default_seqargs(sequence *seq);
 
@@ -227,6 +296,18 @@ gpointer generic_sequence_metadata_worker(gpointer args);
 
 void kill_child_process(GPid pid, gboolean on_exit);
 void remove_child_from_children(GPid pid);
+gboolean add_child(GPid child_pid, int program, const gchar *name);
+void child_mutex_lock();
+void child_mutex_unlock();
+
+/* Single image processing worker and hooks */
+gboolean end_generic_image(gpointer p);
+gboolean end_generic_image_update_gfit(gpointer p);
+gboolean end_generic_image_reset_cursor(gpointer p);
+gpointer generic_image_worker(gpointer p);
+
+/* Mask worker */
+gpointer generic_mask_worker(gpointer p);
 
 #ifdef __cplusplus
 }

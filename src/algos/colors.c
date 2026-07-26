@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -31,12 +31,23 @@
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "core/OS_utils.h"
-#include "gui/progress_and_log.h"
-#include "gui/histogram.h"
+#include "core/undo.h"
+#include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "algos/colors.h"
 #include "algos/statistics.h"
 #include "algos/extraction.h"
+#include "core/op_descriptors.h"
+
+/* Op descriptor — single source of truth for this operation (op_descriptor.h) */
+const op_descriptor op_desc_ccm = {
+	.id = "color.ccm", .version = 1,
+	.image_hook = ccm_single_image_hook,
+	.log_hook = ccm_log_hook,
+	.description = N_("Color Conversion Matrix"),
+	.mem_ratio = 1.5f,
+	.flags = 0,
+};
 
 /******************************************************************************
  * Note for maintainers: do not use the translation macro on the following    *
@@ -659,6 +670,21 @@ double BV_to_T(double BV) {
 	return T;
 }
 
+// from https://github.com/sczesla/PyAstronomy/blob/master/PyAstronomy/pyasl/asl/aslExt_1/ballesterosBV_T.py
+double T_to_BV(double T) {
+    double _a = 0.92;
+    double _b = 1.7;
+    double _c = 0.62;
+    double z = T / 4600.0;
+    double ap = z * _a * _a;
+    double bp = _a * _c * z + _b * _a * z - 2.0 * _a;
+    double cp = _b * _c * z - _c - _b;
+
+    double sqrtarg = bp * bp - 4.0 * ap * cp;
+    double bv1 = (-bp + sqrt(sqrtarg)) / (2.0 * ap);
+    return bv1;
+}
+
 // CIE XYZ Color Matching Functions
 float x1931(float w) {
 	int index = w - 360;
@@ -790,7 +816,7 @@ static gpointer extract_channels_ushort(gpointer p) {
 		return GINT_TO_POINTER(1);
 	}
 
-	siril_log_color_message(_("%s channel extraction: processing...\n"), "green",
+	siril_log_info(_("%s channel extraction: processing...\n"),
 			args->str_type);
 	gettimeofday(&t_start, NULL);
 	gchar *histstring = NULL;
@@ -864,7 +890,7 @@ static gpointer extract_channels_ushort(gpointer p) {
 		sig = cmsGetColorSpace(image_profile);
 		trans_type = get_planar_formatter_type(sig, args->fit->type, FALSE);
 		lab_type = TYPE_Lab_16_PLANAR;
-		threaded = !get_thread_run();
+		threaded = !processing_in_worker_thread();
 		// We use sRGB as the fallback for non-color managed images
 		transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), image_profile, trans_type, cielab_profile, lab_type, INTENT_PERCEPTUAL, com.icc.rendering_flags);
 		cmsCloseProfile(cielab_profile);
@@ -928,7 +954,7 @@ static gpointer extract_channels_float(gpointer p) {
 		return GINT_TO_POINTER(1);
 	}
 
-	siril_log_color_message(_("%s channel extraction: processing...\n"), "green",
+	siril_log_info(_("%s channel extraction: processing...\n"),
 			args->str_type);
 	gettimeofday(&t_start, NULL);
 	gchar *histstring = NULL;
@@ -1000,7 +1026,7 @@ static gpointer extract_channels_float(gpointer p) {
 			sig = cmsGetColorSpace(image_profile);
 			trans_type = get_planar_formatter_type(sig, args->fit->type, FALSE);
 			lab_type = TYPE_Lab_FLT_PLANAR;
-			threaded = !get_thread_run();
+			threaded = !processing_in_worker_thread();
 			transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), image_profile, trans_type, cielab_profile, lab_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
 			cmsCloseProfile(cielab_profile);
 			cmsCloseProfile(image_profile);
@@ -1095,7 +1121,7 @@ void background_neutralize(fits* fit, rectangle black_selection) {
 	for (chan = 0; chan < 3; chan++) {
 		stats[chan] = statistics(NULL, -1, fit, chan, &black_selection, STATS_BASIC, MULTI_THREADED);
 		if (!stats[chan]) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
+			siril_log_error(_("Error: statistics computation failed.\n"));
 			return;
 		}
 		ref += stats[chan]->median;
@@ -1124,8 +1150,8 @@ void background_neutralize(fits* fit, rectangle black_selection) {
 	}
 
 	invalidate_stats_from_fit(fit);
-	invalidate_gfit_histogram();
 }
+
 
 void get_coeff_for_wb(fits *fit, rectangle white, rectangle black,
 		double kw[], double bg[], double norm, double low, double high) {
@@ -1186,7 +1212,7 @@ void get_coeff_for_wb(fits *fit, rectangle white, rectangle black,
 	for (chan = 0; chan < 3; chan++) {
 		imstats *stat = statistics(NULL, -1, fit, chan, &black, STATS_BASIC, MULTI_THREADED);
 		if (!stat) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
+			siril_log_error(_("Error: statistics computation failed.\n"));
 			return;
 		}
 		bg[chan] = stat->median / stat->normValue;
@@ -1292,20 +1318,130 @@ void ccm_ushort(fits *fit, ccm matrix, float power) {
 	}
 }
 
+/* Allocator for ccm_data */
+struct ccm_data *new_ccm_data() {
+	struct ccm_data *args = calloc(1, sizeof(struct ccm_data));
+	if (args) {
+		args->destroy_fn = free_ccm_data;
+		args->power = 1.0f;
+	}
+	return args;
+}
+
+/* Destructor for ccm_data */
+void free_ccm_data(void *ptr) {
+	struct ccm_data *args = (struct ccm_data *)ptr;
+	if (!args)
+		return;
+
+	// Free sequence entry string if it exists
+	if (args->seqEntry) {
+		free(args->seqEntry);
+		args->seqEntry = NULL;
+	}
+
+	free(ptr);
+}
+
+/* Main CCM calculation function */
 int ccm_calc(fits *fit, ccm matrix, float power) {
 	// We require a 3-channel FITS
 	if (!isrgb(fit))
 		return 1;
+
 	fit->type == DATA_FLOAT ? ccm_float(fit, matrix, power) : ccm_ushort(fit, matrix, power);
 	return 0;
 }
 
-static int ccm_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
+gchar *ccm_log_hook(gpointer p, log_hook_detail detail) {
+	struct ccm_data *args = (struct ccm_data*) p;
+	gchar *message = NULL;
+	if (detail == SUMMARY) {
+		message = g_strdup_printf(_("CCM: [[%.2f %.2f %.2f][%.2f %.2f %.2f][%.2f %.2f %.2f]], pwr: %.2f"),
+			args->matrix[0][0], args->matrix[0][1], args->matrix[0][2],
+			args->matrix[1][0], args->matrix[1][1], args->matrix[1][2],
+			args->matrix[2][0], args->matrix[2][1], args->matrix[2][2],
+			args->power);
+	} else {
+		message = g_strdup_printf(_("CCM applied successfully: [[%.6f %.6f %.6f][%.6f %.6f %.6f][%.6f %.6f %.6f]], pwr: %.6f"),
+			args->matrix[0][0], args->matrix[0][1], args->matrix[0][2],
+			args->matrix[1][0], args->matrix[1][1], args->matrix[1][2],
+			args->matrix[2][0], args->matrix[2][1], args->matrix[2][2],
+			args->power);
+	}
+	return message;
+}
+
+/* CCM processing function with logging */
+static int ccm_process(struct ccm_data *args, fits *fit) {
+	return ccm_calc(fit, args->matrix, args->power);
+}
+
+/* The actual CCM processing hook for generic_image_worker */
+int ccm_single_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	struct ccm_data *params = (struct ccm_data *)args->user;
+	if (!params)
+		return 1;
+	return ccm_process(params, fit);
+}
+
+/* Create and launch CCM processing */
+int ccm_process_with_worker(ccm matrix, float power) {
+	// Check if image is RGB
+	fits *target_fit = gfit;
+	if (!isrgb(target_fit)) {
+		siril_log_error(_("Color Conversion Matrices can only be applied to 3-channel images.\n"));
+		return 1;
+	}
+
+	// Allocate parameters
+	struct ccm_data *params = new_ccm_data();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+
+	// Copy matrix
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
+			params->matrix[i][j] = matrix[i][j];
+		}
+	}
+	params->power = power;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_ccm_data(params);
+		return 1;
+	}
+
+	// Set the fit based on whether ROI is active
+	args->fit = target_fit;
+	args->op = &op_desc_ccm;
+	args->idle_function = NULL;
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+	// We don't need to do these two because of calloc, but they are shown as a
+	// reminder of intent
+	// args->for_preview = FALSE;
+	// args->for_roi = FALSE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return 1;
+	}
+	return 0;
+}
+
+int ccm_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		rectangle *_, int threads) {
 	struct ccm_data *c_args = (struct ccm_data*) args->user;
 	int ret = ccm_calc(fit, c_args->matrix, c_args->power);
 	if (ret) {
-		siril_log_color_message(_("Color Conversion Matrices can only be applied to 3-channel images.\n"), "red");
+		siril_log_error(_("Color Conversion Matrices can only be applied to 3-channel images.\n"));
 	}
 	return ret;
 }

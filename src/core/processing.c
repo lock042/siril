@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -22,6 +22,7 @@
 #include <windows.h>
 #else
 #include <sys/socket.h>
+#include <sys/wait.h>
 #endif
 
 #include <assert.h>
@@ -31,15 +32,15 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
+#include "core/op_descriptor.h"
 #include "core/siril_log.h"
 #include "core/sequence_filtering.h"
 #include "core/command_line_processor.h"
+#include "core/masks.h"
 #include "core/OS_utils.h"
-#include "gui/callbacks.h"
-#include "gui/dialogs.h"
-#include "gui/progress_and_log.h"
-#include "gui/script_menu.h"
-#include "gui/utils.h"
+#include "core/undo.h"
+#include "core/gui_iface.h"
+#include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/seqwriter.h"
@@ -47,6 +48,30 @@
 #include "io/image_format_fits.h"
 #include "algos/statistics.h"
 #include "registration/registration.h"
+
+static GMutex child_mutex = { 0 };
+
+void child_mutex_lock() {
+	g_mutex_lock(&child_mutex);
+}
+
+void child_mutex_unlock() {
+	g_mutex_unlock(&child_mutex);
+}
+
+/* destroy_any_args() will destroy any operation-specific arguments struct that
+ * contains a destructor as its first member.
+ * The idea is that all structs passed to generic_seq_args or generic_img_args as
+ * user_data fit this polymorphic pattern. If the destroy_fn is NULL we assume
+ * there are no dynamically allocated members and the struct can just be freed.
+ */
+static void destroy_any_args(void *obj) {
+    destructor *destroy_fn = obj; // first field assumed destroy
+    if (*destroy_fn)
+		(*destroy_fn)(obj);
+	else
+		free(obj);
+}
 
 // called in start_in_new_thread only
 // works in parallel if the arg->parallel is TRUE for FITS or SER sequences
@@ -66,7 +91,8 @@ gpointer generic_sequence_worker(gpointer p) {
 	assert(args);
 	assert(args->seq);
 	assert(args->image_hook);
-	set_progress_bar_data(NULL, PROGRESS_RESET);
+	g_rw_lock_reader_lock(&com.pref_rwlock);
+	gui_iface.set_progress(PROGRESS_RESET, NULL);
 	gettimeofday(&t_start, NULL);
 
 	if (args->nb_filtered_images > 0)
@@ -75,7 +101,7 @@ gpointer generic_sequence_worker(gpointer p) {
 		nb_frames = compute_nb_filtered_images(args->seq, args->filtering_criterion, args->filtering_parameter);
 		args->nb_filtered_images = nb_frames;
 		if (nb_frames <= 0) {
-			siril_log_message(_("No image selected for processing, aborting\n"));
+			siril_log_error(_("No image selected for processing, aborting\n"));
 			args->retval = 1;
 			goto the_end;
 		}
@@ -86,7 +112,7 @@ gpointer generic_sequence_worker(gpointer p) {
 #ifdef HAVE_FFMS2
 	// If the sequence is of type SEQ_AVI, lock out the sequence browser as it can cause a crash
 	if (args->seq->type == SEQ_AVI && !com.headless) {
-		gui_function(set_seq_browser_active, GINT_TO_POINTER(0));
+		gui_iface.set_seq_browser_active(FALSE);
 	}
 #endif
 #ifdef _OPENMP
@@ -113,7 +139,7 @@ gpointer generic_sequence_worker(gpointer p) {
 #endif
 
 	if (args->prepare_hook && args->prepare_hook(args)) {
-		siril_log_message(_("Preparing sequence processing failed.\n"));
+		siril_log_error(_("Preparing sequence processing failed.\n"));
 		args->retval = 1;
 		goto the_end;
 	}
@@ -140,7 +166,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			index_mapping[frame++] = input_idx;
 		}
 		if (frame != nb_frames) {
-			siril_log_message(_("Output index mapping failed (%d/%d).\n"), frame, nb_frames);
+			siril_log_error(_("Output index mapping failed (%d/%d).\n"), frame, nb_frames);
 			args->retval = 1;
 			goto the_end;
 		}
@@ -152,7 +178,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			size = args->compute_size_hook(args, nb_frames);
 		else size = seq_compute_size(args->seq, nb_frames, args->output_type);
 		if (test_available_space(size)) {
-			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
+			siril_log_error(_("Not enough space to save the output images, aborting\n"));
 			args->retval = 1;
 			goto the_end;
 		}
@@ -161,7 +187,7 @@ gpointer generic_sequence_worker(gpointer p) {
 	/* Output print of algorithm description */
 	if (args->description) {
 		gchar *desc = g_strdup_printf(_("%s: processing...\n"), args->description);
-		siril_log_color_message(desc, "green");
+		siril_log_info(desc);
 		g_free(desc);
 	}
 
@@ -189,7 +215,7 @@ gpointer generic_sequence_worker(gpointer p) {
 		rectangle area = { .x = args->area.x, .y = args->area.y,
 			.w = args->area.w, .h = args->area.h };
 
-		if (!get_thread_run()) {
+		if (!processing_should_continue()) {
 			abort = 1;
 			continue;
 		}
@@ -273,8 +299,7 @@ gpointer generic_sequence_worker(gpointer p) {
 		}
 		// checking nb layers consistency, not for partial image
 		if (read_image && !args->partial_image && (fit->naxes[2] != args->seq->nb_layers)) {
-			siril_log_color_message(_("Image #%d: number of layers (%d) is not consistent with sequence (%d), aborting\n"),
-						"red", input_idx + 1, fit->naxes[2], args->seq->nb_layers);
+			siril_log_error(_("Image #%d: number of layers (%d) is not consistent with sequence (%d), aborting\n"), input_idx + 1, fit->naxes[2], args->seq->nb_layers);
 			abort = 1;
 			clearfits(fit);
 			free(fit);
@@ -294,7 +319,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			else {
 				g_atomic_int_inc(&excluded_frames);
 				g_atomic_int_inc(&progress);
-				set_progress_bar_data(NULL, (float)progress / nb_framesf);
+				gui_iface.set_progress((float)progress / nb_framesf, NULL);
 			}
 			if (args->seq->type == SEQ_INTERNAL) {
 				fit->data = NULL;
@@ -345,30 +370,30 @@ gpointer generic_sequence_worker(gpointer p) {
 
 		g_atomic_int_inc(&progress);
 		gchar *msg = g_strdup_printf(_("%s. Processing image %d (%s)"), args->description, input_idx + 1, filename);
-		set_progress_bar_data(msg, (float)progress / nb_framesf);
+		gui_iface.set_progress((float)progress / nb_framesf, msg);
 		g_free(msg);
 	}
 
 	/* the finalize hook contains the sequence writer synchronization, it
 	 * should be called before outputting the logs */
 	if (have_seqwriter && args->finalize_hook && args->finalize_hook(args)) {
-		siril_log_message(_("Finalizing sequence processing failed.\n"));
+		siril_log_error(_("Finalizing sequence processing failed.\n"));
 		abort = 1;
 	}
 	if (abort || excluded_frames == nb_frames) {
-		set_progress_bar_data(_("Sequence processing failed. Check the log."), PROGRESS_RESET);
-		siril_log_color_message(_("Sequence processing failed.\n"), "red");
+		gui_iface.set_progress(PROGRESS_RESET, _("Sequence processing failed. Check the log."));
+		siril_log_error(_("Sequence processing failed.\n"));
 		if (!abort)
 			abort = 1;
 		args->retval = abort;
 	}
 	else {
 		if (excluded_frames) {
-			set_progress_bar_data(_("Sequence processing partially succeeded. Check the log."), PROGRESS_RESET);
-			siril_log_color_message(_("Sequence processing partially succeeded, with %d images that failed.\n"), "salmon", excluded_frames);
+			gui_iface.set_progress(PROGRESS_RESET, _("Sequence processing partially succeeded. Check the log."));
+			siril_log_warning(_("Sequence processing partially succeeded, with %d images that failed.\n"), excluded_frames);
 		} else {
-			set_progress_bar_data(_("Sequence processing succeeded."), PROGRESS_RESET);
-			siril_log_color_message(_("Sequence processing succeeded.\n"), "green");
+			gui_iface.set_progress(PROGRESS_RESET, _("Sequence processing succeeded."));
+			siril_log_info(_("Sequence processing succeeded.\n"));
 		}
 		gettimeofday(&t_end, NULL);
 		show_time(t_start, t_end);
@@ -378,19 +403,20 @@ gpointer generic_sequence_worker(gpointer p) {
 	omp_destroy_lock(&args->lock);
 #endif
 the_end:
+	g_rw_lock_reader_unlock(&com.pref_rwlock);
 #ifdef _OPENMP
 	free(threads_per_image);
 #endif
 
 	if (index_mapping) free(index_mapping);
 	if (!have_seqwriter && args->finalize_hook && args->finalize_hook(args)) {
-		siril_log_message(_("Finalizing sequence processing failed.\n"));
+		siril_log_error(_("Finalizing sequence processing failed.\n"));
 		args->retval = 1;
 	}
 	int retval = args->retval;	// so we can free args if needed in the idle
 #ifdef HAVE_FFMS2
 	if (args->seq->type == SEQ_AVI && !com.headless)
-		gui_function(set_seq_browser_active, GINT_TO_POINTER(1)); // re-enable the sequence browser if necessary
+		gui_iface.set_seq_browser_active(TRUE); // re-enable the sequence browser if necessary
 #endif
 
 	if (!args->already_in_a_thread) {
@@ -438,7 +464,7 @@ gboolean end_generic_sequence(gpointer p) {
 		gchar *basename = g_path_get_basename(args->seq->seqname);
 		gchar *seqname = g_strdup_printf("%s%s.seq", args->new_seq_prefix, basename);
 		check_seq();
-		update_sequences_list(seqname);
+		gui_iface.update_sequences_list(seqname);
 		g_free(seqname);
 		g_free(basename);
 	}
@@ -464,8 +490,7 @@ int seq_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
 		gchar *mem_per_image = g_format_size_full(MB_per_image * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 
-		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
-				"red", args->description, mem_per_image, mem_available);
+		siril_log_error(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"), args->description, mem_per_image, mem_available);
 
 		g_free(mem_per_image);
 		g_free(mem_available);
@@ -596,8 +621,7 @@ int seq_finalize_hook(struct generic_seq_args *args) {
 
 static int generic_save_internal(struct generic_seq_args *args, int in_index, fits *fit) {
 	clearfits_header(args->seq->internal_fits[in_index]);
-	copyfits(fit, args->seq->internal_fits[in_index], CP_FORMAT, -1);
-	copy_fits_metadata(fit, args->seq->internal_fits[in_index]);
+	copyfits(fit, args->seq->internal_fits[in_index], CP_FORMAT | CP_WCS | CP_UNKNOWNKEYS | CP_DATES, -1);
 	if (fit->type == DATA_USHORT) {
 		args->seq->internal_fits[in_index]->data = fit->data;
 		args->seq->internal_fits[in_index]->pdata[0] = fit->pdata[0];
@@ -691,14 +715,14 @@ int multi_save(struct generic_seq_args *args, int out_index, int in_index, fits 
 	omp_unset_lock(&args->lock);
 #endif
 	if (!multi_data) {
-		siril_log_color_message(_("Image %d not found for writing\n"), "red", in_index);
+		siril_log_error(_("Image %d not found for writing\n"), in_index);
 		return 1;
 	}
 	int n = multi_args->n;
-	siril_debug_print("Multiple (%d) images to be saved (%d)\n", n, out_index);
+	siril_log_debug("Multiple (%d) images to be saved (%d)\n", n, out_index);
 	for (int i = 0 ; i < n ; i++) {
 		if (multi_data->images[i]->naxes[0] == 0) {
-			siril_debug_print("empty data\n");
+			siril_log_debug("empty data\n");
 			return 1;
 		}
 	}
@@ -781,217 +805,13 @@ int multi_finalize(struct generic_seq_args *args) {
  *      P R O C E S S I N G      T H R E A D      M A N A G E M E N T        *
  ****************************************************************************/
 
-static void set_thread_run(gboolean b);
-
-static gboolean thread_being_waited = FALSE;
-
-// This function is reentrant. The pointer will be freed in the idle function,
-// so it must be a proper pointer to an allocated memory chunk.
-gboolean start_in_new_thread(gpointer (*f)(gpointer), gpointer p) {
-	g_mutex_lock(&com.mutex);
-
-	if (com.run_thread || com.python_claims_thread || com.thread) {
-		fprintf(stderr, "The processing thread is busy, stop it first.\n");
-		g_mutex_unlock(&com.mutex);
-		// We can't free p here as it may have unknown members. We must
-		// indicate failure and allow the caller to clean up
-		return FALSE;
-	}
-
-	com.run_thread = TRUE;
-	com.thread = g_thread_new("processing", f, p);
-
-	// Add a fake "child" to com.children. This doesn't represent an external
-	// program but it allows selecting to stop the processing thread instead of
-	// an external program if one happens to be running
-	// Prepend this "child" to the list of child processes com.children
-	child_info *child = g_malloc(sizeof(child_info));
-	child->childpid = (GPid) -2; // Magic number
-	child->program = INT_PROC_THREAD;
-	child->name = g_strdup("Siril processing thread");
-	child->datetime = g_date_time_new_now_local();
-	com.children = g_slist_prepend(com.children, child);
-
-	g_mutex_unlock(&com.mutex);
-	set_cursor_waiting(TRUE);
-	return TRUE; // indicate success
-}
-
-gboolean start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p) {
-	g_mutex_lock(&com.mutex);
-	if (com.thread || com.python_claims_thread) {
-		fprintf(stderr, "The processing thread is busy, stop it first.\n");
-		g_mutex_unlock(&com.mutex);
-		return FALSE;
-	}
-
-	com.run_thread = TRUE;
-	com.thread = g_thread_new("processing", f, p);
-
-	// Prepend this "child" to the list of child processes com.children
-	child_info *child = g_malloc(sizeof(child_info));
-	child->childpid = (GPid) -2; // Magic number
-	child->program = INT_PROC_THREAD;
-	child->name = g_strdup("Siril processing thread");
-	child->datetime = g_date_time_new_now_local();
-	com.children = g_slist_prepend(com.children, child);
-
-	g_mutex_unlock(&com.mutex);
-	set_cursor_waiting(TRUE);
-	return TRUE;
-}
-
-gpointer waiting_for_thread() {
-	gpointer retval = NULL;
-	if (com.thread) {
-		thread_being_waited = TRUE;
-		retval = g_thread_join(com.thread);
-	}
-	com.thread = NULL;
-	thread_being_waited = FALSE;
-	set_thread_run(FALSE);	// do it anyway in case of wait without stop
-
-	return GINT_TO_POINTER(GPOINTER_TO_INT(retval) & ~CMD_NOTIFY_GFIT_MODIFIED);
-}
-
-int claim_thread_for_python() {
-	g_mutex_lock(&com.mutex);
-	if (com.thread) {
-		fprintf(stderr, "The processing thread is busy (com.thread is not NULL). "
-					"It must stop before Python can claim the processing thread.\n");
-		g_mutex_unlock(&com.mutex);
-		return 1;
-	}
-	if (com.run_thread) {
-		fprintf(stderr, "The processing thread is busy (com.run_thread is TRUE). "
-					"It must stop before Python can claim the processing thread.\n");
-		g_mutex_unlock(&com.mutex);
-		return 1;
-	}
-	if (com.python_claims_thread) {
-		fprintf(stderr, "The processing thread is already claimed by Python. It must be "
-					"released before Python can claim the processing thread again.\n");
-		g_mutex_unlock(&com.mutex);
-		return 1;
-	}
-	if (is_an_image_processing_dialog_opened()) {
-		fprintf(stderr, "A Siril image processing dialog is open. It must be closed before "
-					"Python can claim the processing thread.\n");
-		g_mutex_unlock(&com.mutex);
-		return 2;
-	}
-	com.python_claims_thread = TRUE;
-	g_mutex_unlock(&com.mutex);
-	set_cursor_waiting(TRUE);
-	return 0;
-}
-
-void python_releases_thread() {
-	g_mutex_lock(&com.mutex);
-	com.python_claims_thread = FALSE;
-	g_mutex_unlock(&com.mutex);
-	set_cursor_waiting(FALSE);
-	return;
-}
-
-
-static gboolean stop_processing_requested = FALSE;
-
-static gboolean stop_processing_thread_idle(gpointer user_data) {
-    if (com.thread == NULL) {
-        siril_debug_print("The processing thread is not running.\n");
-        return FALSE;
-    }
-    remove_child_from_children((GPid) -2); // magic number indicating the processing thread
-    set_thread_run(FALSE);
-    if (!thread_being_waited)
-        waiting_for_thread();
-    set_cursor_waiting(FALSE);
-    return FALSE;
-}
-
-static gboolean check_stop_processing_request(gpointer user_data) {
-    if (stop_processing_requested) {
-        stop_processing_requested = FALSE;
-        stop_processing_thread_idle(NULL);
-    }
-    return FALSE; // Remove this idle callback
-}
-
-void stop_processing_thread() {
-    // Check if we're in headless mode first
-    if (com.headless) {
-        // In headless mode, we can call the function directly
-        if (com.thread == NULL) {
-            siril_debug_print("The processing thread is not running.\n");
-            return;
-        }
-        remove_child_from_children((GPid) -2);
-        set_thread_run(FALSE);
-        if (!thread_being_waited)
-            waiting_for_thread();
-        return;
-    }
-
-    // Check if we're already in the main thread
-    if (g_main_context_is_owner(g_main_context_default())) {
-        // We're in the main thread, but we might be inside execute_idle_and_wait_for_it
-        // Set a flag and queue an idle to handle it asynchronously
-        stop_processing_requested = TRUE;
-        gdk_threads_add_idle(check_stop_processing_request, NULL);
-    } else {
-        // We're not in the main thread, so we need to queue it as an idle
-        // and wait for it to complete
-        execute_idle_and_wait_for_it(stop_processing_thread_idle, NULL);
-    }
-}
-
-static void set_thread_run(gboolean b) {
-	siril_debug_print("setting run %d to the processing thread\n", b);
-	g_mutex_lock(&com.mutex);
-	com.run_thread = b;
-	g_mutex_unlock(&com.mutex);
-}
-
-gboolean get_thread_run() {
-	gboolean retval;
-	g_mutex_lock(&com.mutex);
-	retval = com.run_thread;
-	g_mutex_unlock(&com.mutex);
-	return retval;
-}
-
-// equivalent to atomic get and set if not running
-gboolean reserve_thread() {
-	gboolean retval;
-	g_mutex_lock(&com.mutex);
-	retval = !com.run_thread;
-	if (retval)
-		com.run_thread = TRUE;
-	g_mutex_unlock(&com.mutex);
-	return retval;
-}
-
-void unreserve_thread() {
-	set_thread_run(FALSE);
-}
-
-/* should be called in a threaded function if nothing special has to be done at the end.
- * siril_add_idle(end_generic, NULL);
- */
-gboolean end_generic(gpointer arg) {
-	stop_processing_thread();
-	set_cursor_waiting(FALSE);
-	return FALSE;
-}
-
 /* wrapper for gdk_threads_add_idle that deactivates idle functions when
  * running in script/console mode
  * return 0 if idle was not added
  */
 guint siril_add_idle(GSourceFunc idle_function, gpointer data) {
 	if (!com.script && !com.python_command && !com.headless)
-		return gdk_threads_add_idle(idle_function, data);
+		return g_idle_add(idle_function, data);
 	return 0;
 }
 
@@ -999,7 +819,7 @@ guint siril_add_idle(GSourceFunc idle_function, gpointer data) {
  * with files using this idle, it can break python scripts */
 guint siril_add_pythonsafe_idle(GSourceFunc idle_function, gpointer data) {
 	if (!com.script && !com.headless)
-		return gdk_threads_add_idle(idle_function, data);
+		return g_idle_add(idle_function, data);
 	return 0;
 }
 
@@ -1022,28 +842,122 @@ static void free_child(child_info *child) {
 	g_free(child);
 }
 
+static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
+#ifdef G_OS_WIN32
+    DWORD exit_code;
+    if (GetExitCodeProcess(pid, &exit_code)) {
+        if (exit_code == 0) {
+            siril_log_debug("Child process completed successfully\n");
+        } else {
+            siril_log_debug("Plate solver exited with code %lu\n", exit_code);
+        }
+    }
+    CloseHandle(pid);
+#else
+    // POSIX: manually reap the child
+    int wait_status;
+    pid_t result;
+
+    // Try to reap - if it fails with ECHILD, someone else already did
+    result = waitpid(pid, &wait_status, WNOHANG);
+
+    if (result == pid) {
+        // We successfully reaped it
+        if (WIFEXITED(wait_status)) {
+            int exit_status = WEXITSTATUS(wait_status);
+            if (exit_status == 0) {
+                siril_log_debug("Child process completed successfully\n");
+            } else {
+                siril_log_debug("Child process exited with status %d\n", exit_status);
+            }
+        } else if (WIFSIGNALED(wait_status)) {
+            siril_log_debug("Child process terminated by signal %d\n", WTERMSIG(wait_status));
+        }
+    } else if (result == 0) {
+        // Process hasn't exited yet (shouldn't happen)
+        siril_log_debug("Warning: child watch called but process still running\n");
+    } else if (result == -1 && errno == ECHILD) {
+        // Already reaped
+        siril_log_debug("Warning: child process already reaped\n");
+    } else {
+        siril_log_debug("Error waiting for child: %s\n", strerror(errno));
+    }
+    g_spawn_close_pid(pid);
+#endif
+    remove_child_from_children(pid);
+}
+
+gboolean add_child(GPid child_pid, int program, const gchar *name) {
+	// Add the callback to remove it on completion
+	if (program != EXT_PYTHON && program != INT_PROC_THREAD)
+		g_child_watch_add(child_pid, child_watch_cb, NULL);
+
+	child_info *child = g_malloc(sizeof(child_info));
+	if (!child) {
+		return FALSE;
+	}
+
+	child->name = g_strdup(name);
+	if (!child->name) {
+		g_free(child);
+		return FALSE;
+	}
+
+	child->datetime = g_date_time_new_now_local();
+	if (!child->datetime) {
+		g_free(child->name);
+		g_free(child);
+		return FALSE;
+	}
+	child->childpid = child_pid;
+	child->program = program;
+
+	child_mutex_lock();
+	com.children = g_slist_prepend(com.children, child);
+	child_mutex_unlock();
+
+	return TRUE;
+}
+
 // This must be called in the g_spawn on_exit callback to remove the defunct child from the list
 void remove_child_from_children(GPid pid) {
+	child_mutex_lock();
 	GSList *prev = NULL;
 	GSList *iter = com.children;
 
 	while (iter) {
 		child_info *child = (child_info*) iter->data;
 
+		if (!child) {
+			// Save next pointer before freeing
+			GSList *next = iter->next;
+
+			if (prev)
+				prev->next = next;
+			else
+				com.children = next;  // Don't forget to update head!
+
+			g_slist_free_1(iter);
+			iter = next;
+			continue;
+		}
+
 		if (child->childpid == pid) {
+			// Save next pointer before freeing
+			GSList *next = iter->next;
+
 			// Remove the node from the list
 			if (prev == NULL) {
-				// If it's the first node
-				com.children = iter->next;
+				com.children = next;
 			} else {
-				// If it's a middle or last node
-				prev->next = iter->next;
+				prev->next = next;
 			}
 
 			// Free the node and the child
 			g_slist_free_1(iter);
 			free_child(child);
-			siril_debug_print("Removed GPid %d from com.children\n", pid);
+			siril_log_debug("Removed GPid %d from com.children\n", pid);
+			child_mutex_unlock();
 			return;
 		}
 
@@ -1051,6 +965,7 @@ void remove_child_from_children(GPid pid) {
 		prev = iter;
 		iter = iter->next;
 	}
+	child_mutex_unlock();
 }
 
 // kills external calls
@@ -1058,26 +973,39 @@ void remove_child_from_children(GPid pid) {
 void kill_child_process(GPid pid, gboolean onexit) {
 	if (onexit)
 		printf("Making sure no child is left behind...\n");
-	// Find the correct child in com.children
-	GSList *prev = NULL;
+	// Find the correct child in the list
+	// We can safely iterate over the list without worrying about simultaneously adding
+	// to it from another thread as it would only ever be prepended, so the rest of the
+	// list will still be fine. This means we can have the mutex control for child
+	// removal in remove_child_from_children, which makes things considerably simpler.
 	GSList *iter = com.children;
 	gboolean success = FALSE;
 	while (iter) {
 		child_info *child = (child_info*) iter->data;
+		if (!child)
+			return;
+
 		GSList *next = iter->next;
 
 		if (child->childpid == pid || onexit) {
 			if (child->program == INT_PROC_THREAD) {
 				stop_processing_thread();
 			} else {
-				if (child->program == EXT_STARNET || child->program == EXT_PYTHON) {
+				if (child->program == EXT_PYTHON) {
 #ifdef _WIN32
 					TerminateProcess((void *) child->childpid, 1);
 #else
-					kill((pid_t) child->childpid, SIGINT);
+					kill((pid_t) child->childpid, SIGKILL);
 #endif
-					// Free the child struct
-					free_child(child);
+					/* A Python script may be blocked in processcommand() on its
+					 * comm-worker thread waiting for a processing job (e.g. a
+					 * calibration) to finish.  Killing the Python process alone
+					 * does not abort that job, so the worker would never return
+					 * to its socket read to notice the dead client.  Cancel the
+					 * job so the worker unwinds, reaches the closed socket and
+					 * tears its connection down cleanly. */
+					if (child->program == EXT_PYTHON)
+						stop_processing_thread();
 				} else if (child->program == EXT_ASNET) {
 					FILE* fp = g_fopen("stop", "w");
 					if (fp != NULL)
@@ -1085,42 +1013,30 @@ void kill_child_process(GPid pid, gboolean onexit) {
 					if (onexit) {
 						g_usleep(1000);
 						if (g_unlink("stop"))
-							siril_debug_print("g_unlink() failed\n");
-						siril_debug_print("asnet has been stopped on exit\n");
+							siril_log_debug("g_unlink() failed\n");
+						siril_log_debug("asnet has been stopped on exit\n");
 					}
-					free_child(child);
+					stop_processing_thread(); // we stop the sequence worker as well
 				}
-
-				// Remove the node from the list
-				if (prev == NULL) {
-					// If it's the first node
-					com.children = next;
-				} else {
-					// If it's a middle or last node
-					prev->next = next;
-				}
-				// Free the node
-				g_slist_free_1(iter);
+				// No need to manually remove the child as this is done by child_watch_cb
 			}
 
-			siril_log_color_message(_("Process aborted by user\n"), "red");
+			siril_log_error(_("Process aborted by user\n"));
 			success = TRUE;
 			if (!onexit)
 				break;
-		} else {
-			// Only advance prev if we didn't remove the current node
-			prev = iter;
 		}
 		iter = next;
 	}
 	// If we get here without success, no matching PID was found
 	if (!success && pid != (GPid) -1)
-		siril_log_message(_("Failed to find GPid %d, it may already have exited...\n"), pid);
+		siril_log_error(_("Failed to find GPid %d, it may already have exited...\n"), pid);
 }
 
 static void check_if_child_is_python(gpointer data, gpointer user_data) {
 	// Cast the input pointers to their correct types
 	child_info *child = (child_info *)data;
+	if(!child) return;
 	gboolean *is_ok = (gboolean *)user_data;
 
 	// Convert name to lowercase for case-insensitive comparison
@@ -1136,12 +1052,14 @@ static void check_if_child_is_python(gpointer data, gpointer user_data) {
 }
 
 void check_python_flag() {
-	siril_debug_print("checking python flag\n");
+	siril_log_debug("checking python flag\n");
 	gboolean is_ok = TRUE;
+	child_mutex_lock();
 	g_slist_foreach(com.children, check_if_child_is_python, &is_ok);
+	child_mutex_unlock();
 	if (is_ok) {
 		com.python_script = FALSE;
-		siril_debug_print("com.python_script cleared\n");
+		siril_log_debug("com.python_script cleared\n");
 	}
 }
 
@@ -1165,20 +1083,28 @@ void kill_all_python_scripts() {
 }
 
 void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
+	child_mutex_lock();
 	guint children = g_slist_length(com.children);
 	if (children > 1) {
-		GPid pid = show_child_process_selection_dialog(com.children);
+		child_mutex_unlock();
+		GPid pid = gui_iface.select_child_process(com.children);
 		kill_child_process(pid, FALSE);
 	} else if (children == 1) {
 		child_info *child = (child_info*) com.children->data;
-		kill_child_process(child->childpid, FALSE);
+		GPid pid = child->childpid;
+		child_mutex_unlock();
+		kill_child_process(pid, FALSE);
 	} else {
+		child_mutex_unlock();
 		com.stop_script = TRUE;
 		stop_processing_thread();
 		wait_for_script_thread();
 	}
-	if (!com.headless)
-		script_widgets_enable(TRUE);
+
+	if (!com.headless) {
+		gui_iface.script_widgets_enable(TRUE);
+		gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
+	}
 }
 
 struct generic_seq_args *create_default_seqargs(sequence *seq) {
@@ -1195,14 +1121,14 @@ struct generic_seq_args *create_default_seqargs(sequence *seq) {
 gpointer generic_sequence_metadata_worker(gpointer arg) {
 	struct generic_seq_metadata_args *args = (struct generic_seq_metadata_args *)arg;
 	struct timeval t_start, t_end;
-	set_progress_bar_data(NULL, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, NULL);
 	gettimeofday(&t_start, NULL);
 	int input_idx, frame, retval = 0;
 	int *index_mapping = NULL;
 
 	int nb_frames = compute_nb_filtered_images(args->seq, args->filtering_criterion, 1.0);
 	if (nb_frames <= 0) {
-		siril_log_message(_("No image selected for processing, aborting\n"));
+		siril_log_error(_("No image selected for processing, aborting\n"));
 		retval = 1;
 		goto cleanup;
 	}
@@ -1225,7 +1151,7 @@ gpointer generic_sequence_metadata_worker(gpointer arg) {
 			index_mapping[frame++] = input_idx;
 		}
 		if (frame != nb_frames) {
-			siril_log_message(_("Output index mapping failed (%d/%d).\n"), frame, nb_frames);
+			siril_log_error(_("Output index mapping failed (%d/%d).\n"), frame, nb_frames);
 			retval = 1;
 			goto cleanup;
 		}
@@ -1243,6 +1169,7 @@ gpointer generic_sequence_metadata_worker(gpointer arg) {
 		if (g_file_test(seqfilename, G_FILE_TEST_EXISTS)) {
 			retval = fitseq_open(seqfilename, args->seq->fitseq_file, 0);
 			g_free(seqfilename);
+			seqfilename = NULL;
 			if (!retval) goto after_fitseq_check;
 		}
 		g_free(seqfilename);
@@ -1291,7 +1218,7 @@ after_fitseq_check:
 			// Need to move to the correct HDU
 			fits_movabs_hdu(args->seq->fitseq_file->fptr, args->seq->fitseq_file->hdu_index[input_idx], NULL, &retval);
 			if (retval) {
-				siril_log_color_message(_("Error finding the HDU for frame %d\n"), "red", input_idx);
+				siril_log_error(_("Error finding the HDU for frame %d\n"), input_idx);
 				goto cleanup;
 			}
 		}
@@ -1343,7 +1270,7 @@ int limit_threading(threading_type *threads, int min_iterations_per_thread, size
 	if (max_chunks < 1)
 		max_chunks = 1;
 	if (max_chunks < *threads) {
-		siril_debug_print("limiting operation to %d threads (%d allowed)\n", max_chunks, *threads);
+		siril_log_debug("limiting operation to %d threads (%d allowed)\n", max_chunks, *threads);
 		return max_chunks;
 	}
 	return *threads;
@@ -1362,7 +1289,7 @@ int *compute_thread_distribution(int nb_workers, int max) {
 	}
 	int base = max / nb_workers;
 	int rem = max % nb_workers;
-	siril_debug_print("distributing %d threads to %d workers\n", max, nb_workers);
+	siril_log_debug("distributing %d threads to %d workers\n", max, nb_workers);
 	for (int i = 0; i < nb_workers; i++) {
 		threads[i] = base;
 		if (rem > 0) {
@@ -1371,7 +1298,644 @@ int *compute_thread_distribution(int nb_workers, int max) {
 		}
 		if (threads[i] == 0)
 			threads[i] = 1;
-		siril_debug_print("thread %d has %d subthreads\n", i, threads[i]);
+		siril_log_debug("thread %d has %d subthreads\n", i, threads[i]);
 	}
 	return threads;
+}
+
+/* Image processing worker and hooks */
+
+/** Default memory check hook - ensures enough memory for mem_ratio * image size */
+static int default_img_mem_hook(struct generic_img_args *args) {
+	if (!args || !args->fit)
+		return 1;
+
+	gint64 required_mem = (gint64)(args->mem_ratio *
+		args->fit->rx * args->fit->ry * args->fit->naxes[2] *
+		(args->fit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD)));
+
+	gint64 available_mem = get_available_memory();
+
+	if (required_mem > available_mem) {
+		if (args->verbose)
+			siril_log_error(_("Not enough memory for operation: need %.1f MB, have %.1f MB\n"), (double)required_mem / BYTES_IN_A_MB, (double)available_mem / BYTES_IN_A_MB);
+		return 1;
+	}
+
+	if (args->verbose)
+		siril_log_debug("Memory check passed: need %.1f MB, have %.1f MB\n",
+			(double)required_mem / BYTES_IN_A_MB, (double)available_mem / BYTES_IN_A_MB);
+	return 0;
+}
+
+static int default_mask_mem_hook(struct generic_mask_args *args) {
+	if (!args || !args->fit)
+		return 1;
+
+	gint64 required_mem;
+	if (args->fit->mask) {
+		required_mem = (gint64)(args->mem_ratio *
+			args->fit->rx * args->fit->ry * (args->fit->mask->bitpix >> 3));
+	} else {
+		required_mem = (gint64) (args->mem_ratio * args->fit->rx * args->fit->ry * 4); // worst case
+	}
+
+	gint64 available_mem = get_available_memory();
+
+	if (required_mem > available_mem) {
+		if (args->verbose)
+			siril_log_error(_("Not enough memory for operation: need %.1f MB, have %.1f MB\n"), (double)required_mem / BYTES_IN_A_MB, (double)available_mem / BYTES_IN_A_MB);
+		return 1;
+	}
+
+	if (args->verbose)
+		siril_log_debug("Memory check passed: need %.1f MB, have %.1f MB\n",
+			(double)required_mem / BYTES_IN_A_MB, (double)available_mem / BYTES_IN_A_MB);
+	return 0;
+}
+
+/** Default idle function to end generic image processing */
+gboolean end_generic_image(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args*) p;
+	stop_processing_thread();
+	free_generic_img_args(args);
+	return FALSE;
+}
+
+void free_generic_mask_args(struct generic_mask_args *args) {
+	if (!args)
+		return;
+	if (args->user)
+		destroy_any_args(args->user);
+	free(args);
+}
+
+gboolean end_generic_mask(gpointer p) {
+	struct generic_mask_args *args = (struct generic_mask_args*) p;
+	stop_processing_thread();
+	gui_iface.on_mask_state_changed();
+	/* The mask worker modified the mask data and does not remap the display,
+	 * so the tinted image vports are stale: request the tint remap. */
+	gui_iface.queue_redraw_mask(TRUE);
+	free_generic_mask_args(args);
+	return FALSE;
+}
+
+gboolean end_generic_image_update_gfit(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args*) p;
+	stop_processing_thread();
+	gfit_modified_update_gui();
+	if (args->has_mask)
+		/* generic_image_worker already ran notify_gfit_data_modified() with
+		 * the final mask in place, so the tints are current: only the mask
+		 * vport buffer needs refreshing. */
+		gui_iface.queue_redraw_mask(FALSE);
+	free_generic_img_args(args);
+	return FALSE;
+}
+
+gboolean end_generic_image_reset_cursor(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args*) p;
+	stop_processing_thread();
+	free_generic_img_args(args);
+	gui_iface.set_busy(FALSE);
+	return FALSE;
+}
+
+/** Free generic_img_args structure */
+void free_generic_img_args(struct generic_img_args *args) {
+	if (!args)
+		return;
+	if (args->user)
+		destroy_any_args(args->user);
+	free(args);
+}
+
+FAST_MATH_PUSH
+static inline void blend_fits_with_mask(fits* fit, fits* orig) {
+	size_t npixels = fit->rx * fit->ry;
+	mask_t *mask = fit->mask;
+
+	if (!mask || !mask->data)
+		return;
+
+	uint8_t bitpix = mask->bitpix;
+
+	if (fit->type == DATA_USHORT) {
+
+		for (int chan = 0; chan < fit->naxes[2]; chan++) {
+			WORD *ocdata = orig->pdata[chan];
+			WORD *fcdata = fit->pdata[chan];
+
+			switch (bitpix) {
+
+			case 8: {
+				uint8_t * restrict m = (uint8_t*)mask->data;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread)
+#endif
+				for (size_t i = 0; i < npixels; i++) {
+					uint32_t temp =
+						fcdata[i] * m[i] +
+						ocdata[i] * (255 - m[i]);
+					fcdata[i] = (temp * 257) >> 16;
+				}
+				break;
+			}
+
+			case 16: {
+				uint16_t * restrict m = (uint16_t*)mask->data;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread)
+#endif
+				for (size_t i = 0; i < npixels; i++) {
+					uint32_t alpha = m[i];          // 0..65535
+					uint32_t temp =
+						fcdata[i] * alpha +
+						ocdata[i] * (65535 - alpha);
+					fcdata[i] = temp >> 16;         // exact /65535
+				}
+				break;
+			}
+
+			case 32: {
+				float * restrict m = (float*)mask->data;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread)
+#endif
+				for (size_t i = 0; i < npixels; i++) {
+					float alpha = m[i];
+					float origv = ocdata[i];
+					float blend = fcdata[i] - origv;
+					float out = origv + alpha * blend;
+					if (out < 0.f) out = 0.f;
+					if (out > 65535.f) out = 65535.f;
+					fcdata[i] = (WORD)(out + 0.5f);
+				}
+				break;
+			}
+
+			default:
+				return;
+			}
+		}
+
+	} else {
+
+		for (int chan = 0; chan < fit->naxes[2]; chan++) {
+			float *ocdata = orig->fpdata[chan];
+			float *fcdata = fit->fpdata[chan];
+
+			switch (bitpix) {
+
+			case 8: {
+				uint8_t * restrict m = (uint8_t*)mask->data;
+				const float scale = 1.0f / 255.0f;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread)
+#endif
+				for (size_t i = 0; i < npixels; i++) {
+					float alpha = m[i] * scale;
+					float origv = ocdata[i];
+					fcdata[i] = origv + alpha * (fcdata[i] - origv);
+				}
+				break;
+			}
+
+			case 16: {
+				uint16_t * restrict m = (uint16_t*)mask->data;
+				const float scale = 1.0f / 65535.0f;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread)
+#endif
+				for (size_t i = 0; i < npixels; i++) {
+					float alpha = m[i] * scale;
+					float origv = ocdata[i];
+					fcdata[i] = origv + alpha * (fcdata[i] - origv);
+				}
+				break;
+			}
+
+			case 32: {
+				float * restrict m = (float*)mask->data;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread)
+#endif
+				for (size_t i = 0; i < npixels; i++) {
+					float alpha = m[i];
+					float origv = ocdata[i];
+					fcdata[i] = origv + alpha * (fcdata[i] - origv);
+				}
+				break;
+			}
+
+			default:
+				return;
+			}
+		}
+	}
+}
+FAST_MATH_POP
+
+/** Main generic image worker function
+ * Works with a single image, optionally using multiple threads for processing
+ */
+gpointer generic_image_worker(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+	struct timeval t_start, t_end;
+
+	assert(args);
+	assert(args->fit);
+	/* Populate image_hook/log_hook/description/mem_ratio from args->op (if any)
+	 * before anything reads those fields. No-op for un-migrated sites. */
+	op_descriptor_fill_img_args(args);
+	assert(args->image_hook);
+
+	/* Stack copies of args fields — args is freed by the sync-idle at
+	 * the end of the function, so anything used past that point must be
+	 * a local. */
+	fits *argfit = args->fit;
+	gboolean argpreview = args->for_preview;
+	gboolean arg_skip_undo = args->skip_generic_undo;
+	gboolean arg_update_gfit = args->command_updates_gfit;
+	gboolean verbose = args->verbose || !args->for_preview;
+	gchar* desc = g_strdup(args->description);
+
+	/* Two processing strategies live in this one function:
+	 *
+	 *   Swap path (argfit == gfit) — the long-running image_hook works
+	 *   on a private copy (`orig`).  gfit is left untouched for the
+	 *   duration so the GUI can keep reading it; readers (motion
+	 *   handlers, ROI fills) hit the lock for ~µs only at the swap
+	 *   point.  After the hook, fits_swap_all_except_rwlock(gfit, orig)
+	 *   installs the result.  As a happy side effect, `orig` then
+	 *   holds the pre-modification image — exactly what
+	 *   undo_save_state() wants.  An aborted swap-path op leaves gfit
+	 *   untouched (no swap on retval).
+	 *
+	 *   Non-swap path (argfit == &gui.roi.fit or similar) — keep the
+	 *   in-place pattern.  Take args->fit's writer lock for the
+	 *   duration of the hook.  The lock isn't on gfit, so it doesn't
+	 *   block GTK main-thread readers.
+	 *
+	 * The 87-of-94 hook audit confirmed every image_hook operates only
+	 * on its `fit` parameter, so passing `orig` instead of gfit on the
+	 * swap path is safe. */
+	gboolean use_swap = (argfit == gfit);
+
+	fits *orig = NULL;        /* original backup + (swap path) hook
+	                           * working buffer.  After the swap it
+	                           * holds the pre-op image — feed to
+	                           * undo_save_state. */
+	fits *hook_fit = argfit;  /* what the hook receives.  For swap
+	                           * path becomes `orig`; non-swap stays
+	                           * args->fit. */
+	gchar *history = NULL;
+	gchar *summary = NULL;
+	gboolean undo_state = FALSE;
+
+	/* Suppress viewport redraws for any op that writes gfit, so partial
+	 * remap_index updates from background threads don't make it to the
+	 * screen.  Swap path: gfit only changes at the swap point, but
+	 * keeping the suppression spans that brief window cleanly. */
+	if (!com.script && !com.python_command && use_swap)
+		gui_iface.set_suppress_redraws(TRUE);
+
+	gui_iface.set_progress(PROGRESS_RESET, NULL);
+	gettimeofday(&t_start, NULL);
+	args->retval = 0;
+
+	g_rw_lock_reader_lock(&com.pref_rwlock);
+
+	if (use_swap) {
+		/* Swap path: snapshot gfit → orig under a brief reader lock,
+		 * then drop the lock.  The hook runs on `orig` with no gfit
+		 * lock held — readers on the GUI thread stay unblocked. */
+		orig = calloc(1, sizeof(fits));
+		if (!orig) {
+			PRINT_ALLOC_ERR;
+			args->retval = 1;
+			goto the_end;
+		}
+		g_rw_lock_reader_lock(&gfit->rwlock);
+		/* CP_DEEPCOPY gives the hook a fully independent snapshot,
+		 * including WCS — WCS-dependent hooks (e.g. SPCC/PCC) read it
+		 * via has_wcs(). A plain CP_COPYA copy would leave it NULL.
+		 * CP_DEEPCOPY omits CP_ALLOC, so OR it in: orig is freshly
+		 * calloc'd and its data buffer still needs allocating. */
+		int rc = copyfits(gfit, orig, CP_DEEPCOPY | CP_ALLOC, -1);
+		g_rw_lock_reader_unlock(&gfit->rwlock);
+		if (rc) {
+			siril_log_error(_("Failed to copy original image.\n"));
+			args->retval = 1;
+			goto the_end;
+		}
+		hook_fit = orig;
+	} else {
+		/* Non-swap path: writer-lock args->fit for the hook's
+		 * duration (legacy in-place pattern).  Allocate orig as a
+		 * pre-hook backup only when mask blending needs it — undo
+		 * doesn't apply here (undo_state requires argfit == gfit). */
+		g_rw_lock_writer_lock(&argfit->rwlock);
+		gboolean preview_using_mask = args->mask_aware && argfit->mask && argfit->mask_active;
+		if (preview_using_mask) {
+			orig = calloc(1, sizeof(fits));
+			if (!orig) {
+				PRINT_ALLOC_ERR;
+				args->retval = 1;
+				goto the_end;
+			}
+			if (copyfits(argfit, orig, CP_ALLOC | CP_FORMAT | CP_COPYA | CP_COPYMASK, -1)) {
+				siril_log_error(_("Failed to copy original image.\n"));
+				args->retval = 1;
+				goto the_end;
+			}
+		}
+	}
+
+	gboolean using_mask = args->mask_aware && hook_fit->mask && hook_fit->mask_active;
+
+	// Set default max_threads if not specified
+	if (args->max_threads < 1)
+		args->max_threads = com.max_thread;
+
+	// Memory check
+	if (args->mem_ratio > 0.0f) {
+		if (default_img_mem_hook(args)) {
+			args->retval = 1;
+			goto the_end;
+		}
+	}
+
+	// Output print of operation description
+	if (args->description && verbose) {
+		gchar *desc_pretty = g_strdup_printf(_("%s: processing%s...\n"), args->description, using_mask ? _(" (mask active)"): "");
+		siril_log_info(desc_pretty);
+		g_free(desc_pretty);
+	}
+
+	gui_iface.set_progress(0.1f, _("Processing image..."));
+
+	/* Run the image processing hook on hook_fit (orig on the swap path,
+	 * args->fit on the non-swap path). */
+	if (args->image_hook(args, hook_fit, args->max_threads)) {
+		siril_log_error(_("%s image processing failed.\n"), args->description);
+		args->retval = 1;
+	} else {
+		args->retval = 0;
+		// Blend according to the mask
+		if (using_mask) {
+			siril_log_debug("Applying mask blend...\n");
+			if (use_swap) {
+				/* hook_fit (orig) now has the processed result; the
+				 * "before" pixels live in gfit (still original since
+				 * the snapshot above).  Brief reader lock just for
+				 * the blend duration. */
+				g_rw_lock_reader_lock(&gfit->rwlock);
+				blend_fits_with_mask(hook_fit, gfit);
+				g_rw_lock_reader_unlock(&gfit->rwlock);
+			} else if (orig) {
+				/* On the non-swap path orig is the pre-hook backup, allocated
+				 * exactly when masking is active (preview_using_mask), which is
+				 * the same condition as using_mask since hook_fit == argfit
+				 * here - so orig is non-NULL. Guard explicitly to make that
+				 * invariant safe (and silence the static-analysis null deref). */
+				blend_fits_with_mask(hook_fit, orig);
+			}
+		}
+
+		// Generate the message used for undo label and HISTORY
+		history = args->log_hook ? args->log_hook(args->user, DETAILED): g_strdup(args->description);
+		/* Undo only applies on the swap path (argfit == gfit), not
+		 * when previewing or running from a script. */
+		undo_state = use_swap && !(args->skip_generic_undo || args->for_preview || com.script);
+		if (undo_state)
+			summary = args->log_hook ? args->log_hook(args->user, SUMMARY): g_strdup(args->description);
+	}
+
+the_end:;
+
+	int retval = args->retval;
+	/* Capture mask state from hook_fit (post-hook state).  On the swap
+	 * path this is what gfit will hold after the swap. */
+	args->has_mask = (hook_fit->mask != NULL);
+
+	/* Fallback HISTORY card — append to hook_fit so the entry rides
+	 * through the swap onto gfit (swap path), or lands directly on
+	 * args->fit (non-swap path).  Skipped when undo_save_state() will
+	 * persist its own log_hook entry, or when the caller has its own
+	 * skip_generic_undo flow. */
+	gboolean append_history_fallback =
+	    !retval && !(undo_state && orig) && !arg_skip_undo && arg_update_gfit;
+	if (append_history_fallback) {
+		hook_fit->history = g_slist_append(hook_fit->history, g_strdup(history));
+		update_fits_header(hook_fit);
+	}
+
+	/* Install the result + release locks.
+	 *
+	 * Swap path: a microsecond writer-lock window covers
+	 * fits_swap_all_except_rwlock — the only point at which gfit's
+	 * contents actually change.  On failure we skip the swap so an
+	 * aborted op leaves gfit pristine.  After the swap, `orig` holds
+	 * the pre-op image (perfect undo source).
+	 *
+	 * Non-swap path: just release the long-held writer lock on
+	 * args->fit.  notify_gfit_data_modified() below will take gfit's
+	 * writer lock briefly itself via copy_roi_into_gfit().
+	 *
+	 * The unlock-then-housekeeping ordering is also load-bearing for
+	 * deadlock avoidance: holding the writer lock across the
+	 * execute_idle_sync() further down would self-deadlock the main
+	 * thread (motion handlers take the reader lock), and the
+	 * notify→copy_roi_into_gfit chain would recursively acquire
+	 * gfit's writer lock on the swap path. */
+	if (use_swap) {
+		if (!retval) {
+			g_rw_lock_writer_lock(&gfit->rwlock);
+			fits_swap_all_except_rwlock(gfit, orig);
+			g_rw_lock_writer_unlock(&gfit->rwlock);
+		}
+	} else {
+		g_rw_lock_writer_unlock(&argfit->rwlock);
+	}
+	g_rw_lock_reader_unlock(&com.pref_rwlock);
+
+	/* Carry out data updates (statistics, histograms, update Cairo
+	 * buffers in GUI mode).  Only invoke on success; on failure gfit
+	 * was not validly modified.  Runs outside the writer-lock window. */
+	if (!retval) {
+		notify_gfit_data_modified();
+	}
+
+	/* populate_roi() refreshes gui.roi.fit from the (now-updated) gfit
+	 * so the ROI preview reflects the result.  Only meaningful for the
+	 * swap path — non-swap ops worked on roi.fit directly and
+	 * re-populating from gfit would overwrite the result.
+	 * populate_roi() short-circuits if no ROI is selected. */
+	if (use_swap && !com.script && !com.python_command && !com.headless) {
+		gui_iface.populate_roi();
+	}
+
+	/* Cairo buffers are up to date; re-enable full viewport redraws so the
+	 * completion idle paints the updated image. */
+	gui_iface.set_suppress_redraws(FALSE);
+
+	// Cleanup / idles
+	if (args->command) {
+		if (com.headless) {
+			stop_processing_thread();
+			free_generic_img_args(args);
+		} else if (args->command_updates_gfit) {
+			// commands do not use custom idles and the generic ones must run synchronously
+			gui_iface.execute_idle_sync(end_generic_image_update_gfit, args);
+		} else {
+			gui_iface.execute_idle_sync(end_generic_image, args);
+		}
+	} else if (args->idle_function) {
+		siril_add_idle(args->idle_function, args);
+	} else {
+		siril_add_idle(end_generic_image_update_gfit, args);
+	}
+
+	// Everything below here must avoid using args as it will be cleared in the idle function
+	// (or headless path).
+	// We do other widget updates here after the idle has been added, so that we don't get
+	// early redraws
+
+	if (retval) {
+		gui_iface.set_progress(PROGRESS_RESET, _("Image processing failed. Check the log."));
+	} else {
+		gui_iface.set_progress(PROGRESS_DONE, _("Image processing succeeded."));
+	}
+
+	if (!argpreview && !retval)
+		siril_log_message("%s\n", history); // Log the full detailed description
+
+	if (!retval && undo_state && orig) {
+		/* On the swap path, `orig` now holds the pre-op image — the
+		 * swap above moved the original gfit content into it.  That's
+		 * exactly what undo_save_state wants to snapshot. */
+		undo_save_state(orig, summary);
+	}
+	if (verbose) {
+		siril_log_info(_("%s %s.\n"), desc, retval ? _("failed") : _("succeeded"));
+		gettimeofday(&t_end, NULL);
+		show_time(t_start, t_end);
+	}
+	// Clean up
+	g_free(summary); // free the message
+	g_free(history);
+	g_free(desc);
+	if (orig)
+		clearfits(orig);
+	free(orig);
+
+	return GINT_TO_POINTER(retval);
+}
+
+/* TODO: apply the same swap-on-completion treatment to generic_mask_worker
+ * that generic_image_worker now uses (commit 28ea0b5c7).  Today this worker
+ * holds args->fit->rwlock as a writer for the entire duration of the
+ * mask_hook — usually fast, but long-running mask ops would block GUI
+ * readers the same way image-hook ops used to.  The fix would mirror
+ * generic_image_worker: snapshot the fit (or just mask) into a private
+ * buffer, run the hook lock-free, briefly take the writer lock for a
+ * fits_swap_all_except_rwlock at the end.  Low priority while mask ops
+ * stay short. */
+gpointer generic_mask_worker(gpointer p) {
+	struct generic_mask_args *args = (struct generic_mask_args *)p;
+	struct timeval t_start, t_end;
+
+	assert(args);
+	assert(args->fit);
+	/* Populate mask_hook/log_hook/description/mem_ratio from args->op (if any). */
+	op_descriptor_fill_mask_args(args);
+	assert(args->mask_hook);
+
+	gboolean verbose = args->verbose;
+	gchar *history = NULL;
+	gboolean rwlocked = FALSE;
+
+	gui_iface.set_progress(PROGRESS_RESET, NULL);
+	gettimeofday(&t_start, NULL);
+	args->retval = 0;
+	g_rw_lock_reader_lock(&com.pref_rwlock);
+
+	// Set default max_threads if not specified
+	if (args->max_threads < 1)
+		args->max_threads = com.max_thread;
+
+	// Memory check
+	if (args->mem_ratio > 0.0f) {
+		if (default_mask_mem_hook(args)) {
+			args->retval = 1;
+			goto the_end;
+		}
+	}
+
+	// Output print of operation description
+	if (args->description && verbose) {
+		gchar *desc = g_strdup_printf(_("%s: processing mask...\n"), args->description);
+		siril_log_info(desc);
+		g_free(desc);
+	}
+
+	gui_iface.set_progress(0.1f, _("Processing mask..."));
+
+	g_rw_lock_writer_lock(&args->fit->rwlock);
+	rwlocked = TRUE;
+	if (args->fit == gfit && !args->command) {
+		gchar *undo_msg = args->log_hook ? args->log_hook(args->user, SUMMARY) : g_strdup(args->description);
+		undo_save_state(gfit, undo_msg);
+		g_free(undo_msg);
+	}
+	// Call the mask processing hook
+	if (args->mask_hook(args)) {
+		siril_log_error(_("%s mask processing failed.\n"), args->description);
+		args->retval = 1;
+	} else {
+		// Generate the message for HISTORY
+		history = args->log_hook ? args->log_hook(args->user, DETAILED) : g_strdup(args->description);
+		siril_log_message("%s\n", history);
+		g_free(history);
+
+		if (verbose) {
+			siril_log_info(_("%s succeeded.\n"), args->description);
+			gettimeofday(&t_end, NULL);
+			show_time(t_start, t_end);
+		}
+	}
+
+the_end:
+	if (args->retval) {
+		gui_iface.set_progress(PROGRESS_RESET, _("Mask processing failed. Check the log."));
+	} else {
+		gui_iface.set_progress(PROGRESS_DONE, _("Mask processing succeeded."));
+	}
+
+	int retval = args->retval;
+
+	if (args->mask_creation) {
+		set_mask_active(args->fit, TRUE);
+	}
+	if (rwlocked)
+		g_rw_lock_writer_unlock(&args->fit->rwlock);
+	g_rw_lock_reader_unlock(&com.pref_rwlock);
+
+	if (args->command) {
+		if (com.headless) {
+			stop_processing_thread();
+			free_generic_mask_args(args);
+		} else {
+			// commands do not use custom idles and must run synchronously
+			gui_iface.execute_idle_sync(end_generic_mask, args);
+		}
+	} else if (args->idle_function) {
+		siril_add_idle(args->idle_function, args);
+	} else {
+		siril_add_idle(end_generic_mask, args);
+	}
+
+	return GINT_TO_POINTER(retval);
 }

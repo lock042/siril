@@ -105,5 +105,16 @@ psf_star *new_psf_star();
 void psf_star_init(psf_star *s);
 psf_star *duplicate_psf(psf_star *);
 void free_psf(psf_star *psf);
+double psf_get_star_radius(psf_star *psf, double noise_level, double bgthreshold);
+
+/* Stars list management (defined in algos/PSF.c, displayed by gui/PSF_list.c) */
+void clear_stars_list(gboolean refresh_GUI);
+gboolean clear_stars_list_as_idle(gpointer user_data);
+/* Reader-locked deep copy of com.stars for use on worker threads. Free with
+ * free_fitted_stars(); *nb_out receives the count. Returns NULL if empty. */
+psf_star **snapshot_com_stars(int *nb_out);
+/* Atomically replace com.stars with a new owned list under the writer lock,
+ * freeing the previous one. Takes ownership of 'stars'. */
+void replace_com_stars(psf_star **stars);
 
 #endif

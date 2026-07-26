@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -20,12 +20,14 @@
 #ifndef SRC_CORE_SIRIL_UPDATE_H_
 #define SRC_CORE_SIRIL_UPDATE_H_
 
-#if ( defined(HAVE_LIBCURL)  || defined(HAVE_LIBGIT2) )
-
 int compare_version(version_number v1, version_number v2);
 version_number get_version_number_from_string(const gchar *string);
 version_number get_current_version_number();
+
+#if ( defined(HAVE_LIBCURL)  || defined(HAVE_LIBGIT2) )
+
 void siril_check_updates(gboolean verbose);
+void siril_check_spcc_mirrors(gboolean verbose, gboolean sync);
 void siril_check_notifications(gboolean verbose);
 
 #endif

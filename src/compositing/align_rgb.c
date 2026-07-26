@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -26,10 +26,9 @@
 #include <string.h>
 
 #include "core/siril.h"
-#include "gui/image_display.h"
-#include "gui/progress_and_log.h"
-#include "gui/PSF_list.h"
+#include "core/gui_iface.h"
 #include "core/proto.h"
+#include "core/siril_log.h"
 #include "registration/registration.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
@@ -70,72 +69,33 @@ static int initialize_internal_rgb_sequence() {
 	seq = create_internal_sequence(3);
 	for (int i = 0; i < 3; i++) {
 		fits *fit = calloc(1, sizeof(fits));
-		if (extract_fits(&gfit, fit, i, FALSE)) {
+		if (extract_fits(gfit, fit, i, FALSE)) {
 			free(fit);
 			free_sequence(seq, TRUE);
 			return -1;
 		}
 		internal_sequence_set(seq, i, fit);
 	}
-	seq->rx = gfit.rx;
-	seq->ry = gfit.ry;
-	seq->bitpix = gfit.bitpix;
+	seq->rx = gfit->rx;
+	seq->ry = gfit->ry;
+	seq->bitpix = gfit->bitpix;
 
 	return 0;
 }
 
-static void align_and_compose() {
-	int i = 0;	// i is browsing the 1D buffer, i = y * rx + x
-	for (int y = 0; y < gfit.ry; ++y) {
-		for (int x = 0; x < gfit.rx; ++x) {
-			for (int channel = 0; channel < 3; channel++) {
-				fits *fit = internal_sequence_get(seq, channel);
-				if (seq && seq->regparam) {
-					double dx, dy;
-					translation_from_H(seq->regparam[REGLAYER][channel].H, &dx, &dy);
-					int realX = x - round_to_int(dx);
-					int realY = y - round_to_int(dy);
-					if (fit->type == DATA_USHORT) {
-						WORD pixel;
-						if (realX < 0 || realX >= gfit.rx)
-							pixel = 0;
-						else if (realY < 0 || realY >= gfit.ry)
-							pixel = 0;
-						else {
-							pixel = fit->pdata[0][realX + gfit.rx * realY];
-						}
-						gfit.pdata[channel][i] = pixel;
-					} else {
-						float pixel;
-						if (realX < 0 || realX >= gfit.rx)
-							pixel = 0.f;
-						else if (realY < 0 || realY >= gfit.ry)
-							pixel = 0.f;
-						else {
-							pixel = fit->fpdata[0][realX + gfit.rx * realY];
-						}
-						gfit.fpdata[channel][i] = pixel;
-					}
-				}
-			}
-			i++;
-		}
-	}
-}
-
 static void compose() {
-	size_t npixels = gfit.rx * gfit.ry;
+	size_t npixels = gfit->rx * gfit->ry;
 	fits *fit[3];
 	for (int i = 0 ; i < 3 ; i++) {
 		fit[i] = internal_sequence_get(seq, i);
 	}
-	if (gfit.type == DATA_FLOAT) {
+	if (gfit->type == DATA_FLOAT) {
 		for (int i = 0 ; i < 3 ; i++) {
-			memcpy(gfit.fpdata[i], fit[i]->fdata, sizeof(float) * npixels);
+			memcpy(gfit->fpdata[i], fit[i]->fdata, sizeof(float) * npixels);
 		}
 	} else {
 		for (int i = 0 ; i < 3 ; i++) {
-			memcpy(gfit.pdata[i], fit[i]->data, sizeof(WORD) * npixels);
+			memcpy(gfit->pdata[i], fit[i]->data, sizeof(WORD) * npixels);
 		}
 	}
 }
@@ -148,13 +108,11 @@ int rgb_align(int m) {
 
 	initialize_methods();
 	initialize_internal_rgb_sequence();
-	set_cursor_waiting(TRUE);
-	set_progress_bar_data(NULL, PROGRESS_RESET);
+	gui_iface.set_busy(TRUE);
+	gui_iface.set_progress(PROGRESS_RESET, NULL);
 
 	/* align it */
 	method = reg_methods[m];
-	gboolean two_step = (method->method_ptr == register_multi_step_global ||
-		method->method_ptr == register_kombat || method->method_ptr == register_manual) ? TRUE : FALSE;
 	regargs.seq = seq;
 	regargs.no_output = FALSE;
 	get_the_registration_area(&regargs, method);
@@ -168,42 +126,41 @@ int rgb_align(int m) {
 	regargs.framing = framing;
 	regargs.output_scale = 1.f;
 	regargs.percent_moved = 0.50f; // Only needed for KOMBAT
-	regargs.two_pass = (method->method_ptr == register_multi_step_global &&
-						framing != FRAMING_CURRENT) ? TRUE : FALSE;
+	regargs.two_pass = TRUE;
 	if (method->method_ptr == register_shift_fwhm || method->method_ptr == register_shift_dft)
 		regargs.type = SHIFT_TRANSFORMATION;
 	else
 		regargs.type = HOMOGRAPHY_TRANSFORMATION;
-	com.run_thread = TRUE;	// fix for the canceling check in processing
 
+	if (!reserve_thread()) {
+		siril_log_message(_("A processing operation is already running.\n"));
+		gui_iface.set_busy(FALSE);
+		return 1;
+	}
 	retval1 = method->method_ptr(&regargs);
 	free(regargs.imgparam);
 	regargs.imgparam = NULL;
 	free(regargs.regparam);
 	regargs.regparam = NULL;
 	if (retval1) {
-		set_progress_bar_data(_("Error in channels alignment."), PROGRESS_DONE);
-		set_cursor_waiting(FALSE);
-		com.run_thread = FALSE;	// fix for the cancelling check in processing
+		gui_iface.set_progress(PROGRESS_DONE, _("Error in channels alignment."));
+		gui_iface.set_busy(FALSE);
+		unreserve_thread();
 		return retval1;
 	}
-	if (two_step) {
-		retval2 = register_apply_reg(&regargs);
-		compose(); // Register_apply_reg has already done the alignment for us
-	} else {
-		align_and_compose();
-	}
-
-	com.run_thread = FALSE;	// fix for the canceling check in processing
+	retval2 = register_apply_reg(&regargs);
+	compose();
+	unreserve_thread();
 
 	if (retval2) {
-		set_progress_bar_data(_("Error in layers alignment."), PROGRESS_DONE);
+		gui_iface.set_progress(PROGRESS_DONE, _("Error in layers alignment."));
 	} else {
-		set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
-		notify_gfit_modified();
-		redraw(REMAP_ALL);
+		gui_iface.set_progress(PROGRESS_DONE, _("Registration complete."));
+		notify_gfit_data_modified();
+		gfit_modified_update_gui();
 	}
-	set_cursor_waiting(FALSE);
+	siril_log_message(_("Aligned RGB channels\n"));
+	gui_iface.set_busy(FALSE);
 	free_internal_sequence(seq);
 	seq =  NULL;
 	return retval2;

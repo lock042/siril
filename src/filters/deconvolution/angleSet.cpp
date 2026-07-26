@@ -31,7 +31,7 @@ SOFTWARE.
 #include <omp.h>
 #endif
 
-#include "image.hpp"
+#include "algos/img_t/image.hpp"
 #include "angleSet.hpp"
 
 // compute the angle set that allows reaching each pixel in a square

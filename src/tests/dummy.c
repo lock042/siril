@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -20,12 +20,13 @@
 /* functions and variables defined only for linking */
 
 #include "../core/siril.h"
+#include "gui-gtk4/gui_state.h"
 #include "../core/pipe.h"
 
 /* the global variables of the whole project (replacing main.c) */
 cominfo com;	// the main data struct
 guiinfo gui;	// the gui data struct
-fits gfit;	// currently loaded image
+fits *gfit;	// currently loaded image
 char **supported_extensions;
 
 gboolean sequence_is_loaded() {
@@ -202,9 +203,45 @@ char* siril_log_message(const char* format, ...) {
 	return "";
 }
 
-char* siril_log_color_message(const char* format, const char* color, ...) {
+char* siril_log_error(const char* format, ...) {
 	va_list args;
-	va_start(args, color);
+	va_start(args, format);
+	printf("\t");
+	vprintf(format, args);
+	va_end(args);
+	return "";
+}
+
+char* siril_log_warning(const char* format, ...) {
+	va_list args;
+	va_start(args, format);
+	printf("\t");
+	vprintf(format, args);
+	va_end(args);
+	return "";
+}
+
+char* siril_log_info(const char* format, ...) {
+	va_list args;
+	va_start(args, format);
+	printf("\t");
+	vprintf(format, args);
+	va_end(args);
+	return "";
+}
+
+char* siril_log_bold(const char* format, ...) {
+	va_list args;
+	va_start(args, format);
+	printf("\t");
+	vprintf(format, args);
+	va_end(args);
+	return "";
+}
+
+char* siril_log_status(const char* format, ...) {
+	va_list args;
+	va_start(args, format);
 	printf("\t");
 	vprintf(format, args);
 	va_end(args);

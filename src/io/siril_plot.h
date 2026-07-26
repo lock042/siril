@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -22,7 +22,8 @@
 #define SRC_IO_SIRIL_PLOT_H_
 
 #include "core/siril.h"
-#include "gui/plot.h"
+#include "core/gtk_forward_decls.h"
+#include "gui-gtk4/plot.h"
 #include "kplot.h"
 #include "extern.h"
 
@@ -60,7 +61,7 @@ typedef struct siril_plot_legend_struct {
 
 typedef struct siril_plot_bkg_struct {
 	gchar *bkgfilepath;
-	GdkPixbuf *img;
+	cairo_surface_t *img;
 	double width, height;
 } splbkg;
 

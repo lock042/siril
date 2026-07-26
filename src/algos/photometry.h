@@ -16,6 +16,9 @@ struct photometry_struct {
 	double SNR;	// SNR estimation
 };
 
+double getMagnitude(double intensity);
+double getMagErr(double intensity, double area, int nsky, double skysig, double cvf, double *SNR);
+
 struct phot_config *phot_set_adjusted_for_image(const fits *fit);
 
 photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
@@ -58,5 +61,15 @@ gpointer light_curve_worker(gpointer arg);
 
 int new_light_curve(const char *filename, struct light_curve_args *lcargs);
 
+
+struct catmag_data {
+	siril_cat_index catalogue;
+	gboolean limit_BV;	// NOMAD
+	float refBV, dBV;
+	gboolean limit_temperature; // Gaia
+	float refT, dT;
+	fits *fit;
+};
+gpointer catmag_mono_worker(gpointer arg);
 
 #endif /* SRC_ALGOS_PHOTOMETRY_H_ */

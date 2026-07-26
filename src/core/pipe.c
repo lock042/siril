@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -51,11 +51,8 @@
 #include "core/siril_log.h"
 #include "pipe.h"
 #include "command_line_processor.h"
-//#include "processing.h"
-	void stop_processing_thread();	// avoid including everything
-	gpointer waiting_for_thread();
-	gboolean get_thread_run();
-#include "gui/progress_and_log.h"
+#include "io/single_image.h"
+#include "core/processing_thread.h"
 
 #ifdef _WIN32
 LPTSTR lpszPipename_r = TEXT("\\\\.\\pipe\\" PIPE_NAME_R);
@@ -83,6 +80,11 @@ int pipe_create(char *r_path_option, char *w_path_option) {
 	if (hPipe_w != INVALID_HANDLE_VALUE || hPipe_r != INVALID_HANDLE_VALUE)
 		return 0;
 
+	if (r_path_option && r_path_option[0] != '\0')
+		lpszPipename_r = r_path_option;
+	if (w_path_option && w_path_option[0] != '\0')
+		lpszPipename_w = w_path_option;
+
 	hPipe_w = CreateNamedPipe(
 			lpszPipename_w,           // pipe name
 			PIPE_ACCESS_OUTBOUND,     // write access
@@ -96,7 +98,7 @@ int pipe_create(char *r_path_option, char *w_path_option) {
 			NULL);                    // default security attribute
 	if (hPipe_w == INVALID_HANDLE_VALUE)
 	{
-		siril_log_message(_("Output pipe creation failed with error %d\n"), GetLastError());
+		siril_log_error(_("Output pipe creation failed with error %d\n"), GetLastError());
 		return -1;
 	}
 
@@ -113,7 +115,7 @@ int pipe_create(char *r_path_option, char *w_path_option) {
 			NULL);                    // default security attribute
 	if (hPipe_r == INVALID_HANDLE_VALUE)
 	{
-		siril_log_message(_("Input pipe creation failed with error %d\n"), GetLastError());
+		siril_log_error(_("Input pipe creation failed with error %d\n"), GetLastError());
 		return -1;
 	}
 #else
@@ -135,13 +137,13 @@ int pipe_create(char *r_path_option, char *w_path_option) {
 	struct stat st;
 	if (stat(r_path, &st)) {
 		if (mkfifo(r_path, 0666)) {
-			siril_log_message(_("Could not create the named pipe %s\n"), r_path);
+			siril_log_error(_("Could not create the named pipe %s\n"), r_path);
 			perror("mkfifo");
 			return -1;
 		}
 	}
 	else if (!S_ISFIFO(st.st_mode)) {
-		siril_log_message(_("The named pipe file %s already exists but is not a fifo, cannot create or open\n"), r_path);
+		siril_log_error(_("The named pipe file %s already exists but is not a fifo, cannot create or open\n"), r_path);
 		return -1;
 	}
 
@@ -150,13 +152,13 @@ int pipe_create(char *r_path_option, char *w_path_option) {
 		w_path = w_path_option;
 	if (stat(w_path, &st)) {
 		if (mkfifo(w_path, 0666)) {
-			siril_log_message(_("Could not create the named pipe %s\n"), w_path);
+			siril_log_error(_("Could not create the named pipe %s\n"), w_path);
 			perror("mkfifo");
 			return -1;
 		}
 	}
 	else if (!S_ISFIFO(st.st_mode)) {
-		siril_log_message(_("The named pipe file %s already exists but is not a fifo, cannot create or open\n"), w_path);
+		siril_log_error(_("The named pipe file %s already exists but is not a fifo, cannot create or open\n"), w_path);
 		return -1;
 	}
 #endif
@@ -259,7 +261,7 @@ int enqueue_command(char *command) {
 	if (!strncmp(command, "cancel", 6))
 		return 1;
 	if (!strcmp(command, "ping")) {
-		if (get_thread_run())
+		if (processing_is_job_active())
 			pipe_send_message(PIPE_STATUS, PIPE_BUSY, NULL);
 		else {
 			gchar *str = g_strdup_printf("%s\n", command);
@@ -293,7 +295,7 @@ void *read_pipe(void *p) {
 		/* try to open the pipe */
 		// will block until the other end is opened
 		if (!ConnectNamedPipe(hPipe_r, NULL) && GetLastError() != ERROR_PIPE_CONNECTED) {
-			siril_log_message(_("Could not open the named pipe\n"));
+			siril_log_error(_("Could not open the named pipe\n"));
 			break;
 		}
 		fprintf(stdout, "opened read pipe\n");
@@ -356,7 +358,7 @@ void *read_pipe(void *p) {
 				CloseHandle(hPipe_r);
 				hPipe_r = INVALID_HANDLE_VALUE;
 				empty_command_queue();
-				if (get_thread_run()) {
+				if (processing_is_job_active()) {
 					stop_processing_thread();
 					pipe_send_message(PIPE_STATUS, PIPE_ERROR, _("command interrupted\n"));
 				}
@@ -372,7 +374,7 @@ void *read_pipe(void *p) {
 			r_path = (char *)p;
 		fprintf(stdout, "read pipe %s waiting to be opened...\n", r_path);
 		if ((pipe_fd_r = open(r_path, O_RDONLY)) == -1) {
-			siril_log_message(_("Could not open the named pipe\n"));
+			siril_log_error(_("Could not open the named pipe\n"));
 			perror("open");
 			break;
 		}
@@ -443,7 +445,7 @@ void *read_pipe(void *p) {
 				pipe_fd_r = -1;
 				if (read_return == PIPE_READ_ERROR) {
 					empty_command_queue();
-					if (get_thread_run()) {
+					if (processing_is_job_active()) {
 						stop_processing_thread();
 						pipe_send_message(PIPE_STATUS, PIPE_ERROR, _("command interrupted\n"));
 					}
@@ -490,7 +492,22 @@ void *process_commands(void *p) {
 
 		pipe_send_message(PIPE_STATUS, PIPE_STARTING, command_name);
 
+		/* Set com.script so processing_submit_job blocks until the job
+		 * finishes and deposits the result in pending_result, which
+		 * waiting_for_thread() can then retrieve correctly.  Without this,
+		 * fire-and-forget jobs never set pending_result and
+		 * waiting_for_thread() always returns 0, hiding command errors. */
+		gboolean was_script = com.script;
+		com.script = TRUE;
 		int retval = execute_command(wordnb);
+		com.script = was_script;
+
+		/* The com.script flag suppressed notify_gfit_data_modified()'s remap
+		 * work during execute_command (matching the script-mode display-deferral
+		 * behaviour).  If this pipe command is not itself inside a true script,
+		 * flush the display now that the result is ready. */
+		if (!was_script && !com.headless)
+			notify_gfit_data_modified();
 
 		if (retval != CMD_NO_WAIT && waiting_for_thread()) {
 			empty_command_queue();
@@ -514,7 +531,7 @@ static void *write_pipe(void *p) {
 		fprintf(stdout, "write pipe waiting to be opened...\n");
 		// will block until the other end is opened
 		if (!ConnectNamedPipe(hPipe_w, NULL) && GetLastError() != ERROR_PIPE_CONNECTED) {
-			siril_log_message(_("Could not open the named pipe\n"));
+			siril_log_error(_("Could not open the named pipe\n"));
 			break;
 		}
 #else
@@ -524,7 +541,7 @@ static void *write_pipe(void *p) {
 		fprintf(stdout, "write pipe %s waiting to be opened...\n", w_path);
 		// open will block until the other end is opened
 		if ((pipe_fd_w = open(w_path, O_WRONLY)) == -1) {
-			siril_log_message(_("Could not open the named pipe\n"));
+			siril_log_error(_("Could not open the named pipe\n"));
 			perror("open");
 			break;
 		}

@@ -16,25 +16,25 @@ if criterion_dep.found()
      stacking_exec = executable('stacking_blocks_test',
                                 'stacking_blocks_test.c',
                                 dependencies : [siril_dep, criterion_dep],
-                                link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                link_args : siril_link_arg,
                                 c_args : siril_c_flag,
                                 cpp_args : siril_cpp_flag)
 
      test('stacking_blocks_test', stacking_exec)
-     
+
      date_exec = executable('siril_date_test',
                             'siril_date_test.c',
                             dependencies : [siril_dep, criterion_dep],
-                            link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                            link_args : siril_link_arg,
                             c_args : siril_c_flag,
                             cpp_args : siril_cpp_flag)
 
      test('siril_date_test', date_exec)
-     
+
      world_cs_exec = executable('siril_world_cs_test',
                                 'siril_world_cs_test.c',
                                 dependencies : [siril_dep, criterion_dep],
-                                link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                link_args : siril_link_arg,
                                 c_args : siril_c_flag,
                                 cpp_args : siril_cpp_flag)
 
@@ -44,7 +44,7 @@ if criterion_dep.found()
      imoper_exec = executable('imoper_test',
                               'imoper_test.c',
                               dependencies : [siril_dep, criterion_dep],
-                              link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                              link_args : siril_link_arg,
                               c_args : siril_c_flag,
                               cpp_args : siril_cpp_flag)
 
@@ -53,16 +53,34 @@ if criterion_dep.found()
      soper_exec = executable('soper_test',
                              'soper_test.c',
                              dependencies : [siril_dep, criterion_dep],
-                             link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                             link_args : siril_link_arg,
                              c_args : siril_c_flag,
                              cpp_args : siril_cpp_flag)
 
      test('soper_test', soper_exec, suite: 'arithmetic')
 
+     op_descriptor_exec = executable('test_op_descriptor',
+                                     'test_op_descriptor.c',
+                                     dependencies : [siril_dep, criterion_dep],
+                                     link_args : siril_link_arg,
+                                     c_args : siril_c_flag,
+                                     cpp_args : siril_cpp_flag)
+
+     test('test_op_descriptor', op_descriptor_exec)
+
+     wavelet_denoise_exec = executable('wavelet_denoise_test',
+                                       'wavelet_denoise_test.c',
+                                       dependencies : [siril_dep, criterion_dep],
+                                       link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                       c_args : siril_c_flag,
+                                       cpp_args : siril_cpp_flag)
+
+     test('wavelet_denoise_test', wavelet_denoise_exec, suite: 'science')
+
      photometry_exec = executable('photometry_test',
                                   'photometry_test.c',
                                   dependencies : [siril_dep, criterion_dep],
-                                  link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                  link_args : siril_link_arg,
                                   c_args : siril_c_flag,
                                   cpp_args : siril_cpp_flag)
 
@@ -71,7 +89,7 @@ if criterion_dep.found()
      rejection_exec = executable('rejection_test',
                                  'rejection_test.c',
                                  dependencies : [siril_dep, criterion_dep],
-                                 link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                 link_args : siril_link_arg,
                                  c_args : siril_c_flag,
                                  cpp_args : siril_cpp_flag)
 
@@ -80,7 +98,7 @@ if criterion_dep.found()
      ser_exec = executable('ser_test',
                            'ser_test.c',
                            dependencies : [siril_dep, criterion_dep],
-                           link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                           link_args : siril_link_arg,
                            c_args : siril_c_flag,
                            cpp_args : siril_cpp_flag)
 
@@ -94,6 +112,68 @@ if criterion_dep.found()
                                         cpp_args : siril_cpp_flag)
 
      test('siril_spawn_test', siril_spawn_test_exec)
+
+     # MPP unit tests — synthetic / generated data only. Tests that compared
+     # against the PSS Python reference oracle (which lives outside this
+     # repo) have been removed; everything still here either builds its own
+     # fixture in-process or asserts pure-math invariants. No env vars
+     # required.
+     foreach t : ['mpp_rank_test', 'mpp_align_test', 'mpp_ap_test',
+                  'mpp_shift_test', 'mpp_stack_test',
+                  'mpp_pipeline_test']
+         mpp_exec = executable(t,
+                               t + '.cpp',
+                               dependencies : [siril_dep, criterion_dep],
+                               link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                               c_args : siril_c_flag,
+                               cpp_args : siril_cpp_flag)
+         test(t, mpp_exec, suite: 'mpp')
+     endforeach
+
+     mpp_sidecar_exec = executable('mpp_sidecar_test',
+                                   'mpp_sidecar_test.c',
+                                   dependencies : [siril_dep, criterion_dep],
+                                   link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                   c_args : siril_c_flag,
+                                   cpp_args : siril_cpp_flag)
+
+     test('mpp_sidecar_test', mpp_sidecar_exec, suite: 'mpp')
+
+     gps_exec = executable('qhy_gps_test',
+                           ['qhy_gps_test.c', 'download_files.c'],
+                           dependencies : [siril_dep, criterion_dep],
+                           link_args : siril_link_arg,
+                           c_args : siril_c_flag,
+                           cpp_args : siril_cpp_flag)
+
+     test('qhy_gps_test', gps_exec)
+
+     streaks_exec = executable('streaks_test',
+                           ['streaks_test.c', 'download_files.c'],
+                           dependencies : [siril_dep, criterion_dep],
+                           link_args : siril_link_arg,
+                           c_args : siril_c_flag,
+                           cpp_args : siril_cpp_flag)
+
+     test('streaks_test', streaks_exec)
+
+     harmonize_img_t_exec = executable('harmonize_img_t_test',
+                                       'harmonize_img_t_test.cpp',
+                                       dependencies : [siril_dep, criterion_dep],
+                                       link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                       c_args : siril_c_flag,
+                                       cpp_args : siril_cpp_flag)
+
+     test('harmonize_img_t_test', harmonize_img_t_exec, suite: 'harmonize')
+
+     da3d_dft_perf_exec = executable('da3d_dft_perf',
+                                     'da3d_dft_perf.cpp',
+                                     dependencies : [siril_dep, criterion_dep],
+                                     link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                     c_args : siril_c_flag,
+                                     cpp_args : siril_cpp_flag)
+
+     test('da3d_dft_perf', da3d_dft_perf_exec, suite: 'perfs', protocol: 'exitcode', is_parallel : false)
 
      # Performance testing
      sorting_perf_exec = executable('sorting_perf',

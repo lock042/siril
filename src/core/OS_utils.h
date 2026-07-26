@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -21,12 +21,19 @@
 #define SRC_CORE_OS_UTILS_H_
 
 #include <glib.h>
-
-#include "core/siril.h"
+#include <gio/gio.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef struct {
+	int glib_num_proc;
+	int omp_num_proc;
+	int cgroups_num_proc;
+	int supports_nesting;
+} NumProcsInfo;
+
 
 gboolean is_space_disk_available(const gchar *disk);
 gboolean update_displayed_memory(gpointer data);
@@ -39,6 +46,7 @@ void log_used_mem(gchar *when);
 int get_available_cpu_cgroups();
 
 void init_num_procs();
+void log_num_procs();
 
 long get_pathmax(void);
 
@@ -53,6 +61,16 @@ gchar *find_executable_in_path(const char *exe_name, const char *path);
 #endif
 
 gboolean allow_to_open_files(int nb_frames, int *nb_allowed_file);
+
+gchar *get_siril_version_string();
+
+gboolean siril_system_is_dark_mode(void);
+void siril_watch_system_appearance_changes(void (*callback)(gboolean dark));
+
+#ifdef OS_OSX
+void siril_macos_fix_keyboard_shortcuts(void);
+void siril_macos_fix_popover_autohide(void);
+#endif
 
 #ifdef __cplusplus
 }
