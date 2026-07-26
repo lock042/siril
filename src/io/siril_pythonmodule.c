@@ -35,6 +35,7 @@
 #include "core/processing.h"
 #include "core/nde_history.h"
 #include "core/nde_checkpoint.h"
+#include "core/nde_script_scope.h"
 #include "core/siril_log.h"
 #include "core/siril_update.h"
 #include "core/siril_app_dirs.h"
@@ -775,13 +776,20 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	 * Runs on the python-comm worker thread while thread_claimed; the append
 	 * is leaf-mutex-safe from any thread. */
 	if (fit == gfit) {
-		gint target = -1;
-		if (is_current_image_flis()) {
-			flis_layer_t *lay = flis_active_layer();
-			if (lay) target = lay->item_id;
+		if (nde_script_scope_active()) {
+			/* Inside a script scope: the end-of-scope net-effect record subsumes
+			 * this write (nde-phase5).  Just flag the pixel mutation — never one
+			 * record per set_pixeldata call. */
+			nde_script_scope_mark_pixels_dirty();
+		} else {
+			gint target = -1;
+			if (is_current_image_flis()) {
+				flis_layer_t *lay = flis_active_layer();
+				if (lay) target = lay->item_id;
+			}
+			nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, target,
+			                   _("Python script pixel update"), fit);
 		}
-		nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, target,
-		                   _("Python script pixel update"), fit);
 	}
 
 	// In all cases we have now finished with the shm and closed and unlinked it.
@@ -962,13 +970,20 @@ gboolean handle_set_image_mask_request(Connection *conn, fits *fit, incoming_ima
 	/* NDE provenance (sketch §13.2): a script set/updated the document's mask.
 	 * Only for the document image (fit == gfit); Tier B (opaque). */
 	if (fit == gfit) {
-		gint target = -1;
-		if (is_current_image_flis()) {
-			flis_layer_t *lay = flis_active_layer();
-			if (lay) target = lay->item_id;
+		if (nde_script_scope_active()) {
+			/* Inside a script scope: coalesce into the end-of-scope record.  A
+			 * mask change is invisible to the pixel-hash net-effect test, so
+			 * flag it as a non-pixel mutation to force a record. */
+			nde_script_scope_mark_nonpixel_dirty();
+		} else {
+			gint target = -1;
+			if (is_current_image_flis()) {
+				flis_layer_t *lay = flis_active_layer();
+				if (lay) target = lay->item_id;
+			}
+			nde_capture_opaque("python.set_mask", NDE_SCOPE_LAYER, target,
+			                   _("Python script mask update"), fit);
 		}
-		nde_capture_opaque("python.set_mask", NDE_SCOPE_LAYER, target,
-		                   _("Python script mask update"), fit);
 	}
 
 	// In all cases we have now finished with the shm and closed and unlinked it.
@@ -3531,6 +3546,17 @@ static void python_process_cleanup(GPid pid, gint status, gpointer user_data) {
 		cleanup->python_conn = NULL;
 		cleanup->worker_thread = NULL;
 
+		/* Close the NDE provenance scope opened at launch (nde-phase5).  The
+		 * script's IPC mutations all completed synchronously before the process
+		 * exited (the script blocks for each response), so gfit is in its final
+		 * state and every dirty flag is set: this decides Tier-C / Tier-B /
+		 * nothing and captures at most one record.  No-op when no scope is open
+		 * (e.g. a replay re-run, which does not open one).
+		 * TODO(nde-phase5 replay): once for_replay launches exist, pair this
+		 * with the begin guard (carry for_replay in cleanup) so a replay's
+		 * cleanup cannot decrement a concurrent capture scope's depth. */
+		nde_script_scope_end();
+
 		// Remove from children list
 		remove_child_from_children(cleanup->child_pid);
 
@@ -3791,6 +3817,15 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 			 * the subprocess can connect and issue any command. */
 			if (for_replay)
 				processing_register_replay_script(commstate.worker_thread);
+			/* Open the NDE provenance scope for a normal launch (nde-phase5):
+			 * it coalesces the script's whole net effect into at most one
+			 * record and suppresses per-op capture meanwhile.  A replay re-run
+			 * (for_replay) must NOT open a capture scope — it is reproducing an
+			 * existing record, not creating a new one.  Only a real, re-runnable
+			 * script file can become Tier-C, so pass the path only for a
+			 * non-temp from_file launch. */
+			if (!for_replay)
+				nde_script_scope_begin((from_file && !is_temp_file) ? script_name : NULL);
 			// Prepend this process to the list of child processes
 			gchar *script_basename = g_path_get_basename(script_name);
 			gchar *childname = g_strdup_printf("%s %s", PYTHON_EXE, from_file ? script_basename : "script");

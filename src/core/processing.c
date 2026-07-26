@@ -34,6 +34,7 @@
 #include "core/processing.h"
 #include "core/nde_history.h"
 #include "core/nde_checkpoint.h"
+#include "core/nde_script_scope.h"
 #include "core/op_descriptor.h"
 #include "core/siril_log.h"
 #include "core/sequence_filtering.h"
@@ -1769,8 +1770,11 @@ gpointer generic_image_worker(gpointer p) {
 		// Generate the message used for undo label and HISTORY
 		history = args->log_hook ? args->log_hook(args->user, DETAILED): g_strdup(args->description);
 		/* Undo only applies on the swap path (argfit == gfit), not
-		 * when previewing or running from a script. */
-		undo_state = use_swap && !(args->skip_generic_undo || args->for_preview || com.script);
+		 * when previewing, running from a script, or inside a python script
+		 * provenance scope (the scope suppresses per-command undo — its single
+		 * record covers the whole script). */
+		undo_state = use_swap && !(args->skip_generic_undo || args->for_preview
+		                           || com.script || nde_script_scope_active());
 		if (undo_state)
 			summary = args->log_hook ? args->log_hook(args->user, SUMMARY): g_strdup(args->description);
 	}
@@ -1854,7 +1858,12 @@ the_end:;
 	 * prepared here; the append itself is a few pointer ops under the
 	 * leaf mutex. */
 	gint64 nde_rec_id = 0;
-	if (!retval && use_swap && !arg_skip_undo && !argpreview) {
+	if (!retval && use_swap && !arg_skip_undo && !argpreview && nde_script_scope_active()) {
+		/* Under a python script provenance scope: the end-of-scope record
+		 * subsumes this op's provenance (nde-phase5 scope engine).  Flag the
+		 * net pixel mutation and skip per-op capture. */
+		nde_script_scope_mark_pixels_dirty();
+	} else if (!retval && use_swap && !arg_skip_undo && !argpreview) {
 		const op_descriptor *op = args->op;
 		gboolean tier_a = op && op->serialize;
 		nde_record *rec = nde_record_new();
