@@ -131,6 +131,17 @@ static slot_owner_t slot_owner = SLOT_FREE;
 static GThread *replay_conductor_thread = NULL;
 static GThread *replay_script_thread    = NULL;
 
+/* Caller must hold queue_mutex.  TRUE when the current thread is admitted to
+ * use the reserved slot without waiting — the replay conductor or the single
+ * script it launched.  Used both by the submit gate and by start_in_new_thread
+ * to treat these as re-entrant callers of the reservation. */
+static gboolean replay_admits_self_locked(void) {
+    if (slot_owner != SLOT_REPLAY)
+        return FALSE;
+    GThread *self = g_thread_self();
+    return self == replay_conductor_thread || self == replay_script_thread;
+}
+
 /* ── Pending-result cache ────────────────────────────────────────────────
 *
 * When a blocking submission completes (script / python-command context),
@@ -331,7 +342,8 @@ void processing_system_shutdown(void) {
 
         g_mutex_lock(&queue_mutex);
         g_queue_push_tail(&job_queue, quit);
-        g_cond_signal(&queue_cond);
+        g_cond_broadcast(&queue_cond);   /* wake the worker even if strangers
+                                            are parked on queue_cond */
         g_mutex_unlock(&queue_mutex);
 
         g_thread_join(worker_thread);
@@ -353,7 +365,8 @@ void processing_system_shutdown(void) {
          */
         g_mutex_lock(&queue_mutex);
         worker_running = FALSE;
-        g_cond_signal(&queue_cond);
+        g_cond_broadcast(&queue_cond);   /* wake the worker even if strangers
+                                            are parked on queue_cond */
         g_mutex_unlock(&queue_mutex);
 
         /* Do NOT join and do NOT clear queue_mutex/queue_cond: the worker
@@ -429,8 +442,7 @@ gboolean processing_submit_job(ProcessingFunc func, gpointer data) {
                 /* Admit the replay's own conductor and the one script it
                  * launched; every other background caller waits until the
                  * conductor releases (per-thread identity, no shared global). */
-                GThread *self = g_thread_self();
-                if (self == replay_conductor_thread || self == replay_script_thread)
+                if (replay_admits_self_locked())
                     break;
                 g_cond_wait(&queue_cond, &queue_mutex);
                 continue;
@@ -457,7 +469,13 @@ gboolean processing_submit_job(ProcessingFunc func, gpointer data) {
 
     g_mutex_lock(&queue_mutex);
     g_queue_push_tail(&job_queue, job);
-    g_cond_signal(&queue_cond);
+    /* Broadcast, not signal: queue_cond has heterogeneous waiters.  Besides the
+     * worker, background callers park here in the reservation gate (a resident
+     * script's cmd() while SLOT_REPLAY is held).  g_cond_signal could wake such
+     * a parked stranger — which just re-checks and re-waits — leaving the worker
+     * asleep and the job unprocessed, hanging the submitter.  All waiters
+     * re-test their condition in a loop, so waking extras is harmless. */
+    g_cond_broadcast(&queue_cond);
     g_mutex_unlock(&queue_mutex);
 
     /* ── Blocking path (script / python-command context) ─────────────── */
@@ -667,8 +685,21 @@ gboolean start_in_new_thread(ProcessingFunc func, gpointer data) {
     /*
     * Re-entrant submissions (from within a running job) bypass all guards:
     * processing_submit_job will run func() synchronously in that case.
+    *
+    * An admitted replay identity (the off-worker conductor or the one script
+    * it launched, while SLOT_REPLAY is held) is likewise a re-entrant caller of
+    * the reserved slot: it must NOT trip the busy guard nor pre-claim
+    * job_active_flag.  A *stranger* (an unrelated resident script's cmd())
+    * parks in the submit gate holding job_active_flag; without this bypass its
+    * held flag would refuse the replay's own submission — a deadlock-class
+    * hole.  The gate admits the identity and the worker sets the flag on
+    * pickup, so the claim here is both unnecessary and harmful.
     */
-    if (!processing_in_worker_thread()) {
+    g_mutex_lock(&queue_mutex);
+    gboolean replay_admitted = replay_admits_self_locked();
+    g_mutex_unlock(&queue_mutex);
+
+    if (!processing_in_worker_thread() && !replay_admitted) {
 
         /* ── Busy guard ──────────────────────────────────────────────────
         *
@@ -717,7 +748,7 @@ gboolean start_in_new_thread(ProcessingFunc func, gpointer data) {
     * that the processing system is not left in a permanently broken state.
     */
     if (!processing_submit_job(func, data)) {
-        if (!processing_in_worker_thread())
+        if (!processing_in_worker_thread() && !replay_admitted)
             g_atomic_int_set(&job_active_flag, 0);
         if (!com.headless)
             gui_iface.set_busy(FALSE);
