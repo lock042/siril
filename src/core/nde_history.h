@@ -62,6 +62,10 @@ typedef enum {
 typedef enum {
 	NDE_TIER_A = 0,  /* replayable: op has serialize/deserialize */
 	NDE_TIER_B = 1,  /* opaque: recorded for provenance, not replayable */
+	NDE_TIER_C = 2,  /* replayable Python script (phase 5): re-run the script
+	                  * with recorded args (params carry script/sha256/args).
+	                  * Always checkpointed — until the replay half lands it
+	                  * degrades safely to Tier-B-barrier semantics. */
 } nde_tier;
 
 typedef struct nde_record {
@@ -220,6 +224,20 @@ gint64 nde_capture_structural(const char *op_id, gint scope,
 gint64 nde_capture_opaque(const char *op_id, gint scope,
                           gint target_item_id, const char *summary,
                           const fits *post);
+
+/**
+ * Build+append a replayable-script (Tier C, phase 5) record and return the
+ * new record id.  For a declaring Python script's committed effect: @params
+ * is the kv blob carrying the script path, its sha256 and the recorded arg
+ * values (ownership transferred, may be NULL — then it is a plain barrier).
+ * @post is the committed POST-script image, stored as the output checkpoint
+ * (Tier C is always a barrier / restart point — scripts are slow, so
+ * downstream edits restart here).  Same success-only discipline as the other
+ * capture helpers.
+ */
+gint64 nde_capture_script(const char *op_id, gint scope,
+                          gint target_item_id, gchar *params,
+                          const char *summary, const fits *post);
 
 /**
  * Build+append a record for a descriptor-identified operation applied

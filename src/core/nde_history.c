@@ -464,6 +464,7 @@ void nde_history_notify_panel(void) {
  * checkpoint so everything after them stays editable. */
 static gboolean record_is_barrier(const nde_record *rec) {
 	return rec->tier == NDE_TIER_B ||
+	       rec->tier == NDE_TIER_C ||   /* checkpointed: restart point for the tail */
 	       (rec->tier == NDE_TIER_A && rec->mask_active);
 }
 
@@ -512,6 +513,19 @@ gint64 nde_capture_opaque(const char *op_id, gint scope,
 	rec->target_item_id = target_item_id;
 	rec->tier           = NDE_TIER_B;
 	rec->params         = NULL;
+	return capture_finish(rec, summary, post);
+}
+
+gint64 nde_capture_script(const char *op_id, gint scope,
+                          gint target_item_id, gchar *params,
+                          const char *summary, const fits *post) {
+	nde_record *rec = nde_record_new();
+	rec->op_id          = g_strdup(op_id);
+	rec->op_version     = 1;
+	rec->scope          = scope;
+	rec->target_item_id = target_item_id;
+	rec->tier           = NDE_TIER_C;
+	rec->params         = params;   /* ownership transferred (may be NULL) */
 	return capture_finish(rec, summary, post);
 }
 
