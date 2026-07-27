@@ -272,6 +272,8 @@ class _Command(IntEnum):
     GET_IMAGE_MASK_STATE = 90
     MASK_UPDATE_POLYGON = 91
     OPEN_DIALOG = 92
+    DECLARE_REPLAYABLE = 93
+    RECORD_REPLAY_ARGS = 94
     ERROR = 0xFF
 
 @unique

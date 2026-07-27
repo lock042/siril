@@ -23,6 +23,7 @@
  * nde-phase2-3-plan.md P2.D for the design.
  */
 
+#include <math.h>
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "core/gui_iface.h"
@@ -38,6 +39,8 @@
 #include "core/nde_replay.h"
 #include "io/image_format_fits.h"
 #include "io/image_format_flis.h"
+#include "io/siril_pythonmodule.h"
+#include "yyjson.h"
 
 /* Destructor-first convention shared by every op params struct (the same
  * contract free_generic_img_args relies on). */
@@ -66,10 +69,143 @@ static void add_reason(nde_chain *chain, const char *fmt, ...) {
 	va_end(ap);
 }
 
+/* ---- Tier-C: replayable Python scripts (nde-phase5) -------------------- */
+
+/* Gate + validity check for re-running a Tier-C record's script.  Returns the
+ * first reason the re-run is not possible (heap string), or NULL when it is.
+ * The sha256 comparison is the safety core: a matching hash means we re-execute
+ * exactly the bytes the user already ran interactively when the record was
+ * captured.  A failing gate is NOT a hard blocker — Tier-C records are always
+ * output-checkpointed, so the chain build degrades them to a barrier with a
+ * restart point (stale, but editable around).
+ * TODO(securescripts): once the script sandbox lands, route the re-run through
+ * it and drop the headless refusal in favour of sandbox policy. */
+static gchar *tier_c_invalid_reason(const nde_record *rec) {
+	if (rec->mask_active)
+		return g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) ran with an active mask — mask replay is not supported yet"),
+		                       rec->record_id, rec->op_id);
+	GHashTable *kv = rec->params ? nde_kv_parse(rec->params) : NULL;
+	if (!kv)
+		return g_strdup_printf(_("record %" G_GINT64_FORMAT ": script re-run recipe failed to parse"),
+		                       rec->record_id);
+	const gchar *script = g_hash_table_lookup(kv, "script");
+	const gchar *sha = g_hash_table_lookup(kv, "sha256");
+	gchar *reason = NULL;
+	if (!script || !*script || !sha || !*sha) {
+		reason = g_strdup_printf(_("record %" G_GINT64_FORMAT ": script re-run recipe is incomplete"),
+		                         rec->record_id);
+	} else if (com.headless) {
+		/* Fail closed: automatic script re-execution needs a consenting user
+		 * (or, later, the securescripts sandbox) — refuse headless. */
+		reason = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s): script re-execution is disabled in headless mode"),
+		                         rec->record_id, rec->summary ? rec->summary : "?");
+	} else if (!g_file_test(script, G_FILE_TEST_IS_REGULAR)) {
+		reason = g_strdup_printf(_("record %" G_GINT64_FORMAT ": script no longer exists: %s"),
+		                         rec->record_id, script);
+	} else {
+		gchar *cur = nde_file_sha256(script, NULL);
+		if (!cur || g_strcmp0(cur, sha) != 0)
+			reason = g_strdup_printf(_("record %" G_GINT64_FORMAT ": script has changed since this step was recorded: %s"),
+			                         rec->record_id, script);
+		g_free(cur);
+	}
+	g_hash_table_unref(kv);
+	return reason;
+}
+
+/* Parse the recorded {"version":1,"argv":[...]} JSON into a NULL-terminated
+ * argv vector (g_strfreev).  Absent/empty args yield an empty vector, not an
+ * error; a malformed blob yields NULL with @err set. */
+static gchar **tier_c_parse_argv(const gchar *args_json, gchar **err) {
+	if (!args_json || !*args_json)
+		return g_new0(gchar *, 1);
+	yyjson_doc *doc = yyjson_read(args_json, strlen(args_json), 0);
+	yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
+	yyjson_val *arr = yyjson_is_obj(root) ? yyjson_obj_get(root, "argv") : NULL;
+	if (!yyjson_is_arr(arr)) {
+		if (doc)
+			yyjson_doc_free(doc);
+		*err = g_strdup(_("recorded script arguments failed to parse"));
+		return NULL;
+	}
+	GPtrArray *out = g_ptr_array_new();
+	yyjson_val *v;
+	yyjson_arr_iter it = yyjson_arr_iter_with(arr);
+	while ((v = yyjson_arr_iter_next(&it)) != NULL) {
+		if (!yyjson_is_str(v)) {
+			g_ptr_array_set_free_func(out, g_free);
+			g_ptr_array_unref(out);
+			yyjson_doc_free(doc);
+			*err = g_strdup(_("recorded script arguments failed to parse"));
+			return NULL;
+		}
+		g_ptr_array_add(out, g_strdup(yyjson_get_str(v)));
+	}
+	yyjson_doc_free(doc);
+	g_ptr_array_add(out, NULL);
+	return (gchar **)g_ptr_array_free(out, FALSE);
+}
+
+/* Re-run a Tier-C record's script with its recorded arguments, transforming
+ * @scratch in place (approach B, nde-phase5-plan).  The script can only see
+ * the document image, so the replay state is presented AS gfit for the run:
+ * swap scratch's pixels into the gfit struct, run the script synchronously on
+ * the conductor (for_replay — no capture scope, comm thread admitted under
+ * SLOT_REPLAY, CLI mode so no GUI pops up), then swap back, leaving the
+ * script's output in @scratch and the user's image back in gfit.  Capture,
+ * undo and per-op provenance are all suppressed during the run by the
+ * SLOT_REPLAY guards.  Returns 0 on success. */
+static int tier_c_rerun(fits *scratch, const nde_record *rec, gchar **err) {
+	gchar *invalid = tier_c_invalid_reason(rec);
+	if (invalid) {
+		*err = invalid;
+		return 1;
+	}
+	GHashTable *kv = nde_kv_parse(rec->params);
+	const gchar *script = g_hash_table_lookup(kv, "script");
+	const gchar *args_json = g_hash_table_lookup(kv, "args");
+	gchar **argv = tier_c_parse_argv(args_json, err);
+	if (!argv) {
+		g_hash_table_unref(kv);
+		return 1;
+	}
+	siril_log_message(_("Replaying script step: %s\n"),
+	                  rec->summary ? rec->summary : script);
+
+	g_rw_lock_writer_lock(&gfit->rwlock);
+	fits_swap_all_except_rwlock(gfit, scratch);
+	g_rw_lock_writer_unlock(&gfit->rwlock);
+
+	int rc = execute_python_script(g_strdup(script),
+	                               TRUE,   /* from_file */
+	                               TRUE,   /* sync */
+	                               argv,
+	                               FALSE,  /* is_temp_file */
+	                               TRUE,   /* from_cli: headless script path */
+	                               FALSE,  /* debug_mode */
+	                               TRUE);  /* for_replay */
+
+	g_rw_lock_writer_lock(&gfit->rwlock);
+	fits_swap_all_except_rwlock(gfit, scratch);
+	g_rw_lock_writer_unlock(&gfit->rwlock);
+
+	g_strfreev(argv);
+	g_hash_table_unref(kv);
+	if (rc) {
+		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s): script re-run failed"),
+		                       rec->record_id,
+		                       rec->summary ? rec->summary : "?");
+		return 1;
+	}
+	return 0;
+}
+
 /* First reason @rec cannot be replayed (heap string, caller frees), or NULL
  * when it replays.  The chain build decides whether an invalid member is a
  * hard blocker (no output checkpoint) or a barrier restart point. */
 static gchar *member_invalid_reason(const nde_record *rec) {
+	if (rec->tier == NDE_TIER_C)
+		return tier_c_invalid_reason(rec);
 	if (rec->tier != NDE_TIER_A)
 		return g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) is opaque — not replayable"),
 		                       rec->record_id, rec->op_id ? rec->op_id : "?");
@@ -266,6 +402,16 @@ static fits *replay_apply_records(fits *scratch, const nde_chain *chain,
 		if (!processing_should_continue()) {
 			*err = g_strdup(_("cancelled"));
 			goto fail;
+		}
+		if (rec->tier == NDE_TIER_C) {
+			/* Replayable Python script: re-run it on the accumulated state
+			 * (nde-phase5).  Chain membership already vetted the recipe via
+			 * member_invalid_reason, but the gate re-checks — the file can
+			 * change between chain build and execution. */
+			if (tier_c_rerun(scratch, rec, err))
+				goto fail;
+			nde_snapstore_deposit(scratch, chain->item_id, rec->record_id);
+			continue;
 		}
 		const op_descriptor *op = op_descriptor_by_id(rec->op_id);
 		gpointer user = op->deserialize(rec->params, rec->op_version);
@@ -889,6 +1035,88 @@ static gpointer nde_edit_worker(gpointer p) {
 	g_free(job);
 	siril_add_idle(nde_edit_done_idle, NULL);
 	return GINT_TO_POINTER(ok ? 0 : 1);
+}
+
+/* flis_replay_check worker (P2.D, conductor-hosted since nde-phase5): builds
+ * and replays the chain, logging validation reasons or the deviation report.
+ * Runs under SLOT_REPLAY so Tier-C script re-runs behave exactly as they do
+ * in the edit paths (capture/undo suppressed, script commands admitted). */
+static gpointer replay_check_worker(gpointer p) {
+	gint item_id = GPOINTER_TO_INT(p);
+	nde_chain *chain = nde_chain_build(item_id);
+	if (chain->records->len == 0) {
+		siril_log_info(_("No replayable records — nothing to check\n"));
+	} else if (!chain->replayable && !chain->tail_replayable) {
+		siril_log_warning(_("History is not replayable:\n"));
+		for (guint i = 0; i < chain->reasons->len; i++)
+			siril_log_message("  - %s\n", (char *)g_ptr_array_index(chain->reasons, i));
+	} else if (!chain->replayable && chain->records->len == chain->tail_start) {
+		/* barrier-last: nothing beyond its checkpoint to verify */
+		siril_log_info(_("%u step(s) are frozen behind an opaque barrier and the last step is the barrier itself — nothing to verify\n"),
+		               chain->tail_start);
+	} else {
+		guint frozen = chain->replayable ? 0 : chain->tail_start;
+		if (frozen)
+			siril_log_info(_("%u step(s) are frozen behind an opaque barrier; verifying the last %u step(s) from its checkpoint\n"),
+			               frozen, chain->records->len - frozen);
+		gchar *errmsg = NULL;
+		fits *result = chain->replayable ? nde_chain_replay(chain, &errmsg)
+		                                 : nde_chain_replay_tail(chain, &errmsg);
+		if (!result) {
+			siril_log_error(_("Replay failed: %s\n"), errmsg ? errmsg : "?");
+		} else {
+			fits *current = gfit;
+			if (item_id >= 0) {
+				flis_layer_t *lay = flis_layer_get_by_id(item_id);
+				current = lay ? lay->fit : NULL;
+			}
+			if (!current) {
+				siril_log_error(_("Cannot locate the current pixels to compare against\n"));
+			} else {
+				g_rw_lock_reader_lock(&current->rwlock);
+				if (result->rx != current->rx || result->ry != current->ry
+				    || result->naxes[2] != current->naxes[2]
+				    || result->type != current->type) {
+					siril_log_warning(_("Replayed %u record(s), but the result geometry differs from the current image (%ux%ux%ld vs %ux%ux%ld)\n"),
+					                  chain->records->len - (chain->replayable ? 0 : chain->tail_start),
+					                  result->rx, result->ry, result->naxes[2],
+					                  current->rx, current->ry, current->naxes[2]);
+				} else {
+					size_t n = (size_t)current->rx * current->ry
+					           * (current->naxes[2] ? current->naxes[2] : 1);
+					double max_dev = 0.0, sum_dev = 0.0;
+					for (size_t i = 0; i < n; i++) {
+						double a, b;
+						if (current->type == DATA_FLOAT) {
+							a = result->fdata[i];
+							b = current->fdata[i];
+						} else {
+							a = result->data[i];
+							b = current->data[i];
+						}
+						double d = fabs(a - b);
+						if (d > max_dev) max_dev = d;
+						sum_dev += d;
+					}
+					siril_log_info(_("Replayed %u record(s) successfully: max deviation %.3g, mean %.3g (small numerical drift is expected)\n"),
+					               chain->records->len - (chain->replayable ? 0 : chain->tail_start),
+					               max_dev, sum_dev / n);
+				}
+				g_rw_lock_reader_unlock(&current->rwlock);
+			}
+			clearfits(result);
+			free(result);
+		}
+		g_free(errmsg);
+	}
+	nde_chain_free(chain);
+	/* No end_generic / completion idle: nothing was modified, and the
+	 * conductor frees the slot itself via replay_release_slot. */
+	return GINT_TO_POINTER(0);
+}
+
+gboolean nde_replay_check_start(gint item_id) {
+	return replay_conductor_start(replay_check_worker, GINT_TO_POINTER(item_id));
 }
 
 static gboolean nde_edit_start(gint64 record_id, const gchar *new_params) {

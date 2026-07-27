@@ -330,6 +330,14 @@ if criterion_dep.found()
                                 cpp_args : siril_cpp_flag)
      test('test_nde_script_scope', test_nde_script_scope_exec, suite: 'flis')
 
+     test_nde_tier_c_exec = executable('test_nde_tier_c',
+                                'test_nde_tier_c.c',
+                                dependencies : [siril_dep, criterion_dep],
+                                link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                c_args : siril_c_flag,
+                                cpp_args : siril_cpp_flag)
+     test('test_nde_tier_c', test_nde_tier_c_exec, suite: 'flis')
+
      test_nde_checkpoint_exec = executable('test_nde_checkpoint',
                                 'test_nde_checkpoint.c',
                                 dependencies : [siril_dep, criterion_dep],

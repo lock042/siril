@@ -12,6 +12,8 @@ of methods that can be used to get and set data from / to Siril.
 import os
 import sys
 import re
+import json
+import argparse
 import atexit
 import socket
 import struct
@@ -1066,6 +1068,125 @@ class SirilInterface:
 
         except Exception as e:
             raise SirilError(f"Error in undo_save_state(): {e}") from e
+
+    def declare_replayable(self, parser: argparse.ArgumentParser) -> bool:
+        """
+        Declare that this script supports non-destructive replay.
+
+        Sends the script's argument schema (derived from its argparse parser)
+        to Siril, so the history panel can show and later edit the script's
+        parameters. Call this once after connecting, with the fully built
+        parser. The declaration alone records nothing: the script must also
+        call :meth:`record_replay_args` at the moment it commits a result to
+        the loaded image. When the script is being re-run by Siril as part of
+        a replay this call is a harmless no-op, so scripts need no special
+        replay-mode handling.
+
+        Only optional (flag-style) arguments are included in the schema;
+        positional arguments are not supported for replay editing.
+
+        Args:
+            parser: the argparse.ArgumentParser defining the script's
+                    command-line arguments.
+
+        Returns:
+            bool: True if the declaration was accepted.
+
+        Raises:
+            SirilError: if an error occurred.
+        """
+        try:
+            entries = []
+            for action in parser._actions:
+                if action.dest == "help" or not action.option_strings:
+                    continue
+                if isinstance(action, (argparse._StoreTrueAction,
+                                       argparse._StoreFalseAction)):
+                    atype = "bool"
+                elif action.type is not None:
+                    atype = getattr(action.type, "__name__", "str")
+                else:
+                    atype = "str"
+                try:
+                    json.dumps(action.default)
+                    default = action.default
+                except TypeError:
+                    default = None
+                entries.append({
+                    "dest": action.dest,
+                    "flag": action.option_strings[0],
+                    "type": atype,
+                    "default": default,
+                    "help": action.help or "",
+                    "choices": list(action.choices) if action.choices else None,
+                    "required": bool(action.required),
+                })
+            payload = json.dumps({"version": 1, "args": entries}).encode("utf-8")
+            self._replay_parser = parser
+            return bool(self._execute_command(_Command.DECLARE_REPLAYABLE, payload))
+        except Exception as e:
+            raise SirilError(_("Error in declare_replayable(): {}").format(e)) from e
+
+    def record_replay_args(self, args: Union[argparse.Namespace, dict]) -> bool:
+        """
+        Record the argument values with which this script committed its result.
+
+        Call this exactly when the script commits its final result to the
+        loaded image (for example when the user clicks Apply), and never on a
+        preview or cancel: this call is the signal that makes the script's
+        history record replayable with these values. The values are converted
+        back to a command line using the parser previously passed to
+        :meth:`declare_replayable`, and Siril re-runs the script with that
+        command line when the history is replayed. During a replay re-run this
+        call is a harmless no-op.
+
+        Args:
+            args: the argparse.Namespace holding the committed values (or a
+                  plain dict mapping argument dest names to values). Arguments
+                  missing from it, or set to None, are omitted from the
+                  recorded command line.
+
+        Returns:
+            bool: True if the values were recorded.
+
+        Raises:
+            SirilError: if declare_replayable() was not called first, or if an
+                        error occurred.
+        """
+        parser = getattr(self, "_replay_parser", None)
+        if parser is None:
+            raise SirilError(_("record_replay_args() requires a prior "
+                               "declare_replayable() call"))
+        try:
+            values = args if isinstance(args, dict) else vars(args)
+            argv = []
+            for action in parser._actions:
+                if action.dest == "help" or not action.option_strings:
+                    continue
+                if action.dest not in values:
+                    continue
+                value = values[action.dest]
+                flag = action.option_strings[0]
+                if isinstance(action, argparse._StoreTrueAction):
+                    if value:
+                        argv.append(flag)
+                elif isinstance(action, argparse._StoreFalseAction):
+                    if not value:
+                        argv.append(flag)
+                elif value is None:
+                    continue
+                elif isinstance(value, (list, tuple)):
+                    argv.append(flag)
+                    argv.extend(str(v) for v in value)
+                else:
+                    argv.append(flag)
+                    argv.append(str(value))
+            payload = json.dumps({"version": 1, "argv": argv}).encode("utf-8")
+            return bool(self._execute_command(_Command.RECORD_REPLAY_ARGS, payload))
+        except SirilError:
+            raise
+        except Exception as e:
+            raise SirilError(_("Error in record_replay_args(): {}").format(e)) from e
 
     def update_progress(self, message: str, progress: float) -> bool:
         """

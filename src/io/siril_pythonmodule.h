@@ -105,6 +105,8 @@ typedef enum {
 	CMD_GET_IMAGE_MASK_STATE = 90,
 	CMD_MASK_UPDATE_POLYGON = 91,
 	CMD_OPEN_DIALOG = 92,
+	CMD_DECLARE_REPLAYABLE = 93,
+	CMD_RECORD_REPLAY_ARGS = 94,
 	CMD_ERROR = 0xFF
 } CommandType;
 
@@ -270,7 +272,12 @@ typedef struct {
 // Public functions
 //gpointer open_python_channel(gpointer user_data);
 //int release_python_channel();
-void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync, gchar** argv_script, gboolean is_temp_file, gboolean from_cli, gboolean debug_mode, gboolean for_replay);
+/* Returns 0 when the script was launched successfully (and, in sync mode,
+ * exited with status 0); 1 when a sync script ran but exited non-zero; -1 when
+ * the launch itself failed.  Async callers get 0 for "launched" — completion
+ * is reported via the child watch.  Only the NDE Tier-C replay path currently
+ * consults the return value. */
+int execute_python_script(gchar* script_name, gboolean from_file, gboolean sync, gchar** argv_script, gboolean is_temp_file, gboolean from_cli, gboolean debug_mode, gboolean for_replay);
 gboolean send_response(Connection *conn, uint8_t status, const void* data, uint32_t length);
 shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region, gboolean as_preview, gboolean linked);
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length);

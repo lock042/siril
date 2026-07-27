@@ -1770,11 +1770,13 @@ gpointer generic_image_worker(gpointer p) {
 		// Generate the message used for undo label and HISTORY
 		history = args->log_hook ? args->log_hook(args->user, DETAILED): g_strdup(args->description);
 		/* Undo only applies on the swap path (argfit == gfit), not
-		 * when previewing, running from a script, or inside a python script
+		 * when previewing, running from a script, inside a python script
 		 * provenance scope (the scope suppresses per-command undo — its single
-		 * record covers the whole script). */
+		 * record covers the whole script), or during an NDE replay (a replayed
+		 * Tier-C script's cmd() ops reproduce existing history). */
 		undo_state = use_swap && !(args->skip_generic_undo || args->for_preview
-		                           || com.script || nde_script_scope_active());
+		                           || com.script || nde_script_scope_active()
+		                           || processing_is_reserved_for_replay());
 		if (undo_state)
 			summary = args->log_hook ? args->log_hook(args->user, SUMMARY): g_strdup(args->description);
 	}
@@ -1863,7 +1865,11 @@ the_end:;
 		 * subsumes this op's provenance (nde-phase5 scope engine).  Flag the
 		 * net pixel mutation and skip per-op capture. */
 		nde_script_scope_mark_pixels_dirty();
-	} else if (!retval && use_swap && !arg_skip_undo && !argpreview) {
+	} else if (!retval && use_swap && !arg_skip_undo && !argpreview
+	           && !processing_is_reserved_for_replay()) {
+		/* (The replay guard: a Tier-C script re-run issues cmd() ops on gfit
+		 * with no scope open — they reproduce an existing record and must not
+		 * capture new ones.) */
 		const op_descriptor *op = args->op;
 		gboolean tier_a = op && op->serialize;
 		nde_record *rec = nde_record_new();

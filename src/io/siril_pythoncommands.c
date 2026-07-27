@@ -17,6 +17,7 @@
 #include "core/siril_log.h"
 #include "core/OS_utils.h"
 #include "core/proto.h"
+#include "core/nde_script_scope.h"
 #include "core/undo.h"
 #include "core/gui_iface.h"
 /* gui_calls.h removed: all former direct calls now route through gui_iface */
@@ -1238,6 +1239,14 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				if (com.headless) {
 					const char* error_msg = _("Undo not supported in headless mode");
 					success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+					break;
+				}
+				if (processing_is_reserved_for_replay()) {
+					/* NDE replay re-run: gfit temporarily holds intermediate
+					 * replay state — an undo entry snapshotting it could later
+					 * restore pixels the history no longer describes.  Accept
+					 * silently so scripts behave identically under replay. */
+					success = send_response(conn, STATUS_OK, NULL, 0);
 					break;
 				}
 				// Ensure null-terminated string for undo message
@@ -3849,6 +3858,36 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					break;
 				}
 			}
+		}
+
+		case CMD_DECLARE_REPLAYABLE: {
+			/* NDE phase 5: the script declares its argument schema (JSON built
+			 * by sirilpy from the argparse parser).  Outside a capture scope
+			 * (e.g. during a replay re-run) this is a harmless no-op — scripts
+			 * must behave identically either way. */
+			if (payload_length == 0) {
+				const char* error_msg = _("Empty replay schema");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			gchar *schema = g_strndup(payload, payload_length);
+			nde_script_scope_declare_replayable(schema);
+			g_free(schema);
+			success = send_response(conn, STATUS_OK, NULL, 0);
+			break;
+		}
+
+		case CMD_RECORD_REPLAY_ARGS: {
+			/* NDE phase 5: the script commits its final argument values (a JSON
+			 * argv array built by sirilpy).  This is the commit signal that
+			 * upgrades the script's record to Tier-C; a well-behaved script
+			 * sends it only on Apply, never on preview or cancel.  No-op when
+			 * no capture scope is open (replay re-runs). */
+			gchar *args = g_strndup(payload, payload_length);
+			nde_script_scope_record_args(args ? args : "");
+			g_free(args);
+			success = send_response(conn, STATUS_OK, NULL, 0);
+			break;
 		}
 
 		default:

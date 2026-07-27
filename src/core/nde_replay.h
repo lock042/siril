@@ -152,6 +152,16 @@ gboolean nde_delete_start(gint64 record_id);
 gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after, gchar **err);
 gboolean nde_reorder_start(gint64 record_id, gint64 anchor_id, gboolean after);
 
+/**
+ * flis_replay_check: replay @item_id's whole chain (or its editable tail) on
+ * the conductor and log the deviation against the current pixels.  Runs under
+ * the SLOT_REPLAY reservation like every other replay — mandatory for chains
+ * containing Tier-C members, whose script re-runs need the reservation's
+ * capture/undo suppression and command admission.  Returns FALSE when the
+ * slot could not be reserved.
+ */
+gboolean nde_replay_check_start(gint item_id);
+
 /* ---- amend preview (convergence C4) -------------------------------------
  * While record K is being edited in its native dialog, the target image
  * temporarily shows the chain up to K−1 (downstream steps hidden); the
