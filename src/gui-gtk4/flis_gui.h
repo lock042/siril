@@ -42,8 +42,11 @@
 void flis_gui_toggle_visible(void);
 void flis_gui_update_from_idle(void);
 
-/* Toggle the Nondestructive History window — win.show-nde-history, wired to
- * the header-bar clock button.  Main thread only. */
+/* Nondestructive History popover, anchored below the header-bar clock button
+ * (nde_history_button).  _init builds and attaches it at startup
+ * (initialize_all_GUI); _toggle_visible is the programmatic toggle behind
+ * win.show-nde-history.  Main thread only. */
+void flis_gui_history_popover_init(void);
 void flis_gui_history_toggle_visible(void);
 
 /* Coalesced refresh of the History window only (NDE provenance mirror).

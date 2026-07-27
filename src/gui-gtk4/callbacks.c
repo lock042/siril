@@ -51,6 +51,7 @@
 #include "gui-gtk4/stacking.h"
 #include "gui-gtk4/python_gui.h"
 #include "gui-gtk4/undo_gui.h"
+#include "gui-gtk4/flis_gui.h"
 /* Forward declaration: defined in gui/sequence_export.c */
 void update_export_crop_label();
 #include "algos/siril_wcs.h"
@@ -2893,6 +2894,9 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	/* secondary-click popover for undo/redo history navigation */
 	setup_undo_redo_long_press();
+
+	/* Nondestructive History popover under the header-bar clock button. */
+	flis_gui_history_popover_init();
 
 	/* initialize menu gui */
 	gui_function(update_MenuItem, NULL);

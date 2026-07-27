@@ -2326,16 +2326,11 @@ Current state: linked.</property>
           </object>
         </child>
         <child type="end">
-          <object class="GtkButton" id="nde_history_button">
-            <property name="action-name">win.show-nde-history</property>
+          <object class="GtkMenuButton" id="nde_history_button">
             <property name="focusable">1</property>
+            <property name="icon-name">document-open-recent-symbolic</property>
             <property name="receives-default">1</property>
             <property name="tooltip-text" translatable="yes">Show the nondestructive edit history</property>
-            <child>
-              <object class="GtkImage">
-                <property name="icon-name">document-open-recent-symbolic</property>
-              </object>
-            </child>
             <style>
               <class name="image-button"/>
             </style>
