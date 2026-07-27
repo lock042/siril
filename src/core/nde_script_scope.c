@@ -186,6 +186,7 @@ void nde_script_scope_end(void) {
 	gchar   *baseline_hash  = sc.baseline_hash;   sc.baseline_hash = NULL;
 	gboolean wrote_pixels   = sc.wrote_pixels;
 	gboolean nonpixel_dirty = sc.nonpixel_dirty;
+	gboolean declared_intent = sc.declared;
 	gboolean declared       = sc.declared && sc.script_sha256 != NULL;
 	gchar   *script_path    = sc.script_path;     sc.script_path = NULL;
 	gchar   *script_sha256  = sc.script_sha256;   sc.script_sha256 = NULL;
@@ -214,6 +215,14 @@ void nde_script_scope_end(void) {
 		goto done;
 
 	const gchar *summary = basename ? basename : _("Python script");
+
+	/* The script declared replay support but the launch gave us no stable file
+	 * to hash (inline -c, or an unsaved editor buffer run via a temp file) —
+	 * the recipe would be unreproducible, so the declaration is dropped.  Say
+	 * so, or the silent Tier-B downgrade is baffling. */
+	if (declared_intent && !declared)
+		siril_log_message(_("Script '%s' declared replay support but was not run from a saved script file — recording an opaque history step\n"),
+		                  summary);
 
 	if (declared) {
 		/* Tier-C: a replayable record carrying script path + sha256 + args. */

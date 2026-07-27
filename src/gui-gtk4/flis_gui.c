@@ -1084,10 +1084,12 @@ static void build_mask(GtkWidget *box) {
  * the parsed params, keys sorted for a stable display. */
 static gchar *build_hist_detail(const nde_record *rec) {
 	GString *s = g_string_new(NULL);
+	const gchar *tier_label = rec->tier == NDE_TIER_A ? _("replayable") :
+	                          rec->tier == NDE_TIER_C ? _("script, replayable") :
+	                          _("opaque");
 	g_string_append_printf(s, "record %" G_GINT64_FORMAT ": %s v%d (%s)\n",
 	                       rec->record_id, rec->op_id ? rec->op_id : "?",
-	                       rec->op_version,
-	                       rec->tier == NDE_TIER_A ? _("replayable") : _("opaque"));
+	                       rec->op_version, tier_label);
 	if (rec->timestamp)
 		g_string_append_printf(s, "%s\n", rec->timestamp);
 	if (rec->impl)
@@ -1640,7 +1642,8 @@ static void refresh_history(void) {
 		for (guint i = 0; i < snap->len; i++) {
 			const nde_record *rec = g_ptr_array_index(snap, i);
 			NdeHistRowItem *item = g_object_new(NDE_TYPE_HIST_ROW_ITEM, NULL);
-			item->badge   = g_strdup_printf(rec->tier == NDE_TIER_B ? "#%u·B" : "#%u", i + 1);
+			item->badge   = g_strdup_printf(rec->tier == NDE_TIER_B ? "#%u·B" :
+			                                rec->tier == NDE_TIER_C ? "#%u·C" : "#%u", i + 1);
 			item->summary = g_strdup(rec->summary ? rec->summary : rec->op_id);
 			item->target  = hist_target_label(rec);
 			item->detail  = build_hist_detail(rec);

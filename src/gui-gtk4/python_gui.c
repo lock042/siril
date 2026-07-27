@@ -3236,36 +3236,54 @@ void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer
 	char *text = gtk_text_buffer_get_text(GTK_TEXT_BUFFER(sourcebuffer), &start, &end, FALSE);
 	switch (active_language) {
 		case LANG_PYTHON:;
-			// Create a temporary file for the script
-			GError *error = NULL;
-			gchar *temp_filename = NULL;
-			int fd = g_file_open_tmp("siril-script-XXXXXX.py", &temp_filename, &error);
-			if (fd == -1) {
-				siril_log_message(_("Error creating temporary script file: %s\n"), error->message);
-				g_error_free(error);
-				g_free(text);
-				return;
-			}
-			// Write script content to the temporary file
-			if (write(fd, text, strlen(text)) == -1) {
-				siril_log_message(_("Error writing to temporary script file\n"));
+			/* A clean, saved buffer runs its real on-disk file rather than a
+			 * temp copy: the contents are identical (buffer_modified FALSE),
+			 * tracebacks show the real filename, and the NDE provenance scope
+			 * gets a stable path it can hash — a script declaring replay
+			 * support can only become a replayable (Tier-C) history step when
+			 * run from a persistent file.  Unsaved or modified buffers still
+			 * go through a temp file (and correctly record as opaque). */
+			gchar *saved_path = (current_file && !buffer_modified) ?
+					g_file_get_path(current_file) : NULL;
+			if (saved_path && !g_file_test(saved_path, G_FILE_TEST_IS_REGULAR))
+				g_clear_pointer(&saved_path, g_free);
+
+			gchar *script_to_run = NULL;
+			gboolean is_temp = FALSE;
+			if (saved_path) {
+				script_to_run = saved_path;   /* ownership → execute_python_script */
+			} else {
+				// Create a temporary file for the script
+				GError *error = NULL;
+				gchar *temp_filename = NULL;
+				int fd = g_file_open_tmp("siril-script-XXXXXX.py", &temp_filename, &error);
+				if (fd == -1) {
+					siril_log_message(_("Error creating temporary script file: %s\n"), error->message);
+					g_error_free(error);
+					g_free(text);
+					return;
+				}
+				// Write script content to the temporary file
+				if (write(fd, text, strlen(text)) == -1) {
+					siril_log_message(_("Error writing to temporary script file\n"));
+					close(fd);
+					if (g_unlink(temp_filename))
+						siril_log_debug("g_unlink() failed in on_action_file_execute()\n");
+					g_free(temp_filename);
+					g_free(text);
+					return;
+				}
 				close(fd);
-				if (g_unlink(temp_filename))
-					siril_log_debug("g_unlink() failed in on_action_file_execute()\n");
-				g_free(temp_filename);
-				g_free(text);
-				return;
+				script_to_run = temp_filename;
+				is_temp = TRUE;
 			}
-			close(fd);
 			// Add args if we need to
 			if (from_cli) {
 				const gchar *args_string = gtk_editable_get_text(GTK_EDITABLE(args_entry));
 				script_args = g_strsplit(args_string, " ", -1);
 			}
 
-			// Execute the script with the path to the temp file instead of the text content
-			// Passing TRUE as the last parameter to indicate this is a temporary file
-			execute_python_script(temp_filename, TRUE, FALSE, script_args, TRUE, from_cli, python_debug, FALSE);
+			execute_python_script(script_to_run, TRUE, FALSE, script_args, is_temp, from_cli, python_debug, FALSE);
 			g_strfreev(script_args);
 			g_free(text);
 			break;
