@@ -991,6 +991,11 @@ void show_layers_activate(GSimpleAction *action, GVariant *parameter, gpointer u
 	flis_gui_toggle_visible();
 }
 
+void show_nde_history_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	(void)action; (void)parameter; (void)user_data;
+	flis_gui_history_toggle_visible();
+}
+
 void denoise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("denoise_dialog");
 }

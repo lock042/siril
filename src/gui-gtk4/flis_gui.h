@@ -42,7 +42,11 @@
 void flis_gui_toggle_visible(void);
 void flis_gui_update_from_idle(void);
 
-/* Coalesced refresh of the History section only (NDE provenance mirror).
+/* Toggle the Nondestructive History window — win.show-nde-history, wired to
+ * the header-bar clock button.  Main thread only. */
+void flis_gui_history_toggle_visible(void);
+
+/* Coalesced refresh of the History window only (NDE provenance mirror).
  * Routed from gui_iface.nde_history_changed; callable from any thread. */
 void flis_gui_history_update_from_idle(void);
 

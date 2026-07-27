@@ -207,8 +207,9 @@ struct flis_panel {
 	GtkWidget *mask_view_proc_radio;
 	GtkWidget *mask_view_layer_radio;
 
-	/* History section (NDE provenance, sketch §16) */
-	GtkWidget  *hist_expander;
+	/* History section (NDE provenance, sketch §16) — its own floating
+	 * window since nde-phase5 (title carries the live count). */
+	GtkWidget  *hist_window;
 	GtkWidget  *hist_stale_revealer;
 	GtkWidget  *hist_fits_hint;     /* plain-FITS: history is in-memory only */
 	GListStore *hist_store;          /* of NdeHistRowItem* */
@@ -241,7 +242,7 @@ static void   build_toolbar  (GtkWidget *box);
 static void   build_list     (GtkWidget *box);
 static void   build_property (GtkWidget *box);
 static void   build_mask     (GtkWidget *box);
-static void   build_history  (GtkWidget *box);
+static void   build_history_window(void);
 static void   refresh_history(void);
 static GMenu *build_context_menu(void);
 static void   register_panel_actions(void);
@@ -284,6 +285,22 @@ void flis_gui_present_if_flis(void) {
 }
 
 static void canvas_dialog_refresh_external(void);
+
+/* Toggle the Nondestructive History window (win.show-nde-history, the
+ * header-bar clock button).  Builds the panel structures on first use; the
+ * layers window itself stays hidden. */
+void flis_gui_history_toggle_visible(void) {
+	if (!g_panel) build_panel();
+	if (!g_panel) return;
+	build_history_window();
+	if (gtk_widget_get_visible(g_panel->hist_window)) {
+		gtk_widget_set_visible(g_panel->hist_window, FALSE);
+	} else {
+		refresh_history();
+		gtk_widget_set_visible(g_panel->hist_window, TRUE);
+		gtk_window_present(GTK_WINDOW(g_panel->hist_window));
+	}
+}
 
 /* Coalescing flag for refresh_idle_cb.  Atomic because
  * flis_gui_update_from_idle() is documented safe from worker threads: with
@@ -356,7 +373,6 @@ static void build_panel(void) {
 	build_list    (outer);
 	build_property(outer);
 	build_mask    (outer);
-	build_history (outer);
 
 	register_panel_actions();
 }
@@ -1277,7 +1293,8 @@ static void open_hist_edit_dialog(NdeHistRowItem *r) {
 	                     r->summary ? r->summary : _("Edit parameters"));
 	gtk_window_set_modal(GTK_WINDOW(window), TRUE);
 	gtk_window_set_transient_for(GTK_WINDOW(window),
-	                             g_panel ? GTK_WINDOW(g_panel->window) : NULL);
+	                             g_panel && g_panel->hist_window ?
+	                             GTK_WINDOW(g_panel->hist_window) : NULL);
 	gtk_window_set_default_size(GTK_WINDOW(window), 360, -1);
 
 	GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
@@ -1610,7 +1627,7 @@ static void hist_fold_chain_marks(GHashTable *map, const nde_chain *chain) {
 
 /* Rebuild the mirror store from a snapshot.  Main thread only. */
 static void refresh_history(void) {
-	if (!g_panel || !g_panel->hist_store)
+	if (!g_panel || !g_panel->hist_window || !g_panel->hist_store)
 		return;
 	guint live = 0;
 	GPtrArray *snap = nde_history_snapshot_all(&live);
@@ -1681,8 +1698,8 @@ static void refresh_history(void) {
 	                              nde_history_is_stale());
 	gtk_widget_set_visible(g_panel->hist_fits_hint,
 	                       total > 0 && !is_current_image_flis());
-	gchar *lbl = g_strdup_printf(_("History (%u)"), live);
-	gtk_expander_set_label(GTK_EXPANDER(g_panel->hist_expander), lbl);
+	gchar *lbl = g_strdup_printf(_("Nondestructive History (%u)"), live);
+	gtk_window_set_title(GTK_WINDOW(g_panel->hist_window), lbl);
 	g_free(lbl);
 }
 
@@ -1693,7 +1710,8 @@ static gint history_refresh_pending = 0;
 static gboolean history_refresh_idle_cb(gpointer p) {
 	(void)p;
 	g_atomic_int_set(&history_refresh_pending, 0);
-	if (g_panel && gtk_widget_get_visible(g_panel->window))
+	if (g_panel && g_panel->hist_window &&
+	    gtk_widget_get_visible(g_panel->hist_window))
 		refresh_history();
 	return G_SOURCE_REMOVE;
 }
@@ -1704,11 +1722,29 @@ void flis_gui_history_update_from_idle(void) {
 	g_idle_add(history_refresh_idle_cb, NULL);
 }
 
-static void build_history(GtkWidget *box) {
-	g_panel->hist_expander = gtk_expander_new(_("History"));
-	gtk_expander_set_expanded(GTK_EXPANDER(g_panel->hist_expander), FALSE);
+/* The Nondestructive History window: a floating utility window (sibling of
+ * the FLIS Layers panel) toggled by the header-bar clock button
+ * (win.show-nde-history).  Separate from the layers panel because the edit
+ * history is document-wide, not layer-specific — it applies to plain FITS
+ * images too. */
+static void build_history_window(void) {
+	if (g_panel->hist_window) return;
+
+	GtkWidget *w = gtk_window_new();
+	g_panel->hist_window = w;
+	gtk_window_set_title(GTK_WINDOW(w), _("Nondestructive History"));
+	gtk_window_set_default_size(GTK_WINDOW(w), 340, 480);
+	gtk_window_set_hide_on_close(GTK_WINDOW(w), TRUE);
+	GtkWidget *main_w = lookup_widget("control_window");
+	if (main_w)
+		gtk_window_set_transient_for(GTK_WINDOW(w), GTK_WINDOW(main_w));
 
 	GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 3);
+	gtk_widget_set_margin_start (vbox, 4);
+	gtk_widget_set_margin_end   (vbox, 4);
+	gtk_widget_set_margin_top   (vbox, 4);
+	gtk_widget_set_margin_bottom(vbox, 4);
+	gtk_window_set_child(GTK_WINDOW(w), vbox);
 
 	g_panel->hist_stale_revealer = gtk_revealer_new();
 	gtk_revealer_set_transition_type(GTK_REVEALER(g_panel->hist_stale_revealer),
@@ -1747,11 +1783,9 @@ static void build_history(GtkWidget *box) {
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw),
 	                               GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
 	gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(sw), 140);
+	gtk_widget_set_vexpand(sw, TRUE);
 	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), g_panel->hist_list);
 	gtk_box_append(GTK_BOX(vbox), sw);
-
-	gtk_expander_set_child(GTK_EXPANDER(g_panel->hist_expander), vbox);
-	gtk_box_append(GTK_BOX(box), g_panel->hist_expander);
 }
 
 /* ---- Context menu -------------------------------------------------- */

@@ -144,6 +144,7 @@ void nina_lc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 void compstars_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void catmag_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void show_layers_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void show_nde_history_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void denoise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void star_desaturate_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
