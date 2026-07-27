@@ -1108,6 +1108,9 @@ gboolean update_MenuItem(gpointer user_data) {
 	/* some toolbar buttons */
 	gtk_widget_set_sensitive(lookup_widget("toolbarbox"), any_image_is_loaded);
 
+	/* The pinned history popover closes when its image goes away. */
+	flis_gui_history_notify_image_state(is_a_single_image_loaded);
+
 	gboolean wcs_ok = any_image_is_loaded && has_wcs(gfit);
 	GAction *action_annotate = g_action_map_lookup_action(G_ACTION_MAP(app_win), "annotate-object");
 	GAction *action_grid = g_action_map_lookup_action(G_ACTION_MAP(app_win), "wcs-grid");

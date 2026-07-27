@@ -297,6 +297,17 @@ void flis_gui_history_popover_init(void) {
 	build_history_popover();
 }
 
+/* Image-state feed from update_MenuItem: the pinned popover is dismissed
+ * when no single image is loaded any more (image closed, sequence loaded).
+ * Main thread only. */
+void flis_gui_history_notify_image_state(gboolean single_image_loaded) {
+	if (single_image_loaded)
+		return;
+	if (g_panel && g_panel->hist_pop &&
+	    gtk_widget_get_visible(g_panel->hist_pop))
+		gtk_popover_popdown(GTK_POPOVER(g_panel->hist_pop));
+}
+
 /* Programmatic toggle (win.show-nde-history). */
 void flis_gui_history_toggle_visible(void) {
 	flis_gui_history_popover_init();
@@ -1743,6 +1754,11 @@ static void build_history_popover(void) {
 	GtkWidget *pop = gtk_popover_new();
 	g_panel->hist_pop = pop;
 	gtk_popover_set_position(GTK_POPOVER(pop), GTK_POS_BOTTOM);
+	/* Pinned open: no click-outside/focus-loss dismissal.  It closes only
+	 * when the clock button is clicked again, or when the image is closed
+	 * (flis_gui_history_notify_image_state).  Lets the user keep the
+	 * history visible while working in dialogs and the main window. */
+	gtk_popover_set_autohide(GTK_POPOVER(pop), FALSE);
 
 	GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 3);
 	gtk_widget_set_size_request(vbox, 340, 480);

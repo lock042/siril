@@ -49,6 +49,10 @@ void flis_gui_update_from_idle(void);
 void flis_gui_history_popover_init(void);
 void flis_gui_history_toggle_visible(void);
 
+/* Dismiss the pinned history popover when no single image is loaded any
+ * more; fed from update_MenuItem.  Main thread only. */
+void flis_gui_history_notify_image_state(gboolean single_image_loaded);
+
 /* Coalesced refresh of the History window only (NDE provenance mirror).
  * Routed from gui_iface.nde_history_changed; callable from any thread. */
 void flis_gui_history_update_from_idle(void);
