@@ -210,6 +210,35 @@ nde_graph *nde_graph_build(void) {
 		}
 	}
 
+	/* An item the document no longer claims was usually consumed by a merge
+	 * or flatten — and that operation recorded its NAME on the way past.  Use
+	 * it: the layer is gone, but what it was called is not, and "Layer 2" is
+	 * of no use to anyone.  (Once step 7 retains merge inputs as real items
+	 * this fallback stops firing for merges, because flis_item_lookup will
+	 * find them again.) */
+	for (guint i = 0; i < g->nodes->len; i++) {
+		nde_graph_node *n = g_ptr_array_index(g->nodes, i);
+		if (n->kind != NDE_NODE_UNKNOWN)
+			continue;
+		for (guint r = 0; r < snap->len; r++) {
+			const nde_record *rec = g_ptr_array_index(snap, r);
+			if (!rec->params || g_strcmp0(rec->op_id, "layer.merge_down"))
+				continue;
+			GHashTable *kv = nde_kv_parse(rec->params);
+			gint64 top = 0;
+			const char *name = NULL;
+			if (nde_kv_get_int(kv, "top_item", &top) && top == n->item_id)
+				name = nde_kv_get_str(kv, "top_name");
+			if (name && *name) {
+				g_free(n->label);
+				n->label = g_strdup_printf(_("%s, merged away"), name);
+			}
+			g_hash_table_unref(kv);
+			if (name && *name)
+				break;
+		}
+	}
+
 	assign_levels(g, by_id);
 	g_hash_table_destroy(by_id);
 	g_ptr_array_unref(snap);
