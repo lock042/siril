@@ -1925,9 +1925,18 @@ the_end:;
 		 * no-op if one already exists.  Prepared outside the leaf mutex. */
 		if (orig)
 			nde_checkpoint_baseline_ensure(orig, rec->target_item_id);
-		/* Barrier detection BEFORE append takes ownership of rec. */
+		/* Keep the pinned mask's pixels while we still have them — hook_fit
+		 * carries the mask the op actually ran under, and it is stored under
+		 * the pin's own coordinate, so operations sharing a mask state share
+		 * the stored copy (nde_replay.h).  Before append takes ownership. */
+		if (using_mask)
+			nde_mask_pin_store(rec, hook_fit);
+		/* Barrier detection BEFORE append takes ownership of rec.  A masked
+		 * record is only a barrier when its mask was NOT kept: with the pixels
+		 * pinned, the replay can put the mask back and reproduce the op. */
 		gboolean nde_barrier = rec->tier == NDE_TIER_B ||
-				(rec->tier == NDE_TIER_A && rec->mask_active);
+				(rec->tier == NDE_TIER_A && rec->mask_active
+				 && !nde_mask_pin_resolvable(rec));
 		gint nde_target = rec->target_item_id;
 		nde_rec_id = nde_history_append(rec);
 		/* Output checkpoint (nde phase 4 P4.3): a barrier record stores its

@@ -1743,22 +1743,21 @@ static int write_nde_ckpt_hdu(fitsfile *fptr, fits *f, gint64 record_id, gint it
     return 0;
 }
 
-/* Write one NDE_CKPT HDU per LIVE barrier record in @records that has an
- * in-session output checkpoint, pulling each from the checkpoint store.
- * Barriers = Tier B, or Tier A with mask_active.  Shares NDE_BASE's lossless
- * compression wrapper so checkpoints round-trip bit-exactly whatever the
- * user's compression pref; restored after.  Records without a checkpoint
- * (pre-phase-4, deleted, or truncated) simply produce no HDU. */
+/* Write one NDE_CKPT HDU per LIVE record in @records that HAS an in-session
+ * output checkpoint, pulling each from the checkpoint store.  Having one is
+ * the criterion, not being a barrier: barriers were the only reason to keep a
+ * state when this was written, but a mask referenced by another record's input
+ * pin is kept under its own record id too (nde_replay.h), and dropping it on
+ * save would silently turn its consumer back into a barrier on reload.
+ * Shares NDE_BASE's lossless compression wrapper so checkpoints round-trip
+ * bit-exactly whatever the user's compression pref; restored after.  Records
+ * without a checkpoint (pre-phase-4, deleted, truncated) produce no HDU. */
 static void write_nde_ckpt_hdus(fitsfile *fptr, GPtrArray *records) {
     gboolean wrote_any = FALSE;
     for (guint i = 0; i < records->len; i++) {
         nde_record *rec = g_ptr_array_index(records, i);
-        gboolean barrier = rec->tier == NDE_TIER_B ||
-                           (rec->tier == NDE_TIER_A && rec->mask_active);
-        if (!barrier)
-            continue;
         if (!nde_checkpoint_output_exists(rec->record_id))
-            continue;   /* no checkpoint captured/retained for this barrier */
+            continue;
         fits *ck = nde_checkpoint_output_get(rec->record_id);
         if (!ck)
             continue;

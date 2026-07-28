@@ -35,6 +35,7 @@
 #include "core/op_descriptor.h"
 #include "core/nde_history.h"
 #include "core/nde_checkpoint.h"
+#include "core/masks.h"
 #include "core/nde_compositing.h"
 #include "core/nde_snapstore.h"
 #include "core/nde_replay.h"
@@ -204,14 +205,94 @@ static int tier_c_rerun(fits *scratch, const nde_record *rec, gchar **err) {
 /* First reason @rec cannot be replayed (heap string, caller frees), or NULL
  * when it replays.  The chain build decides whether an invalid member is a
  * hard blocker (no output checkpoint) or a barrier restart point. */
+/* ---- pinned mask inputs (see nde_replay.h) ----------------------------- */
+
+/* A pin's state lives at the same coordinate the checkpoint store already
+ * uses: record 0 means "that item's baseline", anything else is that record's
+ * output.  Masks therefore need no store of their own — a mask is a mono
+ * image, and its item and record ids come from the same sequences. */
+void nde_mask_pin_store(const nde_record *rec, const fits *fit) {
+	const nde_input_pin *pin = nde_record_input(rec, "mask");
+	if (!pin || !fit || !fit->mask || !fit->mask->data)
+		return;
+	fits *mfit = mask_to_fits((fits *)fit);
+	if (!mfit)
+		return;
+	if (pin->src_record_id)
+		nde_checkpoint_output_store(mfit, pin->src_record_id, pin->src_item_id);
+	else
+		nde_checkpoint_baseline_ensure(mfit, pin->src_item_id);
+	clearfits(mfit);
+	free(mfit);
+}
+
+gboolean nde_mask_pin_resolvable(const nde_record *rec) {
+	const nde_input_pin *pin = nde_record_input(rec, "mask");
+	if (!pin)
+		return FALSE;
+	return pin->src_record_id ? nde_checkpoint_output_exists(pin->src_record_id)
+	                          : nde_checkpoint_baseline_exists(pin->src_item_id);
+}
+
+/* Install @rec's pinned mask on @scratch for the duration of one op.  Returns
+ * FALSE + @err when the pin does not resolve; the caller must not proceed,
+ * since running the op unmasked would produce different pixels while claiming
+ * to have reproduced the record. */
+static gboolean mask_pin_install(fits *scratch, const nde_record *rec, gchar **err) {
+	const nde_input_pin *pin = nde_record_input(rec, "mask");
+	if (!pin)
+		return TRUE;
+	fits *mfit = pin->src_record_id ?
+			nde_checkpoint_output_get(pin->src_record_id) :
+			nde_checkpoint_baseline_get(pin->src_item_id);
+	if (!mfit) {
+		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s): its mask is no longer stored"),
+		                       rec->record_id, rec->op_id ? rec->op_id : "?");
+		return FALSE;
+	}
+	gboolean ok = FALSE;
+	if (mfit->rx == scratch->rx && mfit->ry == scratch->ry) {
+		mask_t *m = fits_to_mask(mfit);
+		if (m) {
+			if (scratch->mask)
+				free_mask(scratch->mask);
+			scratch->mask = m;
+			scratch->mask_active = TRUE;
+			ok = TRUE;
+		}
+	}
+	if (!ok)
+		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s): its mask does not fit the image"),
+		                       rec->record_id, rec->op_id ? rec->op_id : "?");
+	clearfits(mfit);
+	free(mfit);
+	return ok;
+}
+
+/* The mask belongs to the record, not to the chain: leave nothing behind for
+ * the next one, which has its own pin or none. */
+static void mask_pin_clear(fits *scratch) {
+	if (scratch->mask) {
+		free_mask(scratch->mask);
+		scratch->mask = NULL;
+	}
+	scratch->mask_active = FALSE;
+}
+
 static gchar *member_invalid_reason(const nde_record *rec) {
 	if (rec->tier == NDE_TIER_C)
 		return tier_c_invalid_reason(rec);
 	if (rec->tier != NDE_TIER_A)
 		return g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) is opaque — not replayable"),
 		                       rec->record_id, rec->op_id ? rec->op_id : "?");
-	if (rec->mask_active)
-		return g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) ran with an active mask — mask replay is not supported yet"),
+	/* A masked record used to be a barrier outright: the flag said a mask had
+	 * been active but nothing said WHICH, so there was nothing to reproduce.
+	 * A pin that resolves to a stored state gives the replay the mask back;
+	 * only an unpinned or no-longer-stored one still freezes the chain.
+	 * (Tier C keeps the blanket refusal above: a re-run script decides for
+	 * itself what to do with a mask, so installing one proves nothing.) */
+	if (rec->mask_active && !nde_mask_pin_resolvable(rec))
+		return g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) ran with a mask whose pixels were not kept — not replayable"),
 		                       rec->record_id, rec->op_id);
 	const op_descriptor *op = op_descriptor_by_id(rec->op_id);
 	if (!op)
@@ -433,13 +514,23 @@ static fits *replay_apply_records(fits *scratch, const nde_chain *chain,
 			*err = g_strdup(_("out of memory"));
 			goto fail;
 		}
+		/* Restore the record's mask input before running it.  Without this
+		 * the op would run unmasked and the replay would claim to have
+		 * reproduced a record it did not. */
+		if (!mask_pin_install(scratch, rec, err)) {
+			destroy_user(user);
+			free(args);
+			goto fail;
+		}
 		args->fit = scratch;       /* PRIVATE fits — the whole point */
 		args->op = op;
 		args->user = user;
 		args->nde_replay = TRUE;
+		args->mask_aware = (scratch->mask != NULL);
 		args->max_threads = com.max_thread;
 		int rc = GPOINTER_TO_INT(generic_image_worker(args));
 		free_generic_img_args(args);   /* frees user via its destructor too */
+		mask_pin_clear(scratch);
 		if (rc) {
 			*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) failed to apply"),
 			                       rec->record_id, rec->op_id);

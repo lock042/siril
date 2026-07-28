@@ -29,6 +29,7 @@
 #include "core/nde_checkpoint.h"
 #include "core/nde_snapstore.h"
 #include "core/nde_replay.h"
+#include "core/masks.h"
 #include "algos/geometry.h"
 #include "filters/asinh.h"
 #include "filters/mtf.h"
@@ -2183,5 +2184,170 @@ Test(nde_replay, edit_at_refusals) {
 	cr_assert(nde_edit_at_end_execute(FALSE, &err), "cancel failed: %s", err ? err : "?");
 	unreserve_thread();
 
+	golden_teardown(NULL, f);
+}
+
+/* ---------------- graph step 4: pinned mask inputs ---------------- */
+
+/* Attach a non-uniform float mask to @f so a masked op differs visibly from
+ * an unmasked one — a uniform mask would make the assertions vacuous. */
+static void attach_gradient_mask(fits *f) {
+	size_t n = (size_t)f->rx * f->ry;
+	mask_t *m = calloc(1, sizeof(mask_t));
+	m->bitpix = 32;
+	m->data = malloc(n * sizeof(float));
+	for (size_t i = 0; i < n; i++)
+		((float *)m->data)[i] = (float)i / (float)n;
+	f->mask = m;
+	f->mask_active = TRUE;
+}
+
+/* Run an op through the real capture path with the mask honoured. */
+static int apply_op_masked(const op_descriptor *op, gpointer user_heap) {
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	args->fit = gfit;
+	args->op = op;
+	args->user = user_heap;
+	args->command = TRUE;
+	args->command_updates_gfit = TRUE;
+	args->mask_aware = TRUE;
+	args->max_threads = 1;
+	args->mem_ratio = -1.0f;
+	gboolean prev = com.headless;
+	com.headless = TRUE;
+	int rc = GPOINTER_TO_INT(generic_image_worker(args));
+	com.headless = prev;
+	return rc;
+}
+
+/* A masked record used to freeze its whole chain: the flag said a mask was
+ * active but nothing said which, so there was nothing to reproduce. */
+Test(nde_replay, masked_record_pins_its_mask_and_stays_replayable) {
+	com.pref.nde_cache_mb = 256;
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(10.f)), 0);
+	attach_gradient_mask(gfit);
+	cr_assert_eq(apply_op_masked(&op_desc_asinh, asinh_beta(20.f)), 0);
+
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	cr_assert_eq(snap->len, 2);
+	const nde_record *masked = g_ptr_array_index(snap, 1);
+	cr_assert(masked->mask_active, "the capture must still note the mask");
+	const nde_input_pin *pin = nde_record_input(masked, "mask");
+	cr_assert_not_null(pin, "and must pin WHICH mask");
+	cr_assert_eq(pin->src_item_id, NDE_ITEM_PLAIN_MASK, "plain image: the sentinel item");
+	cr_assert(nde_mask_pin_resolvable(masked), "its pixels must have been kept");
+	g_ptr_array_unref(snap);
+
+	/* The chain is replayable end to end, and the masked record is not a
+	 * barrier: nothing before it is frozen. */
+	nde_chain *chain = nde_chain_build(-1);
+	cr_assert(chain->replayable, "masked record must not freeze the chain: %s",
+	          chain->reasons->len ? (char *)g_ptr_array_index(chain->reasons, 0) : "none");
+	cr_assert_eq(chain->tail_start, 0, "no freeze cause anywhere");
+	nde_chain_free(chain);
+}
+
+/* The point of restoring the mask is that the replay reproduces the ORIGINAL
+ * pixels.  Replaying the same chain without the mask would not. */
+Test(nde_replay, replay_restores_the_pinned_mask_bit_exactly) {
+	com.pref.nde_cache_mb = 256;
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(10.f)), 0);
+	attach_gradient_mask(gfit);
+	cr_assert_eq(apply_op_masked(&op_desc_asinh, asinh_beta(20.f)), 0);
+
+	fits expected = { 0 };
+	copyfits(gfit, &expected, CP_DEEPCOPY | CP_ALLOC, -1);
+
+	nde_chain *chain = nde_chain_build(-1);
+	cr_assert(chain->replayable);
+	cr_assert(reserve_thread());
+	gchar *err = NULL;
+	fits *result = nde_chain_replay(chain, &err);
+	unreserve_thread();
+	cr_assert_not_null(result, "replay failed: %s", err ? err : "?");
+	assert_pixels_bit_exact(result, &expected, "masked-replay");
+	/* the mask does not leak out of the replay onto the result */
+	cr_assert_null(result->mask, "the mask belongs to the record, not the chain");
+	clearfits(result); free(result);
+	nde_chain_free(chain);
+	clearfits(&expected);
+	golden_teardown(NULL, f);
+}
+
+/* Losing the pinned pixels degrades honestly: the record becomes a barrier
+ * again rather than replaying unmasked and claiming success. */
+Test(nde_replay, a_masked_record_whose_mask_was_dropped_is_a_barrier) {
+	com.pref.nde_cache_mb = 256;
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(10.f)), 0);
+	attach_gradient_mask(gfit);
+	cr_assert_eq(apply_op_masked(&op_desc_asinh, asinh_beta(20.f)), 0);
+
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	const nde_record *masked = g_ptr_array_index(snap, 1);
+	const nde_input_pin *pin = nde_record_input(masked, "mask");
+	cr_assert_not_null(pin);
+	/* The mask had no records of its own here, so it was pinned at the
+	 * item's baseline; drop it the way a storage limit eventually will. */
+	cr_assert_eq(pin->src_record_id, 0);
+	nde_checkpoint_drop(pin->src_item_id);
+	cr_assert(!nde_mask_pin_resolvable(masked));
+	g_ptr_array_unref(snap);
+
+	nde_chain *chain = nde_chain_build(-1);
+	cr_assert(!chain->replayable, "an unresolvable mask must freeze the chain");
+	cr_assert(chain->reasons->len > 0);
+	cr_assert(strstr(g_ptr_array_index(chain->reasons, 0), "mask") != NULL,
+	          "and say why: %s", (char *)g_ptr_array_index(chain->reasons, 0));
+	nde_chain_free(chain);
+	golden_teardown(NULL, f);
+}
+
+/* An unmasked record next to a masked one must not inherit its mask. */
+Test(nde_replay, an_unmasked_record_replays_without_a_mask) {
+	com.pref.nde_cache_mb = 256;
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	attach_gradient_mask(gfit);
+	cr_assert_eq(apply_op_masked(&op_desc_asinh, asinh_beta(10.f)), 0);
+	/* drop the mask, then run an ordinary op */
+	free_mask(gfit->mask);
+	gfit->mask = NULL;
+	gfit->mask_active = FALSE;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(20.f)), 0);
+
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	cr_assert_eq(snap->len, 2);
+	cr_assert_not_null(nde_record_input(g_ptr_array_index(snap, 0), "mask"));
+	cr_assert_null(nde_record_input(g_ptr_array_index(snap, 1), "mask"),
+	               "the second op ran unmasked and must pin nothing");
+	g_ptr_array_unref(snap);
+
+	fits expected = { 0 };
+	copyfits(gfit, &expected, CP_DEEPCOPY | CP_ALLOC, -1);
+	nde_chain *chain = nde_chain_build(-1);
+	cr_assert(chain->replayable);
+	cr_assert(reserve_thread());
+	gchar *err = NULL;
+	fits *result = nde_chain_replay(chain, &err);
+	unreserve_thread();
+	cr_assert_not_null(result, "replay failed: %s", err ? err : "?");
+	assert_pixels_bit_exact(result, &expected, "mixed-mask-replay");
+	clearfits(result); free(result);
+	nde_chain_free(chain);
+	clearfits(&expected);
 	golden_teardown(NULL, f);
 }

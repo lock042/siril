@@ -249,6 +249,31 @@ gboolean nde_edit_at_end(gboolean apply);
 gboolean nde_edit_at_active(void);
 gint64   nde_edit_at_record_id(void);
 
+/* ---- pinned mask inputs (graph step 4) ----------------------------------
+ * A record that ran under a mask carries a "mask" input pin naming the mask
+ * item and the record after which its state is wanted (nde_history.h).  For
+ * the replay to reproduce the operation rather than refuse it, that state has
+ * to be retrievable — so the consumer stores it at capture, under the pin's
+ * own coordinate, using the ordinary checkpoint store: a mask is a mono image
+ * and needs no store of its own.  Storing at the CONSUMER rather than at every
+ * mask op means one state per masked operation instead of one per mask edit,
+ * and two operations sharing a mask state share the stored copy.
+ *
+ * This is a pin, not a live edge: the stored state is what the mask WAS.
+ * Re-deriving it by replaying the mask's own chain is a later step, and it
+ * changes nothing here — the pin's coordinate is what both resolve.          */
+
+/**
+ * Store the mask currently on @fit as the state named by @rec's "mask" pin.
+ * No-op when @rec has no mask pin or @fit carries no mask.  Call at capture,
+ * after the pin is attached and while the mask is still in place.
+ */
+void nde_mask_pin_store(const struct nde_record *rec, const struct ffit *fit);
+
+/** TRUE when @rec's mask pin resolves to a stored state, so a replay of the
+ *  record can reproduce its mask.  Registry lookup only — no I/O. */
+gboolean nde_mask_pin_resolvable(const struct nde_record *rec);
+
 /**
  * Gate for the operations an open insertion point cannot survive: canvas
  * geometry on a LAYERED document, flatten and merge-down.  Their pixel

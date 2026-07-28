@@ -727,3 +727,35 @@ Test(nde_persist, history_without_the_inputs_column_still_loads) {
 	cr_assert_null(((nde_record *)g_ptr_array_index(snap, 1))->inputs);
 	g_ptr_array_unref(snap);
 }
+
+/* Output checkpoints used to be written only for barrier records, because a
+ * barrier was the only reason to keep one.  A mask referenced by another
+ * record's input pin is kept under its own (non-barrier) record id, and
+ * dropping it on save would silently turn its consumer back into a barrier on
+ * reload.  The rule is now "has one" rather than "is a barrier". */
+Test(nde_persist, checkpoints_of_non_barrier_records_persist) {
+	flis_layer_t *l = flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "base");
+	gint lid = l->item_id;
+	/* A perfectly ordinary Tier-A record with no mask: not a barrier. */
+	gint64 id = append_full("filters.gauss", 1, "sigma=2", "blur", NDE_TIER_A,
+	                        NDE_SCOPE_LAYER, lid, FALSE);
+	cr_assert(id > 0);
+	fits *state = ramp_float(4, 4, 1, 0.125f);
+	nde_checkpoint_output_store(state, id, lid);
+	cr_assert(nde_checkpoint_output_exists(id));
+
+	cr_assert_eq(save_flis(tmppath), 0);
+	flis_free_layers(com.uniq);
+	nde_history_attach(NULL);
+	nde_checkpoint_purge();
+	cr_assert(!nde_checkpoint_output_exists(id), "fixture: store must be empty");
+
+	cr_assert_eq(load_flis(tmppath), 0);
+	cr_assert(nde_checkpoint_output_exists(id),
+	          "a stored checkpoint must survive the save, barrier or not");
+	fits *got = nde_checkpoint_output_get(id);
+	cr_assert_not_null(got);
+	assert_float_exact(got, state);
+	clearfits(got); free(got);
+	clearfits(state); free(state);
+}
