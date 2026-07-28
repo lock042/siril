@@ -49,7 +49,8 @@
 #include "core/processing.h"
 #include "core/undo.h"
 #include "core/nde_history.h"
-#include "core/nde_replay.h"    /* nde_record_amendable/deletable, amend/delete_start */
+#include "core/nde_replay.h"   /* nde_record_amendable/deletable, amend/delete_start */
+#include "core/nde_graph.h"    /* nodes + edges behind the per-item step lists */
 #include "core/nde_compositing.h"  /* nde_compositing_is_op */
 #include "gui-gtk4/nde_editors.h"
 #include "core/op_descriptor.h" /* op_descriptor_by_id for the edit round-trip check */
@@ -224,9 +225,13 @@ struct flis_panel {
 	GtkWidget  *hist_insert_revealer;   /* "inserting before step N" banner */
 	GtkWidget  *hist_insert_label;
 	GtkWidget  *hist_fits_hint;     /* plain-FITS: history is in-memory only */
-	GListStore *hist_store;          /* of NdeHistRowItem* */
-	GtkWidget  *hist_list;
-	GtkWidget  *hist_popover;        /* lazy; parented to hist_list */
+	/* One NODE per history item, each holding that item's own ordered step
+	 * list (design note §9.1).  A linear document has exactly one, so it
+	 * looks like the single list this replaced. */
+	GtkWidget  *hist_container;      /* vertical box of node frames */
+	GPtrArray  *hist_nodes;          /* hist_node_ui*, rebuilt per refresh */
+	GtkListItemFactory *hist_factory;/* shared by every node's list view */
+	GtkWidget  *hist_popover;        /* lazy; parented to hist_container */
 	GtkWidget  *hist_popover_label;
 	GtkWidget  *hist_edit_btn;       /* "Edit parameters…" in the popover */
 	GtkWidget  *hist_insert_btn;     /* "Insert before…" in the popover */
@@ -574,6 +579,16 @@ static void ensure_flis_css(void) {
 		"}"
 		".nde-drop-line-bottom {"
 		"  box-shadow: inset 0 -4px 0 0 #2ec27e;"
+		"}"
+		/* A graph node: one item and the steps applied to it.  Deliberately
+		 * quiet — with a linear document there is exactly one, and it should
+		 * read as a titled list rather than as a box demanding attention. */
+		".nde-graph-node {"
+		"  border-radius: 6px;"
+		"}"
+		".nde-graph-node > expander > box > label {"
+		"  font-weight: bold;"
+		"  padding: 2px 4px;"
 		"}"
 	);
 	gtk_style_context_add_provider_for_display(gdk_display_get_default(),
@@ -1243,6 +1258,27 @@ static const char *hist_edit_consequence(const NdeHistRowItem *r) {
 static NdeHistRowItem *hist_drag_item;   /* ref held between begin and end */
 static GtkWidget *hist_drop_line_row;    /* row currently showing the line */
 
+/* ---- one graph node's widgets -----------------------------------------
+ * A node is an item and the ordered steps applied to it.  Keeping a real
+ * GtkListView per node (rather than sections in one list) is what lets the
+ * existing row factory, drag-reorder and popovers carry over untouched — and
+ * it is the shape a 2-D layout needs, since a node has to be positionable. */
+typedef struct {
+	gint        item_id;
+	GtkWidget  *frame;      /* GtkFrame owning the whole node */
+	GtkWidget  *expander;   /* collapse for tall nodes */
+	GtkWidget  *list;       /* GtkListView over `store` */
+	GListStore *store;      /* of NdeHistRowItem* */
+} hist_node_ui;
+
+static void hist_node_ui_free(gpointer p) {
+	hist_node_ui *n = p;
+	if (!n)
+		return;
+	g_clear_object(&n->store);
+	g_free(n);
+}
+
 static void hist_clear_drop_line(void) {
 	if (!hist_drop_line_row) return;
 	gtk_widget_remove_css_class(hist_drop_line_row, "nde-drop-line-top");
@@ -1272,11 +1308,10 @@ static gboolean hist_drop_valid(const NdeHistRowItem *t) {
 	       t->target_item_id == hist_drag_item->target_item_id;
 }
 
-/* Walk the list view's realized rows; each internal list-item widget's first
+/* Walk one list view's realized rows; each internal list-item widget's first
  * child is the row box carrying the bound item via "hist-item". */
-static void hist_set_drop_dim(gboolean drag_active) {
-	if (!g_panel || !g_panel->hist_list) return;
-	for (GtkWidget *c = gtk_widget_get_first_child(g_panel->hist_list); c;
+static void hist_set_drop_dim_on(GtkWidget *list, gboolean drag_active) {
+	for (GtkWidget *c = gtk_widget_get_first_child(list); c;
 	     c = gtk_widget_get_next_sibling(c)) {
 		GtkWidget *row = gtk_widget_get_first_child(c);
 		if (!row) continue;
@@ -1288,6 +1323,10 @@ static void hist_set_drop_dim(gboolean drag_active) {
 			gtk_widget_remove_css_class(row, "nde-drop-dim");
 	}
 }
+
+/* Every node's rows, not just one list's: a drag is only valid within the
+ * item it started in (hist_drop_valid), and the other nodes must say so. */
+static void hist_set_drop_dim(gboolean drag_active);
 
 static GdkContentProvider *on_hist_drag_prepare(GtkDragSource *s,
                                                 double x, double y, gpointer row) {
@@ -1810,7 +1849,10 @@ static void on_hist_row_activate(GtkListView *lv, guint position, gpointer u) {
 	if (!r) return;
 	if (!g_panel->hist_popover) {
 		g_panel->hist_popover = gtk_popover_new();
-		gtk_widget_set_parent(g_panel->hist_popover, GTK_WIDGET(lv));
+		/* Parented to the CONTAINER, not to the list view that raised this
+		 * activate: node list views are destroyed and rebuilt on every
+		 * refresh, and the popover outlives them. */
+		gtk_widget_set_parent(g_panel->hist_popover, g_panel->hist_container);
 
 		GtkWidget *pbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
 		gtk_widget_set_margin_start (pbox, 6);
@@ -1894,7 +1936,9 @@ static void on_hist_row_activate(GtkListView *lv, guint position, gpointer u) {
 				g_object_get_data(G_OBJECT(rowbox), "hist-item") : NULL;
 		if (cr == r) {
 			graphene_rect_t b;
-			if (gtk_widget_compute_bounds(c, GTK_WIDGET(lv), &b)) {
+			/* Bounds in the container's coordinates, which is what the
+			 * popover is now parented to. */
+			if (gtk_widget_compute_bounds(c, g_panel->hist_container, &b)) {
 				GdkRectangle rect = { (int)b.origin.x, (int)b.origin.y,
 				                      (int)b.size.width, (int)b.size.height };
 				gtk_popover_set_pointing_to(GTK_POPOVER(g_panel->hist_popover),
@@ -1955,14 +1999,115 @@ static void hist_fold_chain_marks(GHashTable *map, const nde_chain *chain) {
 	}
 }
 
-/* Rebuild the mirror store from a snapshot.  Main thread only. */
+/* Find or create the node whose steps target @item_id, appending its frame in
+ * graph order.  Nodes are rebuilt per refresh; the graph's own node ordering
+ * (by each item's first record) is what keeps them from reshuffling. */
+static hist_node_ui *hist_node_get(gint item_id, const nde_graph_node *gn,
+                                   const nde_graph *graph) {
+	for (guint i = 0; i < g_panel->hist_nodes->len; i++) {
+		hist_node_ui *n = g_ptr_array_index(g_panel->hist_nodes, i);
+		if (n->item_id == item_id)
+			return n;
+	}
+
+	hist_node_ui *n = g_new0(hist_node_ui, 1);
+	n->item_id = item_id;
+	n->store = g_list_store_new(NDE_TYPE_HIST_ROW_ITEM);
+
+	GtkSingleSelection *sel = gtk_single_selection_new(
+			G_LIST_MODEL(g_object_ref(n->store)));
+	gtk_single_selection_set_autoselect(sel, FALSE);
+	gtk_single_selection_set_can_unselect(sel, TRUE);
+	n->list = gtk_list_view_new(GTK_SELECTION_MODEL(sel),
+	                            g_object_ref(g_panel->hist_factory));
+	g_signal_connect(n->list, "activate", G_CALLBACK(on_hist_row_activate), NULL);
+
+	/* Header: what the item is, and — the thing the flat list could not say
+	 * — what it is joined to.  A node with no edges shows no edge line, so a
+	 * linear document reads as a plain titled list. */
+	GString *title = g_string_new(gn && gn->label ? gn->label : _("Steps"));
+	if (gn && gn->orphan)
+		g_string_append(title, _("  (not a layer)"));
+
+	n->expander = gtk_expander_new(NULL);
+	gtk_expander_set_label_widget(GTK_EXPANDER(n->expander),
+	                              gtk_label_new(title->str));
+	gtk_expander_set_expanded(GTK_EXPANDER(n->expander), TRUE);
+	g_string_free(title, TRUE);
+
+	GtkWidget *body = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
+
+	if (graph && gn) {
+		GString *edges = g_string_new(NULL);
+		GPtrArray *ins = nde_graph_inputs_of(graph, item_id);
+		for (guint i = 0; i < ins->len; i++) {
+			const nde_graph_edge *e = g_ptr_array_index(ins, i);
+			const nde_graph_node *src = nde_graph_node_for(graph, e->src_item_id);
+			if (!src || !src->label)
+				continue;
+			if (strstr(edges->str, src->label))
+				continue;   /* several steps may share one source */
+			if (edges->len)
+				g_string_append(edges, ", ");
+			g_string_append(edges, src->label);
+		}
+		g_ptr_array_unref(ins);
+		if (edges->len) {
+			gchar *txt = g_strdup_printf(_("uses %s"), edges->str);
+			GtkWidget *lbl = gtk_label_new(txt);
+			g_free(txt);
+			gtk_label_set_xalign(GTK_LABEL(lbl), 0.0f);
+			gtk_widget_add_css_class(lbl, "dim-label");
+			gtk_box_append(GTK_BOX(body), lbl);
+		}
+		g_string_free(edges, TRUE);
+	}
+
+	gtk_box_append(GTK_BOX(body), n->list);
+	gtk_expander_set_child(GTK_EXPANDER(n->expander), body);
+
+	n->frame = gtk_frame_new(NULL);
+	gtk_frame_set_child(GTK_FRAME(n->frame), n->expander);
+	gtk_widget_add_css_class(n->frame, "nde-graph-node");
+	gtk_box_append(GTK_BOX(g_panel->hist_container), n->frame);
+
+	g_ptr_array_add(g_panel->hist_nodes, n);
+	return n;
+}
+
+static void hist_set_drop_dim(gboolean drag_active) {
+	if (!g_panel || !g_panel->hist_nodes) return;
+	for (guint i = 0; i < g_panel->hist_nodes->len; i++) {
+		hist_node_ui *n = g_ptr_array_index(g_panel->hist_nodes, i);
+		hist_set_drop_dim_on(n->list, drag_active);
+	}
+}
+
+/* Rebuild the mirror stores from a snapshot.  Main thread only. */
 static void refresh_history(void) {
-	if (!g_panel || !g_panel->hist_content || !g_panel->hist_store)
+	if (!g_panel || !g_panel->hist_content || !g_panel->hist_container)
 		return;
 	guint live = 0;
 	GPtrArray *snap = nde_history_snapshot_all(&live);
 	guint total = snap ? snap->len : 0;
-	g_list_store_remove_all(g_panel->hist_store);
+
+	/* Drop every node widget and rebuild: the set of items and their order
+	 * both change as records come and go, and a handful of frames is not
+	 * worth an incremental diff. */
+	for (guint i = 0; i < g_panel->hist_nodes->len; i++) {
+		hist_node_ui *n = g_ptr_array_index(g_panel->hist_nodes, i);
+		gtk_box_remove(GTK_BOX(g_panel->hist_container), n->frame);
+	}
+	g_ptr_array_set_size(g_panel->hist_nodes, 0);
+
+	/* The graph supplies the node set, their labels and their edges; the
+	 * snapshot supplies the rows.  Built from the LIVE history, so the dead
+	 * tail below lands in whatever node its target names. */
+	nde_graph *graph = nde_graph_build();
+	for (guint i = 0; i < graph->nodes->len; i++) {
+		const nde_graph_node *gn = g_ptr_array_index(graph->nodes, i);
+		hist_node_get(gn->item_id, gn, graph);
+	}
 
 	/* Build the freeze-verdict map once per DISTINCT target item present in
 	 * the snapshot (records are tens, items a handful): reuse the real P4.1
@@ -1985,12 +2130,20 @@ static void refresh_history(void) {
 		g_hash_table_destroy(seen);
 	}
 
+	/* Step numbers are now per node, because that is the sequence the user
+	 * reads and reorders; a global index would count steps belonging to other
+	 * items and leave gaps in every node. */
+	GHashTable *seq = g_hash_table_new(g_direct_hash, g_direct_equal);
+
 	if (snap) {
 		for (guint i = 0; i < snap->len; i++) {
 			const nde_record *rec = g_ptr_array_index(snap, i);
+			gpointer key = GINT_TO_POINTER(rec->target_item_id);
+			guint pos = GPOINTER_TO_UINT(g_hash_table_lookup(seq, key)) + 1;
+			g_hash_table_insert(seq, key, GUINT_TO_POINTER(pos));
 			NdeHistRowItem *item = g_object_new(NDE_TYPE_HIST_ROW_ITEM, NULL);
 			item->badge   = g_strdup_printf(rec->tier == NDE_TIER_B ? "#%u·B" :
-			                                rec->tier == NDE_TIER_C ? "#%u·C" : "#%u", i + 1);
+			                                rec->tier == NDE_TIER_C ? "#%u·C" : "#%u", pos);
 			item->summary = g_strdup(rec->summary ? rec->summary : rec->op_id);
 			item->target  = hist_target_label(rec);
 			item->detail  = build_hist_detail(rec);
@@ -2019,11 +2172,18 @@ static void refresh_history(void) {
 				g_free(item->detail);
 				item->detail = d;
 			}
-			g_list_store_append(g_panel->hist_store, item);
+			/* A dead-tail record may name an item the LIVE graph no longer
+			 * has a node for; give it one so undone steps stay visible. */
+			hist_node_ui *node = hist_node_get(rec->target_item_id,
+			                                   nde_graph_node_for(graph, rec->target_item_id),
+			                                   graph);
+			g_list_store_append(node->store, item);
 			g_object_unref(item);
 		}
 		g_ptr_array_unref(snap);
 	}
+	g_hash_table_destroy(seq);
+	nde_graph_free(graph);
 	g_hash_table_destroy(freeze);
 	gtk_revealer_set_reveal_child(GTK_REVEALER(g_panel->hist_stale_revealer),
 	                              nde_history_is_stale());
@@ -2256,25 +2416,22 @@ static void build_history_popover(void) {
 	gtk_widget_set_visible(g_panel->hist_fits_hint, FALSE);
 	gtk_box_append(GTK_BOX(vbox), g_panel->hist_fits_hint);
 
-	g_panel->hist_store = g_list_store_new(NDE_TYPE_HIST_ROW_ITEM);
-	GtkSingleSelection *sel = gtk_single_selection_new(
-			G_LIST_MODEL(g_object_ref(g_panel->hist_store)));
-	gtk_single_selection_set_autoselect(sel, FALSE);
-	gtk_single_selection_set_can_unselect(sel, TRUE);
+	/* One factory shared by every node's list view: the rows are identical
+	 * wherever they live, and sharing it keeps drag-reorder, the popover and
+	 * the amend dialogs working untouched across the split. */
+	g_panel->hist_factory = gtk_signal_list_item_factory_new();
+	g_signal_connect(g_panel->hist_factory, "setup", G_CALLBACK(on_hist_row_setup), NULL);
+	g_signal_connect(g_panel->hist_factory, "bind",  G_CALLBACK(on_hist_row_bind),  NULL);
 
-	GtkListItemFactory *factory = gtk_signal_list_item_factory_new();
-	g_signal_connect(factory, "setup", G_CALLBACK(on_hist_row_setup), NULL);
-	g_signal_connect(factory, "bind",  G_CALLBACK(on_hist_row_bind),  NULL);
-	g_panel->hist_list = gtk_list_view_new(GTK_SELECTION_MODEL(sel), factory);
-	g_signal_connect(g_panel->hist_list, "activate",
-	                 G_CALLBACK(on_hist_row_activate), NULL);
+	g_panel->hist_nodes = g_ptr_array_new_with_free_func(hist_node_ui_free);
+	g_panel->hist_container = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
 
 	GtkWidget *sw = gtk_scrolled_window_new();
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw),
 	                               GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
 	gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(sw), 140);
 	gtk_widget_set_vexpand(sw, TRUE);
-	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), g_panel->hist_list);
+	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), g_panel->hist_container);
 	gtk_box_append(GTK_BOX(vbox), sw);
 
 	GtkWidget *btn = lookup_widget("nde_history_button");
