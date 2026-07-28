@@ -98,6 +98,7 @@ src_files = [
   'core/nde_history.c',
   'core/nde_replay.c',
   'core/nde_script_scope.c',
+  'core/nde_graph.c',
   'core/nde_retention.c',
   'core/nde_snapstore.c',
   'core/op_descriptor.c',
