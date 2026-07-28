@@ -67,6 +67,9 @@ typedef struct {
 	gboolean   has_geometry;    /* a member moves the layer on the canvas, so
 	                             * the replay must carry the layer's offset and
 	                             * the restart point must supply one */
+	gboolean   has_composite;   /* a member is a composite node (graph step 7):
+	                             * the chain consumes ANOTHER item's pixels, so
+	                             * replaying it replays that item's chain too */
 	GArray    *member_flags;    /* guint8 per member (NDE_CHAIN_MEMBER_*) */
 	guint      tail_start;      /* first tail member index (== len ⇒ empty tail) */
 	gboolean   tail_replayable; /* the tail applies cleanly from its restart point */

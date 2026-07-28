@@ -66,6 +66,7 @@
 #include "core/nde_history.h"
 #include "core/nde_replay.h"
 #include "core/nde_checkpoint.h"
+#include "core/nde_composite.h"
 #include "core/nde_snapstore.h"
 #include "core/undo.h"
 #include "algos/statistics.h"
@@ -1698,12 +1699,25 @@ static int write_nde_base_hdu(fitsfile *fptr, fits *f, gint item_id,
  * The lossless compression settings are applied here and restored after, so
  * baselines round-trip bit-exactly whatever the user's compression pref. */
 static void write_nde_base_hdus(fitsfile *fptr, GPtrArray *records) {
-    /* Collect distinct target item_ids (records with a real target). */
-    GHashTable *seen = g_hash_table_new(g_direct_hash, g_direct_equal);
-    gboolean wrote_any = FALSE;
+    /* Every item the history mentions: as a record's target, and as the SOURCE
+     * of an input pin.  The second is not redundant — a layer merged away
+     * without ever having been edited has no records of its own, only a
+     * baseline and an edge to the composite that consumed it, and dropping
+     * that baseline on save would make the merge unreplayable after a
+     * round-trip (nde_composite.h). */
+    GPtrArray *ids = g_ptr_array_new();
     for (guint i = 0; i < records->len; i++) {
         nde_record *rec = g_ptr_array_index(records, i);
-        gint id = rec->target_item_id;
+        g_ptr_array_add(ids, GINT_TO_POINTER(rec->target_item_id));
+        for (guint p = 0; rec->inputs && p < rec->inputs->len; p++) {
+            const nde_input_pin *pin = g_ptr_array_index(rec->inputs, p);
+            g_ptr_array_add(ids, GINT_TO_POINTER(pin->src_item_id));
+        }
+    }
+    GHashTable *seen = g_hash_table_new(g_direct_hash, g_direct_equal);
+    gboolean wrote_any = FALSE;
+    for (guint i = 0; i < ids->len; i++) {
+        gint id = GPOINTER_TO_INT(g_ptr_array_index(ids, i));
         if (g_hash_table_contains(seen, GINT_TO_POINTER(id)))
             continue;
         g_hash_table_add(seen, GINT_TO_POINTER(id));
@@ -1730,6 +1744,7 @@ static void write_nde_base_hdus(fitsfile *fptr, GPtrArray *records) {
     if (wrote_any)
         nde_base_restore_compression(fptr);
     g_hash_table_destroy(seen);
+    g_ptr_array_free(ids, TRUE);
 }
 
 /* ===================================================================== */
@@ -1982,11 +1997,18 @@ static void nde_base_load_free(gpointer p) {
 static GPtrArray *read_nde_base_hdus(fitsfile *fptr, int nhdus, nde_history *hist) {
     if (!hist || !hist->records || hist->records->len == 0)
         return NULL;
-    /* Set of item_ids that carry a live record. */
+    /* Set of item_ids the history still refers to — as a record's target or as
+     * the source of an input pin.  The writer's set, mirrored (see
+     * write_nde_base_hdus): an input consumed by a composite may have no
+     * records of its own and still need its baseline back. */
     GHashTable *live_ids = g_hash_table_new(g_direct_hash, g_direct_equal);
     for (guint i = 0; i < hist->records->len; i++) {
         nde_record *rec = g_ptr_array_index(hist->records, i);
         g_hash_table_add(live_ids, GINT_TO_POINTER(rec->target_item_id));
+        for (guint p = 0; rec->inputs && p < rec->inputs->len; p++) {
+            const nde_input_pin *pin = g_ptr_array_index(rec->inputs, p);
+            g_hash_table_add(live_ids, GINT_TO_POINTER(pin->src_item_id));
+        }
     }
 
     GPtrArray *out = NULL;
@@ -4543,6 +4565,35 @@ int flis_merge_down_layer(flis_layer_t *top) {
     gint top_item_id = top->item_id;      /* for the NDE record (top is freed below) */
     gint bottom_item_id = bottom->item_id;
 
+    /* NDE composite node (design note §3): everything the merge consumes has
+     * to be recoverable afterwards, and this is the last moment at which it
+     * all still exists.  Three things are taken here, in this order:
+     *
+     *  - the per-input compositing state, because the top layer's blend mode,
+     *    opacity, offset and tint die with the layer and are inputs to the
+     *    composite just as much as its pixels are;
+     *  - the pin coordinates, each input's last record, which is where the
+     *    replay resolves that input to;
+     *  - a BASELINE for each input, so that resolving it has somewhere to
+     *    start.  A layer merged without ever being edited has no baseline
+     *    yet, and after the merge its pre-merge pixels are unreachable — the
+     *    bottom layer's have been overwritten and the top layer is gone.
+     *    Both ensures are no-ops when a baseline already exists.
+     */
+    gchar *nde_params = nde_composite_params_encode(bottom, top);
+    nde_pin_spec nde_pins[2] = {
+        { NDE_COMPOSITE_ROLE_BASE,    bottom_item_id,
+          nde_history_last_record_for_item(bottom_item_id) },
+        { NDE_COMPOSITE_ROLE_OVERLAY, top_item_id,
+          nde_history_last_record_for_item(top_item_id) },
+    };
+    nde_checkpoint_baseline_ensure(bottom->fit, bottom_item_id);
+    nde_checkpoint_baseline_set_offset(bottom_item_id, bottom->position_x,
+                                       bottom->position_y);
+    nde_checkpoint_baseline_ensure(top->fit, top_item_id);
+    nde_checkpoint_baseline_set_offset(top_item_id, top->position_x,
+                                       top->position_y);
+
     /* Destructive operation: purge undo history for both layers */
     flis_undo_purge_layer(top->item_id);
     flis_undo_purge_layer(bottom->item_id);
@@ -4585,14 +4636,15 @@ int flis_merge_down_layer(flis_layer_t *top) {
     siril_log_message(_("FLIS: merged '%s' down into '%s'\n"),
                       top_name_copy, bottom_name);
 
-    /* NDE provenance (sketch §13.2): merge purges per-layer undo (records are
-     * KEPT — provenance).  No undo entry survives, so the record is
-     * uncoupled; target = the surviving bottom layer. */
-    GString *kv = nde_kv_start();
-    nde_kv_add_int(kv, "top_item", top_item_id);
-    nde_kv_add_str(kv, "top_name", top_name_copy);
-    nde_capture_structural("layer.merge_down", NDE_SCOPE_DOCUMENT,
-                           bottom_item_id, nde_kv_end(kv), _("Merge down"));
+    /* NDE (sketch §13.2, design note §3): merge purges per-layer undo (records
+     * are KEPT — provenance).  No undo entry survives, so the record is
+     * uncoupled; target = the surviving bottom layer, which is also the "base"
+     * input.  With the pins and the state gathered above the record is a
+     * replayable composite node rather than a wall: amending a step on either
+     * input re-runs this merge. */
+    nde_capture_structural_pinned("layer.merge_down", NDE_SCOPE_DOCUMENT,
+                                  bottom_item_id, nde_params, _("Merge down"),
+                                  nde_pins, G_N_ELEMENTS(nde_pins));
 
     g_free(top_name_copy);
     return 0;

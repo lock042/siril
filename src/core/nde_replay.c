@@ -37,6 +37,7 @@
 #include "core/nde_checkpoint.h"
 #include "core/masks.h"
 #include "core/nde_compositing.h"
+#include "core/nde_composite.h"
 #include "core/nde_snapstore.h"
 #include "core/nde_replay.h"
 #include "io/image_format_fits.h"
@@ -294,6 +295,11 @@ static gboolean record_names_a_file(const nde_record *rec) {
 static gchar *member_invalid_reason(const nde_record *rec) {
 	if (rec->tier == NDE_TIER_C)
 		return tier_c_invalid_reason(rec);
+	/* A composite node has no op descriptor: its "deserializer" is
+	 * nde_composite_params_decode, and chain membership already required it to
+	 * succeed (nde_composite_record_replayable). */
+	if (nde_composite_is_op(rec->op_id))
+		return NULL;
 	if (rec->tier != NDE_TIER_A)
 		return g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) is opaque — not replayable"),
 		                       rec->record_id, rec->op_id ? rec->op_id : "?");
@@ -406,8 +412,19 @@ static nde_chain *chain_build_excluding(gint item_id, gint64 exclude_record_id) 
 			                      !g_strcmp0(rec->op_id, "layer.remove") ||
 			                      !g_strcmp0(rec->op_id, "layer.reorder");
 			if (destructive && rec->target_item_id == item_id) {
-				/* The item's pixels were destructively replaced by a
-				 * composite of other layers — nothing to replay from. */
+				if (nde_composite_record_replayable(rec)) {
+					/* A composite node (graph step 7): its inputs are
+					 * pinned and its per-input state recorded, so the
+					 * merge re-runs like any other member and the steps
+					 * before it stay editable. */
+					member = TRUE;
+					chain->has_composite = TRUE;
+					break;
+				}
+				/* Recorded before step 7, or with an input this build
+				 * cannot rebuild (a masked overlay): the item's pixels
+				 * were replaced by a composite and nothing here can
+				 * reproduce it. */
 				add_reason(chain, _("record %" G_GINT64_FORMAT " (%s) replaced this layer's pixels with a composite — not replayable"),
 				           rec->record_id, rec->op_id);
 				chain->tail_start = chain->records->len;
@@ -530,6 +547,53 @@ static void commit_layer_offset(gint item_id, gint pos_x, gint pos_y) {
 	gui_iface.flis_invalidate_composite();
 }
 
+static fits *resolve_item_state(gint item_id, gint64 upto_record_id, gchar **err);
+
+/* Run one composite member (graph step 7, nde_composite.h).
+ *
+ * @base is the accumulated replay state — the "base" input resolved for free,
+ * which is why only the OVERLAY pin is looked up here.  Resolving the base pin
+ * through the chain machinery would recurse: the base input IS this chain's
+ * item, and its chain contains this very record.
+ *
+ * Returns a new fits; @base is left alone on both paths and stays the caller's
+ * to free.  On success the layer's position becomes the canvas origin, because
+ * the composite is canvas-sized and canvas-aligned — the same reset the live
+ * merge performs.
+ */
+static fits *composite_apply(fits *base, const nde_record *rec,
+                             gint *pos_x, gint *pos_y, gchar **err) {
+	nde_composite_input bs = { 0 }, ov = { 0 };
+	if (!nde_composite_params_decode(rec->params, &bs, &ov)) {
+		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT ": the composite's inputs were not recorded"),
+		                       rec->record_id);
+		return NULL;
+	}
+	const nde_input_pin *pin = nde_record_input(rec, NDE_COMPOSITE_ROLE_OVERLAY);
+	fits *overlay = NULL;
+	if (!pin)
+		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT ": the merged-in layer is not recorded as an input"),
+		                       rec->record_id);
+	else
+		overlay = resolve_item_state(pin->src_item_id, pin->src_record_id, err);
+	if (!overlay) {
+		nde_composite_input_clear(&bs);
+		nde_composite_input_clear(&ov);
+		return NULL;
+	}
+	fits *out = nde_composite_render(base, &bs,
+	                                 pos_x ? *pos_x : bs.position_x,
+	                                 pos_y ? *pos_y : bs.position_y,
+	                                 overlay, &ov, err);
+	clearfits(overlay);
+	free(overlay);
+	nde_composite_input_clear(&bs);
+	nde_composite_input_clear(&ov);
+	if (out && pos_x && pos_y)
+		*pos_x = *pos_y = 0;
+	return out;
+}
+
 /* Apply members [from..upto) to @scratch (consumed on failure).  Returns
  * @scratch on success, NULL + @err on failure.
  *
@@ -554,6 +618,16 @@ static fits *replay_apply_records(fits *scratch, const nde_chain *chain,
 			 * change between chain build and execution. */
 			if (tier_c_rerun(scratch, rec, err))
 				goto fail;
+			nde_snapstore_deposit(scratch, chain->item_id, rec->record_id);
+			continue;
+		}
+		if (nde_composite_is_op(rec->op_id)) {
+			fits *merged = composite_apply(scratch, rec, pos_x, pos_y, err);
+			if (!merged)
+				goto fail;   /* scratch untouched — the fail path frees it */
+			clearfits(scratch);
+			free(scratch);
+			scratch = merged;
 			nde_snapstore_deposit(scratch, chain->item_id, rec->record_id);
 			continue;
 		}
@@ -965,6 +1039,72 @@ static gboolean recompute_item(gint item_id, gchar **err) {
 	return TRUE;
 }
 
+/* TRUE when @item_id has no layer in the document but IS still an input to a
+ * composite — a RETAINED INPUT (design note §5.1).  Its records are live and
+ * editable; what an edit to them recomputes is not its own pixels, which have
+ * nowhere to go, but every composite downstream of it. */
+static gboolean item_is_retained_input(gint item_id) {
+	if (item_id < 0 || flis_layer_get_by_id(item_id))
+		return FALSE;
+	GPtrArray *live = nde_history_snapshot(NULL);
+	gboolean found = FALSE;
+	for (guint i = 0; !found && live && i < live->len; i++) {
+		const nde_record *rec = g_ptr_array_index(live, i);
+		if (!nde_composite_record_replayable(rec))
+			continue;
+		const nde_input_pin *pin = nde_record_input(rec, NDE_COMPOSITE_ROLE_OVERLAY);
+		found = pin && pin->src_item_id == item_id;
+	}
+	if (live)
+		g_ptr_array_unref(live);
+	return found;
+}
+
+/* Propagate a change to @item_id across composite edges: recompute every item
+ * whose chain composites it in.  Unlike the mask cascade there is no stored
+ * copy to refresh first — a composite resolves its inputs by replay, so the
+ * consumer's own recompute picks the new state up (nde_composite.h).  A
+ * consumer that cannot be recomputed is named rather than left silently
+ * stale. */
+static void cascade_composite_consumers(gint item_id) {
+	GHashTable *items = g_hash_table_new(g_direct_hash, g_direct_equal);
+	GPtrArray *live = nde_history_snapshot(NULL);
+	for (guint i = 0; live && i < live->len; i++) {
+		const nde_record *rec = g_ptr_array_index(live, i);
+		if (!nde_composite_record_replayable(rec))
+			continue;
+		const nde_input_pin *pin = nde_record_input(rec, NDE_COMPOSITE_ROLE_OVERLAY);
+		if (pin && pin->src_item_id == item_id)
+			g_hash_table_add(items, GINT_TO_POINTER(rec->target_item_id));
+	}
+	if (live)
+		g_ptr_array_unref(live);
+
+	guint redone = 0;
+	GHashTableIter it;
+	gpointer k, v;
+	g_hash_table_iter_init(&it, items);
+	while (g_hash_table_iter_next(&it, &k, &v)) {
+		gint consumer = GPOINTER_TO_INT(k);
+		gchar *cerr = NULL;
+		/* The composite reads this item by replay, so anything cached for the
+		 * consumer at or after the merge describes the OLD input. */
+		nde_snapstore_invalidate_from(consumer, 0);
+		if (recompute_item(consumer, &cerr)) {
+			redone++;
+		} else {
+			siril_log_warning(_("The layer this was merged into could not be recomputed, so it still shows the old result: %s\n"),
+			                  cerr ? cerr : "?");
+		}
+		g_free(cerr);
+	}
+	g_hash_table_destroy(items);
+	if (redone) {
+		gui_iface.flis_invalidate_composite();
+		siril_log_info(_("Change applied to %u merged image(s)\n"), redone);
+	}
+}
+
 /* Re-derive @mask_item's mask as it stood after chain member @upto-1 and
  * replace the stored copy its consumers read (nde_replay.h's pin store). */
 static gboolean refresh_pinned_mask(const nde_chain *mask_chain, guint upto,
@@ -1357,9 +1497,32 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 	/* Resolve the target fits.  gfit for plain images; the layer's fit for
 	 * FLIS (identical pointer when it is the active layer). */
 	fits *target = gfit;
+	gboolean retained = FALSE;
 	if (item_id >= 0) {
 		flis_layer_t *lay = flis_layer_get_by_id(item_id);
 		target = lay ? lay->fit : NULL;
+		retained = !lay && item_is_retained_input(item_id);
+	}
+	if (retained) {
+		/* A retained input has no layer to swap into: the replay above was
+		 * run to prove the edited chain still applies, and its pixels are an
+		 * intermediate value that only the composite consumes.  Commit the
+		 * log, then recompute the consumers — which resolve this item by
+		 * replaying it again, now from the amended log. */
+		clearfits(result);
+		free(result);
+		gboolean log_ok = new_params ? nde_history_amend(record_id, new_params, err)
+		                             : nde_history_delete(record_id, err);
+		if (!log_ok) {
+			gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
+			return FALSE;
+		}
+		cascade_composite_consumers(item_id);
+		undo_flush();
+		gui_iface.invalidate_histogram();
+		notify_gfit_data_modified();
+		gui_iface.set_progress(PROGRESS_DONE, _("Edit history updated"));
+		return TRUE;
 	}
 	if (!target) {
 		*err = g_strdup(_("the record's target layer no longer exists"));

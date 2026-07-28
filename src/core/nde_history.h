@@ -344,6 +344,23 @@ gint64 nde_capture_structural(const char *op_id, gint scope,
                               gint target_item_id, gchar *params,
                               const char *summary);
 
+/** One input pin, as a capture site states it. */
+typedef struct {
+	const char *role;
+	gint        src_item_id;
+	gint64      src_record_id;   /* 0 = that item's baseline */
+} nde_pin_spec;
+
+/**
+ * nde_capture_structural with input pins — for the composite node, whose
+ * inputs are the whole point (nde_composite.h).  @pins is copied; n_pins may
+ * be 0, in which case this is exactly nde_capture_structural.
+ */
+gint64 nde_capture_structural_pinned(const char *op_id, gint scope,
+                                     gint target_item_id, gchar *params,
+                                     const char *summary,
+                                     const nde_pin_spec *pins, guint n_pins);
+
 /**
  * Build+append an opaque (Tier B, params == NULL) record and return the new
  * record id.  For mutations recorded for provenance only, with no replayable

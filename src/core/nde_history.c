@@ -926,6 +926,14 @@ static gint64 capture_finish(nde_record *rec, const char *summary,
 gint64 nde_capture_structural(const char *op_id, gint scope,
                               gint target_item_id, gchar *params,
                               const char *summary) {
+	return nde_capture_structural_pinned(op_id, scope, target_item_id, params,
+	                                     summary, NULL, 0);
+}
+
+gint64 nde_capture_structural_pinned(const char *op_id, gint scope,
+                                     gint target_item_id, gchar *params,
+                                     const char *summary,
+                                     const nde_pin_spec *pins, guint n_pins) {
 	nde_record *rec = nde_record_new();
 	rec->op_id          = g_strdup(op_id);
 	rec->op_version     = 1;
@@ -933,8 +941,13 @@ gint64 nde_capture_structural(const char *op_id, gint scope,
 	rec->target_item_id = target_item_id;
 	rec->tier           = NDE_TIER_A;
 	rec->params         = params;   /* ownership transferred */
-	/* Structural records are not chain members — never a barrier, no
-	 * checkpoint (post == NULL). */
+	for (guint i = 0; i < n_pins; i++)
+		nde_record_add_input(rec, pins[i].role, pins[i].src_item_id,
+		                     pins[i].src_record_id);
+	/* Structural records are not barriers and take no output checkpoint
+	 * (post == NULL): an unpinned one is not a chain member at all, and a
+	 * pinned composite re-runs from its inputs rather than from a stored
+	 * copy of its result (nde_composite.h). */
 	return capture_finish(rec, summary, NULL);
 }
 

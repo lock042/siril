@@ -314,6 +314,14 @@ if criterion_dep.found()
                                 cpp_args : siril_cpp_flag)
      test('test_nde_graph', test_nde_graph_exec, suite: 'flis')
 
+     test_nde_composite_exec = executable('test_nde_composite',
+                                'test_nde_composite.c',
+                                dependencies : [siril_dep, criterion_dep],
+                                link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                c_args : siril_c_flag,
+                                cpp_args : siril_cpp_flag)
+     test('test_nde_composite', test_nde_composite_exec, suite: 'flis')
+
      test_nde_retention_exec = executable('test_nde_retention',
                                 'test_nde_retention.c',
                                 dependencies : [siril_dep, criterion_dep],
