@@ -458,19 +458,19 @@ static gpointer mask_from_color_deserialize(const gchar *blob, int version) {
 const op_descriptor op_desc_mask_from_stars = {
 	.id = "mask.from_stars", .version = 1, .mask_hook = mask_from_stars_hook,
 	.log_hook = mask_from_stars_log, .description = N_("Mask from stars"),
-	.mem_ratio = 1.0f, .flags = 0,
+	.mem_ratio = 1.0f, .flags = OP_MASK_FROM_IMAGE,
 	.serialize = mask_from_stars_serialize, .deserialize = mask_from_stars_deserialize,
 };
 const op_descriptor op_desc_mask_from_channel = {
 	.id = "mask.from_channel", .version = 1, .mask_hook = mask_from_channel_hook,
 	.log_hook = mask_from_channel_log, .description = N_("Mask from channel"),
-	.mem_ratio = 1.0f, .flags = 0,
+	.mem_ratio = 1.0f, .flags = OP_MASK_FROM_IMAGE,
 	.serialize = mask_from_channel_serialize, .deserialize = mask_from_channel_deserialize,
 };
 const op_descriptor op_desc_mask_from_luminance = {
 	.id = "mask.from_luminance", .version = 1, .mask_hook = mask_from_lum_hook,
 	.log_hook = mask_from_lum_log, .description = N_("Mask from luminance"),
-	.mem_ratio = 1.0f, .flags = 0,
+	.mem_ratio = 1.0f, .flags = OP_MASK_FROM_IMAGE,
 	.serialize = mask_from_lum_serialize, .deserialize = mask_from_lum_deserialize,
 };
 /* clear has no log_hook and no memory check */
@@ -525,7 +525,7 @@ const op_descriptor op_desc_mask_bitpix = {
 const op_descriptor op_desc_mask_from_color = {
 	.id = "mask.from_color", .version = 1, .mask_hook = mask_from_color_hook,
 	.log_hook = mask_from_color_log, .description = N_("Mask from color"),
-	.mem_ratio = 1.5f, .flags = 0,
+	.mem_ratio = 1.5f, .flags = OP_MASK_FROM_IMAGE,
 	.serialize = mask_from_color_serialize, .deserialize = mask_from_color_deserialize,
 };
 /* from_gradient has no log_hook */

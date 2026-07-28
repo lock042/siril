@@ -35,6 +35,11 @@ typedef enum {
 	OP_EXPENSIVE         = 1 << 2,  /* reserved: NDE checkpoint policy */
 	OP_REQ_RGB           = 1 << 3,  /* reserved: replay-time validation */
 	OP_REQ_MONO          = 1 << 4,  /* reserved */
+	OP_MASK_FROM_IMAGE   = 1 << 5,  /* mask op that DERIVES from the image
+	                                 * (image -> MASK), as opposed to editing
+	                                 * an existing mask.  Its NDE record pins
+	                                 * the image it read, so the replay can
+	                                 * re-derive the mask (nde_replay.h). */
 } op_descriptor_flags;
 
 typedef struct op_descriptor {

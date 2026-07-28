@@ -2286,6 +2286,14 @@ the_end:
 	 * serializer yet, so these are all opaque today: the log says what was
 	 * done to the mask, and replaying it is a separate piece of work. */
 	if (!retval && args->op) {
+		/* The image the op saw, captured BEFORE the ids below, because a
+		 * mask-creation op reads the layer's pixels to build the mask:
+		 * mask.from_channel and friends are image -> MASK nodes, and their
+		 * chain starts at that image rather than at a baseline of their own
+		 * (nde_replay.h).  Recorded as an ordinary input edge so the replay
+		 * re-derives the image instead of storing a copy of it. */
+		gint image_item = is_current_image_flis() ?
+				nde_checkpoint_active_item_id() : NDE_ITEM_IMAGE;
 		gint mask_item = NDE_ITEM_PLAIN_MASK;
 		if (routed_to_layer) {
 			mask_item = flis_layer_lmask_id(flis_layer_get_by_id(routed_to_layer));
@@ -2313,6 +2321,25 @@ the_end:
 			rec->scope      = NDE_SCOPE_LAYER;   /* the mask IS the item */
 			rec->target_item_id = mask_item;
 			rec->mask_active    = FALSE;         /* a mask op has no mask input */
+			/* Only ops that DERIVE from the image need it; an edit of an
+			 * existing mask (blur, invert, threshold) reads the mask alone,
+			 * and pinning an image it never looked at would invent a
+			 * dependency.  An op reading an external file records that file
+			 * in its own params instead (Convention 1), so it needs no pin
+			 * either. */
+			gboolean from_image = (args->op->flags & OP_MASK_FROM_IMAGE) != 0;
+			if (from_image && rec->params) {
+				/* Convention 1: an operand file in the params means the
+				 * mask came from THAT, not from the loaded image. */
+				GHashTable *kv = nde_kv_parse(rec->params);
+				const char *path = nde_kv_get_str(kv, "operand_path");
+				if (path && *path)
+					from_image = FALSE;
+				g_hash_table_unref(kv);
+			}
+			if (from_image && image_item != 0)
+				nde_record_add_input(rec, "image", image_item,
+				                     nde_history_last_record_for_item(image_item));
 			rec->timestamp  = nde_iso8601_now();
 			rec->impl       = nde_impl_string();
 			gint64 mask_rec_id = nde_history_append(rec);

@@ -2476,3 +2476,190 @@ Test(nde_replay, flis_geometry_without_a_start_position_is_a_blocker) {
 	nde_history_attach(NULL);
 	gfit = NULL;
 }
+
+/* ---------------- graph step 6a: mask chains replay ---------------- */
+
+/* Run a mask op through the real capture path, so it lands in the log the
+ * way a user's would. */
+static int apply_mask_op(const op_descriptor *op, gpointer user_heap) {
+	struct generic_mask_args *args = calloc(1, sizeof(*args));
+	args->fit = gfit;
+	args->op = op;
+	args->user = user_heap;
+	args->command = TRUE;
+	args->mask_creation = (op->flags & OP_MASK_FROM_IMAGE) != 0;
+	args->max_threads = 1;
+	gboolean prev = com.headless;
+	com.headless = TRUE;
+	int rc = GPOINTER_TO_INT(generic_mask_worker(args));
+	com.headless = prev;
+	return rc;
+}
+
+static mask_from_channel_data *from_channel(int chan) {
+	mask_from_channel_data *d = calloc(1, sizeof(*d));
+	d->channel = chan;
+	d->bitpix = 8;
+	return d;
+}
+
+static mask_blur_data *blur_mask(float radius) {
+	mask_blur_data *d = calloc(1, sizeof(*d));
+	d->radius = radius;
+	return d;
+}
+
+/* Copy the live processing mask so a later state can be compared against it. */
+static guint8 *snapshot_mask(const fits *f, size_t *n_out) {
+	cr_assert_not_null(f->mask);
+	cr_assert_not_null(f->mask->data);
+	size_t n = (size_t)f->rx * f->ry * (f->mask->bitpix / 8);
+	guint8 *copy = g_malloc(n);
+	memcpy(copy, f->mask->data, n);
+	*n_out = n;
+	return copy;
+}
+
+static void assert_mask_differs(const fits *f, const guint8 *before, size_t n,
+                                const char *ctx) {
+	cr_assert_not_null(f->mask);
+	cr_assert_eq((size_t)f->rx * f->ry * (f->mask->bitpix / 8), n,
+	             "%s: mask changed size", ctx);
+	cr_assert_neq(memcmp(f->mask->data, before, n), 0,
+	              "%s: the mask was not rebuilt", ctx);
+}
+
+/* A mask's chain is recognised by its ops, and it starts at the image its
+ * first member read rather than at a baseline of its own. */
+Test(nde_replay, mask_chain_is_recognised_and_replayable) {
+	com.pref.nde_cache_mb = 256;
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	cr_assert_eq(apply_mask_op(&op_desc_mask_from_channel, from_channel(0)), 0);
+	cr_assert_eq(apply_mask_op(&op_desc_mask_blur, blur_mask(1.f)), 0);
+
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	cr_assert_eq(snap->len, 2);
+	const nde_record *create = g_ptr_array_index(snap, 0);
+	cr_assert_eq(create->target_item_id, NDE_ITEM_PLAIN_MASK);
+	const nde_input_pin *img = nde_record_input(create, "image");
+	cr_assert_not_null(img, "a mask built from the image must say so");
+	cr_assert_eq(img->src_item_id, NDE_ITEM_IMAGE);
+	cr_assert_null(nde_record_input(g_ptr_array_index(snap, 1), "image"),
+	               "editing a mask reads the mask, not the image");
+	g_ptr_array_unref(snap);
+
+	nde_chain *chain = nde_chain_build(NDE_ITEM_PLAIN_MASK);
+	cr_assert(chain->is_mask);
+	cr_assert_eq(chain->records->len, 2);
+	cr_assert(chain->replayable,
+	          "a mask chain needs no baseline of its own: %s",
+	          chain->reasons->len ? (char *)g_ptr_array_index(chain->reasons, 0) : "none");
+	nde_chain_free(chain);
+	golden_teardown(NULL, f);
+}
+
+/* The maintainer's 5.2 example: build a mask, then go back and change the
+ * parameters of the operation that built it. */
+Test(nde_replay, amending_a_mask_op_rebuilds_the_mask) {
+	com.pref.nde_cache_mb = 256;
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	cr_assert_eq(apply_mask_op(&op_desc_mask_from_channel, from_channel(0)), 0);
+	cr_assert_eq(apply_mask_op(&op_desc_mask_blur, blur_mask(1.f)), 0);
+	size_t n = 0;
+	guint8 *before = snapshot_mask(gfit, &n);
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_amend_execute(2, "radius=6", &err), "amend failed: %s", err ? err : "?");
+	unreserve_thread();
+	assert_mask_differs(gfit, before, n, "amend-blur");
+
+	/* and the log carries the new value */
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	cr_assert_str_eq(((nde_record *)g_ptr_array_index(snap, 1))->params, "radius=6");
+	g_ptr_array_unref(snap);
+	g_free(before);
+	golden_teardown(NULL, f);
+}
+
+/* Amending the CREATION op re-derives from the image, which is the edge the
+ * pin exists for. */
+Test(nde_replay, amending_the_creating_op_re_derives_from_the_image) {
+	com.pref.nde_cache_mb = 256;
+	fits *f = flis_test_make_rgb_fits(16, 12, 0.2f, 0.5f, 0.8f);
+	gfit = f;
+
+	cr_assert_eq(apply_mask_op(&op_desc_mask_from_channel, from_channel(0)), 0);
+	size_t n = 0;
+	guint8 *before = snapshot_mask(gfit, &n);
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	/* a different channel of the same image gives a different mask */
+	cr_assert(nde_amend_execute(1, "channel=2;autostretch=0;invert=0;bitpix=8", &err),
+	          "amend failed: %s", err ? err : "?");
+	unreserve_thread();
+	assert_mask_differs(gfit, before, n, "amend-from_channel");
+	g_free(before);
+	golden_teardown(NULL, f);
+}
+
+/* Deleting a step from a mask's chain rebuilds it without that step. */
+Test(nde_replay, deleting_a_mask_step_rebuilds_the_mask) {
+	com.pref.nde_cache_mb = 256;
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	cr_assert_eq(apply_mask_op(&op_desc_mask_from_channel, from_channel(0)), 0);
+	size_t n = 0;
+	guint8 *unblurred = snapshot_mask(gfit, &n);
+	cr_assert_eq(apply_mask_op(&op_desc_mask_blur, blur_mask(3.f)), 0);
+	size_t n2 = 0;
+	guint8 *blurred = snapshot_mask(gfit, &n2);
+	cr_assert_eq(n, n2);
+	cr_assert_neq(memcmp(unblurred, blurred, n), 0, "fixture: the blur did something");
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_delete_execute(2, &err), "delete failed: %s", err ? err : "?");
+	unreserve_thread();
+	cr_assert_eq(memcmp(gfit->mask->data, unblurred, n), 0,
+	             "removing the blur must give back the unblurred mask exactly");
+	g_free(unblurred);
+	g_free(blurred);
+	golden_teardown(NULL, f);
+}
+
+/* A mask whose origin is not recorded cannot be rebuilt, and says so rather
+ * than inventing a source. */
+Test(nde_replay, a_mask_with_no_recorded_origin_is_a_blocker) {
+	com.pref.nde_cache_mb = 256;
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	/* A mask EDIT with no creation step before it: nothing says where the
+	 * mask came from.  (Reached in practice by a file whose creation record
+	 * was deleted, or one written before mask provenance existed.) */
+	gfit->mask = calloc(1, sizeof(mask_t));
+	gfit->mask->bitpix = 8;
+	gfit->mask->data = calloc(1, (size_t)16 * 12);
+	gfit->mask_active = TRUE;
+	cr_assert_eq(apply_mask_op(&op_desc_mask_blur, blur_mask(1.f)), 0);
+
+	nde_chain *chain = nde_chain_build(NDE_ITEM_PLAIN_MASK);
+	cr_assert(chain->is_mask);
+	cr_assert(!chain->replayable);
+	cr_assert(chain->reasons->len > 0);
+	cr_assert(strstr(g_ptr_array_index(chain->reasons, 0), "built from") != NULL,
+	          "and say why: %s", (char *)g_ptr_array_index(chain->reasons, 0));
+	nde_chain_free(chain);
+	golden_teardown(NULL, f);
+}

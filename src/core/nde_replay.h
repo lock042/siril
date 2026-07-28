@@ -59,6 +59,11 @@ typedef struct {
 	 * that cannot be replayed; with an output checkpoint it is a restart
 	 * point instead of a hard blocker.  records[tail_start..] is the
 	 * editable tail (everything strictly after the last freeze cause). */
+	gboolean   is_mask;         /* the item is a MASK: its members are mask ops
+	                             * and its value is a mask, so it replays
+	                             * through the mask hooks and starts from the
+	                             * image its first member read, not from a
+	                             * baseline of its own */
 	gboolean   has_geometry;    /* a member moves the layer on the canvas, so
 	                             * the replay must carry the layer's offset and
 	                             * the restart point must supply one */

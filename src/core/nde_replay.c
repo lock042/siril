@@ -279,6 +279,18 @@ static void mask_pin_clear(fits *scratch) {
 	scratch->mask_active = FALSE;
 }
 
+/* TRUE when the record's params pin an external image file (Convention 1) —
+ * a mask built from one needs no image input, because the hook loads it. */
+static gboolean record_names_a_file(const nde_record *rec) {
+	if (!rec->params)
+		return FALSE;
+	GHashTable *kv = nde_kv_parse(rec->params);
+	const char *path = nde_kv_get_str(kv, "operand_path");
+	gboolean has = path && *path;
+	g_hash_table_unref(kv);
+	return has;
+}
+
 static gchar *member_invalid_reason(const nde_record *rec) {
 	if (rec->tier == NDE_TIER_C)
 		return tier_c_invalid_reason(rec);
@@ -444,10 +456,23 @@ static nde_chain *chain_build_excluding(gint item_id, gint64 exclude_record_id) 
 		}
 	}
 
-	gboolean baseline_missing = chain->records->len &&
-	                            !nde_checkpoint_baseline_exists(item_id);
-	if (baseline_missing)
+	/* A MASK item's chain is recognised by its ops, not by its id: a mask op
+	 * is one with a mask_hook.  It has no baseline of its own — a mask is
+	 * DERIVED, and its chain starts at the image its first member read
+	 * (that record's "image" pin) or at the file that member names. */
+	if (chain->records->len) {
+		const nde_record *first = g_ptr_array_index(chain->records, 0);
+		const op_descriptor *fop = op_descriptor_by_id(first->op_id);
+		chain->is_mask = fop && fop->mask_hook;
+	}
+	if (chain->is_mask) {
+		const nde_record *first = g_ptr_array_index(chain->records, 0);
+		if (!nde_record_input(first, "image") && !record_names_a_file(first))
+			add_reason(chain, _("record %" G_GINT64_FORMAT " (%s) does not say what this mask was built from — not replayable"),
+			           first->record_id, first->op_id ? first->op_id : "?");
+	} else if (chain->records->len && !nde_checkpoint_baseline_exists(item_id)) {
 		add_reason(chain, _("no baseline checkpoint — the file predates baselines, or the history began before this build"));
+	}
 
 	/* Full-chain verdict: no freeze cause anywhere and the baseline exists. */
 	chain->replayable = (chain->reasons->len == 0) && chain->tail_start == 0;
@@ -593,6 +618,141 @@ fail:
 	return NULL;
 }
 
+/* The state of @item_id just after @upto_record_id (0 = its whole chain).
+ * A LIVE edge: the value is re-derived by replaying the item rather than read
+ * from a stored copy, which is what lets an amend upstream of it take effect.
+ * Caller owns the result. */
+static fits *edit_target_fits(gint item_id);
+
+static fits *resolve_item_state(gint item_id, gint64 upto_record_id, gchar **err) {
+	nde_chain *c = nde_chain_build(item_id);
+	guint upto = c->records->len;
+	if (upto_record_id) {
+		upto = 0;
+		for (guint i = 0; i < c->records->len; i++) {
+			const nde_record *r = g_ptr_array_index(c->records, i);
+			if (r->record_id == upto_record_id) {
+				upto = i + 1;
+				break;
+			}
+		}
+		if (!upto) {
+			*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " is no longer part of item %d's history"),
+			                       upto_record_id, item_id);
+			nde_chain_free(c);
+			return NULL;
+		}
+	}
+	if (!c->replayable) {
+		GString *m = g_string_new(NULL);
+		g_string_append_printf(m, _("the source of this input cannot be rebuilt: "));
+		for (guint i = 0; i < c->reasons->len; i++) {
+			if (i)
+				g_string_append(m, "; ");
+			g_string_append(m, g_ptr_array_index(c->reasons, i));
+		}
+		*err = g_string_free(m, FALSE);
+		nde_chain_free(c);
+		return NULL;
+	}
+	fits *start = nde_checkpoint_baseline_get(item_id);
+	if (!start && c->records->len == 0) {
+		/* Nothing was ever recorded against this item, so no baseline was
+		 * ever taken — and none is needed: with no operations to undo, its
+		 * current pixels ARE its original state.  This is the ordinary case
+		 * for a mask built as the very first thing done to an image. */
+		fits *live = edit_target_fits(item_id);
+		if (live) {
+			start = calloc(1, sizeof(fits));
+			if (start) {
+				g_rw_lock_reader_lock(&live->rwlock);
+				int rc = copyfits(live, start, CP_DEEPCOPY | CP_ALLOC, -1);
+				g_rw_lock_reader_unlock(&live->rwlock);
+				if (rc) {
+					free(start);
+					start = NULL;
+				}
+			}
+		}
+	}
+	if (!start) {
+		*err = g_strdup(_("failed to load the baseline checkpoint"));
+		nde_chain_free(c);
+		return NULL;
+	}
+	fits *out = replay_apply_records(start, c, 0, upto, NULL, NULL, err);
+	nde_chain_free(c);
+	return out;
+}
+
+/* Replay members [0..upto) of a MASK chain.  The result is a fits carrying
+ * the rebuilt mask in ->mask; its pixels are whatever the chain started from
+ * and are not themselves meaningful.  Mask ops go straight to their hook
+ * rather than through generic_mask_worker: everything the worker adds —
+ * undo entries, lmask routing, capture, idles — is precisely what a replay
+ * must not do. */
+static fits *mask_chain_replay(const nde_chain *chain, guint upto, gchar **err) {
+	g_return_val_if_fail(chain->records->len > 0, NULL);
+	const nde_record *first = g_ptr_array_index(chain->records, 0);
+	const nde_input_pin *img = nde_record_input(first, "image");
+	fits *scratch = NULL;
+	if (img) {
+		scratch = resolve_item_state(img->src_item_id, img->src_record_id, err);
+		if (!scratch)
+			return NULL;
+	} else {
+		/* Built from a file the hook loads itself; it still needs somewhere
+		 * to put the mask, and the file decides the size. */
+		scratch = calloc(1, sizeof(fits));
+		if (!scratch) {
+			*err = g_strdup(_("out of memory"));
+			return NULL;
+		}
+	}
+	/* The chain rebuilds the mask from nothing: drop anything the starting
+	 * image happened to carry. */
+	if (scratch->mask) {
+		free_mask(scratch->mask);
+		scratch->mask = NULL;
+	}
+	scratch->mask_active = FALSE;
+
+	for (guint i = 0; i < upto; i++) {
+		const nde_record *rec = g_ptr_array_index(chain->records, i);
+		if (!processing_should_continue()) {
+			*err = g_strdup(_("cancelled"));
+			goto fail;
+		}
+		const op_descriptor *op = op_descriptor_by_id(rec->op_id);
+		gpointer user = op ? op->deserialize(rec->params, rec->op_version) : NULL;
+		if (!user) {
+			*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s): parameters failed to parse"),
+			                       rec->record_id, rec->op_id ? rec->op_id : "?");
+			goto fail;
+		}
+		struct generic_mask_args margs = { 0 };
+		margs.fit = scratch;
+		margs.op = op;
+		margs.user = user;
+		margs.command = TRUE;      /* no idles, no GUI completion */
+		margs.max_threads = com.max_thread;
+		op_descriptor_fill_mask_args(&margs);
+		int rc = margs.mask_hook(&margs);
+		destroy_user(user);
+		if (rc) {
+			*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) failed to apply"),
+			                       rec->record_id, rec->op_id ? rec->op_id : "?");
+			goto fail;
+		}
+	}
+	return scratch;
+
+fail:
+	clearfits(scratch);
+	free(scratch);
+	return NULL;
+}
+
 fits *nde_chain_replay(const nde_chain *chain, gchar **err) {
 	g_return_val_if_fail(chain != NULL, NULL);
 	g_return_val_if_fail(err != NULL, NULL);
@@ -601,6 +761,8 @@ fits *nde_chain_replay(const nde_chain *chain, gchar **err) {
 		*err = g_strdup(_("chain is not replayable"));
 		return NULL;
 	}
+	if (chain->is_mask)
+		return mask_chain_replay(chain, chain->records->len, err);
 	fits *scratch = nde_checkpoint_baseline_get(chain->item_id);
 	if (!scratch) {
 		*err = g_strdup(_("failed to load the baseline checkpoint"));
@@ -687,6 +849,58 @@ static fits *resolve_edit_restart(const nde_chain *chain, guint e,
 	}
 	*start_idx = chain->tail_start;
 	return start;
+}
+
+/* Install a rebuilt mask into whatever slot the mask item names.  Takes the
+ * mask out of @built (which the caller frees).  FALSE + @err when the slot no
+ * longer exists — a mask can be cleared or routed away between the edit
+ * starting and finishing. */
+static gboolean commit_mask_value(gint item_id, fits *built, gchar **err) {
+	if (!built->mask || !built->mask->data) {
+		*err = g_strdup(_("the rebuilt mask is empty"));
+		return FALSE;
+	}
+	flis_layer_t *owner = NULL;
+	flis_item_kind kind = (item_id == NDE_ITEM_PLAIN_MASK) ?
+			FLIS_ITEM_MASK : flis_item_lookup(item_id, &owner);
+
+	if (item_id == NDE_ITEM_PLAIN_MASK || kind == FLIS_ITEM_MASK) {
+		fits *host = owner ? owner->fit : gfit;
+		if (!host) {
+			*err = g_strdup(_("the mask's image no longer exists"));
+			return FALSE;
+		}
+		if (host->mask)
+			free_mask(host->mask);
+		host->mask = built->mask;    /* moved */
+		built->mask = NULL;
+		host->mask_active = TRUE;
+		return TRUE;
+	}
+	if (kind == FLIS_ITEM_LMASK && owner) {
+		/* A layer mask is the same pixels in a different wrapper. */
+		layermask_t *lm = calloc(1, sizeof(layermask_t));
+		if (!lm) {
+			*err = g_strdup(_("out of memory"));
+			return FALSE;
+		}
+		lm->w      = built->rx;
+		lm->h      = built->ry;
+		lm->bitpix = built->mask->bitpix;
+		lm->data   = built->mask->data;
+		built->mask->data = NULL;
+		free_mask(built->mask);
+		built->mask = NULL;
+		if (flis_layer_set_lmask(owner, lm)) {
+			layermask_free(lm);
+			*err = g_strdup(_("the rebuilt mask does not fit its layer"));
+			return FALSE;
+		}
+		gui_iface.flis_invalidate_composite();
+		return TRUE;
+	}
+	*err = g_strdup(_("the edited mask no longer exists"));
+	return FALSE;
 }
 
 /* Shared core of amend (new_params != NULL) and delete (new_params == NULL).
@@ -894,6 +1108,41 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 		destroy_user(trial);
 		g_free(target_rec->params);
 		target_rec->params = g_strdup(new_params);
+	}
+
+	/* A mask item's value is a mask, not an image: it is rebuilt from the
+	 * image its first member read rather than from a baseline, and it lands
+	 * in a mask slot rather than in a fits.  Everything before this point —
+	 * policy, freeze position, the trial chain, the parameter substitution —
+	 * is the same for both. */
+	if (chain->is_mask) {
+		gui_iface.set_progress(0.f, _("Rebuilding the mask..."));
+		fits *built = mask_chain_replay(chain, chain->records->len, err);
+		nde_chain_free(chain);
+		if (!built) {
+			gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
+			return FALSE;
+		}
+		gboolean ok = commit_mask_value(item_id, built, err);
+		clearfits(built);
+		free(built);
+		if (!ok) {
+			gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
+			return FALSE;
+		}
+		gboolean log_ok = new_params ? nde_history_amend(record_id, new_params, err)
+		                             : nde_history_delete(record_id, err);
+		if (!log_ok) {
+			gui_iface.set_progress(PROGRESS_RESET, _("The mask was rebuilt but the history could not be updated"));
+			return FALSE;
+		}
+		undo_flush();
+		gui_iface.invalidate_histogram();
+		if (is_current_image_flis())
+			gui_iface.flis_invalidate_composite();
+		notify_gfit_data_modified();
+		gui_iface.set_progress(PROGRESS_DONE, _("Edit history updated"));
+		return TRUE;
 	}
 
 	gui_iface.set_progress(0.f, _("Recomputing edit history..."));
