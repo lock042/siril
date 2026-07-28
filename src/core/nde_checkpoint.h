@@ -119,6 +119,10 @@ gboolean nde_checkpoint_output_exists(gint64 record_id);
 /** Drop one output checkpoint (its record was deleted or truncated). */
 void nde_checkpoint_output_drop(gint64 record_id);
 
+/* Plain → FLIS promote: move the baseline and every output checkpoint
+ * tagged for @from_item onto @to_item (see flis_promote_from_gfit). */
+void nde_checkpoint_rebind_item(gint from_item, gint to_item);
+
 /**
  * Active FLIS layer item_id for baseline targeting, or −1 for a plain image.
  * The single idiom shared by every capture site (is_current_image_flis() ?

@@ -65,6 +65,7 @@
 #include "core/masks.h"
 #include "core/nde_history.h"
 #include "core/nde_checkpoint.h"
+#include "core/nde_snapstore.h"
 #include "core/undo.h"
 #include "algos/statistics.h"
 #include "core/gui_iface.h"
@@ -3379,6 +3380,15 @@ int flis_promote_from_gfit(const gchar *name) {
     com.uniq->canvas_bg_r = 0.0;
     com.uniq->canvas_bg_g = 0.0;
     com.uniq->canvas_bg_b = 0.0;
+
+    /* The whole plain-image history now describes the base layer: rebind
+     * records, baselines and barrier checkpoints from the plain-image item
+     * (-1) onto the new layer so the chain stays ONE editable lineage
+     * across the promote instead of splitting at the save point.  Cached
+     * pool states for the old item are dropped (cache only). */
+    nde_history_rebind_item(-1, base->item_id);
+    nde_checkpoint_rebind_item(-1, base->item_id);
+    nde_snapstore_invalidate_from(-1, 0);
 
     /* com.uniq->filename and fileexist are already correct from
      * create_uniq_from_gfit().  Mark the composite dirty. */

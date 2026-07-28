@@ -167,6 +167,26 @@ void nde_history_on_undo(gint64 record_id) {
 	nde_history_notify_panel();
 }
 
+/* Rebind every record targeting @from_item to @to_item.  Used by the plain
+ * image → FLIS promote: the whole flat-image history (target -1) now
+ * describes the new single base layer, so the chain stays one editable
+ * lineage across the promote instead of splitting at the save point. */
+void nde_history_rebind_item(gint from_item, gint to_item) {
+	if (!com.uniq)
+		return;
+	g_mutex_lock(&nde_mutex);
+	nde_history *h = com.uniq->nde_history;
+	if (h) {
+		for (guint i = 0; i < h->records->len; i++) {
+			nde_record *rec = g_ptr_array_index(h->records, i);
+			if (rec->target_item_id == from_item)
+				rec->target_item_id = to_item;
+		}
+	}
+	g_mutex_unlock(&nde_mutex);
+	nde_history_notify_panel();
+}
+
 void nde_history_on_redo(gint64 record_id) {
 	if (!record_id || !com.uniq)
 		return;

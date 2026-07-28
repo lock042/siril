@@ -95,6 +95,43 @@ void nde_checkpoint_baseline_ensure(const fits *pre, gint item_id) {
 	g_mutex_unlock(&cp_mutex);
 }
 
+/* Rebind every checkpoint tagged for @from_item to @to_item — the plain →
+ * FLIS promote moves the whole flat-image history onto the new base layer.
+ * Retagging takes the snapstore's own leaf lock, so gather the snaps under
+ * cp_mutex and retag outside it (same discipline as everywhere else in this
+ * file).  Promote runs synchronously on the main thread with no jobs
+ * active, so the gathered pointers cannot be dropped concurrently. */
+void nde_checkpoint_rebind_item(gint from_item, gint to_item) {
+	GPtrArray *retag = g_ptr_array_new();
+	g_mutex_lock(&cp_mutex);
+	if (cp_table) {
+		nde_snap *s = g_hash_table_lookup(cp_table, GINT_TO_POINTER(from_item));
+		if (s && !g_hash_table_contains(cp_table, GINT_TO_POINTER(to_item))) {
+			g_hash_table_steal(cp_table, GINT_TO_POINTER(from_item));
+			g_hash_table_insert(cp_table, GINT_TO_POINTER(to_item), s);
+			g_ptr_array_add(retag, s);
+		}
+	}
+	if (out_table) {
+		GHashTableIter it;
+		gpointer k, v;
+		g_hash_table_iter_init(&it, out_table);
+		while (g_hash_table_iter_next(&it, &k, &v))
+			g_ptr_array_add(retag, v);
+	}
+	g_mutex_unlock(&cp_mutex);
+
+	for (guint i = 0; i < retag->len; i++) {
+		nde_snap *s = g_ptr_array_index(retag, i);
+		gint item = 0;
+		gint64 rid = 0;
+		gboolean post = FALSE;
+		if (nde_snap_tag_get(s, &item, &rid, &post) && item == from_item)
+			nde_snap_set_tag(s, to_item, rid, post);
+	}
+	g_ptr_array_unref(retag);
+}
+
 void nde_checkpoint_baseline_adopt(const fits *src, gint item_id) {
 	if (!src)
 		return;

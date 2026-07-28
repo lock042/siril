@@ -190,6 +190,41 @@ Test(nde_tier_c, stale_without_checkpoint_blocks) {
 	g_free(path);
 }
 
+/* ---- plain → FLIS promote rebind: history + checkpoints move item ------- */
+
+Test(nde_tier_c, promote_rebind_moves_history_and_checkpoints) {
+	nde_checkpoint_baseline_ensure(gfit, -1);
+	nde_record *rec = nde_record_new();
+	rec->op_id = g_strdup("geometry.mirrorx");
+	rec->op_version = 1;
+	rec->tier = NDE_TIER_A;
+	rec->params = g_strdup("x_axis=1");
+	nde_history_append(rec);   /* plain-image target (-1) by default */
+
+	/* What flis_promote_from_gfit does for the new base layer. */
+	nde_history_rebind_item(-1, 7);
+	nde_checkpoint_rebind_item(-1, 7);
+
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	cr_assert_not_null(snap);
+	cr_assert_eq(snap->len, 1);
+	cr_assert_eq(((nde_record *)g_ptr_array_index(snap, 0))->target_item_id, 7);
+	g_ptr_array_unref(snap);
+	cr_assert(nde_checkpoint_baseline_exists(7),
+	          "the baseline must follow the records to the new item");
+	cr_assert(!nde_checkpoint_baseline_exists(-1));
+
+	nde_chain *chain = nde_chain_build(7);
+	cr_assert_eq(chain->records->len, 1,
+	             "the rebound record must be a member of the new item's chain");
+	cr_assert(chain->replayable,
+	          "the rebound chain must stay replayable (reason: %s)",
+	          chain->reasons->len ? (char *)g_ptr_array_index(chain->reasons, 0) : "none");
+	nde_chain_free(chain);
+
+	nde_history_attach(NULL);
+}
+
 /* ---- valid Tier-C between Tier-A members: whole chain replayable -------- */
 
 Test(nde_tier_c, mixed_chain_membership) {

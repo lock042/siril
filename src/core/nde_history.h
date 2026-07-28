@@ -195,6 +195,10 @@ gboolean nde_history_is_stale(void);
  */
 void nde_history_notify_panel(void);
 
+/* Plain → FLIS promote: move every record targeting @from_item onto
+ * @to_item (see flis_promote_from_gfit). */
+void nde_history_rebind_item(gint from_item, gint to_item);
+
 /* ---- capture-site helpers ---------------------------------------------- */
 
 /**
