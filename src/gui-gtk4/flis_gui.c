@@ -143,6 +143,9 @@ struct _NdeHistRowItem {
 	gboolean in_tail;
 	gint64   prev_member_id, next_member_id;
 	gboolean prev_in_tail,  next_in_tail;
+	/* The record's target item — drag-reorder is only valid between chain
+	 * members of the SAME item. */
+	gint     target_item_id;
 };
 
 G_DEFINE_TYPE(NdeHistRowItem, nde_hist_row_item, G_TYPE_OBJECT)
@@ -522,6 +525,12 @@ static void ensure_flis_css(void) {
 		"  background-color: alpha(@accent_bg_color, 0.25);"
 		"  border-style: solid;"
 		"  color: @accent_fg_color;"
+		"}"
+		/* NDE history drag-reorder: rows the dragged step cannot be dropped
+		 * on (frozen prefix before a Tier-B barrier, other items' records,
+		 * undone rows) are de-highlighted for the drag's duration. */
+		".nde-drop-dim {"
+		"  opacity: 0.35;"
 		"}"
 	);
 	gtk_style_context_add_provider_for_display(gdk_display_get_default(),
@@ -1157,6 +1166,120 @@ static gchar *hist_target_label(const nde_record *rec) {
 	return g_strdup("");
 }
 
+/* Consequence line shown before any amend/delete runs: an edit recomputes
+ * the image from the baseline and clears the undo stack (no meta-undo,
+ * sketch §7 decision 1).  Shared by the delete confirmation and the edit
+ * dialog so the wording stays identical. */
+#define HIST_EDIT_CONSEQUENCE \
+	_("This recomputes the image from the edit history and clears the undo history.")
+
+/* ---- history drag-to-reorder (C5 via DnD) ------------------------------
+ * Each row is both a drag source (when the step is movable) and a drop
+ * target (when it is a same-item chain member in the editable tail).  While
+ * a drag is live, invalid targets are de-highlighted via .nde-drop-dim.
+ * The drop maps to the same engine call as the Move buttons:
+ * nde_reorder_start(dragged, anchor=target row, after = lower half). */
+
+static NdeHistRowItem *hist_drag_item;   /* ref held between begin and end */
+
+static gboolean hist_row_draggable(NdeHistRowItem *r) {
+	return r && !r->dead && !nde_history_is_stale() &&
+	       !processing_is_job_active() && !nde_amend_preview_active() &&
+	       r->amendable && r->deletable && r->in_tail;
+}
+
+static gboolean hist_drop_valid(const NdeHistRowItem *t) {
+	return t && hist_drag_item && t->in_tail &&
+	       t->target_item_id == hist_drag_item->target_item_id;
+}
+
+/* Walk the list view's realized rows; each internal list-item widget's first
+ * child is the row box carrying the bound item via "hist-item". */
+static void hist_set_drop_dim(gboolean drag_active) {
+	if (!g_panel || !g_panel->hist_list) return;
+	for (GtkWidget *c = gtk_widget_get_first_child(g_panel->hist_list); c;
+	     c = gtk_widget_get_next_sibling(c)) {
+		GtkWidget *row = gtk_widget_get_first_child(c);
+		if (!row) continue;
+		NdeHistRowItem *r = g_object_get_data(G_OBJECT(row), "hist-item");
+		gboolean dim = drag_active && r && !hist_drop_valid(r);
+		if (dim)
+			gtk_widget_add_css_class(row, "nde-drop-dim");
+		else
+			gtk_widget_remove_css_class(row, "nde-drop-dim");
+	}
+}
+
+static GdkContentProvider *on_hist_drag_prepare(GtkDragSource *s,
+                                                double x, double y, gpointer row) {
+	(void)s; (void)x; (void)y;
+	NdeHistRowItem *r = g_object_get_data(G_OBJECT(row), "hist-item");
+	if (!hist_row_draggable(r))
+		return NULL;   /* cancels the drag */
+	GValue v = G_VALUE_INIT;
+	g_value_init(&v, G_TYPE_INT64);
+	g_value_set_int64(&v, r->record_id);
+	GdkContentProvider *p = gdk_content_provider_new_for_value(&v);
+	g_value_unset(&v);
+	return p;
+}
+
+static void on_hist_drag_begin(GtkDragSource *s, GdkDrag *drag, gpointer row) {
+	(void)drag;
+	NdeHistRowItem *r = g_object_get_data(G_OBJECT(row), "hist-item");
+	if (!r) return;
+	g_clear_object(&hist_drag_item);
+	hist_drag_item = g_object_ref(r);
+	GdkPaintable *pt = gtk_widget_paintable_new(GTK_WIDGET(row));
+	gtk_drag_source_set_icon(s, pt, 0, 0);
+	g_object_unref(pt);
+	hist_set_drop_dim(TRUE);
+}
+
+static void on_hist_drag_end(GtkDragSource *s, GdkDrag *drag,
+                             gboolean delete_data, gpointer row) {
+	(void)s; (void)drag; (void)delete_data; (void)row;
+	hist_set_drop_dim(FALSE);
+	g_clear_object(&hist_drag_item);
+}
+
+static GdkDragAction on_hist_drop_accept_motion(GtkDropTarget *t,
+                                                double x, double y, gpointer row) {
+	(void)t; (void)x; (void)y;
+	NdeHistRowItem *r = g_object_get_data(G_OBJECT(row), "hist-item");
+	return hist_drop_valid(r) ? GDK_ACTION_MOVE : 0;
+}
+
+static gboolean on_hist_drop(GtkDropTarget *t, const GValue *value,
+                             double x, double y, gpointer row) {
+	(void)t; (void)x;
+	if (!G_VALUE_HOLDS(value, G_TYPE_INT64))
+		return FALSE;
+	gint64 dragged = g_value_get_int64(value);
+	NdeHistRowItem *anchor = g_object_get_data(G_OBJECT(row), "hist-item");
+	if (!hist_drop_valid(anchor) || anchor->record_id == dragged)
+		return FALSE;
+	/* Upper half: insert before the target member; lower half: after. */
+	gboolean after = y > gtk_widget_get_height(GTK_WIDGET(row)) / 2.0;
+	gint64 anchor_id = anchor->record_id;
+	gchar *summary = g_strdup(hist_drag_item && hist_drag_item->summary ?
+	                          hist_drag_item->summary : "");
+
+	gboolean confirmed = TRUE;
+	if (!com.pref.gui.silent_hist_move) {
+		gchar *msg = g_strdup_printf("%s\n\n%s", summary, HIST_EDIT_CONSEQUENCE);
+		confirmed = siril_confirm_dialog_and_remember(_("Move this step?"),
+				msg, _("_Move"), &com.pref.gui.silent_hist_move);
+		g_free(msg);
+		if (com.pref.gui.silent_hist_move)
+			writeinitfile();
+	}
+	g_free(summary);
+	if (confirmed)
+		nde_reorder_start(dragged, anchor_id, after);
+	return TRUE;
+}
+
 static void on_hist_row_setup(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 	(void)f; (void)u;
 	GtkWidget *row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
@@ -1188,6 +1311,21 @@ static void on_hist_row_setup(GtkListItemFactory *f, GtkListItem *item, gpointer
 	g_object_set_data(G_OBJECT(item), "hist-lock",    lock);
 	g_object_set_data(G_OBJECT(item), "hist-summary", summary);
 	g_object_set_data(G_OBJECT(item), "hist-target",  target);
+
+	/* Drag-to-reorder (C5): the row is both drag source and drop target. */
+	GtkDragSource *dsrc = gtk_drag_source_new();
+	gtk_drag_source_set_actions(dsrc, GDK_ACTION_MOVE);
+	g_signal_connect(dsrc, "prepare",    G_CALLBACK(on_hist_drag_prepare), row);
+	g_signal_connect(dsrc, "drag-begin", G_CALLBACK(on_hist_drag_begin),  row);
+	g_signal_connect(dsrc, "drag-end",   G_CALLBACK(on_hist_drag_end),    row);
+	gtk_widget_add_controller(row, GTK_EVENT_CONTROLLER(dsrc));
+
+	GtkDropTarget *dtgt = gtk_drop_target_new(G_TYPE_INT64, GDK_ACTION_MOVE);
+	g_signal_connect(dtgt, "enter",  G_CALLBACK(on_hist_drop_accept_motion), row);
+	g_signal_connect(dtgt, "motion", G_CALLBACK(on_hist_drop_accept_motion), row);
+	g_signal_connect(dtgt, "drop",   G_CALLBACK(on_hist_drop), row);
+	gtk_widget_add_controller(row, GTK_EVENT_CONTROLLER(dtgt));
+
 	gtk_list_item_set_child(item, row);
 }
 
@@ -1200,6 +1338,7 @@ static void on_hist_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer 
 	GtkWidget *summary = g_object_get_data(G_OBJECT(item), "hist-summary");
 	GtkWidget *target  = g_object_get_data(G_OBJECT(item), "hist-target");
 	if (!r || !row) return;
+	g_object_set_data(G_OBJECT(row), "hist-item", r);
 	gtk_label_set_text(GTK_LABEL(badge),   r->badge   ? r->badge   : "");
 	gtk_label_set_text(GTK_LABEL(summary), r->summary ? r->summary : "");
 	gtk_label_set_text(GTK_LABEL(target),  r->target  ? r->target  : "");
@@ -1214,12 +1353,6 @@ static void on_hist_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer 
 		gtk_widget_remove_css_class(row, "dim-label");
 }
 
-/* Consequence line shown before any amend/delete runs: an edit recomputes
- * the image from the baseline and clears the undo stack (no meta-undo,
- * sketch §7 decision 1).  Shared by the delete confirmation and the edit
- * dialog so the wording stays identical. */
-#define HIST_EDIT_CONSEQUENCE \
-	_("This recomputes the image from the edit history and clears the undo history.")
 
 /* ---- parameter editor (amend) --------------------------------------------
  * A modal window with one GtkEntry per key (keys sorted), an inline error
@@ -1589,6 +1722,28 @@ static void on_hist_row_activate(GtkListView *lv, guint position, gpointer u) {
 	                             ? _("Deleting this opaque step unlocks the steps before it")
 	                             : NULL));
 
+	/* Point the popover at the activated row (rather than the list's
+	 * default anchor at its bottom edge).  The bound item on a realized
+	 * row's box is the same object instance as the model item, so a
+	 * pointer compare finds the right row. */
+	gtk_popover_set_pointing_to(GTK_POPOVER(g_panel->hist_popover), NULL);
+	for (GtkWidget *c = gtk_widget_get_first_child(GTK_WIDGET(lv)); c;
+	     c = gtk_widget_get_next_sibling(c)) {
+		GtkWidget *rowbox = gtk_widget_get_first_child(c);
+		NdeHistRowItem *cr = rowbox ?
+				g_object_get_data(G_OBJECT(rowbox), "hist-item") : NULL;
+		if (cr == r) {
+			graphene_rect_t b;
+			if (gtk_widget_compute_bounds(c, GTK_WIDGET(lv), &b)) {
+				GdkRectangle rect = { (int)b.origin.x, (int)b.origin.y,
+				                      (int)b.size.width, (int)b.size.height };
+				gtk_popover_set_pointing_to(GTK_POPOVER(g_panel->hist_popover),
+				                            &rect);
+			}
+			break;
+		}
+	}
+
 	gtk_popover_popup(GTK_POPOVER(g_panel->hist_popover));
 	g_object_unref(r);
 }
@@ -1685,6 +1840,7 @@ static void refresh_history(void) {
 			item->deletable = nde_record_deletable(rec);
 			item->params    = (rec->params && *rec->params) ? g_strdup(rec->params) : NULL;
 			item->op_id     = g_strdup(rec->op_id);
+			item->target_item_id = rec->target_item_id;
 			const hist_freeze_mark *m = g_hash_table_lookup(freeze, &rec->record_id);
 			if (m) {
 				item->frozen       = m->frozen;
