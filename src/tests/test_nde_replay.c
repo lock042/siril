@@ -2863,3 +2863,38 @@ Test(nde_replay, losing_a_pinned_mask_freezes_the_step_rather_than_lying) {
 
 	golden_teardown(NULL, f);
 }
+
+/* Losing an item's BASELINE — which is what happens to a layer consumed by a
+ * merge, via nde_checkpoint_drop — blocks the whole chain rather than any
+ * individual member.  The History keys its "cannot be re-run" marks off
+ * exactly this, because tail_start and the member flags say nothing here:
+ * without the chain-level verdict every row read as freely editable and
+ * offered an Edit that could only fail. */
+Test(nde_replay, losing_the_baseline_blocks_the_chain_not_a_member) {
+	com.pref.nde_cache_mb = 256;
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(10.f)), 0);
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(20.f)), 0);
+
+	nde_chain *before = nde_chain_build(NDE_ITEM_IMAGE);
+	cr_assert(before->replayable);
+	cr_assert_eq(before->reasons->len, 0);
+	nde_chain_free(before);
+
+	nde_checkpoint_drop(NDE_ITEM_IMAGE);
+
+	nde_chain *after = nde_chain_build(NDE_ITEM_IMAGE);
+	cr_assert(!after->replayable, "no baseline, nothing to replay from");
+	cr_assert_gt(after->reasons->len, 0, "and it must say why");
+	/* The members themselves are unremarkable — no barrier, empty frozen
+	 * prefix — so a reader that only consults them learns nothing. */
+	cr_assert_eq(after->tail_start, 0);
+	for (guint i = 0; i < after->records->len; i++)
+		cr_assert_eq(g_array_index(after->member_flags, guint8, i), 0,
+		             "member %u should carry no flag of its own", i);
+	nde_chain_free(after);
+
+	golden_teardown(NULL, f);
+}

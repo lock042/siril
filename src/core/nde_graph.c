@@ -95,11 +95,13 @@ static void describe_item(gint item_id, nde_node_kind *kind, gchar **label,
 		break;
 	}
 
-	/* An id the document no longer claims.  Its records are still real, so
-	 * the node is real; saying so beats the flat list's "deleted layer",
-	 * which was a guess dressed as a fact. */
+	/* An id the document no longer claims — most often a layer consumed by a
+	 * merge or flatten.  Its records are real and still listed, so the node
+	 * is real; what is gone is the layer, and the name went with it.  Say
+	 * exactly that: "deleted layer" was a guess dressed as a fact, and
+	 * "Item 2" tells the user nothing they can act on. */
 	*kind = NDE_NODE_UNKNOWN;
-	*label = g_strdup_printf(_("Item %d"), item_id);
+	*label = g_strdup_printf(_("Layer %d, no longer in the document"), item_id);
 	*orphan = TRUE;
 }
 

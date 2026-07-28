@@ -1217,19 +1217,6 @@ static gchar *build_hist_detail(const nde_record *rec) {
 	return g_string_free(s, FALSE);
 }
 
-static gchar *hist_target_label(const nde_record *rec) {
-	if (rec->target_item_id >= 0) {
-		flis_layer_t *lay = flis_layer_get_by_id(rec->target_item_id);
-		if (lay)
-			return g_strdup(lay->layer_name ? lay->layer_name : "");
-		return g_strdup(_("deleted layer"));
-	}
-	if (rec->scope == NDE_SCOPE_CANVAS)
-		return g_strdup(_("canvas"));
-	if (rec->scope == NDE_SCOPE_DOCUMENT)
-		return g_strdup(_("document"));
-	return g_strdup("");
-}
 
 /* Consequence line shown before any amend/delete runs: an edit recomputes
  * the image from the baseline and clears the undo stack (no meta-undo,
@@ -1437,17 +1424,16 @@ static void on_hist_row_setup(GtkListItemFactory *f, GtkListItem *item, gpointer
 	gtk_label_set_ellipsize(GTK_LABEL(summary), PANGO_ELLIPSIZE_END);
 	gtk_widget_set_hexpand(summary, TRUE);
 
-	GtkWidget *target = gtk_label_new(NULL);
-	gtk_widget_add_css_class(target, "dim-label");
-
+	/* No per-row target column any more: the node this row lives in names
+	 * the item, so repeating it on every row was duplication — and for an
+	 * item the document no longer lists it printed "deleted layer", which
+	 * of a live, still-listed step is simply untrue. */
 	gtk_box_append(GTK_BOX(row), badge);
 	gtk_box_append(GTK_BOX(row), lock);
 	gtk_box_append(GTK_BOX(row), summary);
-	gtk_box_append(GTK_BOX(row), target);
 	g_object_set_data(G_OBJECT(item), "hist-badge",   badge);
 	g_object_set_data(G_OBJECT(item), "hist-lock",    lock);
 	g_object_set_data(G_OBJECT(item), "hist-summary", summary);
-	g_object_set_data(G_OBJECT(item), "hist-target",  target);
 
 	/* Drag-to-reorder (C5): the row is both drag source and drop target. */
 	GtkDragSource *dsrc = gtk_drag_source_new();
@@ -1474,12 +1460,10 @@ static void on_hist_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer 
 	GtkWidget *badge   = g_object_get_data(G_OBJECT(item), "hist-badge");
 	GtkWidget *lock    = g_object_get_data(G_OBJECT(item), "hist-lock");
 	GtkWidget *summary = g_object_get_data(G_OBJECT(item), "hist-summary");
-	GtkWidget *target  = g_object_get_data(G_OBJECT(item), "hist-target");
 	if (!r || !row) return;
 	g_object_set_data(G_OBJECT(row), "hist-item", r);
 	gtk_label_set_text(GTK_LABEL(badge),   r->badge   ? r->badge   : "");
 	gtk_label_set_text(GTK_LABEL(summary), r->summary ? r->summary : "");
-	gtk_label_set_text(GTK_LABEL(target),  r->target  ? r->target  : "");
 	gtk_widget_set_tooltip_text(row, r->detail);
 	/* Barrier and frozen rows carry the lock icon (subtle, next to the
 	 * badge); a dead row keeps its dimming — dead wins over frozen. */
@@ -1960,7 +1944,20 @@ typedef struct {
 	gboolean in_tail;
 	gint64   prev_member_id, next_member_id;
 	gboolean prev_in_tail, next_in_tail;
+	/* Why the WHOLE chain cannot be replayed, when that is the case (a
+	 * merged-away layer whose baseline went with it, a file older than
+	 * baselines).  OWNED: the chain it came from is freed before the rows
+	 * are built. */
+	gchar   *chain_blocker;
 } hist_freeze_mark;
+
+static void hist_freeze_mark_free(gpointer p) {
+	hist_freeze_mark *m = p;
+	if (!m)
+		return;
+	g_free(m->chain_blocker);
+	g_free(m);
+}
 
 /* Fold one item's chain into @map (record_id → hist_freeze_mark).  A chain
  * member at index < tail_start is frozen; the member at tail_start-1 that is
@@ -1973,18 +1970,26 @@ static void hist_fold_chain_marks(GHashTable *map, const nde_chain *chain) {
 		return;
 	guint tail = chain->tail_start;
 	guint len = chain->records->len;
+	const gchar *blocked = (!chain->replayable && chain->reasons && chain->reasons->len)
+	                     ? g_ptr_array_index(chain->reasons, 0) : NULL;
 	for (guint i = 0; i < len; i++) {
 		const nde_record *rec = g_ptr_array_index(chain->records, i);
 		guint8 flags = (chain->member_flags && i < chain->member_flags->len)
 		             ? g_array_index(chain->member_flags, guint8, i) : 0;
 		gboolean is_barrier = (flags & NDE_CHAIN_MEMBER_BARRIER) != 0;
 		hist_freeze_mark *m = g_new0(hist_freeze_mark, 1);
-		m->frozen  = (i < tail);
+		/* A chain-level blocker freezes EVERY member, whatever tail_start
+		 * says.  Without this the rows of an item whose baseline is gone —
+		 * a layer merged away, say — carried no marks at all and so read as
+		 * fully editable, offering an Edit that could only fail.  A step
+		 * that cannot be re-run must look like one. */
+		m->frozen  = (blocked != NULL) || (i < tail);
 		m->barrier = is_barrier;
+		m->chain_blocker = g_strdup(blocked);
 		/* The barrier immediately before the tail is the one whose deletion
 		 * regains editability of the prefix. */
-		m->last_barrier = is_barrier && (i == tail - 1);
-		m->in_tail = (i >= tail);
+		m->last_barrier = !blocked && is_barrier && (i == tail - 1);
+		m->in_tail = !blocked && (i >= tail);
 		if (i > 0) {
 			const nde_record *p = g_ptr_array_index(chain->records, i - 1);
 			m->prev_member_id = p->record_id;
@@ -2025,8 +2030,11 @@ static hist_node_ui *hist_node_get(gint item_id, const nde_graph_node *gn,
 	/* Header: what the item is, and — the thing the flat list could not say
 	 * — what it is joined to.  A node with no edges shows no edge line, so a
 	 * linear document reads as a plain titled list. */
+	/* An UNKNOWN item already says in its label that it is gone, so the
+	 * generic orphan suffix would repeat it; masks get the suffix because
+	 * "Mask of Background" alone reads like a layer name. */
 	GString *title = g_string_new(gn && gn->label ? gn->label : _("Steps"));
-	if (gn && gn->orphan)
+	if (gn && gn->orphan && gn->kind != NDE_NODE_UNKNOWN)
 		g_string_append(title, _("  (not a layer)"));
 
 	n->expander = gtk_expander_new(NULL);
@@ -2114,7 +2122,7 @@ static void refresh_history(void) {
 	 * chain verdicts rather than re-deriving the barrier rules here.  This is
 	 * a snapshot+validate pass only (nde_chain_build never replays). */
 	GHashTable *freeze = g_hash_table_new_full(g_int64_hash, g_int64_equal,
-	                                           g_free, g_free);
+	                                           g_free, hist_freeze_mark_free);
 	if (snap) {
 		GHashTable *seen = g_hash_table_new(g_direct_hash, g_direct_equal);
 		for (guint i = 0; i < snap->len; i++) {
@@ -2145,7 +2153,6 @@ static void refresh_history(void) {
 			item->badge   = g_strdup_printf(rec->tier == NDE_TIER_B ? "#%u·B" :
 			                                rec->tier == NDE_TIER_C ? "#%u·C" : "#%u", pos);
 			item->summary = g_strdup(rec->summary ? rec->summary : rec->op_id);
-			item->target  = hist_target_label(rec);
 			item->detail  = build_hist_detail(rec);
 			item->dead    = (i >= live);
 			item->record_id = rec->record_id;
@@ -2165,8 +2172,16 @@ static void refresh_history(void) {
 				item->prev_in_tail   = m->prev_in_tail;
 				item->next_in_tail   = m->next_in_tail;
 			}
-			/* Frozen rows explain why they are locked in the detail text. */
-			if (item->frozen && !item->last_barrier) {
+			/* Frozen rows explain why they are locked in the detail text.
+			 * A chain-level blocker gets its own reason: "a later opaque
+			 * step" would be wrong for a layer whose original pixels are
+			 * simply gone. */
+			if (m && m->chain_blocker) {
+				gchar *d = g_strconcat(item->detail, "\n",
+				                       _("Cannot be re-run: "), m->chain_blocker, NULL);
+				g_free(item->detail);
+				item->detail = d;
+			} else if (item->frozen && !item->last_barrier) {
 				gchar *d = g_strconcat(item->detail, "\n",
 				                       _("Locked by a later opaque step"), NULL);
 				g_free(item->detail);
