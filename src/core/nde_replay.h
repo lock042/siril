@@ -83,10 +83,12 @@ typedef struct {
  * Tier-B records, records whose mask input no longer resolves, unknown ops /
  * missing deserializers / newer-version params / unparsable params,
  * canvas-scope records targeting a FLIS layer whose baseline recorded no
- * starting position (there is nothing to anchor the moves to), merge-down /
- * flatten that replaced the item's pixels, and a missing baseline checkpoint.
- * DOCUMENT-scope property/structure records are ignored (they do not
- * touch the item's pixels; layer.add is embodied in the baseline).
+ * starting position (there is nothing to anchor the moves to), a flatten or an
+ * un-re-runnable merge-down that replaced the item's pixels, and a missing
+ * baseline checkpoint.  DOCUMENT-scope property/structure records are ignored
+ * (they do not touch the item's pixels; layer.add is embodied in the
+ * baseline) — EXCEPT a composite node, which targets the item it produced and
+ * is an ordinary member when its inputs were recorded (nde_composite.h).
  * Never returns NULL.
  */
 nde_chain *nde_chain_build(gint item_id);
