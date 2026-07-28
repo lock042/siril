@@ -551,6 +551,42 @@ static fits *resolve_edit_restart(const nde_chain *chain, guint e,
 /* Shared core of amend (new_params != NULL) and delete (new_params == NULL).
  * Conductor context: the caller holds SLOT_REPLAY, so capture, undo and
  * python cannot interleave with the replay or the commit. */
+/* Checkpoint-built replay results carry pixels + WCS only (nde_snap stores
+ * no header text, keywords or HISTORY).  A history edit rewrites pixel
+ * parameters, not the document's identity: after a commit swap, move the
+ * pre-edit metadata (keywords, header text, unknown keys, FITS HISTORY)
+ * from the superseded fits back onto the target, keeping the REPLAYED WCS
+ * and focal length — the chain may legitimately have changed those.
+ * @old is the pre-edit fits the swap left holding the rich metadata; it is
+ * about to be cleared, so ownership moves are plain pointer swaps. */
+static void commit_restore_metadata(fits *target, fits *old) {
+	g_rw_lock_writer_lock(&target->rwlock);
+	/* Move the replayed WCS aside, swap the keyword structs wholesale, then
+	 * put the replayed WCS back.  The pre-edit wcslib travels to @old inside
+	 * its keywords struct, so clearfits(@old) frees it properly. */
+	wcs_info replay_wcsdata      = target->keywords.wcsdata;
+	struct wcsprm *replay_wcslib = target->keywords.wcslib;
+	double replay_flen           = target->keywords.focal_length;
+	fkeywords rich = old->keywords;
+	old->keywords = target->keywords;         /* replay-minimal set... */
+	old->keywords.wcslib = rich.wcslib;       /* ...plus the superseded WCS */
+	target->keywords = rich;
+	target->keywords.wcsdata      = replay_wcsdata;
+	target->keywords.wcslib       = replay_wcslib;
+	target->keywords.focal_length = replay_flen;
+
+	char *h = target->header;
+	target->header = old->header;
+	old->header = h;
+	gchar *u = target->unknown_keys;
+	target->unknown_keys = old->unknown_keys;
+	old->unknown_keys = u;
+	GSList *hist = target->history;
+	target->history = old->history;
+	old->history = hist;
+	g_rw_lock_writer_unlock(&target->rwlock);
+}
+
 static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **err) {
 	g_return_val_if_fail(err != NULL, FALSE);
 	*err = NULL;
@@ -747,6 +783,7 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 		gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
 		return FALSE;
 	}
+	commit_restore_metadata(target, result);
 	clearfits(result);   /* the pre-edit pixels — superseded */
 	free(result);
 
@@ -933,6 +970,7 @@ gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after,
 		gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
 		return FALSE;
 	}
+	commit_restore_metadata(target, result);
 	clearfits(result);
 	free(result);
 
