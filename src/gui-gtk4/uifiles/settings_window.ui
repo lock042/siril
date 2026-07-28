@@ -172,6 +172,13 @@
     <property name="upper">4096</property>
     <property name="value">256</property>
   </object>
+  <object class="GtkAdjustment" id="adj_nde_cache_mb">
+    <property name="lower">0</property>
+    <property name="page-increment">1024</property>
+    <property name="step-increment">256</property>
+    <property name="upper">65536</property>
+    <property name="value">2048</property>
+  </object>
   <object class="GtkAdjustment" id="xbayeroff_adj">
     <property name="page-increment">1</property>
     <property name="step-increment">1</property>
@@ -4479,6 +4486,53 @@
                                     <property name="margin-top">10</property>
                                     <property name="margin-bottom">10</property>
                                     <property name="label" translatable="1">FLIS display cache</property>
+                                    <attributes>
+                                      <attribute name="weight" value="bold" />
+                                    </attributes>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkFrame">
+                                <property name="child">
+                                  <object class="GtkGrid">
+                                    <property name="margin-start">6</property>
+                                    <property name="row-spacing">6</property>
+                                    <property name="column-spacing">6</property>
+                                    <property name="row-homogeneous">1</property>
+                                    <property name="column-homogeneous">1</property>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="1">Storage budget (MiB)</property>
+                                        <layout>
+                                          <property name="column">0</property>
+                                          <property name="row">0</property>
+                                        </layout>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkSpinButton" id="pref_nde_cache_mb">
+                                        <property name="focusable">1</property>
+                                        <property name="tooltip-text" translatable="1">Disk space the edit history may use, in the swap folder. It holds two things: cached intermediate states, which only make editing an earlier step faster, and the original pixels that let earlier steps be changed at all. Past this budget the cached states are dropped first and silently; only if that is not enough do the oldest steps stop being editable, and you are told when that happens. Larger values keep more of the history editable. 0 keeps only what is needed for editing, with no cache.</property>
+                                        <property name="halign">start</property>
+                                        <property name="adjustment">adj_nde_cache_mb</property>
+                                        <property name="numeric">1</property>
+                                        <property name="value">2048</property>
+                                        <layout>
+                                          <property name="column">1</property>
+                                          <property name="row">0</property>
+                                        </layout>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </property>
+                                <child type="label">
+                                  <object class="GtkLabel">
+                                    <property name="margin-top">10</property>
+                                    <property name="margin-bottom">10</property>
+                                    <property name="label" translatable="1">Edit history</property>
                                     <attributes>
                                       <attribute name="weight" value="bold" />
                                     </attributes>
