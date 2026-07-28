@@ -17278,7 +17278,7 @@ int process_flis_history(int nb) {
 		siril_log_warning(_("FLIS: layer pixels were modified outside the recorded history\n"));
 
 	if (csv)
-		siril_log_message("record_id,tier,op_id,op_version,scope,target,summary,params\n");
+		siril_log_message("record_id,tier,op_id,op_version,scope,target,summary,params,inputs\n");
 
 	for (guint i = 0; i < snap->len; i++) {
 		nde_record *r = g_ptr_array_index(snap, i);
@@ -17295,17 +17295,25 @@ int process_flis_history(int nb) {
 			target = target_buf;
 		}
 		if (csv) {
-			siril_log_message("%" G_GINT64_FORMAT ",%s,%s,%d,%d,%s,\"%s\",\"%s\"\n",
+			gchar *pins = nde_pins_to_string(r->inputs);
+			siril_log_message("%" G_GINT64_FORMAT ",%s,%s,%d,%d,%s,\"%s\",\"%s\",\"%s\"\n",
 			                  r->record_id, tier, r->op_id ? r->op_id : "",
 			                  r->op_version, r->scope, target,
 			                  r->summary ? r->summary : "",
-			                  r->params ? r->params : "");
+			                  r->params ? r->params : "",
+			                  pins ? pins : "");
+			g_free(pins);
 		} else {
 			siril_log_info(_("#%" G_GINT64_FORMAT " [%s] %s v%d target=%s  %s\n"),
 			               r->record_id, tier, r->op_id ? r->op_id : "",
 			               r->op_version, target, r->summary ? r->summary : "");
 			if (r->params)
 				siril_log_info(_("    params: %s\n"), r->params);
+			/* Input edges beyond the implicit image the chain supplies. */
+			gchar *pins = nde_pins_to_string(r->inputs);
+			if (pins)
+				siril_log_info(_("    inputs: %s\n"), pins);
+			g_free(pins);
 		}
 	}
 	g_ptr_array_unref(snap);

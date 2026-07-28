@@ -48,6 +48,53 @@ nde_record *nde_record_new(void) {
 	return rec;
 }
 
+nde_input_pin *nde_input_pin_new(const char *role, gint src_item_id,
+                                 gint64 src_record_id) {
+	nde_input_pin *pin = g_new0(nde_input_pin, 1);
+	pin->role = g_strdup(role);
+	pin->src_item_id = src_item_id;
+	pin->src_record_id = src_record_id;
+	return pin;
+}
+
+void nde_input_pin_free(nde_input_pin *pin) {
+	if (!pin)
+		return;
+	g_free(pin->role);
+	g_free(pin);
+}
+
+static GPtrArray *pins_new(void) {
+	return g_ptr_array_new_with_free_func((GDestroyNotify)nde_input_pin_free);
+}
+
+void nde_record_add_input(nde_record *rec, const char *role,
+                          gint src_item_id, gint64 src_record_id) {
+	g_return_if_fail(rec != NULL && role != NULL);
+	if (!rec->inputs)
+		rec->inputs = pins_new();
+	for (guint i = 0; i < rec->inputs->len; i++) {
+		nde_input_pin *p = g_ptr_array_index(rec->inputs, i);
+		if (!g_strcmp0(p->role, role)) {
+			p->src_item_id = src_item_id;
+			p->src_record_id = src_record_id;
+			return;
+		}
+	}
+	g_ptr_array_add(rec->inputs, nde_input_pin_new(role, src_item_id, src_record_id));
+}
+
+const nde_input_pin *nde_record_input(const nde_record *rec, const char *role) {
+	if (!rec || !rec->inputs || !role)
+		return NULL;
+	for (guint i = 0; i < rec->inputs->len; i++) {
+		const nde_input_pin *p = g_ptr_array_index(rec->inputs, i);
+		if (!g_strcmp0(p->role, role))
+			return p;
+	}
+	return NULL;
+}
+
 nde_record *nde_record_copy(const nde_record *rec) {
 	if (!rec)
 		return NULL;
@@ -59,6 +106,11 @@ nde_record *nde_record_copy(const nde_record *rec) {
 	copy->timestamp = g_strdup(rec->timestamp);
 	copy->impl      = g_strdup(rec->impl);
 	copy->mask_ref  = g_strdup(rec->mask_ref);
+	copy->inputs    = NULL;
+	for (guint i = 0; rec->inputs && i < rec->inputs->len; i++) {
+		const nde_input_pin *p = g_ptr_array_index(rec->inputs, i);
+		nde_record_add_input(copy, p->role, p->src_item_id, p->src_record_id);
+	}
 	return copy;
 }
 
@@ -71,7 +123,78 @@ void nde_record_free(nde_record *rec) {
 	g_free(rec->timestamp);
 	g_free(rec->impl);
 	g_free(rec->mask_ref);
+	if (rec->inputs)
+		g_ptr_array_unref(rec->inputs);
 	g_free(rec);
+}
+
+/* ---- pin list codec ---------------------------------------------------- */
+
+gchar *nde_pins_serialize(GPtrArray *pins) {
+	if (!pins || !pins->len)
+		return NULL;
+	GString *kv = nde_kv_start();
+	nde_kv_add_int(kv, "n", pins->len);
+	for (guint i = 0; i < pins->len; i++) {
+		const nde_input_pin *p = g_ptr_array_index(pins, i);
+		gchar key[32];
+		g_snprintf(key, sizeof(key), "role%u", i);
+		nde_kv_add_str(kv, key, p->role ? p->role : "");
+		g_snprintf(key, sizeof(key), "item%u", i);
+		nde_kv_add_int(kv, key, p->src_item_id);
+		g_snprintf(key, sizeof(key), "rec%u", i);
+		nde_kv_add_int(kv, key, p->src_record_id);
+	}
+	return nde_kv_end(kv);
+}
+
+GPtrArray *nde_pins_parse(const char *blob) {
+	if (!blob || !*blob)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	gint64 n = 0;
+	GPtrArray *out = NULL;
+	if (nde_kv_get_int(kv, "n", &n) && n > 0) {
+		for (gint64 i = 0; i < n; i++) {
+			gchar key[32];
+			g_snprintf(key, sizeof(key), "role%" G_GINT64_FORMAT, i);
+			const char *role = nde_kv_get_str(kv, key);
+			g_snprintf(key, sizeof(key), "item%" G_GINT64_FORMAT, i);
+			gint64 item = 0;
+			gboolean have_item = nde_kv_get_int(kv, key, &item);
+			g_snprintf(key, sizeof(key), "rec%" G_GINT64_FORMAT, i);
+			gint64 src = 0;
+			nde_kv_get_int(kv, key, &src);   /* absent = baseline */
+			/* Skip an incomplete pin rather than inventing one: a pin that
+			 * names no role or no source item points nowhere. */
+			if (!role || !*role || !have_item)
+				continue;
+			if (!out)
+				out = pins_new();
+			g_ptr_array_add(out, nde_input_pin_new(role, (gint)item, src));
+		}
+	}
+	g_hash_table_unref(kv);
+	return out;
+}
+
+gchar *nde_pins_to_string(GPtrArray *pins) {
+	if (!pins || !pins->len)
+		return NULL;
+	GString *s = g_string_new(NULL);
+	for (guint i = 0; i < pins->len; i++) {
+		const nde_input_pin *p = g_ptr_array_index(pins, i);
+		if (i)
+			g_string_append(s, ", ");
+		if (p->src_record_id)
+			g_string_append_printf(s, "%s@%d:%" G_GINT64_FORMAT,
+			                       p->role ? p->role : "?", p->src_item_id,
+			                       p->src_record_id);
+		else
+			g_string_append_printf(s, "%s@%d:baseline",
+			                       p->role ? p->role : "?", p->src_item_id);
+	}
+	return g_string_free(s, FALSE);
 }
 
 /* ======================================================================= */
@@ -351,6 +474,21 @@ GPtrArray *nde_history_snapshot_all(guint *live_count_out) {
 	}
 	g_mutex_unlock(&nde_mutex);
 	return out;
+}
+
+gint64 nde_history_last_record_for_item(gint item_id) {
+	if (!com.uniq)
+		return 0;
+	gint64 id = 0;
+	g_mutex_lock(&nde_mutex);
+	nde_history *h = com.uniq->nde_history;
+	for (guint i = 0; h && i < h->live_count; i++) {
+		const nde_record *rec = g_ptr_array_index(h->records, i);
+		if (rec->target_item_id == item_id)
+			id = rec->record_id;   /* last one wins: records are in order */
+	}
+	g_mutex_unlock(&nde_mutex);
+	return id;
 }
 
 guint nde_history_live_count(void) {

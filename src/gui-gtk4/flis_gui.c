@@ -1178,8 +1178,15 @@ static gchar *build_hist_detail(const nde_record *rec) {
 		g_string_append_printf(s, "%s\n", rec->timestamp);
 	if (rec->impl)
 		g_string_append_printf(s, "%s\n", rec->impl);
-	if (rec->mask_active)
+	/* Prefer the pin: it names WHICH mask and in what state, where
+	 * mask_active only ever said that one existed.  Older records (and any
+	 * captured before the mask had an item) still have only the flag. */
+	gchar *pins = nde_pins_to_string(rec->inputs);
+	if (pins)
+		g_string_append_printf(s, "%s: %s\n", _("inputs"), pins);
+	else if (rec->mask_active)
 		g_string_append_printf(s, "%s\n", _("a mask was active"));
+	g_free(pins);
 	if (rec->params && *rec->params) {
 		g_string_append_c(s, '\n');
 		GHashTable *kv = nde_kv_parse(rec->params);

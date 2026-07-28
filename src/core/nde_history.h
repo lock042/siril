@@ -77,6 +77,27 @@ typedef enum {
 	                  * degrades safely to Tier-B-barrier semantics. */
 } nde_tier;
 
+/* An INPUT EDGE of a record (graph step 4).  A record has always named its
+ * one output — target_item_id — and nothing else; that implicit model says
+ * "this record depends on the previous record of the same item, and on
+ * nothing else", and every gap in the history is a case where that is false.
+ * A pin makes one of those dependencies explicit.
+ *
+ * The coordinate is the snapstore's: item @src_item_id as it stood just after
+ * record @src_record_id.  Record ids are stable across reorder and never
+ * reused, so a pin survives everything except deleting what it points at.
+ *
+ * The "image" input every pixel op consumes is implicit and never pinned —
+ * it is the chain itself.  Roles name the EXTRA inputs: "mask" today. */
+typedef struct nde_input_pin {
+	gchar  *role;           /* owned; "mask", later "overlay", "base"… */
+	gint    src_item_id;    /* the item supplying this input */
+	gint64  src_record_id;  /* its state after this record; 0 = its baseline */
+} nde_input_pin;
+
+nde_input_pin *nde_input_pin_new(const char *role, gint src_item_id, gint64 src_record_id);
+void           nde_input_pin_free(nde_input_pin *pin);
+
 typedef struct nde_record {
 	gint64    record_id;      /* monotonic per document, never reused; 0 = unassigned */
 	gchar    *op_id;          /* owned copy — survives unknown ops on reload */
@@ -89,8 +110,43 @@ typedef struct nde_record {
 	gchar    *impl;           /* producing implementation, FLISIMPL-style string */
 	gint      tier;           /* nde_tier */
 	gboolean  mask_active;    /* a processing/layer mask was in effect at capture */
-	gchar    *mask_ref;       /* reserved for mask snapshots; always NULL in phase 1 */
+	gchar    *mask_ref;       /* dead: the pin list superseded it before it was
+	                           * ever populated.  Still written (empty) to
+	                           * FLIS_HIST so older builds find every column
+	                           * they look up by name. */
+	GPtrArray *inputs;        /* of nde_input_pin*, or NULL when the record
+	                           * consumes only its chain's implicit image */
 } nde_record;
+
+/* Attach an input edge.  @role and the ids are copied; the record owns the
+ * pin.  Adding the same role twice replaces the earlier pin — a record has at
+ * most one input per role. */
+void nde_record_add_input(nde_record *rec, const char *role,
+                          gint src_item_id, gint64 src_record_id);
+
+/** The pin for @role, or NULL.  Borrowed — valid while @rec is. */
+const nde_input_pin *nde_record_input(const nde_record *rec, const char *role);
+
+/* ---- pin list codec ------------------------------------------------------
+ * Encoded with the ordinary kv codec so the escaping rules are shared:
+ * "n=2;role0=mask;item0=3;rec0=7;role1=base;item1=1;rec1=0".              */
+
+/** Serialize @pins; NULL for a NULL/empty list (nothing to persist). */
+gchar *nde_pins_serialize(GPtrArray *pins);
+
+/** Parse a blob back into a GPtrArray of nde_input_pin* with a free func, or
+ *  NULL when the blob is empty or names no complete pin. */
+GPtrArray *nde_pins_parse(const char *blob);
+
+/** Human-readable one-liner for the History and flis_history:
+ *  "mask@3:7, base@1:baseline".  NULL when there are no pins. */
+gchar *nde_pins_to_string(GPtrArray *pins);
+
+/**
+ * Record id of the last LIVE record targeting @item_id, or 0 when the item
+ * has no history yet.  This is the "as it stood now" end of a fresh pin.
+ */
+gint64 nde_history_last_record_for_item(gint item_id);
 
 typedef struct nde_history {
 	GPtrArray *records;      /* of nde_record*, position == order */

@@ -617,3 +617,113 @@ Test(nde_persist, reordered_history_persists_in_new_order) {
 	cr_assert_str_eq(((nde_record *)g_ptr_array_index(snap, 0))->op_id, "c.c");
 	g_ptr_array_unref(snap);
 }
+
+/* ---- input pins (graph step 4) ---------------------------------------- */
+
+Test(nde_persist, input_pins_round_trip) {
+	flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "base");
+	gint64 id = append_full("filters.gauss", 1, "sigma=2", "blur",
+	                        NDE_TIER_A, NDE_SCOPE_LAYER, 1, TRUE);
+	cr_assert_eq(id, 1);
+	/* Reach into the live record: capture sites add pins before append, but
+	 * the fixture appends first, so add through a snapshot-free path. */
+	GPtrArray *live = nde_history_snapshot(NULL);
+	cr_assert_eq(live->len, 1);
+	g_ptr_array_unref(live);
+
+	nde_record *rec = nde_record_new();
+	rec->op_id = g_strdup("filters.unsharp");
+	rec->op_version = 1;
+	rec->params = g_strdup("sigma=1;amount=0.5");
+	rec->summary = g_strdup("unsharp");
+	rec->tier = NDE_TIER_A;
+	rec->scope = NDE_SCOPE_LAYER;
+	rec->target_item_id = 1;
+	rec->timestamp = nde_iso8601_now();
+	rec->impl = nde_impl_string();
+	nde_record_add_input(rec, "mask", 7, 3);
+	nde_record_add_input(rec, "overlay", -2, 0);   /* 0 = that item's baseline */
+	cr_assert(nde_history_append(rec) > 0);
+
+	cr_assert_eq(save_flis(tmppath), 0);
+	flis_free_layers(com.uniq);
+	nde_history_attach(NULL);
+	cr_assert_eq(load_flis(tmppath), 0);
+
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	cr_assert_eq(snap->len, 2);
+	const nde_record *plain = g_ptr_array_index(snap, 0);
+	cr_assert_null(plain->inputs, "a record with no pins must load none");
+	const nde_record *pinned = g_ptr_array_index(snap, 1);
+	cr_assert_not_null(pinned->inputs);
+	cr_assert_eq(pinned->inputs->len, 2);
+	const nde_input_pin *m = nde_record_input(pinned, "mask");
+	cr_assert_not_null(m);
+	cr_assert_eq(m->src_item_id, 7);
+	cr_assert_eq(m->src_record_id, 3);
+	const nde_input_pin *o = nde_record_input(pinned, "overlay");
+	cr_assert_not_null(o);
+	cr_assert_eq(o->src_item_id, -2);
+	cr_assert_eq(o->src_record_id, 0);
+	cr_assert_null(nde_record_input(pinned, "nosuchrole"));
+	g_ptr_array_unref(snap);
+}
+
+/* A file written before the INPUTS column existed is OLDER, not malformed:
+ * the column lookup must tolerate its absence rather than discard the whole
+ * history.  Simulated by deleting the column from a file we just wrote. */
+Test(nde_persist, history_without_the_inputs_column_still_loads) {
+	flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "base");
+	append_full("stretch.mtf", 1, "lo=0.1", "mtf", NDE_TIER_A,
+	            NDE_SCOPE_LAYER, 1, FALSE);
+	nde_record *rec = nde_record_new();
+	rec->op_id = g_strdup("filters.gauss");
+	rec->op_version = 1;
+	rec->params = g_strdup("sigma=2");
+	rec->summary = g_strdup("blur");
+	rec->tier = NDE_TIER_A;
+	rec->scope = NDE_SCOPE_LAYER;
+	rec->target_item_id = 1;
+	rec->timestamp = nde_iso8601_now();
+	rec->impl = nde_impl_string();
+	nde_record_add_input(rec, "mask", 7, 1);
+	cr_assert(nde_history_append(rec) > 0);
+	cr_assert_eq(save_flis(tmppath), 0);
+
+	int status = 0;
+	fitsfile *fptr = NULL;
+	fits_open_diskfile(&fptr, tmppath, READWRITE, &status);
+	cr_assert_eq(status, 0);
+	int nhdus = 0;
+	fits_get_num_hdus(fptr, &nhdus, &status);
+	gboolean dropped = FALSE;
+	for (int h = 2; h <= nhdus && !dropped; h++) {
+		char extname[FLEN_VALUE] = { 0 };
+		fits_movabs_hdu(fptr, h, NULL, &status); status = 0;
+		fits_read_key(fptr, TSTRING, "EXTNAME", extname, NULL, &status); status = 0;
+		if (!g_ascii_strcasecmp(extname, "FLIS_HIST")) {
+			int col = 0;
+			fits_get_colnum(fptr, CASEINSEN, "INPUTS", &col, &status);
+			cr_assert_eq(status, 0, "fixture: INPUTS column not found");
+			fits_delete_col(fptr, col, &status);
+			cr_assert_eq(status, 0);
+			/* and say it is a v1 table, as an old writer would have */
+			int v1 = 1;
+			fits_update_key(fptr, TINT, "FLISHVER", &v1, NULL, &status);
+			dropped = TRUE;
+		}
+	}
+	fits_close_file(fptr, &status);
+	cr_assert(dropped, "fixture: FLIS_HIST not found");
+	cr_assert_eq(status, 0);
+
+	flis_free_layers(com.uniq);
+	nde_history_attach(NULL);
+	cr_assert_eq(load_flis(tmppath), 0, "an older table must load, not be discarded");
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	cr_assert_not_null(snap, "the history must survive, minus the pins");
+	cr_assert_eq(snap->len, 2);
+	cr_assert_str_eq(((nde_record *)g_ptr_array_index(snap, 0))->op_id, "stretch.mtf");
+	cr_assert_null(((nde_record *)g_ptr_array_index(snap, 1))->inputs);
+	g_ptr_array_unref(snap);
+}

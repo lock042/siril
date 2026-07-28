@@ -1495,7 +1495,16 @@ static gint layer_order_cmp(gconstpointer a, gconstpointer b) {
  * FLIS_HIST — NDE provenance table (nde sketch §14)
  * ===================================================================== */
 
-#define FLIS_HIST_NCOLS 12
+/* Column count WRITTEN.  Column 13 (INPUTS, graph step 4) is newer than the
+ * rest, and the reader resolves columns BY NAME — so a file written before it
+ * existed must still load.  Readers therefore look INPUTS up optionally and
+ * tolerate its absence, and we keep writing an (always empty) MASKREF, which
+ * the pin list superseded, so that an older build still finds every column it
+ * expects.  FLISHVER goes to 2 to say the table gained a column; an older
+ * build reads it best-effort and says so. */
+#define FLIS_HIST_NCOLS 13
+#define FLIS_HIST_NCOLS_V1 12   /* what a version-1 table has */
+#define FLIS_HIST_VER 2         /* 1 = the original 12 columns; 2 = + INPUTS */
 
 /*
  * Write the FLIS_HIST binary table from a history snapshot.  Appended after
@@ -1505,7 +1514,7 @@ static gint layer_order_cmp(gconstpointer a, gconstpointer b) {
  */
 static int write_flis_hist_hdu(fitsfile *fptr, GPtrArray *records, gint64 next_id) {
     int status = 0;
-    size_t w_op = 1, w_par = 1, w_sum = 1, w_ts = 1, w_impl = 1, w_mref = 1;
+    size_t w_op = 1, w_par = 1, w_sum = 1, w_ts = 1, w_impl = 1, w_mref = 1, w_in = 1;
     for (guint i = 0; i < records->len; i++) {
         nde_record *rec = g_ptr_array_index(records, i);
         if (rec->op_id)     w_op   = MAX(w_op,   strlen(rec->op_id));
@@ -1514,22 +1523,26 @@ static int write_flis_hist_hdu(fitsfile *fptr, GPtrArray *records, gint64 next_i
         if (rec->timestamp) w_ts   = MAX(w_ts,   strlen(rec->timestamp));
         if (rec->impl)      w_impl = MAX(w_impl, strlen(rec->impl));
         if (rec->mask_ref)  w_mref = MAX(w_mref, strlen(rec->mask_ref));
+        gchar *pins = nde_pins_serialize(rec->inputs);
+        if (pins) w_in = MAX(w_in, strlen(pins));
+        g_free(pins);
     }
-    char f_op[24], f_par[24], f_sum[24], f_ts[24], f_impl[24], f_mref[24];
+    char f_op[24], f_par[24], f_sum[24], f_ts[24], f_impl[24], f_mref[24], f_in[24];
     g_snprintf(f_op,   sizeof(f_op),   "%zuA", w_op);
     g_snprintf(f_par,  sizeof(f_par),  "%zuA", w_par);
     g_snprintf(f_sum,  sizeof(f_sum),  "%zuA", w_sum);
     g_snprintf(f_ts,   sizeof(f_ts),   "%zuA", w_ts);
     g_snprintf(f_impl, sizeof(f_impl), "%zuA", w_impl);
     g_snprintf(f_mref, sizeof(f_mref), "%zuA", w_mref);
+    g_snprintf(f_in,   sizeof(f_in),   "%zuA", w_in);
 
     const char *names[FLIS_HIST_NCOLS] = {
         "RECORD_ID", "OP_ID", "OP_VER", "SCOPE", "TARGET", "TIER",
-        "MASKACT", "PARAMS", "SUMMARY", "TSTAMP", "IMPL", "MASKREF"
+        "MASKACT", "PARAMS", "SUMMARY", "TSTAMP", "IMPL", "MASKREF", "INPUTS"
     };
     const char *fmts[FLIS_HIST_NCOLS] = {
         "1K", f_op, "1J", "1J", "1J", "1J",
-        "1L", f_par, f_sum, f_ts, f_impl, f_mref
+        "1L", f_par, f_sum, f_ts, f_impl, f_mref, f_in
     };
 
     if (fits_create_tbl(fptr, BINARY_TBL, records->len, FLIS_HIST_NCOLS,
@@ -1537,7 +1550,7 @@ static int write_flis_hist_hdu(fitsfile *fptr, GPtrArray *records, gint64 next_i
         report_fits_error(status);
         return 1;
     }
-    int hver = 1;
+    int hver = FLIS_HIST_VER;
     LONGLONG seq = next_id;
     fits_write_key(fptr, TINT,      "FLISHVER", &hver, "FLIS_HIST format version", &status);
     fits_write_key(fptr, TLONGLONG, "FLISHSEQ", &seq,  "Next NDE record id",       &status);
@@ -1569,6 +1582,10 @@ static int write_flis_hist_hdu(fitsfile *fptr, GPtrArray *records, gint64 next_i
         fits_write_col(fptr, TSTRING,   10, row, 1, 1, &s_ts,   &status);
         fits_write_col(fptr, TSTRING,   11, row, 1, 1, &s_impl, &status);
         fits_write_col(fptr, TSTRING,   12, row, 1, 1, &s_mref, &status);
+        gchar *pins = nde_pins_serialize(rec->inputs);
+        char *s_in = pins ? pins : (char *)"";
+        fits_write_col(fptr, TSTRING,   13, row, 1, 1, &s_in,   &status);
+        g_free(pins);
     }
     if (status) { report_fits_error(status); return 1; }
     return 0;
@@ -1811,8 +1828,9 @@ static nde_history *read_flis_hist(fitsfile *fptr, int nhdus) {
 
     int hver = 1;
     fits_read_key(fptr, TINT, "FLISHVER", &hver, NULL, &status); status = 0;
-    if (hver > 1)
-        siril_log_warning(_("FLIS: history table version %d is newer than this build understands (1); reading best-effort\n"), hver);
+    if (hver > FLIS_HIST_VER)
+        siril_log_warning(_("FLIS: history table version %d is newer than this build understands (%d); reading best-effort\n"),
+                          hver, FLIS_HIST_VER);
     LONGLONG seq = 0;
     fits_read_key(fptr, TLONGLONG, "FLISHSEQ", &seq, NULL, &status); status = 0;
 
@@ -1822,16 +1840,28 @@ static nde_history *read_flis_hist(fitsfile *fptr, int nhdus) {
     long widths[FLIS_HIST_NCOLS] = { 0 };
     static const char *colnames[FLIS_HIST_NCOLS] = {
         "RECORD_ID", "OP_ID", "OP_VER", "SCOPE", "TARGET", "TIER",
-        "MASKACT", "PARAMS", "SUMMARY", "TSTAMP", "IMPL", "MASKREF"
+        "MASKACT", "PARAMS", "SUMMARY", "TSTAMP", "IMPL", "MASKREF", "INPUTS"
     };
+    /* Columns beyond the v1 set are OPTIONAL: a table written before they
+     * existed is not malformed, it is older.  Their absence leaves cols[c]
+     * at 0, which the row loop treats as "no value". */
     for (int c = 0; c < FLIS_HIST_NCOLS; c++) {
-        fits_get_colnum(fptr, CASEINSEN, (char *)colnames[c], &cols[c], &status);
-        if (!status) {
-            int typecode = 0;
-            long repeat = 0, w = 0;
-            fits_get_coltype(fptr, cols[c], &typecode, &repeat, &w, &status);
-            widths[c] = repeat;
+        gboolean optional = (c >= FLIS_HIST_NCOLS_V1);
+        int cstatus = 0;
+        cols[c] = 0;
+        fits_get_colnum(fptr, CASEINSEN, (char *)colnames[c], &cols[c], &cstatus);
+        if (cstatus) {
+            if (optional) {
+                cols[c] = 0;
+                continue;   /* older table: nothing to read for this column */
+            }
+            status = cstatus;
+            break;
         }
+        int typecode = 0;
+        long repeat = 0, w = 0;
+        fits_get_coltype(fptr, cols[c], &typecode, &repeat, &w, &status);
+        widths[c] = repeat;
     }
     if (status) {
         report_fits_error(status);
@@ -1858,6 +1888,11 @@ static nde_history *read_flis_hist(fitsfile *fptr, int nhdus) {
         rec->timestamp = hist_read_str_cell(fptr, cols[9],  r, widths[9],  &status);
         rec->impl      = hist_read_str_cell(fptr, cols[10], r, widths[10], &status);
         rec->mask_ref  = hist_read_str_cell(fptr, cols[11], r, widths[11], &status);
+        if (cols[12] > 0) {
+            gchar *pins = hist_read_str_cell(fptr, cols[12], r, widths[12], &status);
+            rec->inputs = nde_pins_parse(pins);
+            g_free(pins);
+        }
         if (status) {
             nde_record_free(rec);
             report_fits_error(status);

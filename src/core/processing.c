@@ -1905,6 +1905,19 @@ the_end:;
 			rec->target_item_id = lay ? lay->item_id : -1;
 		}
 		rec->mask_active = using_mask;
+		/* The mask is a real INPUT, not a flag.  mask_active only ever said
+		 * "something was masking this"; the pin says WHICH mask and in what
+		 * state, which is what a replay needs to reproduce the op rather than
+		 * refuse it (nde_history.h).  The mask item is the one step 3
+		 * allocated; its state is whatever record last touched it. */
+		if (using_mask) {
+			gint mask_item = NDE_ITEM_PLAIN_MASK;
+			if (is_current_image_flis())
+				mask_item = flis_layer_pmask_id(flis_active_layer());
+			if (mask_item != 0)
+				nde_record_add_input(rec, "mask", mask_item,
+				                     nde_history_last_record_for_item(mask_item));
+		}
 		rec->timestamp = nde_iso8601_now();
 		rec->impl = nde_impl_string();
 		/* Baseline checkpoint (nde phase 2): after the swap, `orig` holds the
