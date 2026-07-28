@@ -29,6 +29,9 @@
 #include "core/processing.h"
 #include "core/masks.h"
 #include "core/undo.h"
+#include "core/op_descriptor.h"
+#include "core/nde_history.h"
+#include "core/nde_replay.h"
 
 cominfo com;
 fits *gfit;
@@ -44,6 +47,12 @@ static int fill_mask_hook(struct generic_mask_args *args) {
 	f->mask->data = malloc(n);
 	memset(f->mask->data, 0xAA, n);
 	return 0;
+}
+
+/* Hook that always fails — used to verify a failed op records nothing. */
+static int failing_hook(struct generic_mask_args *args) {
+	(void)args;
+	return 1;
 }
 
 /* Hook that does nothing — used to verify "no routing without -layermask=". */
@@ -246,4 +255,134 @@ Test(flis_mask_route, refused_routing_leaves_no_undo) {
 	cr_assert_null(small->lmask);
 	cr_assert_null(com.undo_stack,
 	               "refused op must leave no undo entry");
+}
+
+/* ---------------- NDE provenance for mask operations ---------------- */
+
+/* A descriptor so the worker takes the capture path; no serializer, which is
+ * the state of every real mask op today (Tier B). */
+static const op_descriptor op_desc_test_mask = {
+	.id = "mask.test_fill", .version = 1, .mask_hook = fill_mask_hook,
+	.description = "Test mask fill", .mem_ratio = 0.0f, .flags = 0,
+};
+
+static const nde_record *only_record(void) {
+	static GPtrArray *snap = NULL;
+	if (snap) g_ptr_array_unref(snap);
+	snap = nde_history_snapshot(NULL);
+	return (snap && snap->len) ? g_ptr_array_index(snap, snap->len - 1) : NULL;
+}
+
+static void run_mask_op(fits *fit, gint target_layer_id) {
+	struct generic_mask_args *args = calloc(1, sizeof(*args));
+	args->fit             = fit;
+	args->op              = &op_desc_test_mask;
+	args->command         = TRUE;
+	args->mask_creation   = TRUE;
+	args->target_layer_id = target_layer_id;
+	args->max_threads     = 1;
+	generic_mask_worker(args);
+}
+
+/* A mask op records against the MASK, not the layer whose pixels it will
+ * later modulate — that separation is what step 4's input pins need. */
+Test(flis_mask_route, mask_op_records_against_the_processing_mask_item) {
+	flis_layer_t *base = flis_test_add_layer(
+	    flis_test_make_mono_fits(16, 16, 0.0f), "base");
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+
+	run_mask_op(gfit, 0);
+	cr_assert_not_null(gfit->mask, "precondition: the op left a processing mask");
+
+	gint pmask = flis_layer_pmask_id(base);
+	cr_assert_neq(pmask, 0);
+	cr_assert_neq(pmask, base->item_id, "the mask is its own item");
+	const nde_record *rec = only_record();
+	cr_assert_not_null(rec, "a mask op must leave provenance");
+	cr_assert_str_eq(rec->op_id, "mask.test_fill");
+	cr_assert_eq(rec->target_item_id, pmask);
+	cr_assert_eq(rec->scope, NDE_SCOPE_LAYER);
+	cr_assert_eq(rec->tier, NDE_TIER_B, "no mask op has a serializer yet");
+	cr_assert(!rec->mask_active, "a mask op has no mask input of its own");
+}
+
+Test(flis_mask_route, routed_mask_op_records_against_the_layer_mask_item) {
+	flis_test_add_layer(flis_test_make_mono_fits(16, 16, 0.0f), "base");
+	flis_layer_t *top = flis_test_add_layer(
+	    flis_test_make_mono_fits(16, 16, 0.5f), "patch");
+	uniq_set_active_layer(com.uniq, 1);
+	gfit = flis_active_layer_fit();
+
+	run_mask_op(gfit, top->item_id);
+	cr_assert_not_null(top->lmask, "precondition: the mask was routed");
+
+	gint lmask = flis_layer_lmask_id(top);
+	const nde_record *rec = only_record();
+	cr_assert_not_null(rec);
+	cr_assert_eq(rec->target_item_id, lmask,
+	             "a routed op belongs to the layer mask it produced, "
+	             "not the processing slot it passed through");
+}
+
+/* The mask's lineage is separate from the layer's: a mask op must not join
+ * the layer's replay chain, or every masked workflow would drag mask edits
+ * into the pixel history. */
+Test(flis_mask_route, mask_records_stay_out_of_the_layer_chain) {
+	flis_layer_t *base = flis_test_add_layer(
+	    flis_test_make_mono_fits(16, 16, 0.0f), "base");
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+	run_mask_op(gfit, 0);
+
+	nde_chain *layer_chain = nde_chain_build(base->item_id);
+	cr_assert_eq(layer_chain->records->len, 0,
+	             "the mask op is not part of the layer's pixel lineage");
+	nde_chain_free(layer_chain);
+
+	nde_chain *mask_chain = nde_chain_build(flis_layer_pmask_id(base));
+	cr_assert_eq(mask_chain->records->len, 1,
+	             "but it IS the mask's own chain");
+	nde_chain_free(mask_chain);
+}
+
+/* On a plain image the processing mask has no layer to hang off, so it uses
+ * the NDE_ITEM_PLAIN_MASK sentinel — the mask counterpart of the -1 that
+ * names the image itself. */
+Test(flis_mask_route, plain_image_mask_op_uses_the_sentinel_item) {
+	fits *f = flis_test_make_mono_fits(16, 16, 0.25f);
+	gfit = f;
+	/* no com.uniq->layers: this is a plain single image */
+	cr_assert(!is_current_image_flis());
+
+	run_mask_op(gfit, 0);
+	const nde_record *rec = only_record();
+	cr_assert_not_null(rec);
+	cr_assert_eq(rec->target_item_id, NDE_ITEM_PLAIN_MASK);
+	cr_assert_neq(rec->target_item_id, NDE_ITEM_IMAGE,
+	              "the mask is not the image");
+	gfit = NULL;
+	clearfits(f);
+	free(f);
+}
+
+/* A failed hook must not record: the log describes changes that happened. */
+Test(flis_mask_route, a_failed_mask_op_records_nothing) {
+	flis_test_add_layer(flis_test_make_mono_fits(16, 16, 0.0f), "base");
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+
+	static const op_descriptor failing = {
+		.id = "mask.test_fail", .version = 1, .mask_hook = failing_hook,
+		.description = "Failing mask op", .mem_ratio = 0.0f, .flags = 0,
+	};
+	struct generic_mask_args *args = calloc(1, sizeof(*args));
+	args->fit           = gfit;
+	args->op            = &failing;
+	args->command       = TRUE;
+	args->mask_creation = TRUE;
+	args->max_threads   = 1;
+	generic_mask_worker(args);
+
+	cr_assert_eq(nde_history_live_count(), 0);
 }

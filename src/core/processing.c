@@ -2158,6 +2158,7 @@ the_end:
 	 * hook succeeded and produced a mask.  Failure here (no FLIS / layer
 	 * gone / dimension mismatch) leaves the mask as the processing mask —
 	 * better than dropping it on the floor. */
+	gint routed_to_layer = 0;   /* layer whose lmask received the mask, if any */
 	if (!retval && args->target_layer_id != 0 && args->fit->mask
 	    && args->fit->mask->data && is_current_image_flis()) {
 		/* M-F12: the routing mutates a layer's lmask from the worker
@@ -2192,6 +2193,7 @@ the_end:
 				if (flis_layer_set_lmask(target, lm)) {
 					layermask_free(lm);
 				} else {
+					routed_to_layer = target->item_id;
 					/* Show the result: flip the mask-view radio to
 					 * LAYER so the (now visible) mask tab displays
 					 * the lmask that was just created, not the empty
@@ -2215,6 +2217,55 @@ the_end:
 	if (rwlocked)
 		g_rw_lock_writer_unlock(&args->fit->rwlock);
 	g_rw_lock_reader_unlock(&com.pref_rwlock);
+
+	/* NDE provenance.  A mask is an item in its own right (step 3 gave it a
+	 * real id), so a mask operation is recorded against the MASK, not against
+	 * the layer whose pixels it will later modulate — that separation is what
+	 * lets an operation reference the mask it consumed instead of merely
+	 * flagging that one was active.  Which mask depends on where the result
+	 * landed: an lmask when the op was routed to one, otherwise the layer's
+	 * processing mask, or the plain image's (NDE_ITEM_PLAIN_MASK).
+	 *
+	 * Tier follows the descriptor as everywhere else — no mask op carries a
+	 * serializer yet, so these are all opaque today: the log says what was
+	 * done to the mask, and replaying it is a separate piece of work. */
+	if (!retval && args->op) {
+		gint mask_item = NDE_ITEM_PLAIN_MASK;
+		if (routed_to_layer) {
+			mask_item = flis_layer_lmask_id(flis_layer_get_by_id(routed_to_layer));
+		} else if (is_current_image_flis()) {
+			flis_layer_t *active = flis_active_layer();
+			/* An op that EMPTIED the slot (mask.clear) still belongs to the
+			 * mask it emptied — and the accessor releases the id precisely
+			 * because the mask is now gone, so read it first. */
+			gint prev = active ? active->pmask_item_id : 0;
+			mask_item = flis_layer_pmask_id(active);
+			if (mask_item == 0)
+				mask_item = prev;
+		}
+		/* 0 means there was no mask item at all: a routing failure that left
+		 * nothing behind, or a clear of a slot that never held one. */
+		if (mask_item != 0) {
+			nde_record *rec = nde_record_new();
+			gboolean tier_a = args->op->serialize != NULL;
+			rec->op_id      = g_strdup(args->op->id);
+			rec->op_version = args->op->version;
+			rec->tier       = tier_a ? NDE_TIER_A : NDE_TIER_B;
+			rec->params     = tier_a ? args->op->serialize(args->user) : NULL;
+			rec->summary    = args->log_hook ? args->log_hook(args->user, SUMMARY)
+			                                 : g_strdup(args->description);
+			rec->scope      = NDE_SCOPE_LAYER;   /* the mask IS the item */
+			rec->target_item_id = mask_item;
+			rec->mask_active    = FALSE;         /* a mask op has no mask input */
+			rec->timestamp  = nde_iso8601_now();
+			rec->impl       = nde_impl_string();
+			gint64 mask_rec_id = nde_history_append(rec);
+			nde_history_notify_panel();
+			/* The hook saved an undo entry above; couple it so undo/redo
+			 * moves live_count with the pixels. */
+			undo_tag_top_nde_record(mask_rec_id);
+		}
+	}
 
 	if (args->command) {
 		if (com.headless) {

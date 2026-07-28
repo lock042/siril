@@ -53,6 +53,15 @@ extern "C" {
 struct ffit;
 typedef struct ffit fits;
 
+/* Item-id sentinels for the two things that are not FLIS items but still need
+ * naming in the log.  Real ids are positive and come from next_item_id; masks
+ * owned by a layer get theirs from flis_layer_lmask_id/pmask_id. */
+#define NDE_ITEM_IMAGE      (-1)  /* the plain single image (no layer stack) */
+#define NDE_ITEM_PLAIN_MASK (-2)  /* that image's processing mask.  Rebound onto
+                                   * the base layer's mask id by promote, the
+                                   * same way NDE_ITEM_IMAGE is rebound onto the
+                                   * base layer. */
+
 typedef enum {
 	NDE_SCOPE_LAYER    = 0,  /* affects the target layer's pixels only */
 	NDE_SCOPE_CANVAS   = 1,  /* changes canvas/layer geometry (crop, resample...) */

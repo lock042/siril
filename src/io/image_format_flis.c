@@ -3406,9 +3406,19 @@ int flis_promote_from_gfit(const gchar *name) {
      * (-1) onto the new layer so the chain stays ONE editable lineage
      * across the promote instead of splitting at the save point.  Cached
      * pool states for the old item are dropped (cache only). */
-    nde_history_rebind_item(-1, base->item_id);
-    nde_checkpoint_rebind_item(-1, base->item_id);
-    nde_snapstore_invalidate_from(-1, 0);
+    nde_history_rebind_item(NDE_ITEM_IMAGE, base->item_id);
+    nde_checkpoint_rebind_item(NDE_ITEM_IMAGE, base->item_id);
+    nde_snapstore_invalidate_from(NDE_ITEM_IMAGE, 0);
+    /* Same move for the processing mask: gfit's mask travelled into the base
+     * layer with its pixels, so the records describing how it was built now
+     * belong to that layer's mask item.  Allocating the id here is the first
+     * use, which is what makes the rebind land somewhere real. */
+    if (base->fit && base->fit->mask) {
+        gint pmask = flis_layer_pmask_id(base);
+        nde_history_rebind_item(NDE_ITEM_PLAIN_MASK, pmask);
+        nde_checkpoint_rebind_item(NDE_ITEM_PLAIN_MASK, pmask);
+        nde_snapstore_invalidate_from(NDE_ITEM_PLAIN_MASK, 0);
+    }
 
     /* com.uniq->filename and fileexist are already correct from
      * create_uniq_from_gfit().  Mark the composite dirty. */
