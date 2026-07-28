@@ -2787,15 +2787,13 @@ Test(nde_replay, a_pin_before_the_edit_is_not_disturbed) {
 	golden_teardown(NULL, f);
 }
 
-/* Replaying an operation that ran under an 8-BIT mask is not bit-exact, and
- * this pins how far off it is so it cannot quietly get worse.  Nothing to do
- * with amending or with reverse invalidation: a plain replay of a freshly
- * captured chain already shows it.  A float32 mask replays exactly (see
- * replay_restores_the_pinned_mask_bit_exactly), so the loss is somewhere in
- * the 8-bit blend, and the live blend runs the swap path while the replay
- * runs the non-swap one.  Worth chasing separately; documented here so the
- * bound is a decision rather than an accident. */
-Test(nde_replay, eight_bit_masked_replay_deviation_is_bounded) {
+/* An 8-bit mask survives its trip through the snapshot store as an 8-bit mask.
+ * It used to come back 16-bit: mask_to_fits widens 8-bit mask bytes into WORDs
+ * and fits_to_mask reads orig_bitpix to decide what to rebuild, but the
+ * snapshot did not carry orig_bitpix.  The pixels were unharmed (the widening
+ * is exactly invertible), so the only visible trace was the blend then scaling
+ * by 1/65535 instead of 1/255 — one float ulp on a handful of pixels. */
+Test(nde_replay, an_eight_bit_masked_op_replays_bit_exactly) {
 	com.pref.nde_cache_mb = 256;
 	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
 	fill_mono_gradient(f);
@@ -2813,14 +2811,9 @@ Test(nde_replay, eight_bit_masked_replay_deviation_is_bounded) {
 	unreserve_thread();
 	cr_assert_not_null(result, "replay failed: %s", err ? err : "?");
 
-	double maxd = 0.0;
 	size_t n = (size_t)result->rx * result->ry;
-	for (size_t i = 0; i < n; i++) {
-		double d = fabs((double)result->fdata[i] - (double)expected.fdata[i]);
-		if (d > maxd) maxd = d;
-	}
-	cr_assert(maxd <= 1.2e-7,
-	          "8-bit masked replay deviation grew to %.9g (was one float ulp)", maxd);
+	cr_assert_eq(memcmp(result->fdata, expected.fdata, n * sizeof(float)), 0,
+	             "replaying under an 8-bit mask must reproduce the live pixels exactly");
 	clearfits(result); free(result);
 	nde_chain_free(chain);
 	clearfits(&expected);

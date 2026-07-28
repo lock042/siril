@@ -482,6 +482,33 @@ Test(nde_persist, ckpt_roundtrip_ushort_exact) {
 	clearfits(post); free(post);
 }
 
+/* A pinned 8-bit mask travels as a 16-bit checkpoint, and only orig_bitpix
+ * records that its content is really 8-bit — BITPIX cannot say so.  Without
+ * FLIS_OBPX the reader inferred 16-bit and fits_to_mask rebuilt the wrong
+ * depth, so a saved mask came back a different kind of mask from the one
+ * saved. */
+Test(nde_persist, an_eight_bit_checkpoint_reloads_as_eight_bit) {
+	flis_layer_t *l = flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.5f), "base");
+	gint lid = l->item_id;
+	gint64 bid = append_full("mask.blur", 1, NULL, "Blur mask",
+	                         NDE_TIER_A, NDE_SCOPE_LAYER, lid, FALSE);
+	fits *post = ramp_ushort(8, 8, 1, 2000);
+	post->orig_bitpix = BYTE_IMG;
+	nde_checkpoint_output_store(post, bid, lid);
+
+	cr_assert_eq(save_flis(tmppath), 0);
+	flis_free_layers(com.uniq);
+	nde_history_attach(NULL);
+	cr_assert_eq(load_flis(tmppath), 0);
+
+	fits *got = nde_checkpoint_output_get(bid);
+	cr_assert_not_null(got);
+	cr_assert_eq(got->orig_bitpix, BYTE_IMG,
+	             "an 8-bit mask must not come back as a 16-bit one");
+	clearfits(got); free(got);
+	clearfits(post); free(post);
+}
+
 /* The checkpoint must round-trip LOSSLESSLY under the user's lossy tile
  * compression, exactly like NDE_BASE (decision 4). */
 Test(nde_persist, ckpt_lossless_under_user_compression) {

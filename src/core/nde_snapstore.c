@@ -56,6 +56,7 @@ struct nde_snap {
 	guint      rx, ry;
 	guint      nchans;
 	data_type  type;
+	int        orig_bitpix;   /* the SOURCE depth, not the buffer's */
 	gint64     bytes;         /* pixel payload size on disk */
 	wcs_info   wcsdata;
 	wcsprm_t  *wcslib;        /* deep copy; freed with the snapshot */
@@ -162,6 +163,12 @@ nde_snap *nde_snap_create(const fits *src) {
 	s->ry           = src->ry;
 	s->nchans       = (guint)src->naxes[2];
 	s->type         = src->type;
+	/* orig_bitpix is not derivable from type: a fits holding WORDs may be an
+	 * 8-bit source widened for processing (mask_to_fits does exactly that, and
+	 * fits_to_mask reads this field to decide the mask's depth), and it also
+	 * drives 8-bit export normalisation.  Losing it turns a restored 8-bit
+	 * mask into a 16-bit one. */
+	s->orig_bitpix  = src->orig_bitpix;
 	s->bytes        = (gint64)bytes;
 	s->wcsdata      = src->keywords.wcsdata;
 	if (src->keywords.wcslib) {
@@ -203,6 +210,8 @@ fits *nde_snap_read(const nde_snap *s) {
 	fits *out = NULL;
 	if (new_fit_image(&out, (int)s->rx, (int)s->ry, (int)s->nchans, s->type))
 		return NULL;
+
+	out->orig_bitpix = s->orig_bitpix;
 
 	void *dst = (s->type == DATA_USHORT) ? (void *)out->data : (void *)out->fdata;
 	if (lseek(s->fd, 0, SEEK_SET) == (off_t)-1) {
@@ -246,6 +255,7 @@ int nde_snap_read_into(const nde_snap *s, fits *dst) {
 	dst->naxes[2] = s->nchans;
 	dst->naxis = s->nchans == 1 ? 2 : 3;
 	dst->type = s->type;
+	dst->orig_bitpix = s->orig_bitpix;
 
 	errno = 0;
 	if (s->type == DATA_USHORT) {

@@ -92,6 +92,36 @@ Test(nde_snapstore, read_into_matches_read) {
 	clearfits(f); free(f);
 }
 
+/* A snapshot's BITPIX describes the buffer it holds, not the depth its content
+ * really has — an 8-bit mask travels widened into WORDs, and only orig_bitpix
+ * says so.  Dropping it silently promoted restored 8-bit masks to 16-bit. */
+Test(nde_snapstore, orig_bitpix_survives_the_round_trip) {
+	fits *f = flis_test_make_mono_fits(8, 6, 0.f);
+	free(f->fdata); f->fdata = NULL;
+	f->type = DATA_USHORT;
+	f->bitpix = USHORT_IMG;
+	f->orig_bitpix = BYTE_IMG;          /* 8-bit content in a 16-bit buffer */
+	f->data = calloc(48, sizeof(WORD));
+	f->pdata[0] = f->pdata[1] = f->pdata[2] = f->data;
+
+	nde_snap *s = nde_snap_create(f);
+	cr_assert_not_null(s);
+
+	fits *back = nde_snap_read(s);
+	cr_assert_not_null(back);
+	cr_assert_eq(back->orig_bitpix, BYTE_IMG,
+	             "read must not promote 8-bit content to 16-bit");
+	clearfits(back); free(back);
+
+	fits *into = flis_test_make_mono_fits(2, 2, 0.f);
+	cr_assert_eq(nde_snap_read_into(s, into), 0);
+	cr_assert_eq(into->orig_bitpix, BYTE_IMG, "read_into must carry it too");
+	clearfits(into); free(into);
+
+	nde_snap_unref(s);
+	clearfits(f); free(f);
+}
+
 Test(nde_snapstore, registry_ownership_semantics) {
 	fits *f = make_fixture(6, 6, 0.2f);
 	nde_snap *s = nde_snap_create(f);

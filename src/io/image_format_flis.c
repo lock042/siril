@@ -1630,6 +1630,27 @@ static void nde_base_restore_compression(fitsfile *fptr) {
     }
 }
 
+/* A checkpoint's BITPIX describes the buffer it was written from, not the
+ * depth its content really has: mask_to_fits widens an 8-bit mask into WORDs,
+ * and fits_to_mask reads orig_bitpix to decide what to rebuild.  The FITS
+ * reader can only infer orig_bitpix from BITPIX, so an 8-bit mask would come
+ * back as a 16-bit one.  Record it explicitly; absent on older files, where
+ * the inferred value is the best available answer. */
+static void write_orig_bitpix_key(fitsfile *fptr, const fits *f, int *status) {
+    if (f->orig_bitpix == f->bitpix)
+        return;         /* derivable — no need to spend a keyword */
+    int obp = f->orig_bitpix;
+    fits_write_key(fptr, TINT, "FLIS_OBPX", &obp, "Original bit depth of the content", status);
+}
+
+/* Restore what write_orig_bitpix_key stored, leaving @f alone when absent. */
+static void read_orig_bitpix_key(fitsfile *fptr, fits *f) {
+    int obp = 0, status = 0;
+    fits_read_key(fptr, TINT, "FLIS_OBPX", &obp, NULL, &status);
+    if (!status)
+        f->orig_bitpix = obp;
+}
+
 /* Write @f as one NDE_BASE image HDU tagged with @item_id.  @f must carry a
  * valid pixel buffer.  Compression is assumed already set to lossless. */
 /* @pos_x/@pos_y (when @has_pos) are the layer's position at baseline time —
@@ -1664,6 +1685,7 @@ static int write_nde_base_hdu(fitsfile *fptr, fits *f, gint item_id,
         fits_write_key(fptr, TINT, "FLIS_POSX", &px, "Layer X at baseline", &status);
         fits_write_key(fptr, TINT, "FLIS_POSY", &py, "Layer Y at baseline", &status);
     }
+    write_orig_bitpix_key(fptr, f, &status);
     fits_write_key(fptr, TSTRING, "FLIS_TYPE", (void *)"NDE_BASE", "FLIS HDU type", &status);
     fits_write_key(fptr, TSTRING, "EXTNAME",   (void *)"NDE_BASE",  "Extension name", &status);
     if (status) { report_fits_error(status); return 1; }
@@ -1756,6 +1778,7 @@ static int write_nde_ckpt_hdu(fitsfile *fptr, fits *f, gint64 record_id, gint it
             fits_write_key(fptr, TINT, "FLIS_POSY", &py, "Layer Y at checkpoint", &status);
         }
     }
+    write_orig_bitpix_key(fptr, f, &status);
     fits_write_key(fptr, TSTRING,   "FLIS_TYPE", (void *)"NDE_CKPT", "FLIS HDU type", &status);
     fits_write_key(fptr, TSTRING,   "EXTNAME",   (void *)"NDE_CKPT", "Extension name", &status);
     if (status) { report_fits_error(status); return 1; }
@@ -1985,6 +2008,7 @@ static GPtrArray *read_nde_base_hdus(fitsfile *fptr, int nhdus, nde_history *his
         }
         if (!out)
             out = g_ptr_array_new_with_free_func(nde_base_load_free);
+        read_orig_bitpix_key(fptr, f);
         nde_base_load_t *b = g_new0(nde_base_load_t, 1);
         b->item_id = item_id;
         b->fit     = f;
@@ -2062,6 +2086,7 @@ static GPtrArray *read_nde_ckpt_hdus(fitsfile *fptr, int nhdus, nde_history *his
             siril_log_warning(_("FLIS: failed to read NDE checkpoint HDU %d\n"), h);
             continue;
         }
+        read_orig_bitpix_key(fptr, f);
         if (!out)
             out = g_ptr_array_new_with_free_func(nde_ckpt_load_free);
         nde_ckpt_load_t *c = g_new0(nde_ckpt_load_t, 1);
