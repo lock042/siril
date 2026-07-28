@@ -1582,6 +1582,21 @@ gpointer generic_image_worker(gpointer p) {
 	flis_layer_props_t geom_pre_props  = { 0 };
 	layermask_t       *geom_pre_lmask  = NULL;
 
+	/* Pre-op layer position for the NDE baseline (graph step 5).  Captured
+	 * here because the hook is what moves it, and NOT gated on the undo
+	 * policy the way geom_pre_props is: a replay needs the starting position
+	 * whether or not this run saved an undo entry, scripts included. */
+	gint     nde_pre_pos_x = 0, nde_pre_pos_y = 0;
+	gboolean nde_have_pos  = FALSE;
+	if (argfit == gfit && !args->nde_replay && is_current_image_flis()) {
+		flis_layer_t *pos_lay = flis_active_layer();
+		if (pos_lay) {
+			nde_pre_pos_x = pos_lay->position_x;
+			nde_pre_pos_y = pos_lay->position_y;
+			nde_have_pos  = TRUE;
+		}
+	}
+
 	/* Two processing strategies live in this one function:
 	 *
 	 *   Swap path (argfit == gfit) — the long-running image_hook works
@@ -1923,8 +1938,17 @@ the_end:;
 		/* Baseline checkpoint (nde phase 2): after the swap, `orig` holds the
 		 * pre-op pixels — the baseline for replaying this item's chain.  Cheap
 		 * no-op if one already exists.  Prepared outside the leaf mutex. */
-		if (orig)
+		if (orig) {
 			nde_checkpoint_baseline_ensure(orig, rec->target_item_id);
+			/* A layer's replay value is its pixels AND its position: a
+			 * geometry record moves it relative to where it already was, so
+			 * without a starting position nothing downstream can be anchored
+			 * (nde_checkpoint.h).  Setting it is a no-op unless the ensure
+			 * above actually created the baseline. */
+			if (nde_have_pos)
+				nde_checkpoint_baseline_set_offset(rec->target_item_id,
+				                                   nde_pre_pos_x, nde_pre_pos_y);
+		}
 		/* Keep the pinned mask's pixels while we still have them — hook_fit
 		 * carries the mask the op actually ran under, and it is stored under
 		 * the pin's own coordinate, so operations sharing a mask state share
@@ -1944,8 +1968,18 @@ the_end:;
 		 * After the swap, gfit holds the post-op pixels (this block already
 		 * runs post-swap).  Stored OUTSIDE the history leaf mutex (append has
 		 * unlocked) and the stack writer lock (released above). */
-		if (nde_rec_id > 0 && nde_barrier)
+		if (nde_rec_id > 0 && nde_barrier) {
 			nde_checkpoint_output_store(gfit, nde_rec_id, nde_target);
+			/* A restart point is a layer value too: record where the layer
+			 * ended up, so a tail replay starting here has its anchor. */
+			if (nde_target >= 0 && is_current_image_flis()) {
+				flis_layer_t *post_lay = flis_layer_get_by_id(nde_target);
+				if (post_lay)
+					nde_checkpoint_output_set_offset(nde_rec_id,
+					                                 post_lay->position_x,
+					                                 post_lay->position_y);
+			}
+		}
 		nde_history_notify_panel();
 	}
 

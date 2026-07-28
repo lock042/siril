@@ -119,6 +119,33 @@ gboolean nde_checkpoint_output_exists(gint64 record_id);
 /** Drop one output checkpoint (its record was deleted or truncated). */
 void nde_checkpoint_output_drop(gint64 record_id);
 
+/* ---- layer offsets (graph step 5) --------------------------------------
+ * A checkpoint stores pixels, but the replay unit for a FLIS layer is not
+ * pixels alone: geometry operations (crop, resample, rotate, mirror, binning)
+ * move the layer on the canvas as well as changing its pixels, and the
+ * offset helpers evolve position_x/position_y from their previous value.  So
+ * a chain that contains one cannot be replayed from pixels alone — the
+ * restart point has to say where the layer WAS.
+ *
+ * The offset is attached beside the snapshot rather than inside it, so every
+ * existing call site keeps its signature and a checkpoint with no offset
+ * recorded (a plain image, or a file written before this) simply reports
+ * none.  It persists on the NDE_BASE / NDE_CKPT HDU as FLIS_POSX/FLIS_POSY.
+ */
+
+/** Record the layer offset that goes with @item_id's baseline.  First value
+ *  wins, exactly as the baseline itself does — the baseline is the pre-FIRST-op
+ *  state, so its position is the one the layer had then.  Ignored when no
+ *  baseline exists for @item_id. */
+void nde_checkpoint_baseline_set_offset(gint item_id, gint pos_x, gint pos_y);
+
+/** FALSE when no offset is recorded (plain image, or an older file). */
+gboolean nde_checkpoint_baseline_get_offset(gint item_id, gint *pos_x, gint *pos_y);
+
+/** Same, for a record's output checkpoint. */
+void     nde_checkpoint_output_set_offset(gint64 record_id, gint pos_x, gint pos_y);
+gboolean nde_checkpoint_output_get_offset(gint64 record_id, gint *pos_x, gint *pos_y);
+
 /* Plain → FLIS promote: move the baseline and every output checkpoint
  * tagged for @from_item onto @to_item (see flis_promote_from_gfit). */
 void nde_checkpoint_rebind_item(gint from_item, gint to_item);

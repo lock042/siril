@@ -1921,6 +1921,15 @@ static inline gboolean op_is_active_layer_in_flis(const struct generic_img_args 
 	return is_current_image_flis() && args->fit == gfit;
 }
 
+/* TRUE when the worker handed us a carried layer offset to evolve — the NDE
+ * replay, which runs on a private fits and so can never be "the active layer
+ * in a FLIS", but whose result still has to land at the right position
+ * (processing.h).  Checked BEFORE op_is_active_layer_in_flis: during a replay
+ * the live layer must not move. */
+static inline gboolean op_has_carried_offset(const struct generic_img_args *args) {
+	return args->layer_pos_x != NULL && args->layer_pos_y != NULL;
+}
+
 int binning_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
 	struct binning_args *params = (struct binning_args *)args->user;
 	if (!params)
@@ -1928,9 +1937,14 @@ int binning_image_hook(struct generic_img_args *args, fits *fit, int nb_threads)
 
 	int old_rx = (int)fit->rx, old_ry = (int)fit->ry;
 	int retval = fits_binning(fit, params->factor, params->mean);
-	if (!retval && op_is_active_layer_in_flis(args))
-		flis_update_layer_offset_after_resize(old_rx, old_ry,
-		                                      (int)fit->rx, (int)fit->ry);
+	if (!retval) {
+		if (op_has_carried_offset(args))
+			flis_layer_offset_recentre(args->layer_pos_x, args->layer_pos_y,
+			                           old_rx, old_ry, (int)fit->rx, (int)fit->ry);
+		else if (op_is_active_layer_in_flis(args))
+			flis_update_layer_offset_after_resize(old_rx, old_ry,
+			                                      (int)fit->rx, (int)fit->ry);
+	}
 	return retval;
 }
 
@@ -1940,10 +1954,12 @@ int crop_image_hook_single(struct generic_img_args *args, fits *fit, int nb_thre
 		return 1;
 	gint canvas_sel_x = params->area.x;
 	gint canvas_sel_y = params->area.y;
-	if (op_is_active_layer_in_flis(args)) {
-		/* params->area is in active-layer fit coords; convert to canvas
-		 * coords for the offset helper.  Base layer sits at (0,0) so this
-		 * is a no-op for that case. */
+	/* params->area is in layer fit coords; convert to canvas coords for the
+	 * offset helper.  Base layer sits at (0,0) so this is a no-op there. */
+	if (op_has_carried_offset(args)) {
+		canvas_sel_x += *args->layer_pos_x;
+		canvas_sel_y += *args->layer_pos_y;
+	} else if (op_is_active_layer_in_flis(args)) {
 		flis_layer_t *active = flis_active_layer();
 		if (active) {
 			canvas_sel_x += active->position_x;
@@ -1951,8 +1967,13 @@ int crop_image_hook_single(struct generic_img_args *args, fits *fit, int nb_thre
 		}
 	}
 	int retval = crop(fit, &params->area);
-	if (!retval && op_is_active_layer_in_flis(args))
-		flis_update_layer_offset_after_crop(canvas_sel_x, canvas_sel_y);
+	if (!retval) {
+		if (op_has_carried_offset(args))
+			flis_layer_offset_after_crop(args->layer_pos_x, args->layer_pos_y,
+			                             canvas_sel_x, canvas_sel_y);
+		else if (op_is_active_layer_in_flis(args))
+			flis_update_layer_offset_after_crop(canvas_sel_x, canvas_sel_y);
+	}
 	gui_iface.on_crop_complete();
 	return retval;
 }
@@ -1979,9 +2000,14 @@ int resample_image_hook(struct generic_img_args *args, fits *fit, int nb_threads
 	int old_rx = (int)fit->rx, old_ry = (int)fit->ry;
 	int retval = verbose_resize_gaussian(fit, params->toX, params->toY,
 	                                params->interpolation, params->clamp, params->update_wcs);
-	if (!retval && op_is_active_layer_in_flis(args))
-		flis_update_layer_offset_after_resize(old_rx, old_ry,
-		                                      (int)fit->rx, (int)fit->ry);
+	if (!retval) {
+		if (op_has_carried_offset(args))
+			flis_layer_offset_recentre(args->layer_pos_x, args->layer_pos_y,
+			                           old_rx, old_ry, (int)fit->rx, (int)fit->ry);
+		else if (op_is_active_layer_in_flis(args))
+			flis_update_layer_offset_after_resize(old_rx, old_ry,
+			                                      (int)fit->rx, (int)fit->ry);
+	}
 	gui_iface.update_menu_state();
 	return retval;
 }
@@ -2005,10 +2031,15 @@ int rotation_image_hook(struct generic_img_args *args, fits *fit, int nb_threads
 	                             params->clamp);
 	}
 
-	if (!retval && op_is_active_layer_in_flis(args))
-		flis_update_layer_offset_after_rotate(old_rx, old_ry,
-		                                      (int)fit->rx, (int)fit->ry,
-		                                      params->angle);
+	if (!retval) {
+		if (op_has_carried_offset(args))
+			flis_layer_offset_recentre(args->layer_pos_x, args->layer_pos_y,
+			                           old_rx, old_ry, (int)fit->rx, (int)fit->ry);
+		else if (op_is_active_layer_in_flis(args))
+			flis_update_layer_offset_after_rotate(old_rx, old_ry,
+			                                      (int)fit->rx, (int)fit->ry,
+			                                      params->angle);
+	}
 
 	// If a selection is set, expand it to cover the entire (rotated) image.
 	// The GUI update (new_selection_zone) is deferred to the completion idle so

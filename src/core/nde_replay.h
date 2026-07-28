@@ -59,6 +59,9 @@ typedef struct {
 	 * that cannot be replayed; with an output checkpoint it is a restart
 	 * point instead of a hard blocker.  records[tail_start..] is the
 	 * editable tail (everything strictly after the last freeze cause). */
+	gboolean   has_geometry;    /* a member moves the layer on the canvas, so
+	                             * the replay must carry the layer's offset and
+	                             * the restart point must supply one */
 	GArray    *member_flags;    /* guint8 per member (NDE_CHAIN_MEMBER_*) */
 	guint      tail_start;      /* first tail member index (== len ⇒ empty tail) */
 	gboolean   tail_replayable; /* the tail applies cleanly from its restart point */
@@ -69,11 +72,11 @@ typedef struct {
  * Snapshot the live history and extract + validate the replay chain for
  * @item_id.  Membership: LAYER-scope records targeting the item; CANVAS-
  * scope records on plain images (the image IS the layer).  Blockers:
- * Tier-B records, active-mask records, unknown ops / missing
- * deserializers / newer-version params / unparsable params, canvas-scope
- * records targeting the item on a FLIS document (their layer-offset side
- * effects cannot be verified on a scratch fits yet), merge-down/flatten
- * that replaced the item's pixels, and a missing baseline checkpoint.
+ * Tier-B records, records whose mask input no longer resolves, unknown ops /
+ * missing deserializers / newer-version params / unparsable params,
+ * canvas-scope records targeting a FLIS layer whose baseline recorded no
+ * starting position (there is nothing to anchor the moves to), merge-down /
+ * flatten that replaced the item's pixels, and a missing baseline checkpoint.
  * DOCUMENT-scope property/structure records are ignored (they do not
  * touch the item's pixels; layer.add is embodied in the baseline).
  * Never returns NULL.

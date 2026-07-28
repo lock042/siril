@@ -215,6 +215,14 @@ struct generic_img_args {
 	 * Each geometry image_hook is responsible for calling the corresponding
 	 * flis_update_layer_offset_after_* helper itself. */
 	gboolean geometry_changing;
+	/* NDE replay of a FLIS layer (graph step 5): the offset the geometry
+	 * hooks should evolve, INSTEAD of the live active layer's.  A layer's
+	 * replay value is pixels plus its position on the canvas, so the driver
+	 * carries the position alongside the scratch fits and hands it here.
+	 * NULL everywhere else, including plain-image replays, which have no
+	 * offset to evolve. */
+	gint *layer_pos_x;
+	gint *layer_pos_y;
 	/* NDE replay invocation (nde-phase2-3-plan.md P2.A).  The replay driver
 	 * calls generic_image_worker() DIRECTLY from inside its own processing
 	 * job, applying one record to a PRIVATE fits (never gfit — asserted).

@@ -368,12 +368,19 @@ static nde_chain *chain_build_excluding(gint item_id, gint64 exclude_record_id) 
 				 * records replay as ordinary pixel ops (no canvas). */
 				member = TRUE;
 			} else if (rec->target_item_id == item_id) {
-				/* Geometry on this layer of a FLIS document: the pixel op
-				 * itself is Tier A, but its layer-offset/canvas side
-				 * effects cannot be reproduced or verified on a scratch
-				 * fits — phase-2 blocker (plan P2.D). */
-				add_reason(chain, _("record %" G_GINT64_FORMAT " (%s) changes layer geometry on a layered image — not replayable yet"),
-				           rec->record_id, rec->op_id ? rec->op_id : "?");
+				/* Geometry on a layer moves it on the canvas as well as
+				 * changing its pixels, and each move is relative to where
+				 * the layer already was.  So the replay has to start from a
+				 * known position: with one recorded against the baseline
+				 * this is an ordinary member, without one there is nothing
+				 * to anchor to (graph step 5). */
+				if (nde_checkpoint_baseline_get_offset(item_id, NULL, NULL)) {
+					member = TRUE;
+					chain->has_geometry = TRUE;
+				} else {
+					add_reason(chain, _("record %" G_GINT64_FORMAT " (%s) moves this layer on the canvas, but no starting position was recorded — not replayable"),
+					           rec->record_id, rec->op_id ? rec->op_id : "?");
+				}
 			}
 			/* Canvas records targeting other layers (or the canvas itself,
 			 * target -1) move positions, not this item's pixels: ignore. */
@@ -470,10 +477,45 @@ void nde_chain_free(nde_chain *chain) {
 	g_free(chain);
 }
 
+/* Where a replay's layer starts.  @restart_id 0 means the baseline; anything
+ * else is that record's output checkpoint.  FALSE when the chain carries no
+ * geometry member (a plain image, or a layer nothing ever moved), in which
+ * case the hooks are handed NULL and move nothing. */
+static gboolean replay_start_offset(const nde_chain *chain, gint64 restart_id,
+                                    gint *pos_x, gint *pos_y) {
+	if (!chain->has_geometry)
+		return FALSE;
+	if (restart_id > 0 &&
+	    nde_checkpoint_output_get_offset(restart_id, pos_x, pos_y))
+		return TRUE;
+	return nde_checkpoint_baseline_get_offset(chain->item_id, pos_x, pos_y);
+}
+
+/* Move the layer to where the replay left it.  The pixels are committed by
+ * the caller's swap; without this the layer would keep the position its
+ * pre-edit geometry produced, which the new pixels no longer match. */
+static void commit_layer_offset(gint item_id, gint pos_x, gint pos_y) {
+	if (item_id < 0)
+		return;
+	flis_layer_t *lay = flis_layer_get_by_id(item_id);
+	if (!lay)
+		return;
+	lay->position_x = pos_x;
+	lay->position_y = pos_y;
+	gui_iface.flis_invalidate_composite();
+}
+
 /* Apply members [from..upto) to @scratch (consumed on failure).  Returns
- * @scratch on success, NULL + @err on failure. */
+ * @scratch on success, NULL + @err on failure.
+ *
+ * @pos_x / @pos_y carry the LAYER VALUE's other half (graph step 5): a
+ * geometry member moves the layer as well as changing its pixels, and each
+ * move is relative to the previous position, so the driver threads the
+ * position through the run and hands it to the hooks.  NULL for a plain
+ * image, which has no position, and for chains with no geometry member. */
 static fits *replay_apply_records(fits *scratch, const nde_chain *chain,
-                                  guint from, guint upto, gchar **err) {
+                                  guint from, guint upto,
+                                  gint *pos_x, gint *pos_y, gchar **err) {
 	for (guint i = from; i < upto; i++) {
 		const nde_record *rec = g_ptr_array_index(chain->records, i);
 		if (!processing_should_continue()) {
@@ -527,6 +569,8 @@ static fits *replay_apply_records(fits *scratch, const nde_chain *chain,
 		args->user = user;
 		args->nde_replay = TRUE;
 		args->mask_aware = (scratch->mask != NULL);
+		args->layer_pos_x = pos_x;   /* NULL unless the chain has geometry */
+		args->layer_pos_y = pos_y;
 		args->max_threads = com.max_thread;
 		int rc = GPOINTER_TO_INT(generic_image_worker(args));
 		free_generic_img_args(args);   /* frees user via its destructor too */
@@ -562,7 +606,10 @@ fits *nde_chain_replay(const nde_chain *chain, gchar **err) {
 		*err = g_strdup(_("failed to load the baseline checkpoint"));
 		return NULL;
 	}
-	return replay_apply_records(scratch, chain, 0, chain->records->len, err);
+	/* Verification path: the offset does not affect a single pixel (it is a
+	 * pure side output of the geometry hooks), so there is nothing to carry. */
+	return replay_apply_records(scratch, chain, 0, chain->records->len,
+	                            NULL, NULL, err);
 }
 
 fits *nde_chain_replay_tail(const nde_chain *chain, gchar **err) {
@@ -582,7 +629,8 @@ fits *nde_chain_replay_tail(const nde_chain *chain, gchar **err) {
 				_("failed to load the baseline checkpoint"));
 		return NULL;
 	}
-	return replay_apply_records(start, chain, chain->tail_start, chain->records->len, err);
+	return replay_apply_records(start, chain, chain->tail_start, chain->records->len,
+	                            NULL, NULL, err);
 }
 
 /* ======================================================================= */
@@ -601,6 +649,12 @@ fits *nde_chain_replay_tail(const nde_chain *chain, gchar **err) {
 static fits *resolve_edit_restart(const nde_chain *chain, guint e,
                                   gint64 boundary_pre_id,
                                   guint *start_idx, gchar **err) {
+	/* The pool is a PIXEL cache: its states carry no layer position, so a
+	 * chain that moves the layer cannot restart from one — there would be
+	 * nothing to anchor the geometry to.  Fall straight through to the
+	 * checkpoint restart, which does record a position (graph step 5). */
+	if (chain->has_geometry)
+		e = chain->tail_start;
 	/* @e is the POSITIONAL edit boundary in @chain (callers know it: the
 	 * amended member's index, the deleted member's former index, or the
 	 * earliest affected index of a reorder).  Position, not id — after a
@@ -856,7 +910,11 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 		boundary = (guint)pos_idx;   /* the deleted member's former index */
 	guint start_idx = 0;
 	fits *start = resolve_edit_restart(chain, boundary, record_id, &start_idx, err);
-	fits *result = start ? replay_apply_records(start, chain, start_idx, chain->records->len, err) : NULL;
+	gint pos_x = 0, pos_y = 0;
+	gboolean carry = replay_start_offset(chain, chain->restart_ckpt_id, &pos_x, &pos_y);
+	fits *result = start ? replay_apply_records(start, chain, start_idx, chain->records->len,
+	                                            carry ? &pos_x : NULL,
+	                                            carry ? &pos_y : NULL, err) : NULL;
 	nde_chain_free(chain);
 	if (!result) {
 		/* Deposits made by a failed replay describe an uncommitted chain —
@@ -903,6 +961,8 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 	commit_restore_metadata(target, result);
 	clearfits(result);   /* the pre-edit pixels — superseded */
 	free(result);
+	if (carry)
+		commit_layer_offset(item_id, pos_x, pos_y);
 
 	/* No meta-undo (sketch §7): stale undo entries would restore pixels the
 	 * log no longer describes. */
@@ -1052,7 +1112,11 @@ gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after,
 	nde_snapstore_invalidate_from(item_id, inval_min);
 	guint start_idx = 0;
 	fits *start = resolve_edit_restart(chain, min_idx, boundary_pre_id, &start_idx, err);
-	fits *result = start ? replay_apply_records(start, chain, start_idx, chain->records->len, err) : NULL;
+	gint pos_x = 0, pos_y = 0;
+	gboolean carry = replay_start_offset(chain, chain->restart_ckpt_id, &pos_x, &pos_y);
+	fits *result = start ? replay_apply_records(start, chain, start_idx, chain->records->len,
+	                                            carry ? &pos_x : NULL,
+	                                            carry ? &pos_y : NULL, err) : NULL;
 	nde_chain_free(chain);
 	if (!result) {
 		nde_snapstore_invalidate_from(item_id, inval_min);
@@ -1090,6 +1154,8 @@ gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after,
 	commit_restore_metadata(target, result);
 	clearfits(result);
 	free(result);
+	if (carry)
+		commit_layer_offset(item_id, pos_x, pos_y);
 
 	undo_flush();   /* no meta-undo (sketch §7) */
 	invalidate_stats_from_fit(target);
@@ -1484,6 +1550,16 @@ static gboolean apv_begin_execute(gint64 record_id, gboolean insert, gchar **err
 		nde_chain_free(chain);
 		goto fail_free;
 	}
+	/* The forward replay would have to restart from the layer's position
+	 * just before the anchor, and the live position already embodies every
+	 * record after it.  Nothing records the intermediate positions, so refuse
+	 * rather than replay from a position that is not the right one. */
+	if (insert && chain->has_geometry) {
+		*err = g_strdup(_("this image's history moves the layer on the canvas; "
+		                  "steps cannot be inserted into it yet"));
+		nde_chain_free(chain);
+		goto fail_free;
+	}
 	/* Edit-at ends by replaying members [e..end] forward over the inserted
 	 * work, so refuse up front if that replay could not run — the check is
 	 * cheap here and there is no way back once pixels have changed. */
@@ -1505,7 +1581,10 @@ static gboolean apv_begin_execute(gint64 record_id, gboolean insert, gchar **err
 	 * eventual amend's tail replay restart adjacent to K. */
 	guint start_idx = 0;
 	fits *start = resolve_edit_restart(chain, (guint)e, record_id, &start_idx, err);
-	fits *pre_k = start ? replay_apply_records(start, chain, start_idx, (guint)e, err) : NULL;
+	/* Preview only: the true pixels (and the layer's real position) come back
+	 * untouched on exit, so nothing is committed and nothing is carried. */
+	fits *pre_k = start ? replay_apply_records(start, chain, start_idx, (guint)e,
+	                                           NULL, NULL, err) : NULL;
 	nde_chain_free(chain);
 	if (!pre_k)
 		goto fail_free;
@@ -1704,7 +1783,12 @@ gboolean nde_edit_at_end_execute(gboolean apply, gchar **err) {
 		/* Cached states at or after the insertion describe the pre-insert
 		 * lineage; the replay re-deposits fresh ones as it goes. */
 		nde_snapstore_invalidate_from(item_id, first_inserted);
-		result = replay_apply_records(saved, chain, (guint)k, chain->records->len, err);
+		/* No offset to carry: a chain that moves the layer is refused an
+		 * insertion point in the first place (apv_begin_execute) — the
+		 * position to restart from is not the layer's current one, which
+		 * already embodies every record after the anchor. */
+		result = replay_apply_records(saved, chain, (guint)k, chain->records->len,
+		                              NULL, NULL, err);
 		saved = NULL;   /* consumed either way */
 	}
 	nde_chain_free(chain);

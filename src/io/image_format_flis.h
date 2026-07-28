@@ -586,6 +586,24 @@ void flis_update_all_layer_offsets_after_rotate(gint old_rx, gint old_ry,
 void flis_update_layer_offset_after_mirrorx(void);
 void flis_update_layer_offset_after_mirrory(void);
 
+/* ---- pure offset arithmetic (graph step 5) -----------------------------
+ * The helpers above move the LIVE active layer.  The NDE replay runs the same
+ * operations on a private fits and has to evolve a CARRIED offset instead —
+ * a layer's replay value is pixels plus its position, not pixels alone.  Both
+ * paths share the arithmetic here so they cannot drift apart.
+ *
+ * Mirroring needs no counterpart: flipping a layer's own pixels does not move
+ * its centre, which is why the live mirror helpers only invalidate. */
+
+/** A crop moves the layer to the selection origin (canvas coords). */
+void flis_layer_offset_after_crop(gint *pos_x, gint *pos_y, gint sel_x, gint sel_y);
+
+/** A resize or a rotation keeps the layer's centre where it was.  Both live
+ *  helpers reduce to this; they are separate names for a shared rule. */
+void flis_layer_offset_recentre(gint *pos_x, gint *pos_y,
+                                gint old_rx, gint old_ry,
+                                gint new_rx, gint new_ry);
+
 /**
  * flis_canvas_rx / flis_canvas_ry:
  *

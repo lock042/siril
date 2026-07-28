@@ -759,3 +759,72 @@ Test(nde_persist, checkpoints_of_non_barrier_records_persist) {
 	clearfits(got); free(got);
 	clearfits(state); free(state);
 }
+
+/* A layer's replay value is pixels AND its position, so the position has to
+ * travel with the checkpoint — otherwise a geometry chain becomes a blocker
+ * the moment the file is reopened. */
+Test(nde_persist, baseline_layer_offset_round_trips) {
+	flis_layer_t *l = flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.25f), "base");
+	gint lid = l->item_id;
+	append_full("geometry.crop", 1, "x=1;y=2;w=4;h=4", "crop", NDE_TIER_A,
+	            NDE_SCOPE_CANVAS, lid, FALSE);
+	fits *seed = ramp_float(8, 8, 1, 0.5f);
+	nde_checkpoint_baseline_ensure(seed, lid);
+	nde_checkpoint_baseline_set_offset(lid, 17, 23);
+
+	cr_assert_eq(save_flis(tmppath), 0);
+	flis_free_layers(com.uniq);
+	nde_history_attach(NULL);
+	nde_checkpoint_purge();
+	cr_assert(!nde_checkpoint_baseline_get_offset(lid, NULL, NULL));
+
+	cr_assert_eq(load_flis(tmppath), 0);
+	gint x = 0, y = 0;
+	cr_assert(nde_checkpoint_baseline_get_offset(lid, &x, &y),
+	          "the baseline's position must survive the save");
+	cr_assert_eq(x, 17);
+	cr_assert_eq(y, 23);
+	clearfits(seed); free(seed);
+}
+
+/* A restart point is a layer value too. */
+Test(nde_persist, checkpoint_layer_offset_round_trips) {
+	flis_layer_t *l = flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.25f), "base");
+	gint lid = l->item_id;
+	gint64 id = append_full("filters.gauss", 1, "sigma=2", "blur", NDE_TIER_A,
+	                        NDE_SCOPE_LAYER, lid, FALSE);
+	fits *state = ramp_float(8, 8, 1, 0.125f);
+	nde_checkpoint_output_store(state, id, lid);
+	nde_checkpoint_output_set_offset(id, 5, 11);
+
+	cr_assert_eq(save_flis(tmppath), 0);
+	flis_free_layers(com.uniq);
+	nde_history_attach(NULL);
+	nde_checkpoint_purge();
+
+	cr_assert_eq(load_flis(tmppath), 0);
+	gint x = 0, y = 0;
+	cr_assert(nde_checkpoint_output_get_offset(id, &x, &y));
+	cr_assert_eq(x, 5);
+	cr_assert_eq(y, 11);
+	clearfits(state); free(state);
+}
+
+/* An offset is only meaningful alongside stored pixels, and the two die
+ * together — a position for a baseline we no longer have would outlive what
+ * it describes and silently mis-anchor a later replay. */
+Test(nde_persist, an_offset_without_a_baseline_is_not_kept) {
+	flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.25f), "base");
+	nde_checkpoint_baseline_set_offset(42, 1, 2);
+	cr_assert(!nde_checkpoint_baseline_get_offset(42, NULL, NULL),
+	          "no baseline for item 42, so no position either");
+
+	fits *seed = ramp_float(8, 8, 1, 0.5f);
+	nde_checkpoint_baseline_ensure(seed, 42);
+	nde_checkpoint_baseline_set_offset(42, 1, 2);
+	cr_assert(nde_checkpoint_baseline_get_offset(42, NULL, NULL));
+	nde_checkpoint_drop(42);
+	cr_assert(!nde_checkpoint_baseline_get_offset(42, NULL, NULL),
+	          "dropping the pixels must drop the position with them");
+	clearfits(seed); free(seed);
+}

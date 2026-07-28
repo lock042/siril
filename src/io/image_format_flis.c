@@ -1632,7 +1632,11 @@ static void nde_base_restore_compression(fitsfile *fptr) {
 
 /* Write @f as one NDE_BASE image HDU tagged with @item_id.  @f must carry a
  * valid pixel buffer.  Compression is assumed already set to lossless. */
-static int write_nde_base_hdu(fitsfile *fptr, fits *f, gint item_id) {
+/* @pos_x/@pos_y (when @has_pos) are the layer's position at baseline time —
+ * the other half of a layer's replay value (nde_checkpoint.h).  Absent for a
+ * plain image and for files written before geometry replay existed. */
+static int write_nde_base_hdu(fitsfile *fptr, fits *f, gint item_id,
+                              gboolean has_pos, gint pos_x, gint pos_y) {
     int status = 0;
     f->naxes[0] = f->rx;
     f->naxes[1] = f->ry;
@@ -1655,6 +1659,11 @@ static int write_nde_base_hdu(fitsfile *fptr, fits *f, gint item_id) {
 
     int id = item_id;
     fits_write_key(fptr, TINT,    "FLIS_ID",   &id,           "FLIS item ID",   &status);
+    if (has_pos) {
+        int px = pos_x, py = pos_y;
+        fits_write_key(fptr, TINT, "FLIS_POSX", &px, "Layer X at baseline", &status);
+        fits_write_key(fptr, TINT, "FLIS_POSY", &py, "Layer Y at baseline", &status);
+    }
     fits_write_key(fptr, TSTRING, "FLIS_TYPE", (void *)"NDE_BASE", "FLIS HDU type", &status);
     fits_write_key(fptr, TSTRING, "EXTNAME",   (void *)"NDE_BASE",  "Extension name", &status);
     if (status) { report_fits_error(status); return 1; }
@@ -1689,7 +1698,9 @@ static void write_nde_base_hdus(fitsfile *fptr, GPtrArray *records) {
             }
             wrote_any = TRUE;
         }
-        if (write_nde_base_hdu(fptr, base, id))
+        gint bpx = 0, bpy = 0;
+        gboolean has_pos = nde_checkpoint_baseline_get_offset(id, &bpx, &bpy);
+        if (write_nde_base_hdu(fptr, base, id, has_pos, bpx, bpy))
             siril_log_warning(_("FLIS: failed to write NDE baseline for item %d\n"), id);
         clearfits(base);
         free(base);
@@ -1737,6 +1748,14 @@ static int write_nde_ckpt_hdu(fitsfile *fptr, fits *f, gint64 record_id, gint it
     int id = item_id;
     fits_write_key(fptr, TLONGLONG, "RECORD_ID", &rid, "NDE record ID",  &status);
     fits_write_key(fptr, TINT,      "FLIS_ID",   &id,  "FLIS item ID",   &status);
+    {   /* the restart point's layer position, when one was recorded */
+        gint cpx = 0, cpy = 0;
+        if (nde_checkpoint_output_get_offset(record_id, &cpx, &cpy)) {
+            int px = cpx, py = cpy;
+            fits_write_key(fptr, TINT, "FLIS_POSX", &px, "Layer X at checkpoint", &status);
+            fits_write_key(fptr, TINT, "FLIS_POSY", &py, "Layer Y at checkpoint", &status);
+        }
+    }
     fits_write_key(fptr, TSTRING,   "FLIS_TYPE", (void *)"NDE_CKPT", "FLIS HDU type", &status);
     fits_write_key(fptr, TSTRING,   "EXTNAME",   (void *)"NDE_CKPT", "Extension name", &status);
     if (status) { report_fits_error(status); return 1; }
@@ -1917,8 +1936,10 @@ static nde_history *read_flis_hist(fitsfile *fptr, int nhdus) {
  * fits.  Adopted into the checkpoint store AFTER nde_history_attach (which
  * purges the store), then freed. */
 typedef struct {
-    gint  item_id;
-    fits *fit;
+    gint     item_id;
+    fits    *fit;
+    gboolean has_pos;   /* FLIS_POSX/Y were present (see nde_checkpoint.h) */
+    gint     pos_x, pos_y;
 } nde_base_load_t;
 
 static void nde_base_load_free(gpointer p) {
@@ -1967,6 +1988,16 @@ static GPtrArray *read_nde_base_hdus(fitsfile *fptr, int nhdus, nde_history *his
         nde_base_load_t *b = g_new0(nde_base_load_t, 1);
         b->item_id = item_id;
         b->fit     = f;
+        {   /* absent on a plain image, and on files older than geometry replay */
+            int px = 0, py = 0, s1 = 0, s2 = 0;
+            fits_read_key(fptr, TINT, "FLIS_POSX", &px, NULL, &s1);
+            fits_read_key(fptr, TINT, "FLIS_POSY", &py, NULL, &s2);
+            if (!s1 && !s2) {
+                b->has_pos = TRUE;
+                b->pos_x = px;
+                b->pos_y = py;
+            }
+        }
         g_ptr_array_add(out, b);
     }
     g_hash_table_destroy(live_ids);
@@ -1977,9 +2008,11 @@ static GPtrArray *read_nde_base_hdus(fitsfile *fptr, int nhdus, nde_history *his
  * its reconstructed fits.  Adopted into the store AFTER nde_history_attach
  * (which purges), then freed. */
 typedef struct {
-    gint64  record_id;
-    gint    item_id;
-    fits   *fit;
+    gint64   record_id;
+    gint     item_id;
+    fits    *fit;
+    gboolean has_pos;
+    gint     pos_x, pos_y;
 } nde_ckpt_load_t;
 
 static void nde_ckpt_load_free(gpointer p) {
@@ -2032,6 +2065,16 @@ static GPtrArray *read_nde_ckpt_hdus(fitsfile *fptr, int nhdus, nde_history *his
         if (!out)
             out = g_ptr_array_new_with_free_func(nde_ckpt_load_free);
         nde_ckpt_load_t *c = g_new0(nde_ckpt_load_t, 1);
+        {
+            int px = 0, py = 0, s1 = 0, s2 = 0;
+            fits_read_key(fptr, TINT, "FLIS_POSX", &px, NULL, &s1);
+            fits_read_key(fptr, TINT, "FLIS_POSY", &py, NULL, &s2);
+            if (!s1 && !s2) {
+                c->has_pos = TRUE;
+                c->pos_x = px;
+                c->pos_y = py;
+            }
+        }
         c->record_id = rid;
         c->item_id   = item_id;
         c->fit       = f;
@@ -2750,6 +2793,8 @@ int load_flis(const gchar *filename) {
         for (guint i = 0; i < nde_baselines->len; i++) {
             nde_base_load_t *b = g_ptr_array_index(nde_baselines, i);
             nde_checkpoint_baseline_adopt(b->fit, b->item_id);
+            if (b->has_pos)
+                nde_checkpoint_baseline_set_offset(b->item_id, b->pos_x, b->pos_y);
         }
         g_ptr_array_unref(nde_baselines);
     }
@@ -2761,6 +2806,8 @@ int load_flis(const gchar *filename) {
         for (guint i = 0; i < nde_ckpts->len; i++) {
             nde_ckpt_load_t *c = g_ptr_array_index(nde_ckpts, i);
             nde_checkpoint_output_adopt(c->fit, c->record_id, c->item_id);
+            if (c->has_pos)
+                nde_checkpoint_output_set_offset(c->record_id, c->pos_x, c->pos_y);
         }
         g_ptr_array_unref(nde_ckpts);
     }
@@ -3027,14 +3074,28 @@ void flis_convert_layers_icc(cmsHPROFILE old_profile, cmsHPROFILE new_profile) {
  * in canvas coords; set position_x = sel_x, position_y = sel_y.  To shrink
  * the canvas to a region, use the separate flis_canvas_crop operation.
  */
+void flis_layer_offset_after_crop(gint *pos_x, gint *pos_y, gint sel_x, gint sel_y) {
+    if (!pos_x || !pos_y) return;
+    *pos_x = sel_x;
+    *pos_y = sel_y;
+}
+
+void flis_layer_offset_recentre(gint *pos_x, gint *pos_y,
+                                gint old_rx, gint old_ry,
+                                gint new_rx, gint new_ry) {
+    if (!pos_x || !pos_y) return;
+    *pos_x += (old_rx - new_rx) / 2;
+    *pos_y += (old_ry - new_ry) / 2;
+}
+
 void flis_update_layer_offset_after_crop(gint sel_x, gint sel_y) {
     if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return;
 
     flis_layer_t *active = flis_active_layer();
     if (!active) return;
 
-    active->position_x = sel_x;
-    active->position_y = sel_y;
+    flis_layer_offset_after_crop(&active->position_x, &active->position_y,
+                                 sel_x, sel_y);
 
     gui_iface.flis_invalidate_composite();
     siril_debug_print("FLIS: layer offset updated after crop (sel %d,%d)\n",
@@ -3062,8 +3123,8 @@ void flis_update_layer_offset_after_resize(gint old_rx, gint old_ry,
     flis_layer_t *active = flis_active_layer();
     if (!active) return;
 
-    active->position_x += (old_rx - new_rx) / 2;
-    active->position_y += (old_ry - new_ry) / 2;
+    flis_layer_offset_recentre(&active->position_x, &active->position_y,
+                               old_rx, old_ry, new_rx, new_ry);
 
     gui_iface.flis_invalidate_composite();
     siril_debug_print("FLIS: layer offset updated after resize (%dx%d -> %dx%d)\n",
@@ -3096,8 +3157,8 @@ void flis_update_layer_offset_after_rotate(gint old_rx, gint old_ry,
     flis_layer_t *active = flis_active_layer();
     if (!active) return;
 
-    active->position_x += (old_rx - new_rx) / 2;
-    active->position_y += (old_ry - new_ry) / 2;
+    flis_layer_offset_recentre(&active->position_x, &active->position_y,
+                               old_rx, old_ry, new_rx, new_ry);
 
     gui_iface.flis_invalidate_composite();
     siril_debug_print("FLIS: layer offset updated after rotate (%dx%d -> %dx%d)\n",

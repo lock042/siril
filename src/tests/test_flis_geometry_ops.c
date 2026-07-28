@@ -221,3 +221,90 @@ Test(flis_geometry_ops, hook_is_safe_when_no_flis_loaded) {
 	free(f);
 	gfit = NULL;
 }
+
+/* ---------------- graph step 5: the carried layer offset ---------------- */
+
+/* During an NDE replay the op runs on a PRIVATE fits, so the "am I the active
+ * layer" test is false and the live layer must not move — but the replay
+ * still needs the position the record produced.  The worker hands the hooks
+ * a carried offset for exactly that. */
+Test(flis_geometry_ops, crop_hook_uses_the_carried_offset) {
+	flis_test_add_layer(flis_test_make_mono_fits(100, 100, 0.0f), "base");
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+	flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+	base->position_x = 7;
+	base->position_y = 9;
+
+	fits *scratch = flis_test_make_mono_fits(100, 100, 0.5f);
+	gint pos_x = 30, pos_y = 40;
+	struct crop_args params = { .destroy_fn = NULL,
+	    .area = { .x = 10, .y = 15, .w = 50, .h = 50 } };
+	struct generic_img_args args = { 0 };
+	args.fit = scratch;                 /* private: never gfit in replay */
+	args.user = &params;
+	args.max_threads = 1;
+	args.geometry_changing = TRUE;
+	args.layer_pos_x = &pos_x;
+	args.layer_pos_y = &pos_y;
+
+	cr_assert_eq(crop_image_hook_single(&args, scratch, 1), 0);
+
+	/* the carried value moved to the selection origin in canvas coords */
+	cr_assert_eq(pos_x, 40, "carried x = carried offset + selection x");
+	cr_assert_eq(pos_y, 55, "carried y = carried offset + selection y");
+	/* and the live layer was left exactly where it was */
+	cr_assert_eq(base->position_x, 7, "a replay must not move the live layer");
+	cr_assert_eq(base->position_y, 9);
+
+	clearfits(scratch);
+	free(scratch);
+}
+
+Test(flis_geometry_ops, resample_hook_recentres_the_carried_offset) {
+	flis_test_add_layer(flis_test_make_mono_fits(100, 100, 0.0f), "base");
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+	flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+	base->position_x = 5;
+
+	fits *scratch = flis_test_make_mono_fits(100, 100, 0.5f);
+	gint pos_x = 100, pos_y = 200;
+	struct resample_args params = { .destroy_fn = NULL, .toX = 50, .toY = 50,
+	    .interpolation = OPENCV_LINEAR, .clamp = FALSE, .update_wcs = FALSE };
+	struct generic_img_args args = { 0 };
+	args.fit = scratch;
+	args.user = &params;
+	args.max_threads = 1;
+	args.geometry_changing = TRUE;
+	args.layer_pos_x = &pos_x;
+	args.layer_pos_y = &pos_y;
+
+	cr_assert_eq(resample_image_hook(&args, scratch, 1), 0);
+
+	/* halving 100 -> 50 keeps the centre: offset += (100-50)/2 */
+	cr_assert_eq(pos_x, 125);
+	cr_assert_eq(pos_y, 225);
+	cr_assert_eq(base->position_x, 5, "a replay must not move the live layer");
+
+	clearfits(scratch);
+	free(scratch);
+}
+
+/* Without a carried offset the live path is unchanged — the hook still moves
+ * the active layer when it IS operating on it. */
+Test(flis_geometry_ops, live_path_is_untouched_by_the_carried_offset) {
+	flis_test_add_layer(flis_test_make_mono_fits(100, 100, 0.0f), "base");
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+	flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+
+	struct crop_args params = { .destroy_fn = NULL,
+	    .area = { .x = 10, .y = 15, .w = 50, .h = 50 } };
+	struct generic_img_args args = make_hook_args(&params);
+	cr_assert_null(args.layer_pos_x, "fixture: no carried offset");
+
+	cr_assert_eq(crop_image_hook_single(&args, gfit, 1), 0);
+	cr_assert_eq(base->position_x, 10);
+	cr_assert_eq(base->position_y, 15);
+}

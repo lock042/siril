@@ -2351,3 +2351,128 @@ Test(nde_replay, an_unmasked_record_replays_without_a_mask) {
 	clearfits(&expected);
 	golden_teardown(NULL, f);
 }
+
+/* ---------------- graph step 5: geometry on a layered document ---------- */
+
+/* Geometry on a FLIS layer used to be a hard blocker: the op replays fine on
+ * a scratch fits, but a layer's value is pixels AND its position, and the
+ * position had nowhere to come from.  With one recorded against the baseline
+ * the chain replays like any other. */
+Test(nde_replay, flis_geometry_chain_replays_and_lands_the_layer) {
+	com.pref.nde_cache_mb = 256;
+	flis_layer_t *lay = flis_test_add_layer(
+	    flis_test_make_mono_fits(64, 48, 0.f), "base");
+	lay->position_x = 20;
+	lay->position_y = 30;
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+	fill_mono_gradient(gfit);
+	gint item = lay->item_id;
+
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(10.f)), 0);
+	struct crop_args *ca = calloc(1, sizeof(*ca));
+	ca->area = (rectangle){ .x = 8, .y = 6, .w = 32, .h = 24 };
+	cr_assert_eq(apply_op_real(&op_desc_crop, ca), 0);
+
+	/* the live op moved the layer to its offset plus the selection origin */
+	cr_assert_eq(lay->position_x, 28);
+	cr_assert_eq(lay->position_y, 36);
+	/* and the baseline kept where it started, not where the crop left it */
+	gint bx = 0, by = 0;
+	cr_assert(nde_checkpoint_baseline_get_offset(item, &bx, &by));
+	cr_assert_eq(bx, 20, "the baseline's position is the PRE-first-op one");
+	cr_assert_eq(by, 30);
+
+	nde_chain *chain = nde_chain_build(item);
+	cr_assert(chain->replayable, "geometry must no longer block: %s",
+	          chain->reasons->len ? (char *)g_ptr_array_index(chain->reasons, 0) : "none");
+	cr_assert(chain->has_geometry, "and the chain must know it carries a position");
+	cr_assert_eq(chain->records->len, 2);
+
+	fits expected = { 0 };
+	copyfits(gfit, &expected, CP_DEEPCOPY | CP_ALLOC, -1);
+	cr_assert(reserve_thread());
+	gchar *err = NULL;
+	fits *result = nde_chain_replay(chain, &err);
+	unreserve_thread();
+	cr_assert_not_null(result, "replay failed: %s", err ? err : "?");
+	assert_pixels_bit_exact(result, &expected, "flis-geometry-replay");
+	clearfits(result); free(result);
+	nde_chain_free(chain);
+	clearfits(&expected);
+	nde_history_attach(NULL);
+	gfit = NULL;
+}
+
+/* Amending the crop must move the layer to match the new pixels: the offset
+ * is re-derived from the baseline position, not left where the old crop put
+ * it. */
+Test(nde_replay, amending_a_crop_moves_the_layer) {
+	com.pref.nde_cache_mb = 256;
+	flis_layer_t *lay = flis_test_add_layer(
+	    flis_test_make_mono_fits(64, 48, 0.f), "base");
+	lay->position_x = 20;
+	lay->position_y = 30;
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+	fill_mono_gradient(gfit);
+
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(10.f)), 0);
+	struct crop_args *ca = calloc(1, sizeof(*ca));
+	ca->area = (rectangle){ .x = 8, .y = 6, .w = 32, .h = 24 };
+	cr_assert_eq(apply_op_real(&op_desc_crop, ca), 0);
+	cr_assert_eq(lay->position_x, 28);
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_amend_execute(2, "x=4;y=2;w=16;h=12", &err),
+	          "amend failed: %s", err ? err : "?");
+	unreserve_thread();
+
+	/* re-derived from the BASELINE position (20,30), not from (28,36) */
+	cr_assert_eq(lay->position_x, 24, "layer must move to match the new crop");
+	cr_assert_eq(lay->position_y, 32);
+	cr_assert_eq(lay->fit->rx, 16u);
+	cr_assert_eq(lay->fit->ry, 12u);
+
+	nde_history_attach(NULL);
+	gfit = NULL;
+}
+
+/* No recorded starting position (an older file) degrades honestly rather than
+ * replaying from a position it made up. */
+Test(nde_replay, flis_geometry_without_a_start_position_is_a_blocker) {
+	com.pref.nde_cache_mb = 256;
+	flis_layer_t *lay = flis_test_add_layer(
+	    flis_test_make_mono_fits(64, 48, 0.f), "base");
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+	fill_mono_gradient(gfit);
+	gint item = lay->item_id;
+
+	struct crop_args *ca = calloc(1, sizeof(*ca));
+	ca->area = (rectangle){ .x = 8, .y = 6, .w = 32, .h = 24 };
+	cr_assert_eq(apply_op_real(&op_desc_crop, ca), 0);
+	cr_assert(nde_checkpoint_baseline_get_offset(item, NULL, NULL));
+
+	/* Drop just the position, the way an older file arrives: pixels present,
+	 * no FLIS_POSX/Y.  nde_checkpoint_drop would take the baseline too, so
+	 * re-adopt the pixels afterwards. */
+	fits *base = nde_checkpoint_baseline_get(item);
+	cr_assert_not_null(base);
+	nde_checkpoint_drop(item);
+	nde_checkpoint_baseline_adopt(base, item);
+	clearfits(base); free(base);
+	cr_assert(nde_checkpoint_baseline_exists(item));
+	cr_assert(!nde_checkpoint_baseline_get_offset(item, NULL, NULL));
+
+	nde_chain *chain = nde_chain_build(item);
+	cr_assert(!chain->replayable);
+	cr_assert(!chain->has_geometry);
+	cr_assert(chain->reasons->len > 0);
+	cr_assert(strstr(g_ptr_array_index(chain->reasons, 0), "position") != NULL,
+	          "and say why: %s", (char *)g_ptr_array_index(chain->reasons, 0));
+	nde_chain_free(chain);
+	nde_history_attach(NULL);
+	gfit = NULL;
+}

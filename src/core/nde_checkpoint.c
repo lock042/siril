@@ -52,6 +52,13 @@ static GMutex      cp_mutex;
 static GHashTable *cp_table;    /* item_id (GINT_TO_POINTER) -> nde_snap* (ref held) */
 static GHashTable *out_table;   /* gint64* (owned key) -> nde_snap* (ref held) */
 
+/* Layer offsets, kept BESIDE the snapshots rather than inside them so every
+ * existing call site keeps its signature (nde_checkpoint.h).  Same keys as
+ * the tables above; an entry is present only when an offset was recorded. */
+typedef struct { gint x, y; } cp_offset;
+static GHashTable *cp_pos;      /* item_id  -> cp_offset* (owned) */
+static GHashTable *out_pos;     /* gint64*  -> cp_offset* (owned) */
+
 static void cp_tables_ensure_locked(void) {
 	if (!cp_table)
 		cp_table = g_hash_table_new_full(g_direct_hash, g_direct_equal,
@@ -59,6 +66,71 @@ static void cp_tables_ensure_locked(void) {
 	if (!out_table)
 		out_table = g_hash_table_new_full(g_int64_hash, g_int64_equal,
 		                                  g_free, NULL /* values unref'd manually */);
+	if (!cp_pos)
+		cp_pos = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, g_free);
+	if (!out_pos)
+		out_pos = g_hash_table_new_full(g_int64_hash, g_int64_equal, g_free, g_free);
+}
+
+/* ---- layer offsets ----------------------------------------------------- */
+
+void nde_checkpoint_baseline_set_offset(gint item_id, gint pos_x, gint pos_y) {
+	cp_offset *o = g_new(cp_offset, 1);
+	o->x = pos_x;
+	o->y = pos_y;
+	g_mutex_lock(&cp_mutex);
+	cp_tables_ensure_locked();
+	/* First writer wins, exactly as the baseline itself does: the baseline is
+	 * the pre-FIRST-op state, so the position that goes with it is the one
+	 * the layer had then — not wherever a later capture found it.  And only
+	 * meaningful alongside stored pixels: an offset for a baseline we do not
+	 * have would outlive what it describes. */
+	if (g_hash_table_contains(cp_table, GINT_TO_POINTER(item_id)) &&
+	    !g_hash_table_contains(cp_pos, GINT_TO_POINTER(item_id)))
+		g_hash_table_insert(cp_pos, GINT_TO_POINTER(item_id), o);
+	else
+		g_clear_pointer(&o, g_free);
+	g_mutex_unlock(&cp_mutex);
+}
+
+gboolean nde_checkpoint_baseline_get_offset(gint item_id, gint *pos_x, gint *pos_y) {
+	g_mutex_lock(&cp_mutex);
+	const cp_offset *o = cp_pos ? g_hash_table_lookup(cp_pos, GINT_TO_POINTER(item_id)) : NULL;
+	if (o) {
+		if (pos_x) *pos_x = o->x;
+		if (pos_y) *pos_y = o->y;
+	}
+	g_mutex_unlock(&cp_mutex);
+	return o != NULL;
+}
+
+void nde_checkpoint_output_set_offset(gint64 record_id, gint pos_x, gint pos_y) {
+	cp_offset *o = g_new(cp_offset, 1);
+	o->x = pos_x;
+	o->y = pos_y;
+	gint64 *key = g_new(gint64, 1);
+	*key = record_id;
+	g_mutex_lock(&cp_mutex);
+	cp_tables_ensure_locked();
+	if (g_hash_table_contains(out_table, &record_id)) {
+		g_hash_table_insert(out_pos, key, o);
+		key = NULL;
+		o = NULL;
+	}
+	g_mutex_unlock(&cp_mutex);
+	g_free(key);
+	g_free(o);
+}
+
+gboolean nde_checkpoint_output_get_offset(gint64 record_id, gint *pos_x, gint *pos_y) {
+	g_mutex_lock(&cp_mutex);
+	const cp_offset *o = out_pos ? g_hash_table_lookup(out_pos, &record_id) : NULL;
+	if (o) {
+		if (pos_x) *pos_x = o->x;
+		if (pos_y) *pos_y = o->y;
+	}
+	g_mutex_unlock(&cp_mutex);
+	return o != NULL;
 }
 
 /* ======================================================================= */
@@ -110,6 +182,13 @@ void nde_checkpoint_rebind_item(gint from_item, gint to_item) {
 			g_hash_table_steal(cp_table, GINT_TO_POINTER(from_item));
 			g_hash_table_insert(cp_table, GINT_TO_POINTER(to_item), s);
 			g_ptr_array_add(retag, s);
+			if (cp_pos) {
+				gpointer o = g_hash_table_lookup(cp_pos, GINT_TO_POINTER(from_item));
+				if (o) {
+					g_hash_table_steal(cp_pos, GINT_TO_POINTER(from_item));
+					g_hash_table_insert(cp_pos, GINT_TO_POINTER(to_item), o);
+				}
+			}
 		}
 	}
 	if (out_table) {
@@ -230,6 +309,8 @@ void nde_checkpoint_output_drop(gint64 record_id) {
 	g_mutex_lock(&cp_mutex);
 	if (out_table)
 		g_hash_table_steal_extended(out_table, &record_id, &old_key, (gpointer *)&old);
+	if (out_pos)
+		g_hash_table_remove(out_pos, &record_id);   /* the offset describes those pixels */
 	g_mutex_unlock(&cp_mutex);
 	g_free(old_key);
 	nde_snap_unref(old);
@@ -263,10 +344,14 @@ void nde_checkpoint_drop(gint item_id) {
 			if (nde_snap_tag_get(s, &tag_item, NULL, NULL) && tag_item == item_id) {
 				g_ptr_array_add(doomed, s);
 				g_ptr_array_add(doomed_keys, k);
+				if (out_pos)
+					g_hash_table_remove(out_pos, k);
 				g_hash_table_iter_steal(&it);
 			}
 		}
 	}
+	if (cp_pos)
+		g_hash_table_remove(cp_pos, GINT_TO_POINTER(item_id));
 	g_mutex_unlock(&cp_mutex);
 	for (guint i = 0; i < doomed->len; i++)
 		nde_snap_unref(g_ptr_array_index(doomed, i));
@@ -281,7 +366,12 @@ void nde_checkpoint_purge(void) {
 	cp_table = NULL;
 	t2 = out_table;
 	out_table = NULL;
+	GHashTable *p1 = cp_pos, *p2 = out_pos;
+	cp_pos = NULL;
+	out_pos = NULL;
 	g_mutex_unlock(&cp_mutex);
+	if (p1) g_hash_table_destroy(p1);
+	if (p2) g_hash_table_destroy(p2);
 	if (t1) {
 		GHashTableIter it;
 		gpointer k, v;

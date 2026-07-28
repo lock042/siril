@@ -17283,17 +17283,21 @@ int process_flis_history(int nb) {
 	for (guint i = 0; i < snap->len; i++) {
 		nde_record *r = g_ptr_array_index(snap, i);
 		const char *tier = (r->tier == NDE_TIER_A) ? "A" : "B";
-		/* Target label: item id for layer scope, else the scope name. */
+		/* Target label: the item id whenever there is one — geometry
+		 * records carry CANVAS scope but do target a layer, and calling
+		 * that "canvas" hid which layer they belong to.  Matches the
+		 * History panel's hist_target_label. */
 		char target_buf[32];
 		const char *target;
-		if (r->scope == NDE_SCOPE_CANVAS)
-			target = "canvas";
-		else if (r->scope == NDE_SCOPE_DOCUMENT && r->target_item_id < 0)
-			target = "document";
-		else {
+		if (r->target_item_id >= 0) {
 			g_snprintf(target_buf, sizeof(target_buf), "%d", r->target_item_id);
 			target = target_buf;
-		}
+		} else if (r->scope == NDE_SCOPE_CANVAS)
+			target = "canvas";
+		else if (r->scope == NDE_SCOPE_DOCUMENT)
+			target = "document";
+		else
+			target = "-1";
 		if (csv) {
 			gchar *pins = nde_pins_to_string(r->inputs);
 			siril_log_message("%" G_GINT64_FORMAT ",%s,%s,%d,%d,%s,\"%s\",\"%s\",\"%s\"\n",
