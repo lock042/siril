@@ -82,6 +82,8 @@ static nde_history *nde_history_new(void) {
 	nde_history *h = g_new0(nde_history, 1);
 	h->records = g_ptr_array_new_with_free_func((GDestroyNotify)nde_record_free);
 	h->next_record_id = 1;
+	h->ins_ids = g_array_new(FALSE, FALSE, sizeof(gint64));
+	h->ins_stash = g_ptr_array_new_with_free_func((GDestroyNotify)nde_record_free);
 	return h;
 }
 
@@ -89,6 +91,10 @@ void nde_history_free(nde_history *h) {
 	if (!h)
 		return;
 	g_ptr_array_unref(h->records);
+	if (h->ins_ids)
+		g_array_unref(h->ins_ids);
+	if (h->ins_stash)
+		g_ptr_array_unref(h->ins_stash);
 	g_free(h);
 }
 
@@ -119,6 +125,34 @@ static void drop_output_checkpoints(GArray *ids) {
 	g_array_unref(ids);
 }
 
+static gint find_index_locked(nde_history *h, gint64 record_id);
+
+/* Does @rec belong in the armed insertion point's item chain?  Anything that
+ * nde_chain_build() would call a member of ins_item's chain qualifies, because
+ * membership is exactly "this record's pixels are part of that lineage":
+ * LAYER-scope records targeting the item, plus — on a plain image, where the
+ * image IS the layer — CANVAS-scope geometry.  Mutex held. */
+static gboolean insert_qualifies_locked(const nde_history *h, const nde_record *rec) {
+	if (rec->scope == NDE_SCOPE_LAYER)
+		return rec->target_item_id == h->ins_item;
+	if (rec->scope == NDE_SCOPE_CANVAS)
+		return h->ins_item < 0;   /* plain image */
+	return FALSE;
+}
+
+/* Records the insertion cannot survive.  The end path restores the true
+ * pixels before replaying forward, which silently undoes any pixel change the
+ * insertion did not account for — so a record that changed the target's
+ * pixels WITHOUT qualifying for insertion leaves the log describing something
+ * the image no longer shows.  Callers refuse these operations up front
+ * (nde_edit_at_refuses_op); this flag is the backstop for a path that does
+ * not, and it makes the insertion abandon rather than lie.  Mutex held. */
+static gboolean insert_disturbs(const nde_history *h, const nde_record *rec) {
+	return (rec->scope == NDE_SCOPE_CANVAS && h->ins_item >= 0) ||
+	       !g_strcmp0(rec->op_id, "document.flatten") ||
+	       !g_strcmp0(rec->op_id, "layer.merge_down");
+}
+
 gint64 nde_history_append(nde_record *rec) {
 	g_return_val_if_fail(rec != NULL, 0);
 	if (!com.uniq) {
@@ -132,11 +166,40 @@ gint64 nde_history_append(nde_record *rec) {
 	if (!com.uniq->nde_history)
 		com.uniq->nde_history = nde_history_new();
 	nde_history *h = com.uniq->nde_history;
-	truncate_dead_locked(h, dropped);
+	gint insert_at = -1;
+	if (h->ins_before) {
+		if (insert_qualifies_locked(h, rec)) {
+			insert_at = find_index_locked(h, h->ins_before);
+			if (insert_at < 0)
+				/* The anchor vanished under us (unreachable: history edits
+				 * are refused while the point is armed).  Fall back to an
+				 * ordinary append and let the pixel side abandon. */
+				h->ins_disturbed = TRUE;
+		} else if (insert_disturbs(h, rec)) {
+			h->ins_disturbed = TRUE;
+		}
+	}
 	rec->record_id = h->next_record_id++;
-	g_ptr_array_add(h->records, rec);
-	h->live_count = h->records->len;
 	gint64 id = rec->record_id;
+	if (insert_at >= 0) {
+		/* A new step supersedes anything undone at this point, exactly as an
+		 * ordinary append discards the dead tail. */
+		for (guint i = 0; i < h->ins_stash->len; i++) {
+			nde_record *dead = g_ptr_array_index(h->ins_stash, i);
+			g_array_append_val(dropped, dead->record_id);
+		}
+		g_ptr_array_set_size(h->ins_stash, 0);
+		g_ptr_array_insert(h->records, insert_at, rec);
+		h->live_count++;
+		g_array_append_val(h->ins_ids, id);
+	} else {
+		/* Ordinary append.  While the point is armed there is no dead tail
+		 * to truncate (it went when the point was armed) — the call is a
+		 * cheap no-op then. */
+		truncate_dead_locked(h, dropped);
+		g_ptr_array_add(h->records, rec);
+		h->live_count = h->records->len;
+	}
 	g_mutex_unlock(&nde_mutex);
 	drop_output_checkpoints(dropped);
 	return id;
@@ -152,12 +215,60 @@ static gint find_index_locked(nde_history *h, gint64 record_id) {
 	return -1;
 }
 
+/* Undo/redo while an insertion point is armed.  live_count still counts the
+ * WHOLE log, so the ordinary "move live_count back to idx" rule would declare
+ * every record after the insertion dead — the lineage after the anchor is not
+ * being undone, one inserted step is.  Instead the inserted record is lifted
+ * out of the log and stashed, and redo puts it back at the anchor.  Undo is
+ * LIFO, so the stash is a stack and only the last inserted id can be undone.
+ * Returns TRUE when the event was handled here.  Mutex held. */
+static gboolean insert_on_undo_locked(nde_history *h, gint64 record_id) {
+	if (!h->ins_before)
+		return FALSE;
+	guint n = h->ins_ids->len;
+	if (n && g_array_index(h->ins_ids, gint64, n - 1) == record_id) {
+		gint idx = find_index_locked(h, record_id);
+		if (idx >= 0) {
+			g_ptr_array_add(h->ins_stash, g_ptr_array_steal_index(h->records, idx));
+			h->live_count--;
+			g_array_set_size(h->ins_ids, n - 1);
+		}
+		return TRUE;
+	}
+	/* Not one of ours (or not the newest): the pre-anchor state was swapped
+	 * in wholesale and undo was flushed when the point was armed, so nothing
+	 * else on the stack describes this log.  Ignore rather than corrupt
+	 * live_count. */
+	siril_log_debug("nde: undo of record %" G_GINT64_FORMAT " ignored while inserting\n",
+	                record_id);
+	return TRUE;
+}
+
+static gboolean insert_on_redo_locked(nde_history *h, gint64 record_id) {
+	if (!h->ins_before)
+		return FALSE;
+	guint n = h->ins_stash->len;
+	nde_record *top = n ? g_ptr_array_index(h->ins_stash, n - 1) : NULL;
+	if (top && top->record_id == record_id) {
+		gint at = find_index_locked(h, h->ins_before);
+		if (at >= 0) {
+			g_ptr_array_insert(h->records, at, g_ptr_array_steal_index(h->ins_stash, n - 1));
+			h->live_count++;
+			g_array_append_val(h->ins_ids, record_id);
+		}
+		return TRUE;
+	}
+	siril_log_debug("nde: redo of record %" G_GINT64_FORMAT " ignored while inserting\n",
+	                record_id);
+	return TRUE;
+}
+
 void nde_history_on_undo(gint64 record_id) {
 	if (!record_id || !com.uniq)
 		return;
 	g_mutex_lock(&nde_mutex);
 	nde_history *h = com.uniq->nde_history;
-	if (h) {
+	if (h && !insert_on_undo_locked(h, record_id)) {
 		gint idx = find_index_locked(h, record_id);
 		if (idx < 0)
 			siril_log_debug("nde: undo of unknown record %" G_GINT64_FORMAT "\n", record_id);
@@ -193,7 +304,7 @@ void nde_history_on_redo(gint64 record_id) {
 		return;
 	g_mutex_lock(&nde_mutex);
 	nde_history *h = com.uniq->nde_history;
-	if (h) {
+	if (h && !insert_on_redo_locked(h, record_id)) {
 		gint idx = find_index_locked(h, record_id);
 		if (idx < 0)
 			siril_log_debug("nde: redo of unknown record %" G_GINT64_FORMAT "\n", record_id);
@@ -483,6 +594,136 @@ gboolean nde_history_reorder(gint64 record_id, gint64 before_id, gchar **err) {
 	if (ok)
 		nde_history_notify_panel();
 	return ok;
+}
+
+/* ---- edit-at insertion point (graph step 2) ---------------------------- */
+
+gboolean nde_history_insert_point_set(gint64 before_id, gint item_id, gchar **err) {
+	g_return_val_if_fail(err != NULL, FALSE);
+	*err = NULL;
+	if (!com.uniq || !com.uniq->nde_history) {
+		*err = g_strdup(_("no edit history"));
+		return FALSE;
+	}
+	GArray *dropped = g_array_new(FALSE, FALSE, sizeof(gint64));
+	gboolean ok = FALSE;
+	g_mutex_lock(&nde_mutex);
+	{
+		nde_history *h = com.uniq->nde_history;
+		if (!h->ins_ids)
+			h->ins_ids = g_array_new(FALSE, FALSE, sizeof(gint64));
+		if (!h->ins_stash)
+			h->ins_stash = g_ptr_array_new_with_free_func((GDestroyNotify)nde_record_free);
+		if (before_id == 0) {
+			h->ins_before = 0;
+			ok = TRUE;
+		} else if (find_mutable_locked(h, before_id, FALSE, err) >= 0) {
+			/* The dead tail goes now, not at the first insert: the mode
+			 * flushes undo, so its redo lineage is unreachable from here
+			 * on and leaving it would confuse the local liveness model. */
+			truncate_dead_locked(h, dropped);
+			h->ins_before = before_id;
+			h->ins_item = item_id;
+			h->ins_disturbed = FALSE;
+			g_array_set_size(h->ins_ids, 0);
+			g_ptr_array_set_size(h->ins_stash, 0);
+			ok = TRUE;
+		}
+	}
+	g_mutex_unlock(&nde_mutex);
+	drop_output_checkpoints(dropped);
+	return ok;
+}
+
+gint64 nde_history_insert_point(void) {
+	if (!com.uniq)
+		return 0;
+	g_mutex_lock(&nde_mutex);
+	gint64 id = com.uniq->nde_history ? com.uniq->nde_history->ins_before : 0;
+	g_mutex_unlock(&nde_mutex);
+	return id;
+}
+
+gboolean nde_history_insert_point_disturbed(void) {
+	if (!com.uniq)
+		return FALSE;
+	g_mutex_lock(&nde_mutex);
+	gboolean d = com.uniq->nde_history && com.uniq->nde_history->ins_disturbed;
+	g_mutex_unlock(&nde_mutex);
+	return d;
+}
+
+GArray *nde_history_insert_point_clear(void) {
+	GArray *out = g_array_new(FALSE, FALSE, sizeof(gint64));
+	if (!com.uniq)
+		return out;
+	GArray *dropped = g_array_new(FALSE, FALSE, sizeof(gint64));
+	g_mutex_lock(&nde_mutex);
+	{
+		nde_history *h = com.uniq->nde_history;
+		if (h) {
+			h->ins_before = 0;
+			h->ins_disturbed = FALSE;
+			if (h->ins_ids) {
+				for (guint i = 0; i < h->ins_ids->len; i++) {
+					gint64 id = g_array_index(h->ins_ids, gint64, i);
+					g_array_append_val(out, id);
+				}
+				g_array_set_size(h->ins_ids, 0);
+			}
+			/* Stashed records were undone and never redone: they are gone
+			 * for good, so release what they own. */
+			if (h->ins_stash) {
+				for (guint i = 0; i < h->ins_stash->len; i++) {
+					nde_record *r = g_ptr_array_index(h->ins_stash, i);
+					g_array_append_val(dropped, r->record_id);
+				}
+				g_ptr_array_set_size(h->ins_stash, 0);
+			}
+		}
+	}
+	g_mutex_unlock(&nde_mutex);
+	drop_output_checkpoints(dropped);
+	return out;
+}
+
+void nde_history_drop_records(GArray *ids) {
+	if (!ids || !ids->len || !com.uniq)
+		return;
+	GArray *dropped = g_array_new(FALSE, FALSE, sizeof(gint64));
+	gboolean any = FALSE;
+	g_mutex_lock(&nde_mutex);
+	{
+		nde_history *h = com.uniq->nde_history;
+		for (guint i = 0; h && i < ids->len; i++) {
+			gint64 id = g_array_index(ids, gint64, i);
+			gint idx = find_index_locked(h, id);
+			if (idx < 0 || (guint)idx >= h->live_count)
+				continue;
+			g_array_append_val(dropped, id);
+			g_ptr_array_remove_index(h->records, idx);
+			h->live_count--;
+			any = TRUE;
+		}
+	}
+	g_mutex_unlock(&nde_mutex);
+	drop_output_checkpoints(dropped);
+	if (any)
+		nde_history_notify_panel();
+}
+
+void nde_history_truncate_dead(void) {
+	if (!com.uniq)
+		return;
+	GArray *dropped = g_array_new(FALSE, FALSE, sizeof(gint64));
+	g_mutex_lock(&nde_mutex);
+	if (com.uniq->nde_history)
+		truncate_dead_locked(com.uniq->nde_history, dropped);
+	g_mutex_unlock(&nde_mutex);
+	gboolean any = dropped->len > 0;
+	drop_output_checkpoints(dropped);
+	if (any)
+		nde_history_notify_panel();
 }
 
 void nde_history_set_stale(gboolean stale) {

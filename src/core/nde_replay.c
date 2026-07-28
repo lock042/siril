@@ -583,12 +583,21 @@ static void commit_restore_metadata(fits *target, fits *old) {
 	g_rw_lock_writer_unlock(&target->rwlock);
 }
 
+/* Why a history edit is refused right now.  Both modes install a synthesized
+ * state over the target's real pixels, so a second edit would compute against
+ * something that is not the committed image. */
+static const char *edit_in_progress_reason(void) {
+	return nde_edit_at_active() ?
+			_("an insertion point is open — finish or cancel it first") :
+			_("another history step is being edited — close its dialog first");
+}
+
 static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **err) {
 	g_return_val_if_fail(err != NULL, FALSE);
 	*err = NULL;
 
 	if (amend_preview_installed()) {
-		*err = g_strdup(_("another history step is being edited — close its dialog first"));
+		*err = g_strdup(edit_in_progress_reason());
 		return FALSE;
 	}
 
@@ -831,7 +840,7 @@ gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after,
 	g_return_val_if_fail(err != NULL, FALSE);
 	*err = NULL;
 	if (amend_preview_installed()) {
-		*err = g_strdup(_("another history step is being edited — close its dialog first"));
+		*err = g_strdup(edit_in_progress_reason());
 		return FALSE;
 	}
 	if (anchor_id <= 0 || record_id == anchor_id) {
@@ -1222,6 +1231,7 @@ static GMutex apv_mutex;
 static struct {
 	gboolean active;     /* start accepted, until end / failed begin */
 	gboolean installed;  /* pre-K currently swapped into the target */
+	gboolean insert;     /* edit-at mode: new steps are inserted before K */
 	gint64   record_id;
 	gint     item_id;
 	gchar   *op_id;
@@ -1283,6 +1293,7 @@ static void apv_swap_into_target(fits *target, fits *incoming) {
 static void apv_clear_state_locked(void) {
 	apv.active = FALSE;
 	apv.installed = FALSE;
+	apv.insert = FALSE;
 	apv.record_id = 0;
 	apv.item_id = -1;
 	g_free(apv.op_id);    apv.op_id = NULL;
@@ -1291,7 +1302,11 @@ static void apv_clear_state_locked(void) {
 	apv.saved = NULL;
 }
 
-gboolean nde_amend_preview_begin_execute(gint64 record_id, gchar **err) {
+/* Install the state just BEFORE record @record_id into its target image.
+ * Shared by the two modes that need it: amend preview (@insert FALSE — the
+ * record's own dialog reopens against the pre-K state) and edit-at (@insert
+ * TRUE — ordinary operations run there and are inserted before the record). */
+static gboolean apv_begin_execute(gint64 record_id, gboolean insert, gchar **err) {
 	g_return_val_if_fail(err != NULL, FALSE);
 	*err = NULL;
 
@@ -1320,7 +1335,9 @@ gboolean nde_amend_preview_begin_execute(gint64 record_id, gchar **err) {
 			op_id = rec->op_id;
 			op_version = rec->op_version;
 			params = rec->params;
-			if (!nde_record_amendable(rec) || !rec->params)
+			/* Edit-at only needs the record as a POSITION: nothing about it
+			 * is re-run, so an opaque anchor is fine. */
+			if (!insert && (!nde_record_amendable(rec) || !rec->params))
 				*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) is opaque and cannot be edited"),
 				                       record_id, rec->op_id ? rec->op_id : "?");
 			break;
@@ -1362,8 +1379,31 @@ gboolean nde_amend_preview_begin_execute(gint64 record_id, gchar **err) {
 		goto fail_free;
 	}
 	if ((guint)e < chain->tail_start) {
-		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " is locked by a later opaque step"),
-		                       record_id);
+		/* Two ways to be outside the tail, and for an insertion the second
+		 * one is worth naming: the anchor is ITSELF the opaque step, so the
+		 * refusal is not "something later locked you" but "you could not be
+		 * re-run over what you inserted". */
+		gboolean self_barrier = insert &&
+				(g_array_index(chain->member_flags, guint8, e) & NDE_CHAIN_MEMBER_BARRIER);
+		*err = self_barrier ?
+			g_strdup_printf(_("record %" G_GINT64_FORMAT " is an opaque step: it cannot be recomputed, so nothing can be inserted before it"),
+			                record_id) :
+			g_strdup_printf(_("record %" G_GINT64_FORMAT " is locked by a later opaque step"),
+			                record_id);
+		nde_chain_free(chain);
+		goto fail_free;
+	}
+	/* Edit-at ends by replaying members [e..end] forward over the inserted
+	 * work, so refuse up front if that replay could not run — the check is
+	 * cheap here and there is no way back once pixels have changed. */
+	if (insert && !chain->tail_replayable) {
+		GString *s = g_string_new(_("the steps after this one cannot be recomputed: "));
+		for (guint i = 0; i < chain->reasons->len; i++) {
+			if (i)
+				g_string_append(s, "; ");
+			g_string_append(s, g_ptr_array_index(chain->reasons, i));
+		}
+		*err = g_string_free(s, FALSE);
 		nde_chain_free(chain);
 		goto fail_free;
 	}
@@ -1387,6 +1427,22 @@ gboolean nde_amend_preview_begin_execute(gint64 record_id, gchar **err) {
 		goto fail_free;
 	}
 
+	/* Arm the log BEFORE installing the pixels: once the pre-K state is on
+	 * screen the user can start an operation, and a capture that arrived
+	 * before the point was armed would append to the end instead. */
+	if (insert) {
+		if (!nde_history_insert_point_set(record_id, item_id, err)) {
+			clearfits(pre_k);
+			free(pre_k);
+			goto fail_free;
+		}
+		/* The undo stack describes the true lineage, which is about to leave
+		 * the screen; Ctrl-Z against the pre-K state would restore pixels
+		 * nothing in the log describes.  (Every other history edit flushes
+		 * undo too — sketch §7, there is no meta-undo.) */
+		undo_flush();
+	}
+
 	/* Install: after the swap pre_k holds the TRUE pixels — that is the
 	 * stash the end path restores from. */
 	apv_swap_into_target(target, pre_k);
@@ -1394,6 +1450,7 @@ gboolean nde_amend_preview_begin_execute(gint64 record_id, gchar **err) {
 	g_mutex_lock(&apv_mutex);
 	apv.active = TRUE;
 	apv.installed = TRUE;
+	apv.insert = insert;
 	apv.record_id = record_id;
 	apv.item_id = item_id;
 	apv.op_id = op_id_copy;
@@ -1409,15 +1466,21 @@ fail_free:
 	return FALSE;
 }
 
+gboolean nde_amend_preview_begin_execute(gint64 record_id, gchar **err) {
+	return apv_begin_execute(record_id, FALSE, err);
+}
+
 gboolean nde_amend_preview_end_execute(gboolean apply, const gchar *new_params, gchar **err) {
 	g_return_val_if_fail(err != NULL, FALSE);
 	*err = NULL;
 
 	g_mutex_lock(&apv_mutex);
-	if (!apv.active) {
+	if (!apv.active || apv.insert) {
+		gboolean wrong_mode = apv.insert;
 		g_mutex_unlock(&apv_mutex);
 		if (apply) {
-			*err = g_strdup(_("no amend preview is active"));
+			*err = g_strdup(wrong_mode ? _("an insertion point is open — finish it instead")
+			                           : _("no amend preview is active"));
 			return FALSE;
 		}
 		return TRUE;   /* tolerated: defensive cancels from destroy handlers */
@@ -1448,6 +1511,171 @@ gboolean nde_amend_preview_end_execute(gboolean apply, const gchar *new_params, 
 	if (apply)
 		return edit_execute(record_id, new_params, err);
 	return TRUE;
+}
+
+/* ======================================================================= */
+/* Edit at / insert before K (graph step 2)                                */
+/* ======================================================================= */
+
+/* Same install as the amend preview, but the exit verb differs: instead of
+ * re-running the anchor with new parameters, the operations the user ran
+ * against the pre-anchor state are already IN the log (nde_history_append
+ * inserted them before the anchor), and finishing replays the anchor and
+ * everything after it forward over them.
+ *
+ * Note what is NOT replayed: the inserted steps themselves.  Their result is
+ * the pixels sitting in the target, so their tier is irrelevant — inserting
+ * an opaque python write is as legal as inserting a Tier-A op, it just
+ * freezes everything before it for future edits, which is the ordinary
+ * barrier rule.  What must be replayable is [anchor..end], and that is
+ * checked when the point is armed, before anything changes. */
+
+gboolean nde_edit_at_begin_execute(gint64 record_id, gchar **err) {
+	return apv_begin_execute(record_id, TRUE, err);
+}
+
+gboolean nde_edit_at_end_execute(gboolean apply, gchar **err) {
+	g_return_val_if_fail(err != NULL, FALSE);
+	*err = NULL;
+
+	g_mutex_lock(&apv_mutex);
+	if (!apv.active || !apv.insert) {
+		g_mutex_unlock(&apv_mutex);
+		if (apply) {
+			*err = g_strdup(_("no insertion point is open"));
+			return FALSE;
+		}
+		return TRUE;   /* tolerated: defensive cancels from destroy handlers */
+	}
+	gint64 anchor_id = apv.record_id;
+	gint item_id = apv.item_id;
+	fits *saved = apv.saved;
+	apv_clear_state_locked();
+	g_mutex_unlock(&apv_mutex);
+
+	gboolean disturbed = nde_history_insert_point_disturbed();
+	GArray *inserted = nde_history_insert_point_clear();
+
+	/* Restore the true pixels and metadata first, exactly as the amend
+	 * preview does.  `saved` comes back holding the pre-anchor state PLUS
+	 * whatever was inserted — the starting point for the forward replay. */
+	fits *target = edit_target_fits(item_id);
+	if (target)
+		apv_swap_into_target(target, saved);
+	else
+		siril_log_error(_("Edit at: the target layer no longer exists\n"));
+
+	gboolean commit = apply && target && inserted->len > 0 && !disturbed;
+	if (!commit) {
+		clearfits(saved);
+		free(saved);
+		/* Nothing is committed, so the inserted records describe pixels that
+		 * no longer exist anywhere.  Drop them. */
+		nde_history_drop_records(inserted);
+		gboolean abandoned = apply && disturbed && inserted->len > 0;
+		g_array_unref(inserted);
+		undo_flush();
+		gui_iface.set_progress(PROGRESS_RESET,
+		                       abandoned ? _("Insertion abandoned")
+		                                 : _("Insertion point closed"));
+		if (abandoned) {
+			*err = g_strdup(_("an operation changed the document while the "
+			                  "insertion point was open — the inserted steps "
+			                  "were discarded"));
+			return FALSE;
+		}
+		return TRUE;
+	}
+
+	gint64 first_inserted = g_array_index(inserted, gint64, 0);
+
+	/* Replay the anchor and everything after it over the inserted work. */
+	nde_chain *chain = nde_chain_build(item_id);
+	gint k = -1;
+	for (guint i = 0; i < chain->records->len; i++) {
+		const nde_record *rec = g_ptr_array_index(chain->records, i);
+		if (rec->record_id == anchor_id) {
+			k = (gint)i;
+			break;
+		}
+	}
+	fits *result = NULL;
+	if (k < 0) {
+		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " is no longer part of this image's history"),
+		                       anchor_id);
+	} else if ((guint)k < chain->tail_start || !chain->tail_replayable) {
+		/* An inserted opaque step became a barrier that swallowed the anchor
+		 * (it has no output checkpoint, or one of the later steps cannot
+		 * replay from it). */
+		*err = g_strdup(_("the steps after the insertion point can no longer be recomputed"));
+	} else {
+		gui_iface.set_progress(0.f, _("Recomputing edit history..."));
+		/* Cached states at or after the insertion describe the pre-insert
+		 * lineage; the replay re-deposits fresh ones as it goes. */
+		nde_snapstore_invalidate_from(item_id, first_inserted);
+		result = replay_apply_records(saved, chain, (guint)k, chain->records->len, err);
+		saved = NULL;   /* consumed either way */
+	}
+	nde_chain_free(chain);
+
+	if (!result) {
+		if (saved) {
+			clearfits(saved);
+			free(saved);
+		}
+		nde_snapstore_invalidate_from(item_id, first_inserted);
+		/* The target already holds the true pixels; take the log back to
+		 * match them so the two never disagree. */
+		nde_history_drop_records(inserted);
+		g_array_unref(inserted);
+		undo_flush();
+		gui_iface.set_progress(PROGRESS_RESET, _("Insertion failed — nothing was changed"));
+		return FALSE;
+	}
+	g_array_unref(inserted);
+
+	g_rw_lock_writer_lock(&target->rwlock);
+	fits_swap_all_except_rwlock(target, result);
+	g_rw_lock_writer_unlock(&target->rwlock);
+	commit_restore_metadata(target, result);
+	clearfits(result);
+	free(result);
+
+	undo_flush();
+	invalidate_stats_from_fit(target);
+	gui_iface.invalidate_histogram();
+	if (is_current_image_flis())
+		gui_iface.flis_invalidate_composite();
+	if (target == gfit)
+		notify_gfit_data_modified();
+	gui_iface.set_progress(PROGRESS_DONE, _("Edit history updated"));
+	return TRUE;
+}
+
+gboolean nde_edit_at_refuses_op(const char *what) {
+	g_mutex_lock(&apv_mutex);
+	gboolean open = apv.active && apv.insert;
+	g_mutex_unlock(&apv_mutex);
+	if (!open)
+		return FALSE;
+	siril_log_error(_("%s cannot be done while a step is being inserted into the "
+	                  "edit history — finish or cancel the insertion first\n"),
+	                what ? what : _("This operation"));
+	return TRUE;
+}
+
+gboolean nde_edit_at_active(void) {
+	g_mutex_lock(&apv_mutex);
+	gboolean r = apv.active && apv.insert;
+	g_mutex_unlock(&apv_mutex);
+	return r;
+}
+
+gint64 nde_edit_at_record_id(void) {
+	g_mutex_lock(&apv_mutex);
+	gint64 id = (apv.active && apv.insert) ? apv.record_id : 0;
+	g_mutex_unlock(&apv_mutex);
+	return id;
 }
 
 /* ---- GUI wrappers (job spawning + main-thread ready callback) ---------- */
@@ -1529,4 +1757,53 @@ gboolean nde_amend_preview_end(gboolean apply, const gchar *new_params) {
 		return FALSE;
 	}
 	return TRUE;
+}
+
+static gpointer edit_at_begin_worker(gpointer p) {
+	gint64 record_id = *(gint64 *)p;
+	g_free(p);
+	gchar *errmsg = NULL;
+	gboolean ok = nde_edit_at_begin_execute(record_id, &errmsg);
+	if (!ok)
+		siril_log_error(_("Cannot insert before this history step: %s\n"),
+		                errmsg ? errmsg : "?");
+	g_free(errmsg);
+	siril_add_idle(apv_ready_idle, GINT_TO_POINTER(ok ? 0 : 1));
+	return GINT_TO_POINTER(ok ? 0 : 1);
+}
+
+gboolean nde_edit_at_start(gint64 record_id,
+                           nde_amend_preview_ready_fn on_ready, gpointer user) {
+	if (nde_amend_preview_active()) {
+		siril_log_error(_("Another history step is already being edited\n"));
+		return FALSE;
+	}
+	apv.on_ready = on_ready;
+	apv.on_ready_user = user;
+	gint64 *id = g_new(gint64, 1);
+	*id = record_id;
+	if (!replay_conductor_start(edit_at_begin_worker, id)) {
+		apv.on_ready = NULL;
+		apv.on_ready_user = NULL;
+		g_free(id);
+		return FALSE;
+	}
+	return TRUE;
+}
+
+static gpointer edit_at_end_worker(gpointer p) {
+	gboolean apply = (GPOINTER_TO_INT(p) != 0);
+	gchar *errmsg = NULL;
+	gboolean ok = nde_edit_at_end_execute(apply, &errmsg);
+	if (!ok)
+		siril_log_error(_("Edit history change failed: %s\n"), errmsg ? errmsg : "?");
+	g_free(errmsg);
+	siril_add_idle(nde_edit_done_idle, NULL);
+	return GINT_TO_POINTER(ok ? 0 : 1);
+}
+
+gboolean nde_edit_at_end(gboolean apply) {
+	if (!nde_edit_at_active())
+		return !apply;
+	return replay_conductor_start(edit_at_end_worker, GINT_TO_POINTER(apply ? 1 : 0));
 }

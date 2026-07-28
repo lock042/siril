@@ -64,6 +64,7 @@
 #include "core/icc_profile.h"
 #include "core/masks.h"
 #include "core/nde_history.h"
+#include "core/nde_replay.h"
 #include "core/nde_checkpoint.h"
 #include "core/nde_snapstore.h"
 #include "core/undo.h"
@@ -2007,6 +2008,10 @@ static GPtrArray *read_nde_ckpt_hdus(fitsfile *fptr, int nhdus, nde_history *his
 }
 
 int save_flis(const gchar *filename) {
+    /* The pixels on screen are a mid-history state while an insertion point
+     * is open; writing them alongside the full FLIS_HIST log would produce a
+     * file whose history does not describe its pixels. */
+    if (nde_edit_at_refuses_op(_("Saving"))) return 1;
     if (!com.uniq || !com.uniq->layers) {
         siril_log_message(_("FLIS save: no layers to save\n"));
         return 1;
@@ -3159,10 +3164,12 @@ static int flis_canvas_resize_impl(guint new_w, guint new_h, gint dx, gint dy,
 }
 
 int flis_canvas_resize(guint new_w, guint new_h, gint dx, gint dy) {
+    if (nde_edit_at_refuses_op(_("Resizing the canvas"))) return 1;
     return flis_canvas_resize_impl(new_w, new_h, dx, dy, TRUE);
 }
 
 int flis_canvas_fit_to_layers(gboolean include_invisible) {
+    if (nde_edit_at_refuses_op(_("Fitting the canvas to the layers"))) return 1;
     if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return 1;
 
     gboolean any = FALSE;
@@ -3210,6 +3217,7 @@ int flis_canvas_fit_to_layers(gboolean include_invisible) {
 }
 
 int flis_canvas_rotate(double angle) {
+    if (nde_edit_at_refuses_op(_("Rotating the canvas"))) return 1;
     if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return 1;
     if (com.uniq->canvas_w == 0 || com.uniq->canvas_h == 0) return 1;
 
@@ -3253,6 +3261,7 @@ int flis_canvas_rotate(double angle) {
 }
 
 static int flis_canvas_mirror_axis(gboolean vertical, gboolean horizontal) {
+    if (nde_edit_at_refuses_op(_("Mirroring the canvas"))) return 1;
     if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return 1;
     if (com.uniq->canvas_w == 0 || com.uniq->canvas_h == 0) return 1;
     const gint cw = (gint)com.uniq->canvas_w;
@@ -4300,6 +4309,7 @@ static void flis_layer_install_render(flis_layer_t *lay, fits *rendered) {
  * Returns 0 on success, 1 on failure.
  * ------------------------------------------------------------------------- */
 int flis_merge_down_layer(flis_layer_t *top) {
+    if (nde_edit_at_refuses_op(_("Merging layers down"))) return 1;
     if (!com.uniq || !top) return 1;
     if (flis_check_locked(top, _("merge down"))) return 1;
 
@@ -4403,6 +4413,7 @@ int flis_merge_down_layer(flis_layer_t *top) {
  * Returns 0 on success, 1 on failure.
  * ------------------------------------------------------------------------- */
 int flis_flatten_all(void) {
+    if (nde_edit_at_refuses_op(_("Flattening the image"))) return 1;
     if (!com.uniq || !com.uniq->layers) return 1;
     gint n_before = flis_layer_count();
     if (n_before <= 1) return 0; /* already flat — no mutation, no record */

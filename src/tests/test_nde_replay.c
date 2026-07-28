@@ -2008,3 +2008,180 @@ Test(nde_replay, amend_preview_refusals) {
 
 	golden_teardown(NULL, f);
 }
+
+/* ---------------- graph step 2: edit at / insert before K ---------------- */
+
+/* Heap asinh params, the shape apply_op_real / apply_direct expect. */
+static asinh_params *asinh_beta(float beta) {
+	asinh_params *p = calloc(1, sizeof(*p));
+	p->beta = beta;
+	p->clip_mode = RESCALE;
+	return p;
+}
+
+/* Record ids in log order. */
+static void assert_log_order(const gint64 *want, guint n, const char *ctx) {
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	cr_assert_not_null(snap, "%s: no history", ctx);
+	cr_assert_eq(snap->len, n, "%s: expected %u records, got %u", ctx, n, snap->len);
+	for (guint i = 0; i < n; i++)
+		cr_assert_eq(((nde_record *)g_ptr_array_index(snap, i))->record_id, want[i],
+		             "%s: position %u", ctx, i);
+	g_ptr_array_unref(snap);
+}
+
+Test(nde_replay, edit_at_inserts_a_step_and_replays_forward) {
+	com.pref.nde_cache_mb = 256;
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(10.f)), 0);
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(20.f)), 0);
+
+	/* what the image must become: the inserted step runs BETWEEN the two */
+	fits *expected = nde_checkpoint_baseline_get(-1);
+	cr_assert_not_null(expected);
+	apply_direct(&op_desc_asinh, asinh_beta(10.f), expected);
+	apply_direct(&op_desc_asinh, asinh_beta(30.f), expected);
+	apply_direct(&op_desc_asinh, asinh_beta(20.f), expected);
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_edit_at_begin_execute(2, &err), "begin failed: %s", err ? err : "?");
+	cr_assert(nde_edit_at_active());
+	cr_assert(nde_amend_preview_active(), "edit-at shares the single-instance lock");
+	cr_assert_eq(nde_edit_at_record_id(), 2);
+
+	/* every history edit is refused while the point is open */
+	cr_assert(!nde_amend_execute(1, "beta=15;offset=0;human=0;clip_mode=1", &err));
+	cr_assert(strstr(err, "insertion point") != NULL, "got: %s", err);
+	g_clear_pointer(&err, g_free);
+	cr_assert(!nde_delete_execute(1, &err));
+	g_clear_pointer(&err, g_free);
+	cr_assert(!nde_reorder_execute(2, 1, FALSE, &err));
+	g_clear_pointer(&err, g_free);
+	unreserve_thread();
+
+	/* the user runs an ordinary operation against the pre-anchor state */
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(30.f)), 0);
+	gint64 want_open[] = { 1, 3, 2 };
+	assert_log_order(want_open, 3, "while open");
+
+	cr_assert(reserve_thread());
+	cr_assert(nde_edit_at_end_execute(TRUE, &err), "finish failed: %s", err ? err : "?");
+	unreserve_thread();
+	cr_assert(!nde_edit_at_active());
+	cr_assert(!nde_amend_preview_active());
+
+	assert_log_order(want_open, 3, "after finish");
+	assert_pixels_bit_exact(gfit, expected, "edit-at-apply");
+
+	clearfits(expected); free(expected);
+	golden_teardown(NULL, f);
+}
+
+Test(nde_replay, edit_at_cancel_discards_the_inserted_step) {
+	com.pref.nde_cache_mb = 256;
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(10.f)), 0);
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(20.f)), 0);
+	fits expected_full = { 0 };
+	copyfits(gfit, &expected_full, CP_DEEPCOPY | CP_ALLOC, -1);
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_edit_at_begin_execute(2, &err), "begin failed: %s", err ? err : "?");
+	unreserve_thread();
+
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(30.f)), 0);
+	cr_assert_eq(nde_history_live_count(), 3);
+
+	cr_assert(reserve_thread());
+	cr_assert(nde_edit_at_end_execute(FALSE, &err), "cancel failed: %s", err ? err : "?");
+	unreserve_thread();
+
+	gint64 want[] = { 1, 2 };
+	assert_log_order(want, 2, "after cancel");
+	assert_pixels_bit_exact(gfit, &expected_full, "edit-at-cancel-restore");
+
+	clearfits(&expected_full);
+	golden_teardown(NULL, f);
+}
+
+Test(nde_replay, edit_at_inserting_nothing_is_a_no_op) {
+	com.pref.nde_cache_mb = 256;
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(10.f)), 0);
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(20.f)), 0);
+	fits expected_full = { 0 };
+	copyfits(gfit, &expected_full, CP_DEEPCOPY | CP_ALLOC, -1);
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_edit_at_begin_execute(2, &err), "begin failed: %s", err ? err : "?");
+	cr_assert(nde_edit_at_end_execute(TRUE, &err), "finish failed: %s", err ? err : "?");
+	unreserve_thread();
+
+	gint64 want[] = { 1, 2 };
+	assert_log_order(want, 2, "after empty finish");
+	assert_pixels_bit_exact(gfit, &expected_full, "edit-at-empty");
+
+	clearfits(&expected_full);
+	golden_teardown(NULL, f);
+}
+
+Test(nde_replay, edit_at_refusals) {
+	com.pref.nde_cache_mb = 256;
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(10.f)), 0);
+	/* an opaque step with a checkpoint: everything before it is frozen */
+	gint64 b_id = nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, -1,
+	                                 "freehand", gfit);
+	cr_assert(b_id > 0);
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(20.f)), 0);
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+
+	/* unknown record */
+	cr_assert(!nde_edit_at_begin_execute(99, &err));
+	cr_assert_not_null(err);
+	g_clear_pointer(&err, g_free);
+
+	/* frozen: record 1 sits before the barrier */
+	cr_assert(!nde_edit_at_begin_execute(1, &err));
+	cr_assert(strstr(err, "locked") != NULL, "got: %s", err);
+	g_clear_pointer(&err, g_free);
+
+	/* finishing when nothing is open */
+	cr_assert(!nde_edit_at_end_execute(TRUE, &err));
+	g_clear_pointer(&err, g_free);
+	cr_assert(nde_edit_at_end_execute(FALSE, &err), "a stray cancel is tolerated");
+
+	/* the opaque step itself is no anchor either: closing the point would
+	 * have to re-run it over the inserted work, which is the one thing an
+	 * opaque record cannot do */
+	cr_assert(!nde_edit_at_begin_execute(b_id, &err));
+	cr_assert(strstr(err, "opaque step") != NULL, "got: %s", err);
+	g_clear_pointer(&err, g_free);
+
+	/* record 3 is in the tail: a valid anchor, and only one at a time */
+	cr_assert(nde_edit_at_begin_execute(3, &err), "begin failed: %s", err ? err : "?");
+	cr_assert(!nde_edit_at_begin_execute(3, &err));
+	cr_assert(strstr(err, "already") != NULL, "got: %s", err);
+	g_clear_pointer(&err, g_free);
+	cr_assert(nde_edit_at_end_execute(FALSE, &err), "cancel failed: %s", err ? err : "?");
+	unreserve_thread();
+
+	golden_teardown(NULL, f);
+}

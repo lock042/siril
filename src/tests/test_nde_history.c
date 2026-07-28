@@ -523,3 +523,245 @@ Test(nde_history, delete_removes_live_records) {
 	cr_assert_eq(((nde_record *)g_ptr_array_index(all, 0))->record_id, b);
 	g_ptr_array_unref(all);
 }
+
+/* ---------------- graph step 2: edit-at insertion point ---------------- */
+
+/* Append a Tier-A record with an explicit scope/target, so the qualification
+ * rules can be exercised without a document. */
+static gint64 append_scoped(const char *op_id, gint scope, gint target) {
+	nde_record *rec = nde_record_new();
+	rec->op_id = g_strdup(op_id);
+	rec->op_version = 1;
+	rec->tier = NDE_TIER_A;
+	rec->scope = scope;
+	rec->target_item_id = target;
+	rec->params = g_strdup("k=1");
+	rec->summary = g_strdup(op_id);
+	return nde_history_append(rec);
+}
+
+/* Ids in log order. */
+static GArray *order_ids(void) {
+	GArray *out = g_array_new(FALSE, FALSE, sizeof(gint64));
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	for (guint i = 0; snap && i < snap->len; i++) {
+		gint64 id = ((nde_record *)g_ptr_array_index(snap, i))->record_id;
+		g_array_append_val(out, id);
+	}
+	if (snap)
+		g_ptr_array_unref(snap);
+	return out;
+}
+
+#define ASSERT_ORDER(...) do { \
+	gint64 want[] = { __VA_ARGS__ }; \
+	GArray *got = order_ids(); \
+	cr_assert_eq(got->len, G_N_ELEMENTS(want), "expected %zu records, got %u", \
+	             (size_t)G_N_ELEMENTS(want), got->len); \
+	for (guint _i = 0; _i < got->len; _i++) \
+		cr_assert_eq(g_array_index(got, gint64, _i), want[_i], \
+		             "position %u: expected record %" G_GINT64_FORMAT ", got %" G_GINT64_FORMAT, \
+		             _i, want[_i], g_array_index(got, gint64, _i)); \
+	g_array_unref(got); \
+} while (0)
+
+Test(nde_history, insert_point_places_records_before_the_anchor) {
+	gint64 a = append_scoped("filters.gauss", NDE_SCOPE_LAYER, -1);
+	gint64 b = append_scoped("filters.gauss", NDE_SCOPE_LAYER, -1);
+	gint64 c = append_scoped("filters.unsharp", NDE_SCOPE_LAYER, -1);
+
+	gchar *err = NULL;
+	cr_assert(nde_history_insert_point_set(c, -1, &err), "arm failed: %s", err ? err : "?");
+	cr_assert_eq(nde_history_insert_point(), c);
+
+	gint64 x = append_scoped("stretch.asinh", NDE_SCOPE_LAYER, -1);
+	gint64 y = append_scoped("filters.gauss", NDE_SCOPE_LAYER, -1);
+	/* successive inserts accumulate in order, all still before the anchor */
+	ASSERT_ORDER(a, b, x, y, c);
+	cr_assert_eq(nde_history_live_count(), 5);
+
+	GArray *ins = nde_history_insert_point_clear();
+	cr_assert_eq(ins->len, 2);
+	cr_assert_eq(g_array_index(ins, gint64, 0), x);
+	cr_assert_eq(g_array_index(ins, gint64, 1), y);
+	g_array_unref(ins);
+	cr_assert_eq(nde_history_insert_point(), 0);
+
+	/* disarmed: back to appending */
+	gint64 z = append_scoped("filters.gauss", NDE_SCOPE_LAYER, -1);
+	ASSERT_ORDER(a, b, x, y, c, z);
+}
+
+Test(nde_history, insert_point_arming_requires_a_live_anchor) {
+	gchar *err = NULL;
+	gint64 a = append_scoped("filters.gauss", NDE_SCOPE_LAYER, -1);
+	gint64 b = append_scoped("filters.gauss", NDE_SCOPE_LAYER, -1);
+
+	cr_assert(!nde_history_insert_point_set(999, -1, &err));
+	cr_assert_not_null(err);
+	g_clear_pointer(&err, g_free);
+	cr_assert_eq(nde_history_insert_point(), 0);
+
+	/* an undone record is not a valid anchor */
+	nde_history_on_undo(b);
+	cr_assert(!nde_history_insert_point_set(b, -1, &err));
+	cr_assert(strstr(err, "undone") != NULL);
+	g_clear_pointer(&err, g_free);
+	(void)a;
+}
+
+Test(nde_history, insert_point_truncates_the_dead_tail_when_armed) {
+	gint64 a = append_scoped("filters.gauss", NDE_SCOPE_LAYER, -1);
+	gint64 b = append_scoped("filters.gauss", NDE_SCOPE_LAYER, -1);
+	gint64 c = append_scoped("filters.unsharp", NDE_SCOPE_LAYER, -1);
+	nde_history_on_undo(c);                     /* dead tail: [c] */
+	guint live = 0;
+	GPtrArray *all = nde_history_snapshot_all(&live);
+	cr_assert_eq(all->len, 3);
+	cr_assert_eq(live, 2);
+	g_ptr_array_unref(all);
+
+	gchar *err = NULL;
+	cr_assert(nde_history_insert_point_set(b, -1, &err), "arm failed: %s", err ? err : "?");
+	all = nde_history_snapshot_all(&live);
+	cr_assert_eq(all->len, 2, "arming must drop the dead tail");
+	cr_assert_eq(live, 2);
+	g_ptr_array_unref(all);
+	(void)a;
+}
+
+Test(nde_history, insert_point_qualification_rules) {
+	gint64 anchor = append_scoped("filters.unsharp", NDE_SCOPE_LAYER, 7);
+	gchar *err = NULL;
+	cr_assert(nde_history_insert_point_set(anchor, 7, &err), "arm failed: %s", err ? err : "?");
+
+	/* LAYER scope on the insertion's item: inserted */
+	gint64 mine = append_scoped("filters.gauss", NDE_SCOPE_LAYER, 7);
+	/* LAYER scope on ANOTHER layer: appended, and harmless */
+	gint64 other = append_scoped("filters.gauss", NDE_SCOPE_LAYER, 9);
+	/* non-destructive structural: appended, and harmless */
+	gint64 add = append_scoped("layer.add", NDE_SCOPE_DOCUMENT, 9);
+	ASSERT_ORDER(mine, anchor, other, add);
+	cr_assert(!nde_history_insert_point_disturbed());
+
+	GArray *ins = nde_history_insert_point_clear();
+	cr_assert_eq(ins->len, 1);
+	cr_assert_eq(g_array_index(ins, gint64, 0), mine);
+	g_array_unref(ins);
+}
+
+Test(nde_history, insert_point_canvas_qualifies_only_on_a_plain_image) {
+	gint64 anchor = append_scoped("filters.unsharp", NDE_SCOPE_LAYER, -1);
+	gchar *err = NULL;
+	cr_assert(nde_history_insert_point_set(anchor, -1, &err), "arm failed: %s", err ? err : "?");
+	/* plain image (item -1): the image IS the layer, so geometry belongs to
+	 * the lineage and is inserted */
+	gint64 crop = append_scoped("geometry.crop", NDE_SCOPE_CANVAS, -1);
+	ASSERT_ORDER(crop, anchor);
+	cr_assert(!nde_history_insert_point_disturbed());
+	g_array_unref(nde_history_insert_point_clear());
+}
+
+Test(nde_history, insert_point_disturbing_records_raise_the_flag) {
+	gint64 anchor = append_scoped("filters.unsharp", NDE_SCOPE_LAYER, 7);
+	gchar *err = NULL;
+	cr_assert(nde_history_insert_point_set(anchor, 7, &err), "arm failed: %s", err ? err : "?");
+	cr_assert(!nde_history_insert_point_disturbed());
+
+	/* canvas geometry on a LAYERED document is not this layer's lineage */
+	append_scoped("geometry.crop", NDE_SCOPE_CANVAS, 7);
+	cr_assert(nde_history_insert_point_disturbed());
+	g_array_unref(nde_history_insert_point_clear());
+
+	cr_assert(nde_history_insert_point_set(anchor, 7, &err));
+	append_scoped("document.flatten", NDE_SCOPE_DOCUMENT, 7);
+	cr_assert(nde_history_insert_point_disturbed());
+	g_array_unref(nde_history_insert_point_clear());
+
+	cr_assert(nde_history_insert_point_set(anchor, 7, &err));
+	append_scoped("layer.merge_down", NDE_SCOPE_DOCUMENT, 7);
+	cr_assert(nde_history_insert_point_disturbed());
+	g_array_unref(nde_history_insert_point_clear());
+}
+
+Test(nde_history, insert_point_undo_lifts_the_record_out_and_redo_puts_it_back) {
+	gint64 a = append_scoped("filters.gauss", NDE_SCOPE_LAYER, -1);
+	gint64 c = append_scoped("filters.unsharp", NDE_SCOPE_LAYER, -1);
+	gchar *err = NULL;
+	cr_assert(nde_history_insert_point_set(c, -1, &err), "arm failed: %s", err ? err : "?");
+
+	gint64 x = append_scoped("stretch.asinh", NDE_SCOPE_LAYER, -1);
+	gint64 y = append_scoped("filters.gauss", NDE_SCOPE_LAYER, -1);
+	ASSERT_ORDER(a, x, y, c);
+
+	/* Undo must NOT declare the anchor and its successors dead: it lifts the
+	 * inserted record out of the log entirely. */
+	nde_history_on_undo(y);
+	ASSERT_ORDER(a, x, c);
+	cr_assert_eq(nde_history_live_count(), 3);
+	guint live = 0;
+	GPtrArray *all = nde_history_snapshot_all(&live);
+	cr_assert_eq(all->len, 3, "an undone insert leaves no dead tail behind");
+	g_ptr_array_unref(all);
+
+	nde_history_on_redo(y);
+	ASSERT_ORDER(a, x, y, c);
+
+	/* undo both, then finish: nothing was inserted */
+	nde_history_on_undo(y);
+	nde_history_on_undo(x);
+	ASSERT_ORDER(a, c);
+	GArray *ins = nde_history_insert_point_clear();
+	cr_assert_eq(ins->len, 0);
+	g_array_unref(ins);
+}
+
+Test(nde_history, insert_point_capture_after_an_undo_supersedes_it) {
+	gint64 c = append_scoped("filters.unsharp", NDE_SCOPE_LAYER, -1);
+	gchar *err = NULL;
+	cr_assert(nde_history_insert_point_set(c, -1, &err), "arm failed: %s", err ? err : "?");
+	gint64 x = append_scoped("stretch.asinh", NDE_SCOPE_LAYER, -1);
+	nde_history_on_undo(x);
+	gint64 z = append_scoped("filters.gauss", NDE_SCOPE_LAYER, -1);
+	ASSERT_ORDER(z, c);
+	/* x is gone for good: redoing it now must not resurrect it */
+	nde_history_on_redo(x);
+	ASSERT_ORDER(z, c);
+	GArray *ins = nde_history_insert_point_clear();
+	cr_assert_eq(ins->len, 1);
+	cr_assert_eq(g_array_index(ins, gint64, 0), z);
+	g_array_unref(ins);
+}
+
+Test(nde_history, drop_records_removes_only_the_named_live_records) {
+	gint64 a = append_scoped("filters.gauss", NDE_SCOPE_LAYER, -1);
+	gint64 b = append_scoped("filters.gauss", NDE_SCOPE_LAYER, -1);
+	gint64 c = append_scoped("filters.unsharp", NDE_SCOPE_LAYER, -1);
+
+	GArray *ids = g_array_new(FALSE, FALSE, sizeof(gint64));
+	g_array_append_val(ids, b);
+	gint64 missing = 4242;
+	g_array_append_val(ids, missing);
+	nde_history_drop_records(ids);
+	g_array_unref(ids);
+
+	ASSERT_ORDER(a, c);
+	cr_assert_eq(nde_history_live_count(), 2);
+}
+
+Test(nde_history, truncate_dead_drops_the_undone_tail) {
+	gint64 a = append_scoped("filters.gauss", NDE_SCOPE_LAYER, -1);
+	gint64 b = append_scoped("filters.gauss", NDE_SCOPE_LAYER, -1);
+	nde_history_on_undo(b);
+	guint live = 0;
+	GPtrArray *all = nde_history_snapshot_all(&live);
+	cr_assert_eq(all->len, 2);
+	g_ptr_array_unref(all);
+
+	nde_history_truncate_dead();
+	all = nde_history_snapshot_all(&live);
+	cr_assert_eq(all->len, 1);
+	cr_assert_eq(live, 1);
+	cr_assert_eq(((nde_record *)g_ptr_array_index(all, 0))->record_id, a);
+	g_ptr_array_unref(all);
+}

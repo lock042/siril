@@ -88,6 +88,15 @@ typedef struct nde_history {
 	guint      live_count;   /* records[0..live_count-1] reflect current pixels */
 	gint64     next_record_id;
 	gboolean   stale;        /* load-time PIXHASH mismatch — see §14.4 */
+
+	/* Edit-at insertion point (graph step 2).  While ins_before is non-zero
+	 * new qualifying records are INSERTED before that record instead of
+	 * appended; see nde_history_insert_point_set(). */
+	gint64     ins_before;    /* anchor record id; 0 = ordinary append mode */
+	gint       ins_item;      /* item whose chain the insertion belongs to */
+	gboolean   ins_disturbed; /* something ran that invalidates the forward replay */
+	GArray    *ins_ids;       /* gint64: inserted record ids, in log order */
+	GPtrArray *ins_stash;     /* undone inserted records, LIFO (owns them) */
 } nde_history;
 
 /* ---- record lifecycle -------------------------------------------------- */
@@ -183,6 +192,62 @@ gboolean nde_history_delete(gint64 record_id, gchar **err);
  * reorder — position, not id, is the order).
  */
 gboolean nde_history_reorder(gint64 record_id, gint64 before_id, gchar **err);
+
+/* ---- edit-at insertion point (graph step 2) -----------------------------
+ * "Edit at K" installs the state just before record K into the image and
+ * lets the user run ordinary operations there.  The log side of that is an
+ * armed insertion point: while it is armed nde_history_append() inserts
+ * before K rather than appending, so the new steps land in the middle of
+ * the lineage.  nde_replay.c owns the pixel side (nde_edit_at_*).
+ *
+ * A record QUALIFIES for insertion when it would be a member of the item's
+ * replay chain: LAYER-scope targeting the item, plus CANVAS-scope geometry
+ * on a plain image (where the image is the layer).  Records for other
+ * layers, and non-destructive structural records, are appended normally —
+ * they are not part of this lineage and their position relative to K is
+ * immaterial.
+ *
+ * A third class exists because the pixel side restores the true image before
+ * replaying forward: a record that changed the target's pixels but did not
+ * qualify would have that change silently reverted, leaving the log
+ * describing something the image no longer shows.  Those (canvas geometry on
+ * a LAYERED document, document.flatten, layer.merge_down) raise the
+ * "disturbed" flag and the insertion is abandoned instead.  They are refused
+ * before they run wherever possible (nde_edit_at_refuses_op) — the flag is
+ * the backstop, not the mechanism.
+ *
+ * The dead tail is truncated when the point is armed, not when a record is
+ * inserted: entering the mode flushes undo, so a redo lineage beyond the
+ * live prefix is unreachable from that moment on.  While armed, undo and
+ * redo of the INSERTED records are tracked locally (ins_stash) so live_count
+ * keeps meaning "the whole log", and undo/redo of anything else is ignored.
+ */
+
+/** Arm the point before live record @before_id for item @item_id.  FALSE +
+ *  heap @err when @before_id is not a live record. */
+gboolean nde_history_insert_point_set(gint64 before_id, gint item_id, gchar **err);
+
+/** Anchor record id, or 0 when no insertion point is armed. */
+gint64   nde_history_insert_point(void);
+
+/** TRUE when an operation ran that invalidates a forward replay past the
+ *  anchor.  Read it BEFORE nde_history_insert_point_clear(). */
+gboolean nde_history_insert_point_disturbed(void);
+
+/** Disarm, discard the undo stash (and those records' checkpoints), and
+ *  return the ids inserted so far in log order.  Never NULL; the caller
+ *  g_array_unref()s.  The inserted records themselves stay in the log —
+ *  nde_history_drop_records() is how an abandoned insertion undoes them. */
+GArray  *nde_history_insert_point_clear(void);
+
+/** Remove the live records with these ids from the log, dropping their
+ *  output checkpoints and pool entries.  Ids that are not live are skipped.
+ *  Does not touch the dead tail. */
+void     nde_history_drop_records(GArray *ids);
+
+/** Drop the dead tail (records undone but not yet superseded by an append)
+ *  and release their output checkpoints. */
+void     nde_history_truncate_dead(void);
 
 /** Stale flag accessors (load-time PIXHASH mismatch). */
 void     nde_history_set_stale(gboolean stale);

@@ -424,6 +424,8 @@ int process_satu(int nb) {
 }
 
 int process_save(int nb){
+	if (nde_edit_at_refuses_op(_("Saving")))
+		return CMD_GENERIC_ERROR;
 	gchar *filename = g_strdup(word[1]);
 	int status, retval;
 
@@ -17350,6 +17352,42 @@ int process_flis_amend(int nb) {
 	}
 	if (!nde_amend_start(record_id, word[2]))
 		return CMD_GENERIC_ERROR;
+	return CMD_OK;
+}
+
+int process_flis_editat(int nb) {
+	if (nb < 2) {
+		siril_log_error(_("Usage: flis_editat <record_id>|done|cancel\n"));
+		return CMD_WRONG_N_ARG;
+	}
+	if (processing_is_reserved_for_python()) {
+		siril_log_error(_("The processing thread is reserved by a Python script; try again later\n"));
+		return CMD_GENERIC_ERROR;
+	}
+	gboolean done = !g_ascii_strcasecmp(word[1], "done");
+	if (done || !g_ascii_strcasecmp(word[1], "cancel")) {
+		if (!nde_edit_at_active()) {
+			siril_log_error(_("No insertion point is open\n"));
+			return CMD_GENERIC_ERROR;
+		}
+		if (!nde_edit_at_end(done))
+			return CMD_GENERIC_ERROR;
+		return CMD_OK;
+	}
+	gint64 record_id;
+	if (!parse_record_id_arg(word[1], &record_id)) {
+		siril_log_error(_("Invalid record id: '%s'\n"), word[1]);
+		return CMD_ARG_ERROR;
+	}
+	if (!nde_edit_at_start(record_id, NULL, NULL))
+		return CMD_GENERIC_ERROR;
+	/* The conductor runs synchronously in a script; report the outcome the
+	 * caller cares about (the begin logs its own reason on failure). */
+	if (!nde_edit_at_active())
+		return CMD_GENERIC_ERROR;
+	siril_log_message(_("Inserting before step %" G_GINT64_FORMAT ": run operations, then "
+	                    "'flis_editat done' to keep them or 'flis_editat cancel' to discard\n"),
+	                  record_id);
 	return CMD_OK;
 }
 

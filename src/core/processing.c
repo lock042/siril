@@ -33,6 +33,7 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/nde_history.h"
+#include "core/nde_replay.h"
 #include "core/nde_checkpoint.h"
 #include "core/nde_script_scope.h"
 #include "core/op_descriptor.h"
@@ -1640,6 +1641,24 @@ gpointer generic_image_worker(gpointer p) {
 		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Layer Group Selected"),
 		    _("This operation cannot be applied to a layer group.\n"
 		      "Please select an individual layer."));
+		args->retval = 1;
+		if (!com.script && !com.python_command && use_swap)
+			gui_iface.set_suppress_redraws(FALSE);
+		gui_iface.set_progress(PROGRESS_RESET, NULL);
+		if (args->idle_function)
+			siril_add_idle(args->idle_function, args);
+		else
+			siril_add_idle(end_generic_image_update_gfit, args);
+		g_free(desc);
+		return GINT_TO_POINTER(1);
+	}
+
+	/* Same shape, different reason: canvas geometry on a layered document is
+	 * not part of any one layer's lineage, so it cannot join an open edit
+	 * history insertion point — and closing the point restores the true
+	 * image, which would silently revert it (nde_replay.h). */
+	if (args->geometry_changing && !args->nde_replay && argfit == gfit
+	    && is_current_image_flis() && nde_edit_at_refuses_op(desc)) {
 		args->retval = 1;
 		if (!com.script && !com.python_command && use_swap)
 			gui_iface.set_suppress_redraws(FALSE);

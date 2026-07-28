@@ -214,6 +214,55 @@ const gchar *nde_amend_preview_params(void);
 gboolean nde_amend_preview_begin_execute(gint64 record_id, gchar **err);
 gboolean nde_amend_preview_end_execute(gboolean apply, const gchar *new_params, gchar **err);
 
+/* ---- edit at / insert before K (graph step 2) ---------------------------
+ * The same pre-K install as the amend preview, with a different exit verb.
+ * Instead of re-opening the anchor's own dialog, the user runs ORDINARY
+ * operations against the pre-anchor state; nde_history_append() inserts them
+ * before the anchor (nde_history.h), and finishing replays the anchor and
+ * everything after it forward over the result.
+ *
+ * The inserted steps are never themselves replayed — their output is the
+ * pixels on screen — so an opaque insert is legal; it simply becomes a
+ * barrier for later edits.  What must replay is [anchor..end], which is
+ * validated when the point opens, before any pixels change.  Shares the
+ * single-instance lock with the amend preview: nde_amend_preview_active() is
+ * TRUE for both, and every history edit is refused while either is open.  */
+
+/** Open an insertion point before live record @record_id (which must be a
+ *  chain member in the editable tail of its item).  @on_ready fires on the
+ *  main thread as for nde_amend_preview_start().  Truncates the dead tail
+ *  and flushes undo. */
+gboolean nde_edit_at_start(gint64 record_id,
+                           nde_amend_preview_ready_fn on_ready, gpointer user);
+
+/**
+ * Close the insertion point.  @apply TRUE commits: restore the true pixels,
+ * replay the anchor and its successors over the inserted work, swap in.
+ * @apply FALSE (or a commit that cannot proceed) discards the inserted
+ * records and leaves the image exactly as it was.  Cancelling with no point
+ * open is a tolerated no-op.
+ */
+gboolean nde_edit_at_end(gboolean apply);
+
+/** TRUE while an insertion point is open (a strict subset of
+ *  nde_amend_preview_active()); the anchor's record id, or 0. */
+gboolean nde_edit_at_active(void);
+gint64   nde_edit_at_record_id(void);
+
+/**
+ * Gate for the operations an open insertion point cannot survive: canvas
+ * geometry on a LAYERED document, flatten and merge-down.  Their pixel
+ * effect is not part of the inserted lineage, and closing the point restores
+ * the true image over it — so they must not run while a point is open.
+ * Returns TRUE (having logged an error naming @what, e.g. "Flattening") when
+ * the caller must refuse; FALSE when there is nothing to refuse.
+ */
+gboolean nde_edit_at_refuses_op(const char *what);
+
+/** Job-context implementations (the caller owns the processing slot). */
+gboolean nde_edit_at_begin_execute(gint64 record_id, gchar **err);
+gboolean nde_edit_at_end_execute(gboolean apply, gchar **err);
+
 #ifdef __cplusplus
 }
 #endif

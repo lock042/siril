@@ -221,12 +221,15 @@ struct flis_panel {
 	GtkWidget  *hist_header;        /* "Nondestructive History (n)" heading */
 	GtkWidget  *hist_tear_btn;      /* detach button in the heading row */
 	GtkWidget  *hist_stale_revealer;
+	GtkWidget  *hist_insert_revealer;   /* "inserting before step N" banner */
+	GtkWidget  *hist_insert_label;
 	GtkWidget  *hist_fits_hint;     /* plain-FITS: history is in-memory only */
 	GListStore *hist_store;          /* of NdeHistRowItem* */
 	GtkWidget  *hist_list;
 	GtkWidget  *hist_popover;        /* lazy; parented to hist_list */
 	GtkWidget  *hist_popover_label;
 	GtkWidget  *hist_edit_btn;       /* "Edit parameters…" in the popover */
+	GtkWidget  *hist_insert_btn;     /* "Insert before…" in the popover */
 	GtkWidget  *hist_delete_btn;     /* "Delete step" in the popover */
 	GtkWidget  *hist_move_up_btn;    /* "Move up" in the popover (C5) */
 	GtkWidget  *hist_move_down_btn;  /* "Move down" in the popover (C5) */
@@ -1619,6 +1622,39 @@ static void on_hist_edit_clicked(GtkButton *b, gpointer u) {
 static const char *hist_move_disabled_reason(const NdeHistRowItem *r,
                                              gboolean up);
 
+/* Open an insertion point before the popover's row: the image reverts to the
+ * state just before that step and whatever the user does next is recorded
+ * there.  The banner in the panel carries the two exits. */
+static void on_hist_insert_clicked(GtkButton *b, gpointer u) {
+	(void)b; (void)u;
+	if (!g_panel || !g_panel->hist_popover_row)
+		return;
+	NdeHistRowItem *r = g_panel->hist_popover_row;
+	gtk_popover_popdown(GTK_POPOVER(g_panel->hist_popover));
+	/* Same consequence as any other history edit, plus the mode itself. */
+	gchar *msg = g_strdup_printf("%s\n\n%s",
+	                             r->summary ? r->summary : "",
+	                             _("The image will show the state just before this step. "
+	                               "Operations you apply are inserted here, and finishing "
+	                               "recomputes this step and everything after it.\n\n"
+	                               "This clears the undo history."));
+	gboolean confirmed = siril_confirm_dialog(_("Insert steps before this one?"), msg,
+	                                          _("_Insert here"));
+	g_free(msg);
+	if (confirmed)
+		nde_edit_at_start(r->record_id, NULL, NULL);   /* banner via nde_history_changed */
+}
+
+static void on_hist_insert_done(GtkButton *b, gpointer u) {
+	(void)b; (void)u;
+	nde_edit_at_end(TRUE);
+}
+
+static void on_hist_insert_cancel(GtkButton *b, gpointer u) {
+	(void)b; (void)u;
+	nde_edit_at_end(FALSE);
+}
+
 static void on_hist_delete_clicked(GtkButton *b, gpointer u) {
 	(void)b; (void)u;
 	if (!g_panel || !g_panel->hist_popover_row)
@@ -1740,6 +1776,26 @@ static const char *hist_move_disabled_reason(const NdeHistRowItem *r,
 	return NULL;
 }
 
+/* First applicable reason the row's "Insert before…" button is greyed out.
+ * An insertion is closed by re-running the anchor over the inserted work, so
+ * the anchor must be a replayable chain member in the editable tail — which
+ * an opaque step never is, even though it is a perfectly good row to look at. */
+static const char *hist_insert_disabled_reason(const NdeHistRowItem *r) {
+	if (r->dead)
+		return _("This step has been undone");
+	if (nde_history_is_stale())
+		return _("The image was modified outside the recorded history");
+	if (processing_is_job_active())
+		return _("Not available while processing");
+	if (nde_amend_preview_active())
+		return _("Another history step is being edited");
+	if (r->barrier)
+		return _("Opaque steps cannot be recomputed, so nothing can be inserted before them");
+	if (!r->in_tail)
+		return _("Only steps after the last opaque step can host an insertion");
+	return NULL;
+}
+
 static void on_hist_row_activate(GtkListView *lv, guint position, gpointer u) {
 	(void)u;
 	GListModel *model = G_LIST_MODEL(gtk_list_view_get_model(lv));
@@ -1766,11 +1822,13 @@ static void on_hist_row_activate(GtkListView *lv, guint position, gpointer u) {
 		g_panel->hist_move_up_btn   = gtk_button_new_with_label(_("Move up"));
 		g_panel->hist_move_down_btn = gtk_button_new_with_label(_("Move down"));
 		g_panel->hist_edit_btn   = gtk_button_new_with_label(_("Edit parameters…"));
+		g_panel->hist_insert_btn = gtk_button_new_with_label(_("Insert before…"));
 		g_panel->hist_delete_btn = gtk_button_new_with_label(_("Delete step"));
 		gtk_widget_add_css_class(g_panel->hist_delete_btn, "destructive-action");
 		gtk_box_append(GTK_BOX(actions), g_panel->hist_move_up_btn);
 		gtk_box_append(GTK_BOX(actions), g_panel->hist_move_down_btn);
 		gtk_box_append(GTK_BOX(actions), g_panel->hist_edit_btn);
+		gtk_box_append(GTK_BOX(actions), g_panel->hist_insert_btn);
 		gtk_box_append(GTK_BOX(actions), g_panel->hist_delete_btn);
 		gtk_box_append(GTK_BOX(pbox), actions);
 
@@ -1780,6 +1838,8 @@ static void on_hist_row_activate(GtkListView *lv, guint position, gpointer u) {
 		                 G_CALLBACK(on_hist_move_down_clicked), NULL);
 		g_signal_connect(g_panel->hist_edit_btn,   "clicked",
 		                 G_CALLBACK(on_hist_edit_clicked),   NULL);
+		g_signal_connect(g_panel->hist_insert_btn, "clicked",
+		                 G_CALLBACK(on_hist_insert_clicked), NULL);
 		g_signal_connect(g_panel->hist_delete_btn, "clicked",
 		                 G_CALLBACK(on_hist_delete_clicked), NULL);
 
@@ -1794,15 +1854,19 @@ static void on_hist_row_activate(GtkListView *lv, guint position, gpointer u) {
 
 	const char *edit_off = hist_action_disabled_reason(r, TRUE);
 	const char *del_off  = hist_action_disabled_reason(r, FALSE);
+	const char *ins_off  = hist_insert_disabled_reason(r);
 	const char *up_off   = hist_move_disabled_reason(r, TRUE);
 	const char *down_off = hist_move_disabled_reason(r, FALSE);
 	gtk_widget_set_sensitive(g_panel->hist_edit_btn,   edit_off == NULL);
+	gtk_widget_set_sensitive(g_panel->hist_insert_btn, ins_off == NULL);
 	gtk_widget_set_sensitive(g_panel->hist_delete_btn, del_off == NULL);
 	gtk_widget_set_sensitive(g_panel->hist_move_up_btn,   up_off == NULL);
 	gtk_widget_set_sensitive(g_panel->hist_move_down_btn, down_off == NULL);
 	gtk_widget_set_tooltip_text(g_panel->hist_move_up_btn,   up_off);
 	gtk_widget_set_tooltip_text(g_panel->hist_move_down_btn, down_off);
 	gtk_widget_set_tooltip_text(g_panel->hist_edit_btn,   edit_off);
+	gtk_widget_set_tooltip_text(g_panel->hist_insert_btn, ins_off ? ins_off :
+			_("Show the image as it was before this step and insert new steps there"));
 	/* Deleting the last opaque step is the moment the freeze feature is
 	 * discoverable — spell out that it unlocks the earlier steps. */
 	gtk_widget_set_tooltip_text(g_panel->hist_delete_btn,
@@ -1956,6 +2020,17 @@ static void refresh_history(void) {
 	g_hash_table_destroy(freeze);
 	gtk_revealer_set_reveal_child(GTK_REVEALER(g_panel->hist_stale_revealer),
 	                              nde_history_is_stale());
+	gint64 anchor = nde_edit_at_record_id();
+	if (anchor) {
+		gchar *msg = g_strdup_printf(
+				_("Inserting before step %" G_GINT64_FORMAT ". The image shows the "
+				  "state just before it; operations you apply now are recorded here."),
+				anchor);
+		gtk_label_set_text(GTK_LABEL(g_panel->hist_insert_label), msg);
+		g_free(msg);
+	}
+	gtk_revealer_set_reveal_child(GTK_REVEALER(g_panel->hist_insert_revealer),
+	                              anchor != 0);
 	gtk_widget_set_visible(g_panel->hist_fits_hint,
 	                       total > 0 && !is_current_image_flis());
 	gchar *lbl = g_strdup_printf(_("Nondestructive History (%u)"), live);
@@ -2134,6 +2209,35 @@ static void build_history_popover(void) {
 	gtk_widget_add_css_class(stale, "warning");
 	gtk_revealer_set_child(GTK_REVEALER(g_panel->hist_stale_revealer), stale);
 	gtk_box_append(GTK_BOX(vbox), g_panel->hist_stale_revealer);
+
+	/* Insertion-point banner.  It carries the only two exits from the mode,
+	 * so it must be visible wherever the panel is — hence a revealer in the
+	 * shared content box rather than something attached to a row. */
+	g_panel->hist_insert_revealer = gtk_revealer_new();
+	gtk_revealer_set_transition_type(GTK_REVEALER(g_panel->hist_insert_revealer),
+	                                 GTK_REVEALER_TRANSITION_TYPE_SLIDE_DOWN);
+	GtkWidget *ins = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+	g_panel->hist_insert_label = gtk_label_new(NULL);
+	gtk_label_set_wrap(GTK_LABEL(g_panel->hist_insert_label), TRUE);
+	gtk_label_set_xalign(GTK_LABEL(g_panel->hist_insert_label), 0.0f);
+	gtk_widget_add_css_class(g_panel->hist_insert_label, "accent");
+	gtk_box_append(GTK_BOX(ins), g_panel->hist_insert_label);
+	GtkWidget *ins_actions = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	gtk_widget_set_halign(ins_actions, GTK_ALIGN_END);
+	GtkWidget *ins_cancel = gtk_button_new_with_label(_("Discard"));
+	GtkWidget *ins_done   = gtk_button_new_with_label(_("Finish inserting"));
+	gtk_widget_add_css_class(ins_done, "suggested-action");
+	gtk_widget_set_tooltip_text(ins_cancel,
+			_("Throw away the inserted steps and put the image back as it was"));
+	gtk_widget_set_tooltip_text(ins_done,
+			_("Keep the inserted steps and recompute everything that follows them"));
+	gtk_box_append(GTK_BOX(ins_actions), ins_cancel);
+	gtk_box_append(GTK_BOX(ins_actions), ins_done);
+	gtk_box_append(GTK_BOX(ins), ins_actions);
+	g_signal_connect(ins_cancel, "clicked", G_CALLBACK(on_hist_insert_cancel), NULL);
+	g_signal_connect(ins_done,   "clicked", G_CALLBACK(on_hist_insert_done),   NULL);
+	gtk_revealer_set_child(GTK_REVEALER(g_panel->hist_insert_revealer), ins);
+	gtk_box_append(GTK_BOX(vbox), g_panel->hist_insert_revealer);
 
 	/* Plain FITS images keep their history in memory only (sketch §13.2);
 	 * shown whenever records exist for a non-FLIS image. */
