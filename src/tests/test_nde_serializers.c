@@ -59,6 +59,7 @@
 #include "algos/PSF.h"
 #include "algos/photometric_cc.h"
 #include "core/icc_profile.h"
+#include "core/masks.h"
 
 cominfo com;	// the core data struct
 fits *gfit;	// currently loaded image (a pointer)
@@ -599,6 +600,14 @@ static const char *phase1_ids[] = {
 	"star.synthstar", "filters.unpurple", "color.photometric_cc", "icc.convert",
 	/* star provenance refinement: unclip promoted to Tier A (DELEGATED conf) */
 	"star.unclip",
+	/* graph step 4.2 — the mask.* ops (core/masks.c).  All 13 live mask ops,
+	 * including the four param-less ones: a Tier-B mask record would be a
+	 * barrier in its chain.  mask.mtf_autostretch is an image op with no live
+	 * call sites and is deliberately excluded. */
+	"mask.from_stars", "mask.from_channel", "mask.from_luminance",
+	"mask.clear", "mask.threshold", "mask.blur", "mask.feather",
+	"mask.multiply", "mask.invert", "mask.autostretch", "mask.bitpix",
+	"mask.from_color", "mask.from_gradient",
 };
 
 Test(nde_serializers, serializer_set_is_phase1) {
@@ -756,8 +765,9 @@ Test(nde_serializers, limit_roundtrip) {
 	g_free(blob);
 }
 
-/* Paramless ops (arith.neg, color.grey_flat, cfa.fix_xtrans, stretch.log):
- * empty blob is VALID; only a newer version fails. */
+/* Paramless ops (arith.neg, color.grey_flat, cfa.fix_xtrans, stretch.log, and
+ * the four mask.* param-less ops): empty blob is VALID; only a newer version
+ * fails.  CHECK_MALFORMED must NOT be used on these. */
 static void check_paramless(const char *id) {
 	const op_descriptor *op = op_descriptor_by_id(id);
 	cr_assert_not_null(op, "%s missing", id);
@@ -1679,3 +1689,282 @@ Test(nde_serializers, icc_convert_file_hash_mismatch_refused) {
 	g_remove(path); g_free(path);
 	g_rmdir(dir); g_free(dir);
 }
+
+/* ------------------------------------------------------------------ *
+ *  Batch — mask ops (core/masks.c).  Serializers make these Tier A so *
+ *  they no longer act as barriers in an NDE chain.                    *
+ * ------------------------------------------------------------------ */
+
+Test(nde_serializers, mask_from_stars_roundtrip) {
+	mask_from_stars_data in = { 0 };
+	in.r = 1.5f + 0.3f;
+	in.feather = 0.3f;
+	in.invert = TRUE;
+	in.bitdepth = 32;
+
+	gchar *blob = op_desc_mask_from_stars.serialize(&in);
+	cr_assert_not_null(blob);
+	mask_from_stars_data *out = op_desc_mask_from_stars.deserialize(blob, op_desc_mask_from_stars.version);
+	cr_assert_not_null(out);
+	cr_assert(memcmp(&out->r, &in.r, sizeof(float)) == 0);
+	cr_assert(memcmp(&out->feather, &in.feather, sizeof(float)) == 0);
+	cr_assert_eq(out->invert, in.invert);
+	cr_assert_eq(out->bitdepth, in.bitdepth);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_mask_from_stars, blob);
+	g_free(blob);
+}
+
+Test(nde_serializers, mask_from_channel_roundtrip_with_file) {
+	gchar *path = write_temp_operand("mask from channel operand bytes\n");
+	gint64 size = 0;
+	gchar *sha = nde_file_sha256(path, &size);
+	cr_assert_not_null(sha);
+
+	mask_from_channel_data in = { 0 };
+	in.channel = 2;
+	in.autostretch = TRUE;
+	in.invert = TRUE;
+	in.bitpix = 32;
+	in.filename = path;
+	in.fit = (fits *)0xdeadbeef;   /* transient: must NOT be serialized */
+
+	gchar *blob = op_desc_mask_from_channel.serialize(&in);
+	cr_assert_not_null(blob);
+	mask_from_channel_data *out = op_desc_mask_from_channel.deserialize(blob, op_desc_mask_from_channel.version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->channel, in.channel);
+	cr_assert_eq(out->autostretch, in.autostretch);
+	cr_assert_eq(out->invert, in.invert);
+	cr_assert_eq(out->bitpix, in.bitpix);
+	cr_assert_str_eq(out->filename, path);
+	cr_assert_null(out->fit, "fit is transient and must not round-trip");
+	GHashTable *kv = nde_kv_parse(blob);
+	cr_assert_str_eq(nde_kv_get_str(kv, "operand_sha256"), sha);
+	gint64 stored_size = 0;
+	cr_assert(nde_kv_get_int(kv, "operand_size", &stored_size));
+	cr_assert_eq(stored_size, size);
+	g_hash_table_unref(kv);
+	/* the struct owns filename now — the destructor frees it */
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_mask_from_channel, blob);
+	g_free(blob); g_free(sha);
+	g_remove(path); g_free(path);
+}
+
+Test(nde_serializers, mask_from_channel_roundtrip_no_file) {
+	mask_from_channel_data in = { 0 };
+	in.channel = 1;
+	in.autostretch = FALSE;
+	in.invert = TRUE;
+	in.bitpix = 16;
+	in.filename = NULL;   /* build from the current image */
+
+	gchar *blob = op_desc_mask_from_channel.serialize(&in);
+	cr_assert_not_null(blob);
+	cr_assert_null(strstr(blob, "operand_path"),
+	               "no filename must not emit an operand_path key");
+	mask_from_channel_data *out = op_desc_mask_from_channel.deserialize(blob, op_desc_mask_from_channel.version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->channel, in.channel);
+	cr_assert_eq(out->autostretch, in.autostretch);
+	cr_assert_eq(out->invert, in.invert);
+	cr_assert_eq(out->bitpix, in.bitpix);
+	cr_assert_null(out->filename, "absent operand_path must round-trip as NULL");
+	FREE_VIA_DESTRUCTOR(out);
+	/* an explicitly empty operand_path must also mean "no file", not "" */
+	mask_from_channel_data *empty = op_desc_mask_from_channel.deserialize(
+	    "channel=1;autostretch=0;invert=1;bitpix=16;operand_path=",
+	    op_desc_mask_from_channel.version);
+	cr_assert_not_null(empty);
+	cr_assert_null(empty->filename, "empty operand_path must round-trip as NULL");
+	FREE_VIA_DESTRUCTOR(empty);
+	CHECK_MALFORMED(&op_desc_mask_from_channel, blob);
+	g_free(blob);
+}
+
+Test(nde_serializers, mask_from_luminance_roundtrip_with_file) {
+	gchar *path = write_temp_operand("mask from luminance operand bytes\n");
+	gint64 size = 0;
+	gchar *sha = nde_file_sha256(path, &size);
+	cr_assert_not_null(sha);
+
+	mask_from_lum_data in = { 0 };
+	in.rw = 0.3f; in.gw = 0.6f; in.bw = 0.1f;
+	in.autostretch = TRUE;
+	in.invert = TRUE;
+	in.use_human = TRUE;
+	in.use_even = FALSE;
+	in.bitpix = 32;
+	in.filename = path;
+	in.fit = (fits *)0xdeadbeef;   /* transient: must NOT be serialized */
+
+	gchar *blob = op_desc_mask_from_luminance.serialize(&in);
+	cr_assert_not_null(blob);
+	mask_from_lum_data *out = op_desc_mask_from_luminance.deserialize(blob, op_desc_mask_from_luminance.version);
+	cr_assert_not_null(out);
+	cr_assert(memcmp(&out->rw, &in.rw, sizeof(float)) == 0);
+	cr_assert(memcmp(&out->gw, &in.gw, sizeof(float)) == 0);
+	cr_assert(memcmp(&out->bw, &in.bw, sizeof(float)) == 0);
+	cr_assert_eq(out->autostretch, in.autostretch);
+	cr_assert_eq(out->invert, in.invert);
+	cr_assert_eq(out->use_human, in.use_human);
+	cr_assert_eq(out->use_even, in.use_even);
+	cr_assert_eq(out->bitpix, in.bitpix);
+	cr_assert_str_eq(out->filename, path);
+	cr_assert_null(out->fit, "fit is transient and must not round-trip");
+	GHashTable *kv = nde_kv_parse(blob);
+	cr_assert_str_eq(nde_kv_get_str(kv, "operand_sha256"), sha);
+	gint64 stored_size = 0;
+	cr_assert(nde_kv_get_int(kv, "operand_size", &stored_size));
+	cr_assert_eq(stored_size, size);
+	g_hash_table_unref(kv);
+	/* the struct owns filename now — the destructor frees it */
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_mask_from_luminance, blob);
+	g_free(blob); g_free(sha);
+	g_remove(path); g_free(path);
+}
+
+Test(nde_serializers, mask_from_luminance_roundtrip_no_file) {
+	mask_from_lum_data in = { 0 };
+	in.rw = -0.25f; in.gw = 0.7f; in.bw = 0.3f;   /* rw < 0 is a legal sentinel */
+	in.autostretch = FALSE;
+	in.invert = FALSE;
+	in.use_human = FALSE;
+	in.use_even = TRUE;
+	in.bitpix = 8;
+	in.filename = NULL;
+
+	gchar *blob = op_desc_mask_from_luminance.serialize(&in);
+	cr_assert_not_null(blob);
+	cr_assert_null(strstr(blob, "operand_path"),
+	               "no filename must not emit an operand_path key");
+	mask_from_lum_data *out = op_desc_mask_from_luminance.deserialize(blob, op_desc_mask_from_luminance.version);
+	cr_assert_not_null(out);
+	cr_assert(memcmp(&out->rw, &in.rw, sizeof(float)) == 0);
+	cr_assert(memcmp(&out->gw, &in.gw, sizeof(float)) == 0);
+	cr_assert(memcmp(&out->bw, &in.bw, sizeof(float)) == 0);
+	cr_assert_eq(out->use_even, in.use_even);
+	cr_assert_eq(out->bitpix, in.bitpix);
+	cr_assert_null(out->filename, "absent operand_path must round-trip as NULL");
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_mask_from_luminance, blob);
+	g_free(blob);
+}
+
+Test(nde_serializers, mask_threshold_roundtrip) {
+	mask_thresh_data in = { 0 };
+	in.min_val = 0.3f;
+	in.max_val = 0.7f + 0.03125f;
+	in.range = 1.5f;
+
+	gchar *blob = op_desc_mask_threshold.serialize(&in);
+	cr_assert_not_null(blob);
+	mask_thresh_data *out = op_desc_mask_threshold.deserialize(blob, op_desc_mask_threshold.version);
+	cr_assert_not_null(out);
+	cr_assert(memcmp(&out->min_val, &in.min_val, sizeof(float)) == 0);
+	cr_assert(memcmp(&out->max_val, &in.max_val, sizeof(float)) == 0);
+	cr_assert(memcmp(&out->range, &in.range, sizeof(float)) == 0);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_mask_threshold, blob);
+	g_free(blob);
+}
+
+Test(nde_serializers, mask_blur_roundtrip) {
+	mask_blur_data in = { 0 };
+	in.radius = 3.3f;
+
+	gchar *blob = op_desc_mask_blur.serialize(&in);
+	cr_assert_not_null(blob);
+	mask_blur_data *out = op_desc_mask_blur.deserialize(blob, op_desc_mask_blur.version);
+	cr_assert_not_null(out);
+	cr_assert(memcmp(&out->radius, &in.radius, sizeof(float)) == 0);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_mask_blur, blob);
+	g_free(blob);
+}
+
+Test(nde_serializers, mask_feather_roundtrip) {
+	mask_feather_data in = { 0 };
+	in.distance = 7.3f;
+	in.mode = FEATHER_EDGE;   /* 2 */
+
+	gchar *blob = op_desc_mask_feather.serialize(&in);
+	cr_assert_not_null(blob);
+	mask_feather_data *out = op_desc_mask_feather.deserialize(blob, op_desc_mask_feather.version);
+	cr_assert_not_null(out);
+	cr_assert(memcmp(&out->distance, &in.distance, sizeof(float)) == 0);
+	cr_assert_eq(out->mode, in.mode);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_mask_feather, blob);
+	g_free(blob);
+}
+
+Test(nde_serializers, mask_multiply_roundtrip) {
+	mask_fmul_data in = { 0 };
+	in.factor = 0.3f;
+
+	gchar *blob = op_desc_mask_multiply.serialize(&in);
+	cr_assert_not_null(blob);
+	mask_fmul_data *out = op_desc_mask_multiply.deserialize(blob, op_desc_mask_multiply.version);
+	cr_assert_not_null(out);
+	cr_assert(memcmp(&out->factor, &in.factor, sizeof(float)) == 0);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_mask_multiply, blob);
+	g_free(blob);
+}
+
+Test(nde_serializers, mask_bitpix_roundtrip) {
+	mask_bitpix_data in = { 0 };
+	in.bitpix = 32;
+
+	gchar *blob = op_desc_mask_bitpix.serialize(&in);
+	cr_assert_not_null(blob);
+	mask_bitpix_data *out = op_desc_mask_bitpix.deserialize(blob, op_desc_mask_bitpix.version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->bitpix, in.bitpix);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_mask_bitpix, blob);
+	g_free(blob);
+}
+
+Test(nde_serializers, mask_from_color_roundtrip) {
+	mask_from_color_data in = { 0 };
+	in.chrom_center_r = 0.3f;
+	in.chrom_center_g = 0.6f;
+	in.chrom_center_b = 0.1f;
+	in.chrom_tolerance = 0.125f + 0.3f;
+	in.lum_min = -0.25f;   /* negatives are representable here */
+	in.lum_max = 0.9f;
+	in.feather_radius = 5;
+	in.invert = TRUE;
+	in.bitpix = 16;
+	in.cleanup = TRUE;
+
+	gchar *blob = op_desc_mask_from_color.serialize(&in);
+	cr_assert_not_null(blob);
+	mask_from_color_data *out = op_desc_mask_from_color.deserialize(blob, op_desc_mask_from_color.version);
+	cr_assert_not_null(out);
+	cr_assert(memcmp(&out->chrom_center_r, &in.chrom_center_r, sizeof(float)) == 0);
+	cr_assert(memcmp(&out->chrom_center_g, &in.chrom_center_g, sizeof(float)) == 0);
+	cr_assert(memcmp(&out->chrom_center_b, &in.chrom_center_b, sizeof(float)) == 0);
+	cr_assert(memcmp(&out->chrom_tolerance, &in.chrom_tolerance, sizeof(float)) == 0);
+	cr_assert(memcmp(&out->lum_min, &in.lum_min, sizeof(float)) == 0);
+	cr_assert(memcmp(&out->lum_max, &in.lum_max, sizeof(float)) == 0);
+	cr_assert_eq(out->feather_radius, in.feather_radius);
+	cr_assert_eq(out->invert, in.invert);
+	cr_assert_eq(out->bitpix, in.bitpix);
+	cr_assert_eq(out->cleanup, in.cleanup);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(&op_desc_mask_from_color, blob);
+	g_free(blob);
+}
+
+/* The four param-less mask ops: an empty blob is VALID (their hooks ignore
+ * args->user), so CHECK_MALFORMED must NOT be used — only a newer version
+ * fails.  Same contract as check_paramless() above. */
+Test(nde_serializers, mask_clear_paramless)        { check_paramless("mask.clear"); }
+Test(nde_serializers, mask_invert_paramless)       { check_paramless("mask.invert"); }
+Test(nde_serializers, mask_autostretch_paramless)  { check_paramless("mask.autostretch"); }
+Test(nde_serializers, mask_from_gradient_paramless){ check_paramless("mask.from_gradient"); }

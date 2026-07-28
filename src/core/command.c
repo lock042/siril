@@ -16403,7 +16403,9 @@ int process_mask_from_channel(int nb) {
 	data->autostretch = autostretch;
 	data->invert = invert;
 	data->bitpix = (uint8_t)bitdepth;
-	data->filename = filename;
+	/* `filename` borrows from the command-word array; the struct owns a copy. */
+	data->filename = g_strdup(filename);
+	data->destroy_fn = mask_from_channel_data_free;
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit =  gfit;
@@ -16529,7 +16531,9 @@ int process_mask_from_lum(int nb) {
 	data->use_human = use_human;
 	data->use_even = use_even;
 	data->bitpix = (uint8_t)bitdepth;
-	data->filename = filename;
+	/* `filename` borrows from the command-word array; the struct owns a copy. */
+	data->filename = g_strdup(filename);
+	data->destroy_fn = mask_from_lum_data_free;
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit =  gfit;

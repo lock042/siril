@@ -33,6 +33,424 @@
 #include "opencv/opencv.h" // for mask functions that use OpenCV
 // (feathering, Gaussian blur and set_poly_in_mask())
 #include "core/op_descriptors.h"
+#include "core/nde_history.h"
+
+/* ===========================================================================
+ * NDE serializers for the mask ops (flis-nde-sketch.md §11-§12)
+ * ===========================================================================
+ *
+ * Making these Tier A (replayable/amendable) rather than Tier B matters more
+ * than for a typical filter: a Tier-B record is a BARRIER in its chain, so a
+ * single opaque "invert mask" would freeze every earlier mask edit.  Hence
+ * even the four param-less mask ops get serializers.
+ *
+ * All the mask param structs are destructor-first PODs whose construction
+ * sites leave destroy_fn NULL (the framework's destroy_any_args() falls back
+ * to free()).  The deserializers set destroy_fn = free explicitly, which is
+ * behaviourally identical.  The two structs with a gchar *filename member
+ * (mask_from_channel_data, mask_from_lum_data) have no existing destructor
+ * anywhere in the tree — see the note above mask_file_deserialize_common(). */
+
+/* Shared param-less serializer for mask.clear / mask.invert / mask.autostretch
+ * / mask.from_gradient.  Their call sites pass args->user = NULL and their
+ * hooks (mask_clear_hook, mask_invert_hook, mask_autostretch_hook,
+ * mask_from_gradient_hook) never dereference args->user, so handing replay a
+ * dummy struct is safe.  serialize emits an empty blob; deserialize accepts
+ * any blob (including "") and returns a minimal destructor-first heap struct
+ * so replay always has a valid, freeable user pointer.  Mirrors command.c's
+ * paramless_serialize/paramless_deserialize_v1. */
+typedef struct { destructor destroy_fn; } mask_noparams_data;
+
+static gchar *mask_noparams_serialize(gconstpointer user) {
+	(void)user;
+	GString *kv = nde_kv_start();
+	return nde_kv_end(kv);   /* "" */
+}
+
+static gpointer mask_noparams_deserialize(const gchar *blob, int version) {
+	/* All four param-less mask descriptors are .version = 1; the literal is
+	 * used rather than op_desc_X.version because one function serves all
+	 * four.  Bump this if any of them ever gains a version. */
+	if (version > 1)
+		return NULL;
+	(void)blob;   /* no keys required — any blob (incl. "") is accepted */
+	mask_noparams_data *d = calloc(1, sizeof(*d));
+	if (d)
+		d->destroy_fn = free;
+	return d;
+}
+
+void mask_from_channel_data_free(void *p) {
+	mask_from_channel_data *d = p;
+	if (!d)
+		return;
+	g_free(d->filename);
+	free(d);
+}
+
+void mask_from_lum_data_free(void *p) {
+	mask_from_lum_data *d = p;
+	if (!d)
+		return;
+	g_free(d->filename);
+	free(d);
+}
+
+static gchar *mask_from_stars_serialize(gconstpointer user) {
+	const mask_from_stars_data *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_float(kv, "r", d->r);
+	nde_kv_add_float(kv, "feather", d->feather);
+	nde_kv_add_bool(kv, "invert", d->invert);
+	nde_kv_add_int(kv, "bitdepth", d->bitdepth);
+	return nde_kv_end(kv);
+}
+
+static gpointer mask_from_stars_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_mask_from_stars.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	float r, feather;
+	gboolean invert;
+	gint64 bitdepth;
+	if (!nde_kv_get_float(kv, "r", &r) ||
+	    !nde_kv_get_float(kv, "feather", &feather) ||
+	    !nde_kv_get_bool(kv, "invert", &invert) ||
+	    !nde_kv_get_int(kv, "bitdepth", &bitdepth)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	mask_from_stars_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destroy_fn = free;
+		d->r = r;
+		d->feather = feather;
+		d->invert = invert;
+		d->bitdepth = (int)bitdepth;
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
+
+/* File-operand ops (Convention 1, phase 4.5): mask.from_channel and
+ * mask.from_luminance take an OPTIONAL external image.  When filename is set
+ * the mask is built from that file, otherwise from the current image, so an
+ * empty/absent operand_path must round-trip as "no file" (NULL) rather than as
+ * the empty string.  When a file is present we also pin its hash and size.
+ *
+ * Unlike linear_match these ops have NO replay_pre: their hooks load the file
+ * themselves via mask_create_from_image().  The operand_sha256/operand_size
+ * verification (nde_operand_verify) therefore has no place to run yet; it will
+ * move into a replay_pre here when mask replay lands.
+ *
+ * `fit` is deliberately NOT serialized and is left NULL on deserialize: it is
+ * a transient loaded image, not a parameter.
+ *
+ * Ownership: `filename` is OWNED by the struct.  It did not use to be —
+ * the GUI g_strdup'd it while the command path assigned a borrowed pointer
+ * into the command-word array, and no site set destroy_fn at all, so the
+ * framework's plain free() leaked every GUI copy.  Serializing the field made
+ * that inconsistency untenable (a deserialized struct must own what it
+ * allocated), so both paths now copy and every site assigns
+ * mask_from_channel_data_free / mask_from_lum_data_free. */
+static void mask_file_serialize_common(GString *kv, const gchar *filename) {
+	if (filename && *filename) {
+		nde_kv_add_str(kv, "operand_path", filename);
+		gint64 size = 0;
+		gchar *sha = nde_file_sha256(filename, &size);
+		if (sha) {
+			nde_kv_add_str(kv, "operand_sha256", sha);
+			nde_kv_add_int(kv, "operand_size", size);
+			g_free(sha);
+		}
+	}
+}
+
+/* Returns a freshly strdup'd copy of operand_path, or NULL when the key is
+ * absent or empty ("no file" — build the mask from the current image). */
+static gchar *mask_file_deserialize_common(GHashTable *kv) {
+	const char *path = nde_kv_get_str(kv, "operand_path");
+	return (path && *path) ? g_strdup(path) : NULL;
+}
+
+static gchar *mask_from_channel_serialize(gconstpointer user) {
+	const mask_from_channel_data *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_int(kv, "channel", d->channel);
+	nde_kv_add_bool(kv, "autostretch", d->autostretch);
+	nde_kv_add_bool(kv, "invert", d->invert);
+	nde_kv_add_int(kv, "bitpix", d->bitpix);
+	mask_file_serialize_common(kv, d->filename);
+	return nde_kv_end(kv);
+}
+
+static gpointer mask_from_channel_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_mask_from_channel.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	gint64 channel, bitpix;
+	gboolean autostretch, invert;
+	if (!nde_kv_get_int(kv, "channel", &channel) ||
+	    !nde_kv_get_bool(kv, "autostretch", &autostretch) ||
+	    !nde_kv_get_bool(kv, "invert", &invert) ||
+	    !nde_kv_get_int(kv, "bitpix", &bitpix)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	mask_from_channel_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destroy_fn = mask_from_channel_data_free;
+		d->channel = (int)channel;
+		d->autostretch = autostretch;
+		d->invert = invert;
+		d->bitpix = (uint8_t)bitpix;
+		d->filename = mask_file_deserialize_common(kv);
+		d->fit = NULL;
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
+
+static gchar *mask_from_lum_serialize(gconstpointer user) {
+	const mask_from_lum_data *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_float(kv, "rw", d->rw);
+	nde_kv_add_float(kv, "gw", d->gw);
+	nde_kv_add_float(kv, "bw", d->bw);
+	nde_kv_add_bool(kv, "autostretch", d->autostretch);
+	nde_kv_add_bool(kv, "invert", d->invert);
+	nde_kv_add_bool(kv, "use_human", d->use_human);
+	nde_kv_add_bool(kv, "use_even", d->use_even);
+	nde_kv_add_int(kv, "bitpix", d->bitpix);
+	mask_file_serialize_common(kv, d->filename);
+	return nde_kv_end(kv);
+}
+
+static gpointer mask_from_lum_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_mask_from_luminance.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	float rw, gw, bw;
+	gboolean autostretch, invert, use_human, use_even;
+	gint64 bitpix;
+	if (!nde_kv_get_float(kv, "rw", &rw) ||
+	    !nde_kv_get_float(kv, "gw", &gw) ||
+	    !nde_kv_get_float(kv, "bw", &bw) ||
+	    !nde_kv_get_bool(kv, "autostretch", &autostretch) ||
+	    !nde_kv_get_bool(kv, "invert", &invert) ||
+	    !nde_kv_get_bool(kv, "use_human", &use_human) ||
+	    !nde_kv_get_bool(kv, "use_even", &use_even) ||
+	    !nde_kv_get_int(kv, "bitpix", &bitpix)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	mask_from_lum_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destroy_fn = mask_from_lum_data_free;
+		d->rw = rw;
+		d->gw = gw;
+		d->bw = bw;
+		d->autostretch = autostretch;
+		d->invert = invert;
+		d->use_human = use_human;
+		d->use_even = use_even;
+		d->bitpix = (uint8_t)bitpix;
+		d->filename = mask_file_deserialize_common(kv);
+		d->fit = NULL;
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
+
+static gchar *mask_thresh_serialize(gconstpointer user) {
+	const mask_thresh_data *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_float(kv, "min_val", d->min_val);
+	nde_kv_add_float(kv, "max_val", d->max_val);
+	nde_kv_add_float(kv, "range", d->range);
+	return nde_kv_end(kv);
+}
+
+static gpointer mask_thresh_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_mask_threshold.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	float min_val, max_val, range;
+	if (!nde_kv_get_float(kv, "min_val", &min_val) ||
+	    !nde_kv_get_float(kv, "max_val", &max_val) ||
+	    !nde_kv_get_float(kv, "range", &range)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	mask_thresh_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destroy_fn = free;
+		d->min_val = min_val;
+		d->max_val = max_val;
+		d->range = range;
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
+
+static gchar *mask_blur_serialize(gconstpointer user) {
+	const mask_blur_data *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_float(kv, "radius", d->radius);
+	return nde_kv_end(kv);
+}
+
+static gpointer mask_blur_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_mask_blur.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	float radius;
+	if (!nde_kv_get_float(kv, "radius", &radius)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	mask_blur_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destroy_fn = free;
+		d->radius = radius;
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
+
+static gchar *mask_feather_serialize(gconstpointer user) {
+	const mask_feather_data *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_float(kv, "distance", d->distance);
+	/* on-disk value: enum order is frozen by the NDE format — do not reorder */
+	nde_kv_add_int(kv, "mode", d->mode);
+	return nde_kv_end(kv);
+}
+
+static gpointer mask_feather_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_mask_feather.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	float distance;
+	gint64 mode;
+	if (!nde_kv_get_float(kv, "distance", &distance) ||
+	    !nde_kv_get_int(kv, "mode", &mode)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	mask_feather_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destroy_fn = free;
+		d->distance = distance;
+		d->mode = (feather_mode)mode;
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
+
+static gchar *mask_fmul_serialize(gconstpointer user) {
+	const mask_fmul_data *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_float(kv, "factor", d->factor);
+	return nde_kv_end(kv);
+}
+
+static gpointer mask_fmul_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_mask_multiply.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	float factor;
+	if (!nde_kv_get_float(kv, "factor", &factor)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	mask_fmul_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destroy_fn = free;
+		d->factor = factor;
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
+
+static gchar *mask_bitpix_serialize(gconstpointer user) {
+	const mask_bitpix_data *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_int(kv, "bitpix", d->bitpix);
+	return nde_kv_end(kv);
+}
+
+static gpointer mask_bitpix_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_mask_bitpix.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	gint64 bitpix;
+	if (!nde_kv_get_int(kv, "bitpix", &bitpix)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	mask_bitpix_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destroy_fn = free;
+		d->bitpix = (uint8_t)bitpix;
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
+
+static gchar *mask_from_color_serialize(gconstpointer user) {
+	const mask_from_color_data *d = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_float(kv, "chrom_center_r", d->chrom_center_r);
+	nde_kv_add_float(kv, "chrom_center_g", d->chrom_center_g);
+	nde_kv_add_float(kv, "chrom_center_b", d->chrom_center_b);
+	nde_kv_add_float(kv, "chrom_tolerance", d->chrom_tolerance);
+	nde_kv_add_float(kv, "lum_min", d->lum_min);
+	nde_kv_add_float(kv, "lum_max", d->lum_max);
+	nde_kv_add_int(kv, "feather_radius", d->feather_radius);
+	nde_kv_add_bool(kv, "invert", d->invert);
+	nde_kv_add_int(kv, "bitpix", d->bitpix);
+	nde_kv_add_bool(kv, "cleanup", d->cleanup);
+	return nde_kv_end(kv);
+}
+
+static gpointer mask_from_color_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_mask_from_color.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	float cr, cg, cb, tol, lmin, lmax;
+	gint64 feather_radius, bitpix;
+	gboolean invert, cleanup;
+	if (!nde_kv_get_float(kv, "chrom_center_r", &cr) ||
+	    !nde_kv_get_float(kv, "chrom_center_g", &cg) ||
+	    !nde_kv_get_float(kv, "chrom_center_b", &cb) ||
+	    !nde_kv_get_float(kv, "chrom_tolerance", &tol) ||
+	    !nde_kv_get_float(kv, "lum_min", &lmin) ||
+	    !nde_kv_get_float(kv, "lum_max", &lmax) ||
+	    !nde_kv_get_int(kv, "feather_radius", &feather_radius) ||
+	    !nde_kv_get_bool(kv, "invert", &invert) ||
+	    !nde_kv_get_int(kv, "bitpix", &bitpix) ||
+	    !nde_kv_get_bool(kv, "cleanup", &cleanup)) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	mask_from_color_data *d = calloc(1, sizeof(*d));
+	if (d) {
+		d->destroy_fn = free;
+		d->chrom_center_r = cr;
+		d->chrom_center_g = cg;
+		d->chrom_center_b = cb;
+		d->chrom_tolerance = tol;
+		d->lum_min = lmin;
+		d->lum_max = lmax;
+		d->feather_radius = (int)feather_radius;
+		d->invert = invert;
+		d->bitpix = (uint8_t)bitpix;
+		d->cleanup = cleanup;
+	}
+	g_hash_table_unref(kv);
+	return d;
+}
 
 /* Op descriptors for the mask operations (generic_mask_worker).  mem_ratio 0
  * means no memory check (matches the legacy sites).  Sites that create a mask
@@ -41,67 +459,80 @@ const op_descriptor op_desc_mask_from_stars = {
 	.id = "mask.from_stars", .version = 1, .mask_hook = mask_from_stars_hook,
 	.log_hook = mask_from_stars_log, .description = N_("Mask from stars"),
 	.mem_ratio = 1.0f, .flags = 0,
+	.serialize = mask_from_stars_serialize, .deserialize = mask_from_stars_deserialize,
 };
 const op_descriptor op_desc_mask_from_channel = {
 	.id = "mask.from_channel", .version = 1, .mask_hook = mask_from_channel_hook,
 	.log_hook = mask_from_channel_log, .description = N_("Mask from channel"),
 	.mem_ratio = 1.0f, .flags = 0,
+	.serialize = mask_from_channel_serialize, .deserialize = mask_from_channel_deserialize,
 };
 const op_descriptor op_desc_mask_from_luminance = {
 	.id = "mask.from_luminance", .version = 1, .mask_hook = mask_from_lum_hook,
 	.log_hook = mask_from_lum_log, .description = N_("Mask from luminance"),
 	.mem_ratio = 1.0f, .flags = 0,
+	.serialize = mask_from_lum_serialize, .deserialize = mask_from_lum_deserialize,
 };
 /* clear has no log_hook and no memory check */
 const op_descriptor op_desc_mask_clear = {
 	.id = "mask.clear", .version = 1, .mask_hook = mask_clear_hook,
 	.description = N_("Clear mask"), .mem_ratio = 0.0f, .flags = 0,
+	.serialize = mask_noparams_serialize, .deserialize = mask_noparams_deserialize,
 };
 /* Default label from the command; the GUI site overrides it. */
 const op_descriptor op_desc_mask_threshold = {
 	.id = "mask.threshold", .version = 1, .mask_hook = mask_thresh_hook,
 	.log_hook = mask_thresh_log, .description = N_("Apply intensity threshold to mask"),
 	.mem_ratio = 1.0f, .flags = 0,
+	.serialize = mask_thresh_serialize, .deserialize = mask_thresh_deserialize,
 };
 const op_descriptor op_desc_mask_blur = {
 	.id = "mask.blur", .version = 1, .mask_hook = mask_blur_hook,
 	.log_hook = mask_blur_log, .description = N_("Blur mask"),
 	.mem_ratio = 2.0f, .flags = 0,
+	.serialize = mask_blur_serialize, .deserialize = mask_blur_deserialize,
 };
 const op_descriptor op_desc_mask_feather = {
 	.id = "mask.feather", .version = 1, .mask_hook = mask_feather_hook,
 	.log_hook = mask_feather_log, .description = N_("Feather mask"),
 	.mem_ratio = 2.0f, .flags = 0,
+	.serialize = mask_feather_serialize, .deserialize = mask_feather_deserialize,
 };
 const op_descriptor op_desc_mask_multiply = {
 	.id = "mask.multiply", .version = 1, .mask_hook = mask_fmul_hook,
 	.log_hook = mask_fmul_log, .description = N_("Multiply mask"),
 	.mem_ratio = 0.0f, .flags = 0,
+	.serialize = mask_fmul_serialize, .deserialize = mask_fmul_deserialize,
 };
 /* invert has no log_hook */
 const op_descriptor op_desc_mask_invert = {
 	.id = "mask.invert", .version = 1, .mask_hook = mask_invert_hook,
 	.description = N_("Invert mask"), .mem_ratio = 0.0f, .flags = 0,
+	.serialize = mask_noparams_serialize, .deserialize = mask_noparams_deserialize,
 };
 /* autostretch has no log_hook; the siril_actions site overrides mem_ratio */
 const op_descriptor op_desc_mask_autostretch = {
 	.id = "mask.autostretch", .version = 1, .mask_hook = mask_autostretch_hook,
 	.description = N_("Autostretch mask"), .mem_ratio = 0.0f, .flags = 0,
+	.serialize = mask_noparams_serialize, .deserialize = mask_noparams_deserialize,
 };
 const op_descriptor op_desc_mask_bitpix = {
 	.id = "mask.bitpix", .version = 1, .mask_hook = mask_bitpix_hook,
 	.log_hook = mask_bitpix_log, .description = N_("Change mask bitdepth"),
 	.mem_ratio = 1.0f, .flags = 0,
+	.serialize = mask_bitpix_serialize, .deserialize = mask_bitpix_deserialize,
 };
 const op_descriptor op_desc_mask_from_color = {
 	.id = "mask.from_color", .version = 1, .mask_hook = mask_from_color_hook,
 	.log_hook = mask_from_color_log, .description = N_("Mask from color"),
 	.mem_ratio = 1.5f, .flags = 0,
+	.serialize = mask_from_color_serialize, .deserialize = mask_from_color_deserialize,
 };
 /* from_gradient has no log_hook */
 const op_descriptor op_desc_mask_from_gradient = {
 	.id = "mask.from_gradient", .version = 1, .mask_hook = mask_from_gradient_hook,
 	.description = N_("Gradient of mask"), .mem_ratio = 0.0f, .flags = 0,
+	.serialize = mask_noparams_serialize, .deserialize = mask_noparams_deserialize,
 };
 
 /* Image op (generic_image_worker): the autostretch applied to build a mask,

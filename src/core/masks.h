@@ -22,8 +22,8 @@ typedef struct {
 	gboolean autostretch;
 	gboolean invert;
 	uint8_t bitpix;
-	gchar *filename;
-	fits *fit;
+	gchar *filename;  /* owned; NULL = build from the current image */
+	fits *fit;        /* unused — never assigned or read anywhere */
 } mask_from_channel_data;
 
 typedef struct {
@@ -34,8 +34,8 @@ typedef struct {
 	gboolean use_human;
 	gboolean use_even;
 	uint8_t bitpix;
-	gchar *filename;
-	fits *fit;
+	gchar *filename;  /* owned; NULL = build from the current image */
+	fits *fit;        /* unused — never assigned or read anywhere */
 } mask_from_lum_data;
 
 typedef struct {
@@ -76,6 +76,13 @@ typedef struct {
 	uint8_t bitpix;
 	gboolean cleanup;
 } mask_from_color_data;
+
+/* Destructors for the two mask param structs that own heap members.  Every
+ * construction site must assign these to destroy_fn: the framework's
+ * destroy_any_args() plain-free()s a struct whose destroy_fn is NULL, which
+ * would leak the filename. */
+void mask_from_channel_data_free(void *p);
+void mask_from_lum_data_free(void *p);
 
 void mask_from_image_dialog_set_file_mode(gboolean file_mode);
 int get_default_mask_bitpix();

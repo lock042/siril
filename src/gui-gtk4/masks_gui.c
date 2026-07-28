@@ -421,6 +421,7 @@ void on_mask_from_image_apply_clicked(GtkButton *button, gpointer user_data) {
 			data->use_even = FALSE;
 			data->bitpix = bitdepth;
 			data->filename = g_strdup(selected_mask_filename);
+			data->destroy_fn = mask_from_lum_data_free;
 
 			struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 			args->fit =  gfit;
@@ -443,6 +444,7 @@ void on_mask_from_image_apply_clicked(GtkButton *button, gpointer user_data) {
 			data->invert = invert;
 			data->bitpix = bitdepth;
 			data->filename = g_strdup(selected_mask_filename);
+			data->destroy_fn = mask_from_channel_data_free;
 
 			struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 			args->fit =  gfit;
@@ -475,6 +477,7 @@ void on_mask_from_image_apply_clicked(GtkButton *button, gpointer user_data) {
 			data->use_even = FALSE;
 			data->bitpix = bitdepth;
 			data->filename = NULL;
+			data->destroy_fn = mask_from_lum_data_free;
 
 			struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 			args->fit =  gfit;
@@ -497,6 +500,7 @@ void on_mask_from_image_apply_clicked(GtkButton *button, gpointer user_data) {
 			data->invert = invert;
 			data->bitpix = bitdepth;
 			data->filename = NULL;
+			data->destroy_fn = mask_from_channel_data_free;
 
 			struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 			args->fit =  gfit;
