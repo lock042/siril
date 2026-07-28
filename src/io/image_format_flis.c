@@ -690,7 +690,7 @@ static int write_flis_meta_hdu(fitsfile *fptr, GSList *layers,
 
         /* --- Layer mask row (LMASK) --- */
         if (lay->lmask) {
-            gint id  = lay->item_id + 10000; /* convention: lmask ID = layer ID + 10000 */
+            gint id  = flis_layer_lmask_id(lay);
             gint idx = lmask_hdu;
             gint pid = lay->item_id;
             gint ord = 0;
@@ -724,7 +724,7 @@ static int write_flis_meta_hdu(fitsfile *fptr, GSList *layers,
 
         /* --- Processing mask row (MASK) --- */
         if (lay->fit && lay->fit->mask) {
-            gint id  = lay->item_id + 20000; /* convention: pmask ID = layer ID + 20000 */
+            gint id  = flis_layer_pmask_id(lay);
             gint idx = pmask_hdu;
             gint pid = lay->item_id;
             gint ord = 0;
@@ -2127,7 +2127,7 @@ int save_flis(const gchar *filename) {
         if (lay->lmask) {
             gchar *lname = g_strdup_printf("%s Layer Mask",
                            lay->layer_name ? lay->layer_name : "Layer");
-            int lmask_id = lay->item_id + 10000;
+            int lmask_id = flis_layer_lmask_id(lay);
             /* LMASK HDUs are 8-bit on disk (the loader reads them as
              * such).  16-/32-bit in-memory masks must be quantised first
              * — writing their raw buffers as TBYTE would store garbage
@@ -2179,7 +2179,7 @@ int save_flis(const gchar *filename) {
             mask_t *pmask = lay->fit->mask;
             gchar *mname = g_strdup_printf("%s Processing Mask",
                            lay->layer_name ? lay->layer_name : "Layer");
-            int pmask_id = lay->item_id + 20000;
+            int pmask_id = flis_layer_pmask_id(lay);
             size_t npix = lay->fit->rx * lay->fit->ry;
 
             float *float_data = NULL;
@@ -2574,6 +2574,12 @@ int load_flis(const gchar *filename) {
                 layermask_free(parent->lmask); /* replace any existing */
                 parent->lmask        = lm;
                 parent->lmask_active = read_mask_act_from_hdu(fptr, row->hdu_index);
+                /* Adopt the on-disk item id, unless it is the pre-allocation
+                 * convention (parent + 10000), which was never an allocation
+                 * and would push next_item_id past 10000 for nothing.  Left
+                 * at 0 it is renumbered on the next save. */
+                parent->lmask_item_id =
+                    (row->item_id == parent->item_id + 10000) ? 0 : row->item_id;
             }
         } else { /* MASK — processing mask, float */
             layermask_t *pm = load_mask_from_hdu(fptr, row->hdu_index, TRUE);
@@ -2599,6 +2605,8 @@ int load_flis(const gchar *filename) {
                     siril_mask->data     = pm->data;
                     pm->data             = NULL; /* transfer ownership */
                     parent->fit->mask    = siril_mask;
+                    parent->pmask_item_id =
+                        (row->item_id == parent->item_id + 20000) ? 0 : row->item_id;
                 }
                 parent->fit->mask_active = read_mask_act_from_hdu(fptr, row->hdu_index);
                 layermask_free(pm);
@@ -2661,6 +2669,9 @@ int load_flis(const gchar *filename) {
     for (GSList *l = layers; l; l = l->next) {
         flis_layer_t *lay = (flis_layer_t *)l->data;
         if (lay->item_id > max_id) max_id = lay->item_id;
+        /* Mask ids come from the same counter, so they bound it too. */
+        if (lay->lmask_item_id > max_id) max_id = lay->lmask_item_id;
+        if (lay->pmask_item_id > max_id) max_id = lay->pmask_item_id;
     }
     for (GSList *g = groups; g; g = g->next) {
         flis_group_t *grp = (flis_group_t *)g->data;
@@ -3415,6 +3426,59 @@ flis_layer_t *flis_layer_get_by_id(gint item_id) {
             return lay;
     }
     return NULL;
+}
+
+/* Lazy allocation of a mask's item id.  @slot is the layer field to fill;
+ * @present says whether that mask actually exists right now — an absent mask
+ * is not an item, and asking for its id must not burn a number. */
+static gint mask_item_id(flis_layer_t *layer, gint *slot, gboolean present) {
+    if (!layer || !com.uniq)
+        return 0;
+    if (!present) {
+        *slot = 0;          /* the slot emptied since the id was handed out */
+        return 0;
+    }
+    if (*slot <= 0)
+        *slot = com.uniq->next_item_id++;
+    return *slot;
+}
+
+gint flis_layer_lmask_id(flis_layer_t *layer) {
+    return layer ? mask_item_id(layer, &layer->lmask_item_id,
+                                layer->lmask != NULL) : 0;
+}
+
+gint flis_layer_pmask_id(flis_layer_t *layer) {
+    return layer ? mask_item_id(layer, &layer->pmask_item_id,
+                                layer->fit && layer->fit->mask) : 0;
+}
+
+flis_item_kind flis_item_lookup(gint item_id, flis_layer_t **owner_out) {
+    if (owner_out)
+        *owner_out = NULL;
+    if (!com.uniq || item_id <= 0)
+        return FLIS_ITEM_NONE;
+    for (GSList *l = com.uniq->layers; l; l = l->next) {
+        flis_layer_t *lay = (flis_layer_t *)l->data;
+        if (lay->item_id == item_id) {
+            if (owner_out) *owner_out = lay;
+            return FLIS_ITEM_LAYER;
+        }
+        if (lay->lmask && lay->lmask_item_id == item_id) {
+            if (owner_out) *owner_out = lay;
+            return FLIS_ITEM_LMASK;
+        }
+        if (lay->fit && lay->fit->mask && lay->pmask_item_id == item_id) {
+            if (owner_out) *owner_out = lay;
+            return FLIS_ITEM_MASK;
+        }
+    }
+    for (GSList *g = com.uniq->groups; g; g = g->next) {
+        flis_group_t *grp = (flis_group_t *)g->data;
+        if (grp->item_id == item_id)
+            return FLIS_ITEM_GROUP;
+    }
+    return FLIS_ITEM_NONE;
 }
 
 flis_layer_t *flis_layer_get_by_name(const gchar *name) {
@@ -4357,6 +4421,8 @@ int flis_merge_down_layer(flis_layer_t *top) {
     if (bottom->fit->mask) { free_mask(bottom->fit->mask); bottom->fit->mask = NULL; }
     layermask_free_deferred(bottom->lmask);
     bottom->lmask = NULL;
+    bottom->lmask_item_id = 0;   /* the mask items are gone, not merely empty */
+    bottom->pmask_item_id = 0;
 
     /* Install merged pixels into the bottom layer */
     flis_layer_install_render(bottom, merged);
@@ -4451,6 +4517,8 @@ int flis_flatten_all(void) {
     if (base->fit->mask) { free_mask(base->fit->mask); base->fit->mask = NULL; }
     layermask_free_deferred(base->lmask);
     base->lmask = NULL;
+    base->lmask_item_id = 0;
+    base->pmask_item_id = 0;
 
     /* Reset compositing parameters: base is now the sole layer */
     base->blend_mode = FLIS_BLEND_NORMAL;
@@ -4808,6 +4876,10 @@ int flis_layer_set_lmask(flis_layer_t *layer, layermask_t *lmask) {
 
     layermask_free_deferred(layer->lmask);
     layer->lmask = lmask;   /* NULL is valid: removes the mask */
+    /* Emptying the slot ends the mask item; replacing one mask with another
+     * keeps it, so an edited mask stays the same item across the swap. */
+    if (!lmask)
+        layer->lmask_item_id = 0;
     flis_layer_touch_modified(layer);
     return 0;
 }
@@ -4845,6 +4917,9 @@ int flis_layer_move_lmask(flis_layer_t *from, flis_layer_t *to) {
     layermask_free(to->lmask);
     to->lmask   = from->lmask;
     from->lmask = NULL;
+    /* The same mask, on a different layer: its item id travels with it. */
+    to->lmask_item_id   = from->lmask_item_id;
+    from->lmask_item_id = 0;
 
     flis_layer_touch_modified(from);
     flis_layer_touch_modified(to);

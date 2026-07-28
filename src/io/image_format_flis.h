@@ -209,6 +209,17 @@ typedef struct _flis_layer_t {
                                         mask is created).                 */
     /* Processing mask (FLIS MASK type) lives in fit->mask — unchanged.  */
 
+    /* Mask item ids.  A mask is an ITEM in its own right on disk: it has a
+       FLIS_META row with its own ITEM_ID, and the nondestructive history
+       needs that id to name it (a "mask from stars" record targets the
+       mask, not the layer).  Allocated lazily from next_item_id by
+       flis_layer_lmask_id() / flis_layer_pmask_id(); 0 = not yet
+       allocated.  Cleared when the mask slot is emptied — a new mask is a
+       new item — and preserved when one mask replaces another, since the
+       slot's identity, and therefore its history, carries on.            */
+    gint              lmask_item_id;
+    gint              pmask_item_id;
+
     /* Compositing parameters */
     flis_blend_mode_t blend_mode;    /* How this layer blends into the
                                         composite below it.               */
@@ -683,6 +694,44 @@ int flis_promote_from_gfit(const gchar *name);
 flis_layer_t *flis_layer_get_by_id(gint item_id);
 flis_layer_t *flis_layer_get_by_name(const gchar *name);
 flis_layer_t *flis_layer_get_by_fit(const fits *fit);
+
+/* ---- item ids for masks -------------------------------------------------
+ * Masks are FLIS items with their own FLIS_META row, and the nondestructive
+ * history addresses them by item id like any other target.  The ids used to
+ * be synthesised at write time as layer_id + 10000 (LMASK) / + 20000 (MASK),
+ * which is a convention rather than an allocation: it collides once layer
+ * ids reach 10000, and it gives a runtime mask no identity at all.  They are
+ * now allocated from the same next_item_id counter as layers and groups, and
+ * round-trip through the file.
+ *
+ * Legacy files are recognised on load (an id exactly parent + 10000/20000 is
+ * taken as unallocated) and renumbered on their next save, which keeps the
+ * id space compact instead of jumping past 20000.
+ */
+
+/** The mask's item id, allocating one on first call.  0 when the layer has
+ *  no mask in that slot, or when there is no document to allocate from. */
+gint flis_layer_lmask_id(flis_layer_t *layer);
+gint flis_layer_pmask_id(flis_layer_t *layer);
+
+typedef enum {
+	FLIS_ITEM_NONE = 0,
+	FLIS_ITEM_LAYER,
+	FLIS_ITEM_GROUP,
+	FLIS_ITEM_LMASK,   /* owner->lmask */
+	FLIS_ITEM_MASK,    /* owner->fit->mask */
+} flis_item_kind;
+
+/**
+ * flis_item_lookup:
+ * @item_id: any FLIS item id — layer, group, layer mask or processing mask.
+ * @owner_out: (out) (nullable): for the two mask kinds, the layer that owns
+ *             the mask; for a layer, the layer itself; NULL otherwise.
+ *
+ * Resolves an id to what it names.  Only ids already allocated are found:
+ * this is a lookup, never an allocation.
+ */
+flis_item_kind flis_item_lookup(gint item_id, flis_layer_t **owner_out);
 
 /**
  * flis_layer_get_index:

@@ -253,3 +253,162 @@ Test(flis_roundtrip, embedded_icc_profile_survives) {
 	cr_assert_eq(cmsGetColorSpace(com.uniq->icc_profile), cmsSigRgbData,
 	             "reloaded profile is not a valid RGB profile");
 }
+
+/* ---------------- graph step 3: real item ids for masks ---------------- */
+
+static layermask_t *make_lmask(size_t w, size_t h, uint8_t v) {
+	layermask_t *m = calloc(1, sizeof(layermask_t));
+	m->w = w; m->h = h; m->bitpix = 8;
+	m->data = malloc(w * h);
+	memset(m->data, v, w * h);
+	return m;
+}
+
+static void attach_pmask(flis_layer_t *lay, float v) {
+	size_t n = (size_t)lay->fit->rx * lay->fit->ry;
+	mask_t *pm = calloc(1, sizeof(mask_t));
+	pm->bitpix = 32;
+	pm->data = malloc(n * sizeof(float));
+	for (size_t i = 0; i < n; i++)
+		((float *)pm->data)[i] = v;
+	lay->fit->mask = pm;
+	lay->fit->mask_active = TRUE;
+}
+
+Test(flis_roundtrip, mask_ids_are_allocated_not_synthesised) {
+	flis_layer_t *base = flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.f), "base");
+	flis_layer_t *top  = flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "top");
+	cr_assert_eq(flis_layer_set_lmask(top, make_lmask(4, 4, 128)), 0);
+	attach_pmask(top, 0.5f);
+
+	/* no id until asked for, then one from the document's own counter */
+	cr_assert_eq(top->lmask_item_id, 0);
+	gint lm_id = flis_layer_lmask_id(top);
+	gint pm_id = flis_layer_pmask_id(top);
+	cr_assert_neq(lm_id, 0);
+	cr_assert_neq(pm_id, lm_id);
+	cr_assert_neq(lm_id, top->item_id + 10000, "the +10000 convention is retired");
+	cr_assert_neq(pm_id, top->item_id + 20000, "the +20000 convention is retired");
+	cr_assert(lm_id > base->item_id && lm_id > top->item_id,
+	          "mask ids come from next_item_id, so they follow the layers");
+	cr_assert_eq(flis_layer_lmask_id(top), lm_id, "the id is stable once allocated");
+
+	/* a layer with no mask in that slot has no id to give */
+	cr_assert_eq(flis_layer_lmask_id(base), 0);
+	cr_assert_eq(flis_layer_pmask_id(base), 0);
+}
+
+Test(flis_roundtrip, mask_ids_round_trip) {
+	flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.f), "base");
+	flis_layer_t *top = flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "top");
+	cr_assert_eq(flis_layer_set_lmask(top, make_lmask(4, 4, 200)), 0);
+	attach_pmask(top, 0.25f);
+	gint lm_id = flis_layer_lmask_id(top);
+	gint pm_id = flis_layer_pmask_id(top);
+
+	cr_assert_eq(save_flis(tmppath), 0);
+	flis_free_layers(com.uniq);
+	cr_assert_eq(load_flis(tmppath), 0);
+
+	flis_layer_t *r_top = (flis_layer_t *)com.uniq->layers->next->data;
+	cr_assert_not_null(r_top->lmask);
+	cr_assert_not_null(r_top->fit->mask);
+	cr_assert_eq(r_top->lmask_item_id, lm_id, "the layer mask keeps its id");
+	cr_assert_eq(r_top->pmask_item_id, pm_id, "the processing mask keeps its id");
+	/* and the counter is seeded past them, so nothing collides next */
+	cr_assert(com.uniq->next_item_id > lm_id);
+	cr_assert(com.uniq->next_item_id > pm_id);
+}
+
+Test(flis_roundtrip, mask_ids_survive_a_second_save) {
+	flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.f), "base");
+	flis_layer_t *top = flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "top");
+	cr_assert_eq(flis_layer_set_lmask(top, make_lmask(4, 4, 90)), 0);
+
+	cr_assert_eq(save_flis(tmppath), 0);
+	gint lm_id = top->lmask_item_id;
+	cr_assert_neq(lm_id, 0, "saving allocates the id it writes");
+	cr_assert_eq(save_flis(tmppath), 0);
+	cr_assert_eq(top->lmask_item_id, lm_id, "a second save must not renumber");
+}
+
+Test(flis_roundtrip, item_lookup_resolves_every_kind) {
+	flis_layer_t *base = flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.f), "base");
+	flis_layer_t *top  = flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "top");
+	cr_assert_eq(flis_layer_set_lmask(top, make_lmask(4, 4, 30)), 0);
+	attach_pmask(top, 0.75f);
+	flis_group_t *grp = flis_group_add("g");
+	cr_assert_not_null(grp);
+
+	flis_layer_t *owner = NULL;
+	cr_assert_eq(flis_item_lookup(base->item_id, &owner), FLIS_ITEM_LAYER);
+	cr_assert_eq(owner, base);
+	cr_assert_eq(flis_item_lookup(grp->item_id, &owner), FLIS_ITEM_GROUP);
+	cr_assert_null(owner);
+	cr_assert_eq(flis_item_lookup(flis_layer_lmask_id(top), &owner), FLIS_ITEM_LMASK);
+	cr_assert_eq(owner, top);
+	cr_assert_eq(flis_item_lookup(flis_layer_pmask_id(top), &owner), FLIS_ITEM_MASK);
+	cr_assert_eq(owner, top);
+	cr_assert_eq(flis_item_lookup(4242, &owner), FLIS_ITEM_NONE);
+	cr_assert_eq(flis_item_lookup(0, &owner), FLIS_ITEM_NONE);
+
+	/* removing the mask ends the item: the id resolves to nothing and is
+	 * released rather than left dangling */
+	gint gone = top->lmask_item_id;
+	cr_assert_eq(flis_layer_remove_lmask(top), 0);
+	cr_assert_eq(top->lmask_item_id, 0);
+	cr_assert_eq(flis_item_lookup(gone, &owner), FLIS_ITEM_NONE);
+}
+
+Test(flis_roundtrip, moving_a_layer_mask_moves_its_id) {
+	flis_layer_t *base = flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.f), "base");
+	flis_layer_t *top  = flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "top");
+	cr_assert_eq(flis_layer_set_lmask(top, make_lmask(4, 4, 77)), 0);
+	gint id = flis_layer_lmask_id(top);
+
+	cr_assert_eq(flis_layer_move_lmask(top, base), 0);
+	cr_assert_eq(base->lmask_item_id, id, "the mask is the same item on its new layer");
+	cr_assert_eq(top->lmask_item_id, 0);
+	flis_layer_t *owner = NULL;
+	cr_assert_eq(flis_item_lookup(id, &owner), FLIS_ITEM_LMASK);
+	cr_assert_eq(owner, base);
+}
+
+Test(flis_roundtrip, replacing_a_layer_mask_keeps_its_id) {
+	flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.f), "base");
+	flis_layer_t *top = flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "top");
+	cr_assert_eq(flis_layer_set_lmask(top, make_lmask(4, 4, 10)), 0);
+	gint id = flis_layer_lmask_id(top);
+	/* editing a mask replaces the buffer; the slot — and so its history —
+	 * carries on, unlike clearing it */
+	cr_assert_eq(flis_layer_set_lmask(top, make_lmask(4, 4, 250)), 0);
+	cr_assert_eq(top->lmask_item_id, id);
+}
+
+Test(flis_roundtrip, legacy_mask_ids_are_renumbered_on_load) {
+	flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.f), "base");
+	flis_layer_t *top = flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "top");
+	cr_assert_eq(flis_layer_set_lmask(top, make_lmask(4, 4, 60)), 0);
+	attach_pmask(top, 0.5f);
+	/* Forge what older builds wrote: ids synthesised from the parent rather
+	 * than allocated.  Saving stores them verbatim, so the file is a
+	 * faithful legacy file. */
+	top->lmask_item_id = top->item_id + 10000;
+	top->pmask_item_id = top->item_id + 20000;
+	cr_assert_eq(save_flis(tmppath), 0);
+
+	flis_free_layers(com.uniq);
+	cr_assert_eq(load_flis(tmppath), 0);
+	flis_layer_t *r_top = (flis_layer_t *)com.uniq->layers->next->data;
+	cr_assert_not_null(r_top->lmask);
+	cr_assert_not_null(r_top->fit->mask);
+	cr_assert_eq(r_top->lmask_item_id, 0, "a synthesised id is not an allocation");
+	cr_assert_eq(r_top->pmask_item_id, 0);
+	/* and the counter is not dragged past 20000 by a convention */
+	cr_assert(com.uniq->next_item_id < 10000,
+	          "next_item_id was %d", com.uniq->next_item_id);
+	/* the next save allocates real ids, converting the file */
+	cr_assert_eq(save_flis(tmppath), 0);
+	cr_assert(r_top->lmask_item_id > 0 && r_top->lmask_item_id < 10000);
+	cr_assert(r_top->pmask_item_id > 0 && r_top->pmask_item_id < 10000);
+}

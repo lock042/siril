@@ -17472,10 +17472,20 @@ int process_flis_layer_info(int nb) {
 		               lay->layer_tint.r, lay->layer_tint.g, lay->layer_tint.b);
 	else
 		siril_log_info(_("  tint        : neutral\n"));
-	siril_log_info(_("  layer mask  : %s\n"),
-	               lay->lmask ? (lay->lmask_active ? "active" : "inactive") : "none");
-	siril_log_info(_("  proc mask   : %s\n"),
-	               (lay->fit && lay->fit->mask && lay->fit->mask->data) ? "present" : "none");
+	/* Masks are items in their own right, so report the ids the edit
+	 * history uses to name them (allocated on demand — printing one is a
+	 * legitimate first use). */
+	if (lay->lmask)
+		siril_log_info(_("  layer mask  : %s (item id %d)\n"),
+		               lay->lmask_active ? "active" : "inactive",
+		               flis_layer_lmask_id(lay));
+	else
+		siril_log_info(_("  layer mask  : none\n"));
+	if (lay->fit && lay->fit->mask && lay->fit->mask->data)
+		siril_log_info(_("  proc mask   : present (item id %d)\n"),
+		               flis_layer_pmask_id(lay));
+	else
+		siril_log_info(_("  proc mask   : none\n"));
 	siril_log_info(_("  group_id    : %d\n"), lay->group_id);
 	return CMD_OK;
 }
