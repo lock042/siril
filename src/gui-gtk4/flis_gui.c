@@ -563,6 +563,15 @@ static void ensure_flis_css(void) {
 		".nde-drop-dim {"
 		"  opacity: 0.35;"
 		"}"
+		/* Drag-reorder insertion indicator: a double-thickness green line at
+		 * the edge of the hovered row showing where the step will land
+		 * (top edge = before this row, bottom edge = after it). */
+		".nde-drop-line-top {"
+		"  box-shadow: inset 0 4px 0 0 #2ec27e;"
+		"}"
+		".nde-drop-line-bottom {"
+		"  box-shadow: inset 0 -4px 0 0 #2ec27e;"
+		"}"
 	);
 	gtk_style_context_add_provider_for_display(gdk_display_get_default(),
 		GTK_STYLE_PROVIDER(g_flis_css_provider),
@@ -1212,6 +1221,25 @@ static gchar *hist_target_label(const nde_record *rec) {
  * nde_reorder_start(dragged, anchor=target row, after = lower half). */
 
 static NdeHistRowItem *hist_drag_item;   /* ref held between begin and end */
+static GtkWidget *hist_drop_line_row;    /* row currently showing the line */
+
+static void hist_clear_drop_line(void) {
+	if (!hist_drop_line_row) return;
+	gtk_widget_remove_css_class(hist_drop_line_row, "nde-drop-line-top");
+	gtk_widget_remove_css_class(hist_drop_line_row, "nde-drop-line-bottom");
+	hist_drop_line_row = NULL;
+}
+
+/* Show the insertion line on @row's top (@after FALSE) or bottom edge. */
+static void hist_show_drop_line(GtkWidget *row, gboolean after) {
+	if (hist_drop_line_row != row)
+		hist_clear_drop_line();
+	gtk_widget_remove_css_class(row, after ? "nde-drop-line-top"
+	                                       : "nde-drop-line-bottom");
+	gtk_widget_add_css_class(row, after ? "nde-drop-line-bottom"
+	                                    : "nde-drop-line-top");
+	hist_drop_line_row = row;
+}
 
 static gboolean hist_row_draggable(NdeHistRowItem *r) {
 	return r && !r->dead && !nde_history_is_stale() &&
@@ -1273,15 +1301,29 @@ static void on_hist_drag_begin(GtkDragSource *s, GdkDrag *drag, gpointer row) {
 static void on_hist_drag_end(GtkDragSource *s, GdkDrag *drag,
                              gboolean delete_data, gpointer row) {
 	(void)s; (void)drag; (void)delete_data; (void)row;
+	hist_clear_drop_line();
 	hist_set_drop_dim(FALSE);
 	g_clear_object(&hist_drag_item);
 }
 
 static GdkDragAction on_hist_drop_accept_motion(GtkDropTarget *t,
                                                 double x, double y, gpointer row) {
-	(void)t; (void)x; (void)y;
+	(void)t; (void)x;
 	NdeHistRowItem *r = g_object_get_data(G_OBJECT(row), "hist-item");
-	return hist_drop_valid(r) ? GDK_ACTION_MOVE : 0;
+	if (!hist_drop_valid(r)) {
+		if (hist_drop_line_row == row)
+			hist_clear_drop_line();
+		return 0;
+	}
+	gboolean after = y > gtk_widget_get_height(GTK_WIDGET(row)) / 2.0;
+	hist_show_drop_line(GTK_WIDGET(row), after);
+	return GDK_ACTION_MOVE;
+}
+
+static void on_hist_drop_leave(GtkDropTarget *t, gpointer row) {
+	(void)t;
+	if (hist_drop_line_row == row)
+		hist_clear_drop_line();
 }
 
 /* Shared confirm for drag-reorder drops (same wording + remembered pref as
@@ -1312,6 +1354,7 @@ static gboolean on_hist_drop(GtkDropTarget *t, const GValue *value,
 	/* Upper half: insert before the target member; lower half: after. */
 	gboolean after = y > gtk_widget_get_height(GTK_WIDGET(row)) / 2.0;
 	gint64 anchor_id = anchor->record_id;
+	hist_clear_drop_line();
 	if (hist_reorder_confirm())
 		nde_reorder_start(dragged, anchor_id, after);
 	return TRUE;
@@ -1324,6 +1367,7 @@ static GdkDragAction on_hist_end_drop_enter(GtkDropTarget *t,
 	(void)t; (void)x; (void)y; (void)u;
 	if (!hist_drag_item)
 		return 0;
+	hist_clear_drop_line();
 	if (g_panel && g_panel->hist_end_drop)
 		gtk_widget_add_css_class(g_panel->hist_end_drop, "drop-active");
 	return GDK_ACTION_MOVE;
@@ -1404,6 +1448,7 @@ static void on_hist_row_setup(GtkListItemFactory *f, GtkListItem *item, gpointer
 	GtkDropTarget *dtgt = gtk_drop_target_new(G_TYPE_INT64, GDK_ACTION_MOVE);
 	g_signal_connect(dtgt, "enter",  G_CALLBACK(on_hist_drop_accept_motion), row);
 	g_signal_connect(dtgt, "motion", G_CALLBACK(on_hist_drop_accept_motion), row);
+	g_signal_connect(dtgt, "leave",  G_CALLBACK(on_hist_drop_leave), row);
 	g_signal_connect(dtgt, "drop",   G_CALLBACK(on_hist_drop), row);
 	gtk_widget_add_controller(row, GTK_EVENT_CONTROLLER(dtgt));
 
@@ -2150,14 +2195,10 @@ static void build_history_popover(void) {
 	g_signal_connect(g_panel->hist_list, "activate",
 	                 G_CALLBACK(on_hist_row_activate), NULL);
 
-	GtkWidget *sw = gtk_scrolled_window_new();
-	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw),
-	                               GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
-	gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(sw), 140);
-	gtk_widget_set_vexpand(sw, TRUE);
-	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), g_panel->hist_list);
-	gtk_box_append(GTK_BOX(vbox), sw);
-
+	/* The list and the (drag-only) end drop zone share the scrolled area so
+	 * the zone sits immediately under the final row, not at the popover's
+	 * bottom edge.  The list view rides in a viewport as a consequence —
+	 * fine at history scale (tens of rows). */
 	g_panel->hist_end_drop = gtk_label_new(_("Drop here to move to the end"));
 	gtk_widget_add_css_class(g_panel->hist_end_drop, "flis-edge-drop");
 	gtk_widget_set_visible(g_panel->hist_end_drop, FALSE);
@@ -2167,7 +2208,18 @@ static void build_history_popover(void) {
 	g_signal_connect(ed, "leave",  G_CALLBACK(on_hist_end_drop_leave), NULL);
 	g_signal_connect(ed, "drop",   G_CALLBACK(on_hist_end_drop), NULL);
 	gtk_widget_add_controller(g_panel->hist_end_drop, GTK_EVENT_CONTROLLER(ed));
-	gtk_box_append(GTK_BOX(vbox), g_panel->hist_end_drop);
+
+	GtkWidget *sw = gtk_scrolled_window_new();
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw),
+	                               GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(sw), 140);
+	gtk_widget_set_vexpand(sw, TRUE);
+	GtkWidget *listbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	gtk_widget_set_valign(listbox, GTK_ALIGN_START);
+	gtk_box_append(GTK_BOX(listbox), g_panel->hist_list);
+	gtk_box_append(GTK_BOX(listbox), g_panel->hist_end_drop);
+	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), listbox);
+	gtk_box_append(GTK_BOX(vbox), sw);
 
 	GtkWidget *btn = lookup_widget("nde_history_button");
 	if (btn && GTK_IS_MENU_BUTTON(btn)) {
