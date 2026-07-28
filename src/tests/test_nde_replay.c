@@ -2211,7 +2211,10 @@ static int apply_op_masked(const op_descriptor *op, gpointer user_heap) {
 	args->command = TRUE;
 	args->command_updates_gfit = TRUE;
 	args->mask_aware = TRUE;
-	args->max_threads = 1;
+	/* Match the replay driver's thread count: an op whose result depends on
+	 * how the work is divided is only bit-comparable against a run divided
+	 * the same way. */
+	args->max_threads = com.max_thread;
 	args->mem_ratio = -1.0f;
 	gboolean prev = com.headless;
 	com.headless = TRUE;
@@ -2661,5 +2664,165 @@ Test(nde_replay, a_mask_with_no_recorded_origin_is_a_blocker) {
 	cr_assert(strstr(g_ptr_array_index(chain->reasons, 0), "built from") != NULL,
 	          "and say why: %s", (char *)g_ptr_array_index(chain->reasons, 0));
 	nde_chain_free(chain);
+	golden_teardown(NULL, f);
+}
+
+/* ---------------- graph step 6b: reverse invalidation ---------------- */
+
+/* Build: mask from channel 0, blur it by @radius, then a masked stretch.
+ * Returns the resulting image pixels (caller g_free()s) and its size. */
+static float *run_masked_sequence(float radius, size_t *n_out) {
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+	cr_assert_eq(apply_mask_op(&op_desc_mask_from_channel, from_channel(0)), 0);
+	cr_assert_eq(apply_mask_op(&op_desc_mask_blur, blur_mask(radius)), 0);
+	cr_assert_eq(apply_op_masked(&op_desc_asinh, asinh_beta(20.f)), 0);
+
+	size_t n = (size_t)gfit->rx * gfit->ry;
+	float *out = g_malloc(n * sizeof(float));
+	memcpy(out, gfit->fdata, n * sizeof(float));
+	*n_out = n;
+	nde_history_attach(NULL);      /* also purges the checkpoint store */
+	clearfits(f);
+	free(f);
+	gfit = NULL;
+	return out;
+}
+
+/* The whole point of the edges: amending the mask must reach the image that
+ * used it.  The result has to equal the same work done in that order from the
+ * start — "it changed" would not prove it changed to the RIGHT thing. */
+Test(nde_replay, amending_a_mask_recomputes_what_consumed_it) {
+	com.pref.nde_cache_mb = 256;
+	size_t n_native = 0;
+	float *native = run_masked_sequence(6.f, &n_native);
+
+	/* now the same thing built at radius 1 and amended to 6 */
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+	cr_assert_eq(apply_mask_op(&op_desc_mask_from_channel, from_channel(0)), 0);
+	cr_assert_eq(apply_mask_op(&op_desc_mask_blur, blur_mask(1.f)), 0);
+	cr_assert_eq(apply_op_masked(&op_desc_asinh, asinh_beta(20.f)), 0);
+
+	size_t n = (size_t)gfit->rx * gfit->ry;
+	cr_assert_eq(n, n_native);
+	float *before = g_malloc(n * sizeof(float));
+	memcpy(before, gfit->fdata, n * sizeof(float));
+	cr_assert_neq(memcmp(before, native, n * sizeof(float)), 0,
+	              "fixture: radius 1 and radius 6 must differ");
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_amend_execute(2, "radius=6", &err), "amend failed: %s", err ? err : "?");
+	unreserve_thread();
+
+	/* Converges on the native result rather than merely "changing": a wrong
+	 * recomputation would land somewhere else entirely.  Not asserted
+	 * bit-exact because replaying an op that ran under an 8-bit mask is not
+	 * bit-exact TODAY, independently of any of this — a plain nde_chain_replay
+	 * of one deviates by the same single float ulp (see the regression bound
+	 * below).  The bound here is two ulps at 0.5, i.e. still exact to within
+	 * the existing gap, so a real error could not hide under it. */
+	double maxd = 0.0; size_t worst = 0;
+	for (size_t i = 0; i < n; i++) {
+		double d = fabs((double)gfit->fdata[i] - (double)native[i]);
+		if (d > maxd) { maxd = d; worst = i; }
+	}
+	cr_assert(maxd <= 1.2e-7, "max deviation %.9g at pixel %zu (%.9g vs %.9g)",
+	          maxd, worst, gfit->fdata[worst], native[worst]);
+	/* and it really did move: the pre-amend state was much further away */
+	double pre = 0.0;
+	for (size_t i = 0; i < n; i++) {
+		double d = fabs((double)before[i] - (double)native[i]);
+		if (d > pre) pre = d;
+	}
+	cr_assert(pre > 100.0 * maxd,
+	          "the amend must account for the whole difference, not a sliver "
+	          "(pre-amend %.9g vs post %.9g)", pre, maxd);
+
+	g_free(before);
+	g_free(native);
+	golden_teardown(NULL, f);
+}
+
+/* A consumer pinned to the mask as it stood BEFORE the edited step used a
+ * state the edit did not change, so it must be left alone. */
+Test(nde_replay, a_pin_before_the_edit_is_not_disturbed) {
+	com.pref.nde_cache_mb = 256;
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	cr_assert_eq(apply_mask_op(&op_desc_mask_from_channel, from_channel(0)), 0);
+	cr_assert_eq(apply_op_masked(&op_desc_asinh, asinh_beta(20.f)), 0);   /* pins mask@:1 */
+	cr_assert_eq(apply_mask_op(&op_desc_mask_blur, blur_mask(1.f)), 0);   /* record 3 */
+
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	const nde_input_pin *early = nde_record_input(g_ptr_array_index(snap, 1), "mask");
+	cr_assert_not_null(early);
+	cr_assert_eq(early->src_record_id, 1, "the stretch used the unblurred mask");
+	g_ptr_array_unref(snap);
+
+	/* the mask state that consumer pinned, as stored */
+	fits *pinned_before = nde_checkpoint_output_get(1);
+	cr_assert_not_null(pinned_before);
+	size_t mn = (size_t)pinned_before->rx * pinned_before->ry;
+	guint8 *keep = g_malloc(mn * sizeof(WORD));
+	memcpy(keep, pinned_before->data, mn * sizeof(WORD));
+	clearfits(pinned_before); free(pinned_before);
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_amend_execute(3, "radius=5", &err), "amend failed: %s", err ? err : "?");
+	unreserve_thread();
+
+	fits *pinned_after = nde_checkpoint_output_get(1);
+	cr_assert_not_null(pinned_after, "the earlier pin must still resolve");
+	cr_assert_eq(memcmp(pinned_after->data, keep, mn * sizeof(WORD)), 0,
+	             "editing a LATER mask step must not touch an earlier pin");
+	clearfits(pinned_after); free(pinned_after);
+	g_free(keep);
+	golden_teardown(NULL, f);
+}
+
+/* Replaying an operation that ran under an 8-BIT mask is not bit-exact, and
+ * this pins how far off it is so it cannot quietly get worse.  Nothing to do
+ * with amending or with reverse invalidation: a plain replay of a freshly
+ * captured chain already shows it.  A float32 mask replays exactly (see
+ * replay_restores_the_pinned_mask_bit_exactly), so the loss is somewhere in
+ * the 8-bit blend, and the live blend runs the swap path while the replay
+ * runs the non-swap one.  Worth chasing separately; documented here so the
+ * bound is a decision rather than an accident. */
+Test(nde_replay, eight_bit_masked_replay_deviation_is_bounded) {
+	com.pref.nde_cache_mb = 256;
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+	cr_assert_eq(apply_mask_op(&op_desc_mask_from_channel, from_channel(0)), 0);
+	cr_assert_eq(apply_op_masked(&op_desc_asinh, asinh_beta(20.f)), 0);
+
+	fits expected = { 0 };
+	copyfits(gfit, &expected, CP_DEEPCOPY | CP_ALLOC, -1);
+	nde_chain *chain = nde_chain_build(NDE_ITEM_IMAGE);
+	cr_assert(chain->replayable);
+	cr_assert(reserve_thread());
+	gchar *err = NULL;
+	fits *result = nde_chain_replay(chain, &err);
+	unreserve_thread();
+	cr_assert_not_null(result, "replay failed: %s", err ? err : "?");
+
+	double maxd = 0.0;
+	size_t n = (size_t)result->rx * result->ry;
+	for (size_t i = 0; i < n; i++) {
+		double d = fabs((double)result->fdata[i] - (double)expected.fdata[i]);
+		if (d > maxd) maxd = d;
+	}
+	cr_assert(maxd <= 1.2e-7,
+	          "8-bit masked replay deviation grew to %.9g (was one float ulp)", maxd);
+	clearfits(result); free(result);
+	nde_chain_free(chain);
+	clearfits(&expected);
 	golden_teardown(NULL, f);
 }

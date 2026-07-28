@@ -623,12 +623,16 @@ fail:
  * from a stored copy, which is what lets an amend upstream of it take effect.
  * Caller owns the result. */
 static fits *edit_target_fits(gint item_id);
+static void commit_restore_metadata(fits *target, fits *old);
 
 static fits *resolve_item_state(gint item_id, gint64 upto_record_id, gchar **err) {
 	nde_chain *c = nde_chain_build(item_id);
-	guint upto = c->records->len;
+	/* A pin's src_record_id of 0 means the item's BASELINE, not "all of it"
+	 * (nde_history.h) — the state before anything was recorded against it.
+	 * Reading it as "the whole chain" made a mask pinned to the untouched
+	 * image re-derive from a later state once the image gained records. */
+	guint upto = 0;
 	if (upto_record_id) {
-		upto = 0;
 		for (guint i = 0; i < c->records->len; i++) {
 			const nde_record *r = g_ptr_array_index(c->records, i);
 			if (r->record_id == upto_record_id) {
@@ -903,6 +907,169 @@ static gboolean commit_mask_value(gint item_id, fits *built, gchar **err) {
 	return FALSE;
 }
 
+/* ---- reverse invalidation (graph step 6) --------------------------------
+ * An input pin points one way, from consumer to source, because that is the
+ * direction provenance is captured in.  Propagation runs the other way: when
+ * a source changes, everything pinned to it is stale.  There is no reverse
+ * index to maintain — the pins are few and the log is short, so the consumers
+ * are found by scanning it, which cannot go out of date.                    */
+
+/* Recompute an item's pixels from its (unchanged) log and commit them.  For
+ * when something the item DEPENDS ON changed: the log is already right, only
+ * the pixels are stale. */
+static gboolean recompute_item(gint item_id, gchar **err) {
+	nde_chain *chain = nde_chain_build(item_id);
+	if (!chain->replayable) {
+		GString *m = g_string_new(NULL);
+		for (guint i = 0; i < chain->reasons->len; i++) {
+			if (i)
+				g_string_append(m, "; ");
+			g_string_append(m, g_ptr_array_index(chain->reasons, i));
+		}
+		*err = g_string_free(m, FALSE);
+		nde_chain_free(chain);
+		return FALSE;
+	}
+	gint pos_x = 0, pos_y = 0;
+	gboolean carry = replay_start_offset(chain, 0, &pos_x, &pos_y);
+	fits *start = nde_checkpoint_baseline_get(item_id);
+	if (!start) {
+		*err = g_strdup(_("failed to load the baseline checkpoint"));
+		nde_chain_free(chain);
+		return FALSE;
+	}
+	nde_snapstore_invalidate_from(item_id, 0);
+	fits *result = replay_apply_records(start, chain, 0, chain->records->len,
+	                                    carry ? &pos_x : NULL,
+	                                    carry ? &pos_y : NULL, err);
+	nde_chain_free(chain);
+	if (!result)
+		return FALSE;
+
+	fits *target = edit_target_fits(item_id);
+	if (!target) {
+		*err = g_strdup(_("the target layer no longer exists"));
+		clearfits(result);
+		free(result);
+		return FALSE;
+	}
+	g_rw_lock_writer_lock(&target->rwlock);
+	fits_swap_all_except_rwlock(target, result);
+	g_rw_lock_writer_unlock(&target->rwlock);
+	commit_restore_metadata(target, result);
+	clearfits(result);
+	free(result);
+	if (carry)
+		commit_layer_offset(item_id, pos_x, pos_y);
+	invalidate_stats_from_fit(target);
+	return TRUE;
+}
+
+/* Re-derive @mask_item's mask as it stood after chain member @upto-1 and
+ * replace the stored copy its consumers read (nde_replay.h's pin store). */
+static gboolean refresh_pinned_mask(const nde_chain *mask_chain, guint upto,
+                                    gint64 coord_record, gint mask_item,
+                                    gchar **err) {
+	fits *built = mask_chain_replay(mask_chain, upto, err);
+	if (!built)
+		return FALSE;
+	gboolean ok = FALSE;
+	if (built->mask && built->mask->data) {
+		fits *mfit = mask_to_fits(built);
+		if (mfit) {
+			nde_checkpoint_output_store(mfit, coord_record, mask_item);
+			clearfits(mfit);
+			free(mfit);
+			ok = TRUE;
+		}
+	}
+	if (!ok)
+		*err = g_strdup(_("the rebuilt mask could not be stored"));
+	clearfits(built);
+	free(built);
+	return ok;
+}
+
+/* Propagate a change to @mask_item from chain position @from_pos onwards.
+ * Refreshes every stored pin state that moved, then recomputes each item that
+ * consumed one.  Reports what it did; a consumer that cannot be recomputed is
+ * named rather than silently left stale. */
+static void cascade_mask_consumers(gint mask_item, guint from_pos) {
+	nde_chain *mask_chain = nde_chain_build(mask_item);
+	if (!mask_chain->replayable || !mask_chain->records->len) {
+		nde_chain_free(mask_chain);
+		return;
+	}
+	/* Position of each of the mask's records, so "at or after the edit" is a
+	 * comparison rather than a guess. */
+	GHashTable *pos_of = g_hash_table_new_full(g_int64_hash, g_int64_equal, g_free, NULL);
+	for (guint i = 0; i < mask_chain->records->len; i++) {
+		const nde_record *r = g_ptr_array_index(mask_chain->records, i);
+		gint64 *k = g_new(gint64, 1);
+		*k = r->record_id;
+		g_hash_table_insert(pos_of, k, GUINT_TO_POINTER(i + 1));
+	}
+
+	GHashTable *items = g_hash_table_new(g_direct_hash, g_direct_equal);
+	GHashTable *done_coords = g_hash_table_new_full(g_int64_hash, g_int64_equal, g_free, NULL);
+	guint refreshed = 0;
+	GPtrArray *live = nde_history_snapshot(NULL);
+	for (guint i = 0; live && i < live->len; i++) {
+		const nde_record *rec = g_ptr_array_index(live, i);
+		const nde_input_pin *pin = nde_record_input(rec, "mask");
+		if (!pin || pin->src_item_id != mask_item)
+			continue;
+		gpointer p = g_hash_table_lookup(pos_of, &pin->src_record_id);
+		if (!p)
+			continue;   /* pinned to a record that is no longer in the chain */
+		guint upto = GPOINTER_TO_UINT(p);
+		if (upto <= from_pos)
+			continue;   /* the edit is after this pin: its mask is unchanged */
+		if (!g_hash_table_contains(done_coords, &pin->src_record_id)) {
+			gchar *err = NULL;
+			if (refresh_pinned_mask(mask_chain, upto, pin->src_record_id,
+			                        mask_item, &err)) {
+				refreshed++;
+				gint64 *k = g_new(gint64, 1);
+				*k = pin->src_record_id;
+				g_hash_table_insert(done_coords, k, GINT_TO_POINTER(1));
+			} else {
+				siril_log_warning(_("Could not rebuild the mask used by step %" G_GINT64_FORMAT ": %s\n"),
+				                  rec->record_id, err ? err : "?");
+				g_free(err);
+				continue;
+			}
+		}
+		g_hash_table_add(items, GINT_TO_POINTER(rec->target_item_id));
+	}
+	if (live)
+		g_ptr_array_unref(live);
+	g_hash_table_destroy(pos_of);
+	g_hash_table_destroy(done_coords);
+
+	guint redone = 0, stale = 0;
+	GHashTableIter it;
+	gpointer k, v;
+	g_hash_table_iter_init(&it, items);
+	while (g_hash_table_iter_next(&it, &k, &v)) {
+		gint item = GPOINTER_TO_INT(k);
+		gchar *err = NULL;
+		if (recompute_item(item, &err)) {
+			redone++;
+		} else {
+			stale++;
+			siril_log_warning(_("Item %d used this mask but could not be recomputed, so it still shows the old result: %s\n"),
+			                  item, err ? err : "?");
+		}
+		g_free(err);
+	}
+	g_hash_table_destroy(items);
+	nde_chain_free(mask_chain);
+	if (redone || stale)
+		siril_log_info(_("Mask change applied to %u earlier step(s) and %u image(s)\n"),
+		               refreshed, redone);
+}
+
 /* Shared core of amend (new_params != NULL) and delete (new_params == NULL).
  * Conductor context: the caller holds SLOT_REPLAY, so capture, undo and
  * python cannot interleave with the replay or the commit. */
@@ -1116,6 +1283,16 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 	 * policy, freeze position, the trial chain, the parameter substitution —
 	 * is the same for both. */
 	if (chain->is_mask) {
+		/* Where in the mask's own chain the edit lands: pins BEFORE it see an
+		 * unchanged mask and must not be disturbed. */
+		guint mask_pos = 0;
+		for (guint i = 0; i < chain->records->len; i++) {
+			const nde_record *r = g_ptr_array_index(chain->records, i);
+			if (r->record_id == record_id) {
+				mask_pos = i;
+				break;
+			}
+		}
 		gui_iface.set_progress(0.f, _("Rebuilding the mask..."));
 		fits *built = mask_chain_replay(chain, chain->records->len, err);
 		nde_chain_free(chain);
@@ -1136,6 +1313,10 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 			gui_iface.set_progress(PROGRESS_RESET, _("The mask was rebuilt but the history could not be updated"));
 			return FALSE;
 		}
+		/* Reverse invalidation: the mask changed, so anything that used it
+		 * is now showing a result built from the old one.  Runs AFTER the
+		 * log commit, because the consumers are recomputed from the log. */
+		cascade_mask_consumers(item_id, mask_pos);
 		undo_flush();
 		gui_iface.invalidate_histogram();
 		if (is_current_image_flis())
