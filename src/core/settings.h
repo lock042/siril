@@ -413,10 +413,14 @@ struct pref_struct {
 	                        // whose display buffer fits go eager (no tiling); larger ones
 	                        // use the tiled lazy renderer capped at this many MB resident
 
-	int nde_cache_mb; // DISK budget (MB) for the nondestructive-editing snapshot
-	                  // cache pool (swap files): intermediate states deposited by
-	                  // history-edit replays so successive edits restart near the
-	                  // edit point. 0 disables the pool (correctness unaffected).
+	int nde_cache_mb; // DISK budget (MB) for ALL nondestructive-editing storage
+	                  // (swap files): the speed-cache pool of replay restart
+	                  // points AND the editability pins (baselines, output
+	                  // checkpoints, pinned masks) that keep earlier steps
+	                  // amendable. Over budget, cache is evicted first and
+	                  // silently, then the oldest pins with a warning — see
+	                  // nde_retention.h. 0 disables the pool only; pins are
+	                  // correctness and are always stored.
 
 	gboolean script_check_requires;	// check the requires command in scripts
 	gboolean pipe_check_requires;	// check the requires command in pipes

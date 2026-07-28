@@ -2819,3 +2819,47 @@ Test(nde_replay, an_eight_bit_masked_op_replays_bit_exactly) {
 	clearfits(&expected);
 	golden_teardown(NULL, f);
 }
+
+/* Retention's promise is that an evicted pin is a VISIBLE loss.  This is the
+ * other end of it: once the pinned mask is gone the step says so and becomes a
+ * barrier, freezing what precedes it, rather than silently replaying without
+ * the mask and producing different pixels (design note §7 — a silent
+ * capability downgrade is worse than a refusal). */
+Test(nde_replay, losing_a_pinned_mask_freezes_the_step_rather_than_lying) {
+	com.pref.nde_cache_mb = 256;
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(10.f)), 0);
+	cr_assert_eq(apply_mask_op(&op_desc_mask_from_channel, from_channel(0)), 0);
+	cr_assert_eq(apply_op_masked(&op_desc_asinh, asinh_beta(20.f)), 0);
+
+	nde_chain *chain = nde_chain_build(NDE_ITEM_IMAGE);
+	cr_assert(chain->replayable, "sanity: replayable while the pin is kept");
+	cr_assert_eq(chain->tail_start, 0, "and nothing frozen");
+	nde_chain_free(chain);
+
+	/* Evict exactly what retention would evict: the checkpoint the mask pin
+	 * names.  (Retention's own eviction ORDER is covered in
+	 * test_nde_retention; here it is the consequence that matters.) */
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	const nde_record *masked = g_ptr_array_index(snap, snap->len - 1);
+	const nde_input_pin *pin = nde_record_input(masked, "mask");
+	cr_assert_not_null(pin);
+	cr_assert_neq(pin->src_record_id, 0, "this mask has its own history");
+	gint64 pinned = pin->src_record_id;
+	g_ptr_array_unref(snap);
+
+	nde_checkpoint_output_drop(pinned);
+
+	chain = nde_chain_build(NDE_ITEM_IMAGE);
+	cr_assert_gt(chain->tail_start, 0,
+	             "the step must freeze what precedes it, not replay maskless");
+	guint8 flags = g_array_index(chain->member_flags, guint8, chain->tail_start - 1);
+	cr_assert(flags & NDE_CHAIN_MEMBER_BARRIER,
+	          "and the step itself becomes the barrier");
+	nde_chain_free(chain);
+
+	golden_teardown(NULL, f);
+}

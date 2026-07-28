@@ -131,6 +131,26 @@ void nde_snapstore_evict_record(gint64 record_id);
 /** Evict the whole pool (document change). */
 void nde_snapstore_pool_purge(void);
 
+/* ---- budget accounting (nde_retention.c drives these) ------------------- */
+
+/**
+ * Payload bytes of EVERY live snapshot, whoever owns it — pool, checkpoint
+ * tables, undo.  This, not the pool alone, is what the single retention
+ * budget is measured against (design note §7).
+ */
+gint64 nde_snapstore_total_bytes(void);
+
+/** Payload bytes held by the LRU pool alone (the freely-evictable part). */
+gint64 nde_snapstore_pool_bytes(void);
+
+/**
+ * Evict pool entries LRU-first until @want bytes have been freed or the pool
+ * is empty; returns the bytes actually freed.  This is the SILENT half of
+ * retention — losing a pool entry costs time, never a capability, so it
+ * happens before anything the user must be told about.
+ */
+gint64 nde_snapstore_reclaim_pool(gint64 want);
+
 /* ---- stats (tests/diagnostics) ----------------------------------------- */
 
 typedef struct {

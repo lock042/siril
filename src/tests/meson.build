@@ -306,6 +306,14 @@ if criterion_dep.found()
                                 cpp_args : siril_cpp_flag)
      test('test_nde_snapstore', test_nde_snapstore_exec, suite: 'flis')
 
+     test_nde_retention_exec = executable('test_nde_retention',
+                                'test_nde_retention.c',
+                                dependencies : [siril_dep, criterion_dep],
+                                link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                c_args : siril_c_flag,
+                                cpp_args : siril_cpp_flag)
+     test('test_nde_retention', test_nde_retention_exec, suite: 'flis')
+
      test_nde_compositing_exec = executable('test_nde_compositing',
                                 'test_nde_compositing.c',
                                 dependencies : [siril_dep, criterion_dep],

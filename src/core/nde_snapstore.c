@@ -73,6 +73,11 @@ static GMutex store_mutex;
 static GHashTable *registry;       /* snap_tag* (owned) -> nde_snap* (NO ref) */
 static GQueue pool = G_QUEUE_INIT; /* nde_snap* (pool holds a ref); head = MRU */
 static gint64 pool_bytes;
+/* Every live snapshot's payload, whoever owns it — the pool, the checkpoint
+ * tables, an undo entry.  The retention budget is one number over ALL NDE
+ * storage (design note §7), and since convergence C1 every owner holds an
+ * nde_snap, so this counter is the whole of it. */
+static gint64 live_bytes;
 static nde_snapstore_stats_t stats;
 
 static guint tag_hash(gconstpointer p) {
@@ -178,6 +183,10 @@ nde_snap *nde_snap_create(const fits *src) {
 			siril_log_debug("nde snapstore: could not copy wcslib struct\n");
 	}
 	s->focal_length = src->keywords.focal_length;
+
+	g_mutex_lock(&store_mutex);
+	live_bytes += s->bytes;
+	g_mutex_unlock(&store_mutex);
 	return s;
 }
 
@@ -194,6 +203,7 @@ void nde_snap_unref(nde_snap *s) {
 		return;
 	g_mutex_lock(&store_mutex);
 	deregister_locked(s);
+	live_bytes -= s->bytes;
 	g_mutex_unlock(&store_mutex);
 	if (s->fd >= 0)
 		g_close(s->fd, NULL);   /* delete-on-close removes the file */
@@ -436,9 +446,12 @@ void nde_snapstore_deposit(const fits *state, gint item_id, gint64 record_id) {
 	g_queue_push_head(&pool, s);   /* pool takes the initial ref */
 	pool_bytes += s->bytes;
 	stats.deposits++;
-	/* evict LRU over budget (never the snap just inserted) */
+	/* Evict LRU over budget (never the snap just inserted).  The test is on
+	 * live_bytes, not pool_bytes: one budget covers ALL NDE storage, so a
+	 * document holding many editability pins leaves the cache less room —
+	 * which is the intended priority, cache yielding to pins. */
 	gint64 budget = pool_budget_bytes();
-	while (pool_bytes > budget && pool.length > 1) {
+	while (live_bytes > budget && pool.length > 1) {
 		nde_snap *victim = g_queue_pop_tail(&pool);
 		pool_bytes -= victim->bytes;
 		stats.evictions++;
@@ -468,6 +481,41 @@ void nde_snapstore_evict_record(gint64 record_id) {
 	pool_collect_locked(doomed, pick_record, &record_id);
 	g_mutex_unlock(&store_mutex);
 	pool_release(doomed);
+}
+
+gint64 nde_snapstore_total_bytes(void) {
+	g_mutex_lock(&store_mutex);
+	gint64 n = live_bytes;
+	g_mutex_unlock(&store_mutex);
+	return n;
+}
+
+gint64 nde_snapstore_pool_bytes(void) {
+	g_mutex_lock(&store_mutex);
+	gint64 n = pool_bytes;
+	g_mutex_unlock(&store_mutex);
+	return n;
+}
+
+gint64 nde_snapstore_reclaim_pool(gint64 want) {
+	if (want <= 0)
+		return 0;
+	GPtrArray *doomed = g_ptr_array_new();
+	gint64 freed = 0;
+	g_mutex_lock(&store_mutex);
+	/* Straight LRU from the tail.  Unlike the over-budget loop in deposit()
+	 * this may empty the pool: the caller is reclaiming on behalf of the whole
+	 * budget, and a cache entry is always the cheaper thing to lose. */
+	while (freed < want && pool.length > 0) {
+		nde_snap *victim = g_queue_pop_tail(&pool);
+		pool_bytes -= victim->bytes;
+		freed += victim->bytes;
+		stats.evictions++;
+		g_ptr_array_add(doomed, victim);
+	}
+	g_mutex_unlock(&store_mutex);
+	pool_release(doomed);
+	return freed;
 }
 
 void nde_snapstore_pool_purge(void) {

@@ -42,6 +42,7 @@
 #include "core/siril_log.h"
 #include "core/nde_snapstore.h"
 #include "core/nde_checkpoint.h"
+#include "core/nde_retention.h"
 #include "io/image_format_flis.h"
 
 /* ======================================================================= */
@@ -165,6 +166,8 @@ void nde_checkpoint_baseline_ensure(const fits *pre, gint item_id) {
 	}
 	g_hash_table_insert(cp_table, GINT_TO_POINTER(item_id), s);
 	g_mutex_unlock(&cp_mutex);
+
+	nde_retention_enforce(0);   /* outside the lock; may drop OLDER pins */
 }
 
 /* Rebind every checkpoint tagged for @from_item to @to_item — the plain →
@@ -273,6 +276,10 @@ static void output_insert(const fits *src, gint64 record_id, gint item_id) {
 	g_mutex_unlock(&cp_mutex);
 	g_free(old_key);
 	nde_snap_unref(old);   /* NULL-safe */
+
+	/* Protect what was just stored: over a budget this small, keeping the
+	 * newest checkpoint beats storing it and dropping it again. */
+	nde_retention_enforce(record_id);
 }
 
 void nde_checkpoint_output_store(const fits *post, gint64 record_id, gint item_id) {
@@ -314,6 +321,96 @@ void nde_checkpoint_output_drop(gint64 record_id) {
 	g_mutex_unlock(&cp_mutex);
 	g_free(old_key);
 	nde_snap_unref(old);
+}
+
+/* ======================================================================= */
+/* Retention (design note §7 — driven by nde_retention.c)                  */
+/* ======================================================================= */
+
+gint64 nde_checkpoint_bytes(void) {
+	gint64 total = 0;
+	g_mutex_lock(&cp_mutex);
+	GHashTableIter it;
+	gpointer k, v;
+	if (cp_table) {
+		g_hash_table_iter_init(&it, cp_table);
+		while (g_hash_table_iter_next(&it, &k, &v))
+			total += nde_snap_size(v);
+	}
+	if (out_table) {
+		g_hash_table_iter_init(&it, out_table);
+		while (g_hash_table_iter_next(&it, &k, &v))
+			total += nde_snap_size(v);
+	}
+	g_mutex_unlock(&cp_mutex);
+	return total;
+}
+
+gboolean nde_checkpoint_evict_oldest(nde_checkpoint_eviction *out, gint64 protect_record) {
+	gint protect = nde_checkpoint_active_item_id();
+	nde_snap *victim = NULL;
+	gpointer victim_key = NULL;
+	gboolean is_baseline = FALSE;
+	gint64  victim_record = 0;
+	gint    victim_item = 0;
+
+	g_mutex_lock(&cp_mutex);
+	GHashTableIter it;
+	gpointer k, v;
+	/* Output checkpoints first, lowest record_id (= oldest) first.  Losing one
+	 * costs the steps that depended on it their editability; losing a baseline
+	 * costs an item its WHOLE chain, so baselines only go once nothing else is
+	 * left. */
+	if (out_table) {
+		gint64 best = 0;
+		g_hash_table_iter_init(&it, out_table);
+		while (g_hash_table_iter_next(&it, &k, &v)) {
+			gint64 rid = *(gint64 *)k;
+			if (rid == protect_record)
+				continue;
+			if (!victim || rid < best) { best = rid; victim = v; victim_key = k; }
+		}
+		if (victim) {
+			victim_record = best;
+			nde_snap_tag_get(victim, &victim_item, NULL, NULL);
+			g_hash_table_steal(out_table, victim_key);
+			if (out_pos)
+				g_hash_table_remove(out_pos, &victim_record);
+		}
+	}
+	if (!victim && cp_table) {
+		gint best = 0;
+		g_hash_table_iter_init(&it, cp_table);
+		while (g_hash_table_iter_next(&it, &k, &v)) {
+			gint item = GPOINTER_TO_INT(k);
+			/* Never the item being worked on: evicting its baseline would make
+			 * the very next operation unreplayable, which is not a degradation
+			 * the user could act on. */
+			if (item == protect)
+				continue;
+			if (!victim || item < best) { best = item; victim = v; victim_key = k; }
+		}
+		if (victim) {
+			is_baseline = TRUE;
+			victim_item = best;
+			g_hash_table_steal(cp_table, victim_key);
+			g_hash_table_remove(cp_pos, victim_key);
+		}
+	}
+	g_mutex_unlock(&cp_mutex);
+
+	if (!victim)
+		return FALSE;
+	if (out) {
+		out->bytes       = nde_snap_size(victim);
+		out->is_baseline = is_baseline;
+		out->item_id     = victim_item;
+		out->record_id   = victim_record;
+	}
+	if (!is_baseline)
+		g_free(victim_key);        /* the stolen gint64 key */
+	nde_snap_unref(victim);
+	return TRUE;
 }
 
 /* ======================================================================= */
@@ -360,6 +457,9 @@ void nde_checkpoint_drop(gint item_id) {
 }
 
 void nde_checkpoint_purge(void) {
+	/* A new document explains itself once; it must not stay silent because a
+	 * previous one already hit the limit. */
+	nde_retention_notice_reset();
 	GHashTable *t1 = NULL, *t2 = NULL;
 	g_mutex_lock(&cp_mutex);
 	t1 = cp_table;
