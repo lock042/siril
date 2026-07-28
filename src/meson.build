@@ -94,6 +94,7 @@ src_files = [
   'core/initfile.c',
   'core/masks.c',
   'core/nde_checkpoint.c',
+  'core/nde_compositing.c',
   'core/nde_history.c',
   'core/nde_replay.c',
   'core/nde_script_scope.c',

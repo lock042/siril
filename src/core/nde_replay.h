@@ -91,12 +91,12 @@ void nde_chain_free(nde_chain *chain);
 struct nde_record;
 
 /** TRUE for a Tier-A record whose op has a registered deserializer (so its
- *  params can be parsed, edited and round-tripped). */
+ *  params can be parsed, edited and round-tripped), and for compositing-state
+ *  records, which are validated by nde_compositing_validate() instead. */
 gboolean nde_record_amendable(const struct nde_record *rec);
 
-/** TRUE unless the record is structural (DOCUMENT scope) or records
- *  compositing state (layer.set_opacity/blend/visible) — those cannot be
- *  meaningfully deleted from the log. */
+/** TRUE unless the record is structural (DOCUMENT scope) — those cannot
+ *  resurrect what they destroyed and so cannot be deleted from the log. */
 gboolean nde_record_deletable(const struct nde_record *rec);
 
 /**

@@ -50,6 +50,7 @@
 #include "core/undo.h"
 #include "core/nde_history.h"
 #include "core/nde_replay.h"    /* nde_record_amendable/deletable, amend/delete_start */
+#include "core/nde_compositing.h"  /* nde_compositing_is_op */
 #include "gui-gtk4/nde_editors.h"
 #include "core/op_descriptor.h" /* op_descriptor_by_id for the edit round-trip check */
 #include "core/gui_iface.h"
@@ -1212,6 +1213,16 @@ static gchar *hist_target_label(const nde_record *rec) {
 #define HIST_EDIT_CONSEQUENCE \
 	_("This recomputes the image from the edit history and clears the undo history.")
 
+/* Compositing-state steps (opacity/blend/visibility) are inputs to the
+ * compositor, not pixel operations: editing one re-folds the layer's
+ * properties and re-renders, recomputing nothing.  The undo stack is still
+ * flushed, so only the first half of the shared wording changes. */
+static const char *hist_edit_consequence(const NdeHistRowItem *r) {
+	if (r && nde_compositing_is_op(r->op_id))
+		return _("This re-renders the image and clears the undo history.");
+	return HIST_EDIT_CONSEQUENCE;
+}
+
 /* ---- history drag-to-reorder (C5 via DnD) ------------------------------
  * Each row is both a drag source (when the step is movable) and a drop
  * target (when it is a same-item chain member in the editable tail).  While
@@ -1567,7 +1578,7 @@ static void open_hist_edit_dialog(NdeHistRowItem *r) {
 	gtk_widget_set_visible(ctx->error_label, FALSE);
 	gtk_box_append(GTK_BOX(box), ctx->error_label);
 
-	GtkWidget *consequence = gtk_label_new(HIST_EDIT_CONSEQUENCE);
+	GtkWidget *consequence = gtk_label_new(hist_edit_consequence(r));
 	gtk_label_set_wrap(GTK_LABEL(consequence), TRUE);
 	gtk_label_set_xalign(GTK_LABEL(consequence), 0.0f);
 	gtk_widget_add_css_class(consequence, "dim-label");
@@ -1619,7 +1630,7 @@ static void on_hist_delete_clicked(GtkButton *b, gpointer u) {
 
 	gchar *msg = g_strdup_printf("%s\n\n%s",
 	                             r->summary ? r->summary : "",
-	                             HIST_EDIT_CONSEQUENCE);
+	                             hist_edit_consequence(r));
 	gboolean confirmed = siril_confirm_dialog(_("Delete this step?"), msg,
 	                                          _("_Delete"));
 	g_free(msg);

@@ -35,6 +35,7 @@
 #include "core/op_descriptor.h"
 #include "core/nde_history.h"
 #include "core/nde_checkpoint.h"
+#include "core/nde_compositing.h"
 #include "core/nde_snapstore.h"
 #include "core/nde_replay.h"
 #include "io/image_format_fits.h"
@@ -230,20 +231,15 @@ static gchar *member_invalid_reason(const nde_record *rec) {
 	return NULL;
 }
 
-/* Compositing-state records (opacity/blend/visibility commits) are not
- * pixel operations: the compositor applies them from live FLIS state, so
- * they are neither chain members nor blockers. */
-static gboolean is_compositing_state_op(const char *op_id) {
-	return op_id && (!g_strcmp0(op_id, "layer.set_opacity") ||
-	                 !g_strcmp0(op_id, "layer.set_blend") ||
-	                 !g_strcmp0(op_id, "layer.set_visible"));
-}
-
 /* POLICY predicates — see nde_replay.h.  Liveness and trial-chain
  * replayability are the execute path's job, not these. */
 gboolean nde_record_amendable(const nde_record *rec) {
 	if (!rec || rec->tier != NDE_TIER_A)
 		return FALSE;
+	/* Compositing-state records carry editable params but no op descriptor:
+	 * nde_compositing_validate() is their deserializer (see nde_compositing.h). */
+	if (nde_compositing_is_op(rec->op_id))
+		return TRUE;
 	const op_descriptor *op = op_descriptor_by_id(rec->op_id);
 	return op && op->deserialize;
 }
@@ -252,8 +248,6 @@ gboolean nde_record_deletable(const nde_record *rec) {
 	if (!rec)
 		return FALSE;
 	if (rec->scope == NDE_SCOPE_DOCUMENT)
-		return FALSE;
-	if (is_compositing_state_op(rec->op_id))
 		return FALSE;
 	return TRUE;
 }
@@ -279,7 +273,9 @@ static nde_chain *chain_build_excluding(gint item_id, gint64 exclude_record_id) 
 		gboolean member = FALSE;
 		if (exclude_record_id && rec->record_id == exclude_record_id)
 			continue;
-		if (is_compositing_state_op(rec->op_id))
+		/* Compositing-state records are inputs to the compositor, not pixel
+		 * operations: neither chain members nor blockers (nde_compositing.h). */
+		if (nde_compositing_is_op(rec->op_id))
 			continue;
 		switch (rec->scope) {
 		case NDE_SCOPE_LAYER:
@@ -600,14 +596,23 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 	 * user-facing errors before any heavy work.  (nde_history_amend/delete
 	 * re-validate under the mutex at commit time.) */
 	gint item_id = 0;
-	gboolean found = FALSE;
+	gboolean found = FALSE, is_compositing = FALSE;
 	GPtrArray *live = nde_history_snapshot(NULL);
 	for (guint i = 0; live && i < live->len; i++) {
 		const nde_record *rec = g_ptr_array_index(live, i);
 		if (rec->record_id == record_id) {
 			found = TRUE;
 			item_id = rec->target_item_id;
-			if (new_params && !nde_record_amendable(rec)) {
+			is_compositing = nde_compositing_is_op(rec->op_id);
+			if (new_params && is_compositing) {
+				/* Validated here rather than by an op descriptor — these
+				 * records have none (nde_compositing.h). */
+				gchar *why = NULL;
+				if (!nde_compositing_validate(rec->op_id, new_params, &why))
+					*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s): %s"),
+					                       record_id, rec->op_id, why ? why : "?");
+				g_free(why);
+			} else if (new_params && !nde_record_amendable(rec)) {
 				/* Amend needs editable params.  DELETE does not: removing
 				 * an opaque record is well-defined — the trial chain never
 				 * replays the deleted step, so deleting the one opaque
@@ -616,16 +621,9 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 				                       record_id, rec->op_id ? rec->op_id : "?");
 			} else if (!new_params && !nde_record_deletable(rec)) {
 				/* Structural (DOCUMENT scope) steps cannot resurrect what
-				 * they destroyed or un-create a layer; compositing-state
-				 * records (opacity/blend/visibility) describe live FLIS
-				 * state, not pixels — deleting either would only make the
-				 * log lie. */
-				if (rec->scope == NDE_SCOPE_DOCUMENT)
-					*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) is a structural step and cannot be deleted"),
-					                       record_id, rec->op_id ? rec->op_id : "?");
-				else
-					*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) records a layer-property change and cannot be deleted"),
-					                       record_id, rec->op_id ? rec->op_id : "?");
+				 * they destroyed or un-create a layer. */
+				*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) is a structural step and cannot be deleted"),
+				                       record_id, rec->op_id ? rec->op_id : "?");
 			}
 			break;
 		}
@@ -638,6 +636,25 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 	}
 	if (*err)
 		return FALSE;
+
+	/* Compositing-state edits take the cheap path: these records are inputs to
+	 * the COMPOSITOR, not to any pixel chain, so there is nothing to replay —
+	 * commit the log, re-fold the layer's properties, re-render.  No chain
+	 * build (they are not members, so the freeze check below would reject them
+	 * as "does not affect this image's pixels"), no pixel swap, no snapstore
+	 * invalidation.  Undo is still flushed: the coupled props-only entries
+	 * would redo the pre-edit value (nde_compositing.h). */
+	if (is_compositing) {
+		gboolean log_ok = new_params ? nde_history_amend(record_id, new_params, err)
+		                             : nde_history_delete(record_id, err);
+		if (!log_ok)
+			return FALSE;
+		if (!nde_compositing_recompute(item_id, err))
+			return FALSE;
+		undo_flush();
+		gui_iface.set_progress(PROGRESS_DONE, _("Edit history updated"));
+		return TRUE;
+	}
 
 	/* Position/freeze check on the CURRENT chain (phase-4 barrier model):
 	 * edits are permitted only in the editable tail — records strictly

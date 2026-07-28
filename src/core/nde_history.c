@@ -29,6 +29,7 @@
 #include "core/op_descriptor.h"
 #include "core/nde_history.h"
 #include "core/nde_checkpoint.h"
+#include "core/nde_compositing.h"
 #include "core/nde_snapstore.h"
 #include "io/image_format_flis.h"
 
@@ -296,59 +297,13 @@ static gint find_mutable_locked(nde_history *h, gint64 record_id,
 	return idx;
 }
 
-gboolean nde_history_amend(gint64 record_id, const gchar *new_params, gchar **err) {
-	g_return_val_if_fail(err != NULL, FALSE);
-	*err = NULL;
-	if (!com.uniq || !com.uniq->nde_history) {
-		*err = g_strdup(_("no edit history"));
-		return FALSE;
-	}
-
-	/* Validate the new params OUTSIDE the leaf mutex (deserializers may
-	 * allocate freely).  The op id is read under the mutex first. */
-	gchar *op_id = NULL;
-	int op_version = 0;
-	g_mutex_lock(&nde_mutex);
-	{
-		gint idx = find_mutable_locked(com.uniq->nde_history, record_id, TRUE, err);
-		if (idx >= 0) {
-			nde_record *rec = g_ptr_array_index(com.uniq->nde_history->records, idx);
-			op_id = g_strdup(rec->op_id);
-			op_version = rec->op_version;
-		}
-	}
-	g_mutex_unlock(&nde_mutex);
-	if (!op_id)
-		return FALSE;
-
-	const op_descriptor *op = op_descriptor_by_id(op_id);
-	if (!op || !op->deserialize) {
-		*err = g_strdup_printf(_("operation '%s' cannot be edited by this build"), op_id);
-		g_free(op_id);
-		return FALSE;
-	}
-	gpointer trial = op->deserialize(new_params, op_version);
-	if (!trial) {
-		*err = g_strdup_printf(_("the new parameters for '%s' failed to parse"), op_id);
-		g_free(op_id);
-		return FALSE;
-	}
-	/* Regenerate the human summary from the NEW params while the deserialized
-	 * struct is still alive, so the panel row and log stop showing the
-	 * pre-amend values (params and pixels are already updated by the amend —
-	 * only the label lagged).  log_hook(SUMMARY) formats the params struct and
-	 * is param-pure for the amendable ops.  Ops without a log_hook captured a
-	 * param-independent description that does not go stale, so leave theirs
-	 * untouched (new_summary == NULL). */
-	gchar *new_summary = op->log_hook ? op->log_hook(trial, SUMMARY) : NULL;
-	/* destructor-first convention */
-	void (*destroy)(void *) = *(void (**)(void *))trial;
-	if (destroy)
-		destroy(trial);
-	else
-		free(trial);
-	g_free(op_id);
-
+/* Log-side commit shared by both amend flavours (descriptor-validated ops and
+ * compositing-state records): swap in the new params, refresh timestamp/impl,
+ * optionally replace the summary, and truncate the dead tail.  @new_summary is
+ * owned by this function (freed or transferred).  Params are validated by the
+ * CALLER — by here the edit is known good. */
+static gboolean amend_commit(gint64 record_id, const gchar *new_params,
+                             gchar *new_summary, gchar **err) {
 	/* Strings prepared before locking (§6a discipline). */
 	gchar *params_copy = g_strdup(new_params);
 	gchar *ts = nde_iso8601_now();
@@ -388,6 +343,73 @@ gboolean nde_history_amend(gint64 record_id, const gchar *new_params, gchar **er
 	}
 	nde_history_notify_panel();
 	return TRUE;
+}
+
+gboolean nde_history_amend(gint64 record_id, const gchar *new_params, gchar **err) {
+	g_return_val_if_fail(err != NULL, FALSE);
+	*err = NULL;
+	if (!com.uniq || !com.uniq->nde_history) {
+		*err = g_strdup(_("no edit history"));
+		return FALSE;
+	}
+
+	/* Validate the new params OUTSIDE the leaf mutex (deserializers may
+	 * allocate freely).  The op id is read under the mutex first. */
+	gchar *op_id = NULL;
+	int op_version = 0;
+	g_mutex_lock(&nde_mutex);
+	{
+		gint idx = find_mutable_locked(com.uniq->nde_history, record_id, TRUE, err);
+		if (idx >= 0) {
+			nde_record *rec = g_ptr_array_index(com.uniq->nde_history->records, idx);
+			op_id = g_strdup(rec->op_id);
+			op_version = rec->op_version;
+		}
+	}
+	g_mutex_unlock(&nde_mutex);
+	if (!op_id)
+		return FALSE;
+
+	/* Compositing-state records have no op descriptor: their params are
+	 * validated by range/enum instead, and their summary ("Set opacity", …)
+	 * is param-independent so it never goes stale.  See nde_compositing.h. */
+	if (nde_compositing_is_op(op_id)) {
+		gboolean ok = nde_compositing_validate(op_id, new_params, err);
+		g_free(op_id);
+		if (!ok)
+			return FALSE;
+		return amend_commit(record_id, new_params, NULL, err);
+	}
+
+	const op_descriptor *op = op_descriptor_by_id(op_id);
+	if (!op || !op->deserialize) {
+		*err = g_strdup_printf(_("operation '%s' cannot be edited by this build"), op_id);
+		g_free(op_id);
+		return FALSE;
+	}
+	gpointer trial = op->deserialize(new_params, op_version);
+	if (!trial) {
+		*err = g_strdup_printf(_("the new parameters for '%s' failed to parse"), op_id);
+		g_free(op_id);
+		return FALSE;
+	}
+	/* Regenerate the human summary from the NEW params while the deserialized
+	 * struct is still alive, so the panel row and log stop showing the
+	 * pre-amend values (params and pixels are already updated by the amend —
+	 * only the label lagged).  log_hook(SUMMARY) formats the params struct and
+	 * is param-pure for the amendable ops.  Ops without a log_hook captured a
+	 * param-independent description that does not go stale, so leave theirs
+	 * untouched (new_summary == NULL). */
+	gchar *new_summary = op->log_hook ? op->log_hook(trial, SUMMARY) : NULL;
+	/* destructor-first convention */
+	void (*destroy)(void *) = *(void (**)(void *))trial;
+	if (destroy)
+		destroy(trial);
+	else
+		free(trial);
+	g_free(op_id);
+
+	return amend_commit(record_id, new_params, new_summary, err);
 }
 
 gboolean nde_history_delete(gint64 record_id, gchar **err) {

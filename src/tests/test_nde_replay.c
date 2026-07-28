@@ -984,7 +984,9 @@ Test(nde_replay, compositing_state_records_do_not_block_chains) {
 	cr_assert_eq(chain->records->len, 1, "property records are not chain members");
 	nde_chain_free(chain);
 
-	/* and deleting a property record is refused with a clear message */
+	/* Deleting a property record takes the compositing fast path (graph step
+	 * 1): it commits the log and re-folds the layer, without building a chain
+	 * or replaying a single pixel.  It used to be refused outright. */
 	gint64 prop_id;
 	{
 		GPtrArray *snap = nde_history_snapshot(NULL);
@@ -993,10 +995,16 @@ Test(nde_replay, compositing_state_records_do_not_block_chains) {
 	}
 	cr_assert(reserve_thread());
 	gchar *err = NULL;
-	cr_assert(!nde_delete_execute(prop_id, &err));
+	cr_assert(nde_delete_execute(prop_id, &err), "%s", err ? err : "");
 	unreserve_thread();
-	cr_assert(strstr(err, "property") != NULL, "got: %s", err);
-	g_free(err);
+	cr_assert_eq(nde_history_live_count(), 1,
+	             "the property record is gone; the pixel op survives");
+
+	/* The pixel chain is untouched by the property record's removal. */
+	chain = nde_chain_build(-1);
+	cr_assert(chain->replayable);
+	cr_assert_eq(chain->records->len, 1);
+	nde_chain_free(chain);
 
 	golden_teardown(NULL, f);
 }
