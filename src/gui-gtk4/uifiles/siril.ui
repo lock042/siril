@@ -2328,6 +2328,7 @@ Current state: linked.</property>
         <child type="end">
           <object class="GtkMenuButton" id="nde_history_button">
             <property name="focusable">1</property>
+            <property name="sensitive">0</property>
             <property name="icon-name">document-open-recent-symbolic</property>
             <property name="receives-default">1</property>
             <property name="tooltip-text" translatable="yes">Show the nondestructive edit history</property>

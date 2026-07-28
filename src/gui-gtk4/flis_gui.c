@@ -211,9 +211,15 @@ struct flis_panel {
 	GtkWidget *mask_view_layer_radio;
 
 	/* History section (NDE provenance, sketch §16) — a large popover under
-	 * the header-bar clock button since nde-phase5. */
-	GtkWidget  *hist_pop;           /* the popover itself */
+	 * the header-bar clock button since nde-phase5, tear-off-able into a
+	 * floating window (closing the window docks it back). */
+	GtkWidget  *hist_pop;           /* popover shell (NULL while torn off) */
+	GtkWidget  *hist_content;       /* the content box, reparented on tear-off */
+	GtkWidget  *hist_win;           /* lazy tear-off window (kept, reused) */
+	gboolean    hist_torn;          /* TRUE while content lives in hist_win */
 	GtkWidget  *hist_header;        /* "Nondestructive History (n)" heading */
+	GtkWidget  *hist_tear_btn;      /* detach button in the heading row */
+	GtkWidget  *hist_end_drop;      /* "move to end" drop zone (drag only) */
 	GtkWidget  *hist_stale_revealer;
 	GtkWidget  *hist_fits_hint;     /* plain-FITS: history is in-memory only */
 	GListStore *hist_store;          /* of NdeHistRowItem* */
@@ -300,21 +306,46 @@ void flis_gui_history_popover_init(void) {
 	build_history_popover();
 }
 
-/* Image-state feed from update_MenuItem: the pinned popover is dismissed
- * when no single image is loaded any more (image closed, sequence loaded).
- * Main thread only. */
+/* TRUE when the history panel is on screen, whichever host it lives in. */
+static gboolean hist_panel_visible(void) {
+	if (!g_panel) return FALSE;
+	if (g_panel->hist_torn)
+		return g_panel->hist_win && gtk_widget_get_visible(g_panel->hist_win);
+	return g_panel->hist_pop && gtk_widget_get_visible(g_panel->hist_pop);
+}
+
+/* Image-state feed from update_MenuItem: the history panel exists only for a
+ * single loaded image — the clock button goes insensitive and any open
+ * popover / tear-off window is dismissed when the image goes away (image
+ * closed, sequence loaded).  Main thread only. */
 void flis_gui_history_notify_image_state(gboolean single_image_loaded) {
-	if (single_image_loaded)
+	GtkWidget *btn = lookup_widget("nde_history_button");
+	if (btn)
+		gtk_widget_set_sensitive(btn, single_image_loaded);
+	if (single_image_loaded || !g_panel)
 		return;
-	if (g_panel && g_panel->hist_pop &&
-	    gtk_widget_get_visible(g_panel->hist_pop))
+	if (g_panel->hist_torn) {
+		if (g_panel->hist_win && gtk_widget_get_visible(g_panel->hist_win))
+			gtk_widget_set_visible(g_panel->hist_win, FALSE);
+	} else if (g_panel->hist_pop &&
+	           gtk_widget_get_visible(g_panel->hist_pop)) {
 		gtk_popover_popdown(GTK_POPOVER(g_panel->hist_pop));
+	}
 }
 
 /* Programmatic toggle (win.show-nde-history). */
 void flis_gui_history_toggle_visible(void) {
 	flis_gui_history_popover_init();
-	if (!g_panel || !g_panel->hist_pop) return;
+	if (!g_panel) return;
+	if (g_panel->hist_torn) {
+		if (!g_panel->hist_win) return;
+		if (gtk_widget_get_visible(g_panel->hist_win))
+			gtk_widget_set_visible(g_panel->hist_win, FALSE);
+		else
+			gtk_window_present(GTK_WINDOW(g_panel->hist_win));
+		return;
+	}
+	if (!g_panel->hist_pop) return;
 	if (gtk_widget_get_visible(g_panel->hist_pop))
 		gtk_popover_popdown(GTK_POPOVER(g_panel->hist_pop));
 	else
@@ -1208,6 +1239,9 @@ static void hist_set_drop_dim(gboolean drag_active) {
 		else
 			gtk_widget_remove_css_class(row, "nde-drop-dim");
 	}
+	/* The end drop zone exists only while a drag is live. */
+	if (g_panel->hist_end_drop)
+		gtk_widget_set_visible(g_panel->hist_end_drop, drag_active);
 }
 
 static GdkContentProvider *on_hist_drag_prepare(GtkDragSource *s,
@@ -1250,6 +1284,22 @@ static GdkDragAction on_hist_drop_accept_motion(GtkDropTarget *t,
 	return hist_drop_valid(r) ? GDK_ACTION_MOVE : 0;
 }
 
+/* Shared confirm for drag-reorder drops (same wording + remembered pref as
+ * the Move buttons). */
+static gboolean hist_reorder_confirm(void) {
+	if (com.pref.gui.silent_hist_move)
+		return TRUE;
+	const gchar *summary = hist_drag_item && hist_drag_item->summary ?
+	                       hist_drag_item->summary : "";
+	gchar *msg = g_strdup_printf("%s\n\n%s", summary, HIST_EDIT_CONSEQUENCE);
+	gboolean confirmed = siril_confirm_dialog_and_remember(_("Move this step?"),
+			msg, _("_Move"), &com.pref.gui.silent_hist_move);
+	g_free(msg);
+	if (com.pref.gui.silent_hist_move)
+		writeinitfile();
+	return confirmed;
+}
+
 static gboolean on_hist_drop(GtkDropTarget *t, const GValue *value,
                              double x, double y, gpointer row) {
 	(void)t; (void)x;
@@ -1262,21 +1312,52 @@ static gboolean on_hist_drop(GtkDropTarget *t, const GValue *value,
 	/* Upper half: insert before the target member; lower half: after. */
 	gboolean after = y > gtk_widget_get_height(GTK_WIDGET(row)) / 2.0;
 	gint64 anchor_id = anchor->record_id;
-	gchar *summary = g_strdup(hist_drag_item && hist_drag_item->summary ?
-	                          hist_drag_item->summary : "");
-
-	gboolean confirmed = TRUE;
-	if (!com.pref.gui.silent_hist_move) {
-		gchar *msg = g_strdup_printf("%s\n\n%s", summary, HIST_EDIT_CONSEQUENCE);
-		confirmed = siril_confirm_dialog_and_remember(_("Move this step?"),
-				msg, _("_Move"), &com.pref.gui.silent_hist_move);
-		g_free(msg);
-		if (com.pref.gui.silent_hist_move)
-			writeinitfile();
-	}
-	g_free(summary);
-	if (confirmed)
+	if (hist_reorder_confirm())
 		nde_reorder_start(dragged, anchor_id, after);
+	return TRUE;
+}
+
+/* End drop zone: move the dragged step after the LAST chain member of its
+ * own item — much easier than hitting the lower half of the last row. */
+static GdkDragAction on_hist_end_drop_enter(GtkDropTarget *t,
+                                            double x, double y, gpointer u) {
+	(void)t; (void)x; (void)y; (void)u;
+	if (!hist_drag_item)
+		return 0;
+	if (g_panel && g_panel->hist_end_drop)
+		gtk_widget_add_css_class(g_panel->hist_end_drop, "drop-active");
+	return GDK_ACTION_MOVE;
+}
+
+static void on_hist_end_drop_leave(GtkDropTarget *t, gpointer u) {
+	(void)t; (void)u;
+	if (g_panel && g_panel->hist_end_drop)
+		gtk_widget_remove_css_class(g_panel->hist_end_drop, "drop-active");
+}
+
+static gboolean on_hist_end_drop(GtkDropTarget *t, const GValue *value,
+                                 double x, double y, gpointer u) {
+	(void)t; (void)x; (void)y; (void)u;
+	on_hist_end_drop_leave(NULL, NULL);
+	if (!G_VALUE_HOLDS(value, G_TYPE_INT64) || !hist_drag_item)
+		return FALSE;
+	gint64 dragged = g_value_get_int64(value);
+	/* Last in-tail chain member of the dragged step's item. */
+	gint64 anchor = 0;
+	guint n = g_list_model_get_n_items(G_LIST_MODEL(g_panel->hist_store));
+	for (guint i = 0; i < n; i++) {
+		NdeHistRowItem *r = g_list_model_get_item(G_LIST_MODEL(g_panel->hist_store), i);
+		if (r) {
+			if (r->in_tail &&
+			    r->target_item_id == hist_drag_item->target_item_id)
+				anchor = r->record_id;
+			g_object_unref(r);
+		}
+	}
+	if (!anchor || anchor == dragged)
+		return FALSE;
+	if (hist_reorder_confirm())
+		nde_reorder_start(dragged, anchor, TRUE);
 	return TRUE;
 }
 
@@ -1797,7 +1878,7 @@ static void hist_fold_chain_marks(GHashTable *map, const nde_chain *chain) {
 
 /* Rebuild the mirror store from a snapshot.  Main thread only. */
 static void refresh_history(void) {
-	if (!g_panel || !g_panel->hist_pop || !g_panel->hist_store)
+	if (!g_panel || !g_panel->hist_content || !g_panel->hist_store)
 		return;
 	guint live = 0;
 	GPtrArray *snap = nde_history_snapshot_all(&live);
@@ -1881,8 +1962,7 @@ static gint history_refresh_pending = 0;
 static gboolean history_refresh_idle_cb(gpointer p) {
 	(void)p;
 	g_atomic_int_set(&history_refresh_pending, 0);
-	if (g_panel && g_panel->hist_pop &&
-	    gtk_widget_get_visible(g_panel->hist_pop))
+	if (hist_panel_visible())
 		refresh_history();
 	return G_SOURCE_REMOVE;
 }
@@ -1900,23 +1980,115 @@ static void on_hist_pop_show(GtkWidget *pop, gpointer user_data) {
 	refresh_history();
 }
 
-/* The Nondestructive History panel: a large popover anchored below the
- * header-bar clock button (nde_history_button).  Separate from the layers
- * panel because the edit history is document-wide, not layer-specific — it
- * applies to plain FITS images too. */
-static void build_history_popover(void) {
-	if (g_panel->hist_pop) return;
+/* Tear-off machinery: the content box moves between the popover shell and a
+ * floating window.  The MenuButton owns (and destroys) its popover, so the
+ * shell is recreated on re-dock rather than cached. */
+static void hist_tear_off(void);
+static void hist_redock(void);
 
+static GtkWidget *hist_popover_shell_new(void) {
 	GtkWidget *pop = gtk_popover_new();
-	g_panel->hist_pop = pop;
 	gtk_popover_set_position(GTK_POPOVER(pop), GTK_POS_BOTTOM);
 	/* Pinned open: no click-outside/focus-loss dismissal.  It closes only
 	 * when the clock button is clicked again, or when the image is closed
 	 * (flis_gui_history_notify_image_state).  Lets the user keep the
 	 * history visible while working in dialogs and the main window. */
 	gtk_popover_set_autohide(GTK_POPOVER(pop), FALSE);
+	g_signal_connect(pop, "show", G_CALLBACK(on_hist_pop_show), NULL);
+	return pop;
+}
+
+static void on_hist_tear_clicked(GtkButton *b, gpointer u) {
+	(void)b; (void)u;
+	hist_tear_off();
+}
+
+/* Drag anywhere on the heading row also tears the panel off. */
+static void on_hist_header_drag_update(GtkGestureDrag *g,
+                                       double dx, double dy, gpointer u) {
+	(void)u;
+	if (g_panel && !g_panel->hist_torn && (ABS(dx) > 32 || ABS(dy) > 32)) {
+		gtk_gesture_set_state(GTK_GESTURE(g), GTK_EVENT_SEQUENCE_CLAIMED);
+		hist_tear_off();
+	}
+}
+
+static gboolean on_hist_win_close_request(GtkWindow *w, gpointer u) {
+	(void)w; (void)u;
+	/* Closing the tear-off window docks the panel back into the popover. */
+	hist_redock();
+	return TRUE;   /* keep the (hidden, reusable) window alive */
+}
+
+static void hist_tear_off(void) {
+	if (!g_panel || g_panel->hist_torn || !g_panel->hist_content)
+		return;
+	g_panel->hist_torn = TRUE;
+	GtkWidget *content = g_object_ref(g_panel->hist_content);
+	if (g_panel->hist_pop) {
+		gtk_popover_popdown(GTK_POPOVER(g_panel->hist_pop));
+		gtk_popover_set_child(GTK_POPOVER(g_panel->hist_pop), NULL);
+		GtkWidget *btn = lookup_widget("nde_history_button");
+		if (btn && GTK_IS_MENU_BUTTON(btn))
+			gtk_menu_button_set_popover(GTK_MENU_BUTTON(btn), NULL);
+		g_panel->hist_pop = NULL;   /* destroyed by the button */
+	}
+	if (!g_panel->hist_win) {
+		GtkWidget *w = gtk_window_new();
+		g_panel->hist_win = w;
+		gtk_window_set_title(GTK_WINDOW(w), _("Nondestructive History"));
+		gtk_window_set_default_size(GTK_WINDOW(w), 340, 520);
+		GtkWidget *main_w = lookup_widget("control_window");
+		if (main_w)
+			gtk_window_set_transient_for(GTK_WINDOW(w), GTK_WINDOW(main_w));
+		g_signal_connect(w, "close-request",
+		                 G_CALLBACK(on_hist_win_close_request), NULL);
+		g_signal_connect(w, "show", G_CALLBACK(on_hist_pop_show), NULL);
+	}
+	gtk_window_set_child(GTK_WINDOW(g_panel->hist_win), content);
+	g_object_unref(content);
+	if (g_panel->hist_tear_btn)
+		gtk_widget_set_visible(g_panel->hist_tear_btn, FALSE);
+	gtk_window_present(GTK_WINDOW(g_panel->hist_win));
+}
+
+static void hist_redock(void) {
+	if (!g_panel || !g_panel->hist_torn || !g_panel->hist_content)
+		return;
+	g_panel->hist_torn = FALSE;
+	GtkWidget *content = g_object_ref(g_panel->hist_content);
+	gtk_widget_set_visible(g_panel->hist_win, FALSE);
+	gtk_window_set_child(GTK_WINDOW(g_panel->hist_win), NULL);
+	g_panel->hist_pop = hist_popover_shell_new();
+	gtk_popover_set_child(GTK_POPOVER(g_panel->hist_pop), content);
+	g_object_unref(content);
+	if (g_panel->hist_tear_btn)
+		gtk_widget_set_visible(g_panel->hist_tear_btn, TRUE);
+	GtkWidget *btn = lookup_widget("nde_history_button");
+	if (btn && GTK_IS_MENU_BUTTON(btn))
+		gtk_menu_button_set_popover(GTK_MENU_BUTTON(btn), g_panel->hist_pop);
+}
+
+/* Reached only when the button is activated with NO popover attached — i.e.
+ * while torn off: raise the tear-off window instead. */
+static void hist_button_create_popup(GtkMenuButton *btn, gpointer u) {
+	(void)btn; (void)u;
+	if (g_panel && g_panel->hist_torn && g_panel->hist_win)
+		gtk_window_present(GTK_WINDOW(g_panel->hist_win));
+}
+
+/* The Nondestructive History panel: a large popover anchored below the
+ * header-bar clock button (nde_history_button).  Separate from the layers
+ * panel because the edit history is document-wide, not layer-specific — it
+ * applies to plain FITS images too. */
+static void build_history_popover(void) {
+	if (g_panel->hist_pop || g_panel->hist_content) return;
+
+	GtkWidget *pop = hist_popover_shell_new();
+	g_panel->hist_pop = pop;
 
 	GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 3);
+	g_panel->hist_content = vbox;
 	gtk_widget_set_size_request(vbox, 340, 480);
 	gtk_widget_set_margin_start (vbox, 4);
 	gtk_widget_set_margin_end   (vbox, 4);
@@ -1924,10 +2096,26 @@ static void build_history_popover(void) {
 	gtk_widget_set_margin_bottom(vbox, 4);
 	gtk_popover_set_child(GTK_POPOVER(pop), vbox);
 
+	/* Heading row: title + tear-off affordance.  Dragging the heading tears
+	 * the panel off too. */
+	GtkWidget *hdr = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
 	g_panel->hist_header = gtk_label_new(_("Nondestructive History"));
 	gtk_label_set_xalign(GTK_LABEL(g_panel->hist_header), 0.0f);
+	gtk_widget_set_hexpand(g_panel->hist_header, TRUE);
 	gtk_widget_add_css_class(g_panel->hist_header, "heading");
-	gtk_box_append(GTK_BOX(vbox), g_panel->hist_header);
+	gtk_box_append(GTK_BOX(hdr), g_panel->hist_header);
+	g_panel->hist_tear_btn = gtk_button_new_from_icon_name("window-new-symbolic");
+	gtk_widget_add_css_class(g_panel->hist_tear_btn, "flat");
+	gtk_widget_set_tooltip_text(g_panel->hist_tear_btn,
+			_("Detach into a window (closing the window re-attaches it here)"));
+	g_signal_connect(g_panel->hist_tear_btn, "clicked",
+	                 G_CALLBACK(on_hist_tear_clicked), NULL);
+	gtk_box_append(GTK_BOX(hdr), g_panel->hist_tear_btn);
+	GtkGesture *hdr_drag = gtk_gesture_drag_new();
+	g_signal_connect(hdr_drag, "drag-update",
+	                 G_CALLBACK(on_hist_header_drag_update), NULL);
+	gtk_widget_add_controller(hdr, GTK_EVENT_CONTROLLER(hdr_drag));
+	gtk_box_append(GTK_BOX(vbox), hdr);
 
 	g_panel->hist_stale_revealer = gtk_revealer_new();
 	gtk_revealer_set_transition_type(GTK_REVEALER(g_panel->hist_stale_revealer),
@@ -1970,10 +2158,26 @@ static void build_history_popover(void) {
 	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), g_panel->hist_list);
 	gtk_box_append(GTK_BOX(vbox), sw);
 
-	g_signal_connect(pop, "show", G_CALLBACK(on_hist_pop_show), NULL);
+	g_panel->hist_end_drop = gtk_label_new(_("Drop here to move to the end"));
+	gtk_widget_add_css_class(g_panel->hist_end_drop, "flis-edge-drop");
+	gtk_widget_set_visible(g_panel->hist_end_drop, FALSE);
+	GtkDropTarget *ed = gtk_drop_target_new(G_TYPE_INT64, GDK_ACTION_MOVE);
+	g_signal_connect(ed, "enter",  G_CALLBACK(on_hist_end_drop_enter), NULL);
+	g_signal_connect(ed, "motion", G_CALLBACK(on_hist_end_drop_enter), NULL);
+	g_signal_connect(ed, "leave",  G_CALLBACK(on_hist_end_drop_leave), NULL);
+	g_signal_connect(ed, "drop",   G_CALLBACK(on_hist_end_drop), NULL);
+	gtk_widget_add_controller(g_panel->hist_end_drop, GTK_EVENT_CONTROLLER(ed));
+	gtk_box_append(GTK_BOX(vbox), g_panel->hist_end_drop);
+
 	GtkWidget *btn = lookup_widget("nde_history_button");
-	if (btn && GTK_IS_MENU_BUTTON(btn))
+	if (btn && GTK_IS_MENU_BUTTON(btn)) {
 		gtk_menu_button_set_popover(GTK_MENU_BUTTON(btn), pop);
+		/* While torn off the button has no popover; activating it raises
+		 * the tear-off window instead. */
+		gtk_menu_button_set_create_popup_func(GTK_MENU_BUTTON(btn),
+		                                      hist_button_create_popup,
+		                                      NULL, NULL);
+	}
 }
 
 /* ---- Context menu -------------------------------------------------- */
