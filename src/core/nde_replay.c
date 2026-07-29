@@ -1163,6 +1163,60 @@ static void cascade_composite_consumers(gint item_id) {
 	}
 }
 
+/* Delete @record_id, the one step that built the layer mask @mask_item, when a
+ * composite is the only thing still holding that mask.  There is no mask left
+ * to commit anywhere, so what changes is the composites: each stops applying
+ * it, and each is recomputed.
+ *
+ * The stored copy needs no explicit drop — it lives at the deleted record's
+ * own coordinate, so nde_history_delete takes it with the record. */
+static gboolean delete_retained_mask(gint64 record_id, gint mask_item, gchar **err) {
+	GArray *layers = g_array_new(FALSE, FALSE, sizeof(gint));   /* masked inputs */
+	GPtrArray *live = nde_history_snapshot(NULL);
+	for (guint i = 0; live && i < live->len; i++) {
+		const nde_record *rec = g_ptr_array_index(live, i);
+		if (!nde_composite_is_op(rec->op_id) ||
+		    !nde_record_input_by_item(rec, mask_item))
+			continue;
+		nde_composite_state *st = nde_composite_state_parse(rec->params);
+		if (!st)
+			continue;
+		for (guint k = 0; k < st->inputs->len; k++) {
+			const nde_composite_input *in =
+					&g_array_index(st->inputs, nde_composite_input, k);
+			if (in->mask_item_id != mask_item)
+				continue;
+			if (nde_history_drop_mask_input(rec->record_id, mask_item)) {
+				siril_log_message(_("The layer mask no longer applies to '%s' in "
+				                    "step %" G_GINT64_FORMAT "\n"),
+				                  in->name ? in->name : "?", rec->record_id);
+				g_array_append_val(layers, in->item_id);
+			}
+		}
+		nde_composite_state_free(st);
+	}
+	if (live)
+		g_ptr_array_unref(live);
+
+	if (!nde_history_delete(record_id, err)) {
+		g_array_free(layers, TRUE);
+		return FALSE;
+	}
+	/* Recompute through the LAYER the mask was applied to: that is the pin the
+	 * composites still carry, and it reaches the retained and transitive cases
+	 * the same way any other upstream change does. */
+	for (guint i = 0; i < layers->len; i++)
+		cascade_composite_consumers(g_array_index(layers, gint, i));
+	g_array_free(layers, TRUE);
+	undo_flush();
+	gui_iface.invalidate_histogram();
+	if (is_current_image_flis())
+		gui_iface.flis_invalidate_composite();
+	notify_gfit_data_modified();
+	gui_iface.set_progress(PROGRESS_DONE, _("Edit history updated"));
+	return TRUE;
+}
+
 /* Re-derive @mask_item's mask as it stood after chain member @upto-1 and
  * replace the stored copy its consumers read (nde_replay.h's pin store). */
 static gboolean refresh_pinned_mask(const nde_chain *mask_chain, guint upto,
@@ -1435,12 +1489,18 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 	 * path and failed with "failed to load the baseline checkpoint", about an
 	 * item the user never named. */
 	if (!new_params && pos->is_mask && pos->records->len == 1) {
-		*err = nde_item_is_retained_input(item_id)
-		       ? g_strdup(_("this is the step that built the mask, and an image that "
-		                    "was composited with it could not be rebuilt without it"))
-		       : g_strdup(_("this is the step that built the mask — remove the mask "
-		                    "itself from the Layers panel instead of deleting it here"));
 		nde_chain_free(pos);
+		/* A mask a composite kept a copy of: deleting the step that built it
+		 * means those composites composite WITHOUT that mask, which is what
+		 * deleting it asks for.  Recorded rather than inferred — the consumers
+		 * lose the mask from their params, so the log says plainly that none
+		 * applies instead of leaving an input pointing at an item with no
+		 * history and hoping the replay reads that as "no mask" rather than
+		 * "lost". */
+		if (nde_item_is_retained_input(item_id))
+			return delete_retained_mask(record_id, item_id, err);
+		*err = g_strdup(_("this is the step that built the mask — remove the mask "
+		                  "itself from the Layers panel instead of deleting it here"));
 		return FALSE;
 	}
 	nde_chain_free(pos);

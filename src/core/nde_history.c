@@ -563,6 +563,60 @@ static gint find_mutable_locked(nde_history *h, gint64 record_id,
  * optionally replace the summary, and truncate the dead tail.  @new_summary is
  * owned by this function (freed or transferred).  Params are validated by the
  * CALLER — by here the edit is known good. */
+guint nde_history_drop_mask_input(gint64 record_id, gint mask_item_id) {
+	if (!com.uniq || !com.uniq->nde_history || mask_item_id <= 0)
+		return 0;
+	/* The params transform runs OUTSIDE the mutex (§6a: no allocation-heavy
+	 * work under the leaf lock), so read the blob, rewrite it, then swap. */
+	gchar *old_params = NULL;
+	g_mutex_lock(&nde_mutex);
+	{
+		nde_history *h = com.uniq->nde_history;
+		for (guint i = 0; i < h->live_count; i++) {
+			nde_record *rec = g_ptr_array_index(h->records, i);
+			if (rec->record_id == record_id) {
+				old_params = g_strdup(rec->params);
+				break;
+			}
+		}
+	}
+	g_mutex_unlock(&nde_mutex);
+	if (!old_params)
+		return 0;
+	gchar *new_params = nde_composite_params_drop_mask(old_params, mask_item_id);
+	g_free(old_params);
+	if (!new_params)
+		return 0;
+
+	guint changed = 0;
+	g_mutex_lock(&nde_mutex);
+	{
+		nde_history *h = com.uniq->nde_history;
+		for (guint i = 0; i < h->live_count; i++) {
+			nde_record *rec = g_ptr_array_index(h->records, i);
+			if (rec->record_id != record_id)
+				continue;
+			g_free(rec->params);
+			rec->params = new_params;   /* ownership transferred */
+			new_params = NULL;
+			for (guint p = 0; rec->inputs && p < rec->inputs->len; p++) {
+				const nde_input_pin *pin = g_ptr_array_index(rec->inputs, p);
+				if (pin->src_item_id == mask_item_id) {
+					g_ptr_array_remove_index(rec->inputs, p);
+					break;
+				}
+			}
+			changed = 1;
+			break;
+		}
+	}
+	g_mutex_unlock(&nde_mutex);
+	g_free(new_params);   /* no-op when it was transferred */
+	if (changed)
+		nde_history_notify_panel();
+	return changed;
+}
+
 static gboolean amend_commit(gint64 record_id, const gchar *new_params,
                              gchar *new_summary, gchar **err) {
 	/* Strings prepared before locking (§6a discipline). */

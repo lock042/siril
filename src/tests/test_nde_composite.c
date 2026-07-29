@@ -941,8 +941,10 @@ Test(nde_composite, amending_a_mask_a_composite_used_reaches_the_result) {
  * mask — "failed to load the baseline checkpoint", about an item the user had
  * never seen.  Deleting the only step of a MASK item took the image path,
  * because a trial chain with that step excluded is empty and the mask test
- * reads the first member's op. */
-Test(nde_composite, deleting_the_step_that_made_a_mask_is_refused_clearly) {
+ * reads the first member's op.  Deleting it is also the only way to replay a
+ * composite WITHOUT a mask that applied at the time, so it has to work rather
+ * than merely fail better. */
+Test(nde_composite, deleting_the_step_that_made_a_mask_unmasks_the_composite) {
 	com.pref.nde_cache_mb = 256;
 	flis_test_add_layer(flis_test_make_rgb_fits(8, 8, 0.5f, 0.5f, 0.5f), "bottom");
 	flis_layer_t *top = flis_test_add_layer(
@@ -962,16 +964,44 @@ Test(nde_composite, deleting_the_step_that_made_a_mask_is_refused_clearly) {
 	cr_assert_neq(mask_rec, 0);
 	cr_assert_eq(flis_flatten_all(), 0);
 	gfit = ((flis_layer_t *)com.uniq->layers->data)->fit;
+	gint mask_item = 0;
+	{
+		const nde_record *rec = find_composite_record();
+		nde_composite_state *st = nde_composite_state_parse(rec->params);
+		cr_assert_not_null(st);
+		mask_item = g_array_index(st->inputs, nde_composite_input, 1).mask_item_id;
+		cr_assert_neq(mask_item, 0);
+		nde_composite_state_free(st);
+	}
 
+	float masked_result = first_pixel();
 	gchar *err = NULL;
 	cr_assert(reserve_thread());
-	gboolean ok = nde_delete_execute(mask_rec, &err);
+	cr_assert(nde_delete_execute(mask_rec, &err),
+	          "deleting the step that built the mask must work: %s", err ? err : "?");
 	unreserve_thread();
-	cr_assert(!ok, "deleting the step a composite's mask was built by must be refused");
-	cr_assert_not_null(err);
-	cr_assert_null(strstr(err, "baseline"),
-	               "and the reason must name the mask, not a checkpoint: %s", err);
 	g_free(err);
+
+	/* The composite kept a copy of the mask, and the point of deleting the
+	 * step is to composite without it — so the flattened image must change,
+	 * and the record must say it no longer applies one. */
+	cr_assert_neq(first_pixel(), masked_result,
+	              "the flatten must be re-run without the mask");
+	const nde_record *flat = find_composite_record();
+	nde_composite_state *st = nde_composite_state_parse(flat->params);
+	cr_assert_not_null(st);
+	const nde_composite_input *in = &g_array_index(st->inputs, nde_composite_input, 1);
+	cr_assert(!in->was_masked, "and must record that no mask applies");
+	cr_assert_eq(in->mask_item_id, 0);
+	nde_composite_state_free(st);
+	cr_assert_null(nde_record_input_by_item(flat, mask_item),
+	               "the pin to the now-historyless mask must go too");
+
+	nde_chain *chain = nde_chain_build(
+	    ((flis_layer_t *)com.uniq->layers->data)->item_id);
+	cr_assert(chain->replayable, "and the flatten must still replay: %s",
+	          chain->reasons->len ? (char *)g_ptr_array_index(chain->reasons, 0) : "none");
+	nde_chain_free(chain);
 	done();
 }
 

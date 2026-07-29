@@ -168,6 +168,19 @@ gboolean nde_composite_validate(const char *old_params, const char *new_params,
                                 gchar **err);
 
 /**
+ * @params with the input masked by @mask_item_id no longer masked, or NULL if
+ * no input was.  Caller owns the result.
+ *
+ * Not something a user edit may do — nde_composite_validate() refuses it,
+ * because the mask is part of what the step consumed.  It is what DELETING the
+ * step that built the mask means: the mask no longer exists, so the composite
+ * that used it composites without one.  Recorded rather than inferred, so the
+ * log says what will happen instead of leaving a mask input pointing at
+ * nothing and hoping the replay reads that as "no mask" rather than "lost".
+ */
+gchar *nde_composite_params_drop_mask(const char *params, gint mask_item_id);
+
+/**
  * TRUE when @rec is a composite record carrying both the input pins and the
  * state its re-run needs — that is, when it can be a replayable chain member
  * rather than a blocker.

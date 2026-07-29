@@ -132,6 +132,18 @@ const nde_input_pin *nde_record_input(const nde_record *rec, const char *role);
  *  and an item appears at most once among a record's inputs. */
 const nde_input_pin *nde_record_input_by_item(const nde_record *rec, gint item_id);
 
+/**
+ * Stop @record_id from consuming the layer mask @mask_item_id: clears the flag
+ * in its params and drops the pin.  Returns the number of records changed (0
+ * or 1) — nothing happens if that record does not use that mask.
+ *
+ * Deliberately not reachable through nde_history_amend: this is not a change a
+ * user makes to a step, it is the consequence of deleting the step that BUILT
+ * the mask.  Leaving the pin behind would leave a phantom edge to an item with
+ * no history and a record that says it used a mask nobody can produce.
+ */
+guint nde_history_drop_mask_input(gint64 record_id, gint mask_item_id);
+
 /* ---- pin list codec ------------------------------------------------------
  * Encoded with the ordinary kv codec so the escaping rules are shared:
  * "n=2;role0=mask;item0=3;rec0=7;role1=base;item1=1;rec1=0".              */

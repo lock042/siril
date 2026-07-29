@@ -377,6 +377,24 @@ gboolean nde_composite_validate(const char *old_params, const char *new_params,
 	return *err == NULL;
 }
 
+gchar *nde_composite_params_drop_mask(const char *params, gint mask_item_id) {
+	nde_composite_state *st = nde_composite_state_parse(params);
+	if (!st)
+		return NULL;
+	gboolean hit = FALSE;
+	for (guint i = 0; i < st->inputs->len; i++) {
+		nde_composite_input *in = &g_array_index(st->inputs, nde_composite_input, i);
+		if (!in->mask_item_id || in->mask_item_id != mask_item_id)
+			continue;
+		in->mask_item_id = 0;
+		in->was_masked   = FALSE;
+		hit = TRUE;
+	}
+	gchar *out = hit ? state_encode(st) : NULL;
+	nde_composite_state_free(st);
+	return out;
+}
+
 gboolean nde_composite_record_replayable(const nde_record *rec) {
 	if (!rec || !nde_composite_is_op(rec->op_id))
 		return FALSE;
