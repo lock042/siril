@@ -2205,6 +2205,13 @@ static const char *hist_insert_disabled_reason(const NdeHistRowItem *r) {
 		return _("Opaque steps cannot be recomputed, so nothing can be inserted before them");
 	if (!r->in_tail)
 		return _("Only steps after the last opaque step can host an insertion");
+	/* No layer left to run the new operation on: it would land on whichever
+	 * layer IS active, which after a merge means the new step arrives at the
+	 * end of the merged result instead of where it was aimed. */
+	if (nde_item_is_retained_input(r->target_item_id))
+		return _("A merge or flatten consumed this layer, so there is nothing "
+		         "left to run a new operation on. Its existing steps can still "
+		         "be edited, reordered and deleted.");
 	return NULL;
 }
 

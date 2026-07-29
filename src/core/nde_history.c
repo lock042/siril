@@ -32,6 +32,7 @@
 #include "core/nde_compositing.h"
 #include "core/nde_composite.h"
 #include "core/nde_snapstore.h"
+#include "core/nde_replay.h"    /* nde_item_is_retained_input() */
 #include "io/image_format_flis.h"
 
 /* Leaf lock guarding the CURRENT document's log (com.uniq->nde_history and
@@ -838,6 +839,19 @@ gboolean nde_history_insert_point_set(gint64 before_id, gint item_id, gchar **er
 	*err = NULL;
 	if (!com.uniq || !com.uniq->nde_history) {
 		*err = g_strdup(_("no edit history"));
+		return FALSE;
+	}
+	/* An item a composite consumed has no layer to select, so no operation
+	 * the user can run will ever target it — the record would be appended to
+	 * whatever layer IS active, which for a merge result means the new step
+	 * silently lands after the merge instead of before the step it was aimed
+	 * at.  Refuse rather than accept an insertion that cannot be honoured.
+	 * Checked outside the mutex: the item lookup walks the document. */
+	if (before_id != 0 && nde_item_is_retained_input(item_id)) {
+		*err = g_strdup(_("this step belongs to a layer a merge or flatten "
+		                  "consumed, so there is no layer left to run a new "
+		                  "operation on — its existing steps can still be "
+		                  "edited, reordered and deleted"));
 		return FALSE;
 	}
 	GArray *dropped = g_array_new(FALSE, FALSE, sizeof(gint64));

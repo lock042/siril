@@ -829,6 +829,30 @@ Test(nde_composite, an_opaque_step_on_an_input_does_not_freeze_the_merge) {
 	done();
 }
 
+/* Reported: arming an insertion on a step of a merge INPUT, then running an
+ * operation, applied that operation to the end of the merged result instead.
+ * The insertion point only claims records whose target IS the armed item, and
+ * an operation always targets the layer that is active — for a consumed input
+ * there is no such layer, so the new record could never qualify and fell
+ * through to a plain append.  Refusing to arm it is the honest answer: the
+ * alternative is a mode that looks armed and silently does something else. */
+Test(nde_composite, an_insertion_cannot_be_armed_on_a_consumed_input) {
+	gint bottom_item = 0;
+	flis_layer_t *merged = two_edited_layers_merged(&bottom_item, NULL,
+	                                               FLIS_BLEND_NORMAL, 1.0f);
+	gint64 input_step = record_for_item(bottom_item);
+	cr_assert_neq(input_step, 0, "fixture: the input has a step to aim at");
+
+	gchar *err = NULL;
+	cr_assert(!nde_history_insert_point_set(input_step, bottom_item, &err),
+	          "arming an insertion on a consumed input must be refused");
+	cr_assert_not_null(err, "and it must say why");
+	g_free(err);
+	cr_assert_eq(nde_history_insert_point(), 0, "nothing is armed");
+	cr_assert_neq(merged->item_id, bottom_item);
+	done();
+}
+
 /* ---- honest refusal ----------------------------------------------------- */
 
 /* A merge recorded before step 7 carries neither pins nor per-input state.

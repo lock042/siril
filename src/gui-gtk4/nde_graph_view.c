@@ -23,9 +23,16 @@
 #include "core/nde_graph.h"
 #include "gui-gtk4/nde_graph_view.h"
 
-/* Gaps between columns and between the nodes stacked within one. */
-#define COL_GAP 28
-#define ROW_GAP 8
+/* COL_GAP separates siblings across a band; ROW_GAP separates the bands, and
+ * has to be deep enough for a join to be drawn in — the bar, the drop below
+ * it and the arrowhead all live in that space. */
+#define COL_GAP 20
+#define ROW_GAP 36
+
+/* How far above the destination the join bar sits.  It must exceed the
+ * arrowhead's own length by a clear margin: at ROW_GAP/2 the drop was 4px, the
+ * head was 7, and the head came out sitting across the bar itself. */
+#define JOIN_DROP 18.0
 
 /* A step summary is an ellipsized label, so its NATURAL width is the whole
  * untruncated text — under the box that used to hold these, the popover
@@ -194,16 +201,18 @@ static void draw_edge(cairo_t *cr, const nde_graph_place *s,
  * worse; the bar is also how the operation reads on paper. */
 static void draw_join(cairo_t *cr, const nde_graph_place **srcs, guint n,
                       const nde_graph_place *d) {
-	double bar_y = d->y - ROW_GAP / 2.0;
+	double bar_y = d->y - JOIN_DROP;
 	double min_x = G_MAXDOUBLE, max_x = -G_MAXDOUBLE;
 	for (guint i = 0; i < n; i++) {
 		const double cx = srcs[i]->x + srcs[i]->w / 2.0;
 		const double bottom = srcs[i]->y + srcs[i]->h;
 		/* An input from further up the page than the band immediately above
 		 * would otherwise drop THROUGH the nodes between; keep the bar below
-		 * every source it serves. */
+		 * every source it serves.  Never so close to the destination that the
+		 * arrowhead has no drop to sit on, though — that is the defect this
+		 * clamp exists for. */
 		if (bottom + 4.0 > bar_y)
-			bar_y = bottom + 4.0;
+			bar_y = MIN(bottom + 4.0, d->y - 10.0);
 		if (cx < min_x) min_x = cx;
 		if (cx > max_x) max_x = cx;
 	}
