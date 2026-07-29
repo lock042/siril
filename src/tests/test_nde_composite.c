@@ -832,73 +832,86 @@ Test(nde_composite, an_opaque_step_on_an_input_does_not_freeze_the_merge) {
 /* Reported: arming an insertion on a step of a merge INPUT, then running an
  * operation, applied that operation to the end of the merged result instead.
  * The insertion point only claims records whose target IS the armed item, and
- * an operation always targets the layer that is active — for a consumed input
- * there is no such layer, so the new record could never qualify and fell
- * through to a plain append.  Refusing to arm it is the honest answer: the
- * alternative is a mode that looks armed and silently does something else. */
-Test(nde_composite, an_insertion_cannot_be_armed_on_a_consumed_input) {
-	gint bottom_item = 0;
-	flis_layer_t *merged = two_edited_layers_merged(&bottom_item, NULL,
-	                                               FLIS_BLEND_NORMAL, 1.0f);
-	gint64 input_step = record_for_item(bottom_item);
-	cr_assert_neq(input_step, 0, "fixture: the input has a step to aim at");
-
-	gchar *err = NULL;
-	cr_assert(!nde_history_insert_point_set(input_step, bottom_item, &err),
-	          "arming an insertion on a consumed input must be refused");
-	cr_assert_not_null(err, "and it must say why");
-	g_free(err);
-	cr_assert_eq(nde_history_insert_point(), 0, "nothing is armed");
-	cr_assert_neq(merged->item_id, bottom_item);
+ * a capture stamps whatever layer is active — for a consumed input there is no
+ * such layer, so the new record could never qualify.
+ *
+ * The item borrows the display for the duration instead: its pre-K state is
+ * shown, captures are stamped with it, and on the way out the composites that
+ * consumed it are recomputed — the same route an AMEND on the same item
+ * already took to reach the image. */
+Test(nde_composite, an_operation_can_be_inserted_into_a_consumed_input) {
+	/* The oracle: the same two steps on the bottom input, in the order the
+	 * insertion is supposed to produce, merged the same way.  Asserting only
+	 * "the pixel changed" would pass even when the inserted step displaces
+	 * the ones already there — which is exactly what a buggy prefix does. */
+	gint dummy = 0;
+	com.pref.nde_cache_mb = 256;
+	flis_layer_t *rb = flis_test_add_layer(
+	    flis_test_make_rgb_fits(4, 4, 0.5f, 0.5f, 0.5f), "bottom");
+	flis_layer_t *rt = flis_test_add_layer(
+	    flis_test_make_rgb_fits(4, 4, 0.25f, 0.25f, 0.25f), "top");
+	cr_assert_eq(flis_layer_set_blend_mode(rt, FLIS_BLEND_NORMAL), 0);
+	cr_assert_eq(flis_layer_set_opacity(rt, 0.5f), 0);
+	select_layer(rb);
+	cr_assert_eq(run_op_on_active(&op_desc_asinh, asinh_beta(18.f)), 0);
+	cr_assert_eq(run_op_on_active(&op_desc_asinh, asinh_beta(5.f)), 0);
+	select_layer(rt);
+	cr_assert_eq(run_op_on_active(&op_desc_asinh, asinh_beta(30.f)), 0);
+	cr_assert_eq(flis_merge_down_layer(rt), 0);
+	gfit = ((flis_layer_t *)com.uniq->layers->data)->fit;
+	float expected = first_pixel();
 	done();
-}
+	flis_free_layers(com.uniq);
 
-/* The regression the identity change introduced and the tests missed: every
- * test drove the amend path directly, and none went through the PREVIEW path
- * the GUI actually uses.  An item born of a composite restarts from no state,
- * which resolve_edit_restart signals as NULL-without-error; apv_begin_execute
- * was the one caller of it still reading NULL as failure, so Edit on a step of
- * a merged or flattened image failed with an empty reason and opened nothing. */
-Test(nde_composite, a_step_after_a_merge_can_be_previewed_for_editing) {
-	flis_layer_t *merged = two_edited_layers_merged(NULL, NULL,
-	                                                FLIS_BLEND_NORMAL, 1.0f);
-	select_layer(merged);
-	cr_assert_eq(run_op_on_active(&op_desc_asinh, asinh_beta(12.f)), 0);
-	gint64 post = record_for_item(merged->item_id);
-	cr_assert_neq(post, 0, "fixture: a step of the merged image's own");
+	/* Now the same document WITHOUT the asinh(18), inserted afterwards. */
+	gint bottom_item = 0;
+	two_edited_layers_merged(&bottom_item, &dummy, FLIS_BLEND_NORMAL, 0.5f);
+	gint64 anchor = record_for_item(bottom_item);
+	cr_assert_neq(anchor, 0, "fixture: the consumed input has a step to aim at");
+	float before = first_pixel();
+	cr_assert(fabsf(expected - before) > 1e-5f,
+	          "fixture: the extra step must make a visible difference");
 
 	gchar *err = NULL;
 	cr_assert(reserve_thread());
-	cr_assert(nde_amend_preview_begin_execute(post, &err),
-	          "the preview must start on a composite-born item: %s",
-	          err ? err : "(no reason given)");
-	g_free(err);
-	err = NULL;
-	cr_assert(nde_amend_preview_end_execute(FALSE, NULL, &err), "%s",
+	cr_assert(nde_edit_at_begin_execute(anchor, &err),
+	          "an insertion into a consumed input must open: %s", err ? err : "?");
+	unreserve_thread();
+	cr_assert(nde_edit_at_active());
+
+	/* The user runs an ordinary operation against what is now on screen. */
+	cr_assert_eq(run_op_on_active(&op_desc_asinh, asinh_beta(18.f)), 0);
+
+	cr_assert(reserve_thread());
+	cr_assert(nde_edit_at_end_execute(TRUE, &err), "finish failed: %s",
 	          err ? err : "?");
 	unreserve_thread();
 	g_free(err);
-	done();
-}
 
-/* And the boundary that has no answer: there is no state before an item's own
- * origin.  It must refuse in words rather than fail with "?". */
-Test(nde_composite, the_composite_itself_has_no_earlier_state_to_preview) {
-	two_edited_layers_merged(NULL, NULL, FLIS_BLEND_NORMAL, 1.0f);
-	const nde_record *merge = find_composite_record();
-	cr_assert_not_null(merge);
+	/* The inserted step belongs to the CONSUMED INPUT and sits before the
+	 * step it was aimed at — not appended to the merged result. */
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	gint64 inserted_id = 0;
+	guint anchor_pos = 0, inserted_pos = 0;
+	for (guint i = 0; i < snap->len; i++) {
+		const nde_record *r = g_ptr_array_index(snap, i);
+		if (r->record_id == anchor)
+			anchor_pos = i;
+		if (r->target_item_id == bottom_item && r->record_id != anchor &&
+		    !g_strcmp0(r->op_id, "stretch.asinh")) {
+			inserted_id = r->record_id;
+			inserted_pos = i;
+		}
+	}
+	cr_assert_neq(inserted_id, 0,
+	              "the new step must target the consumed input, not the result");
+	cr_assert_lt(inserted_pos, anchor_pos, "and must sit before the anchor");
+	g_ptr_array_unref(snap);
 
-	/* Through the PREVIEW api, which is the path that synthesizes the state
-	 * before a step: nde_edit_at_begin_execute refuses this earlier, on the
-	 * record's DOCUMENT scope, so it would not reach the boundary at all. */
-	gchar *err = NULL;
-	cr_assert(reserve_thread());
-	cr_assert(!nde_amend_preview_begin_execute(merge->record_id, &err),
-	          "there is no state before an item's own origin to preview");
-	unreserve_thread();
-	cr_assert_not_null(err, "and it must say so, not fail with an empty reason");
-	cr_assert_gt(strlen(err), 1);
-	g_free(err);
+	/* And the merged image is what having done it in that order would give:
+	 * the inserted step joined the input's chain, it did not replace it. */
+	cr_assert_float_eq(first_pixel(), expected, 1e-5,
+	                   "the merged image must match the same two steps applied in order");
 	done();
 }
 

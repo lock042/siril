@@ -1916,8 +1916,12 @@ the_end:;
 		rec->scope = (op && (op->flags & OP_GEOMETRY_CHANGING)) ?
 				NDE_SCOPE_CANVAS : NDE_SCOPE_LAYER;
 		if (is_current_image_flis()) {
+			/* An insertion open on an item a merge consumed lends the display
+			 * to that item, so what is on screen is NOT the active layer's
+			 * pixels — the record belongs to the borrowed item. */
+			gint borrowed = nde_edit_at_borrowed_item();
 			flis_layer_t *lay = flis_active_layer();
-			rec->target_item_id = lay ? lay->item_id : -1;
+			rec->target_item_id = borrowed ? borrowed : (lay ? lay->item_id : -1);
 		}
 		rec->mask_active = using_mask;
 		/* The mask is a real INPUT, not a flag.  mask_active only ever said

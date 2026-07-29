@@ -315,6 +315,16 @@ gboolean nde_edit_at_refuses_op(const char *what);
 
 /** Job-context implementations (the caller owns the processing slot). */
 gboolean nde_edit_at_begin_execute(gint64 record_id, gchar **err);
+
+/**
+ * The item a capture should be stamped with while an insertion is open on an
+ * item that has no layer of its own (one a merge or flatten consumed).  0 when
+ * no such insertion is open, in which case the capture uses the active layer
+ * as usual.  Without this the new record carries the ACTIVE layer's id, does
+ * not qualify for the armed insertion, and is appended to the end of the
+ * merged result instead of landing where it was aimed.
+ */
+gint nde_edit_at_borrowed_item(void);
 gboolean nde_edit_at_end_execute(gboolean apply, gchar **err);
 
 #ifdef __cplusplus

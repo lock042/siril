@@ -761,13 +761,42 @@ static fits *resolve_item_state(gint item_id, gint64 upto_record_id, gchar **err
 	 * without being a member here, and a member can later be deleted.  The
 	 * meaning is positional either way — "the state as of that point in the
 	 * log" — so take the prefix of members recorded at or before it rather
-	 * than demanding an exact hit and failing when there is none. */
+	 * than demanding an exact hit and failing when there is none.
+	 *
+	 * POSITIONAL MEANS POSITION, not id.  Comparing ids assumes they increase
+	 * down the log, and insertion breaks that: a step inserted BEFORE the
+	 * pinned record has a HIGHER id, so an id comparison stopped the prefix
+	 * dead at it and an operation inserted into a consumed input changed
+	 * nothing at all.  The chain's members are views into a snapshot held in
+	 * log order, so the snapshot is what says which came first. */
 	guint upto = 0;
 	if (upto_record_id) {
-		for (guint i = 0; i < c->records->len; i++) {
-			const nde_record *r = g_ptr_array_index(c->records, i);
-			if (r->record_id > upto_record_id)
+		gint anchor_pos = -1;
+		for (guint i = 0; c->snapshot && i < c->snapshot->len; i++) {
+			const nde_record *r = g_ptr_array_index(c->snapshot, i);
+			if (r->record_id == upto_record_id) {
+				anchor_pos = (gint)i;
 				break;
+			}
+		}
+		for (guint i = 0; i < c->records->len; i++) {
+			const nde_record *m = g_ptr_array_index(c->records, i);
+			if (anchor_pos < 0) {
+				/* The pin names a record the log no longer holds; with no
+				 * position to compare against, fall back to the id. */
+				if (m->record_id > upto_record_id)
+					break;
+			} else {
+				gint member_pos = -1;
+				for (guint j = 0; c->snapshot && j < c->snapshot->len; j++) {
+					if (g_ptr_array_index(c->snapshot, j) == m) {
+						member_pos = (gint)j;
+						break;
+					}
+				}
+				if (member_pos > anchor_pos)
+					break;
+			}
 			upto = i + 1;
 		}
 	}
@@ -2173,6 +2202,13 @@ static struct {
 	gboolean active;     /* start accepted, until end / failed begin */
 	gboolean installed;  /* pre-K currently swapped into the target */
 	gboolean insert;     /* edit-at mode: new steps are inserted before K */
+	/* The item has no layer of its own — a merge or flatten consumed it — so
+	 * its pre-K state is shown on the DISPLAY instead, and captures made
+	 * while the mode is open are stamped with the borrowed item rather than
+	 * with whatever layer happens to be active.  Nothing is committed to a
+	 * layer on the way out; the composites that consume the item are
+	 * recomputed instead. */
+	gboolean borrowed;
 	gint64   record_id;
 	gint     item_id;
 	gchar   *op_id;
@@ -2195,6 +2231,17 @@ gboolean nde_amend_preview_active(void) {
 	gboolean r = apv.active;
 	g_mutex_unlock(&apv_mutex);
 	return r;
+}
+
+/* The item a capture must be stamped with while an insertion is open on an
+ * item that has no layer: without this the record would carry whatever layer
+ * is active, which is how an insertion aimed at a merge input used to end up
+ * appended to the merged result instead.  0 when not borrowing. */
+gint nde_edit_at_borrowed_item(void) {
+	g_mutex_lock(&apv_mutex);
+	gint id = (apv.active && apv.insert && apv.borrowed) ? apv.item_id : 0;
+	g_mutex_unlock(&apv_mutex);
+	return id;
 }
 
 gint64       nde_amend_preview_record_id(void)  { return apv.record_id; }
@@ -2235,6 +2282,7 @@ static void apv_clear_state_locked(void) {
 	apv.active = FALSE;
 	apv.installed = FALSE;
 	apv.insert = FALSE;
+	apv.borrowed = FALSE;
 	apv.record_id = 0;
 	apv.item_id = -1;
 	g_free(apv.op_id);    apv.op_id = NULL;
@@ -2297,16 +2345,23 @@ static gboolean apv_begin_execute(gint64 record_id, gboolean insert, gchar **err
 
 	/* The dialog's preview pipeline works on the DISPLAYED image; refuse a
 	 * record targeting a non-active FLIS layer rather than previewing one
-	 * image while showing another. */
+	 * image while showing another.  An item a merge consumed is the exception
+	 * that proves it: there is no layer to make active, so for an INSERTION
+	 * the display is lent to it for the duration.  An amend preview keeps the
+	 * refusal — its dialog edits an existing step, which the History can do
+	 * without a preview at all. */
+	gboolean borrow = FALSE;
 	if (item_id != nde_checkpoint_active_item_id()) {
-		/* "Make that layer active" is impossible advice for a layer a merge
-		 * or flatten consumed: there is no such layer to select. */
-		*err = nde_item_is_retained_input(item_id) ?
-			g_strdup(_("a merge or flatten consumed this layer, so it cannot be "
-			           "made active — its steps can still be edited from the "
-			           "History, but not previewed on the image")) :
-			g_strdup(_("this step targets another layer — make that layer active first"));
-		goto fail_free;
+		if (insert && nde_item_is_retained_input(item_id)) {
+			borrow = TRUE;
+		} else {
+			*err = nde_item_is_retained_input(item_id) ?
+				g_strdup(_("a merge or flatten consumed this layer, so it cannot "
+				           "be made active — edit its steps from the History "
+				           "instead")) :
+				g_strdup(_("this step targets another layer — make that layer active first"));
+			goto fail_free;
+		}
 	}
 
 	/* Position/freeze check + synthesis on the CURRENT chain. */
@@ -2391,7 +2446,9 @@ static gboolean apv_begin_execute(gint64 record_id, gboolean insert, gchar **err
 		goto fail_free;
 	}
 
-	fits *target = edit_target_fits(item_id);
+	/* A borrowed item has no fits of its own; the display holds its state for
+	 * the duration and gives it back on the way out. */
+	fits *target = borrow ? gfit : edit_target_fits(item_id);
 	if (!target) {
 		*err = g_strdup(_("the record's target layer no longer exists"));
 		clearfits(pre_k);
@@ -2423,6 +2480,7 @@ static gboolean apv_begin_execute(gint64 record_id, gboolean insert, gchar **err
 	apv.active = TRUE;
 	apv.installed = TRUE;
 	apv.insert = insert;
+	apv.borrowed = borrow;
 	apv.record_id = record_id;
 	apv.item_id = item_id;
 	apv.op_id = op_id_copy;
@@ -2521,6 +2579,7 @@ gboolean nde_edit_at_end_execute(gboolean apply, gchar **err) {
 	}
 	gint64 anchor_id = apv.record_id;
 	gint item_id = apv.item_id;
+	gboolean borrowed = apv.borrowed;
 	fits *saved = apv.saved;
 	apv_clear_state_locked();
 	g_mutex_unlock(&apv_mutex);
@@ -2531,7 +2590,7 @@ gboolean nde_edit_at_end_execute(gboolean apply, gchar **err) {
 	/* Restore the true pixels and metadata first, exactly as the amend
 	 * preview does.  `saved` comes back holding the pre-anchor state PLUS
 	 * whatever was inserted — the starting point for the forward replay. */
-	fits *target = edit_target_fits(item_id);
+	fits *target = borrowed ? gfit : edit_target_fits(item_id);
 	if (target)
 		apv_swap_into_target(target, saved);
 	else
@@ -2580,6 +2639,22 @@ gboolean nde_edit_at_end_execute(gboolean apply, gchar **err) {
 		 * (it has no output checkpoint, or one of the later steps cannot
 		 * replay from it). */
 		*err = g_strdup(_("the steps after the insertion point can no longer be recomputed"));
+	} else if (borrowed) {
+		/* The item has no layer to receive a result: what the insertion
+		 * changed reaches the image only through the composites that consumed
+		 * it, exactly as an AMEND on the same item does.  The display already
+		 * holds its true pixels again, and the cascade overwrites them with
+		 * the recomputed merge. */
+		gui_iface.set_progress(0.f, _("Recomputing edit history..."));
+		nde_snapstore_invalidate_from(item_id, first_inserted);
+		clearfits(saved);
+		free(saved);
+		saved = NULL;
+		cascade_composite_consumers(item_id);
+		g_array_unref(inserted);
+		undo_flush();
+		gui_iface.set_progress(PROGRESS_RESET, _("Insertion applied"));
+		return TRUE;
 	} else {
 		gui_iface.set_progress(0.f, _("Recomputing edit history..."));
 		/* Cached states at or after the insertion describe the pre-insert
