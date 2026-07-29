@@ -1074,7 +1074,11 @@ Test(flis_cmd, flatten_records_and_retains_prior) {
 	             "flatten adds a record and keeps prior ones (provenance)");
 	nde_record *r = last_record();
 	cr_assert_str_eq(r->op_id, "document.flatten");
-	cr_assert(strstr(r->params, "n_layers=") != NULL);
+	/* Flatten is a composite node: it records every layer it consumed, both as
+	 * state and as an input pin (nde_composite.h). */
+	cr_assert(strstr(r->params, "n=2;") != NULL, "params: %s", r->params);
+	cr_assert_not_null(nde_record_input(r, "in0"));
+	cr_assert_not_null(nde_record_input(r, "in1"));
 	nde_record_free(r);
 }
 

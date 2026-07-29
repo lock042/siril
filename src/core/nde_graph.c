@@ -23,6 +23,7 @@
 #include "core/siril.h"
 #include "core/nde_history.h"
 #include "core/nde_graph.h"
+#include "core/nde_composite.h"
 #include "io/image_format_flis.h"
 
 static void node_free(gpointer p) {
@@ -220,22 +221,26 @@ nde_graph *nde_graph_build(void) {
 		nde_graph_node *n = g_ptr_array_index(g->nodes, i);
 		if (n->kind != NDE_NODE_UNKNOWN)
 			continue;
-		for (guint r = 0; r < snap->len; r++) {
+		gboolean named = FALSE;
+		for (guint r = 0; r < snap->len && !named; r++) {
 			const nde_record *rec = g_ptr_array_index(snap, r);
-			if (!rec->params || g_strcmp0(rec->op_id, "layer.merge_down"))
+			if (!nde_composite_is_op(rec->op_id))
 				continue;
-			GHashTable *kv = nde_kv_parse(rec->params);
-			gint64 top = 0;
-			const char *name = NULL;
-			if (nde_kv_get_int(kv, "top_item", &top) && top == n->item_id)
-				name = nde_kv_get_str(kv, "top_name");
-			if (name && *name) {
+			nde_composite_state *st = nde_composite_state_parse(rec->params);
+			if (!st)
+				continue;
+			for (guint k = 0; k < st->inputs->len && !named; k++) {
+				const nde_composite_input *in =
+						&g_array_index(st->inputs, nde_composite_input, k);
+				if (in->item_id != n->item_id || !in->name || !*in->name)
+					continue;
 				g_free(n->label);
-				n->label = g_strdup_printf(_("%s, merged away"), name);
+				n->label = g_strdup_printf(st->raw_first ? _("%s, merged away")
+				                                         : _("%s, flattened"),
+				                           in->name);
+				named = TRUE;
 			}
-			g_hash_table_unref(kv);
-			if (name && *name)
-				break;
+			nde_composite_state_free(st);
 		}
 	}
 

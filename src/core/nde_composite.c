@@ -22,67 +22,156 @@
 
 #include "core/siril.h"
 #include "core/nde_history.h"
+#include "core/nde_checkpoint.h"
 #include "core/nde_composite.h"
 #include "io/image_format_flis.h"
 #include "io/flis_compose.h"
 
-void nde_composite_input_clear(nde_composite_input *in) {
-	if (!in)
+/* Indexed key names: "i3_opacity", "g0_blend".  One buffer per call site. */
+#define KEYBUF 32
+static const char *ikey(char *buf, const char *prefix, guint i, const char *field) {
+	g_snprintf(buf, KEYBUF, "%s%u_%s", prefix, i, field);
+	return buf;
+}
+
+void nde_composite_state_free(nde_composite_state *st) {
+	if (!st)
 		return;
-	g_free(in->name);
-	in->name = NULL;
+	if (st->inputs) {
+		for (guint i = 0; i < st->inputs->len; i++)
+			g_free(g_array_index(st->inputs, nde_composite_input, i).name);
+		g_array_free(st->inputs, TRUE);
+	}
+	if (st->groups)
+		g_array_free(st->groups, TRUE);
+	g_free(st);
+}
+
+static nde_composite_state *state_new(void) {
+	nde_composite_state *st = g_new0(nde_composite_state, 1);
+	st->inputs = g_array_new(FALSE, TRUE, sizeof(nde_composite_input));
+	st->groups = g_array_new(FALSE, TRUE, sizeof(nde_composite_group));
+	return st;
 }
 
 gboolean nde_composite_is_op(const char *op_id) {
-	return !g_strcmp0(op_id, "layer.merge_down");
+	return !g_strcmp0(op_id, "layer.merge_down") ||
+	       !g_strcmp0(op_id, "document.flatten");
 }
 
-/* The keys the decoder demands.  Their presence is the format version: a
- * record written before this module existed carries top_item and top_name
- * only, and answers FALSE to every replayability question rather than being
- * re-run from parameters nobody stored. */
-gchar *nde_composite_params_encode(const flis_layer_t *base,
-                                   const flis_layer_t *top) {
-	g_return_val_if_fail(base != NULL && top != NULL, NULL);
+/* ---- encoding ----------------------------------------------------------- */
+
+static gboolean layer_is_masked(const flis_layer_t *lay) {
+	return (lay->lmask && lay->lmask_active) || (lay->fit && lay->fit->mask);
+}
+
+/* The document state @layers were composited against.  Only the groups those
+ * layers actually belong to are recorded — the rest did not participate. */
+static void collect_groups(nde_composite_state *st, GSList *layers) {
+	for (GSList *l = layers; l; l = l->next) {
+		const flis_layer_t *lay = l->data;
+		if (!lay || !lay->group_id)
+			continue;
+		gboolean seen = FALSE;
+		for (guint i = 0; i < st->groups->len && !seen; i++)
+			seen = g_array_index(st->groups, nde_composite_group, i).item_id == lay->group_id;
+		if (seen)
+			continue;
+		flis_group_t *grp = flis_group_get_by_id(lay->group_id);
+		if (!grp)
+			continue;
+		nde_composite_group g = {
+			.item_id    = grp->item_id,
+			.blend_mode = (gint)grp->blend_mode,
+			.opacity    = (gdouble)grp->opacity,
+			.visible    = grp->visible,
+		};
+		g_array_append_val(st->groups, g);
+	}
+}
+
+static nde_composite_state *state_from_layers(GSList *layers, gboolean raw_first) {
+	nde_composite_state *st = state_new();
+	st->raw_first = raw_first;
+	if (com.uniq) {
+		st->canvas_w = com.uniq->canvas_w;
+		st->canvas_h = com.uniq->canvas_h;
+		st->bg_r = com.uniq->canvas_bg_r;
+		st->bg_g = com.uniq->canvas_bg_g;
+		st->bg_b = com.uniq->canvas_bg_b;
+	}
+	for (GSList *l = layers; l; l = l->next) {
+		const flis_layer_t *lay = l->data;
+		if (!lay)
+			continue;
+		nde_composite_input in = {
+			.item_id    = lay->item_id,
+			.name       = g_strdup(lay->layer_name ? lay->layer_name : ""),
+			.blend_mode = (gint)lay->blend_mode,
+			.opacity    = (gdouble)lay->opacity,
+			.position_x = lay->position_x,
+			.position_y = lay->position_y,
+			.visible    = lay->visible,
+			.has_tint   = lay->has_tint,
+			.tint_r     = lay->layer_tint.r,
+			.tint_g     = lay->layer_tint.g,
+			.tint_b     = lay->layer_tint.b,
+			.group_id   = lay->group_id,
+			.was_masked = layer_is_masked(lay),
+		};
+		g_array_append_val(st->inputs, in);
+	}
+	collect_groups(st, layers);
+	return st;
+}
+
+static gchar *state_encode(const nde_composite_state *st) {
+	char k[KEYBUF];
 	GString *kv = nde_kv_start();
-	nde_kv_add_int(kv, "base_item", base->item_id);
-	nde_kv_add_int(kv, "base_x", base->position_x);
-	nde_kv_add_int(kv, "base_y", base->position_y);
-	nde_kv_add_bool(kv, "base_tinted", base->has_tint);
-	nde_kv_add_double(kv, "base_tint_r", base->layer_tint.r);
-	nde_kv_add_double(kv, "base_tint_g", base->layer_tint.g);
-	nde_kv_add_double(kv, "base_tint_b", base->layer_tint.b);
-	nde_kv_add_int(kv, "top_item", top->item_id);
-	nde_kv_add_str(kv, "top_name", top->layer_name ? top->layer_name : "");
-	nde_kv_add_int(kv, "top_blend", (gint64)top->blend_mode);
-	nde_kv_add_double(kv, "top_opacity", (double)top->opacity);
-	nde_kv_add_int(kv, "top_x", top->position_x);
-	nde_kv_add_int(kv, "top_y", top->position_y);
-	nde_kv_add_bool(kv, "top_visible", top->visible);
-	nde_kv_add_bool(kv, "top_tinted", top->has_tint);
-	nde_kv_add_double(kv, "top_tint_r", top->layer_tint.r);
-	nde_kv_add_double(kv, "top_tint_g", top->layer_tint.g);
-	nde_kv_add_double(kv, "top_tint_b", top->layer_tint.b);
-	/* A masked input is recorded but NOT re-runnable yet: the composite would
-	 * have to rebuild a layer mask that died with the layer, which is a
-	 * different resolver from the one image chains use.  Recording the fact
-	 * lets the chain builder say so instead of quietly compositing without
-	 * the mask and calling the result a reproduction. */
-	nde_kv_add_bool(kv, "top_masked",
-	                (top->lmask && top->lmask_active) || (top->fit && top->fit->mask));
+	nde_kv_add_int(kv, "v", 2);
+	nde_kv_add_bool(kv, "raw_first", st->raw_first);
+	nde_kv_add_int(kv, "canvas_w", st->canvas_w);
+	nde_kv_add_int(kv, "canvas_h", st->canvas_h);
+	nde_kv_add_double(kv, "bg_r", st->bg_r);
+	nde_kv_add_double(kv, "bg_g", st->bg_g);
+	nde_kv_add_double(kv, "bg_b", st->bg_b);
+	nde_kv_add_int(kv, "n", st->inputs->len);
+	for (guint i = 0; i < st->inputs->len; i++) {
+		const nde_composite_input *in = &g_array_index(st->inputs, nde_composite_input, i);
+		nde_kv_add_int(kv, ikey(k, "i", i, "item"), in->item_id);
+		nde_kv_add_str(kv, ikey(k, "i", i, "name"), in->name ? in->name : "");
+		nde_kv_add_int(kv, ikey(k, "i", i, "blend"), in->blend_mode);
+		nde_kv_add_double(kv, ikey(k, "i", i, "opacity"), in->opacity);
+		nde_kv_add_int(kv, ikey(k, "i", i, "x"), in->position_x);
+		nde_kv_add_int(kv, ikey(k, "i", i, "y"), in->position_y);
+		nde_kv_add_bool(kv, ikey(k, "i", i, "visible"), in->visible);
+		nde_kv_add_bool(kv, ikey(k, "i", i, "tinted"), in->has_tint);
+		nde_kv_add_double(kv, ikey(k, "i", i, "tint_r"), in->tint_r);
+		nde_kv_add_double(kv, ikey(k, "i", i, "tint_g"), in->tint_g);
+		nde_kv_add_double(kv, ikey(k, "i", i, "tint_b"), in->tint_b);
+		nde_kv_add_int(kv, ikey(k, "i", i, "group"), in->group_id);
+		nde_kv_add_bool(kv, ikey(k, "i", i, "masked"), in->was_masked);
+	}
+	nde_kv_add_int(kv, "ng", st->groups->len);
+	for (guint i = 0; i < st->groups->len; i++) {
+		const nde_composite_group *g = &g_array_index(st->groups, nde_composite_group, i);
+		nde_kv_add_int(kv, ikey(k, "g", i, "item"), g->item_id);
+		nde_kv_add_int(kv, ikey(k, "g", i, "blend"), g->blend_mode);
+		nde_kv_add_double(kv, ikey(k, "g", i, "opacity"), g->opacity);
+		nde_kv_add_bool(kv, ikey(k, "g", i, "visible"), g->visible);
+	}
 	return nde_kv_end(kv);
 }
 
-gboolean nde_composite_params_decode(const char *params,
-                                     nde_composite_input *base_out,
-                                     nde_composite_input *top_out) {
-	if (base_out)
-		memset(base_out, 0, sizeof(*base_out));
-	if (top_out)
-		memset(top_out, 0, sizeof(*top_out));
-	if (!params || !*params)
-		return FALSE;
-	GHashTable *kv = nde_kv_parse(params);
+/* ---- decoding ----------------------------------------------------------- */
+
+/* The first merge-down format (shipped before flatten joined this node): two
+ * inputs, the base contributing only its offset and tint because the merge
+ * retains the rest on the survivor.  Kept so that documents saved with it stay
+ * replayable rather than silently reverting to blockers. */
+static nde_composite_state *parse_legacy_merge(GHashTable *kv) {
+	nde_composite_state *st = state_new();
+	st->raw_first = TRUE;
 	nde_composite_input base = { 0 }, top = { 0 };
 	gint64 bitem = 0, bx = 0, by = 0, titem = 0, blend = 0, tx = 0, ty = 0;
 	gboolean ok = nde_kv_get_int(kv, "base_item", &bitem)
@@ -102,98 +191,256 @@ gboolean nde_composite_params_decode(const char *params,
 	           && nde_kv_get_double(kv, "top_tint_r", &top.tint_r)
 	           && nde_kv_get_double(kv, "top_tint_g", &top.tint_g)
 	           && nde_kv_get_double(kv, "top_tint_b", &top.tint_b);
-	if (ok) {
-		const char *name = nde_kv_get_str(kv, "top_name");
-		base.item_id    = (gint)bitem;
-		base.position_x = (gint)bx;
-		base.position_y = (gint)by;
-		base.visible    = TRUE;
-		base.opacity    = 1.0;
-		top.item_id     = (gint)titem;
-		top.blend_mode  = (gint)blend;
-		top.position_x  = (gint)tx;
-		top.position_y  = (gint)ty;
-		top.name        = (name && *name) ? g_strdup(name) : NULL;
-		if (base_out)
-			*base_out = base;
-		if (top_out)
-			*top_out = top;
-		else
-			nde_composite_input_clear(&top);
+	if (!ok) {
+		nde_composite_state_free(st);
+		return NULL;
 	}
-	g_hash_table_unref(kv);
-	return ok;
+	const char *name = nde_kv_get_str(kv, "top_name");
+	base.item_id    = (gint)bitem;
+	base.position_x = (gint)bx;
+	base.position_y = (gint)by;
+	base.visible    = TRUE;
+	base.opacity    = 1.0;
+	top.item_id     = (gint)titem;
+	top.blend_mode  = (gint)blend;
+	top.position_x  = (gint)tx;
+	top.position_y  = (gint)ty;
+	top.name        = (name && *name) ? g_strdup(name) : NULL;
+	nde_kv_get_bool(kv, "top_masked", &top.was_masked);
+	g_array_append_val(st->inputs, base);
+	g_array_append_val(st->inputs, top);
+	return st;
 }
 
-/* TRUE when the record says its overlay carried a mask.  Separate from the
- * decode so the caller can name that specific limitation. */
-static gboolean overlay_was_masked(const char *params) {
-	if (!params)
-		return FALSE;
+nde_composite_state *nde_composite_state_parse(const char *params) {
+	if (!params || !*params)
+		return NULL;
 	GHashTable *kv = nde_kv_parse(params);
-	gboolean masked = FALSE;
-	nde_kv_get_bool(kv, "top_masked", &masked);
+	gint64 version = 0;
+	if (!nde_kv_get_int(kv, "v", &version)) {
+		nde_composite_state *legacy = parse_legacy_merge(kv);
+		g_hash_table_unref(kv);
+		return legacy;
+	}
+
+	char k[KEYBUF];
+	nde_composite_state *st = state_new();
+	gint64 n = 0, ng = 0, cw = 0, ch = 0;
+	gboolean ok = nde_kv_get_bool(kv, "raw_first", &st->raw_first)
+	           && nde_kv_get_int(kv, "canvas_w", &cw)
+	           && nde_kv_get_int(kv, "canvas_h", &ch)
+	           && nde_kv_get_double(kv, "bg_r", &st->bg_r)
+	           && nde_kv_get_double(kv, "bg_g", &st->bg_g)
+	           && nde_kv_get_double(kv, "bg_b", &st->bg_b)
+	           && nde_kv_get_int(kv, "n", &n)
+	           && nde_kv_get_int(kv, "ng", &ng)
+	           && n > 0;
+	st->canvas_w = (guint)MAX(cw, 0);
+	st->canvas_h = (guint)MAX(ch, 0);
+	for (gint64 i = 0; ok && i < n; i++) {
+		nde_composite_input in = { 0 };
+		gint64 item = 0, blend = 0, x = 0, y = 0, group = 0;
+		ok = nde_kv_get_int(kv, ikey(k, "i", (guint)i, "item"), &item)
+		  && nde_kv_get_int(kv, ikey(k, "i", (guint)i, "blend"), &blend)
+		  && nde_kv_get_double(kv, ikey(k, "i", (guint)i, "opacity"), &in.opacity)
+		  && nde_kv_get_int(kv, ikey(k, "i", (guint)i, "x"), &x)
+		  && nde_kv_get_int(kv, ikey(k, "i", (guint)i, "y"), &y)
+		  && nde_kv_get_bool(kv, ikey(k, "i", (guint)i, "visible"), &in.visible)
+		  && nde_kv_get_bool(kv, ikey(k, "i", (guint)i, "tinted"), &in.has_tint)
+		  && nde_kv_get_double(kv, ikey(k, "i", (guint)i, "tint_r"), &in.tint_r)
+		  && nde_kv_get_double(kv, ikey(k, "i", (guint)i, "tint_g"), &in.tint_g)
+		  && nde_kv_get_double(kv, ikey(k, "i", (guint)i, "tint_b"), &in.tint_b)
+		  && nde_kv_get_int(kv, ikey(k, "i", (guint)i, "group"), &group)
+		  && nde_kv_get_bool(kv, ikey(k, "i", (guint)i, "masked"), &in.was_masked);
+		if (!ok)
+			break;
+		const char *name = nde_kv_get_str(kv, ikey(k, "i", (guint)i, "name"));
+		in.item_id    = (gint)item;
+		in.blend_mode = (gint)blend;
+		in.position_x = (gint)x;
+		in.position_y = (gint)y;
+		in.group_id   = (gint)group;
+		in.name       = (name && *name) ? g_strdup(name) : NULL;
+		g_array_append_val(st->inputs, in);
+	}
+	for (gint64 i = 0; ok && i < ng; i++) {
+		nde_composite_group g = { 0 };
+		gint64 item = 0, blend = 0;
+		ok = nde_kv_get_int(kv, ikey(k, "g", (guint)i, "item"), &item)
+		  && nde_kv_get_int(kv, ikey(k, "g", (guint)i, "blend"), &blend)
+		  && nde_kv_get_double(kv, ikey(k, "g", (guint)i, "opacity"), &g.opacity)
+		  && nde_kv_get_bool(kv, ikey(k, "g", (guint)i, "visible"), &g.visible);
+		if (!ok)
+			break;
+		g.item_id    = (gint)item;
+		g.blend_mode = (gint)blend;
+		g_array_append_val(st->groups, g);
+	}
 	g_hash_table_unref(kv);
-	return masked;
+	if (!ok) {
+		nde_composite_state_free(st);
+		return NULL;
+	}
+	return st;
 }
 
 gboolean nde_composite_record_replayable(const nde_record *rec) {
 	if (!rec || !nde_composite_is_op(rec->op_id))
 		return FALSE;
-	if (!nde_record_input(rec, NDE_COMPOSITE_ROLE_BASE)
-	    || !nde_record_input(rec, NDE_COMPOSITE_ROLE_OVERLAY))
+	nde_composite_state *st = nde_composite_state_parse(rec->params);
+	if (!st)
 		return FALSE;
-	if (overlay_was_masked(rec->params))
-		return FALSE;
-	nde_composite_input in;
-	gboolean ok = nde_composite_params_decode(rec->params, NULL, &in);
-	nde_composite_input_clear(&in);
+	gboolean ok = TRUE;
+	for (guint i = 0; i < st->inputs->len && ok; i++) {
+		const nde_composite_input *in = &g_array_index(st->inputs, nde_composite_input, i);
+		/* Every input needs a pin to resolve it through — except an invisible
+		 * one, which contributes nothing and is never resolved. */
+		if (in->visible && !nde_record_input_by_item(rec, in->item_id))
+			ok = FALSE;
+		/* A mask on the raw-painted first input was not applied (that is what
+		 * raw means), so it does not stand in the way. */
+		if (in->was_masked && !(i == 0 && st->raw_first))
+			ok = FALSE;
+	}
+	nde_composite_state_free(st);
 	return ok;
 }
 
-fits *nde_composite_render(const fits *base, const nde_composite_input *bs,
-                           gint base_x, gint base_y,
-                           const fits *overlay, const nde_composite_input *ov,
-                           gchar **err) {
-	if (!base || !overlay || !bs || !ov) {
+/* ---- rendering ---------------------------------------------------------- */
+
+fits *nde_composite_render(const nde_composite_state *st,
+                           fits *const *pixels, gchar **err) {
+	if (!st || !st->inputs->len || !pixels) {
 		if (err)
 			*err = g_strdup(_("the composite is missing an input"));
 		return NULL;
 	}
-	/* Synthetic layers: the compositor's input is a flis_layer_t, and after a
-	 * merge neither input is one any more.  Everything it reads is either
-	 * resolved pixels or recorded state, so borrowing the struct is honest —
-	 * these are stack copies that own nothing and are never linked into the
-	 * document.
-	 *
-	 * The base is painted raw by the merge variant (first_raw), so its blend
-	 * mode, opacity and visibility are not read: they are RETAINED on the
-	 * surviving layer and baking them here would apply them twice.  Its tint
-	 * IS read, because the merge bakes it. */
-	flis_layer_t lb = { 0 }, lt = { 0 };
-	lb.fit = (fits *)base;
-	lb.blend_mode = FLIS_BLEND_NORMAL;
-	lb.opacity = 1.f;
-	lb.visible = TRUE;
-	lb.has_tint = bs->has_tint;
-	lb.layer_tint = (flis_tint_t){ bs->tint_r, bs->tint_g, bs->tint_b };
-	lb.position_x = base_x;
-	lb.position_y = base_y;
+	/* Synthetic layers and groups: the compositor's inputs are flis_layer_t and
+	 * flis_group_t, and after a composite none of them are one any more.
+	 * Everything it reads is either resolved pixels or recorded state, so
+	 * borrowing the structs is honest — these are stack copies that own nothing
+	 * and are never linked into the document. */
+	flis_layer_t *lays = g_new0(flis_layer_t, st->inputs->len);
+	flis_group_t *grps = st->groups->len ? g_new0(flis_group_t, st->groups->len) : NULL;
+	GSList *list = NULL, *glist = NULL;
+	for (guint i = 0; i < st->inputs->len; i++) {
+		const nde_composite_input *in = &g_array_index(st->inputs, nde_composite_input, i);
+		if (in->visible && !pixels[i]) {
+			g_free(lays);
+			g_free(grps);
+			g_slist_free(list);
+			g_slist_free(glist);
+			if (err)
+				*err = g_strdup_printf(_("the pixels of input '%s' could not be resolved"),
+				                       in->name ? in->name : "?");
+			return NULL;
+		}
+		lays[i].fit        = pixels[i];
+		lays[i].item_id    = in->item_id;
+		lays[i].blend_mode = (flis_blend_mode_t)in->blend_mode;
+		lays[i].opacity    = (gfloat)in->opacity;
+		lays[i].visible    = in->visible;
+		lays[i].has_tint   = in->has_tint;
+		lays[i].layer_tint = (flis_tint_t){ in->tint_r, in->tint_g, in->tint_b };
+		lays[i].position_x = in->position_x;
+		lays[i].position_y = in->position_y;
+		lays[i].group_id   = in->group_id;
+		list = g_slist_append(list, &lays[i]);
+	}
+	for (guint i = 0; i < st->groups->len; i++) {
+		const nde_composite_group *g = &g_array_index(st->groups, nde_composite_group, i);
+		grps[i].item_id    = g->item_id;
+		grps[i].blend_mode = (flis_blend_mode_t)g->blend_mode;
+		grps[i].opacity    = (gfloat)g->opacity;
+		grps[i].visible    = g->visible;
+		glist = g_slist_append(glist, &grps[i]);
+	}
 
-	lt.fit = (fits *)overlay;
-	lt.blend_mode = (flis_blend_mode_t)ov->blend_mode;
-	lt.opacity = (gfloat)ov->opacity;
-	lt.visible = ov->visible;
-	lt.has_tint = ov->has_tint;
-	lt.layer_tint = (flis_tint_t){ ov->tint_r, ov->tint_g, ov->tint_b };
-	lt.position_x = ov->position_x;
-	lt.position_y = ov->position_y;
-
-	GSList *pair = g_slist_append(NULL, &lb);
-	pair = g_slist_append(pair, &lt);
-	fits *out = flis_render_layers_merge(pair);
-	g_slist_free(pair);
+	flis_render_ctx ctx = {
+		.canvas_w = st->canvas_w,
+		.canvas_h = st->canvas_h,
+		.bg_r = st->bg_r, .bg_g = st->bg_g, .bg_b = st->bg_b,
+		.groups = glist,
+	};
+	/* raw_first also selects the sub-composite contract, and for the same
+	 * reason: merge-down composites two layers in isolation — no canvas
+	 * background beneath them, no group pre-pass — while flatten renders the
+	 * document exactly as the display does. */
+	fits *out = flis_render_layers_ctx(list, &ctx, st->raw_first, st->raw_first);
+	g_slist_free(list);
+	g_slist_free(glist);
+	g_free(lays);
+	g_free(grps);
 	if (!out && err)
 		*err = g_strdup(_("the composite could not be rendered"));
 	return out;
+}
+
+/* ---- capture ------------------------------------------------------------ */
+
+struct _nde_composite_capture {
+	gchar        *params;
+	nde_pin_spec *pins;
+	gchar       **roles;   /* owns the role strings the pins point at */
+	guint         n_pins;
+};
+
+nde_composite_capture *nde_composite_capture_begin(GSList *layers,
+                                                   gboolean raw_first) {
+	guint n = g_slist_length(layers);
+	if (!n)
+		return NULL;
+	nde_composite_state *st = state_from_layers(layers, raw_first);
+	nde_composite_capture *cap = g_new0(nde_composite_capture, 1);
+	cap->params = state_encode(st);
+	cap->n_pins = st->inputs->len;
+	cap->pins   = g_new0(nde_pin_spec, cap->n_pins);
+	cap->roles  = g_new0(gchar *, cap->n_pins);
+	for (guint i = 0; i < cap->n_pins; i++) {
+		const nde_composite_input *in = &g_array_index(st->inputs, nde_composite_input, i);
+		/* Merge-down keeps its two named roles; they read better in the graph
+		 * view than in0/in1 and predate it.  Nothing parses them. */
+		if (raw_first && cap->n_pins == 2)
+			cap->roles[i] = g_strdup(i == 0 ? NDE_COMPOSITE_ROLE_BASE
+			                               : NDE_COMPOSITE_ROLE_OVERLAY);
+		else
+			cap->roles[i] = g_strdup_printf("in%u", i);
+		cap->pins[i].role          = cap->roles[i];
+		cap->pins[i].src_item_id   = in->item_id;
+		cap->pins[i].src_record_id = nde_history_last_record_for_item(in->item_id);
+	}
+	guint i = 0;
+	for (GSList *l = layers; l; l = l->next, i++) {
+		const flis_layer_t *lay = l->data;
+		if (!lay)
+			continue;
+		nde_checkpoint_baseline_ensure(lay->fit, lay->item_id);
+		nde_checkpoint_baseline_set_offset(lay->item_id, lay->position_x,
+		                                   lay->position_y);
+	}
+	nde_composite_state_free(st);
+	return cap;
+}
+
+void nde_composite_capture_free(nde_composite_capture *cap) {
+	if (!cap)
+		return;
+	g_free(cap->params);
+	for (guint i = 0; i < cap->n_pins; i++)
+		g_free(cap->roles[i]);
+	g_free(cap->roles);
+	g_free(cap->pins);
+	g_free(cap);
+}
+
+gint64 nde_composite_capture_commit(nde_composite_capture *cap, const char *op_id,
+                                    gint target_item_id, const char *summary) {
+	if (!cap)
+		return 0;
+	gint64 id = nde_capture_structural_pinned(op_id, NDE_SCOPE_DOCUMENT,
+	                                          target_item_id, cap->params,
+	                                          summary, cap->pins, cap->n_pins);
+	cap->params = NULL;   /* consumed by the capture */
+	nde_composite_capture_free(cap);
+	return id;
 }

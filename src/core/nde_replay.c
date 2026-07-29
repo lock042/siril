@@ -549,46 +549,67 @@ static void commit_layer_offset(gint item_id, gint pos_x, gint pos_y) {
 
 static fits *resolve_item_state(gint item_id, gint64 upto_record_id, gchar **err);
 
-/* Run one composite member (graph step 7, nde_composite.h).
+/* Run one composite member (graph step 7, nde_composite.h) — merge-down with
+ * two inputs, flatten with all of them.
  *
- * @base is the accumulated replay state — the "base" input resolved for free,
- * which is why only the OVERLAY pin is looked up here.  Resolving the base pin
- * through the chain machinery would recurse: the base input IS this chain's
- * item, and its chain contains this very record.
+ * @base is the accumulated replay state, which is one of the inputs already
+ * resolved for free: the one whose item this chain belongs to.  That input's
+ * pin is deliberately NOT followed — resolving it through the chain machinery
+ * would recurse, since its chain contains this very record.  Every other input
+ * is a live edge, re-derived by replaying its own chain.
  *
  * Returns a new fits; @base is left alone on both paths and stays the caller's
  * to free.  On success the layer's position becomes the canvas origin, because
  * the composite is canvas-sized and canvas-aligned — the same reset the live
- * merge performs.
+ * merge and flatten perform.
  */
-static fits *composite_apply(fits *base, const nde_record *rec,
+static fits *composite_apply(fits *base, const nde_record *rec, gint item_id,
                              gint *pos_x, gint *pos_y, gchar **err) {
-	nde_composite_input bs = { 0 }, ov = { 0 };
-	if (!nde_composite_params_decode(rec->params, &bs, &ov)) {
+	nde_composite_state *st = nde_composite_state_parse(rec->params);
+	if (!st) {
 		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT ": the composite's inputs were not recorded"),
 		                       rec->record_id);
 		return NULL;
 	}
-	const nde_input_pin *pin = nde_record_input(rec, NDE_COMPOSITE_ROLE_OVERLAY);
-	fits *overlay = NULL;
-	if (!pin)
-		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT ": the merged-in layer is not recorded as an input"),
-		                       rec->record_id);
-	else
-		overlay = resolve_item_state(pin->src_item_id, pin->src_record_id, err);
-	if (!overlay) {
-		nde_composite_input_clear(&bs);
-		nde_composite_input_clear(&ov);
-		return NULL;
+	guint n = st->inputs->len;
+	fits **pixels = g_new0(fits *, n);
+	gboolean *owned = g_new0(gboolean, n);
+	gboolean ok = TRUE;
+	for (guint i = 0; i < n && ok; i++) {
+		nde_composite_input *in = &g_array_index(st->inputs, nde_composite_input, i);
+		if (in->item_id == item_id) {
+			pixels[i] = base;
+			/* A geometry step before the composite moves this input, so an
+			 * amend of that step must move where it lands here too. */
+			if (pos_x && pos_y) {
+				in->position_x = *pos_x;
+				in->position_y = *pos_y;
+			}
+			continue;
+		}
+		if (!in->visible)
+			continue;   /* contributes nothing: not worth a replay */
+		const nde_input_pin *pin = nde_record_input_by_item(rec, in->item_id);
+		if (!pin) {
+			*err = g_strdup_printf(_("record %" G_GINT64_FORMAT ": the layer '%s' it consumed is not recorded as an input"),
+			                       rec->record_id, in->name ? in->name : "?");
+			ok = FALSE;
+			break;
+		}
+		pixels[i] = resolve_item_state(pin->src_item_id, pin->src_record_id, err);
+		owned[i] = TRUE;
+		ok = pixels[i] != NULL;
 	}
-	fits *out = nde_composite_render(base, &bs,
-	                                 pos_x ? *pos_x : bs.position_x,
-	                                 pos_y ? *pos_y : bs.position_y,
-	                                 overlay, &ov, err);
-	clearfits(overlay);
-	free(overlay);
-	nde_composite_input_clear(&bs);
-	nde_composite_input_clear(&ov);
+	fits *out = ok ? nde_composite_render(st, pixels, err) : NULL;
+	for (guint i = 0; i < n; i++) {
+		if (owned[i] && pixels[i]) {
+			clearfits(pixels[i]);
+			free(pixels[i]);
+		}
+	}
+	g_free(pixels);
+	g_free(owned);
+	nde_composite_state_free(st);
 	if (out && pos_x && pos_y)
 		*pos_x = *pos_y = 0;
 	return out;
@@ -622,7 +643,8 @@ static fits *replay_apply_records(fits *scratch, const nde_chain *chain,
 			continue;
 		}
 		if (nde_composite_is_op(rec->op_id)) {
-			fits *merged = composite_apply(scratch, rec, pos_x, pos_y, err);
+			fits *merged = composite_apply(scratch, rec, chain->item_id,
+			                               pos_x, pos_y, err);
 			if (!merged)
 				goto fail;   /* scratch untouched — the fail path frees it */
 			clearfits(scratch);
@@ -1053,8 +1075,10 @@ static gboolean item_is_retained_input(gint item_id) {
 		const nde_record *rec = g_ptr_array_index(live, i);
 		if (!nde_composite_record_replayable(rec))
 			continue;
-		const nde_input_pin *pin = nde_record_input(rec, NDE_COMPOSITE_ROLE_OVERLAY);
-		found = pin && pin->src_item_id == item_id;
+		/* The composite's own target still has a layer to commit into, so it
+		 * is not what makes an input retained. */
+		found = rec->target_item_id != item_id &&
+		        nde_record_input_by_item(rec, item_id) != NULL;
 	}
 	if (live)
 		g_ptr_array_unref(live);
@@ -1074,8 +1098,8 @@ static void cascade_composite_consumers(gint item_id) {
 		const nde_record *rec = g_ptr_array_index(live, i);
 		if (!nde_composite_record_replayable(rec))
 			continue;
-		const nde_input_pin *pin = nde_record_input(rec, NDE_COMPOSITE_ROLE_OVERLAY);
-		if (pin && pin->src_item_id == item_id)
+		if (rec->target_item_id != item_id &&
+		    nde_record_input_by_item(rec, item_id))
 			g_hash_table_add(items, GINT_TO_POINTER(rec->target_item_id));
 	}
 	if (live)

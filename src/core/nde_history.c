@@ -95,6 +95,17 @@ const nde_input_pin *nde_record_input(const nde_record *rec, const char *role) {
 	return NULL;
 }
 
+const nde_input_pin *nde_record_input_by_item(const nde_record *rec, gint item_id) {
+	if (!rec || !rec->inputs)
+		return NULL;
+	for (guint i = 0; i < rec->inputs->len; i++) {
+		const nde_input_pin *p = g_ptr_array_index(rec->inputs, i);
+		if (p->src_item_id == item_id)
+			return p;
+	}
+	return NULL;
+}
+
 nde_record *nde_record_copy(const nde_record *rec) {
 	if (!rec)
 		return NULL;

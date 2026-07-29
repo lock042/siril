@@ -127,6 +127,11 @@ void nde_record_add_input(nde_record *rec, const char *role,
 /** The pin for @role, or NULL.  Borrowed — valid while @rec is. */
 const nde_input_pin *nde_record_input(const nde_record *rec, const char *role);
 
+/** The pin naming @item_id as its source, or NULL.  A composite matches its
+ *  pins to its recorded inputs this way: roles are labels for the graph view,
+ *  and an item appears at most once among a record's inputs. */
+const nde_input_pin *nde_record_input_by_item(const nde_record *rec, gint item_id);
+
 /* ---- pin list codec ------------------------------------------------------
  * Encoded with the ordinary kv codec so the escaping rules are shared:
  * "n=2;role0=mask;item0=3;rec0=7;role1=base;item1=1;rec1=0".              */

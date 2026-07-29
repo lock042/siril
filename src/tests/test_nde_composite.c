@@ -109,7 +109,7 @@ static void done(void) {
 	gfit = NULL;
 }
 
-static const nde_record *find_merge_record(void) {
+static const nde_record *find_composite_record(void) {
 	GPtrArray *snap = nde_history_snapshot(NULL);
 	const nde_record *found = NULL;
 	for (guint i = 0; snap && i < snap->len; i++) {
@@ -135,7 +135,7 @@ Test(nde_composite, the_merge_records_both_inputs) {
 	gint bottom_item = 0, top_item = 0;
 	two_edited_layers_merged(&bottom_item, &top_item, FLIS_BLEND_NORMAL, 0.5f);
 
-	const nde_record *merge = find_merge_record();
+	const nde_record *merge = find_composite_record();
 	cr_assert_not_null(merge, "the merge must be recorded");
 
 	const nde_input_pin *base = nde_record_input(merge, NDE_COMPOSITE_ROLE_BASE);
@@ -148,18 +148,20 @@ Test(nde_composite, the_merge_records_both_inputs) {
 	              "each pin names the input's state AT THE MERGE, not its baseline");
 	cr_assert_neq(over->src_record_id, 0);
 
-	nde_composite_input bs = { 0 }, ov = { 0 };
-	cr_assert(nde_composite_params_decode(merge->params, &bs, &ov),
-	          "the per-input compositing state must round-trip");
-	cr_assert_eq(ov.item_id, top_item);
-	cr_assert_str_eq(ov.name, "top");
-	cr_assert_eq(ov.blend_mode, FLIS_BLEND_NORMAL);
-	cr_assert_float_eq(ov.opacity, 0.5, 1e-6,
+	nde_composite_state *st = nde_composite_state_parse(merge->params);
+	cr_assert_not_null(st, "the per-input compositing state must round-trip");
+	cr_assert(st->raw_first, "merge-down paints its bottom input raw");
+	cr_assert_eq(st->inputs->len, 2);
+	const nde_composite_input *bs = &g_array_index(st->inputs, nde_composite_input, 0);
+	const nde_composite_input *ov = &g_array_index(st->inputs, nde_composite_input, 1);
+	cr_assert_eq(ov->item_id, top_item);
+	cr_assert_str_eq(ov->name, "top");
+	cr_assert_eq(ov->blend_mode, FLIS_BLEND_NORMAL);
+	cr_assert_float_eq(ov->opacity, 0.5, 1e-6,
 	                   "opacity dies with the layer, so it must be recorded");
-	cr_assert(ov.visible);
-	cr_assert_eq(bs.item_id, bottom_item);
-	nde_composite_input_clear(&bs);
-	nde_composite_input_clear(&ov);
+	cr_assert(ov->visible);
+	cr_assert_eq(bs->item_id, bottom_item);
+	nde_composite_state_free(st);
 	done();
 }
 
@@ -333,7 +335,7 @@ Test(nde_composite, a_pin_may_name_a_record_the_pixel_chain_does_not_contain) {
 	cr_assert_eq(flis_merge_down_layer(top), 0);
 	gfit = ((flis_layer_t *)com.uniq->layers->data)->fit;
 
-	const nde_record *merge = find_merge_record();
+	const nde_record *merge = find_composite_record();
 	const nde_input_pin *over = nde_record_input(merge, NDE_COMPOSITE_ROLE_OVERLAY);
 	cr_assert_not_null(over);
 	cr_assert_neq(over->src_record_id, record_for_item(top_item),
@@ -348,6 +350,191 @@ Test(nde_composite, a_pin_may_name_a_record_the_pixel_chain_does_not_contain) {
 	unreserve_thread();
 	g_free(err);
 	cr_assert_neq(first_pixel(), before);
+	done();
+}
+
+/* ---- flatten: the same node, N inputs ----------------------------------- */
+
+/* Three RGB layers, one step each, then flattened.  The middle one blends and
+ * the top one is half-transparent, so the flattened pixels depend on state that
+ * nothing but the record can carry once the layers are gone. */
+static void three_layers_flattened(gint items[3]) {
+	com.pref.nde_cache_mb = 256;
+	flis_layer_t *l[3] = {
+		flis_test_add_layer(flis_test_make_rgb_fits(4, 4, 0.5f, 0.5f, 0.5f), "bottom"),
+		flis_test_add_layer(flis_test_make_rgb_fits(4, 4, 0.25f, 0.25f, 0.25f), "middle"),
+		flis_test_add_layer(flis_test_make_rgb_fits(4, 4, 0.1f, 0.1f, 0.1f), "top"),
+	};
+	com.uniq->canvas_w = 4;   /* the document paths set this; flis_layer_add does not */
+	com.uniq->canvas_h = 4;
+	cr_assert_eq(flis_layer_set_blend_mode(l[1], FLIS_BLEND_MULTIPLY), 0);
+	cr_assert_eq(flis_layer_set_opacity(l[2], 0.5f), 0);
+	const float betas[3] = { 5.f, 30.f, 12.f };
+	for (int i = 0; i < 3; i++) {
+		items[i] = l[i]->item_id;
+		select_layer(l[i]);
+		cr_assert_eq(run_op_on_active(&op_desc_asinh, asinh_beta(betas[i])), 0);
+	}
+	cr_assert_eq(flis_flatten_all(), 0);
+	cr_assert_eq(flis_layer_count(), 1);
+	gfit = ((flis_layer_t *)com.uniq->layers->data)->fit;
+}
+
+/* Flatten consumes the whole stack, so the whole stack is recorded — and unlike
+ * merge-down it blends its bottom input too, over the canvas background. */
+Test(nde_composite, the_flatten_records_every_layer) {
+	gint items[3] = { 0 };
+	three_layers_flattened(items);
+
+	const nde_record *flat = find_composite_record();
+	cr_assert_not_null(flat);
+	cr_assert_str_eq(flat->op_id, "document.flatten");
+
+	nde_composite_state *st = nde_composite_state_parse(flat->params);
+	cr_assert_not_null(st, "the state of every input must round-trip");
+	cr_assert(!st->raw_first, "flatten blends its bottom input, it does not paint it raw");
+	cr_assert_eq(st->inputs->len, 3);
+	cr_assert_eq(st->canvas_w, 4, "the canvas it was composited against is recorded");
+	cr_assert_eq(st->canvas_h, 4);
+	for (guint i = 0; i < 3; i++) {
+		const nde_composite_input *in = &g_array_index(st->inputs, nde_composite_input, i);
+		cr_assert_eq(in->item_id, items[i]);
+		const nde_input_pin *pin = nde_record_input_by_item(flat, items[i]);
+		cr_assert_not_null(pin, "every input is pinned, not just the consumed ones");
+		cr_assert_neq(pin->src_record_id, 0);
+	}
+	const nde_composite_input *mid = &g_array_index(st->inputs, nde_composite_input, 1);
+	cr_assert_eq(mid->blend_mode, FLIS_BLEND_MULTIPLY);
+	const nde_composite_input *top = &g_array_index(st->inputs, nde_composite_input, 2);
+	cr_assert_float_eq(top->opacity, 0.5, 1e-6);
+	nde_composite_state_free(st);
+	done();
+}
+
+Test(nde_composite, the_flatten_no_longer_freezes_the_layer_it_survives_as) {
+	gint items[3] = { 0 };
+	three_layers_flattened(items);
+
+	nde_chain *chain = nde_chain_build(items[0]);
+	cr_assert(chain->replayable, "the flatten must be replayable, not a blocker: %s",
+	          chain->reasons->len ? (char *)g_ptr_array_index(chain->reasons, 0) : "none");
+	cr_assert(chain->has_composite);
+	cr_assert_eq(chain->records->len, 2, "the layer's own step plus the flatten");
+	cr_assert_eq(chain->tail_start, 0);
+	nde_chain_free(chain);
+	done();
+}
+
+Test(nde_composite, replaying_through_the_flatten_reproduces_it) {
+	gint items[3] = { 0 };
+	three_layers_flattened(items);
+	flis_layer_t *flat = (flis_layer_t *)com.uniq->layers->data;
+	fits expected = { 0 };
+	copyfits(flat->fit, &expected, CP_DEEPCOPY | CP_ALLOC, -1);
+
+	nde_chain *chain = nde_chain_build(items[0]);
+	cr_assert(chain->replayable);
+	cr_assert(reserve_thread());
+	gchar *err = NULL;
+	fits *result = nde_chain_replay(chain, &err);
+	unreserve_thread();
+	cr_assert_not_null(result, "replay failed: %s", err ? err : "?");
+	g_free(err);
+
+	cr_assert_eq(result->rx, expected.rx);
+	cr_assert_eq(result->naxes[2], expected.naxes[2]);
+	size_t n = (size_t)expected.rx * expected.ry * expected.naxes[2];
+	float maxdev = 0.f;
+	for (size_t i = 0; i < n; i++) {
+		float d = fabsf(result->fdata[i] - expected.fdata[i]);
+		if (d > maxdev) maxdev = d;
+	}
+	cr_assert(maxdev <= 1e-6f, "replayed flatten deviates by %.3g", (double)maxdev);
+
+	clearfits(result); free(result);
+	nde_chain_free(chain);
+	clearfits(&expected);
+	done();
+}
+
+/* The del.png bug, for flatten: a layer the flatten consumed is gone from the
+ * document but its steps are live, and amending one re-runs the flatten. */
+Test(nde_composite, amending_a_flattened_away_layers_step_takes_effect) {
+	gint items[3] = { 0 };
+	three_layers_flattened(items);
+	cr_assert_null(flis_layer_get_by_id(items[1]), "the middle layer really is gone");
+	gint64 rid = record_for_item(items[1]);
+	cr_assert_neq(rid, 0);
+	float before = first_pixel();
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_amend_execute(rid, "beta=1.000000;offset=0.000000;human=0;clip_mode=0", &err),
+	          "amend failed: %s", err ? err : "?");
+	unreserve_thread();
+	g_free(err);
+
+	cr_assert_neq(first_pixel(), before,
+	              "amending a step upstream of the flatten must reach the flattened image");
+	done();
+}
+
+/* The reason the compositor needed an explicit context.  A group with a real
+ * blend mode is pre-composited before it reaches the main composite, and after
+ * the flatten the group has no members left — so a replay that consulted the
+ * live document would quietly render something else. */
+Test(nde_composite, a_flattened_group_replays_from_the_recorded_group_state) {
+	com.pref.nde_cache_mb = 256;
+	flis_layer_t *l[3] = {
+		flis_test_add_layer(flis_test_make_rgb_fits(4, 4, 0.5f, 0.5f, 0.5f), "bottom"),
+		flis_test_add_layer(flis_test_make_rgb_fits(4, 4, 0.25f, 0.25f, 0.25f), "g1"),
+		flis_test_add_layer(flis_test_make_rgb_fits(4, 4, 0.6f, 0.6f, 0.6f), "g2"),
+	};
+	flis_group_t *grp = flis_group_add("stack");
+	cr_assert_not_null(grp);
+	grp->blend_mode = FLIS_BLEND_MULTIPLY;   /* not PASS_THROUGH: pre-composited */
+	grp->opacity    = 0.6f;
+	grp->visible    = TRUE;
+	cr_assert_eq(flis_layer_set_group(l[1], grp->item_id), 0);
+	cr_assert_eq(flis_layer_set_group(l[2], grp->item_id), 0);
+	gint base_item = l[0]->item_id;
+	select_layer(l[0]);
+	cr_assert_eq(run_op_on_active(&op_desc_asinh, asinh_beta(5.f)), 0);
+
+	cr_assert_eq(flis_flatten_all(), 0);
+	fits expected = { 0 };
+	flis_layer_t *flat = (flis_layer_t *)com.uniq->layers->data;
+	copyfits(flat->fit, &expected, CP_DEEPCOPY | CP_ALLOC, -1);
+	gfit = flat->fit;
+
+	const nde_record *rec = find_composite_record();
+	nde_composite_state *st = nde_composite_state_parse(rec->params);
+	cr_assert_not_null(st);
+	cr_assert_eq(st->groups->len, 1, "the group is recorded, not looked up later");
+	cr_assert_eq(g_array_index(st->groups, nde_composite_group, 0).blend_mode,
+	             FLIS_BLEND_MULTIPLY);
+	nde_composite_state_free(st);
+
+	nde_chain *chain = nde_chain_build(base_item);
+	cr_assert(chain->replayable, "%s",
+	          chain->reasons->len ? (char *)g_ptr_array_index(chain->reasons, 0) : "none");
+	cr_assert(reserve_thread());
+	gchar *err = NULL;
+	fits *result = nde_chain_replay(chain, &err);
+	unreserve_thread();
+	cr_assert_not_null(result, "replay failed: %s", err ? err : "?");
+	g_free(err);
+	size_t n = (size_t)expected.rx * expected.ry * expected.naxes[2];
+	float maxdev = 0.f;
+	for (size_t i = 0; i < n; i++) {
+		float d = fabsf(result->fdata[i] - expected.fdata[i]);
+		if (d > maxdev) maxdev = d;
+	}
+	cr_assert(maxdev <= 1e-6f, "replayed group flatten deviates by %.3g", (double)maxdev);
+
+	clearfits(result); free(result);
+	nde_chain_free(chain);
+	clearfits(&expected);
 	done();
 }
 
@@ -382,6 +569,54 @@ Test(nde_composite, a_merge_without_recorded_inputs_still_blocks) {
 	cr_assert(chain->reasons->len > 0, "and must say why");
 	nde_chain_free(chain);
 	done();
+}
+
+/* A layer mask is not a fits->mask and has no resolver yet, so a composite that
+ * applied one cannot be re-run.  It says so instead of compositing without the
+ * mask and calling the result a reproduction. */
+Test(nde_composite, a_flatten_over_a_masked_layer_still_blocks) {
+	com.pref.nde_cache_mb = 256;
+	flis_layer_t *bottom = flis_test_add_layer(
+	    flis_test_make_rgb_fits(4, 4, 0.5f, 0.5f, 0.5f), "bottom");
+	flis_layer_t *top = flis_test_add_layer(
+	    flis_test_make_rgb_fits(4, 4, 0.25f, 0.25f, 0.25f), "top");
+	top->lmask = flis_test_make_const_lmask(4, 4, 8, 0.5);
+	top->lmask_active = TRUE;
+	gint bottom_item = bottom->item_id;
+	select_layer(bottom);
+	cr_assert_eq(run_op_on_active(&op_desc_asinh, asinh_beta(5.f)), 0);
+
+	cr_assert_eq(flis_flatten_all(), 0);
+	nde_chain *chain = nde_chain_build(bottom_item);
+	cr_assert(!chain->replayable,
+	          "a composite that applied a layer mask cannot be re-run yet");
+	cr_assert(chain->reasons->len > 0, "and must say why");
+	nde_chain_free(chain);
+	done();
+}
+
+/* The first merge-down format, before flatten joined this node and the params
+ * became indexed.  Documents saved with it must keep replaying rather than
+ * silently reverting to blockers, so the parser still accepts it. */
+Test(nde_composite, the_first_merge_format_still_decodes) {
+	nde_composite_state *st = nde_composite_state_parse(
+	    "base_item=1;base_x=0;base_y=0;base_tinted=0;base_tint_r=1.000000;"
+	    "base_tint_g=1.000000;base_tint_b=1.000000;top_item=2;top_name=top;"
+	    "top_blend=3;top_opacity=0.500000;top_x=1;top_y=2;top_visible=1;"
+	    "top_tinted=0;top_tint_r=1.000000;top_tint_g=1.000000;"
+	    "top_tint_b=1.000000;top_masked=0");
+	cr_assert_not_null(st, "a merge recorded by the shipped format must still parse");
+	cr_assert(st->raw_first, "it is a merge-down, so its base is painted raw");
+	cr_assert_eq(st->inputs->len, 2);
+	const nde_composite_input *ov = &g_array_index(st->inputs, nde_composite_input, 1);
+	cr_assert_eq(ov->item_id, 2);
+	cr_assert_str_eq(ov->name, "top");
+	cr_assert_eq(ov->blend_mode, 3);
+	cr_assert_float_eq(ov->opacity, 0.5, 1e-6);
+	cr_assert_eq(ov->position_x, 1);
+	cr_assert_eq(ov->position_y, 2);
+	cr_assert(!ov->was_masked);
+	nde_composite_state_free(st);
 }
 
 /* ---- persistence -------------------------------------------------------- */

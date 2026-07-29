@@ -4562,37 +4562,18 @@ int flis_merge_down_layer(flis_layer_t *top) {
      * dangling-pointers top->layer_name (use-after-free otherwise). */
     gchar *top_name_copy = g_strdup(top->layer_name ? top->layer_name : "?");
     const char *bottom_name = bottom->layer_name ? bottom->layer_name : "?";
-    gint top_item_id = top->item_id;      /* for the NDE record (top is freed below) */
     gint bottom_item_id = bottom->item_id;
 
     /* NDE composite node (design note §3): everything the merge consumes has
      * to be recoverable afterwards, and this is the last moment at which it
-     * all still exists.  Three things are taken here, in this order:
-     *
-     *  - the per-input compositing state, because the top layer's blend mode,
-     *    opacity, offset and tint die with the layer and are inputs to the
-     *    composite just as much as its pixels are;
-     *  - the pin coordinates, each input's last record, which is where the
-     *    replay resolves that input to;
-     *  - a BASELINE for each input, so that resolving it has somewhere to
-     *    start.  A layer merged without ever being edited has no baseline
-     *    yet, and after the merge its pre-merge pixels are unreachable — the
-     *    bottom layer's have been overwritten and the top layer is gone.
-     *    Both ensures are no-ops when a baseline already exists.
-     */
-    gchar *nde_params = nde_composite_params_encode(bottom, top);
-    nde_pin_spec nde_pins[2] = {
-        { NDE_COMPOSITE_ROLE_BASE,    bottom_item_id,
-          nde_history_last_record_for_item(bottom_item_id) },
-        { NDE_COMPOSITE_ROLE_OVERLAY, top_item_id,
-          nde_history_last_record_for_item(top_item_id) },
-    };
-    nde_checkpoint_baseline_ensure(bottom->fit, bottom_item_id);
-    nde_checkpoint_baseline_set_offset(bottom_item_id, bottom->position_x,
-                                       bottom->position_y);
-    nde_checkpoint_baseline_ensure(top->fit, top_item_id);
-    nde_checkpoint_baseline_set_offset(top_item_id, top->position_x,
-                                       top->position_y);
+     * all still exists — the state, the pins and a baseline per input.  See
+     * nde_composite.h; the record itself is appended once the mutation is
+     * done. */
+    GSList *nde_inputs = g_slist_append(NULL, bottom);
+    nde_inputs = g_slist_append(nde_inputs, top);
+    nde_composite_capture *nde_cap =
+            nde_composite_capture_begin(nde_inputs, TRUE /* merge paints raw */);
+    g_slist_free(nde_inputs);
 
     /* Destructive operation: purge undo history for both layers */
     flis_undo_purge_layer(top->item_id);
@@ -4642,9 +4623,8 @@ int flis_merge_down_layer(flis_layer_t *top) {
      * input.  With the pins and the state gathered above the record is a
      * replayable composite node rather than a wall: amending a step on either
      * input re-runs this merge. */
-    nde_capture_structural_pinned("layer.merge_down", NDE_SCOPE_DOCUMENT,
-                                  bottom_item_id, nde_params, _("Merge down"),
-                                  nde_pins, G_N_ELEMENTS(nde_pins));
+    nde_composite_capture_commit(nde_cap, "layer.merge_down", bottom_item_id,
+                                 _("Merge down"));
 
     g_free(top_name_copy);
     return 0;
@@ -4675,6 +4655,14 @@ int flis_flatten_all(void) {
 
     /* Base layer is the first in the sorted list (lowest layer_order) */
     flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+
+    /* NDE composite node: the same node as merge-down with every layer as an
+     * input, and without the raw-first contract — flatten blends the bottom
+     * layer too, over the canvas background, and then resets the survivor's
+     * compositing properties.  Taken here, while every input still exists;
+     * appended after the mutation (nde_composite.h). */
+    nde_composite_capture *nde_cap =
+            nde_composite_capture_begin(com.uniq->layers, FALSE);
 
     /* Repoint gfit at the (surviving) base BEFORE freeing the other
      * layers: if a non-base layer was active, gfit would otherwise
@@ -4725,12 +4713,11 @@ int flis_flatten_all(void) {
     siril_log_message(_("FLIS: image flattened to single layer '%s'\n"),
                       base->layer_name ? base->layer_name : "?");
 
-    /* NDE provenance (sketch §13.2): flatten purges all per-layer undo
-     * (records are KEPT — provenance); target = the surviving base layer. */
-    GString *kv = nde_kv_start();
-    nde_kv_add_int(kv, "n_layers", n_before);
-    nde_capture_structural("document.flatten", NDE_SCOPE_DOCUMENT,
-                           base->item_id, nde_kv_end(kv), _("Flatten image"));
+    /* NDE (sketch §13.2, design note §3): flatten purges all per-layer undo
+     * (records are KEPT — provenance), so the record is uncoupled; target =
+     * the surviving base layer, which is also the first input. */
+    nde_composite_capture_commit(nde_cap, "document.flatten", base->item_id,
+                                 _("Flatten image"));
     return 0;
 }
 
