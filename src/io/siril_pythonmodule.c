@@ -784,12 +784,8 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 		} else if (!processing_is_reserved_for_replay()) {
 			/* A Tier-C replay re-run opens no scope; its writes reproduce an
 			 * existing record and must not capture new ones. */
-			gint target = -1;
-			if (is_current_image_flis()) {
-				flis_layer_t *lay = flis_active_layer();
-				if (lay) target = lay->item_id;
-			}
-			nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, target,
+			nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER,
+			                   nde_capture_target_item(),
 			                   _("Python script pixel update"), fit);
 		}
 	}
@@ -979,12 +975,8 @@ gboolean handle_set_image_mask_request(Connection *conn, fits *fit, incoming_ima
 			nde_script_scope_mark_nonpixel_dirty();
 		} else if (!processing_is_reserved_for_replay()) {
 			/* Replay re-runs reproduce an existing record — no new capture. */
-			gint target = -1;
-			if (is_current_image_flis()) {
-				flis_layer_t *lay = flis_active_layer();
-				if (lay) target = lay->item_id;
-			}
-			nde_capture_opaque("python.set_mask", NDE_SCOPE_LAYER, target,
+			nde_capture_opaque("python.set_mask", NDE_SCOPE_LAYER,
+			                   nde_capture_target_item(),
 			                   _("Python script mask update"), fit);
 		}
 	}

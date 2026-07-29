@@ -132,16 +132,6 @@ void initialize_calibration_interface() {
 	gtk_adjustment_set_value(selection_white_adjustment[3], 0);
 }
 
-/* Active FLIS layer item_id for provenance targeting, or -1 for a plain
- * image (same idiom as the python pixel/mask capture sites). */
-static gint nde_active_layer_target(void) {
-	if (is_current_image_flis()) {
-		flis_layer_t *lay = flis_active_layer();
-		if (lay)
-			return lay->item_id;
-	}
-	return -1;
-}
 
 void on_button_bkg_neutralization_clicked(GtkButton *button, gpointer user_data) {
 	static GtkSpinButton *selection_black_value[4] = { NULL, NULL, NULL, NULL };
@@ -180,10 +170,10 @@ void on_button_bkg_neutralization_clicked(GtkButton *button, gpointer user_data)
 	set_cursor_waiting(TRUE);
 	/* NDE baseline (phase 2): direct-apply — snapshot gfit's pre-op pixels
 	 * BEFORE the void mutation below. */
-	nde_checkpoint_baseline_ensure(gfit, nde_active_layer_target());
+	nde_checkpoint_baseline_ensure(gfit, nde_capture_target_item());
 	background_neutralize(gfit, black_selection);
 	gint64 rid = nde_capture_opaque("color.background_neutralization",
-			NDE_SCOPE_LAYER, nde_active_layer_target(),
+			NDE_SCOPE_LAYER, nde_capture_target_item(),
 			_("Background neutralization"), gfit);
 	if (!undo_err)
 		undo_tag_top_nde_record(rid);
@@ -316,10 +306,10 @@ void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) 
 	 * is void — capture after it succeeds and tag the entry saved just above. */
 	int undo_err = undo_save_state(gfit, _("Color Calibration"));
 	/* NDE baseline (phase 2): direct-apply — snapshot pre-op pixels first. */
-	nde_checkpoint_baseline_ensure(gfit, nde_active_layer_target());
+	nde_checkpoint_baseline_ensure(gfit, nde_capture_target_item());
 	white_balance(gfit, is_manual, white_selection, black_selection);
 	gint64 rid = nde_capture_opaque("color.calibration", NDE_SCOPE_LAYER,
-			nde_active_layer_target(), _("Color Calibration"), gfit);
+			nde_capture_target_item(), _("Color Calibration"), gfit);
 	if (!undo_err)
 		undo_tag_top_nde_record(rid);
 
@@ -375,7 +365,7 @@ void negative_processing() {
 	int undo_err = undo_save_state(gfit, _("Negative Transformation"));
 	siril_log_info(_("Negative Transformation\n"));
 	/* NDE baseline (phase 2): direct-apply — snapshot pre-op pixels first. */
-	nde_checkpoint_baseline_ensure(gfit, nde_active_layer_target());
+	nde_checkpoint_baseline_ensure(gfit, nde_capture_target_item());
 	pos_to_neg(gfit);
 	gint64 rid = nde_capture_from_descriptor(&op_desc_neg, NULL,
 			_("Negative Transformation"), gfit);
