@@ -285,3 +285,134 @@ Test(nde_graph, node_order_is_stable_as_records_are_added) {
 
 	done(f);
 }
+
+/* ---- layout ------------------------------------------------------------
+ * Pure: no history, no widgets.  The view measures its children and hands
+ * the sizes here, which is the whole reason this is a function and not a
+ * size_allocate() implementation.
+ */
+
+static GArray *boxes_new(void) {
+	return g_array_new(FALSE, TRUE, sizeof(nde_graph_box));
+}
+
+static void add_box(GArray *a, gint item, gint level, gint w, gint h) {
+	nde_graph_box b = { .item_id = item, .level = level, .w = w, .h = h };
+	g_array_append_val(a, b);
+}
+
+static const nde_graph_place *place_for(GArray *places, gint item) {
+	for (guint i = 0; i < places->len; i++) {
+		const nde_graph_place *p = &g_array_index(places, nde_graph_place, i);
+		if (p->item_id == item)
+			return p;
+	}
+	return NULL;
+}
+
+/* The case that must not regress into a graph: one chain, one column, and a
+ * stack of nodes that reads exactly as the list it replaces. */
+Test(nde_graph, one_level_lays_out_as_a_single_column) {
+	GArray *b = boxes_new();
+	add_box(b, 1, 0, 200, 100);
+	add_box(b, 2, 0, 240, 60);
+	gint w = 0, h = 0;
+	GArray *p = nde_graph_layout(b, 20, 6, &w, &h);
+
+	cr_assert_eq(p->len, 2);
+	cr_assert_eq(place_for(p, 1)->x, 0);
+	cr_assert_eq(place_for(p, 2)->x, 0, "one level is one column");
+	cr_assert_eq(place_for(p, 1)->y, 0);
+	cr_assert_eq(place_for(p, 2)->y, 106, "stacked with the row gap between");
+	cr_assert_eq(w, 240, "the column is as wide as its widest node");
+	cr_assert_eq(h, 166);
+	g_array_unref(p);
+	g_array_unref(b);
+}
+
+/* A column is widened to its widest member so that every edge leaving it
+ * leaves at one x — the reason places carry a width at all. */
+Test(nde_graph, a_column_is_as_wide_as_its_widest_node) {
+	GArray *b = boxes_new();
+	add_box(b, 1, 0, 100, 50);
+	add_box(b, 2, 0, 180, 50);
+	add_box(b, 3, 1, 90, 50);
+	gint w = 0;
+	GArray *p = nde_graph_layout(b, 20, 6, &w, NULL);
+
+	cr_assert_eq(place_for(p, 1)->w, 180);
+	cr_assert_eq(place_for(p, 2)->w, 180);
+	cr_assert_eq(place_for(p, 3)->x, 200, "180 wide plus the 20 gap");
+	cr_assert_eq(w, 290);
+	g_array_unref(p);
+	g_array_unref(b);
+}
+
+/* Each column stacks independently: a tall mask beside a short layer must
+ * not push the layer down to meet it. */
+Test(nde_graph, columns_stack_independently) {
+	GArray *b = boxes_new();
+	add_box(b, 1, 0, 100, 300);
+	add_box(b, 2, 1, 100, 40);
+	add_box(b, 3, 1, 100, 40);
+	gint h = 0;
+	GArray *p = nde_graph_layout(b, 10, 5, NULL, &h);
+
+	cr_assert_eq(place_for(p, 2)->y, 0);
+	cr_assert_eq(place_for(p, 3)->y, 45);
+	cr_assert_eq(h, 300, "the tallest column sets the height");
+	g_array_unref(p);
+	g_array_unref(b);
+}
+
+/* Node order in equals node order out, so the layout is a function of the
+ * graph's stable order and nothing else. */
+Test(nde_graph, layout_preserves_the_order_it_was_given) {
+	GArray *b = boxes_new();
+	add_box(b, 7, 1, 10, 10);
+	add_box(b, 3, 0, 10, 10);
+	add_box(b, 5, 1, 10, 10);
+	GArray *p = nde_graph_layout(b, 4, 4, NULL, NULL);
+
+	cr_assert_eq(g_array_index(p, nde_graph_place, 0).item_id, 7);
+	cr_assert_eq(g_array_index(p, nde_graph_place, 1).item_id, 3);
+	cr_assert_eq(g_array_index(p, nde_graph_place, 2).item_id, 5);
+	cr_assert_eq(g_array_index(p, nde_graph_place, 0).y, 0);
+	cr_assert_eq(g_array_index(p, nde_graph_place, 2).y, 14,
+	             "second in its column, whatever its position in the list");
+	g_array_unref(p);
+	g_array_unref(b);
+}
+
+Test(nde_graph, an_empty_graph_lays_out_to_nothing) {
+	GArray *b = boxes_new();
+	gint w = -1, h = -1;
+	GArray *p = nde_graph_layout(b, 8, 8, &w, &h);
+	cr_assert_eq(p->len, 0);
+	cr_assert_eq(w, 0);
+	cr_assert_eq(h, 0);
+	g_array_unref(p);
+	g_array_unref(b);
+}
+
+/* The edge that makes the item-level graph cyclic must be identifiable, so
+ * that it can be drawn differently and kept out of the layout. */
+Test(nde_graph, the_mask_feedback_edge_is_identified_as_one) {
+	fits *f = fresh_image();
+	cr_assert_eq(run_mask_op(&op_desc_mask_from_channel, from_channel(0)), 0);
+	cr_assert_eq(run_op(&op_desc_asinh, asinh_beta(10.f), TRUE), 0);
+
+	nde_graph *g = nde_graph_build();
+	guint forward = 0, feedback = 0;
+	for (guint i = 0; i < g->edges->len; i++) {
+		const nde_graph_edge *e = g_ptr_array_index(g->edges, i);
+		if (nde_graph_edge_is_feedback(g, e))
+			feedback++;
+		else
+			forward++;
+	}
+	cr_assert_gt(forward, 0, "the image feeds the mask");
+	cr_assert_gt(feedback, 0, "and the mask feeds the image back");
+	nde_graph_free(g);
+	done(f);
+}

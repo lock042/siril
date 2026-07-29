@@ -295,3 +295,73 @@ GPtrArray *nde_graph_inputs_of(const nde_graph *g, gint item_id) {
 GPtrArray *nde_graph_consumers_of(const nde_graph *g, gint item_id) {
 	return edges_matching(g, item_id, TRUE);
 }
+
+gboolean nde_graph_edge_is_feedback(const nde_graph *g, const nde_graph_edge *e) {
+	if (!g || !e)
+		return FALSE;
+	const nde_graph_node *src = nde_graph_node_for(g, e->src_item_id);
+	const nde_graph_node *dst = nde_graph_node_for(g, e->dst_item_id);
+	if (!src || !dst)
+		return FALSE;
+	/* Levels were assigned over the forward edges only, so an edge that does
+	 * not increase the level is exactly one that was left out of them. */
+	return dst->level <= src->level;
+}
+
+/* ---- layout ------------------------------------------------------------- */
+
+GArray *nde_graph_layout(const GArray *boxes, gint col_gap, gint row_gap,
+                         gint *total_w, gint *total_h) {
+	GArray *out = g_array_new(FALSE, TRUE, sizeof(nde_graph_place));
+	if (total_w) *total_w = 0;
+	if (total_h) *total_h = 0;
+	if (!boxes || !boxes->len)
+		return out;
+
+	gint n_cols = 0;
+	for (guint i = 0; i < boxes->len; i++) {
+		const nde_graph_box *b = &g_array_index(boxes, nde_graph_box, i);
+		if (b->level + 1 > n_cols)
+			n_cols = b->level + 1;
+	}
+	/* A level with no node in it still costs a column: the gap says the
+	 * derivation skipped a rank rather than that two nodes are siblings. */
+	gint *col_w = g_new0(gint, (gsize)n_cols);
+	gint *col_y = g_new0(gint, (gsize)n_cols);
+	for (guint i = 0; i < boxes->len; i++) {
+		const nde_graph_box *b = &g_array_index(boxes, nde_graph_box, i);
+		if (b->w > col_w[b->level])
+			col_w[b->level] = b->w;
+	}
+	gint *col_x = g_new0(gint, (gsize)n_cols);
+	gint x = 0;
+	for (gint c = 0; c < n_cols; c++) {
+		col_x[c] = x;
+		x += col_w[c] + col_gap;
+	}
+
+	gint used_h = 0;
+	for (guint i = 0; i < boxes->len; i++) {
+		const nde_graph_box *b = &g_array_index(boxes, nde_graph_box, i);
+		nde_graph_place p = {
+			.item_id = b->item_id,
+			.x = col_x[b->level],
+			.y = col_y[b->level],
+			/* Widened to the column so a node's right edge — where its
+			 * outgoing edges leave — is the same x for the whole column. */
+			.w = col_w[b->level],
+			.h = b->h,
+		};
+		col_y[b->level] += b->h + row_gap;
+		if (col_y[b->level] - row_gap > used_h)
+			used_h = col_y[b->level] - row_gap;
+		g_array_append_val(out, p);
+	}
+
+	if (total_w) *total_w = x > 0 ? x - col_gap : 0;
+	if (total_h) *total_h = used_h;
+	g_free(col_w);
+	g_free(col_x);
+	g_free(col_y);
+	return out;
+}

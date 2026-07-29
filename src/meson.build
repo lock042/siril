@@ -370,6 +370,7 @@ gui_filenames = [
   'file_browser.c',  # custom GtkDirectoryList-based file picker with preview
   'flis_gpu_compose.c',  # per-layer GdkTexture cache + GSK push_blend (stage 3.2)
   'flis_gui.c',          # FLIS layers panel (stage 4)
+  'nde_graph_view.c',    # History window: nodes by level, edges drawn (#61)
 ]
 
 src_files_gui = []

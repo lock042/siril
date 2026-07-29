@@ -113,6 +113,49 @@ GPtrArray *nde_graph_inputs_of(const nde_graph *g, gint item_id);
  *  made visible: these are the nodes an amend here would re-run. */
 GPtrArray *nde_graph_consumers_of(const nde_graph *g, gint item_id);
 
+/**
+ * TRUE for an edge that runs against the levels — the destination sits at or
+ * before the source.  These are the cycle at item granularity (§9.1.1): real,
+ * drawable, and deliberately given no vote on where anything sits.
+ */
+gboolean nde_graph_edge_is_feedback(const nde_graph *g, const nde_graph_edge *e);
+
+/* ---- layout -------------------------------------------------------------
+ * Kept here, and kept a pure function of measured sizes, because the part
+ * worth testing is the shape and not the widgets: the view measures its
+ * children, calls this, and allocates what it gets back.
+ */
+
+/** One node's identity and measured size, as the caller found it. */
+typedef struct {
+	gint item_id;
+	gint level;
+	gint w, h;
+} nde_graph_box;
+
+/** Where that node goes.  Origin is the top-left of the whole layout. */
+typedef struct {
+	gint item_id;
+	gint x, y, w, h;
+} nde_graph_place;
+
+/**
+ * Place @boxes in columns by level, top-aligned, in the order given — which is
+ * nde_graph_build()'s stable node order, so the layout does not reshuffle as
+ * records are added.  A column is as wide as its widest node, so every edge
+ * enters a column at the same x.
+ *
+ * Levels run left to right and steps run top to bottom inside a node: ORDER IS
+ * MEANING on the vertical axis, so derivation takes the horizontal one.
+ *
+ * Returns a GArray of nde_graph_place, one per box and in the same order; free
+ * with g_array_unref().  @total_w / @total_h may be NULL.  No boxes yields an
+ * empty array and a zero size, and one level yields one column — which is why
+ * a linear document draws as the list it drew as before.
+ */
+GArray *nde_graph_layout(const GArray *boxes, gint col_gap, gint row_gap,
+                         gint *total_w, gint *total_h);
+
 #ifdef __cplusplus
 }
 #endif

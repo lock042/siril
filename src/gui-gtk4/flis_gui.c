@@ -51,6 +51,7 @@
 #include "core/nde_history.h"
 #include "core/nde_replay.h"   /* nde_record_amendable/deletable, amend/delete_start */
 #include "core/nde_graph.h"    /* nodes + edges behind the per-item step lists */
+#include "gui-gtk4/nde_graph_view.h"   /* the container that places them (#61) */
 #include "core/nde_compositing.h"  /* nde_compositing_is_op */
 #include "core/nde_composite.h"    /* the composite node's own editor */
 #include "gui-gtk4/nde_editors.h"
@@ -2477,7 +2478,8 @@ static hist_node_ui *hist_node_get(gint item_id, const nde_graph_node *gn,
 	n->frame = gtk_frame_new(NULL);
 	gtk_frame_set_child(GTK_FRAME(n->frame), n->expander);
 	gtk_widget_add_css_class(n->frame, "nde-graph-node");
-	gtk_box_append(GTK_BOX(g_panel->hist_container), n->frame);
+	nde_graph_view_add_node(NDE_GRAPH_VIEW(g_panel->hist_container), item_id,
+	                        gn ? gn->level : 0, n->frame);
 
 	g_ptr_array_add(g_panel->hist_nodes, n);
 	return n;
@@ -2502,10 +2504,7 @@ static void refresh_history(void) {
 	/* Drop every node widget and rebuild: the set of items and their order
 	 * both change as records come and go, and a handful of frames is not
 	 * worth an incremental diff. */
-	for (guint i = 0; i < g_panel->hist_nodes->len; i++) {
-		hist_node_ui *n = g_ptr_array_index(g_panel->hist_nodes, i);
-		gtk_box_remove(GTK_BOX(g_panel->hist_container), n->frame);
-	}
+	nde_graph_view_reset(NDE_GRAPH_VIEW(g_panel->hist_container));
 	g_ptr_array_set_size(g_panel->hist_nodes, 0);
 
 	/* The graph supplies the node set, their labels and their edges; the
@@ -2515,6 +2514,15 @@ static void refresh_history(void) {
 	for (guint i = 0; i < graph->nodes->len; i++) {
 		const nde_graph_node *gn = g_ptr_array_index(graph->nodes, i);
 		hist_node_get(gn->item_id, gn, graph);
+	}
+	/* Edges are added after every node exists, since one is drawn between two
+	 * of them.  Several records may consume the same item; the view keeps one
+	 * line per pair. */
+	for (guint i = 0; i < graph->edges->len; i++) {
+		const nde_graph_edge *e = g_ptr_array_index(graph->edges, i);
+		nde_graph_view_add_edge(NDE_GRAPH_VIEW(g_panel->hist_container),
+		                        e->src_item_id, e->dst_item_id,
+		                        nde_graph_edge_is_feedback(graph, e));
 	}
 
 	/* Build the freeze-verdict map once per DISTINCT target item present in
@@ -2839,11 +2847,13 @@ static void build_history_popover(void) {
 	g_signal_connect(g_panel->hist_factory, "bind",  G_CALLBACK(on_hist_row_bind),  NULL);
 
 	g_panel->hist_nodes = g_ptr_array_new_with_free_func(hist_node_ui_free);
-	g_panel->hist_container = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+	g_panel->hist_container = nde_graph_view_new();
 
 	GtkWidget *sw = gtk_scrolled_window_new();
+	/* Horizontal scrolling now has something to scroll: a document with masks
+	 * or retained inputs is more than one column wide. */
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw),
-	                               GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+	                               GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(sw), 140);
 	gtk_widget_set_vexpand(sw, TRUE);
 	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), g_panel->hist_container);
