@@ -538,6 +538,47 @@ Test(nde_composite, a_flattened_group_replays_from_the_recorded_group_state) {
 	done();
 }
 
+/* Merging a group is a run of merge_downs, so the composites nest: the second
+ * merge's overlay is an item whose own chain contains the first.  Resolving it
+ * recurses one level and terminates — composites form a DAG — and an amend at
+ * the top of the stack still reaches the bottom of it. */
+Test(nde_composite, merges_of_merges_resolve_through_each_other) {
+	com.pref.nde_cache_mb = 256;
+	flis_layer_t *l[3] = {
+		flis_test_add_layer(flis_test_make_rgb_fits(4, 4, 0.5f, 0.5f, 0.5f), "bottom"),
+		flis_test_add_layer(flis_test_make_rgb_fits(4, 4, 0.25f, 0.25f, 0.25f), "middle"),
+		flis_test_add_layer(flis_test_make_rgb_fits(4, 4, 0.1f, 0.1f, 0.1f), "top"),
+	};
+	const float betas[3] = { 5.f, 30.f, 12.f };
+	gint items[3];
+	for (int i = 0; i < 3; i++) {
+		items[i] = l[i]->item_id;
+		select_layer(l[i]);
+		cr_assert_eq(run_op_on_active(&op_desc_asinh, asinh_beta(betas[i])), 0);
+	}
+	cr_assert_eq(flis_merge_down_layer(l[2]), 0);   /* top   -> middle */
+	cr_assert_eq(flis_merge_down_layer(l[1]), 0);   /* middle -> bottom */
+	cr_assert_eq(flis_layer_count(), 1);
+	gfit = ((flis_layer_t *)com.uniq->layers->data)->fit;
+
+	nde_chain *chain = nde_chain_build(items[0]);
+	cr_assert(chain->replayable, "%s",
+	          chain->reasons->len ? (char *)g_ptr_array_index(chain->reasons, 0) : "none");
+	nde_chain_free(chain);
+
+	float before = first_pixel();
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_amend_execute(record_for_item(items[2]),
+	                            "beta=1.000000;offset=0.000000;human=0;clip_mode=0", &err),
+	          "amend failed: %s", err ? err : "?");
+	unreserve_thread();
+	g_free(err);
+	cr_assert_neq(first_pixel(), before,
+	              "an amend two merges upstream must still reach the result");
+	done();
+}
+
 /* ---- honest refusal ----------------------------------------------------- */
 
 /* A merge recorded before step 7 carries neither pins nor per-input state.

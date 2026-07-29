@@ -1092,38 +1092,49 @@ static gboolean item_is_retained_input(gint item_id) {
  * consumer that cannot be recomputed is named rather than left silently
  * stale. */
 static void cascade_composite_consumers(gint item_id) {
-	GHashTable *items = g_hash_table_new(g_direct_hash, g_direct_equal);
 	GPtrArray *live = nde_history_snapshot(NULL);
-	for (guint i = 0; live && i < live->len; i++) {
-		const nde_record *rec = g_ptr_array_index(live, i);
-		if (!nde_composite_record_replayable(rec))
-			continue;
-		if (rec->target_item_id != item_id &&
-		    nde_record_input_by_item(rec, item_id))
-			g_hash_table_add(items, GINT_TO_POINTER(rec->target_item_id));
-	}
-	if (live)
-		g_ptr_array_unref(live);
+	GHashTable *seen = g_hash_table_new(g_direct_hash, g_direct_equal);
+	GQueue *frontier = g_queue_new();
+	g_queue_push_tail(frontier, GINT_TO_POINTER(item_id));
+	g_hash_table_add(seen, GINT_TO_POINTER(item_id));
 
 	guint redone = 0;
-	GHashTableIter it;
-	gpointer k, v;
-	g_hash_table_iter_init(&it, items);
-	while (g_hash_table_iter_next(&it, &k, &v)) {
-		gint consumer = GPOINTER_TO_INT(k);
-		gchar *cerr = NULL;
-		/* The composite reads this item by replay, so anything cached for the
-		 * consumer at or after the merge describes the OLD input. */
-		nde_snapstore_invalidate_from(consumer, 0);
-		if (recompute_item(consumer, &cerr)) {
-			redone++;
-		} else {
-			siril_log_warning(_("The layer this was merged into could not be recomputed, so it still shows the old result: %s\n"),
-			                  cerr ? cerr : "?");
+	while (!g_queue_is_empty(frontier)) {
+		gint src = GPOINTER_TO_INT(g_queue_pop_head(frontier));
+		for (guint i = 0; live && i < live->len; i++) {
+			const nde_record *rec = g_ptr_array_index(live, i);
+			if (rec->target_item_id == src ||
+			    !nde_composite_record_replayable(rec) ||
+			    !nde_record_input_by_item(rec, src))
+				continue;
+			gint consumer = rec->target_item_id;
+			if (!g_hash_table_add(seen, GINT_TO_POINTER(consumer)))
+				continue;
+			/* The composite reads its inputs by replay, so anything cached for
+			 * the consumer at or after this record describes the OLD input. */
+			nde_snapstore_invalidate_from(consumer, 0);
+			/* A consumer that was itself composited away has no layer to commit
+			 * into: nothing shows its pixels, and what has to be recomputed is
+			 * whatever consumed IT.  Merging a group is exactly this — a run of
+			 * merge-downs, each one's survivor consumed by the next. */
+			if (item_is_retained_input(consumer)) {
+				g_queue_push_tail(frontier, GINT_TO_POINTER(consumer));
+				continue;
+			}
+			gchar *cerr = NULL;
+			if (recompute_item(consumer, &cerr)) {
+				redone++;
+			} else {
+				siril_log_warning(_("The layer this was merged into could not be recomputed, so it still shows the old result: %s\n"),
+				                  cerr ? cerr : "?");
+			}
+			g_free(cerr);
 		}
-		g_free(cerr);
 	}
-	g_hash_table_destroy(items);
+	g_queue_free(frontier);
+	g_hash_table_destroy(seen);
+	if (live)
+		g_ptr_array_unref(live);
 	if (redone) {
 		gui_iface.flis_invalidate_composite();
 		siril_log_info(_("Change applied to %u merged image(s)\n"), redone);
