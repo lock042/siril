@@ -119,6 +119,16 @@ gboolean nde_checkpoint_output_exists(gint64 record_id);
 /** Drop one output checkpoint (its record was deleted or truncated). */
 void nde_checkpoint_output_drop(gint64 record_id);
 
+/* ---- pin coordinates ----------------------------------------------------
+ * An input pin names {item, record}, where record 0 means "that item's
+ * baseline" and anything else means that record's output (nde_history.h).
+ * These three wrap the choice so the convention lives in one place rather
+ * than at every pin-resolving site.                                        */
+
+void     nde_checkpoint_store_at(const fits *f, gint item_id, gint64 record_id);
+fits    *nde_checkpoint_get_at(gint item_id, gint64 record_id);
+gboolean nde_checkpoint_exists_at(gint item_id, gint64 record_id);
+
 /* ---- layer offsets (graph step 5) --------------------------------------
  * A checkpoint stores pixels, but the replay unit for a FLIS layer is not
  * pixels alone: geometry operations (crop, resample, rotate, mirror, binning)

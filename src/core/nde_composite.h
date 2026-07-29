@@ -56,11 +56,24 @@
  * may be many steps back; a composite's inputs are whole items, which the chain
  * machinery already knows how to rebuild.
  *
- * WHAT IS STILL REFUSED.  A layer mask is not a fits->mask and has no resolver
- * yet, so an input that carried one into the composite makes the record a
- * blocker rather than a member.  So does a record written before this format
- * existed: it has no pins and no state, and degrading honestly beats guessing
- * at an opacity nobody wrote down.
+ * MASKS ARE THE EXCEPTION — A PINNED COPY.  An input's layer mask is stored at
+ * the capture site and read back from the checkpoint store, not re-derived.
+ * Not for want of a chain: a layer mask can be painted, or loaded from a file,
+ * and then it has no records to replay at all.  A copy is the only thing that
+ * always exists.  It costs one mono image per masked input, and the mask
+ * cascade already refreshes such copies when the mask's own chain is edited,
+ * so a mask built by ops still propagates.  Only the PARTICIPATING masks are
+ * stored: merge-down paints its bottom input raw, so that one's mask never
+ * reaches the composite.
+ *
+ * WHAT IS STILL REFUSED.  A record written before this format existed: it has
+ * no pins and no state, and degrading honestly beats guessing at an opacity
+ * nobody wrote down.  Likewise a masked input whose stored mask has been
+ * evicted or was never taken.
+ *
+ * The layer's PROCESSING mask (fit->mask) is not part of this: the compositor
+ * never reads it — it restricts operations, not compositing — so it neither
+ * needs storing nor stands in the way.
  *
  * Threading: the render is pure.  Capture reads live layer and document state,
  * so it runs at the capture site; parsing and rendering run on the replay
@@ -77,8 +90,9 @@ struct ffit;
 struct nde_record;
 
 /** Role names for a merge-down's two input pins.  Flatten uses "in0", "in1", …
- *  Roles are labels for the graph view: the replay matches pins to recorded
- *  inputs by item id, so a role never has to be parsed. */
+ *  and a masked input adds "mask0", "mask1", …  Roles are labels for the graph
+ *  view: the replay matches pins to recorded inputs by item id (which the
+ *  params carry for both the layer and its mask), so a role is never parsed. */
 #define NDE_COMPOSITE_ROLE_BASE    "base"
 #define NDE_COMPOSITE_ROLE_OVERLAY "overlay"
 
@@ -99,7 +113,8 @@ typedef struct {
 	gboolean has_tint;
 	gdouble  tint_r, tint_g, tint_b;
 	gint     group_id;      /* 0 = ungrouped */
-	gboolean was_masked;    /* carried a layer mask — see WHAT IS STILL REFUSED */
+	gboolean was_masked;    /* carried an active layer mask into the composite */
+	gint     mask_item_id;  /* the LMASK item it came from; 0 if unmasked */
 } nde_composite_input;
 
 /** A group the composite pre-composited, or whose visibility/opacity modified
@@ -145,8 +160,10 @@ gboolean nde_composite_record_replayable(const struct nde_record *rec);
 /**
  * Render @st from @pixels — one entry per recorded input, in the same order.
  * An invisible input contributes nothing and its entry may be NULL; a visible
- * one may not.  Entries are borrowed.  Returns a newly allocated canvas-sized
- * composite, or NULL and a heap @err.
+ * one may not.  @masks is parallel to it and may be NULL entirely: entry i is
+ * the mono mask image for input i, as stored by the capture, and is required
+ * wherever the recorded input says it was masked.  All entries are borrowed.
+ * Returns a newly allocated canvas-sized composite, or NULL and a heap @err.
  *
  * To place the input that a chain is replaying, overwrite that input's
  * position_x/position_y in @st before calling: a geometry step before the
@@ -154,7 +171,8 @@ gboolean nde_composite_record_replayable(const struct nde_record *rec);
  * here too.
  */
 struct ffit *nde_composite_render(const nde_composite_state *st,
-                                  struct ffit *const *pixels, gchar **err);
+                                  struct ffit *const *pixels,
+                                  struct ffit *const *masks, gchar **err);
 
 /**
  * Capture, in two halves.

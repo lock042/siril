@@ -219,10 +219,7 @@ void nde_mask_pin_store(const nde_record *rec, const fits *fit) {
 	fits *mfit = mask_to_fits((fits *)fit);
 	if (!mfit)
 		return;
-	if (pin->src_record_id)
-		nde_checkpoint_output_store(mfit, pin->src_record_id, pin->src_item_id);
-	else
-		nde_checkpoint_baseline_ensure(mfit, pin->src_item_id);
+	nde_checkpoint_store_at(mfit, pin->src_item_id, pin->src_record_id);
 	clearfits(mfit);
 	free(mfit);
 }
@@ -231,8 +228,7 @@ gboolean nde_mask_pin_resolvable(const nde_record *rec) {
 	const nde_input_pin *pin = nde_record_input(rec, "mask");
 	if (!pin)
 		return FALSE;
-	return pin->src_record_id ? nde_checkpoint_output_exists(pin->src_record_id)
-	                          : nde_checkpoint_baseline_exists(pin->src_item_id);
+	return nde_checkpoint_exists_at(pin->src_item_id, pin->src_record_id);
 }
 
 /* Install @rec's pinned mask on @scratch for the duration of one op.  Returns
@@ -243,9 +239,7 @@ static gboolean mask_pin_install(fits *scratch, const nde_record *rec, gchar **e
 	const nde_input_pin *pin = nde_record_input(rec, "mask");
 	if (!pin)
 		return TRUE;
-	fits *mfit = pin->src_record_id ?
-			nde_checkpoint_output_get(pin->src_record_id) :
-			nde_checkpoint_baseline_get(pin->src_item_id);
+	fits *mfit = nde_checkpoint_get_at(pin->src_item_id, pin->src_record_id);
 	if (!mfit) {
 		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s): its mask is no longer stored"),
 		                       rec->record_id, rec->op_id ? rec->op_id : "?");
@@ -573,10 +567,24 @@ static fits *composite_apply(fits *base, const nde_record *rec, gint item_id,
 	}
 	guint n = st->inputs->len;
 	fits **pixels = g_new0(fits *, n);
+	fits **masks = g_new0(fits *, n);
 	gboolean *owned = g_new0(gboolean, n);
 	gboolean ok = TRUE;
 	for (guint i = 0; i < n && ok; i++) {
 		nde_composite_input *in = &g_array_index(st->inputs, nde_composite_input, i);
+		/* The mask is a stored copy, not a replay: it is read for every visible
+		 * masked input, including the one whose pixels are @base. */
+		if (in->visible && in->was_masked) {
+			const nde_input_pin *mp = in->mask_item_id ?
+					nde_record_input_by_item(rec, in->mask_item_id) : NULL;
+			masks[i] = mp ? nde_checkpoint_get_at(mp->src_item_id, mp->src_record_id) : NULL;
+			if (!masks[i]) {
+				*err = g_strdup_printf(_("record %" G_GINT64_FORMAT ": the layer mask of '%s' is no longer stored"),
+				                       rec->record_id, in->name ? in->name : "?");
+				ok = FALSE;
+				break;
+			}
+		}
 		if (in->item_id == item_id) {
 			pixels[i] = base;
 			/* A geometry step before the composite moves this input, so an
@@ -600,14 +608,19 @@ static fits *composite_apply(fits *base, const nde_record *rec, gint item_id,
 		owned[i] = TRUE;
 		ok = pixels[i] != NULL;
 	}
-	fits *out = ok ? nde_composite_render(st, pixels, err) : NULL;
+	fits *out = ok ? nde_composite_render(st, pixels, masks, err) : NULL;
 	for (guint i = 0; i < n; i++) {
 		if (owned[i] && pixels[i]) {
 			clearfits(pixels[i]);
 			free(pixels[i]);
 		}
+		if (masks[i]) {
+			clearfits(masks[i]);
+			free(masks[i]);
+		}
 	}
 	g_free(pixels);
+	g_free(masks);
 	g_free(owned);
 	nde_composite_state_free(st);
 	if (out && pos_x && pos_y)
@@ -1062,12 +1075,16 @@ static gboolean recompute_item(gint item_id, gchar **err) {
 	return TRUE;
 }
 
-/* TRUE when @item_id has no layer in the document but IS still an input to a
- * composite — a RETAINED INPUT (design note §5.1).  Its records are live and
- * editable; what an edit to them recomputes is not its own pixels, which have
- * nowhere to go, but every composite downstream of it. */
+/* TRUE when @item_id names nothing in the document any more but IS still an
+ * input to a composite — a RETAINED INPUT (design note §5.1).  Its records are
+ * live and editable; what an edit to them recomputes is not its own value,
+ * which has nowhere to go, but every composite downstream of it.
+ *
+ * "Names nothing" rather than "has no layer": a layer consumed by a composite
+ * takes its layer mask with it, and that mask item is retained on exactly the
+ * same terms — the composite pins it too. */
 static gboolean item_is_retained_input(gint item_id) {
-	if (item_id < 0 || flis_layer_get_by_id(item_id))
+	if (item_id < 0 || flis_item_lookup(item_id, NULL) != FLIS_ITEM_NONE)
 		return FALSE;
 	GPtrArray *live = nde_history_snapshot(NULL);
 	gboolean found = FALSE;
@@ -1192,8 +1209,11 @@ static void cascade_mask_consumers(gint mask_item, guint from_pos) {
 	GPtrArray *live = nde_history_snapshot(NULL);
 	for (guint i = 0; live && i < live->len; i++) {
 		const nde_record *rec = g_ptr_array_index(live, i);
-		const nde_input_pin *pin = nde_record_input(rec, "mask");
-		if (!pin || pin->src_item_id != mask_item)
+		/* Matched by SOURCE, not by role: an op pins its mask as "mask", a
+		 * composite pins one per masked input as "mask0", "mask1", …  Both are
+		 * stored copies at the same kind of coordinate, so both refresh here. */
+		const nde_input_pin *pin = nde_record_input_by_item(rec, mask_item);
+		if (!pin)
 			continue;
 		gpointer p = g_hash_table_lookup(pos_of, &pin->src_record_id);
 		if (!p)
@@ -1230,6 +1250,12 @@ static void cascade_mask_consumers(gint mask_item, guint from_pos) {
 	while (g_hash_table_iter_next(&it, &k, &v)) {
 		gint item = GPOINTER_TO_INT(k);
 		gchar *err = NULL;
+		/* A consumer that was itself composited away has no pixels of its own
+		 * to write; what shows the change is whatever consumed IT. */
+		if (item_is_retained_input(item)) {
+			cascade_composite_consumers(item);
+			continue;
+		}
 		if (recompute_item(item, &err)) {
 			redone++;
 		} else {
@@ -1476,7 +1502,13 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 			gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
 			return FALSE;
 		}
-		gboolean ok = commit_mask_value(item_id, built, err);
+		/* A mask whose layer was composited away has nowhere to be committed
+		 * — the layer it belonged to is gone.  The replay above still had to
+		 * run, to prove the edited chain applies; what shows the change is the
+		 * composite that kept a copy of this mask, refreshed by the cascade
+		 * below. */
+		gboolean ok = item_is_retained_input(item_id) ||
+		              commit_mask_value(item_id, built, err);
 		clearfits(built);
 		free(built);
 		if (!ok) {

@@ -310,6 +310,25 @@ gboolean nde_checkpoint_output_exists(gint64 record_id) {
 	return e;
 }
 
+/* ---- pin coordinates (see the header) ----------------------------------- */
+
+void nde_checkpoint_store_at(const fits *f, gint item_id, gint64 record_id) {
+	if (record_id)
+		nde_checkpoint_output_store(f, record_id, item_id);
+	else
+		nde_checkpoint_baseline_ensure(f, item_id);
+}
+
+fits *nde_checkpoint_get_at(gint item_id, gint64 record_id) {
+	return record_id ? nde_checkpoint_output_get(record_id)
+	                 : nde_checkpoint_baseline_get(item_id);
+}
+
+gboolean nde_checkpoint_exists_at(gint item_id, gint64 record_id) {
+	return record_id ? nde_checkpoint_output_exists(record_id)
+	                 : nde_checkpoint_baseline_exists(item_id);
+}
+
 void nde_checkpoint_output_drop(gint64 record_id) {
 	nde_snap *old = NULL;
 	gpointer old_key = NULL;

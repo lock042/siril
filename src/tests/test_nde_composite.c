@@ -33,6 +33,7 @@
 #include "core/nde_composite.h"
 #include "core/nde_replay.h"
 #include "core/nde_graph.h"
+#include "core/masks.h"
 #include "filters/asinh.h"
 
 cominfo com;
@@ -612,25 +613,84 @@ Test(nde_composite, a_merge_without_recorded_inputs_still_blocks) {
 	done();
 }
 
-/* A layer mask is not a fits->mask and has no resolver yet, so a composite that
- * applied one cannot be re-run.  It says so instead of compositing without the
- * mask and calling the result a reproduction. */
-Test(nde_composite, a_flatten_over_a_masked_layer_still_blocks) {
+/* ---- masked inputs ------------------------------------------------------ */
+
+/* Two layers, the top one half-masked, flattened.  Returns the surviving
+ * layer's item id; @out_mask_item gets the LMASK item the mask was stored
+ * under. */
+static gint masked_flatten(gint *out_mask_item) {
 	com.pref.nde_cache_mb = 256;
 	flis_layer_t *bottom = flis_test_add_layer(
 	    flis_test_make_rgb_fits(4, 4, 0.5f, 0.5f, 0.5f), "bottom");
 	flis_layer_t *top = flis_test_add_layer(
 	    flis_test_make_rgb_fits(4, 4, 0.25f, 0.25f, 0.25f), "top");
-	top->lmask = flis_test_make_const_lmask(4, 4, 8, 0.5);
+	cr_assert_eq(flis_layer_set_lmask(top, flis_test_make_const_lmask(4, 4, 8, 0.5)), 0);
 	top->lmask_active = TRUE;
 	gint bottom_item = bottom->item_id;
 	select_layer(bottom);
 	cr_assert_eq(run_op_on_active(&op_desc_asinh, asinh_beta(5.f)), 0);
 
 	cr_assert_eq(flis_flatten_all(), 0);
+	gfit = ((flis_layer_t *)com.uniq->layers->data)->fit;
+	if (out_mask_item) {
+		const nde_record *rec = find_composite_record();
+		nde_composite_state *st = nde_composite_state_parse(rec->params);
+		cr_assert_not_null(st);
+		*out_mask_item = g_array_index(st->inputs, nde_composite_input, 1).mask_item_id;
+		cr_assert_neq(*out_mask_item, 0, "the masked input records its LMASK item");
+		nde_composite_state_free(st);
+	}
+	return bottom_item;
+}
+
+/* A layer mask can be painted or loaded from a file, so it may have no chain to
+ * replay at all.  It is kept as a stored copy instead — and that is enough to
+ * make a composite that applied one reproducible. */
+Test(nde_composite, a_flatten_over_a_masked_layer_replays) {
+	gint mask_item = 0;
+	gint bottom_item = masked_flatten(&mask_item);
+	fits expected = { 0 };
+	copyfits(((flis_layer_t *)com.uniq->layers->data)->fit, &expected,
+	         CP_DEEPCOPY | CP_ALLOC, -1);
+
 	nde_chain *chain = nde_chain_build(bottom_item);
-	cr_assert(!chain->replayable,
-	          "a composite that applied a layer mask cannot be re-run yet");
+	cr_assert(chain->replayable, "%s",
+	          chain->reasons->len ? (char *)g_ptr_array_index(chain->reasons, 0) : "none");
+	cr_assert(reserve_thread());
+	gchar *err = NULL;
+	fits *result = nde_chain_replay(chain, &err);
+	unreserve_thread();
+	cr_assert_not_null(result, "replay failed: %s", err ? err : "?");
+	g_free(err);
+	size_t n = (size_t)expected.rx * expected.ry * expected.naxes[2];
+	float maxdev = 0.f;
+	for (size_t i = 0; i < n; i++) {
+		float d = fabsf(result->fdata[i] - expected.fdata[i]);
+		if (d > maxdev) maxdev = d;
+	}
+	/* If the mask were dropped the top layer would land at full strength, so
+	 * this comparison is what proves it was applied. */
+	cr_assert(maxdev <= 1e-6f, "replayed masked flatten deviates by %.3g", (double)maxdev);
+
+	clearfits(result); free(result);
+	nde_chain_free(chain);
+	clearfits(&expected);
+	done();
+}
+
+/* The stored copy lives in a cache under a budget.  If it goes, the composite
+ * says so rather than compositing without the mask and calling the result a
+ * reproduction. */
+Test(nde_composite, a_masked_composite_blocks_once_its_mask_is_gone) {
+	gint mask_item = 0;
+	gint bottom_item = masked_flatten(&mask_item);
+	nde_chain *ok = nde_chain_build(bottom_item);
+	cr_assert(ok->replayable, "precondition: it replays while the mask is stored");
+	nde_chain_free(ok);
+
+	nde_checkpoint_drop(mask_item);
+	nde_chain *chain = nde_chain_build(bottom_item);
+	cr_assert(!chain->replayable, "with the mask gone it cannot be reproduced");
 	cr_assert(chain->reasons->len > 0, "and must say why");
 	nde_chain_free(chain);
 	done();
@@ -683,6 +743,109 @@ Test(nde_composite, a_merge_is_still_replayable_after_a_round_trip) {
 	cr_assert(chain->replayable, "the reloaded merge must still replay: %s",
 	          chain->reasons->len ? (char *)g_ptr_array_index(chain->reasons, 0) : "none");
 	cr_assert(chain->has_composite);
+	nde_chain_free(chain);
+
+	g_unlink(path);
+	g_free(path);
+	g_rmdir(dir);
+	g_free(dir);
+	done();
+}
+
+/* Route a mask op onto @target's LMASK slot, as the -layermask= command path
+ * does, so the mask gets a chain of its own. */
+static int run_mask_op_on(flis_layer_t *target, const op_descriptor *op,
+                          gpointer user_heap) {
+	struct generic_mask_args *args = calloc(1, sizeof(*args));
+	args->fit             = target->fit;
+	args->op              = op;
+	args->user            = user_heap;
+	args->command         = TRUE;
+	args->mask_creation   = (op->flags & OP_MASK_FROM_IMAGE) != 0;
+	args->target_layer_id = target->item_id;
+	args->max_threads     = 1;
+	gboolean prev = com.headless;
+	com.headless = TRUE;
+	int rc = GPOINTER_TO_INT(generic_mask_worker(args));
+	com.headless = prev;
+	return rc;
+}
+
+static mask_from_channel_data *from_channel_8bit(int chan) {
+	mask_from_channel_data *d = calloc(1, sizeof(*d));
+	d->channel = chan;
+	d->bitpix = 8;
+	return d;
+}
+
+/* A stored copy is not a dead end when the mask DOES have a chain: the mask
+ * cascade already refreshes stored copies, and it now matches them by source
+ * rather than by role, so a composite's per-input mask pin refreshes with the
+ * rest.  Amending the step that built the mask must therefore reach the
+ * flattened image — through a layer that no longer exists. */
+Test(nde_composite, amending_a_mask_a_composite_used_reaches_the_result) {
+	com.pref.nde_cache_mb = 256;
+	flis_layer_t *bottom = flis_test_add_layer(
+	    flis_test_make_rgb_fits(8, 8, 0.5f, 0.5f, 0.5f), "bottom");
+	/* channels deliberately unequal: the mask must differ per channel, or
+	 * amending which one it came from would prove nothing. */
+	flis_layer_t *top = flis_test_add_layer(
+	    flis_test_make_rgb_fits(8, 8, 0.2f, 0.5f, 0.9f), "top");
+	gint bottom_item = bottom->item_id, top_item = top->item_id;
+	select_layer(top);
+	cr_assert_eq(run_mask_op_on(top, &op_desc_mask_from_channel, from_channel_8bit(0)), 0);
+	cr_assert_not_null(top->lmask, "the op must have routed to the layer mask");
+	top->lmask_active = TRUE;
+
+	gint64 mask_rec = 0;
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	for (guint i = 0; i < snap->len; i++) {
+		const nde_record *r = g_ptr_array_index(snap, i);
+		if (!g_strcmp0(r->op_id, "mask.from_channel"))
+			mask_rec = r->record_id;
+	}
+	g_ptr_array_unref(snap);
+	cr_assert_neq(mask_rec, 0);
+
+	cr_assert_eq(flis_flatten_all(), 0);
+	gfit = ((flis_layer_t *)com.uniq->layers->data)->fit;
+	float before = first_pixel();
+	cr_assert_null(flis_layer_get_by_id(top_item));
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_amend_execute(mask_rec, "channel=2;autostretch=0;invert=0;bitpix=8", &err),
+	          "amend failed: %s", err ? err : "?");
+	unreserve_thread();
+	g_free(err);
+
+	nde_chain *chain = nde_chain_build(bottom_item);
+	cr_assert(chain->replayable, "the stored mask must have been refreshed, not dropped: %s",
+	          chain->reasons->len ? (char *)g_ptr_array_index(chain->reasons, 0) : "none");
+	nde_chain_free(chain);
+	cr_assert_neq(first_pixel(), before,
+	              "a mask taken from a different channel must change the flattened image");
+	done();
+}
+
+/* The stored mask is not the layer's any more — the layer is gone — so it has
+ * to be written under its own item id and read back with it. */
+Test(nde_composite, a_masked_composite_is_still_replayable_after_a_round_trip) {
+	gint mask_item = 0;
+	gint bottom_item = masked_flatten(&mask_item);
+
+	gchar *dir = g_dir_make_tmp("nde-composite-XXXXXX", NULL);
+	cr_assert_not_null(dir);
+	gchar *path = g_build_filename(dir, "masked.flis", NULL);
+	cr_assert_eq(save_flis(path), 0);
+	flis_free_layers(com.uniq);
+	nde_history_attach(NULL);
+	nde_checkpoint_purge();
+	cr_assert_eq(load_flis(path), 0);
+
+	nde_chain *chain = nde_chain_build(bottom_item);
+	cr_assert(chain->replayable, "the reloaded masked flatten must still replay: %s",
+	          chain->reasons->len ? (char *)g_ptr_array_index(chain->reasons, 0) : "none");
 	nde_chain_free(chain);
 
 	g_unlink(path);
