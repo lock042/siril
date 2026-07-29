@@ -82,6 +82,11 @@ gboolean nde_compositing_is_op(const char *op_id);
  */
 gboolean nde_compositing_validate(const char *op_id, const char *params, gchar **err);
 
+/** TRUE for a blend mode a LAYER may carry.  PASS_THROUGH is excluded on
+ *  purpose: it is a group mode.  Shared with the composite node, which range-
+ *  checks the same value once per recorded input (nde_composite.h). */
+gboolean nde_compositing_blend_valid(gint64 v);
+
 /**
  * Re-fold the live history onto layer @item_id's compositing state and
  * invalidate the composite.  A no-op returning TRUE for @item_id < 0 (a plain

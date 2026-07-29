@@ -151,6 +151,23 @@ gboolean nde_composite_is_op(const char *op_id);
 nde_composite_state *nde_composite_state_parse(const char *params);
 
 /**
+ * Validate @new_params as a replacement for @old_params on a composite record.
+ * A composite has no op descriptor, so this stands in for a deserializer.
+ *
+ * What it accepts is the COMPOSITING state — each input's opacity, blend mode,
+ * visibility, tint and offset, and the same for the groups.  Those are exactly
+ * the parameters that died with the layers and are exactly what a user would
+ * want to reconsider: "that layer was merged in at 50%, make it 70%".
+ *
+ * What it refuses is everything else.  Changing which items the node consumes
+ * would be rewiring the graph, which no edit does (design note §5.4); changing
+ * the canvas, the input count, or the raw-first contract would describe an
+ * operation that never happened.
+ */
+gboolean nde_composite_validate(const char *old_params, const char *new_params,
+                                gchar **err);
+
+/**
  * TRUE when @rec is a composite record carrying both the input pins and the
  * state its re-run needs — that is, when it can be a replayable chain member
  * rather than a blocker.

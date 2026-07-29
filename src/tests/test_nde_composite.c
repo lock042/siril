@@ -580,6 +580,94 @@ Test(nde_composite, merges_of_merges_resolve_through_each_other) {
 	done();
 }
 
+/* ---- amending the composite itself -------------------------------------- */
+
+/* @params with @key's value replaced.  The blob is one flat kv list, so this
+ * is a substring swap rather than a re-encode. */
+static gchar *replace_kv(const char *params, const char *key, const char *value) {
+	gchar *needle = g_strdup_printf("%s=", key);
+	const char *at = strstr(params, needle);
+	cr_assert_not_null(at, "no key '%s' in: %s", key, params);
+	const char *end = strchr(at, ';');
+	cr_assert_not_null(end);
+	gchar *head = g_strndup(params, (gsize)(at - params));
+	gchar *out = g_strdup_printf("%s%s%s%s", head, needle, value, end);
+	g_free(head);
+	g_free(needle);
+	return out;
+}
+
+/* The compositing state of a merged-away layer is recorded, which makes it the
+ * one thing about that layer a user can still reconsider afterwards.  The
+ * result must equal the merge that would have happened at that opacity —
+ * "it changed" would not prove it changed to the right thing. */
+Test(nde_composite, the_opacity_a_layer_was_merged_at_can_be_amended) {
+	two_edited_layers_merged(NULL, NULL, FLIS_BLEND_NORMAL, 1.0f);
+	fits native = { 0 };
+	copyfits(((flis_layer_t *)com.uniq->layers->data)->fit, &native,
+	         CP_DEEPCOPY | CP_ALLOC, -1);
+	done();
+	flis_free_layers(com.uniq);
+
+	two_edited_layers_merged(NULL, NULL, FLIS_BLEND_NORMAL, 0.5f);
+	const nde_record *merge = find_composite_record();
+	gint64 rid = merge->record_id;
+	gchar *amended = replace_kv(merge->params, "i1_opacity", "1.000000");
+	cr_assert_neq(first_pixel(), native.fdata[0], "fixture: 0.5 and 1.0 must differ");
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_amend_execute(rid, amended, &err), "amend failed: %s", err ? err : "?");
+	unreserve_thread();
+	g_free(err);
+	g_free(amended);
+
+	fits *now = ((flis_layer_t *)com.uniq->layers->data)->fit;
+	size_t n = (size_t)native.rx * native.ry * native.naxes[2];
+	float maxdev = 0.f;
+	for (size_t i = 0; i < n; i++) {
+		float d = fabsf(now->fdata[i] - native.fdata[i]);
+		if (d > maxdev) maxdev = d;
+	}
+	cr_assert(maxdev <= 1e-6f,
+	          "re-merging at opacity 1 must match having merged at 1 (deviation %.3g)",
+	          (double)maxdev);
+	clearfits(&native);
+	done();
+}
+
+/* An edit changes how a step composited, never what it composited: the graph
+ * is not rewired by editing parameters (design note §5.4). */
+Test(nde_composite, a_composite_cannot_be_rewired_by_an_amend) {
+	gint top_item = 0;
+	two_edited_layers_merged(NULL, &top_item, FLIS_BLEND_NORMAL, 0.5f);
+	const nde_record *merge = find_composite_record();
+	gint64 rid = merge->record_id;
+	gchar *rewired = replace_kv(merge->params, "i1_item", "99");
+	gchar *silly   = replace_kv(merge->params, "i1_opacity", "3.000000");
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(!nde_amend_execute(rid, rewired, &err),
+	          "pointing an input at another item must be refused");
+	cr_assert_not_null(err);
+	g_free(err);
+	err = NULL;
+	cr_assert(!nde_amend_execute(rid, silly, &err),
+	          "an opacity outside 0..1 must be refused");
+	cr_assert_not_null(err);
+	unreserve_thread();
+	g_free(err);
+	g_free(rewired);
+	g_free(silly);
+
+	/* and the record is untouched, so the image still replays */
+	nde_chain *chain = nde_chain_build(((flis_layer_t *)com.uniq->layers->data)->item_id);
+	cr_assert(chain->replayable);
+	nde_chain_free(chain);
+	done();
+}
+
 /* ---- honest refusal ----------------------------------------------------- */
 
 /* A merge recorded before step 7 carries neither pins nor per-input state.

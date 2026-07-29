@@ -45,7 +45,7 @@ gboolean nde_compositing_is_op(const char *op_id) {
 /* Every layer blend mode.  PASS_THROUGH is excluded on purpose: it is a group
  * mode (see the enum comment in image_format_flis.h) and would make a layer
  * composite in a way the renderer does not define. */
-static gboolean blend_mode_valid(gint64 v) {
+gboolean nde_compositing_blend_valid(gint64 v) {
 	switch ((flis_blend_mode_t)v) {
 	case FLIS_BLEND_NORMAL:
 	case FLIS_BLEND_MULTIPLY:
@@ -92,7 +92,7 @@ gboolean nde_compositing_validate(const char *op_id, const char *params, gchar *
 		gint64 v;
 		if (!nde_kv_get_int(kv, "blend", &v))
 			*err = g_strdup(_("no blend mode value"));
-		else if (!blend_mode_valid(v))
+		else if (!nde_compositing_blend_valid(v))
 			*err = g_strdup_printf(_("%" G_GINT64_FORMAT " is not a valid layer blend mode"), v);
 		else
 			ok = TRUE;
@@ -153,7 +153,7 @@ gboolean nde_compositing_recompute(gint item_id, gchar **err) {
 				opacity = v;
 		} else if (!g_strcmp0(rec->op_id, OP_SET_BLEND)) {
 			gint64 v;
-			if (nde_kv_get_int(kv, "blend", &v) && blend_mode_valid(v))
+			if (nde_kv_get_int(kv, "blend", &v) && nde_compositing_blend_valid(v))
 				blend = (flis_blend_mode_t)v;
 		} else {
 			gboolean v;

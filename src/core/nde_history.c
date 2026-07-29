@@ -30,6 +30,7 @@
 #include "core/nde_history.h"
 #include "core/nde_checkpoint.h"
 #include "core/nde_compositing.h"
+#include "core/nde_composite.h"
 #include "core/nde_snapstore.h"
 #include "io/image_format_flis.h"
 
@@ -615,7 +616,7 @@ gboolean nde_history_amend(gint64 record_id, const gchar *new_params, gchar **er
 
 	/* Validate the new params OUTSIDE the leaf mutex (deserializers may
 	 * allocate freely).  The op id is read under the mutex first. */
-	gchar *op_id = NULL;
+	gchar *op_id = NULL, *old_params = NULL;
 	int op_version = 0;
 	g_mutex_lock(&nde_mutex);
 	{
@@ -623,12 +624,26 @@ gboolean nde_history_amend(gint64 record_id, const gchar *new_params, gchar **er
 		if (idx >= 0) {
 			nde_record *rec = g_ptr_array_index(com.uniq->nde_history->records, idx);
 			op_id = g_strdup(rec->op_id);
+			old_params = g_strdup(rec->params);
 			op_version = rec->op_version;
 		}
 	}
 	g_mutex_unlock(&nde_mutex);
-	if (!op_id)
+	if (!op_id) {
+		g_free(old_params);
 		return FALSE;
+	}
+
+	/* A composite node has no op descriptor either, and its params say what it
+	 * consumed as well as how: validation is against the RECORDED blob, so an
+	 * amend can change the compositing state and nothing else (nde_composite.h). */
+	if (nde_composite_is_op(op_id)) {
+		gboolean ok = nde_composite_validate(old_params, new_params, err);
+		g_free(op_id);
+		g_free(old_params);
+		return ok ? amend_commit(record_id, new_params, NULL, err) : FALSE;
+	}
+	g_free(old_params);
 
 	/* Compositing-state records have no op descriptor: their params are
 	 * validated by range/enum instead, and their summary ("Set opacity", …)

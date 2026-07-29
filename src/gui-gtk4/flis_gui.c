@@ -52,6 +52,7 @@
 #include "core/nde_replay.h"   /* nde_record_amendable/deletable, amend/delete_start */
 #include "core/nde_graph.h"    /* nodes + edges behind the per-item step lists */
 #include "core/nde_compositing.h"  /* nde_compositing_is_op */
+#include "core/nde_composite.h"    /* the composite node's own editor */
 #include "gui-gtk4/nde_editors.h"
 #include "core/op_descriptor.h" /* op_descriptor_by_id for the edit round-trip check */
 #include "core/gui_iface.h"
@@ -1634,6 +1635,182 @@ static void open_hist_edit_dialog(NdeHistRowItem *r) {
 	gtk_window_present(GTK_WINDOW(window));
 }
 
+/* ---- editing a composite step (merge down / flatten) --------------------
+ * Its params are not an operation's parameters but a record of the document
+ * it consumed, most of which must not change (nde_composite.h).  The generic
+ * kv grid would offer all of it as free text, so this dialog offers the part
+ * that IS editable — how each consumed layer was composited — and rebuilds
+ * the blob over the recorded one, leaving every other key alone.        */
+
+struct comp_edit_row {
+	guint      index;      /* input index in the record */
+	GtkWidget *opacity;    /* GtkSpinButton */
+	GtkWidget *blend;      /* GtkDropDown */
+	GtkWidget *visible;    /* GtkCheckButton */
+};
+
+struct comp_edit_ctx {
+	GtkWidget *window;
+	GtkWidget *error_label;
+	gint64     record_id;
+	gchar     *params;     /* the recorded blob, overridden on apply */
+	GArray    *rows;
+};
+
+static void comp_edit_ctx_free(gpointer p) {
+	struct comp_edit_ctx *ctx = p;
+	g_array_free(ctx->rows, TRUE);
+	g_free(ctx->params);
+	g_free(ctx);
+}
+
+static void on_comp_edit_cancel(GtkButton *b, gpointer u) {
+	(void)b;
+	struct comp_edit_ctx *ctx = u;
+	gtk_window_destroy(GTK_WINDOW(ctx->window));
+}
+
+static void on_comp_edit_apply(GtkButton *b, gpointer u) {
+	(void)b;
+	struct comp_edit_ctx *ctx = u;
+	GHashTable *kv = nde_kv_parse(ctx->params);
+	for (guint i = 0; i < ctx->rows->len; i++) {
+		const struct comp_edit_row *row = &g_array_index(ctx->rows, struct comp_edit_row, i);
+		guint sel = gtk_drop_down_get_selected(GTK_DROP_DOWN(row->blend));
+		if (sel >= (guint)N_BLENDS)
+			sel = 0;
+		g_hash_table_insert(kv, g_strdup_printf("i%u_opacity", row->index),
+		                    g_strdup_printf("%.6f",
+		                        gtk_spin_button_get_value(GTK_SPIN_BUTTON(row->opacity))));
+		g_hash_table_insert(kv, g_strdup_printf("i%u_blend", row->index),
+		                    g_strdup_printf("%d", (int)blend_mode_for_index_table[sel]));
+		g_hash_table_insert(kv, g_strdup_printf("i%u_visible", row->index),
+		                    g_strdup_printf("%d",
+		                        gtk_check_button_get_active(GTK_CHECK_BUTTON(row->visible)) ? 1 : 0));
+	}
+	/* Re-emit every key: the ones not touched above carry through unchanged,
+	 * which is what keeps the edit from rewiring anything. */
+	GString *out = nde_kv_start();
+	GList *keys = g_list_sort(g_hash_table_get_keys(kv), (GCompareFunc)g_strcmp0);
+	for (GList *l = keys; l; l = l->next)
+		nde_kv_add_str(out, l->data, g_hash_table_lookup(kv, l->data));
+	g_list_free(keys);
+	g_hash_table_unref(kv);
+	gchar *blob = nde_kv_end(out);
+
+	gchar *why = NULL;
+	if (!nde_composite_validate(ctx->params, blob, &why)) {
+		gtk_label_set_text(GTK_LABEL(ctx->error_label), why ? why : "");
+		gtk_widget_set_visible(ctx->error_label, TRUE);
+		g_free(why);
+		g_free(blob);
+		return;   /* keep the dialog open */
+	}
+	g_free(why);
+	gint64 record_id = ctx->record_id;
+	gtk_window_destroy(GTK_WINDOW(ctx->window));   /* frees ctx via close */
+	nde_amend_start(record_id, blob);
+	g_free(blob);
+}
+
+/* TRUE when the dialog was opened; FALSE when there is nothing it can offer
+ * (a record from before the composite format, which is not amendable anyway). */
+static gboolean open_composite_edit_dialog(NdeHistRowItem *r) {
+	nde_composite_state *st = nde_composite_state_parse(r->params);
+	if (!st)
+		return FALSE;
+
+	GtkWidget *window = gtk_window_new();
+	gtk_window_set_title(GTK_WINDOW(window), r->summary ? r->summary : _("Edit step"));
+	gtk_window_set_modal(GTK_WINDOW(window), TRUE);
+	gtk_window_set_transient_for(GTK_WINDOW(window),
+	                             GTK_WINDOW(lookup_widget("control_window")));
+	gtk_window_set_default_size(GTK_WINDOW(window), 420, -1);
+
+	GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+	gtk_widget_set_margin_start (box, 12);
+	gtk_widget_set_margin_end   (box, 12);
+	gtk_widget_set_margin_top   (box, 12);
+	gtk_widget_set_margin_bottom(box, 12);
+	gtk_window_set_child(GTK_WINDOW(window), box);
+
+	struct comp_edit_ctx *ctx = g_new0(struct comp_edit_ctx, 1);
+	ctx->window    = window;
+	ctx->record_id = r->record_id;
+	ctx->params    = g_strdup(r->params);
+	ctx->rows      = g_array_new(FALSE, TRUE, sizeof(struct comp_edit_row));
+
+	GtkWidget *grid = gtk_grid_new();
+	gtk_grid_set_row_spacing   (GTK_GRID(grid), 6);
+	gtk_grid_set_column_spacing(GTK_GRID(grid), 8);
+	int gridrow = 0;
+	for (guint i = 0; i < st->inputs->len; i++) {
+		const nde_composite_input *in = &g_array_index(st->inputs, nde_composite_input, i);
+		/* Merge-down paints its bottom input raw and RETAINS its blend mode
+		 * and opacity on the surviving layer, where the Layers panel already
+		 * edits them.  Offering them here would be a second, dead control. */
+		if (i == 0 && st->raw_first)
+			continue;
+		GtkWidget *name = gtk_label_new(in->name && *in->name ? in->name : _("(unnamed)"));
+		gtk_label_set_xalign(GTK_LABEL(name), 0.0f);
+		gtk_widget_add_css_class(name, "heading");
+		gtk_grid_attach(GTK_GRID(grid), name, 0, gridrow++, 2, 1);
+
+		struct comp_edit_row row = { .index = i };
+		gtk_grid_attach(GTK_GRID(grid), gtk_label_new(_("Opacity")), 0, gridrow, 1, 1);
+		row.opacity = gtk_spin_button_new_with_range(0.0, 1.0, 0.01);
+		gtk_spin_button_set_digits(GTK_SPIN_BUTTON(row.opacity), 3);
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(row.opacity), in->opacity);
+		gtk_widget_set_hexpand(row.opacity, TRUE);
+		gtk_grid_attach(GTK_GRID(grid), row.opacity, 1, gridrow++, 1, 1);
+
+		gtk_grid_attach(GTK_GRID(grid), gtk_label_new(_("Blend")), 0, gridrow, 1, 1);
+		GtkStringList *bl = gtk_string_list_new(NULL);
+		for (int k = 0; k < N_BLENDS; k++)
+			gtk_string_list_append(bl, _(blend_names[k]));
+		row.blend = gtk_drop_down_new(G_LIST_MODEL(bl), NULL);
+		gtk_drop_down_set_selected(GTK_DROP_DOWN(row.blend),
+		                           index_for_blend_mode((flis_blend_mode_t)in->blend_mode));
+		gtk_widget_set_hexpand(row.blend, TRUE);
+		gtk_grid_attach(GTK_GRID(grid), row.blend, 1, gridrow++, 1, 1);
+
+		row.visible = gtk_check_button_new_with_label(_("Visible"));
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(row.visible), in->visible);
+		gtk_grid_attach(GTK_GRID(grid), row.visible, 1, gridrow++, 1, 1);
+		g_array_append_val(ctx->rows, row);
+	}
+	nde_composite_state_free(st);
+	gtk_box_append(GTK_BOX(box), grid);
+
+	ctx->error_label = gtk_label_new(NULL);
+	gtk_label_set_wrap(GTK_LABEL(ctx->error_label), TRUE);
+	gtk_label_set_xalign(GTK_LABEL(ctx->error_label), 0.0f);
+	gtk_widget_add_css_class(ctx->error_label, "error");
+	gtk_widget_set_visible(ctx->error_label, FALSE);
+	gtk_box_append(GTK_BOX(box), ctx->error_label);
+
+	GtkWidget *consequence = gtk_label_new(hist_edit_consequence(r));
+	gtk_label_set_wrap(GTK_LABEL(consequence), TRUE);
+	gtk_label_set_xalign(GTK_LABEL(consequence), 0.0f);
+	gtk_widget_add_css_class(consequence, "dim-label");
+	gtk_box_append(GTK_BOX(box), consequence);
+
+	GtkWidget *bbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	gtk_widget_set_halign(bbox, GTK_ALIGN_END);
+	GtkWidget *cancel = gtk_button_new_with_label(_("Cancel"));
+	GtkWidget *apply  = gtk_button_new_with_label(_("Apply"));
+	gtk_widget_add_css_class(apply, "suggested-action");
+	gtk_box_append(GTK_BOX(bbox), cancel);
+	gtk_box_append(GTK_BOX(bbox), apply);
+	gtk_box_append(GTK_BOX(box), bbox);
+
+	g_object_set_data_full(G_OBJECT(window), "comp-edit-ctx", ctx, comp_edit_ctx_free);
+	g_signal_connect(cancel, "clicked", G_CALLBACK(on_comp_edit_cancel), ctx);
+	g_signal_connect(apply,  "clicked", G_CALLBACK(on_comp_edit_apply),  ctx);
+	gtk_window_present(GTK_WINDOW(window));
+	return TRUE;
+}
+
 static void on_hist_edit_clicked(GtkButton *b, gpointer u) {
 	(void)b; (void)u;
 	if (!g_panel || !g_panel->hist_popover_row)
@@ -1642,8 +1819,12 @@ static void on_hist_edit_clicked(GtkButton *b, gpointer u) {
 	if (!r->amendable || !r->params)
 		return;
 	gtk_popover_popdown(GTK_POPOVER(g_panel->hist_popover));
-	/* Native editor first (amend mode with live preview); the kv grid
-	 * remains the fallback for ops without one. */
+	/* A composite step's own editor: what it consumed is in its params too,
+	 * and only some of it may change. */
+	if (nde_composite_is_op(r->op_id) && open_composite_edit_dialog(r))
+		return;
+	/* Native editor next (amend mode with live preview); the kv grid remains
+	 * the fallback for ops without one. */
 	if (nde_editor_open(r->op_id, r->record_id))
 		return;
 	open_hist_edit_dialog(r);

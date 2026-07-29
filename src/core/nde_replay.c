@@ -333,6 +333,11 @@ gboolean nde_record_amendable(const nde_record *rec) {
 	 * nde_compositing_validate() is their deserializer (see nde_compositing.h). */
 	if (nde_compositing_is_op(rec->op_id))
 		return TRUE;
+	/* A composite node likewise: nde_composite_validate() is its deserializer.
+	 * Only while it is replayable, though — amending the opacity of a merge
+	 * nobody can re-run would change the log and not the image. */
+	if (nde_composite_is_op(rec->op_id))
+		return nde_composite_record_replayable(rec);
 	const op_descriptor *op = op_descriptor_by_id(rec->op_id);
 	return op && op->deserialize;
 }
@@ -1464,17 +1469,26 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 			nde_chain_free(chain);
 			return FALSE;
 		}
-		/* Validate the new params against the op before replaying. */
-		const op_descriptor *op = op_descriptor_by_id(target_rec->op_id);
-		gpointer trial = (op && op->deserialize) ?
-				op->deserialize(new_params, target_rec->op_version) : NULL;
-		if (!trial) {
-			*err = g_strdup_printf(_("the new parameters for '%s' failed to parse"),
-			                       target_rec->op_id ? target_rec->op_id : "?");
-			nde_chain_free(chain);
-			return FALSE;
+		/* Validate the new params against the op before replaying.  A composite
+		 * node has none, and is checked against its own recorded blob instead:
+		 * the compositing state may change, what it consumed may not. */
+		if (nde_composite_is_op(target_rec->op_id)) {
+			if (!nde_composite_validate(target_rec->params, new_params, err)) {
+				nde_chain_free(chain);
+				return FALSE;
+			}
+		} else {
+			const op_descriptor *op = op_descriptor_by_id(target_rec->op_id);
+			gpointer trial = (op && op->deserialize) ?
+					op->deserialize(new_params, target_rec->op_version) : NULL;
+			if (!trial) {
+				*err = g_strdup_printf(_("the new parameters for '%s' failed to parse"),
+				                       target_rec->op_id ? target_rec->op_id : "?");
+				nde_chain_free(chain);
+				return FALSE;
+			}
+			destroy_user(trial);
 		}
-		destroy_user(trial);
 		g_free(target_rec->params);
 		target_rec->params = g_strdup(new_params);
 	}

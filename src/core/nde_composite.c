@@ -25,6 +25,7 @@
 #include "core/masks.h"
 #include "core/nde_history.h"
 #include "core/nde_checkpoint.h"
+#include "core/nde_compositing.h"
 #include "core/nde_composite.h"
 #include "io/image_format_fits.h"
 #include "io/image_format_flis.h"
@@ -313,6 +314,67 @@ nde_composite_state *nde_composite_state_parse(const char *params) {
 		return NULL;
 	}
 	return st;
+}
+
+/* ---- validating an amend ------------------------------------------------ */
+
+static gboolean in_unit_range(gdouble v) {
+	return v >= 0.0 && v <= 1.0;   /* rejects NaN too */
+}
+
+gboolean nde_composite_validate(const char *old_params, const char *new_params,
+                                gchar **err) {
+	g_return_val_if_fail(err != NULL, FALSE);
+	*err = NULL;
+	nde_composite_state *was = nde_composite_state_parse(old_params);
+	nde_composite_state *now = nde_composite_state_parse(new_params);
+	if (!now) {
+		*err = g_strdup(_("the new compositing parameters could not be read"));
+	} else if (!was) {
+		/* Nothing to compare against: the record predates this format, and it
+		 * is not replayable either, so there is nothing an edit could do. */
+		*err = g_strdup(_("this step did not record what it composited"));
+	} else if (was->raw_first != now->raw_first ||
+	           was->canvas_w != now->canvas_w || was->canvas_h != now->canvas_h ||
+	           was->inputs->len != now->inputs->len ||
+	           was->groups->len != now->groups->len) {
+		*err = g_strdup(_("only the compositing parameters of this step can be changed, "
+		                  "not what it composited"));
+	}
+	for (guint i = 0; !*err && i < now->inputs->len; i++) {
+		const nde_composite_input *a = &g_array_index(was->inputs, nde_composite_input, i);
+		const nde_composite_input *b = &g_array_index(now->inputs, nde_composite_input, i);
+		if (a->item_id != b->item_id || a->mask_item_id != b->mask_item_id ||
+		    a->group_id != b->group_id || a->was_masked != b->was_masked)
+			*err = g_strdup_printf(_("input %u names a different layer — a step cannot be "
+			                         "rewired, only its compositing parameters changed"), i);
+		else if (!in_unit_range(b->opacity))
+			*err = g_strdup_printf(_("opacity %g for '%s' is outside the range 0 to 1"),
+			                       b->opacity, b->name ? b->name : "?");
+		else if (!nde_compositing_blend_valid(b->blend_mode))
+			*err = g_strdup_printf(_("%d is not a valid layer blend mode"), b->blend_mode);
+		else if (b->has_tint && !(in_unit_range(b->tint_r) && in_unit_range(b->tint_g)
+		                          && in_unit_range(b->tint_b)))
+			*err = g_strdup_printf(_("the tint for '%s' is outside the range 0 to 1"),
+			                       b->name ? b->name : "?");
+	}
+	for (guint i = 0; !*err && i < now->groups->len; i++) {
+		const nde_composite_group *a = &g_array_index(was->groups, nde_composite_group, i);
+		const nde_composite_group *b = &g_array_index(now->groups, nde_composite_group, i);
+		if (a->item_id != b->item_id)
+			*err = g_strdup_printf(_("group %u names a different group"), i);
+		else if (!in_unit_range(b->opacity))
+			*err = g_strdup_printf(_("group opacity %g is outside the range 0 to 1"),
+			                       b->opacity);
+		/* A group MAY be PASS_THROUGH, unlike a layer, so its blend mode is
+		 * checked against the wider set. */
+		else if (!nde_compositing_blend_valid(b->blend_mode) &&
+		         b->blend_mode != FLIS_BLEND_PASS_THROUGH)
+			*err = g_strdup_printf(_("%d is not a valid group blend mode"), b->blend_mode);
+	}
+	nde_composite_state_free(was);
+	nde_composite_state_free(now);
+	return *err == NULL;
 }
 
 gboolean nde_composite_record_replayable(const nde_record *rec) {
