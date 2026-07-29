@@ -2239,11 +2239,27 @@ static void on_hist_row_activate(GtkListView *lv, guint position, gpointer u) {
 		gtk_widget_set_margin_top   (pbox, 6);
 		gtk_widget_set_margin_bottom(pbox, 6);
 
+		/* The detail is one line per recorded parameter, and a composite
+		 * records fifteen of them PER INPUT — a three-layer flatten runs to
+		 * fifty lines.  A bare label cannot shrink (its minimum height is its
+		 * natural height), so such a popover asked for more than the window
+		 * had and GTK simply never mapped it: double-clicking a merge row did
+		 * nothing whatever.  Scrolled, its minimum is small and it fits. */
 		g_panel->hist_popover_label = gtk_label_new(NULL);
 		gtk_label_set_selectable(GTK_LABEL(g_panel->hist_popover_label), TRUE);
 		gtk_label_set_xalign(GTK_LABEL(g_panel->hist_popover_label), 0.0f);
+		gtk_label_set_max_width_chars(GTK_LABEL(g_panel->hist_popover_label), 60);
 		gtk_widget_add_css_class(g_panel->hist_popover_label, "monospace");
-		gtk_box_append(GTK_BOX(pbox), g_panel->hist_popover_label);
+		GtkWidget *detail_sw = gtk_scrolled_window_new();
+		gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(detail_sw),
+		                               GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+		gtk_scrolled_window_set_propagate_natural_width(GTK_SCROLLED_WINDOW(detail_sw), TRUE);
+		gtk_scrolled_window_set_propagate_natural_height(GTK_SCROLLED_WINDOW(detail_sw), TRUE);
+		gtk_scrolled_window_set_max_content_height(GTK_SCROLLED_WINDOW(detail_sw), 260);
+		gtk_scrolled_window_set_max_content_width(GTK_SCROLLED_WINDOW(detail_sw), 520);
+		gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(detail_sw),
+		                              g_panel->hist_popover_label);
+		gtk_box_append(GTK_BOX(pbox), detail_sw);
 
 		GtkWidget *actions = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
 		gtk_widget_set_halign(actions, GTK_ALIGN_END);
