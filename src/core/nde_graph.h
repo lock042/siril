@@ -140,18 +140,21 @@ typedef struct {
 } nde_graph_place;
 
 /**
- * Place @boxes in columns by level, top-aligned, in the order given — which is
- * nde_graph_build()'s stable node order, so the layout does not reshuffle as
- * records are added.  A column is as wide as its widest node, so every edge
- * enters a column at the same x.
+ * Place @boxes in horizontal bands by level, left-aligned, in the order given
+ * — which is nde_graph_build()'s stable node order, so the layout does not
+ * reshuffle as records are added.  A band is as tall as its tallest node, so
+ * every edge leaves a band at the same y.
  *
- * Levels run left to right and steps run top to bottom inside a node: ORDER IS
- * MEANING on the vertical axis, so derivation takes the horizontal one.
+ * Derivation runs DOWNWARD and siblings sit side by side: three layers across
+ * the top, the merge that consumed them below.  Steps already run top to
+ * bottom inside a node, and running derivation left to right as well made the
+ * two axes fight — a layer's history read down the page while the history of
+ * the document read across it.
  *
  * Returns a GArray of nde_graph_place, one per box and in the same order; free
  * with g_array_unref().  @total_w / @total_h may be NULL.  No boxes yields an
- * empty array and a zero size, and one level yields one column — which is why
- * a linear document draws as the list it drew as before.
+ * empty array and a zero size, and one level yields one band — a single row of
+ * nodes, which for a linear document is the one node it has.
  */
 GArray *nde_graph_layout(const GArray *boxes, gint col_gap, gint row_gap,
                          gint *total_w, gint *total_h);

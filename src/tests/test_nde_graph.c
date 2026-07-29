@@ -123,7 +123,7 @@ Test(nde_graph, a_linear_document_is_one_node) {
 	nde_graph *g = nde_graph_build();
 	cr_assert_eq(g->nodes->len, 1, "one item, one node");
 	cr_assert_eq(g->edges->len, 0, "and nothing to draw between");
-	cr_assert_eq(g->depth, 1, "a single column");
+	cr_assert_eq(g->depth, 1, "a single band");
 
 	const nde_graph_node *n = g_ptr_array_index(g->nodes, 0);
 	cr_assert_eq(n->item_id, NDE_ITEM_IMAGE);
@@ -185,7 +185,7 @@ Test(nde_graph, a_mask_is_its_own_node_with_an_edge_to_its_consumer) {
 	cr_assert(saw_image_edge, "and was itself built from the image");
 
 	/* The mask's chain starts first here, so it ranks first and the image
-	 * sits one level past it — a left-to-right layout reads that off. */
+	 * sits one band below it — a top-to-bottom layout reads that off. */
 	cr_assert_lt(mask->level, nde_graph_node_for(g, NDE_ITEM_IMAGE)->level);
 	cr_assert_eq(g->depth, 2);
 
@@ -310,9 +310,9 @@ static const nde_graph_place *place_for(GArray *places, gint item) {
 	return NULL;
 }
 
-/* The case that must not regress into a graph: one chain, one column, and a
- * stack of nodes that reads exactly as the list it replaces. */
-Test(nde_graph, one_level_lays_out_as_a_single_column) {
+/* Derivation runs downward, so nodes that derive from nothing share the top
+ * band and sit side by side. */
+Test(nde_graph, one_level_lays_out_as_a_single_band) {
 	GArray *b = boxes_new();
 	add_box(b, 1, 0, 200, 100);
 	add_box(b, 2, 0, 240, 60);
@@ -320,47 +320,47 @@ Test(nde_graph, one_level_lays_out_as_a_single_column) {
 	GArray *p = nde_graph_layout(b, 20, 6, &w, &h);
 
 	cr_assert_eq(p->len, 2);
-	cr_assert_eq(place_for(p, 1)->x, 0);
-	cr_assert_eq(place_for(p, 2)->x, 0, "one level is one column");
 	cr_assert_eq(place_for(p, 1)->y, 0);
-	cr_assert_eq(place_for(p, 2)->y, 106, "stacked with the row gap between");
-	cr_assert_eq(w, 240, "the column is as wide as its widest node");
-	cr_assert_eq(h, 166);
+	cr_assert_eq(place_for(p, 2)->y, 0, "one level is one band");
+	cr_assert_eq(place_for(p, 1)->x, 0);
+	cr_assert_eq(place_for(p, 2)->x, 220, "side by side with the column gap between");
+	cr_assert_eq(h, 100, "the band is as tall as its tallest node");
+	cr_assert_eq(w, 460);
 	g_array_unref(p);
 	g_array_unref(b);
 }
 
-/* A column is widened to its widest member so that every edge leaving it
- * leaves at one x — the reason places carry a width at all. */
-Test(nde_graph, a_column_is_as_wide_as_its_widest_node) {
+/* A band is levelled to its tallest member so that every edge leaving it
+ * leaves at one y — the reason places carry a height at all. */
+Test(nde_graph, a_band_is_as_tall_as_its_tallest_node) {
 	GArray *b = boxes_new();
-	add_box(b, 1, 0, 100, 50);
-	add_box(b, 2, 0, 180, 50);
-	add_box(b, 3, 1, 90, 50);
-	gint w = 0;
-	GArray *p = nde_graph_layout(b, 20, 6, &w, NULL);
-
-	cr_assert_eq(place_for(p, 1)->w, 180);
-	cr_assert_eq(place_for(p, 2)->w, 180);
-	cr_assert_eq(place_for(p, 3)->x, 200, "180 wide plus the 20 gap");
-	cr_assert_eq(w, 290);
-	g_array_unref(p);
-	g_array_unref(b);
-}
-
-/* Each column stacks independently: a tall mask beside a short layer must
- * not push the layer down to meet it. */
-Test(nde_graph, columns_stack_independently) {
-	GArray *b = boxes_new();
-	add_box(b, 1, 0, 100, 300);
-	add_box(b, 2, 1, 100, 40);
-	add_box(b, 3, 1, 100, 40);
+	add_box(b, 1, 0, 50, 100);
+	add_box(b, 2, 0, 50, 180);
+	add_box(b, 3, 1, 50, 90);
 	gint h = 0;
-	GArray *p = nde_graph_layout(b, 10, 5, NULL, &h);
+	GArray *p = nde_graph_layout(b, 20, 6, NULL, &h);
 
-	cr_assert_eq(place_for(p, 2)->y, 0);
-	cr_assert_eq(place_for(p, 3)->y, 45);
-	cr_assert_eq(h, 300, "the tallest column sets the height");
+	cr_assert_eq(place_for(p, 1)->h, 180);
+	cr_assert_eq(place_for(p, 2)->h, 180);
+	cr_assert_eq(place_for(p, 3)->y, 186, "180 tall plus the 6 gap");
+	cr_assert_eq(h, 276);
+	g_array_unref(p);
+	g_array_unref(b);
+}
+
+/* Each band fills independently: a wide node in one band must not push the
+ * nodes of another band along to meet it. */
+Test(nde_graph, bands_fill_independently) {
+	GArray *b = boxes_new();
+	add_box(b, 1, 0, 300, 100);
+	add_box(b, 2, 1, 40, 100);
+	add_box(b, 3, 1, 40, 100);
+	gint w = 0;
+	GArray *p = nde_graph_layout(b, 5, 10, &w, NULL);
+
+	cr_assert_eq(place_for(p, 2)->x, 0);
+	cr_assert_eq(place_for(p, 3)->x, 45);
+	cr_assert_eq(w, 300, "the widest band sets the width");
 	g_array_unref(p);
 	g_array_unref(b);
 }
@@ -377,9 +377,9 @@ Test(nde_graph, layout_preserves_the_order_it_was_given) {
 	cr_assert_eq(g_array_index(p, nde_graph_place, 0).item_id, 7);
 	cr_assert_eq(g_array_index(p, nde_graph_place, 1).item_id, 3);
 	cr_assert_eq(g_array_index(p, nde_graph_place, 2).item_id, 5);
-	cr_assert_eq(g_array_index(p, nde_graph_place, 0).y, 0);
-	cr_assert_eq(g_array_index(p, nde_graph_place, 2).y, 14,
-	             "second in its column, whatever its position in the list");
+	cr_assert_eq(g_array_index(p, nde_graph_place, 0).x, 0);
+	cr_assert_eq(g_array_index(p, nde_graph_place, 2).x, 14,
+	             "second in its band, whatever its position in the list");
 	g_array_unref(p);
 	g_array_unref(b);
 }

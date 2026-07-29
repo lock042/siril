@@ -773,6 +773,62 @@ Test(nde_composite, a_composite_cannot_be_rewired_by_an_amend) {
 	done();
 }
 
+/* The reported defect: Edit greyed out on a merge-down step.  The History
+ * window disables Edit for any chain member when the CHAIN has a blocker
+ * (flis_gui.c, hist_fold_chain_marks) — correct in itself, since a step that
+ * cannot be re-run must not offer an edit that could only fail.  But while the
+ * merge lived in the surviving layer's chain, it inherited a verdict about one
+ * of its own INPUTS: an opaque step anywhere in that layer's past froze the
+ * merge with it.
+ *
+ * Consuming the inputs separates the two.  The input's chain still carries its
+ * blocker, and the merge — a different item's chain now — does not. */
+Test(nde_composite, an_opaque_step_on_an_input_does_not_freeze_the_merge) {
+	com.pref.nde_cache_mb = 256;
+	flis_layer_t *bottom = flis_test_add_layer(
+	    flis_test_make_rgb_fits(4, 4, 0.5f, 0.5f, 0.5f), "bottom");
+	flis_layer_t *top = flis_test_add_layer(
+	    flis_test_make_rgb_fits(4, 4, 0.25f, 0.25f, 0.25f), "top");
+	select_layer(bottom);
+	cr_assert_eq(run_op_on_active(&op_desc_asinh, asinh_beta(5.f)), 0);
+
+	/* An opaque step with no restart checkpoint: a hard blocker for the
+	 * bottom layer's chain, which is what the reporter's document had
+	 * somewhere upstream of the merge. */
+	nde_record *opaque = nde_record_new();
+	opaque->op_id          = g_strdup("some.unreplayable.op");
+	opaque->op_version     = 1;
+	opaque->scope          = NDE_SCOPE_LAYER;
+	opaque->target_item_id = bottom->item_id;
+	opaque->tier           = NDE_TIER_B;
+	opaque->summary        = g_strdup("Opaque step");
+	cr_assert_neq(nde_history_append(opaque), 0);
+
+	gint input_item = bottom->item_id;
+	nde_chain *blocked = nde_chain_build(input_item);
+	cr_assert(!blocked->replayable,
+	          "fixture: the input's own chain must be blocked by the opaque step");
+	nde_chain_free(blocked);
+
+	cr_assert_eq(flis_merge_down_layer(top), 0);
+	flis_layer_t *merged = (flis_layer_t *)com.uniq->layers->data;
+	gfit = merged->fit;
+	cr_assert_neq(merged->item_id, input_item);
+
+	nde_chain *result = nde_chain_build(merged->item_id);
+	cr_assert_eq(result->reasons->len, 0,
+	             "the merge must not inherit its input's blocker: %s",
+	             result->reasons->len ? (char *)g_ptr_array_index(result->reasons, 0) : "");
+	cr_assert(result->replayable, "so the merge step stays editable");
+	cr_assert_eq(result->tail_start, 0, "and unfrozen: Edit is offered");
+	nde_chain_free(result);
+
+	const nde_record *merge = find_composite_record();
+	cr_assert_not_null(merge);
+	cr_assert(nde_record_amendable(merge), "which is what the Edit button reads");
+	done();
+}
+
 /* ---- honest refusal ----------------------------------------------------- */
 
 /* A merge recorded before step 7 carries neither pins nor per-input state.
@@ -957,6 +1013,13 @@ Test(nde_composite, a_merge_is_still_replayable_after_a_round_trip) {
 
 	cr_assert(nde_checkpoint_baseline_exists(top_item),
 	          "the merged-away layer's baseline must be written and read back");
+	/* The reloaded document must not hand a consumed id out again.  Seeding
+	 * next_item_id from the live layers alone would do exactly that here —
+	 * both inputs are gone from the stack, and the next layer added would be
+	 * given one of their ids along with their provenance. */
+	cr_assert_gt(com.uniq->next_item_id, bottom_item);
+	cr_assert_gt(com.uniq->next_item_id, top_item);
+	cr_assert_gt(com.uniq->next_item_id, result_item);
 	nde_chain *chain = nde_chain_build(result_item);
 	cr_assert(chain->replayable, "the reloaded merge must still replay: %s",
 	          chain->reasons->len ? (char *)g_ptr_array_index(chain->reasons, 0) : "none");

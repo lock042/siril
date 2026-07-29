@@ -160,25 +160,25 @@ static void arrowhead(cairo_t *cr, double x, double y, double from_x, double fro
 	cairo_fill(cr);
 }
 
-/* Forward edges leave the source's right edge and enter the destination's
- * left: the columns run left to right, so that is the direction derivation
- * runs.  Feedback edges take the same corridor backwards, bowed clear of it. */
+/* Forward edges leave the source's bottom edge and enter the destination's
+ * top: the bands run down the page, so that is the direction derivation runs.
+ * Feedback edges take the same corridor backwards, bowed clear of it. */
 static void draw_edge(cairo_t *cr, const nde_graph_place *s,
                       const nde_graph_place *d, gboolean feedback) {
 	double x0, y0, x1, y1, c0x, c0y, c1x, c1y;
 
 	if (!feedback) {
-		x0 = s->x + s->w;      y0 = s->y + s->h / 2.0;
-		x1 = d->x;             y1 = d->y + d->h / 2.0;
-		const double reach = MAX(fabs(x1 - x0) * 0.5, 16.0);
-		c0x = x0 + reach;      c0y = y0;
-		c1x = x1 - reach;      c1y = y1;
+		x0 = s->x + s->w / 2.0;      y0 = s->y + s->h;
+		x1 = d->x + d->w / 2.0;      y1 = d->y;
+		const double reach = MAX(fabs(y1 - y0) * 0.5, 16.0);
+		c0x = x0;                    c0y = y0 + reach;
+		c1x = x1;                    c1y = y1 - reach;
 	} else {
-		x0 = s->x;             y0 = s->y + s->h / 2.0 + 10.0;
-		x1 = d->x + d->w;      y1 = d->y + d->h / 2.0 + 10.0;
-		const double reach = MAX(fabs(x1 - x0) * 0.5, 16.0);
-		c0x = x0 - reach;      c0y = y0 + FEEDBACK_BOW;
-		c1x = x1 + reach;      c1y = y1 + FEEDBACK_BOW;
+		x0 = s->x + s->w / 2.0 + 10.0;   y0 = s->y;
+		x1 = d->x + d->w / 2.0 + 10.0;   y1 = d->y + d->h;
+		const double reach = MAX(fabs(y1 - y0) * 0.5, 16.0);
+		c0x = x0 + FEEDBACK_BOW;     c0y = y0 - reach;
+		c1x = x1 + FEEDBACK_BOW;     c1y = y1 + reach;
 	}
 
 	cairo_move_to(cr, x0, y0);
@@ -186,6 +186,42 @@ static void draw_edge(cairo_t *cr, const nde_graph_place *s,
 	cairo_stroke(cr);
 	cairo_set_dash(cr, NULL, 0, 0);   /* the head is solid even when dashed */
 	arrowhead(cr, x1, y1, c1x, c1y);
+}
+
+/* Several inputs converging on one node — a merge or a flatten — draw as a
+ * BUS: a drop from each input to a shared bar, and one drop from the bar into
+ * the result.  Three curves crossing each other say the same thing and say it
+ * worse; the bar is also how the operation reads on paper. */
+static void draw_join(cairo_t *cr, const nde_graph_place **srcs, guint n,
+                      const nde_graph_place *d) {
+	double bar_y = d->y - ROW_GAP / 2.0;
+	double min_x = G_MAXDOUBLE, max_x = -G_MAXDOUBLE;
+	for (guint i = 0; i < n; i++) {
+		const double cx = srcs[i]->x + srcs[i]->w / 2.0;
+		const double bottom = srcs[i]->y + srcs[i]->h;
+		/* An input from further up the page than the band immediately above
+		 * would otherwise drop THROUGH the nodes between; keep the bar below
+		 * every source it serves. */
+		if (bottom + 4.0 > bar_y)
+			bar_y = bottom + 4.0;
+		if (cx < min_x) min_x = cx;
+		if (cx > max_x) max_x = cx;
+	}
+	const double drop_x = d->x + d->w / 2.0;
+	if (drop_x < min_x) min_x = drop_x;
+	if (drop_x > max_x) max_x = drop_x;
+
+	for (guint i = 0; i < n; i++) {
+		const double cx = srcs[i]->x + srcs[i]->w / 2.0;
+		cairo_move_to(cr, cx, srcs[i]->y + srcs[i]->h);
+		cairo_line_to(cr, cx, bar_y);
+	}
+	cairo_move_to(cr, min_x, bar_y);
+	cairo_line_to(cr, max_x, bar_y);
+	cairo_move_to(cr, drop_x, bar_y);
+	cairo_line_to(cr, drop_x, d->y);
+	cairo_stroke(cr);
+	arrowhead(cr, drop_x, d->y, drop_x, bar_y);
 }
 
 static void nde_graph_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) {
@@ -200,18 +236,50 @@ static void nde_graph_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) {
 				snapshot, &GRAPHENE_RECT_INIT(0, 0, (float)w, (float)h));
 		cairo_set_line_width(cr, 1.5);
 		cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+		const double dashes[] = { 4.0, 3.0 };
+		/* Forward edges are grouped by destination first, so that the several
+		 * inputs of one merge become a single join rather than a sheaf. */
+		GHashTable *drawn = g_hash_table_new(g_direct_hash, g_direct_equal);
 		for (guint i = 0; i < self->edges->len; i++) {
 			const view_edge *e = &g_array_index(self->edges, view_edge, i);
+			if (e->feedback ||
+			    g_hash_table_contains(drawn, GINT_TO_POINTER(e->dst)))
+				continue;
+			g_hash_table_add(drawn, GINT_TO_POINTER(e->dst));
+			const nde_graph_place *d = place_of(self->places, e->dst);
+			if (!d)
+				continue;
+			const nde_graph_place *srcs[64];
+			guint n = 0;
+			for (guint j = 0; j < self->edges->len && n < G_N_ELEMENTS(srcs); j++) {
+				const view_edge *f = &g_array_index(self->edges, view_edge, j);
+				if (f->feedback || f->dst != e->dst)
+					continue;
+				const nde_graph_place *s = place_of(self->places, f->src);
+				if (s)
+					srcs[n++] = s;
+			}
+			if (!n)
+				continue;
+			cairo_set_source_rgba(cr, fg.red, fg.green, fg.blue, fg.alpha * 0.55);
+			cairo_set_dash(cr, NULL, 0, 0);
+			if (n == 1)
+				draw_edge(cr, srcs[0], d, FALSE);
+			else
+				draw_join(cr, srcs, n, d);
+		}
+		g_hash_table_destroy(drawn);
+		for (guint i = 0; i < self->edges->len; i++) {
+			const view_edge *e = &g_array_index(self->edges, view_edge, i);
+			if (!e->feedback)
+				continue;
 			const nde_graph_place *s = place_of(self->places, e->src);
 			const nde_graph_place *d = place_of(self->places, e->dst);
 			if (!s || !d)
 				continue;
-			const double dashes[] = { 4.0, 3.0 };
-			cairo_set_source_rgba(cr, fg.red, fg.green, fg.blue,
-			                      fg.alpha * (e->feedback ? 0.30 : 0.55));
-			cairo_set_dash(cr, e->feedback ? dashes : NULL,
-			               e->feedback ? 2 : 0, 0);
-			draw_edge(cr, s, d, e->feedback);
+			cairo_set_source_rgba(cr, fg.red, fg.green, fg.blue, fg.alpha * 0.30);
+			cairo_set_dash(cr, dashes, 2, 0);
+			draw_edge(cr, s, d, TRUE);
 		}
 		cairo_destroy(cr);
 	}

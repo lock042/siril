@@ -318,50 +318,50 @@ GArray *nde_graph_layout(const GArray *boxes, gint col_gap, gint row_gap,
 	if (!boxes || !boxes->len)
 		return out;
 
-	gint n_cols = 0;
+	gint n_bands = 0;
 	for (guint i = 0; i < boxes->len; i++) {
 		const nde_graph_box *b = &g_array_index(boxes, nde_graph_box, i);
-		if (b->level + 1 > n_cols)
-			n_cols = b->level + 1;
+		if (b->level + 1 > n_bands)
+			n_bands = b->level + 1;
 	}
-	/* A level with no node in it still costs a column: the gap says the
+	/* A level with no node in it still costs a band: the gap says the
 	 * derivation skipped a rank rather than that two nodes are siblings. */
-	gint *col_w = g_new0(gint, (gsize)n_cols);
-	gint *col_y = g_new0(gint, (gsize)n_cols);
+	gint *band_h = g_new0(gint, (gsize)n_bands);
+	gint *band_x = g_new0(gint, (gsize)n_bands);
 	for (guint i = 0; i < boxes->len; i++) {
 		const nde_graph_box *b = &g_array_index(boxes, nde_graph_box, i);
-		if (b->w > col_w[b->level])
-			col_w[b->level] = b->w;
+		if (b->h > band_h[b->level])
+			band_h[b->level] = b->h;
 	}
-	gint *col_x = g_new0(gint, (gsize)n_cols);
-	gint x = 0;
-	for (gint c = 0; c < n_cols; c++) {
-		col_x[c] = x;
-		x += col_w[c] + col_gap;
+	gint *band_y = g_new0(gint, (gsize)n_bands);
+	gint y = 0;
+	for (gint r = 0; r < n_bands; r++) {
+		band_y[r] = y;
+		y += band_h[r] + row_gap;
 	}
 
-	gint used_h = 0;
+	gint used_w = 0;
 	for (guint i = 0; i < boxes->len; i++) {
 		const nde_graph_box *b = &g_array_index(boxes, nde_graph_box, i);
 		nde_graph_place p = {
 			.item_id = b->item_id,
-			.x = col_x[b->level],
-			.y = col_y[b->level],
-			/* Widened to the column so a node's right edge — where its
-			 * outgoing edges leave — is the same x for the whole column. */
-			.w = col_w[b->level],
-			.h = b->h,
+			.x = band_x[b->level],
+			.y = band_y[b->level],
+			.w = b->w,
+			/* Levelled to the band so a node's bottom edge — where its
+			 * outgoing edges leave — is the same y right across it. */
+			.h = band_h[b->level],
 		};
-		col_y[b->level] += b->h + row_gap;
-		if (col_y[b->level] - row_gap > used_h)
-			used_h = col_y[b->level] - row_gap;
+		band_x[b->level] += b->w + col_gap;
+		if (band_x[b->level] - col_gap > used_w)
+			used_w = band_x[b->level] - col_gap;
 		g_array_append_val(out, p);
 	}
 
-	if (total_w) *total_w = x > 0 ? x - col_gap : 0;
-	if (total_h) *total_h = used_h;
-	g_free(col_w);
-	g_free(col_x);
-	g_free(col_y);
+	if (total_w) *total_w = used_w;
+	if (total_h) *total_h = y > 0 ? y - row_gap : 0;
+	g_free(band_h);
+	g_free(band_x);
+	g_free(band_y);
 	return out;
 }
