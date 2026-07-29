@@ -683,6 +683,17 @@ Test(nde_composite, the_opacity_a_group_was_flattened_at_can_be_amended) {
 	done();
 }
 
+/* The Edit option was reported missing on a merge-down step.  Amendability is
+ * what the popover reads to enable the button, so it is asserted here. */
+Test(nde_composite, the_merge_step_is_offered_for_editing) {
+	two_edited_layers_merged(NULL, NULL, FLIS_BLEND_NORMAL, 0.5f);
+	const nde_record *merge = find_composite_record();
+	cr_assert_not_null(merge);
+	cr_assert(nde_composite_record_replayable(merge), "replayable?");
+	cr_assert(nde_record_amendable(merge), "the merge must be amendable");
+	done();
+}
+
 /* An edit changes how a step composited, never what it composited: the graph
  * is not rewired by editing parameters (design note §5.4). */
 Test(nde_composite, a_composite_cannot_be_rewired_by_an_amend) {

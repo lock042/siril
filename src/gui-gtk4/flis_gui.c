@@ -215,15 +215,14 @@ struct flis_panel {
 	GtkWidget *mask_view_proc_radio;
 	GtkWidget *mask_view_layer_radio;
 
-	/* History section (NDE provenance, sketch §16) — a large popover under
-	 * the header-bar clock button since nde-phase5, tear-off-able into a
-	 * floating window (closing the window docks it back). */
-	GtkWidget  *hist_pop;           /* popover shell (NULL while torn off) */
-	GtkWidget  *hist_content;       /* the content box, reparented on tear-off */
-	GtkWidget  *hist_win;           /* lazy tear-off window (kept, reused) */
-	gboolean    hist_torn;          /* TRUE while content lives in hist_win */
+	/* History section (NDE provenance, sketch §16) — a window of its own,
+	 * raised from the header-bar clock button.  It began as a popover with
+	 * an optional tear-off; the graph view retired that, since a graph two
+	 * or three columns wide never fitted a popover and the tear-off had
+	 * become the only place it was usable. */
+	GtkWidget  *hist_content;       /* the content box */
+	GtkWidget  *hist_win;           /* lazy; kept and reused across shows */
 	GtkWidget  *hist_header;        /* "Nondestructive History (n)" heading */
-	GtkWidget  *hist_tear_btn;      /* detach button in the heading row */
 	GtkWidget  *hist_stale_revealer;
 	GtkWidget  *hist_insert_revealer;   /* "inserting before step N" banner */
 	GtkWidget  *hist_insert_label;
@@ -317,50 +316,32 @@ void flis_gui_history_popover_init(void) {
 	build_history_popover();
 }
 
-/* TRUE when the history panel is on screen, whichever host it lives in. */
+/* TRUE when the history window is on screen. */
 static gboolean hist_panel_visible(void) {
-	if (!g_panel) return FALSE;
-	if (g_panel->hist_torn)
-		return g_panel->hist_win && gtk_widget_get_visible(g_panel->hist_win);
-	return g_panel->hist_pop && gtk_widget_get_visible(g_panel->hist_pop);
+	return g_panel && g_panel->hist_win && gtk_widget_get_visible(g_panel->hist_win);
 }
 
-/* Image-state feed from update_MenuItem: the history panel exists only for a
- * single loaded image — the clock button goes insensitive and any open
- * popover / tear-off window is dismissed when the image goes away (image
- * closed, sequence loaded).  Main thread only. */
+/* Image-state feed from update_MenuItem: the history exists only for a single
+ * loaded image — the clock button goes insensitive and the window is hidden
+ * when the image goes away (image closed, sequence loaded).  Main thread. */
 void flis_gui_history_notify_image_state(gboolean single_image_loaded) {
 	GtkWidget *btn = lookup_widget("nde_history_button");
 	if (btn)
 		gtk_widget_set_sensitive(btn, single_image_loaded);
 	if (single_image_loaded || !g_panel)
 		return;
-	if (g_panel->hist_torn) {
-		if (g_panel->hist_win && gtk_widget_get_visible(g_panel->hist_win))
-			gtk_widget_set_visible(g_panel->hist_win, FALSE);
-	} else if (g_panel->hist_pop &&
-	           gtk_widget_get_visible(g_panel->hist_pop)) {
-		gtk_popover_popdown(GTK_POPOVER(g_panel->hist_pop));
-	}
+	if (g_panel->hist_win && gtk_widget_get_visible(g_panel->hist_win))
+		gtk_widget_set_visible(g_panel->hist_win, FALSE);
 }
 
 /* Programmatic toggle (win.show-nde-history). */
 void flis_gui_history_toggle_visible(void) {
 	flis_gui_history_popover_init();
-	if (!g_panel) return;
-	if (g_panel->hist_torn) {
-		if (!g_panel->hist_win) return;
-		if (gtk_widget_get_visible(g_panel->hist_win))
-			gtk_widget_set_visible(g_panel->hist_win, FALSE);
-		else
-			gtk_window_present(GTK_WINDOW(g_panel->hist_win));
-		return;
-	}
-	if (!g_panel->hist_pop) return;
-	if (gtk_widget_get_visible(g_panel->hist_pop))
-		gtk_popover_popdown(GTK_POPOVER(g_panel->hist_pop));
+	if (!g_panel || !g_panel->hist_win) return;
+	if (gtk_widget_get_visible(g_panel->hist_win))
+		gtk_widget_set_visible(g_panel->hist_win, FALSE);
 	else
-		gtk_popover_popup(GTK_POPOVER(g_panel->hist_pop));
+		gtk_window_present(GTK_WINDOW(g_panel->hist_win));
 }
 
 /* Coalescing flag for refresh_idle_cb.  Atomic because
@@ -2653,141 +2634,65 @@ static void on_hist_pop_show(GtkWidget *pop, gpointer user_data) {
 	refresh_history();
 }
 
-/* Tear-off machinery: the content box moves between the popover shell and a
- * floating window.  The MenuButton owns (and destroys) its popover, so the
- * shell is recreated on re-dock rather than cached. */
-static void hist_tear_off(void);
-static void hist_redock(void);
-
-static GtkWidget *hist_popover_shell_new(void) {
-	GtkWidget *pop = gtk_popover_new();
-	gtk_popover_set_position(GTK_POPOVER(pop), GTK_POS_BOTTOM);
-	/* Pinned open: no click-outside/focus-loss dismissal.  It closes only
-	 * when the clock button is clicked again, or when the image is closed
-	 * (flis_gui_history_notify_image_state).  Lets the user keep the
-	 * history visible while working in dialogs and the main window. */
-	gtk_popover_set_autohide(GTK_POPOVER(pop), FALSE);
-	g_signal_connect(pop, "show", G_CALLBACK(on_hist_pop_show), NULL);
-	return pop;
-}
-
-static void on_hist_tear_clicked(GtkButton *b, gpointer u) {
-	(void)b; (void)u;
-	hist_tear_off();
-}
-
-/* Drag anywhere on the heading row also tears the panel off. */
-static void on_hist_header_drag_update(GtkGestureDrag *g,
-                                       double dx, double dy, gpointer u) {
-	(void)u;
-	if (g_panel && !g_panel->hist_torn && (ABS(dx) > 32 || ABS(dy) > 32)) {
-		gtk_gesture_set_state(GTK_GESTURE(g), GTK_EVENT_SEQUENCE_CLAIMED);
-		hist_tear_off();
-	}
-}
-
+/* The history lives in a window of its own.  It was a popover with an
+ * optional tear-off; the graph view retired the popover, because a graph two
+ * or three columns wide never fitted one and the tear-off had become the only
+ * place it was usable.  The window is created once and reused: hiding it
+ * keeps the built content, the expanders and the scroll position. */
+/* Closing hides rather than destroys: the window is reused, and with it the
+ * built nodes, their expander state and the scroll position. */
 static gboolean on_hist_win_close_request(GtkWindow *w, gpointer u) {
-	(void)w; (void)u;
-	/* Closing the tear-off window docks the panel back into the popover. */
-	hist_redock();
-	return TRUE;   /* keep the (hidden, reusable) window alive */
+	(void)u;
+	gtk_widget_set_visible(GTK_WIDGET(w), FALSE);
+	return TRUE;
 }
 
-static void hist_tear_off(void) {
-	if (!g_panel || g_panel->hist_torn || !g_panel->hist_content)
-		return;
-	g_panel->hist_torn = TRUE;
-	GtkWidget *content = g_object_ref(g_panel->hist_content);
-	if (g_panel->hist_pop) {
-		gtk_popover_popdown(GTK_POPOVER(g_panel->hist_pop));
-		gtk_popover_set_child(GTK_POPOVER(g_panel->hist_pop), NULL);
-		GtkWidget *btn = lookup_widget("nde_history_button");
-		if (btn && GTK_IS_MENU_BUTTON(btn))
-			gtk_menu_button_set_popover(GTK_MENU_BUTTON(btn), NULL);
-		g_panel->hist_pop = NULL;   /* destroyed by the button */
-	}
-	if (!g_panel->hist_win) {
-		GtkWidget *w = gtk_window_new();
-		g_panel->hist_win = w;
-		gtk_window_set_title(GTK_WINDOW(w), _("Nondestructive History"));
-		gtk_window_set_default_size(GTK_WINDOW(w), 340, 520);
-		GtkWidget *main_w = lookup_widget("control_window");
-		if (main_w)
-			gtk_window_set_transient_for(GTK_WINDOW(w), GTK_WINDOW(main_w));
-		g_signal_connect(w, "close-request",
-		                 G_CALLBACK(on_hist_win_close_request), NULL);
-		g_signal_connect(w, "show", G_CALLBACK(on_hist_pop_show), NULL);
-	}
-	gtk_window_set_child(GTK_WINDOW(g_panel->hist_win), content);
-	g_object_unref(content);
-	if (g_panel->hist_tear_btn)
-		gtk_widget_set_visible(g_panel->hist_tear_btn, FALSE);
-	gtk_window_present(GTK_WINDOW(g_panel->hist_win));
+static GtkWidget *hist_window_get(void) {
+	if (g_panel->hist_win)
+		return g_panel->hist_win;
+	GtkWidget *w = gtk_window_new();
+	g_panel->hist_win = w;
+	gtk_window_set_title(GTK_WINDOW(w), _("Nondestructive History"));
+	gtk_window_set_default_size(GTK_WINDOW(w), 720, 560);
+	GtkWidget *main_w = lookup_widget("control_window");
+	if (main_w)
+		gtk_window_set_transient_for(GTK_WINDOW(w), GTK_WINDOW(main_w));
+	g_signal_connect(w, "close-request",
+	                 G_CALLBACK(on_hist_win_close_request), NULL);
+	g_signal_connect(w, "show", G_CALLBACK(on_hist_pop_show), NULL);
+	return w;
 }
 
-static void hist_redock(void) {
-	if (!g_panel || !g_panel->hist_torn || !g_panel->hist_content)
-		return;
-	g_panel->hist_torn = FALSE;
-	GtkWidget *content = g_object_ref(g_panel->hist_content);
-	gtk_widget_set_visible(g_panel->hist_win, FALSE);
-	gtk_window_set_child(GTK_WINDOW(g_panel->hist_win), NULL);
-	g_panel->hist_pop = hist_popover_shell_new();
-	gtk_popover_set_child(GTK_POPOVER(g_panel->hist_pop), content);
-	g_object_unref(content);
-	if (g_panel->hist_tear_btn)
-		gtk_widget_set_visible(g_panel->hist_tear_btn, TRUE);
-	GtkWidget *btn = lookup_widget("nde_history_button");
-	if (btn && GTK_IS_MENU_BUTTON(btn))
-		gtk_menu_button_set_popover(GTK_MENU_BUTTON(btn), g_panel->hist_pop);
-}
-
-/* Reached only when the button is activated with NO popover attached — i.e.
- * while torn off: raise the tear-off window instead. */
+/* The clock button is a GtkMenuButton with no popover attached, so activating
+ * it lands here.  This was already the path that raised the torn-off window;
+ * it is now the only one. */
 static void hist_button_create_popup(GtkMenuButton *btn, gpointer u) {
 	(void)btn; (void)u;
-	if (g_panel && g_panel->hist_torn && g_panel->hist_win)
-		gtk_window_present(GTK_WINDOW(g_panel->hist_win));
+	if (g_panel)
+		gtk_window_present(GTK_WINDOW(hist_window_get()));
 }
 
-/* The Nondestructive History panel: a large popover anchored below the
- * header-bar clock button (nde_history_button).  Separate from the layers
- * panel because the edit history is document-wide, not layer-specific — it
- * applies to plain FITS images too. */
+/* The Nondestructive History: its own window, raised from the header-bar
+ * clock button (nde_history_button).  Separate from the layers panel because
+ * the edit history is document-wide, not layer-specific — it applies to plain
+ * FITS images too. */
 static void build_history_popover(void) {
-	if (g_panel->hist_pop || g_panel->hist_content) return;
-
-	GtkWidget *pop = hist_popover_shell_new();
-	g_panel->hist_pop = pop;
+	if (g_panel->hist_content) return;
 
 	GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 3);
 	g_panel->hist_content = vbox;
-	gtk_widget_set_size_request(vbox, 340, 480);
 	gtk_widget_set_margin_start (vbox, 4);
 	gtk_widget_set_margin_end   (vbox, 4);
 	gtk_widget_set_margin_top   (vbox, 4);
 	gtk_widget_set_margin_bottom(vbox, 4);
-	gtk_popover_set_child(GTK_POPOVER(pop), vbox);
+	gtk_window_set_child(GTK_WINDOW(hist_window_get()), vbox);
 
-	/* Heading row: title + tear-off affordance.  Dragging the heading tears
-	 * the panel off too. */
 	GtkWidget *hdr = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
 	g_panel->hist_header = gtk_label_new(_("Nondestructive History"));
 	gtk_label_set_xalign(GTK_LABEL(g_panel->hist_header), 0.0f);
 	gtk_widget_set_hexpand(g_panel->hist_header, TRUE);
 	gtk_widget_add_css_class(g_panel->hist_header, "heading");
 	gtk_box_append(GTK_BOX(hdr), g_panel->hist_header);
-	g_panel->hist_tear_btn = gtk_button_new_from_icon_name("window-new-symbolic");
-	gtk_widget_add_css_class(g_panel->hist_tear_btn, "flat");
-	gtk_widget_set_tooltip_text(g_panel->hist_tear_btn,
-			_("Detach into a window (closing the window re-attaches it here)"));
-	g_signal_connect(g_panel->hist_tear_btn, "clicked",
-	                 G_CALLBACK(on_hist_tear_clicked), NULL);
-	gtk_box_append(GTK_BOX(hdr), g_panel->hist_tear_btn);
-	GtkGesture *hdr_drag = gtk_gesture_drag_new();
-	g_signal_connect(hdr_drag, "drag-update",
-	                 G_CALLBACK(on_hist_header_drag_update), NULL);
-	gtk_widget_add_controller(hdr, GTK_EVENT_CONTROLLER(hdr_drag));
 	gtk_box_append(GTK_BOX(vbox), hdr);
 
 	g_panel->hist_stale_revealer = gtk_revealer_new();
@@ -2859,15 +2764,13 @@ static void build_history_popover(void) {
 	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), g_panel->hist_container);
 	gtk_box_append(GTK_BOX(vbox), sw);
 
+	/* No popover is attached, so activating the button lands in the
+	 * create-popup func, which raises the window. */
 	GtkWidget *btn = lookup_widget("nde_history_button");
-	if (btn && GTK_IS_MENU_BUTTON(btn)) {
-		gtk_menu_button_set_popover(GTK_MENU_BUTTON(btn), pop);
-		/* While torn off the button has no popover; activating it raises
-		 * the tear-off window instead. */
+	if (btn && GTK_IS_MENU_BUTTON(btn))
 		gtk_menu_button_set_create_popup_func(GTK_MENU_BUTTON(btn),
 		                                      hist_button_create_popup,
 		                                      NULL, NULL);
-	}
 }
 
 /* ---- Context menu -------------------------------------------------- */
