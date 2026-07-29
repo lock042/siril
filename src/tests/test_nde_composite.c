@@ -1031,6 +1031,49 @@ Test(nde_composite, a_merge_whose_input_cannot_be_rebuilt_refuses_to_undo) {
 	done();
 }
 
+/* The bug the first insertion test could not see: it drove the operation
+ * through generic_image_worker, and there is a SECOND capture site —
+ * nde_capture_from_descriptor — that dialog-driven ops use.  Both decided
+ * whose history a record belonged to, separately, and only one of them knew
+ * about the borrowed item, so a stretch applied from a dialog while an
+ * insertion was open landed after the merge instead of inside the input. */
+Test(nde_composite, a_dialog_captured_op_also_lands_in_the_borrowed_input) {
+	gint bottom_item = 0;
+	two_edited_layers_merged(&bottom_item, NULL, FLIS_BLEND_NORMAL, 0.5f);
+	gint64 anchor = record_for_item(bottom_item);
+	cr_assert_neq(anchor, 0);
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_edit_at_begin_execute(anchor, &err), "%s", err ? err : "?");
+	unreserve_thread();
+	g_free(err);
+
+	/* Exactly what a dialog does on Apply: no worker, just the capture. */
+	asinh_params ap = { .beta = 14.f, .clip_mode = RESCALE };
+	gint64 rid = nde_capture_from_descriptor(&op_desc_asinh, &ap,
+	                                         "Asinh from a dialog", NULL);
+	cr_assert_neq(rid, 0, "the capture must be recorded");
+
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	gint target = 0;
+	for (guint i = 0; i < snap->len; i++) {
+		const nde_record *r = g_ptr_array_index(snap, i);
+		if (r->record_id == rid)
+			target = r->target_item_id;
+	}
+	g_ptr_array_unref(snap);
+	cr_assert_eq(target, bottom_item,
+	             "a dialog-driven op must be filed against the borrowed item, "
+	             "not the layer that happens to be active");
+
+	cr_assert(reserve_thread());
+	nde_edit_at_end_execute(FALSE, &err);
+	unreserve_thread();
+	g_free(err);
+	done();
+}
+
 /* ---- honest refusal ----------------------------------------------------- */
 
 /* A merge recorded before step 7 carries neither pins nor per-input state.

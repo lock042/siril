@@ -1021,6 +1021,22 @@ static gint64 capture_finish(nde_record *rec, const char *summary,
 	return id;
 }
 
+/* Whose history a capture belongs to.  There were two answers to this in two
+ * files — the generic worker's and this one's — and they disagreed the moment
+ * an insertion borrowed the display for an item a merge had consumed: the
+ * worker's captures went to the borrowed item and the dialogs' captures went
+ * to the active layer, so a stretch aimed at a merge input landed after the
+ * merge.  One answer now, in one place. */
+gint nde_capture_target_item(void) {
+	gint borrowed = nde_edit_at_borrowed_item();
+	if (borrowed)
+		return borrowed;
+	if (!is_current_image_flis())
+		return -1;
+	flis_layer_t *lay = flis_active_layer();
+	return lay ? lay->item_id : -1;
+}
+
 gint64 nde_capture_structural(const char *op_id, gint scope,
                               gint target_item_id, gchar *params,
                               const char *summary) {
@@ -1087,10 +1103,7 @@ gint64 nde_capture_from_descriptor(const op_descriptor *op,
 	rec->params     = tier_a ? op->serialize(params) : NULL;
 	rec->scope      = (op->flags & OP_GEOMETRY_CHANGING) ?
 	                  NDE_SCOPE_CANVAS : NDE_SCOPE_LAYER;
-	if (is_current_image_flis()) {
-		flis_layer_t *lay = flis_active_layer();
-		rec->target_item_id = lay ? lay->item_id : -1;
-	}
+	rec->target_item_id = nde_capture_target_item();
 	rec->mask_active = gfit && gfit->mask && gfit->mask_active;
 	return capture_finish(rec, summary, post);
 }

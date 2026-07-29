@@ -367,6 +367,15 @@ void nde_history_rebind_item(gint from_item, gint to_item);
  * filled here.  Callers MUST invoke this only AFTER the mutation succeeded,
  * never on a failure path (records must reflect real pixel/document changes).
  */
+/**
+ * The item a capture belongs to: the active layer normally, or the item an
+ * open insertion has borrowed the display for.  Every capture site must use
+ * this rather than reading the active layer itself — two sites answering the
+ * question separately is what filed a dialog-driven op against the wrong
+ * layer while an insertion was open.
+ */
+gint nde_capture_target_item(void);
+
 gint64 nde_capture_structural(const char *op_id, gint scope,
                               gint target_item_id, gchar *params,
                               const char *summary);
