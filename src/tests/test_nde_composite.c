@@ -853,6 +853,55 @@ Test(nde_composite, an_insertion_cannot_be_armed_on_a_consumed_input) {
 	done();
 }
 
+/* The regression the identity change introduced and the tests missed: every
+ * test drove the amend path directly, and none went through the PREVIEW path
+ * the GUI actually uses.  An item born of a composite restarts from no state,
+ * which resolve_edit_restart signals as NULL-without-error; apv_begin_execute
+ * was the one caller of it still reading NULL as failure, so Edit on a step of
+ * a merged or flattened image failed with an empty reason and opened nothing. */
+Test(nde_composite, a_step_after_a_merge_can_be_previewed_for_editing) {
+	flis_layer_t *merged = two_edited_layers_merged(NULL, NULL,
+	                                                FLIS_BLEND_NORMAL, 1.0f);
+	select_layer(merged);
+	cr_assert_eq(run_op_on_active(&op_desc_asinh, asinh_beta(12.f)), 0);
+	gint64 post = record_for_item(merged->item_id);
+	cr_assert_neq(post, 0, "fixture: a step of the merged image's own");
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_amend_preview_begin_execute(post, &err),
+	          "the preview must start on a composite-born item: %s",
+	          err ? err : "(no reason given)");
+	g_free(err);
+	err = NULL;
+	cr_assert(nde_amend_preview_end_execute(FALSE, NULL, &err), "%s",
+	          err ? err : "?");
+	unreserve_thread();
+	g_free(err);
+	done();
+}
+
+/* And the boundary that has no answer: there is no state before an item's own
+ * origin.  It must refuse in words rather than fail with "?". */
+Test(nde_composite, the_composite_itself_has_no_earlier_state_to_preview) {
+	two_edited_layers_merged(NULL, NULL, FLIS_BLEND_NORMAL, 1.0f);
+	const nde_record *merge = find_composite_record();
+	cr_assert_not_null(merge);
+
+	/* Through the PREVIEW api, which is the path that synthesizes the state
+	 * before a step: nde_edit_at_begin_execute refuses this earlier, on the
+	 * record's DOCUMENT scope, so it would not reach the boundary at all. */
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(!nde_amend_preview_begin_execute(merge->record_id, &err),
+	          "there is no state before an item's own origin to preview");
+	unreserve_thread();
+	cr_assert_not_null(err, "and it must say so, not fail with an empty reason");
+	cr_assert_gt(strlen(err), 1);
+	g_free(err);
+	done();
+}
+
 /* ---- honest refusal ----------------------------------------------------- */
 
 /* A merge recorded before step 7 carries neither pins nor per-input state.

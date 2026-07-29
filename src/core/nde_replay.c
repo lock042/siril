@@ -2299,7 +2299,13 @@ static gboolean apv_begin_execute(gint64 record_id, gboolean insert, gchar **err
 	 * record targeting a non-active FLIS layer rather than previewing one
 	 * image while showing another. */
 	if (item_id != nde_checkpoint_active_item_id()) {
-		*err = g_strdup(_("this step targets another layer — make that layer active first"));
+		/* "Make that layer active" is impossible advice for a layer a merge
+		 * or flatten consumed: there is no such layer to select. */
+		*err = nde_item_is_retained_input(item_id) ?
+			g_strdup(_("a merge or flatten consumed this layer, so it cannot be "
+			           "made active — its steps can still be edited from the "
+			           "History, but not previewed on the image")) :
+			g_strdup(_("this step targets another layer — make that layer active first"));
 		goto fail_free;
 	}
 
@@ -2365,13 +2371,25 @@ static gboolean apv_begin_execute(gint64 record_id, gboolean insert, gchar **err
 	 * eventual amend's tail replay restart adjacent to K. */
 	guint start_idx = 0;
 	fits *start = resolve_edit_restart(chain, (guint)e, record_id, &start_idx, err);
+	/* A NULL restart with no error means the item was born of a composite and
+	 * starts from no state at all — the same convention edit_execute and
+	 * nde_reorder_execute follow.  At K == 0 that leaves nothing to synthesize:
+	 * there IS no state before an item's own origin, and saying so beats
+	 * failing with an empty reason, which is what this did. */
+	if (!start && !*err && e == 0)
+		*err = g_strdup(_("this step is what produced this image — there is no "
+		                  "earlier state of it to edit against"));
 	/* Preview only: the true pixels (and the layer's real position) come back
 	 * untouched on exit, so nothing is committed and nothing is carried. */
-	fits *pre_k = start ? replay_apply_records(start, chain, start_idx, (guint)e,
-	                                           NULL, NULL, err) : NULL;
+	fits *pre_k = (!start && *err) ? NULL :
+			replay_apply_records(start, chain, start_idx, (guint)e,
+			                     NULL, NULL, err);
 	nde_chain_free(chain);
-	if (!pre_k)
+	if (!pre_k) {
+		if (!*err)
+			*err = g_strdup(_("the state before this step could not be rebuilt"));
 		goto fail_free;
+	}
 
 	fits *target = edit_target_fits(item_id);
 	if (!target) {

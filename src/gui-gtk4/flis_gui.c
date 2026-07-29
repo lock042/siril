@@ -2205,6 +2205,12 @@ static const char *hist_insert_disabled_reason(const NdeHistRowItem *r) {
 		return _("Opaque steps cannot be recomputed, so nothing can be inserted before them");
 	if (!r->in_tail)
 		return _("Only steps after the last opaque step can host an insertion");
+	/* A composite is the first record of the item it produced, so there is no
+	 * position before it to insert into — the steps that came earlier belong
+	 * to the inputs it consumed, not to this item. */
+	if (nde_composite_is_op(r->op_id))
+		return _("This step produced the image, so nothing can come before it. "
+		         "Insert into one of the layers it consumed instead.");
 	/* No layer left to run the new operation on: it would land on whichever
 	 * layer IS active, which after a merge means the new step arrives at the
 	 * end of the merged result instead of where it was aimed. */
