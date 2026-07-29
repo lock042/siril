@@ -2217,6 +2217,14 @@ static const char *hist_move_disabled_reason(const NdeHistRowItem *r,
 	 * the record must be amendable and deletable, and both it and the target
 	 * neighbour must lie in the editable tail (crossing an opaque barrier is
 	 * refused). */
+	/* Opacity, blend and visibility are not pixel-chain members: the
+	 * compositor reads whatever they stand at, it does not replay them in
+	 * order, so moving one would change nothing.  Saying "only steps after
+	 * the last opaque step can be moved" was simply untrue of them. */
+	if (nde_compositing_is_op(r->op_id))
+		return _("Opacity, blend mode and visibility are read as they stand "
+		         "rather than replayed in order, so moving this step would "
+		         "change nothing");
 	if (!r->amendable || !r->deletable || !r->in_tail)
 		return _("Only steps after the last opaque step can be moved");
 	gint64 neighbour = up ? r->prev_member_id : r->next_member_id;

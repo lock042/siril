@@ -1074,6 +1074,64 @@ Test(nde_composite, a_dialog_captured_op_also_lands_in_the_borrowed_input) {
 	done();
 }
 
+/* Reordering a step on a layer a merge consumed failed with "the record's
+ * target layer no longer exists" — true, and beside the point: the item has no
+ * layer by design, and its edits reach the image through the composite.  The
+ * amend path had this branch from the start; the reorder path did not. */
+Test(nde_composite, a_step_on_a_consumed_input_can_be_reordered) {
+	com.pref.nde_cache_mb = 256;
+	flis_layer_t *bottom = flis_test_add_layer(
+	    flis_test_make_rgb_fits(4, 4, 0.5f, 0.5f, 0.5f), "bottom");
+	flis_layer_t *top = flis_test_add_layer(
+	    flis_test_make_rgb_fits(4, 4, 0.25f, 0.25f, 0.25f), "top");
+	cr_assert_eq(flis_layer_set_opacity(top, 0.5f), 0);
+	select_layer(bottom);
+	/* Two steps that do NOT commute, so their order is visible in the result. */
+	cr_assert_eq(run_op_on_active(&op_desc_asinh, asinh_beta(4.f)), 0);
+	cr_assert_eq(run_op_on_active(&op_desc_asinh, asinh_beta(40.f)), 0);
+	gint bottom_item = bottom->item_id;
+
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	gint64 first = 0, second = 0;
+	for (guint i = 0; i < snap->len; i++) {
+		const nde_record *r = g_ptr_array_index(snap, i);
+		if (r->target_item_id != bottom_item) continue;
+		if (!first) first = r->record_id;
+		else if (!second) second = r->record_id;
+	}
+	g_ptr_array_unref(snap);
+	cr_assert_neq(second, 0);
+
+	cr_assert_eq(flis_merge_down_layer(top), 0);
+	gfit = ((flis_layer_t *)com.uniq->layers->data)->fit;
+	float before = first_pixel();
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_reorder_execute(second, first, FALSE, &err),
+	          "a step on a consumed input must be reorderable: %s", err ? err : "?");
+	unreserve_thread();
+	g_free(err);
+
+	/* The log order changed... */
+	snap = nde_history_snapshot(NULL);
+	gint64 seen_first = 0;
+	for (guint i = 0; i < snap->len && !seen_first; i++) {
+		const nde_record *r = g_ptr_array_index(snap, i);
+		if (r->target_item_id == bottom_item)
+			seen_first = r->record_id;
+	}
+	g_ptr_array_unref(snap);
+	cr_assert_eq(seen_first, second, "the moved step now comes first");
+
+	/* ...and the merged image followed it, because the composite consumed
+	 * the reordered chain. */
+	cr_assert(fabsf(first_pixel() - before) > 1e-6f,
+	          "the reorder must reach the merged image (%.6f unchanged)",
+	          (double)before);
+	done();
+}
+
 /* ---- honest refusal ----------------------------------------------------- */
 
 /* A merge recorded before step 7 carries neither pins nor per-input state.

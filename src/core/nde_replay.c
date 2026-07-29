@@ -2181,11 +2181,32 @@ gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after,
 		return FALSE;
 	}
 
-	/* Atomic commit — mirrors edit_execute's tail. */
+	/* Atomic commit — mirrors edit_execute's tail, including its retained
+	 * branch: an item a merge consumed has no layer to swap into, and the
+	 * replay above was run to prove the reordered chain still applies rather
+	 * than to produce pixels anyone keeps.  Without this, reordering a step
+	 * on a consumed layer failed with "the record's target layer no longer
+	 * exists" — true, and beside the point. */
 	fits *target = gfit;
+	gboolean retained = FALSE;
 	if (item_id >= 0) {
 		flis_layer_t *lay = flis_layer_get_by_id(item_id);
 		target = lay ? lay->fit : NULL;
+		retained = nde_item_is_retained_input(item_id);   /* implies !lay */
+	}
+	if (retained) {
+		clearfits(result);
+		free(result);
+		if (!nde_history_reorder(record_id, log_before_id, err)) {
+			nde_snapstore_invalidate_from(item_id, inval_min);
+			gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
+			return FALSE;
+		}
+		cascade_composite_consumers(item_id);
+		undo_flush();
+		gui_iface.invalidate_histogram();
+		gui_iface.set_progress(PROGRESS_RESET, _("History step moved"));
+		return TRUE;
 	}
 	if (!target) {
 		*err = g_strdup(_("the record's target layer no longer exists"));
