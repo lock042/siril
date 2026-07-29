@@ -50,11 +50,60 @@
 #include "io/image_format_fits.h"
 #include "flis_compose.h"
 
-static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite,
+static fits *flis_render_layers_internal(GSList *layers,
+                                         const flis_render_ctx *ctx,
+                                         gboolean sub_composite,
                                          gboolean first_raw);
 
+/* The document's own rendering context.  Zeroed when there is no document —
+ * hand-built layer lists in the unit tests fall back to the first layer's
+ * dimensions, as they always have. */
+static flis_render_ctx ctx_from_document(void) {
+    flis_render_ctx ctx = { 0 };
+    if (com.uniq) {
+        ctx.canvas_w = com.uniq->canvas_w;
+        ctx.canvas_h = com.uniq->canvas_h;
+        ctx.bg_r     = com.uniq->canvas_bg_r;
+        ctx.bg_g     = com.uniq->canvas_bg_g;
+        ctx.bg_b     = com.uniq->canvas_bg_b;
+        ctx.groups   = com.uniq->groups;
+    }
+    return ctx;
+}
+
+static flis_group_t *ctx_group_by_id(const flis_render_ctx *ctx, gint id) {
+    for (GSList *g = ctx->groups; g; g = g->next) {
+        flis_group_t *grp = (flis_group_t *)g->data;
+        if (grp && grp->item_id == id)
+            return grp;
+    }
+    return NULL;
+}
+
+/* Members of @grp among @layers, in the order they appear there.  The document
+ * helper (flis_group_get_layers) scans com.uniq instead, which is the same set
+ * in the same order for the full-document call and the wrong one for a
+ * caller-supplied list. */
+static GSList *ctx_group_layers(GSList *layers, gint group_id) {
+    GSList *out = NULL;
+    for (GSList *l = layers; l; l = l->next) {
+        flis_layer_t *lay = (flis_layer_t *)l->data;
+        if (lay && lay->group_id == group_id)
+            out = g_slist_append(out, lay);
+    }
+    return out;
+}
+
 fits *flis_render_layers(GSList *layers) {
-    return flis_render_layers_internal(layers, FALSE, FALSE);
+    flis_render_ctx ctx = ctx_from_document();
+    return flis_render_layers_internal(layers, &ctx, FALSE, FALSE);
+}
+
+fits *flis_render_layers_ctx(GSList *layers, const flis_render_ctx *ctx,
+                             gboolean sub_composite, gboolean first_raw) {
+    flis_render_ctx empty = { 0 };
+    return flis_render_layers_internal(layers, ctx ? ctx : &empty,
+                                       sub_composite, first_raw);
 }
 
 /* Merge-down variant: the first (bottom) layer is painted RAW — tint only,
@@ -63,7 +112,8 @@ fits *flis_render_layers(GSList *layers) {
  * merged pixels would apply them twice.  The top layer(s) blend normally
  * with their own parameters. */
 fits *flis_render_layers_merge(GSList *layers) {
-    return flis_render_layers_internal(layers, TRUE, TRUE);
+    flis_render_ctx ctx = ctx_from_document();
+    return flis_render_layers_internal(layers, &ctx, TRUE, TRUE);
 }
 
 /* =====================================================================
@@ -744,20 +794,21 @@ static void flis_blend_chroma_pixel(float opacity,
  * USHORT sources are converted to float once per layer, not per pixel.
  * The inner loops are tagged with omp simd for auto-vectorisation.
  * ------------------------------------------------------------------------- */
-static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite,
+static fits *flis_render_layers_internal(GSList *layers,
+                                         const flis_render_ctx *ctx,
+                                         gboolean sub_composite,
                                          gboolean first_raw) {
     if (!layers) return NULL;
 
-    /* §7: canvas dimensions are a document property on com.uniq, separate
-     * from any single layer.  Both main and sub-composites use the canvas
-     * dimensions so that group members' position_x/y resolve in the same
-     * coordinate frame as the rest of the composite.  Defensive fallback
-     * to the first layer's dims for hand-built layer lists without a
-     * com.uniq (used by some unit tests). */
+    /* §7: canvas dimensions are a document property, separate from any single
+     * layer.  Both main and sub-composites use the canvas dimensions so that
+     * group members' position_x/y resolve in the same coordinate frame as the
+     * rest of the composite.  Defensive fallback to the first layer's dims for
+     * hand-built layer lists with no canvas (used by some unit tests). */
     guint W, H;
-    if (com.uniq && com.uniq->canvas_w && com.uniq->canvas_h) {
-        W = com.uniq->canvas_w;
-        H = com.uniq->canvas_h;
+    if (ctx->canvas_w && ctx->canvas_h) {
+        W = ctx->canvas_w;
+        H = ctx->canvas_h;
     } else {
         flis_layer_t *first = (flis_layer_t *)layers->data;
         if (!first || !first->fit) return NULL;
@@ -788,12 +839,11 @@ static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite,
      * common case).  Sub-composites stay zero — they accumulate group
      * members on top of a transparent baseline that BASE_LOOP / the
      * first_layer special-case below establishes. */
-    if (!sub_composite && com.uniq
-        && (com.uniq->canvas_bg_r != 0.0 || com.uniq->canvas_bg_g != 0.0
-            || com.uniq->canvas_bg_b != 0.0)) {
-        const float bgr = (float)com.uniq->canvas_bg_r;
-        const float bgg = (float)com.uniq->canvas_bg_g;
-        const float bgb = (float)com.uniq->canvas_bg_b;
+    if (!sub_composite
+        && (ctx->bg_r != 0.0 || ctx->bg_g != 0.0 || ctx->bg_b != 0.0)) {
+        const float bgr = (float)ctx->bg_r;
+        const float bgg = (float)ctx->bg_g;
+        const float bgb = (float)ctx->bg_b;
         for (size_t i = 0; i < N; i++) {
             out->fpdata[RLAYER][i] = bgr;
             out->fpdata[GLAYER][i] = bgg;
@@ -825,22 +875,22 @@ static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite,
     GHashTable *grp_trigger    = NULL;
     GHashTable *skip_in_main   = NULL;
 
-    if (!sub_composite && com.uniq && com.uniq->groups) {
-        for (GSList *_gg = com.uniq->groups; _gg; _gg = _gg->next) {
+    if (!sub_composite && ctx->groups) {
+        for (GSList *_gg = ctx->groups; _gg; _gg = _gg->next) {
             flis_group_t *_grp = (flis_group_t *)_gg->data;
             if (!_grp || _grp->blend_mode == FLIS_BLEND_PASS_THROUGH) continue;
             if (!_grp->visible) {
                 if (!skip_in_main)
                     skip_in_main = g_hash_table_new(g_direct_hash, g_direct_equal);
-                GSList *_ms = flis_group_get_layers(_grp);
+                GSList *_ms = ctx_group_layers(layers, _grp->item_id);
                 for (GSList *_m = _ms; _m; _m = _m->next)
                     g_hash_table_insert(skip_in_main, _m->data, GINT_TO_POINTER(1));
                 g_slist_free(_ms);
                 continue;
             }
 
-            GSList *_ms = flis_group_get_layers(_grp);
-            fits *_sub = flis_render_layers_internal(_ms, TRUE, FALSE);
+            GSList *_ms = ctx_group_layers(layers, _grp->item_id);
+            fits *_sub = flis_render_layers_internal(_ms, ctx, TRUE, FALSE);
             g_slist_free(_ms);
             if (!_sub) continue;
 
@@ -860,7 +910,7 @@ static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite,
             }
 
             /* Mark all members for skipping */
-            GSList *_ms2 = flis_group_get_layers(_grp);
+            GSList *_ms2 = ctx_group_layers(layers, _grp->item_id);
             for (GSList *_m = _ms2; _m; _m = _m->next)
                 g_hash_table_insert(skip_in_main, _m->data, GINT_TO_POINTER(1));
             g_slist_free(_ms2);
@@ -893,7 +943,7 @@ static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite,
                     fits *_gsub = grp_composites
                                   ? (fits *)g_hash_table_lookup(grp_composites, GINT_TO_POINTER(_gid))
                                   : NULL;
-                    flis_group_t *_gobj = flis_group_get_by_id(_gid);
+                    flis_group_t *_gobj = ctx_group_by_id(ctx, _gid);
                     if (_gsub && _gobj) {
                         /* Blend group sub-composite using the group's blend mode and opacity.
                          * Re-use the standard dispatch macros by shadowing local variables. */
@@ -934,7 +984,7 @@ static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite,
          * if the group has reduced opacity, scale the effective opacity. */
         gfloat effective_opacity = lay->opacity;
         if (!sub_composite && lay->group_id != 0) {
-            flis_group_t *grp = flis_group_get_by_id(lay->group_id);
+            flis_group_t *grp = ctx_group_by_id(ctx, lay->group_id);
             if (grp) {
                 if (!grp->visible) continue;
                 effective_opacity *= grp->opacity;

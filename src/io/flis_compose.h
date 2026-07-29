@@ -49,6 +49,35 @@ fits *flis_render_layers(GSList *layers);
 fits *flis_render_layers_merge(GSList *layers);
 
 /**
+ * flis_render_ctx:
+ *
+ * Everything the compositor needs that is NOT in the layer list: the canvas
+ * geometry, its background, and the groups the layers belong to.  The two
+ * wrappers above read these from the live document; flis_render_layers_ctx()
+ * lets a caller supply them instead.
+ *
+ * That distinction is what makes flatten replayable.  A flatten records the
+ * document state it consumed, and by the time it is re-run the document has
+ * moved on — one layer where there were ten, and groups whose members no
+ * longer exist.  Compositing against the live document would silently render
+ * something else and call it a reproduction (see nde_composite.h).
+ *
+ * @groups is borrowed and may be a hand-built list; membership is taken from
+ * the layers passed in (layer->group_id), not from the document.
+ */
+typedef struct {
+    guint   canvas_w, canvas_h;   /* 0 = fall back to the first layer's dims */
+    double  bg_r, bg_g, bg_b;     /* canvas background; unused by sub-composites */
+    GSList *groups;               /* flis_group_t*, borrowed; NULL = no groups */
+} flis_render_ctx;
+
+/* @sub_composite: render as a group sub-composite — no canvas background, no
+ *                 group pre-pass, bottom layer establishes the baseline.
+ * @first_raw:     paint the bottom layer raw (the merge-down contract). */
+fits *flis_render_layers_ctx(GSList *layers, const flis_render_ctx *ctx,
+                             gboolean sub_composite, gboolean first_raw);
+
+/**
  * flis_compose_bake_tile_bgra8:
  * @lay:      layer to bake from (uses lay->fit, lay->has_tint, lay->layer_tint)
  * @tile_dim: tile side length; tile (tx, ty) covers layer-local display rows
