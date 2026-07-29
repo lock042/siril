@@ -1088,7 +1088,7 @@ static gboolean recompute_item(gint item_id, gchar **err) {
  * "Names nothing" rather than "has no layer": a layer consumed by a composite
  * takes its layer mask with it, and that mask item is retained on exactly the
  * same terms — the composite pins it too. */
-static gboolean item_is_retained_input(gint item_id) {
+gboolean nde_item_is_retained_input(gint item_id) {
 	if (item_id < 0 || flis_item_lookup(item_id, NULL) != FLIS_ITEM_NONE)
 		return FALSE;
 	GPtrArray *live = nde_history_snapshot(NULL);
@@ -1139,7 +1139,7 @@ static void cascade_composite_consumers(gint item_id) {
 			 * into: nothing shows its pixels, and what has to be recomputed is
 			 * whatever consumed IT.  Merging a group is exactly this — a run of
 			 * merge-downs, each one's survivor consumed by the next. */
-			if (item_is_retained_input(consumer)) {
+			if (nde_item_is_retained_input(consumer)) {
 				g_queue_push_tail(frontier, GINT_TO_POINTER(consumer));
 				continue;
 			}
@@ -1257,7 +1257,7 @@ static void cascade_mask_consumers(gint mask_item, guint from_pos) {
 		gchar *err = NULL;
 		/* A consumer that was itself composited away has no pixels of its own
 		 * to write; what shows the change is whatever consumed IT. */
-		if (item_is_retained_input(item)) {
+		if (nde_item_is_retained_input(item)) {
 			cascade_composite_consumers(item);
 			continue;
 		}
@@ -1521,7 +1521,7 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 		 * run, to prove the edited chain applies; what shows the change is the
 		 * composite that kept a copy of this mask, refreshed by the cascade
 		 * below. */
-		gboolean ok = item_is_retained_input(item_id) ||
+		gboolean ok = nde_item_is_retained_input(item_id) ||
 		              commit_mask_value(item_id, built, err);
 		clearfits(built);
 		free(built);
@@ -1583,7 +1583,7 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 	if (item_id >= 0) {
 		flis_layer_t *lay = flis_layer_get_by_id(item_id);
 		target = lay ? lay->fit : NULL;
-		retained = !lay && item_is_retained_input(item_id);
+		retained = nde_item_is_retained_input(item_id);   /* implies !lay */
 	}
 	if (retained) {
 		/* A retained input has no layer to swap into: the replay above was

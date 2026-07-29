@@ -1811,6 +1811,154 @@ static gboolean open_composite_edit_dialog(NdeHistRowItem *r) {
 	return TRUE;
 }
 
+/* ---- editing a compositing-state step (opacity / blend / visible) -------
+ * One property each, and each has a natural control.  The generic kv grid
+ * offered them as free text, which for a blend mode meant typing the enum
+ * value — 512 for Lighten.                                              */
+
+struct prop_edit_ctx {
+	GtkWidget *window;
+	GtkWidget *error_label;
+	GtkWidget *control;    /* spin / dropdown / check, per op */
+	gint64     record_id;
+	gchar     *op_id;
+};
+
+static void prop_edit_ctx_free(gpointer p) {
+	struct prop_edit_ctx *ctx = p;
+	g_free(ctx->op_id);
+	g_free(ctx);
+}
+
+static void on_prop_edit_cancel(GtkButton *b, gpointer u) {
+	(void)b;
+	struct prop_edit_ctx *ctx = u;
+	gtk_window_destroy(GTK_WINDOW(ctx->window));
+}
+
+static void on_prop_edit_apply(GtkButton *b, gpointer u) {
+	(void)b;
+	struct prop_edit_ctx *ctx = u;
+	GString *kv = nde_kv_start();
+	if (!g_strcmp0(ctx->op_id, "layer.set_opacity")) {
+		nde_kv_add_float(kv, "opacity",
+		                 (float)gtk_spin_button_get_value(GTK_SPIN_BUTTON(ctx->control)));
+	} else if (!g_strcmp0(ctx->op_id, "layer.set_blend")) {
+		guint sel = gtk_drop_down_get_selected(GTK_DROP_DOWN(ctx->control));
+		if (sel >= (guint)N_BLENDS)
+			sel = 0;
+		nde_kv_add_int(kv, "blend", (gint64)blend_mode_for_index_table[sel]);
+	} else {
+		nde_kv_add_bool(kv, "visible",
+		                gtk_check_button_get_active(GTK_CHECK_BUTTON(ctx->control)));
+	}
+	gchar *blob = nde_kv_end(kv);
+
+	gchar *why = NULL;
+	if (!nde_compositing_validate(ctx->op_id, blob, &why)) {
+		gtk_label_set_text(GTK_LABEL(ctx->error_label), why ? why : "");
+		gtk_widget_set_visible(ctx->error_label, TRUE);
+		g_free(why);
+		g_free(blob);
+		return;   /* keep the dialog open */
+	}
+	g_free(why);
+	gint64 record_id = ctx->record_id;
+	gtk_window_destroy(GTK_WINDOW(ctx->window));   /* frees ctx via close */
+	nde_amend_start(record_id, blob);
+	g_free(blob);
+}
+
+static gboolean open_compositing_edit_dialog(NdeHistRowItem *r) {
+	GHashTable *kv = nde_kv_parse(r->params);
+	GtkWidget *control = NULL;
+	const char *label = NULL;
+	if (!g_strcmp0(r->op_id, "layer.set_opacity")) {
+		float v = 1.f;
+		nde_kv_get_float(kv, "opacity", &v);
+		control = gtk_spin_button_new_with_range(0.0, 1.0, 0.01);
+		gtk_spin_button_set_digits(GTK_SPIN_BUTTON(control), 3);
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(control), v);
+		label = _("Opacity");
+	} else if (!g_strcmp0(r->op_id, "layer.set_blend")) {
+		gint64 v = FLIS_BLEND_NORMAL;
+		nde_kv_get_int(kv, "blend", &v);
+		GtkStringList *bl = gtk_string_list_new(NULL);
+		for (int k = 0; k < N_BLENDS; k++)
+			gtk_string_list_append(bl, _(blend_names[k]));
+		control = gtk_drop_down_new(G_LIST_MODEL(bl), NULL);
+		gtk_drop_down_set_selected(GTK_DROP_DOWN(control),
+		                           index_for_blend_mode((flis_blend_mode_t)v));
+		label = _("Blend");
+	} else if (!g_strcmp0(r->op_id, "layer.set_visible")) {
+		gboolean v = TRUE;
+		nde_kv_get_bool(kv, "visible", &v);
+		control = gtk_check_button_new_with_label(_("Visible"));
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(control), v);
+	}
+	g_hash_table_unref(kv);
+	if (!control)
+		return FALSE;
+
+	GtkWidget *window = gtk_window_new();
+	gtk_window_set_title(GTK_WINDOW(window), r->summary ? r->summary : _("Edit step"));
+	gtk_window_set_modal(GTK_WINDOW(window), TRUE);
+	gtk_window_set_transient_for(GTK_WINDOW(window),
+	                             GTK_WINDOW(lookup_widget("control_window")));
+	gtk_window_set_default_size(GTK_WINDOW(window), 340, -1);
+
+	GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+	gtk_widget_set_margin_start (box, 12);
+	gtk_widget_set_margin_end   (box, 12);
+	gtk_widget_set_margin_top   (box, 12);
+	gtk_widget_set_margin_bottom(box, 12);
+	gtk_window_set_child(GTK_WINDOW(window), box);
+
+	struct prop_edit_ctx *ctx = g_new0(struct prop_edit_ctx, 1);
+	ctx->window    = window;
+	ctx->control   = control;
+	ctx->record_id = r->record_id;
+	ctx->op_id     = g_strdup(r->op_id);
+
+	GtkWidget *row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+	if (label) {
+		GtkWidget *lbl = gtk_label_new(label);
+		gtk_label_set_xalign(GTK_LABEL(lbl), 0.0f);
+		gtk_box_append(GTK_BOX(row), lbl);
+	}
+	gtk_widget_set_hexpand(control, TRUE);
+	gtk_box_append(GTK_BOX(row), control);
+	gtk_box_append(GTK_BOX(box), row);
+
+	ctx->error_label = gtk_label_new(NULL);
+	gtk_label_set_wrap(GTK_LABEL(ctx->error_label), TRUE);
+	gtk_label_set_xalign(GTK_LABEL(ctx->error_label), 0.0f);
+	gtk_widget_add_css_class(ctx->error_label, "error");
+	gtk_widget_set_visible(ctx->error_label, FALSE);
+	gtk_box_append(GTK_BOX(box), ctx->error_label);
+
+	GtkWidget *consequence = gtk_label_new(hist_edit_consequence(r));
+	gtk_label_set_wrap(GTK_LABEL(consequence), TRUE);
+	gtk_label_set_xalign(GTK_LABEL(consequence), 0.0f);
+	gtk_widget_add_css_class(consequence, "dim-label");
+	gtk_box_append(GTK_BOX(box), consequence);
+
+	GtkWidget *bbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	gtk_widget_set_halign(bbox, GTK_ALIGN_END);
+	GtkWidget *cancel = gtk_button_new_with_label(_("Cancel"));
+	GtkWidget *apply  = gtk_button_new_with_label(_("Apply"));
+	gtk_widget_add_css_class(apply, "suggested-action");
+	gtk_box_append(GTK_BOX(bbox), cancel);
+	gtk_box_append(GTK_BOX(bbox), apply);
+	gtk_box_append(GTK_BOX(box), bbox);
+
+	g_object_set_data_full(G_OBJECT(window), "prop-edit-ctx", ctx, prop_edit_ctx_free);
+	g_signal_connect(cancel, "clicked", G_CALLBACK(on_prop_edit_cancel), ctx);
+	g_signal_connect(apply,  "clicked", G_CALLBACK(on_prop_edit_apply),  ctx);
+	gtk_window_present(GTK_WINDOW(window));
+	return TRUE;
+}
+
 static void on_hist_edit_clicked(GtkButton *b, gpointer u) {
 	(void)b; (void)u;
 	if (!g_panel || !g_panel->hist_popover_row)
@@ -1823,9 +1971,17 @@ static void on_hist_edit_clicked(GtkButton *b, gpointer u) {
 	 * and only some of it may change. */
 	if (nde_composite_is_op(r->op_id) && open_composite_edit_dialog(r))
 		return;
-	/* Native editor next (amend mode with live preview); the kv grid remains
-	 * the fallback for ops without one. */
-	if (nde_editor_open(r->op_id, r->record_id))
+	/* A compositing-state step: one property, and a blend mode means a name
+	 * rather than the enum value the kv grid would put in an entry box. */
+	if (nde_compositing_is_op(r->op_id) && open_compositing_edit_dialog(r))
+		return;
+	/* Native editor next (amend mode with live preview) — but only for a step
+	 * whose image is on screen.  A layer merged or flattened away cannot be
+	 * made active and has nothing left to preview against, so its steps take
+	 * the plain parameter dialog and commit without one; the result appears in
+	 * the image that consumed the layer. */
+	if (!nde_item_is_retained_input(r->target_item_id) &&
+	    nde_editor_open(r->op_id, r->record_id))
 		return;
 	open_hist_edit_dialog(r);
 }

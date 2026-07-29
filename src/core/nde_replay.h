@@ -113,6 +113,17 @@ gboolean nde_record_amendable(const struct nde_record *rec);
 gboolean nde_record_deletable(const struct nde_record *rec);
 
 /**
+ * TRUE when @item_id names nothing in the document any more but is still an
+ * input to a composite — a RETAINED INPUT (nde_composite.h).  Its steps stay
+ * editable, and an edit reaches the image that consumed it.
+ *
+ * The UI needs this to know what it CANNOT do: there is no such layer to make
+ * active and nothing of it on screen, so an editor that previews against the
+ * displayed image has nothing to preview.
+ */
+gboolean nde_item_is_retained_input(gint item_id);
+
+/**
  * Replay the WHOLE chain from the item's baseline into a freshly allocated
  * fits (caller clearfits()+frees()s).  Requires chain->replayable.  NULL on
  * failure with a heap message in @err (caller g_free()s).  Honours
