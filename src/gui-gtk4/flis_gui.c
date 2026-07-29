@@ -1644,11 +1644,49 @@ static void open_hist_edit_dialog(NdeHistRowItem *r) {
  * the blob over the recorded one, leaving every other key alone.        */
 
 struct comp_edit_row {
-	guint      index;      /* input index in the record */
+	guint      index;      /* input index, or group index when is_group */
+	gboolean   is_group;   /* selects the "g%u_" key prefix over "i%u_" */
 	GtkWidget *opacity;    /* GtkSpinButton */
 	GtkWidget *blend;      /* GtkDropDown */
 	GtkWidget *visible;    /* GtkCheckButton */
 };
+
+/* Pass-through is a group-only mode and a group is documented as either
+ * pass-through or normal (image_format_flis.h).  Offering the full list to
+ * both would only earn a validation failure on Apply. */
+static gboolean comp_blend_offered(gboolean for_group, flis_blend_mode_t m) {
+	return for_group ? (m == FLIS_BLEND_NORMAL || m == FLIS_BLEND_PASS_THROUGH)
+	                 : (m != FLIS_BLEND_PASS_THROUGH);
+}
+
+static GtkWidget *comp_blend_dropdown_new(gboolean for_group, gint current) {
+	GtkStringList *bl = gtk_string_list_new(NULL);
+	guint sel = 0, n = 0;
+	for (int k = 0; k < N_BLENDS; k++) {
+		if (!comp_blend_offered(for_group, blend_mode_for_index_table[k]))
+			continue;
+		if (blend_mode_for_index_table[k] == (flis_blend_mode_t)current)
+			sel = n;
+		gtk_string_list_append(bl, _(blend_names[k]));
+		n++;
+	}
+	GtkWidget *dd = gtk_drop_down_new(G_LIST_MODEL(bl), NULL);
+	gtk_drop_down_set_selected(GTK_DROP_DOWN(dd), sel);
+	gtk_widget_set_hexpand(dd, TRUE);
+	return dd;
+}
+
+/* The inverse: which blend mode the Nth offered entry stands for. */
+static flis_blend_mode_t comp_blend_at(gboolean for_group, guint sel) {
+	guint n = 0;
+	for (int k = 0; k < N_BLENDS; k++) {
+		if (!comp_blend_offered(for_group, blend_mode_for_index_table[k]))
+			continue;
+		if (n++ == sel)
+			return blend_mode_for_index_table[k];
+	}
+	return FLIS_BLEND_NORMAL;
+}
 
 struct comp_edit_ctx {
 	GtkWidget *window;
@@ -1677,15 +1715,15 @@ static void on_comp_edit_apply(GtkButton *b, gpointer u) {
 	GHashTable *kv = nde_kv_parse(ctx->params);
 	for (guint i = 0; i < ctx->rows->len; i++) {
 		const struct comp_edit_row *row = &g_array_index(ctx->rows, struct comp_edit_row, i);
-		guint sel = gtk_drop_down_get_selected(GTK_DROP_DOWN(row->blend));
-		if (sel >= (guint)N_BLENDS)
-			sel = 0;
-		g_hash_table_insert(kv, g_strdup_printf("i%u_opacity", row->index),
+		const char *p = row->is_group ? "g" : "i";
+		const flis_blend_mode_t blend = comp_blend_at(row->is_group,
+		                    gtk_drop_down_get_selected(GTK_DROP_DOWN(row->blend)));
+		g_hash_table_insert(kv, g_strdup_printf("%s%u_opacity", p, row->index),
 		                    g_strdup_printf("%.6f",
 		                        gtk_spin_button_get_value(GTK_SPIN_BUTTON(row->opacity))));
-		g_hash_table_insert(kv, g_strdup_printf("i%u_blend", row->index),
-		                    g_strdup_printf("%d", (int)blend_mode_for_index_table[sel]));
-		g_hash_table_insert(kv, g_strdup_printf("i%u_visible", row->index),
+		g_hash_table_insert(kv, g_strdup_printf("%s%u_blend", p, row->index),
+		                    g_strdup_printf("%d", (int)blend));
+		g_hash_table_insert(kv, g_strdup_printf("%s%u_visible", p, row->index),
 		                    g_strdup_printf("%d",
 		                        gtk_check_button_get_active(GTK_CHECK_BUTTON(row->visible)) ? 1 : 0));
 	}
@@ -1766,17 +1804,41 @@ static gboolean open_composite_edit_dialog(NdeHistRowItem *r) {
 		gtk_grid_attach(GTK_GRID(grid), row.opacity, 1, gridrow++, 1, 1);
 
 		gtk_grid_attach(GTK_GRID(grid), gtk_label_new(_("Blend")), 0, gridrow, 1, 1);
-		GtkStringList *bl = gtk_string_list_new(NULL);
-		for (int k = 0; k < N_BLENDS; k++)
-			gtk_string_list_append(bl, _(blend_names[k]));
-		row.blend = gtk_drop_down_new(G_LIST_MODEL(bl), NULL);
-		gtk_drop_down_set_selected(GTK_DROP_DOWN(row.blend),
-		                           index_for_blend_mode((flis_blend_mode_t)in->blend_mode));
-		gtk_widget_set_hexpand(row.blend, TRUE);
+		row.blend = comp_blend_dropdown_new(FALSE, in->blend_mode);
 		gtk_grid_attach(GTK_GRID(grid), row.blend, 1, gridrow++, 1, 1);
 
 		row.visible = gtk_check_button_new_with_label(_("Visible"));
 		gtk_check_button_set_active(GTK_CHECK_BUTTON(row.visible), in->visible);
+		gtk_grid_attach(GTK_GRID(grid), row.visible, 1, gridrow++, 1, 1);
+		g_array_append_val(ctx->rows, row);
+	}
+	/* Groups the composite pre-composited.  Their properties modify every
+	 * member at once, and after a flatten the group is gone from the Layers
+	 * panel, so this is the only place left that can reach them. */
+	for (guint i = 0; i < st->groups->len; i++) {
+		const nde_composite_group *g = &g_array_index(st->groups, nde_composite_group, i);
+		gchar *title = g->name && *g->name ? g_strdup_printf(_("Group '%s'"), g->name)
+		                                   : g_strdup(_("Group"));
+		GtkWidget *name = gtk_label_new(title);
+		g_free(title);
+		gtk_label_set_xalign(GTK_LABEL(name), 0.0f);
+		gtk_widget_add_css_class(name, "heading");
+		gtk_grid_attach(GTK_GRID(grid), name, 0, gridrow++, 2, 1);
+
+		struct comp_edit_row row = { .index = i, .is_group = TRUE };
+		gtk_grid_attach(GTK_GRID(grid), gtk_label_new(_("Opacity")), 0, gridrow, 1, 1);
+		row.opacity = gtk_spin_button_new_with_range(0.0, 1.0, 0.01);
+		gtk_spin_button_set_digits(GTK_SPIN_BUTTON(row.opacity), 3);
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(row.opacity), g->opacity);
+		gtk_widget_set_hexpand(row.opacity, TRUE);
+		gtk_grid_attach(GTK_GRID(grid), row.opacity, 1, gridrow++, 1, 1);
+
+		gtk_grid_attach(GTK_GRID(grid), gtk_label_new(_("Blend")), 0, gridrow, 1, 1);
+		row.blend = comp_blend_dropdown_new(TRUE, g->blend_mode);
+		gtk_grid_attach(GTK_GRID(grid), row.blend, 1, gridrow++, 1, 1);
+
+		row.visible = gtk_check_button_new_with_label(_("Visible"));
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(row.visible), g->visible);
 		gtk_grid_attach(GTK_GRID(grid), row.visible, 1, gridrow++, 1, 1);
 		g_array_append_val(ctx->rows, row);
 	}

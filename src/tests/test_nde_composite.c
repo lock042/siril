@@ -636,6 +636,53 @@ Test(nde_composite, the_opacity_a_layer_was_merged_at_can_be_amended) {
 	done();
 }
 
+/* A group's properties modify every member at once, and after the flatten the
+ * group is gone from the Layers panel along with its members — so the record is
+ * the only place left that can reach them.  Its name is recorded for the same
+ * reason each input's is: nothing else names it once it is gone. */
+Test(nde_composite, the_opacity_a_group_was_flattened_at_can_be_amended) {
+	com.pref.nde_cache_mb = 256;
+	flis_layer_t *l[3] = {
+		flis_test_add_layer(flis_test_make_rgb_fits(4, 4, 0.5f, 0.5f, 0.5f), "bottom"),
+		flis_test_add_layer(flis_test_make_rgb_fits(4, 4, 0.25f, 0.25f, 0.25f), "g1"),
+		flis_test_add_layer(flis_test_make_rgb_fits(4, 4, 0.6f, 0.6f, 0.6f), "g2"),
+	};
+	flis_group_t *grp = flis_group_add("stack");
+	cr_assert_not_null(grp);
+	grp->blend_mode = FLIS_BLEND_MULTIPLY;   /* not PASS_THROUGH: pre-composited */
+	grp->opacity    = 0.5f;
+	grp->visible    = TRUE;
+	cr_assert_eq(flis_layer_set_group(l[1], grp->item_id), 0);
+	cr_assert_eq(flis_layer_set_group(l[2], grp->item_id), 0);
+	select_layer(l[0]);
+
+	cr_assert_eq(flis_flatten_all(), 0);
+	gfit = ((flis_layer_t *)com.uniq->layers->data)->fit;
+
+	const nde_record *rec = find_composite_record();
+	nde_composite_state *st = nde_composite_state_parse(rec->params);
+	cr_assert_not_null(st);
+	cr_assert_eq(st->groups->len, 1);
+	cr_assert_str_eq(g_array_index(st->groups, nde_composite_group, 0).name, "stack");
+	nde_composite_state_free(st);
+
+	float before = first_pixel();
+	gint64 rid = rec->record_id;
+	gchar *amended = replace_kv(rec->params, "g0_opacity", "1.000000");
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_amend_execute(rid, amended, &err), "amend failed: %s", err ? err : "?");
+	unreserve_thread();
+	g_free(err);
+	g_free(amended);
+
+	cr_assert(fabsf(first_pixel() - before) > 1e-5f,
+	          "the group's opacity must reach the flattened pixels (%.6f unchanged)",
+	          (double)before);
+	done();
+}
+
 /* An edit changes how a step composited, never what it composited: the graph
  * is not rewired by editing parameters (design note §5.4). */
 Test(nde_composite, a_composite_cannot_be_rewired_by_an_amend) {

@@ -121,6 +121,9 @@ typedef struct {
  *  its members.  Flat: FLIS groups do not nest. */
 typedef struct {
 	gint     item_id;
+	gchar   *name;          /* owned; may be NULL.  Recorded for the same reason
+	                         * an input's name is: after a flatten the group is
+	                         * gone, and "group 7" names nothing the user knows. */
 	gint     blend_mode;
 	gdouble  opacity;
 	gboolean visible;

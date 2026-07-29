@@ -46,8 +46,11 @@ void nde_composite_state_free(nde_composite_state *st) {
 			g_free(g_array_index(st->inputs, nde_composite_input, i).name);
 		g_array_free(st->inputs, TRUE);
 	}
-	if (st->groups)
+	if (st->groups) {
+		for (guint i = 0; i < st->groups->len; i++)
+			g_free(g_array_index(st->groups, nde_composite_group, i).name);
 		g_array_free(st->groups, TRUE);
+	}
 	g_free(st);
 }
 
@@ -103,6 +106,7 @@ static void collect_groups(nde_composite_state *st, GSList *layers) {
 			continue;
 		nde_composite_group g = {
 			.item_id    = grp->item_id,
+			.name       = (grp->name && *grp->name) ? g_strdup(grp->name) : NULL,
 			.blend_mode = (gint)grp->blend_mode,
 			.opacity    = (gdouble)grp->opacity,
 			.visible    = grp->visible,
@@ -185,6 +189,7 @@ static gchar *state_encode(const nde_composite_state *st) {
 	for (guint i = 0; i < st->groups->len; i++) {
 		const nde_composite_group *g = &g_array_index(st->groups, nde_composite_group, i);
 		nde_kv_add_int(kv, ikey(k, "g", i, "item"), g->item_id);
+		nde_kv_add_str(kv, ikey(k, "g", i, "name"), g->name ? g->name : "");
 		nde_kv_add_int(kv, ikey(k, "g", i, "blend"), g->blend_mode);
 		nde_kv_add_double(kv, ikey(k, "g", i, "opacity"), g->opacity);
 		nde_kv_add_bool(kv, ikey(k, "g", i, "visible"), g->visible);
@@ -304,7 +309,11 @@ nde_composite_state *nde_composite_state_parse(const char *params) {
 		  && nde_kv_get_bool(kv, ikey(k, "g", (guint)i, "visible"), &g.visible);
 		if (!ok)
 			break;
+		/* Optional: records written before groups carried a name still decode,
+		 * they just have nothing to label the group with. */
+		const char *gname = nde_kv_get_str(kv, ikey(k, "g", (guint)i, "name"));
 		g.item_id    = (gint)item;
+		g.name       = (gname && *gname) ? g_strdup(gname) : NULL;
 		g.blend_mode = (gint)blend;
 		g_array_append_val(st->groups, g);
 	}
