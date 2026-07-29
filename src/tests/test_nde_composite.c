@@ -305,6 +305,52 @@ Test(nde_composite, amending_the_merged_away_layers_step_takes_effect) {
 	done();
 }
 
+/* A pin names a record in the item's HISTORY, which is a wider set than its
+ * pixel chain: setting the opacity just before merging makes the last record
+ * against that layer a compositing-state one, which the chain does not contain.
+ * Reported as "record N is no longer part of item M's history" — the merge
+ * still worked, but every edit upstream of it announced a failure. */
+Test(nde_composite, a_pin_may_name_a_record_the_pixel_chain_does_not_contain) {
+	com.pref.nde_cache_mb = 256;
+	flis_layer_t *bottom = flis_test_add_layer(
+	    flis_test_make_rgb_fits(4, 4, 0.5f, 0.5f, 0.5f), "bottom");
+	flis_layer_t *top = flis_test_add_layer(
+	    flis_test_make_rgb_fits(4, 4, 0.25f, 0.25f, 0.25f), "top");
+	select_layer(bottom);
+	cr_assert_eq(run_op_on_active(&op_desc_asinh, asinh_beta(5.f)), 0);
+	select_layer(top);
+	cr_assert_eq(run_op_on_active(&op_desc_asinh, asinh_beta(30.f)), 0);
+	gint top_item = top->item_id;
+	/* the last word on this layer is not a pixel step (captured as the GUI
+	 * and the flis_layer_opacity command do, outside the setter) */
+	cr_assert_eq(flis_layer_set_opacity(top, 0.5f), 0);
+	{
+		GString *kv = nde_kv_start();
+		nde_kv_add_float(kv, "opacity", 0.5f);
+		cr_assert_neq(nde_capture_structural("layer.set_opacity", NDE_SCOPE_LAYER,
+		                                     top_item, nde_kv_end(kv), "Set opacity"), 0);
+	}
+	cr_assert_eq(flis_merge_down_layer(top), 0);
+	gfit = ((flis_layer_t *)com.uniq->layers->data)->fit;
+
+	const nde_record *merge = find_merge_record();
+	const nde_input_pin *over = nde_record_input(merge, NDE_COMPOSITE_ROLE_OVERLAY);
+	cr_assert_not_null(over);
+	cr_assert_neq(over->src_record_id, record_for_item(top_item),
+	              "precondition: the pin names the opacity record, not the asinh");
+
+	float before = first_pixel();
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_amend_execute(record_for_item(top_item),
+	                            "beta=1.000000;offset=0.000000;human=0;clip_mode=0", &err),
+	          "amend failed: %s", err ? err : "?");
+	unreserve_thread();
+	g_free(err);
+	cr_assert_neq(first_pixel(), before);
+	done();
+}
+
 /* ---- honest refusal ----------------------------------------------------- */
 
 /* A merge recorded before step 7 carries neither pins nor per-input state.

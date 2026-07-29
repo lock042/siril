@@ -704,21 +704,22 @@ static fits *resolve_item_state(gint item_id, gint64 upto_record_id, gchar **err
 	/* A pin's src_record_id of 0 means the item's BASELINE, not "all of it"
 	 * (nde_history.h) — the state before anything was recorded against it.
 	 * Reading it as "the whole chain" made a mask pinned to the untouched
-	 * image re-derive from a later state once the image gained records. */
+	 * image re-derive from a later state once the image gained records.
+	 *
+	 * The pin names a record in the item's HISTORY, and that is a wider set
+	 * than its pixel chain: a compositing-state change (opacity, blend,
+	 * visibility) or a mask step can be the last record against an item
+	 * without being a member here, and a member can later be deleted.  The
+	 * meaning is positional either way — "the state as of that point in the
+	 * log" — so take the prefix of members recorded at or before it rather
+	 * than demanding an exact hit and failing when there is none. */
 	guint upto = 0;
 	if (upto_record_id) {
 		for (guint i = 0; i < c->records->len; i++) {
 			const nde_record *r = g_ptr_array_index(c->records, i);
-			if (r->record_id == upto_record_id) {
-				upto = i + 1;
+			if (r->record_id > upto_record_id)
 				break;
-			}
-		}
-		if (!upto) {
-			*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " is no longer part of item %d's history"),
-			                       upto_record_id, item_id);
-			nde_chain_free(c);
-			return NULL;
+			upto = i + 1;
 		}
 	}
 	if (!c->replayable) {
