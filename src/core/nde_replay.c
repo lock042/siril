@@ -1791,6 +1791,250 @@ gboolean nde_amend_execute(gint64 record_id, const gchar *new_params, gchar **er
 	return edit_execute(record_id, new_params, err);
 }
 
+/* ======================================================================= */
+/* Undoing a composite: bringing the consumed layers back                  */
+/* ======================================================================= */
+
+/* Everything the log holds against @item at or after @from_pos, plus anything
+ * held against that item's masks — all of it describes an image that is about
+ * to stop existing.  Positions, because ids do not order the log. */
+static GArray *records_from(GPtrArray *snap, guint from_pos, gint item) {
+	GArray *ids = g_array_new(FALSE, FALSE, sizeof(gint64));
+	gint lmask = 0, pmask = 0;
+	flis_layer_t *lay = flis_layer_get_by_id(item);
+	if (lay) {
+		lmask = lay->lmask_item_id;
+		pmask = lay->pmask_item_id;
+	}
+	for (guint i = from_pos; i < snap->len; i++) {
+		const nde_record *r = g_ptr_array_index(snap, i);
+		if (r->target_item_id == item ||
+		    (lmask && r->target_item_id == lmask) ||
+		    (pmask && r->target_item_id == pmask))
+			g_array_append_val(ids, r->record_id);
+	}
+	return ids;
+}
+
+/* Locate the composite and check that undoing it is possible at all.  Every
+ * refusal here names what is in the way: the whole point of offering this is
+ * that the alternative was silence. */
+static const nde_record *composite_undo_check(GPtrArray *snap, gint64 record_id,
+                                              guint *pos, nde_composite_state **out_st,
+                                              gchar **err) {
+	const nde_record *rec = NULL;
+	for (guint i = 0; i < snap->len; i++) {
+		const nde_record *r = g_ptr_array_index(snap, i);
+		if (r->record_id == record_id) {
+			rec = r;
+			*pos = i;
+			break;
+		}
+	}
+	if (!rec) {
+		*err = g_strdup(_("that step is no longer in the history"));
+		return NULL;
+	}
+	if (!nde_composite_is_op(rec->op_id)) {
+		*err = g_strdup(_("only a merge or a flatten can be undone this way"));
+		return NULL;
+	}
+	nde_composite_state *st = nde_composite_state_parse(rec->params);
+	if (!st) {
+		*err = g_strdup(_("this step predates the format that records what it "
+		                  "consumed, so the layers it merged cannot be "
+		                  "reconstructed"));
+		return NULL;
+	}
+	const gint produced = rec->target_item_id;
+	if (!flis_layer_get_by_id(produced)) {
+		nde_composite_state_free(st);
+		*err = nde_item_is_retained_input(produced) ?
+			g_strdup(_("a later merge or flatten consumed the image this step "
+			           "produced — undo that one first")) :
+			g_strdup(_("the image this step produced is no longer in the document"));
+		return NULL;
+	}
+	/* Every consumed layer has to be rebuildable from its own history, or the
+	 * undo would bring a layer back holding pixels that are not what was
+	 * merged — worse than not offering it. */
+	for (guint i = 0; i < st->inputs->len; i++) {
+		const nde_composite_input *in = &g_array_index(st->inputs, nde_composite_input, i);
+		nde_chain *c = nde_chain_build(in->item_id);
+		gboolean ok = c->replayable ||
+		              (c->records->len == 0 && nde_checkpoint_baseline_exists(in->item_id));
+		if (!ok) {
+			*err = g_strdup_printf(_("'%s' cannot be rebuilt, so undoing this step "
+			                         "would bring it back with the wrong pixels: %s"),
+			                       in->name ? in->name : _("a consumed layer"),
+			                       c->reasons->len ?
+			                           (char *)g_ptr_array_index(c->reasons, 0) :
+			                           _("its original pixels were not kept"));
+			nde_chain_free(c);
+			nde_composite_state_free(st);
+			return NULL;
+		}
+		nde_chain_free(c);
+	}
+	*out_st = st;
+	return rec;
+}
+
+gchar *nde_composite_undo_describe(gint64 record_id, guint *n_layers,
+                                   guint *n_discarded, gchar **err) {
+	g_return_val_if_fail(err != NULL, NULL);
+	*err = NULL;
+	if (n_layers) *n_layers = 0;
+	if (n_discarded) *n_discarded = 0;
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	if (!snap) {
+		*err = g_strdup(_("no edit history"));
+		return NULL;
+	}
+	guint pos = 0;
+	nde_composite_state *st = NULL;
+	const nde_record *rec = composite_undo_check(snap, record_id, &pos, &st, err);
+	if (!rec) {
+		g_ptr_array_unref(snap);
+		return NULL;
+	}
+	GArray *doomed = records_from(snap, pos, rec->target_item_id);
+	GString *s = g_string_new(NULL);
+	for (guint i = 0; i < doomed->len; i++) {
+		const gint64 id = g_array_index(doomed, gint64, i);
+		for (guint j = 0; j < snap->len; j++) {
+			const nde_record *r = g_ptr_array_index(snap, j);
+			if (r->record_id != id)
+				continue;
+			g_string_append_printf(s, "  • %s\n",
+			                       r->summary ? r->summary : r->op_id);
+			break;
+		}
+	}
+	if (n_layers) *n_layers = st->inputs->len;
+	if (n_discarded) *n_discarded = doomed->len;
+	g_array_unref(doomed);
+	nde_composite_state_free(st);
+	g_ptr_array_unref(snap);
+	return g_string_free(s, FALSE);
+}
+
+gboolean nde_composite_undo_execute(gint64 record_id, gchar **err) {
+	g_return_val_if_fail(err != NULL, FALSE);
+	*err = NULL;
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	if (!snap) {
+		*err = g_strdup(_("no edit history"));
+		return FALSE;
+	}
+	guint pos = 0;
+	nde_composite_state *st = NULL;
+	const nde_record *rec = composite_undo_check(snap, record_id, &pos, &st, err);
+	if (!rec) {
+		g_ptr_array_unref(snap);
+		return FALSE;
+	}
+	const gint produced = rec->target_item_id;
+	GArray *doomed = records_from(snap, pos, produced);
+
+	/* Rebuild every consumed layer's pixels BEFORE touching the document, so
+	 * a failure half way leaves the image exactly as it was. */
+	guint n = st->inputs->len;
+	fits **pix = g_new0(fits *, n);
+	gboolean ok = TRUE;
+	for (guint i = 0; i < n && ok; i++) {
+		const nde_composite_input *in = &g_array_index(st->inputs, nde_composite_input, i);
+		nde_chain *c = nde_chain_build(in->item_id);
+		/* A layer that was never edited has no chain, only the baseline the
+		 * merge took of it — which is exactly its pixels at that moment. */
+		pix[i] = c->records->len ? nde_chain_replay(c, err)
+		                         : nde_checkpoint_baseline_get(in->item_id);
+		if (!pix[i]) {
+			if (!*err)
+				*err = g_strdup_printf(_("'%s' could not be rebuilt"),
+				                       in->name ? in->name : _("a consumed layer"));
+			ok = FALSE;
+		}
+		nde_chain_free(c);
+	}
+	if (!ok) {
+		for (guint i = 0; i < n; i++) {
+			if (pix[i]) { clearfits(pix[i]); free(pix[i]); }
+		}
+		g_free(pix);
+		g_array_unref(doomed);
+		nde_composite_state_free(st);
+		g_ptr_array_unref(snap);
+		return FALSE;
+	}
+
+	/* The document: out with the flattened layer, back with the ones it ate. */
+	flis_layer_t *flat = flis_layer_get_by_id(produced);
+	if (com.uniq) {
+		com.uniq->canvas_w = st->canvas_w ? st->canvas_w : com.uniq->canvas_w;
+		com.uniq->canvas_h = st->canvas_h ? st->canvas_h : com.uniq->canvas_h;
+		com.uniq->canvas_bg_r = st->bg_r;
+		com.uniq->canvas_bg_g = st->bg_g;
+		com.uniq->canvas_bg_b = st->bg_b;
+	}
+	GHashTable *group_map = g_hash_table_new(g_direct_hash, g_direct_equal);
+	for (guint i = 0; i < st->groups->len; i++) {
+		const nde_composite_group *g = &g_array_index(st->groups, nde_composite_group, i);
+		flis_group_t *grp = flis_group_add(g->name ? g->name : _("Group"));
+		if (!grp)
+			continue;
+		grp->item_id    = g->item_id;   /* the id its members were recorded with */
+		grp->blend_mode = (flis_blend_mode_t)g->blend_mode;
+		grp->opacity    = (gfloat)g->opacity;
+		grp->visible    = g->visible;
+		g_hash_table_insert(group_map, GINT_TO_POINTER(g->item_id), grp);
+	}
+	for (guint i = 0; i < n; i++) {
+		const nde_composite_input *in = &g_array_index(st->inputs, nde_composite_input, i);
+		flis_layer_t *lay = flis_layer_add(pix[i], in->name ? in->name : _("Layer"));
+		if (!lay) {
+			clearfits(pix[i]);
+			free(pix[i]);
+			continue;
+		}
+		/* The identity is restored, not reissued: the layer's own history is
+		 * keyed on it and would otherwise be orphaned by its own undo. */
+		lay->item_id     = in->item_id;
+		lay->blend_mode  = (flis_blend_mode_t)in->blend_mode;
+		lay->opacity     = (gfloat)in->opacity;
+		lay->position_x  = in->position_x;
+		lay->position_y  = in->position_y;
+		lay->visible     = in->visible;
+		if (in->group_id && g_hash_table_contains(group_map, GINT_TO_POINTER(in->group_id)))
+			flis_layer_set_group(lay, in->group_id);
+		/* The layer took the fits POINTER (flis_layer_new: layer->fit = fit),
+		 * so there is nothing here left to free — freeing it left the layer
+		 * pointing at released memory, which only showed up as a crash in the
+		 * test teardown under MALLOC_PERTURB_. */
+	}
+	g_hash_table_destroy(group_map);
+	g_free(pix);
+	if (flat)
+		flis_layer_remove(flat);
+
+	/* The log last, so a failure above leaves it describing what is there. */
+	nde_history_drop_records(doomed);
+	guint discarded = doomed->len;
+	g_array_unref(doomed);
+	nde_composite_state_free(st);
+	g_ptr_array_unref(snap);
+
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+	undo_flush();
+	gui_iface.flis_invalidate_composite();
+	gui_iface.invalidate_histogram();
+	siril_log_message(_("The merge was undone: %u layer(s) came back and "
+	                    "%u step(s) after it were discarded\n"),
+	                  n, discarded);
+	return TRUE;
+}
+
 gboolean nde_delete_execute(gint64 record_id, gchar **err) {
 	return edit_execute(record_id, NULL, err);
 }
@@ -2160,6 +2404,30 @@ static gboolean nde_edit_start(gint64 record_id, const gchar *new_params) {
 	if (!replay_conductor_start(nde_edit_worker, job)) {
 		g_free(job->new_params);
 		g_free(job);
+		return FALSE;
+	}
+	return TRUE;
+}
+
+/* Undoing a composite runs on the conductor like every other history edit:
+ * it replays each consumed layer's chain, which needs the job slot. */
+static gpointer nde_composite_undo_worker(gpointer p) {
+	gint64 record_id = *(gint64 *)p;
+	g_free(p);
+	gchar *errmsg = NULL;
+	if (!nde_composite_undo_execute(record_id, &errmsg))
+		siril_log_error(_("The merge could not be undone: %s\n"),
+		                errmsg ? errmsg : "?");
+	g_free(errmsg);
+	siril_add_idle(nde_edit_done_idle, NULL);
+	return GINT_TO_POINTER(0);
+}
+
+gboolean nde_composite_undo_start(gint64 record_id) {
+	gint64 *id = g_new(gint64, 1);
+	*id = record_id;
+	if (!replay_conductor_start(nde_composite_undo_worker, id)) {
+		g_free(id);
 		return FALSE;
 	}
 	return TRUE;

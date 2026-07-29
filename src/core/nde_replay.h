@@ -325,6 +325,30 @@ gboolean nde_edit_at_begin_execute(gint64 record_id, gchar **err);
  * merged result instead of landing where it was aimed.
  */
 gint nde_edit_at_borrowed_item(void);
+
+/* ---- undoing a merge or a flatten ---------------------------------------
+ * Deleting a composite step is not a chain edit: the step did not change an
+ * image, it CONSUMED several and produced one.  Undoing it therefore restores
+ * the document — the consumed layers come back with the identities, names and
+ * compositing properties the record kept — and takes everything built on the
+ * result with it, because those steps describe an image that stops existing.
+ * It is a bulk undo to just before the merge, and the caller must say so
+ * before doing it.
+ */
+
+/** A human-readable list of the steps that would be discarded, one per line,
+ *  for the confirmation the caller must show.  @n_layers receives how many
+ *  layers would come back and @n_discarded how many steps would go.  NULL +
+ *  @err when the undo is not possible, with the reason spelled out. */
+gchar *nde_composite_undo_describe(gint64 record_id, guint *n_layers,
+                                   guint *n_discarded, gchar **err);
+
+/** Perform it.  Job-slot contract as nde_chain_replay (the caller owns the
+ *  slot).  FALSE + @err leaves the document untouched. */
+gboolean nde_composite_undo_execute(gint64 record_id, gchar **err);
+
+/** Async wrapper: runs the above on the replay conductor. */
+gboolean nde_composite_undo_start(gint64 record_id);
 gboolean nde_edit_at_end_execute(gboolean apply, gchar **err);
 
 #ifdef __cplusplus

@@ -915,6 +915,122 @@ Test(nde_composite, an_operation_can_be_inserted_into_a_consumed_input) {
 	done();
 }
 
+/* ---- undoing a merge --------------------------------------------------- */
+
+/* Deleting a composite step is not a chain edit: the step consumed several
+ * images and produced one, so undoing it restores the document.  The layers
+ * come back with the identities the record kept — which is what makes their
+ * own histories still theirs — and everything built on the merged result goes,
+ * because those steps describe an image that stops existing. */
+Test(nde_composite, undoing_a_merge_brings_the_consumed_layers_back) {
+	gint bottom_item = 0, top_item = 0;
+	flis_layer_t *merged = two_edited_layers_merged(&bottom_item, &top_item,
+	                                               FLIS_BLEND_NORMAL, 0.5f);
+	/* Read the id now: the undo frees the layer, and reading it afterwards
+	 * would be a use-after-free that happens to pass. */
+	const gint merged_item = merged->item_id;
+	/* Something built on the merged result, which the undo must discard. */
+	select_layer(merged);
+	cr_assert_eq(run_op_on_active(&op_desc_asinh, asinh_beta(9.f)), 0);
+	const nde_record *merge = find_composite_record();
+	cr_assert_not_null(merge);
+	gint64 merge_id = merge->record_id;
+
+	guint n_layers = 0, n_discarded = 0;
+	gchar *err = NULL;
+	gchar *desc = nde_composite_undo_describe(merge_id, &n_layers, &n_discarded, &err);
+	cr_assert_not_null(desc, "the confirmation must be describable: %s", err ? err : "?");
+	cr_assert_eq(n_layers, 2, "both consumed layers come back");
+	cr_assert_eq(n_discarded, 2, "the merge itself and the step built on it");
+	g_free(desc);
+
+	cr_assert(reserve_thread());
+	cr_assert(nde_composite_undo_execute(merge_id, &err), "undo failed: %s",
+	          err ? err : "?");
+	unreserve_thread();
+	g_free(err);
+
+	cr_assert_eq(flis_layer_count(), 2, "the two layers are back");
+	flis_layer_t *b = flis_layer_get_by_id(bottom_item);
+	flis_layer_t *t = flis_layer_get_by_id(top_item);
+	cr_assert_not_null(b, "the bottom layer keeps the identity its history uses");
+	cr_assert_not_null(t, "and so does the top");
+	cr_assert_str_eq(b->layer_name, "bottom");
+	cr_assert_str_eq(t->layer_name, "top");
+	cr_assert_float_eq(t->opacity, 0.5f, 1e-6,
+	                   "the opacity it was merged at is restored, not defaulted");
+	cr_assert_null(flis_layer_get_by_id(merged_item),
+	               "and the merged image is gone");
+
+	/* The log no longer holds the merge or anything built on it, and each
+	 * restored layer still owns its own pre-merge step. */
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	guint on_bottom = 0, on_top = 0;
+	for (guint i = 0; i < snap->len; i++) {
+		const nde_record *r = g_ptr_array_index(snap, i);
+		cr_assert(!nde_composite_is_op(r->op_id), "the merge step is gone");
+		if (r->target_item_id == bottom_item) on_bottom++;
+		if (r->target_item_id == top_item)    on_top++;
+	}
+	cr_assert_eq(on_bottom, 1, "the bottom layer's own history survived");
+	cr_assert_eq(on_top, 1, "and the top's");
+	g_ptr_array_unref(snap);
+
+	/* And they are still editable in their own right. */
+	nde_chain *c = nde_chain_build(bottom_item);
+	cr_assert(c->replayable, "%s", c->reasons->len ?
+	          (char *)g_ptr_array_index(c->reasons, 0) : "none");
+	cr_assert(!c->from_composite, "it is a layer again, not a merge result");
+	nde_chain_free(c);
+	done();
+}
+
+/* The refusal that must be clear rather than silent: an input whose own
+ * history cannot be replayed would come back holding the wrong pixels. */
+Test(nde_composite, a_merge_whose_input_cannot_be_rebuilt_refuses_to_undo) {
+	com.pref.nde_cache_mb = 256;
+	flis_layer_t *bottom = flis_test_add_layer(
+	    flis_test_make_rgb_fits(4, 4, 0.5f, 0.5f, 0.5f), "bottom");
+	flis_layer_t *top = flis_test_add_layer(
+	    flis_test_make_rgb_fits(4, 4, 0.25f, 0.25f, 0.25f), "top");
+	select_layer(bottom);
+	cr_assert_eq(run_op_on_active(&op_desc_asinh, asinh_beta(5.f)), 0);
+
+	/* An opaque step with no restart checkpoint: the bottom layer's chain
+	 * cannot be replayed, so its pre-merge pixels cannot be reproduced. */
+	nde_record *opaque = nde_record_new();
+	opaque->op_id          = g_strdup("some.unreplayable.op");
+	opaque->op_version     = 1;
+	opaque->scope          = NDE_SCOPE_LAYER;
+	opaque->target_item_id = bottom->item_id;
+	opaque->tier           = NDE_TIER_B;
+	opaque->summary        = g_strdup("Opaque step");
+	cr_assert_neq(nde_history_append(opaque), 0);
+
+	cr_assert_eq(flis_merge_down_layer(top), 0);
+	gfit = ((flis_layer_t *)com.uniq->layers->data)->fit;
+	const nde_record *merge = find_composite_record();
+	cr_assert_not_null(merge);
+
+	gchar *err = NULL;
+	gchar *desc = nde_composite_undo_describe(merge->record_id, NULL, NULL, &err);
+	cr_assert_null(desc, "an undo that cannot be honoured must not be offered");
+	cr_assert_not_null(err);
+	cr_assert(strstr(err, "bottom") != NULL,
+	          "the refusal must name the layer that is in the way, got: %s", err);
+	cr_assert(strlen(err) > 40, "and explain why, got: %s", err);
+	g_free(err);
+
+	err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(!nde_composite_undo_execute(merge->record_id, &err));
+	unreserve_thread();
+	cr_assert_not_null(err);
+	g_free(err);
+	cr_assert_eq(flis_layer_count(), 1, "and nothing was changed");
+	done();
+}
+
 /* ---- honest refusal ----------------------------------------------------- */
 
 /* A merge recorded before step 7 carries neither pins nor per-input state.

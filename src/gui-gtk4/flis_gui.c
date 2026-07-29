@@ -2072,10 +2072,45 @@ static void on_hist_delete_clicked(GtkButton *b, gpointer u) {
 	if (!g_panel || !g_panel->hist_popover_row)
 		return;
 	NdeHistRowItem *r = g_panel->hist_popover_row;
-	if (!r->deletable)
-		return;
 	gtk_popover_popdown(GTK_POPOVER(g_panel->hist_popover));
 
+	/* Undoing a merge or a flatten is not deleting a step, it is a bulk undo
+	 * to just before it: the consumed layers come back and everything built
+	 * on the result goes.  It is asked EVERY time and never remembered — the
+	 * amount of work it can discard varies with each one, so a decision made
+	 * once is not a decision made for the next. */
+	if (nde_composite_is_op(r->op_id)) {
+		guint n_layers = 0, n_discarded = 0;
+		gchar *err = NULL;
+		gchar *steps = nde_composite_undo_describe(r->record_id, &n_layers,
+		                                          &n_discarded, &err);
+		if (!steps) {
+			siril_message_dialog(GTK_MESSAGE_WARNING,
+			                     _("This step cannot be undone"),
+			                     err ? err : _("the reason is not known"));
+			g_free(err);
+			return;
+		}
+		g_free(err);
+		gchar *msg = g_strdup_printf(
+			ngettext("%u layer will come back, and everything done since will "
+			         "be discarded — %u step:\n\n%s\nThis cannot be undone in "
+			         "its turn.",
+			         "%u layers will come back, and everything done since will "
+			         "be discarded — %u steps:\n\n%s\nThis cannot be undone in "
+			         "its turn.", n_layers),
+			n_layers, n_discarded, steps);
+		g_free(steps);
+		gboolean confirmed = siril_confirm_dialog(_("Undo this merge?"), msg,
+		                                          _("_Undo the merge"));
+		g_free(msg);
+		if (confirmed)
+			nde_composite_undo_start(r->record_id);
+		return;
+	}
+
+	if (!r->deletable)
+		return;
 	gchar *msg = g_strdup_printf("%s\n\n%s",
 	                             r->summary ? r->summary : "",
 	                             hist_edit_consequence(r));
@@ -2151,6 +2186,12 @@ static const char *hist_action_disabled_reason(const NdeHistRowItem *r,
 		return _("Opaque steps cannot be edited");
 	if (is_edit && (!r->amendable || !r->params))
 		return _("Opaque steps cannot be edited");
+	/* A composite is not deletable as a step — nde_record_deletable refuses
+	 * every DOCUMENT-scope record and should — but it CAN be undone, which
+	 * restores the document rather than editing a chain.  The button offers
+	 * that instead, and says so. */
+	if (!is_edit && nde_composite_is_op(r->op_id))
+		return NULL;
 	if (!is_edit && !r->deletable)
 		return _("Structural steps cannot be deleted");
 	return NULL;
@@ -2289,6 +2330,11 @@ static void on_hist_row_activate(GtkListView *lv, guint position, gpointer u) {
 	g_clear_object(&g_panel->hist_popover_row);
 	g_panel->hist_popover_row = g_object_ref(r);
 
+	/* Merge and flatten rows offer an undo, not a deletion; the verb has to
+	 * match what will happen to the document. */
+	gtk_button_set_label(GTK_BUTTON(g_panel->hist_delete_btn),
+	                     nde_composite_is_op(r->op_id) ? _("Undo the merge…")
+	                                                   : _("Delete step"));
 	const char *edit_off = hist_action_disabled_reason(r, TRUE);
 	const char *del_off  = hist_action_disabled_reason(r, FALSE);
 	const char *ins_off  = hist_insert_disabled_reason(r);
