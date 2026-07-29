@@ -1428,6 +1428,21 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 		nde_chain_free(pos);
 		return FALSE;
 	}
+	/* Deleting the ONE step a mask was built by would leave a mask item with no
+	 * history to rebuild it from.  Caught here because the trial chain below is
+	 * empty in that case, and an empty chain cannot be recognised as a mask's
+	 * (that test reads the first member's op) — so it fell through to the image
+	 * path and failed with "failed to load the baseline checkpoint", about an
+	 * item the user never named. */
+	if (!new_params && pos->is_mask && pos->records->len == 1) {
+		*err = nde_item_is_retained_input(item_id)
+		       ? g_strdup(_("this is the step that built the mask, and an image that "
+		                    "was composited with it could not be rebuilt without it"))
+		       : g_strdup(_("this is the step that built the mask — remove the mask "
+		                    "itself from the Layers panel instead of deleting it here"));
+		nde_chain_free(pos);
+		return FALSE;
+	}
 	nde_chain_free(pos);
 
 	/* For a delete, build the TRIAL chain: the deleted record is excluded

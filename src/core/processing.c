@@ -2250,6 +2250,12 @@ the_end:
 					layermask_free(lm);
 				} else {
 					routed_to_layer = target->item_id;
+					/* Name the destination.  The dialog's Target dropdown is
+					 * the only other place it appears, and when a mask turns
+					 * up on the wrong layer that dropdown is exactly what is
+					 * in question — so the log has to settle it. */
+					siril_log_message(_("FLIS: layer mask created on '%s'\n"),
+					                  target->layer_name ? target->layer_name : "?");
 					/* Show the result: flip the mask-view radio to
 					 * LAYER so the (now visible) mask tab displays
 					 * the lmask that was just created, not the empty

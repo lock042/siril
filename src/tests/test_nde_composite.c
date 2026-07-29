@@ -808,6 +808,27 @@ Test(nde_composite, the_first_merge_format_still_decodes) {
 	nde_composite_state_free(st);
 }
 
+/* Reported (weird.png): the mask item a flatten consumed appeared as "Layer 3,
+ * no longer in the document" — a layer the user never had.  Item ids are one
+ * sequence across layers, masks and groups, so the fallback label has to say
+ * which KIND it lost. */
+Test(nde_composite, a_consumed_layer_mask_is_labelled_as_one) {
+	gint mask_item = 0;
+	masked_flatten(&mask_item);
+
+	nde_graph *g = nde_graph_build();
+	const nde_graph_node *n = nde_graph_node_for(g, mask_item);
+	cr_assert_not_null(n, "the mask a composite kept is still a node");
+	cr_assert_null(strstr(n->label, "Layer 3"),
+	               "it is not a layer: got '%s'", n->label);
+	cr_assert_not_null(strstr(n->label, "mask"),
+	                   "and it must say so: got '%s'", n->label);
+	cr_assert_not_null(strstr(n->label, "top"),
+	                   "named after the layer it masked: got '%s'", n->label);
+	nde_graph_free(g);
+	done();
+}
+
 /* ---- persistence -------------------------------------------------------- */
 
 /* A merge survives a save/load: the pins and the per-input state ride in the
@@ -913,6 +934,44 @@ Test(nde_composite, amending_a_mask_a_composite_used_reaches_the_result) {
 	nde_chain_free(chain);
 	cr_assert_neq(first_pixel(), before,
 	              "a mask taken from a different channel must change the flattened image");
+	done();
+}
+
+/* Reported (weird.png): create a layer mask, flatten, then try to delete the
+ * mask — "failed to load the baseline checkpoint", about an item the user had
+ * never seen.  Deleting the only step of a MASK item took the image path,
+ * because a trial chain with that step excluded is empty and the mask test
+ * reads the first member's op. */
+Test(nde_composite, deleting_the_step_that_made_a_mask_is_refused_clearly) {
+	com.pref.nde_cache_mb = 256;
+	flis_test_add_layer(flis_test_make_rgb_fits(8, 8, 0.5f, 0.5f, 0.5f), "bottom");
+	flis_layer_t *top = flis_test_add_layer(
+	    flis_test_make_rgb_fits(8, 8, 0.2f, 0.5f, 0.9f), "top");
+	select_layer(top);
+	cr_assert_eq(run_mask_op_on(top, &op_desc_mask_from_channel, from_channel_8bit(0)), 0);
+	cr_assert_not_null(top->lmask);
+	top->lmask_active = TRUE;
+	gint64 mask_rec = 0;
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	for (guint i = 0; i < snap->len; i++) {
+		const nde_record *r = g_ptr_array_index(snap, i);
+		if (!g_strcmp0(r->op_id, "mask.from_channel"))
+			mask_rec = r->record_id;
+	}
+	g_ptr_array_unref(snap);
+	cr_assert_neq(mask_rec, 0);
+	cr_assert_eq(flis_flatten_all(), 0);
+	gfit = ((flis_layer_t *)com.uniq->layers->data)->fit;
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	gboolean ok = nde_delete_execute(mask_rec, &err);
+	unreserve_thread();
+	cr_assert(!ok, "deleting the step a composite's mask was built by must be refused");
+	cr_assert_not_null(err);
+	cr_assert_null(strstr(err, "baseline"),
+	               "and the reason must name the mask, not a checkpoint: %s", err);
+	g_free(err);
 	done();
 }
 

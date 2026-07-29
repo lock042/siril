@@ -232,7 +232,21 @@ nde_graph *nde_graph_build(void) {
 			for (guint k = 0; k < st->inputs->len && !named; k++) {
 				const nde_composite_input *in =
 						&g_array_index(st->inputs, nde_composite_input, k);
-				if (in->item_id != n->item_id || !in->name || !*in->name)
+				if (!in->name || !*in->name)
+					continue;
+				/* A composite records its inputs' LAYER MASK items too, and
+				 * one of those going unnamed is worse than an unnamed layer:
+				 * "Layer 3, no longer in the document" describes a layer the
+				 * user never had. */
+				if (in->mask_item_id == n->item_id) {
+					g_free(n->label);
+					n->label = g_strdup_printf(_("Layer mask of %s, no longer in the document"),
+					                           in->name);
+					n->kind = NDE_NODE_LAYERMASK;
+					named = TRUE;
+					break;
+				}
+				if (in->item_id != n->item_id)
 					continue;
 				g_free(n->label);
 				n->label = g_strdup_printf(st->raw_first ? _("%s, merged away")

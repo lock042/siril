@@ -153,6 +153,14 @@ static void refresh_mask_target_combo(const char *dialog_id,
 		gtk_box_append(GTK_BOX(row), *out_combo);
 		gtk_box_prepend(GTK_BOX(area), row);
 	}
+	/* What the user had chosen, by item id: the rebuild below renumbers the
+	 * rows, so restoring the INDEX would silently retarget the mask. */
+	gint keep_id = 0;
+	if (*out_ids) {
+		guint sel = gtk_drop_down_get_selected(GTK_DROP_DOWN(*out_combo));
+		if (sel < (*out_ids)->len)
+			keep_id = g_array_index(*out_ids, gint, sel);
+	}
 	if (!*out_ids)
 		*out_ids = g_array_new(FALSE, FALSE, sizeof(gint));
 	g_array_set_size(*out_ids, 0);
@@ -179,7 +187,26 @@ static void refresh_mask_target_combo(const char *dialog_id,
 			g_array_append_val(*out_ids, lay->item_id);
 		}
 	}
-	gtk_drop_down_set_selected(GTK_DROP_DOWN(*out_combo), 0);
+	guint restore = 0;
+	for (guint i = 0; keep_id && i < (*out_ids)->len; i++) {
+		if (g_array_index(*out_ids, gint, i) == keep_id) {
+			restore = i;
+			break;
+		}
+	}
+	gtk_drop_down_set_selected(GTK_DROP_DOWN(*out_combo), restore);
+}
+
+void masks_gui_refresh_target_combos(void) {
+	if (combo_mask_target_image)
+		refresh_mask_target_combo("mask_from_image_dialog",
+		                          &combo_mask_target_image, &target_ids_image);
+	if (combo_mask_target_stars)
+		refresh_mask_target_combo("mask_from_stars_dialog",
+		                          &combo_mask_target_stars, &target_ids_stars);
+	if (combo_mask_target_color)
+		refresh_mask_target_combo("mask_from_color_dialog",
+		                          &combo_mask_target_color, &target_ids_color);
 }
 
 /* Reads the dropdown's current selection and resolves to the target

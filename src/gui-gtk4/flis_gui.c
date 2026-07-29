@@ -62,6 +62,7 @@
 #include "gui-gtk4/gui_state.h"            /* gui.flis_layer_dragging */
 #include "gui-gtk4/callbacks.h"            /* set_GUI_CWD (header bar refresh) */
 #include "gui-gtk4/message_dialog.h"       /* siril_confirm_dialog */
+#include "gui-gtk4/masks_gui.h"            /* masks_gui_refresh_target_combos */
 #include "core/initfile.h"                 /* writeinitfile — persist "don't ask again" */
 #include "gui-gtk4/utils.h"                /* siril_toggle_*, siril_drop_down_* */
 #include "registration/flis_register.h"    /* flis_register_layers primitive */
@@ -3036,6 +3037,12 @@ static void refresh_panel(void) {
 
 	g_panel->refreshing = FALSE;
 	flis_stack_reader_unlock();
+
+	/* The mask dialogs' "Target" dropdowns list the same layer stack, and were
+	 * built when each dialog was shown: a dialog left open across an add,
+	 * duplicate, remove or rename offered the old stack, so the mask went to
+	 * the wrong layer.  Rebuilt here for the same reason the panel is. */
+	masks_gui_refresh_target_combos();
 
 	/* History section mirrors the provenance log; refreshed with the stack
 	 * lock released (its snapshot takes only the nde leaf mutex; target
