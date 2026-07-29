@@ -76,8 +76,11 @@ static void select_layer(flis_layer_t *lay) {
 }
 
 /* Two RGB layers on a canvas, each carrying one asinh record of its own, then
- * merged.  Returns the surviving layer; @out_bottom_item / @out_top_item get
- * the two item ids (the top's outlives its layer). */
+ * merged.  Returns the surviving layer, whose item_id is the NEW result id
+ * assigned by the merge.  @out_bottom_item / @out_top_item receive the two
+ * PRE-MERGE input ids; both remain live in the history as consumed inputs of
+ * the composite record (the top's outlives its layer; the bottom's is distinct
+ * from the result id returned through the layer). */
 static flis_layer_t *two_edited_layers_merged(gint *out_bottom_item,
                                               gint *out_top_item,
                                               flis_blend_mode_t top_blend,
@@ -190,34 +193,54 @@ Test(nde_composite, merging_an_unedited_layer_still_leaves_it_rebuildable) {
 /* ---- the chain ---------------------------------------------------------- */
 
 /* The freeze this closes: before step 7 the merge was a wall, and every step
- * the surviving layer had taken before it was locked behind that wall. */
+ * the surviving layer had taken before it was locked behind that wall.
+ *
+ * The merge now CONSUMES its inputs and produces a new item, so the property
+ * is stated over two chains rather than one.  The input keeps its own steps
+ * and stays editable; the result is a separate item whose chain BEGINS at the
+ * composite.  Asserting both is what makes "the merge is not a wall" true in
+ * the direction that matters — an edit to the input has somewhere to reach. */
 Test(nde_composite, the_merge_no_longer_freezes_the_layer_underneath) {
 	gint bottom_item = 0;
-	two_edited_layers_merged(&bottom_item, NULL, FLIS_BLEND_NORMAL, 1.0f);
+	flis_layer_t *merged = two_edited_layers_merged(&bottom_item, NULL,
+	                                               FLIS_BLEND_NORMAL, 1.0f);
+	gint result_item = merged->item_id;
+	cr_assert_neq(result_item, bottom_item,
+	              "the merge consumes its inputs: the result is a new item");
 
-	nde_chain *chain = nde_chain_build(bottom_item);
+	nde_chain *input = nde_chain_build(bottom_item);
+	cr_assert(input->replayable, "the consumed input must stay replayable: %s",
+	          input->reasons->len ? (char *)g_ptr_array_index(input->reasons, 0) : "none");
+	cr_assert_eq(input->records->len, 1, "its own pre-merge step");
+	cr_assert_eq(input->tail_start, 0, "nothing about it is frozen");
+	cr_assert(!input->from_composite, "the input was not born of a composite");
+	nde_chain_free(input);
+
+	nde_chain *chain = nde_chain_build(result_item);
 	cr_assert(chain->replayable, "the merge must be replayable, not a blocker: %s",
 	          chain->reasons->len ? (char *)g_ptr_array_index(chain->reasons, 0) : "none");
 	cr_assert(chain->has_composite, "and the chain must know it consumes another item");
-	cr_assert_eq(chain->records->len, 2,
-	             "the layer's own step plus the merge");
+	cr_assert(chain->from_composite,
+	          "the result has no baseline of its own: the composite IS its origin");
+	cr_assert_eq(chain->records->len, 1, "the merge, and nothing before it");
 	cr_assert_eq(chain->tail_start, 0,
 	             "nothing is frozen: the whole chain is editable");
 	nde_chain_free(chain);
 	done();
 }
 
-/* Replaying the surviving layer's chain reproduces the merge exactly: the
- * composite is re-run from the two inputs rather than read back from a stored
- * copy of its own result. */
+/* Replaying the result's chain reproduces the merge exactly: the composite is
+ * re-run from the two inputs rather than read back from a stored copy of its
+ * own result.  The chain is built on the RESULT item (merged->item_id), which
+ * is a new id the merge assigned; the pre-merge bottom_item is a consumed
+ * input whose chain ends before the composite. */
 Test(nde_composite, replaying_through_the_merge_reproduces_it) {
-	gint bottom_item = 0;
-	flis_layer_t *merged = two_edited_layers_merged(&bottom_item, NULL,
+	flis_layer_t *merged = two_edited_layers_merged(NULL, NULL,
 	                                                FLIS_BLEND_MULTIPLY, 1.0f);
 	fits expected = { 0 };
 	copyfits(merged->fit, &expected, CP_DEEPCOPY | CP_ALLOC, -1);
 
-	nde_chain *chain = nde_chain_build(bottom_item);
+	nde_chain *chain = nde_chain_build(merged->item_id);
 	cr_assert(chain->replayable);
 	cr_assert(reserve_thread());
 	gchar *err = NULL;
@@ -358,8 +381,11 @@ Test(nde_composite, a_pin_may_name_a_record_the_pixel_chain_does_not_contain) {
 
 /* Three RGB layers, one step each, then flattened.  The middle one blends and
  * the top one is half-transparent, so the flattened pixels depend on state that
- * nothing but the record can carry once the layers are gone. */
-static void three_layers_flattened(gint items[3]) {
+ * nothing but the record can carry once the layers are gone.
+ * @items receives the three PRE-FLATTEN input ids; @out_result_item (optional)
+ * receives the NEW item id the flatten assigned to the surviving layer.  The
+ * composite record's target is the result id, not any of the input ids. */
+static void three_layers_flattened(gint items[3], gint *out_result_item) {
 	com.pref.nde_cache_mb = 256;
 	flis_layer_t *l[3] = {
 		flis_test_add_layer(flis_test_make_rgb_fits(4, 4, 0.5f, 0.5f, 0.5f), "bottom"),
@@ -379,13 +405,15 @@ static void three_layers_flattened(gint items[3]) {
 	cr_assert_eq(flis_flatten_all(), 0);
 	cr_assert_eq(flis_layer_count(), 1);
 	gfit = ((flis_layer_t *)com.uniq->layers->data)->fit;
+	if (out_result_item)
+		*out_result_item = ((flis_layer_t *)com.uniq->layers->data)->item_id;
 }
 
 /* Flatten consumes the whole stack, so the whole stack is recorded — and unlike
  * merge-down it blends its bottom input too, over the canvas background. */
 Test(nde_composite, the_flatten_records_every_layer) {
 	gint items[3] = { 0 };
-	three_layers_flattened(items);
+	three_layers_flattened(items, NULL);
 
 	const nde_record *flat = find_composite_record();
 	cr_assert_not_null(flat);
@@ -412,15 +440,29 @@ Test(nde_composite, the_flatten_records_every_layer) {
 	done();
 }
 
+/* The same property for flatten, and stated the same way: every layer is an
+ * input the flatten consumed, and the flattened image is a new item.  The base
+ * layer is no longer the one the document "survives as" — it is simply the
+ * first of the inputs, which is why nothing here builds on items[0]. */
 Test(nde_composite, the_flatten_no_longer_freezes_the_layer_it_survives_as) {
 	gint items[3] = { 0 };
-	three_layers_flattened(items);
+	gint result_item = 0;
+	three_layers_flattened(items, &result_item);
+	for (int i = 0; i < 3; i++)
+		cr_assert_neq(result_item, items[i], "every layer was consumed");
 
-	nde_chain *chain = nde_chain_build(items[0]);
+	nde_chain *input = nde_chain_build(items[0]);
+	cr_assert(input->replayable, "the consumed base must stay replayable: %s",
+	          input->reasons->len ? (char *)g_ptr_array_index(input->reasons, 0) : "none");
+	cr_assert_eq(input->tail_start, 0, "nothing about it is frozen");
+	nde_chain_free(input);
+
+	nde_chain *chain = nde_chain_build(result_item);
 	cr_assert(chain->replayable, "the flatten must be replayable, not a blocker: %s",
 	          chain->reasons->len ? (char *)g_ptr_array_index(chain->reasons, 0) : "none");
 	cr_assert(chain->has_composite);
-	cr_assert_eq(chain->records->len, 2, "the layer's own step plus the flatten");
+	cr_assert(chain->from_composite);
+	cr_assert_eq(chain->records->len, 1, "the flatten, and nothing before it");
 	cr_assert_eq(chain->tail_start, 0);
 	nde_chain_free(chain);
 	done();
@@ -428,12 +470,15 @@ Test(nde_composite, the_flatten_no_longer_freezes_the_layer_it_survives_as) {
 
 Test(nde_composite, replaying_through_the_flatten_reproduces_it) {
 	gint items[3] = { 0 };
-	three_layers_flattened(items);
+	gint result_item = 0;
+	three_layers_flattened(items, &result_item);
 	flis_layer_t *flat = (flis_layer_t *)com.uniq->layers->data;
 	fits expected = { 0 };
 	copyfits(flat->fit, &expected, CP_DEEPCOPY | CP_ALLOC, -1);
 
-	nde_chain *chain = nde_chain_build(items[0]);
+	/* The chain is built on the RESULT item: the flatten assigned it a new id
+	 * so that all three pre-flatten input ids remain live as consumed inputs. */
+	nde_chain *chain = nde_chain_build(result_item);
 	cr_assert(chain->replayable);
 	cr_assert(reserve_thread());
 	gchar *err = NULL;
@@ -462,7 +507,7 @@ Test(nde_composite, replaying_through_the_flatten_reproduces_it) {
  * document but its steps are live, and amending one re-runs the flatten. */
 Test(nde_composite, amending_a_flattened_away_layers_step_takes_effect) {
 	gint items[3] = { 0 };
-	three_layers_flattened(items);
+	three_layers_flattened(items, NULL);
 	cr_assert_null(flis_layer_get_by_id(items[1]), "the middle layer really is gone");
 	gint64 rid = record_for_item(items[1]);
 	cr_assert_neq(rid, 0);
@@ -498,7 +543,6 @@ Test(nde_composite, a_flattened_group_replays_from_the_recorded_group_state) {
 	grp->visible    = TRUE;
 	cr_assert_eq(flis_layer_set_group(l[1], grp->item_id), 0);
 	cr_assert_eq(flis_layer_set_group(l[2], grp->item_id), 0);
-	gint base_item = l[0]->item_id;
 	select_layer(l[0]);
 	cr_assert_eq(run_op_on_active(&op_desc_asinh, asinh_beta(5.f)), 0);
 
@@ -507,6 +551,9 @@ Test(nde_composite, a_flattened_group_replays_from_the_recorded_group_state) {
 	flis_layer_t *flat = (flis_layer_t *)com.uniq->layers->data;
 	copyfits(flat->fit, &expected, CP_DEEPCOPY | CP_ALLOC, -1);
 	gfit = flat->fit;
+	/* The flatten assigned a new item id to the surviving layer; the chain is
+	 * built on that result id, not on l[0]'s pre-flatten id. */
+	gint result_item = flat->item_id;
 
 	const nde_record *rec = find_composite_record();
 	nde_composite_state *st = nde_composite_state_parse(rec->params);
@@ -516,7 +563,7 @@ Test(nde_composite, a_flattened_group_replays_from_the_recorded_group_state) {
 	             FLIS_BLEND_MULTIPLY);
 	nde_composite_state_free(st);
 
-	nde_chain *chain = nde_chain_build(base_item);
+	nde_chain *chain = nde_chain_build(result_item);
 	cr_assert(chain->replayable, "%s",
 	          chain->reasons->len ? (char *)g_ptr_array_index(chain->reasons, 0) : "none");
 	cr_assert(reserve_thread());
@@ -761,9 +808,10 @@ Test(nde_composite, a_merge_without_recorded_inputs_still_blocks) {
 
 /* ---- masked inputs ------------------------------------------------------ */
 
-/* Two layers, the top one half-masked, flattened.  Returns the surviving
- * layer's item id; @out_mask_item gets the LMASK item the mask was stored
- * under. */
+/* Two layers, the top one half-masked, flattened.  Returns the NEW item id
+ * the flatten assigned to the surviving layer (the composite record's target),
+ * which is what callers must build chains on.  @out_mask_item gets the LMASK
+ * item the mask was stored under. */
 static gint masked_flatten(gint *out_mask_item) {
 	com.pref.nde_cache_mb = 256;
 	flis_layer_t *bottom = flis_test_add_layer(
@@ -772,7 +820,6 @@ static gint masked_flatten(gint *out_mask_item) {
 	    flis_test_make_rgb_fits(4, 4, 0.25f, 0.25f, 0.25f), "top");
 	cr_assert_eq(flis_layer_set_lmask(top, flis_test_make_const_lmask(4, 4, 8, 0.5)), 0);
 	top->lmask_active = TRUE;
-	gint bottom_item = bottom->item_id;
 	select_layer(bottom);
 	cr_assert_eq(run_op_on_active(&op_desc_asinh, asinh_beta(5.f)), 0);
 
@@ -786,7 +833,7 @@ static gint masked_flatten(gint *out_mask_item) {
 		cr_assert_neq(*out_mask_item, 0, "the masked input records its LMASK item");
 		nde_composite_state_free(st);
 	}
-	return bottom_item;
+	return ((flis_layer_t *)com.uniq->layers->data)->item_id;
 }
 
 /* A layer mask can be painted or loaded from a file, so it may have no chain to
@@ -794,12 +841,12 @@ static gint masked_flatten(gint *out_mask_item) {
  * make a composite that applied one reproducible. */
 Test(nde_composite, a_flatten_over_a_masked_layer_replays) {
 	gint mask_item = 0;
-	gint bottom_item = masked_flatten(&mask_item);
+	gint result_item = masked_flatten(&mask_item);
 	fits expected = { 0 };
 	copyfits(((flis_layer_t *)com.uniq->layers->data)->fit, &expected,
 	         CP_DEEPCOPY | CP_ALLOC, -1);
 
-	nde_chain *chain = nde_chain_build(bottom_item);
+	nde_chain *chain = nde_chain_build(result_item);
 	cr_assert(chain->replayable, "%s",
 	          chain->reasons->len ? (char *)g_ptr_array_index(chain->reasons, 0) : "none");
 	cr_assert(reserve_thread());
@@ -829,13 +876,13 @@ Test(nde_composite, a_flatten_over_a_masked_layer_replays) {
  * reproduction. */
 Test(nde_composite, a_masked_composite_blocks_once_its_mask_is_gone) {
 	gint mask_item = 0;
-	gint bottom_item = masked_flatten(&mask_item);
-	nde_chain *ok = nde_chain_build(bottom_item);
+	gint result_item = masked_flatten(&mask_item);
+	nde_chain *ok = nde_chain_build(result_item);
 	cr_assert(ok->replayable, "precondition: it replays while the mask is stored");
 	nde_chain_free(ok);
 
 	nde_checkpoint_drop(mask_item);
-	nde_chain *chain = nde_chain_build(bottom_item);
+	nde_chain *chain = nde_chain_build(result_item);
 	cr_assert(!chain->replayable, "with the mask gone it cannot be reproduced");
 	cr_assert(chain->reasons->len > 0, "and must say why");
 	nde_chain_free(chain);
@@ -891,10 +938,14 @@ Test(nde_composite, a_consumed_layer_mask_is_labelled_as_one) {
 
 /* A merge survives a save/load: the pins and the per-input state ride in the
  * history table, and the merged-away layer's baseline has to be written even
- * though the document no longer lists the layer. */
+ * though the document no longer lists the layer.  The chain is built on the
+ * result item id (the new id the merge assigned), not on the pre-merge
+ * bottom_item, because the composite record targets the result. */
 Test(nde_composite, a_merge_is_still_replayable_after_a_round_trip) {
 	gint bottom_item = 0, top_item = 0;
-	two_edited_layers_merged(&bottom_item, &top_item, FLIS_BLEND_NORMAL, 0.5f);
+	flis_layer_t *merged = two_edited_layers_merged(&bottom_item, &top_item,
+	                                                FLIS_BLEND_NORMAL, 0.5f);
+	gint result_item = merged->item_id;
 
 	gchar *dir = g_dir_make_tmp("nde-composite-XXXXXX", NULL);
 	cr_assert_not_null(dir);
@@ -906,7 +957,7 @@ Test(nde_composite, a_merge_is_still_replayable_after_a_round_trip) {
 
 	cr_assert(nde_checkpoint_baseline_exists(top_item),
 	          "the merged-away layer's baseline must be written and read back");
-	nde_chain *chain = nde_chain_build(bottom_item);
+	nde_chain *chain = nde_chain_build(result_item);
 	cr_assert(chain->replayable, "the reloaded merge must still replay: %s",
 	          chain->reasons->len ? (char *)g_ptr_array_index(chain->reasons, 0) : "none");
 	cr_assert(chain->has_composite);
@@ -1064,10 +1115,12 @@ Test(nde_composite, deleting_the_step_that_made_a_mask_unmasks_the_composite) {
 }
 
 /* The stored mask is not the layer's any more — the layer is gone — so it has
- * to be written under its own item id and read back with it. */
+ * to be written under its own item id and read back with it.  The chain is
+ * built on the result item (the new id the flatten assigned); the composite
+ * record's target survives the round-trip unchanged. */
 Test(nde_composite, a_masked_composite_is_still_replayable_after_a_round_trip) {
 	gint mask_item = 0;
-	gint bottom_item = masked_flatten(&mask_item);
+	gint result_item = masked_flatten(&mask_item);
 
 	gchar *dir = g_dir_make_tmp("nde-composite-XXXXXX", NULL);
 	cr_assert_not_null(dir);
@@ -1078,7 +1131,7 @@ Test(nde_composite, a_masked_composite_is_still_replayable_after_a_round_trip) {
 	nde_checkpoint_purge();
 	cr_assert_eq(load_flis(path), 0);
 
-	nde_chain *chain = nde_chain_build(bottom_item);
+	nde_chain *chain = nde_chain_build(result_item);
 	cr_assert(chain->replayable, "the reloaded masked flatten must still replay: %s",
 	          chain->reasons->len ? (char *)g_ptr_array_index(chain->reasons, 0) : "none");
 	nde_chain_free(chain);
@@ -1094,10 +1147,13 @@ Test(nde_composite, a_masked_composite_is_still_replayable_after_a_round_trip) {
 
 /* The pins are what turn two disconnected lists into one graph: the
  * merged-away layer is still a node, and now there is an edge from it to the
- * layer that consumed it. */
+ * result item that consumed it.  The result item is a NEW id the merge
+ * assigned; the pre-merge bottom_item is a different (consumed) node. */
 Test(nde_composite, the_merged_away_layer_is_joined_to_its_consumer) {
-	gint bottom_item = 0, top_item = 0;
-	two_edited_layers_merged(&bottom_item, &top_item, FLIS_BLEND_NORMAL, 1.0f);
+	gint top_item = 0;
+	flis_layer_t *merged = two_edited_layers_merged(NULL, &top_item,
+	                                                FLIS_BLEND_NORMAL, 1.0f);
+	gint result_item = merged->item_id;
 
 	nde_graph *g = nde_graph_build();
 	const nde_graph_node *top_node = nde_graph_node_for(g, top_item);
@@ -1109,7 +1165,7 @@ Test(nde_composite, the_merged_away_layer_is_joined_to_its_consumer) {
 	GPtrArray *out = nde_graph_consumers_of(g, top_item);
 	cr_assert_eq(out->len, 1, "exactly one node consumes it");
 	const nde_graph_edge *e = g_ptr_array_index(out, 0);
-	cr_assert_eq(e->dst_item_id, bottom_item);
+	cr_assert_eq(e->dst_item_id, result_item);
 	cr_assert_str_eq(e->role, NDE_COMPOSITE_ROLE_OVERLAY);
 	g_ptr_array_unref(out);
 	nde_graph_free(g);

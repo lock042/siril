@@ -512,6 +512,23 @@ guint nde_history_live_count(void) {
 	return n;
 }
 
+gint nde_history_max_item_id(const nde_history *h) {
+	gint max = 0;
+	if (!h || !h->records)
+		return 0;
+	for (guint i = 0; i < h->records->len; i++) {
+		const nde_record *r = g_ptr_array_index(h->records, i);
+		if (r->target_item_id > max)
+			max = r->target_item_id;
+		for (guint p = 0; r->inputs && p < r->inputs->len; p++) {
+			const nde_input_pin *pin = g_ptr_array_index(r->inputs, p);
+			if (pin->src_item_id > max)
+				max = pin->src_item_id;
+		}
+	}
+	return max;
+}
+
 void nde_history_attach(nde_history *h) {
 	/* The document's log is being replaced (load / close / new document),
 	 * so its in-session baselines and cached intermediate states no longer

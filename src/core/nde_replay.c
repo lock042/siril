@@ -480,13 +480,18 @@ static nde_chain *chain_build_excluding(gint item_id, gint64 exclude_record_id) 
 		const nde_record *first = g_ptr_array_index(chain->records, 0);
 		const op_descriptor *fop = op_descriptor_by_id(first->op_id);
 		chain->is_mask = fop && fop->mask_hook;
+		/* An item whose first record is the composite that produced it was
+		 * born of a merge or a flatten.  Like a mask, it has no baseline of
+		 * its own — its origin is the composite's inputs. */
+		chain->from_composite = nde_composite_is_op(first->op_id);
 	}
 	if (chain->is_mask) {
 		const nde_record *first = g_ptr_array_index(chain->records, 0);
 		if (!nde_record_input(first, "image") && !record_names_a_file(first))
 			add_reason(chain, _("record %" G_GINT64_FORMAT " (%s) does not say what this mask was built from — not replayable"),
 			           first->record_id, first->op_id ? first->op_id : "?");
-	} else if (chain->records->len && !nde_checkpoint_baseline_exists(item_id)) {
+	} else if (chain->records->len && !chain->from_composite &&
+	           !nde_checkpoint_baseline_exists(item_id)) {
 		add_reason(chain, _("no baseline checkpoint — the file predates baselines, or the history began before this build"));
 	}
 
@@ -665,8 +670,12 @@ static fits *replay_apply_records(fits *scratch, const nde_chain *chain,
 			                               pos_x, pos_y, err);
 			if (!merged)
 				goto fail;   /* scratch untouched — the fail path frees it */
-			clearfits(scratch);
-			free(scratch);
+			/* NULL when this composite is the item's origin: an item born of
+			 * a merge has no prior state for the composite to replace. */
+			if (scratch) {
+				clearfits(scratch);
+				free(scratch);
+			}
 			scratch = merged;
 			nde_snapstore_deposit(scratch, chain->item_id, rec->record_id);
 			continue;
@@ -882,8 +891,11 @@ fits *nde_chain_replay(const nde_chain *chain, gchar **err) {
 	}
 	if (chain->is_mask)
 		return mask_chain_replay(chain, chain->records->len, err);
-	fits *scratch = nde_checkpoint_baseline_get(chain->item_id);
-	if (!scratch) {
+	/* Born of a merge: there is no baseline to start from, and none is
+	 * wanted — the first member renders the inputs it was given. */
+	fits *scratch = chain->from_composite ?
+			NULL : nde_checkpoint_baseline_get(chain->item_id);
+	if (!scratch && !chain->from_composite) {
 		*err = g_strdup(_("failed to load the baseline checkpoint"));
 		return NULL;
 	}
@@ -891,6 +903,26 @@ fits *nde_chain_replay(const nde_chain *chain, gchar **err) {
 	 * pure side output of the geometry hooks), so there is nothing to carry. */
 	return replay_apply_records(scratch, chain, 0, chain->records->len,
 	                            NULL, NULL, err);
+}
+
+/* The state a chain's tail restarts from: the barrier checkpoint when there is
+ * one, otherwise the baseline.  An item born of a composite has neither when
+ * its tail begins at that composite — its origin IS the first member, so the
+ * restart state is legitimately NULL and *err is left unset.  Callers must
+ * therefore test @err, not the return value. */
+static fits *chain_restart_state(const nde_chain *chain, gchar **err) {
+	if (chain->restart_ckpt_id > 0) {
+		fits *f = nde_checkpoint_output_get(chain->restart_ckpt_id);
+		if (!f)
+			*err = g_strdup(_("failed to load the barrier checkpoint"));
+		return f;
+	}
+	if (chain->from_composite && chain->tail_start == 0)
+		return NULL;
+	fits *f = nde_checkpoint_baseline_get(chain->item_id);
+	if (!f)
+		*err = g_strdup(_("failed to load the baseline checkpoint"));
+	return f;
 }
 
 fits *nde_chain_replay_tail(const nde_chain *chain, gchar **err) {
@@ -901,15 +933,9 @@ fits *nde_chain_replay_tail(const nde_chain *chain, gchar **err) {
 		*err = g_strdup(_("the editable tail is not replayable"));
 		return NULL;
 	}
-	fits *start = chain->restart_ckpt_id > 0 ?
-			nde_checkpoint_output_get(chain->restart_ckpt_id) :
-			nde_checkpoint_baseline_get(chain->item_id);
-	if (!start) {
-		*err = g_strdup(chain->restart_ckpt_id > 0 ?
-				_("failed to load the barrier checkpoint") :
-				_("failed to load the baseline checkpoint"));
+	fits *start = chain_restart_state(chain, err);
+	if (!start && *err)
 		return NULL;
-	}
 	return replay_apply_records(start, chain, chain->tail_start, chain->records->len,
 	                            NULL, NULL, err);
 }
@@ -957,15 +983,9 @@ static fits *resolve_edit_restart(const nde_chain *chain, guint e,
 		}
 	}
 	/* Fall back to the phase-4 restart point. */
-	fits *start = chain->restart_ckpt_id > 0 ?
-			nde_checkpoint_output_get(chain->restart_ckpt_id) :
-			nde_checkpoint_baseline_get(chain->item_id);
-	if (!start) {
-		*err = g_strdup(chain->restart_ckpt_id > 0 ?
-				_("failed to load the barrier checkpoint") :
-				_("failed to load the baseline checkpoint"));
+	fits *start = chain_restart_state(chain, err);
+	if (!start && *err)
 		return NULL;
-	}
 	*start_idx = chain->tail_start;
 	return start;
 }
@@ -1047,8 +1067,12 @@ static gboolean recompute_item(gint item_id, gchar **err) {
 	}
 	gint pos_x = 0, pos_y = 0;
 	gboolean carry = replay_start_offset(chain, 0, &pos_x, &pos_y);
-	fits *start = nde_checkpoint_baseline_get(item_id);
-	if (!start) {
+	/* An item born of a merge or flatten has no baseline: its first record IS
+	 * its origin, and the replay starts by rendering that composite's inputs
+	 * (nde_chain_replay does the same). */
+	fits *start = chain->from_composite ?
+			NULL : nde_checkpoint_baseline_get(item_id);
+	if (!start && !chain->from_composite) {
 		*err = g_strdup(_("failed to load the baseline checkpoint"));
 		nde_chain_free(chain);
 		return FALSE;
@@ -1639,9 +1663,14 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 	fits *start = resolve_edit_restart(chain, boundary, record_id, &start_idx, err);
 	gint pos_x = 0, pos_y = 0;
 	gboolean carry = replay_start_offset(chain, chain->restart_ckpt_id, &pos_x, &pos_y);
-	fits *result = start ? replay_apply_records(start, chain, start_idx, chain->records->len,
-	                                            carry ? &pos_x : NULL,
-	                                            carry ? &pos_y : NULL, err) : NULL;
+	/* A NULL restart state is not always a failure: an item born of a merge
+	 * restarts from no state at all, its first member rendering its own
+	 * inputs.  resolve_edit_restart distinguishes the two by whether it set
+	 * @err, and only returns NULL-without-error at start_idx 0. */
+	fits *result = (!start && *err) ? NULL :
+			replay_apply_records(start, chain, start_idx, chain->records->len,
+			                     carry ? &pos_x : NULL,
+			                     carry ? &pos_y : NULL, err);
 	nde_chain_free(chain);
 	if (!result) {
 		/* Deposits made by a failed replay describe an uncommitted chain —
@@ -1864,9 +1893,14 @@ gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after,
 	fits *start = resolve_edit_restart(chain, min_idx, boundary_pre_id, &start_idx, err);
 	gint pos_x = 0, pos_y = 0;
 	gboolean carry = replay_start_offset(chain, chain->restart_ckpt_id, &pos_x, &pos_y);
-	fits *result = start ? replay_apply_records(start, chain, start_idx, chain->records->len,
-	                                            carry ? &pos_x : NULL,
-	                                            carry ? &pos_y : NULL, err) : NULL;
+	/* A NULL restart state is not always a failure: an item born of a merge
+	 * restarts from no state at all, its first member rendering its own
+	 * inputs.  resolve_edit_restart distinguishes the two by whether it set
+	 * @err, and only returns NULL-without-error at start_idx 0. */
+	fits *result = (!start && *err) ? NULL :
+			replay_apply_records(start, chain, start_idx, chain->records->len,
+			                     carry ? &pos_x : NULL,
+			                     carry ? &pos_y : NULL, err);
 	nde_chain_free(chain);
 	if (!result) {
 		nde_snapstore_invalidate_from(item_id, inval_min);

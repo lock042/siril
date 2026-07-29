@@ -236,6 +236,16 @@ guint nde_history_live_count(void);
  */
 void nde_history_attach(nde_history *h);
 
+/**
+ * The highest item id @h mentions, as a target or through a pin — including
+ * items the document no longer has: a merged-away layer, or an input a
+ * composite consumed.  Seeding next_item_id from the LIVE layers alone lets a
+ * consumed id be handed out again after a save and reload, and the new layer
+ * then inherits a dead one's provenance.  Works on a detached history, since
+ * load_flis() needs it before nde_history_attach().
+ */
+gint nde_history_max_item_id(const nde_history *h);
+
 /** Free a detached history object (also used by free_image_data via attach(NULL)). */
 void nde_history_free(nde_history *h);
 

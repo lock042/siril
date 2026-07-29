@@ -70,6 +70,11 @@ typedef struct {
 	gboolean   has_composite;   /* a member is a composite node (graph step 7):
 	                             * the chain consumes ANOTHER item's pixels, so
 	                             * replaying it replays that item's chain too */
+	gboolean   from_composite;  /* the FIRST member is that composite: the item
+	                             * was BORN of a merge or flatten and has no
+	                             * baseline of its own, the way a mask has none.
+	                             * Its origin is the composite's inputs, and
+	                             * replay starts by rendering them */
 	GArray    *member_flags;    /* guint8 per member (NDE_CHAIN_MEMBER_*) */
 	guint      tail_start;      /* first tail member index (== len ⇒ empty tail) */
 	gboolean   tail_replayable; /* the tail applies cleanly from its restart point */

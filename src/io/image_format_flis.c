@@ -2801,6 +2801,12 @@ int load_flis(const gchar *filename) {
         flis_group_t *grp = (flis_group_t *)g->data;
         if (grp->item_id > max_id) max_id = grp->item_id;
     }
+    /* The history bounds it too, and it must: an item a composite consumed
+     * has no layer left to be found among the above, so seeding from the live
+     * document alone would hand its id out again and let a new layer inherit
+     * a dead one's provenance.  Read before nde_history_attach() below. */
+    gint hist_max = nde_history_max_item_id(nde_hist);
+    if (hist_max > max_id) max_id = hist_max;
     com.uniq->next_item_id = max_id + 1;
 
     /* Set active layer to the base (index 0 = lowest layer_order after sort) */
@@ -4562,7 +4568,6 @@ int flis_merge_down_layer(flis_layer_t *top) {
      * dangling-pointers top->layer_name (use-after-free otherwise). */
     gchar *top_name_copy = g_strdup(top->layer_name ? top->layer_name : "?");
     const char *bottom_name = bottom->layer_name ? bottom->layer_name : "?";
-    gint bottom_item_id = bottom->item_id;
 
     /* NDE composite node (design note §3): everything the merge consumes has
      * to be recoverable afterwards, and this is the last moment at which it
@@ -4619,11 +4624,15 @@ int flis_merge_down_layer(flis_layer_t *top) {
 
     /* NDE (sketch §13.2, design note §3): merge purges per-layer undo (records
      * are KEPT — provenance).  No undo entry survives, so the record is
-     * uncoupled; target = the surviving bottom layer, which is also the "base"
-     * input.  With the pins and the state gathered above the record is a
-     * replayable composite node rather than a wall: amending a step on either
-     * input re-runs this merge. */
-    nde_composite_capture_commit(nde_cap, "layer.merge_down", bottom_item_id,
+     * uncoupled.  The merge CONSUMES both inputs and produces a new item: the
+     * result is not the bottom layer with more steps on it, it is a new thing
+     * derived from two.  Saying so makes both inputs retained inputs alike,
+     * lets the composite resolve every input through a pin, and keeps the
+     * merge step out of a chain whose verdict is about one of its own
+     * inputs.  The layer object, its name and its position are unchanged —
+     * only its identity is new. */
+    bottom->item_id = com.uniq->next_item_id++;
+    nde_composite_capture_commit(nde_cap, "layer.merge_down", bottom->item_id,
                                  _("Merge down"));
 
     g_free(top_name_copy);
@@ -4714,8 +4723,10 @@ int flis_flatten_all(void) {
                       base->layer_name ? base->layer_name : "?");
 
     /* NDE (sketch §13.2, design note §3): flatten purges all per-layer undo
-     * (records are KEPT — provenance), so the record is uncoupled; target =
-     * the surviving base layer, which is also the first input. */
+     * (records are KEPT — provenance), so the record is uncoupled.  As with
+     * merge down, every layer is CONSUMED and the flattened result is a NEW
+     * item — the base layer is among the inputs, not the survivor of them. */
+    base->item_id = com.uniq->next_item_id++;
     nde_composite_capture_commit(nde_cap, "document.flatten", base->item_id,
                                  _("Flatten image"));
     return 0;
