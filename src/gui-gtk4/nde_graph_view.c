@@ -41,6 +41,15 @@
 #define NODE_MIN_W 220
 #define NODE_MAX_W 420
 
+/* How long a straight run an edge makes out of its source and into its
+ * arrowhead.  A cubic's tangent at its endpoint is exact, but exactness is not
+ * legibility: the edge from the first layer to a mask beside the last one is
+ * 590px wide and 26px tall, so the vertical arrival the head is drawn for
+ * occupies about a pixel of the sweep.  The line then reads as horizontal and
+ * the head reads as a wedge stuck on sideways.  A leg gives the head something
+ * to stand on, and says what the head says for long enough to be seen. */
+#define ARROW_LEG 14.0
+
 /* How far a feedback edge bows out of the corridor its forward twin uses.
  * The image feeds the mask and the mask feeds the image back, so the two run
  * between the same pair of column edges; without the bow they would be one
@@ -306,6 +315,12 @@ static void arrowhead(cairo_t *cr, double x, double y, double from_x, double fro
 static void draw_edge(cairo_t *cr, const nde_graph_place *s,
                       const nde_graph_place *d, gboolean feedback) {
 	double x0, y0, x1, y1, c0x, c0y, c1x, c1y;
+	/* The direction the edge leaves by and the direction it arrives by: the
+	 * legs run along these, and the head points along the second.  They are
+	 * stated rather than read back off the control points because a control
+	 * point tells you the tangent, and on a long shallow edge the tangent is
+	 * not what the shape looks like. */
+	double ux0, uy0, ux1, uy1;
 
 	if (!feedback) {
 		x0 = s->x + s->w / 2.0;      y0 = s->y + s->content_h;
@@ -313,6 +328,7 @@ static void draw_edge(cairo_t *cr, const nde_graph_place *s,
 		const double reach = MAX(fabs(y1 - y0) * 0.5, 16.0);
 		c0x = x0;                    c0y = y0 + reach;
 		c1x = x1;                    c1y = y1 - reach;
+		ux0 = ux1 = 0.0;             uy0 = uy1 = 1.0;
 	} else if (s->y == d->y) {
 		/* Same band (band nodes are levelled to it, so equal y IS equal
 		 * level): there is no "up the page" for the corridor geometry to run
@@ -327,19 +343,37 @@ static void draw_edge(cairo_t *cr, const nde_graph_place *s,
 		const double sag = 8.0;
 		c0x = x0 + (x1 - x0) / 3.0;        c0y = y0 + sag;
 		c1x = x0 + 2.0 * (x1 - x0) / 3.0;  c1y = y1 + sag;
+		/* Both ends face along the run here, which is the one arrangement a leg
+		 * cannot rescue — a horizontal stub on a horizontal line is the line.
+		 * The legs are pitched at 45 instead, dipping out of the source and
+		 * climbing into the destination, which is the direction the sag was
+		 * already taking the middle. */
+		const double diag = 0.70710678;
+		ux0 = rightward ? diag : -diag;    uy0 =  diag;
+		ux1 = ux0;                         uy1 = -diag;
 	} else {
 		x0 = s->x + s->w / 2.0 + 10.0;   y0 = s->y;
 		x1 = d->x + d->w / 2.0 + 10.0;   y1 = d->y + d->content_h;
 		const double reach = MAX(fabs(y1 - y0) * 0.5, 16.0);
 		c0x = x0 + FEEDBACK_BOW;     c0y = y0 - reach;
 		c1x = x1 + FEEDBACK_BOW;     c1y = y1 + reach;
+		ux0 = ux1 = 0.0;             uy0 = uy1 = -1.0;
 	}
 
+	/* A leg never eats more than half of what the edge spans along its own
+	 * axis, so the two can meet but never cross and double back. */
+	const double dx = x1 - x0, dy = y1 - y0;
+	const double leg0 = MIN(ARROW_LEG, fabs(dx * ux0 + dy * uy0) / 2.0);
+	const double leg1 = MIN(ARROW_LEG, fabs(dx * ux1 + dy * uy1) / 2.0);
+
 	cairo_move_to(cr, x0, y0);
-	cairo_curve_to(cr, c0x, c0y, c1x, c1y, x1, y1);
+	cairo_line_to(cr, x0 + leg0 * ux0, y0 + leg0 * uy0);
+	cairo_curve_to(cr, c0x, c0y, c1x, c1y,
+	               x1 - leg1 * ux1, y1 - leg1 * uy1);
+	cairo_line_to(cr, x1, y1);
 	cairo_stroke(cr);
 	cairo_set_dash(cr, NULL, 0, 0);   /* the head is solid even when dashed */
-	arrowhead(cr, x1, y1, c1x, c1y);
+	arrowhead(cr, x1, y1, x1 - ux1, y1 - uy1);
 }
 
 /* Several inputs converging on one node — a merge or a flatten — draw as a
