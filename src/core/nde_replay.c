@@ -718,6 +718,12 @@ static fits *replay_apply_records(fits *scratch, const nde_chain *chain,
 			 * change between chain build and execution. */
 			if (tier_c_rerun(scratch, rec, err))
 				goto fail;
+			/* The script's own commands went through start_in_new_thread,
+			 * which sets the busy cursor on submission and clears it when the
+			 * job ends — and the flag is a boolean, not a count, so the last
+			 * of them cleared the conductor's.  Take it back: there may be
+			 * many records still to replay after this one. */
+			gui_iface.set_busy(TRUE);
 			nde_snapstore_deposit(scratch, chain->item_id, rec->record_id);
 			continue;
 		}
@@ -2666,6 +2672,11 @@ static gpointer conductor_trampoline(gpointer p) {
 	replay_bind_conductor();
 	fn(data);                 /* owns data; posts its own completion idle */
 	replay_release_slot();
+	/* After the release, so the slot is free the moment the pointer says it
+	 * is — and after fn queued its completion idle, so the two land in that
+	 * order and the cursor clears onto a redrawn image rather than a stale
+	 * one (both go through g_idle_add at the same priority). */
+	gui_iface.set_busy(FALSE);
 	return NULL;
 }
 
@@ -2685,6 +2696,14 @@ static gboolean replay_conductor_start(GThreadFunc fn, gpointer data) {
 		                  "current operation has finished\n"));
 		return FALSE;
 	}
+	/* Replaying a chain re-runs every step of an item's history, which on a
+	 * long one is the slowest thing the panel can ask for and shows nothing
+	 * while it happens: the conductor runs off the worker, so the window stays
+	 * responsive and looks idle.  Set once here rather than at each of the
+	 * eight dispatch sites, and cleared by the trampoline, so the two cannot
+	 * drift apart — and after the reservation, so a refused start leaves the
+	 * pointer alone. */
+	gui_iface.set_busy(TRUE);
 	gpointer *ctx = g_new(gpointer, 2);
 	ctx[0] = (gpointer)fn;
 	ctx[1] = data;
