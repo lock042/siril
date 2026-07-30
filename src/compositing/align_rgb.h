@@ -21,7 +21,31 @@
 #ifndef SRC_COMPOSITING_ALIGN_RGB_H_
 #define SRC_COMPOSITING_ALIGN_RGB_H_
 
-/* Returns 0 on success; non-zero on failure (pixels left unchanged). */
-int rgb_align(int m);
+#include "core/siril.h"          /* fits, rectangle, destructor */
+#include "core/processing.h"     /* struct generic_img_args */
+
+/* What a channel alignment needs to be repeated.  The method is the user's
+ * choice; the area is not — get_the_registration_area() derives it from
+ * com.selection, which is a live GUI state that no longer exists by the time
+ * the history is replayed.  So the effective area is captured, in the same
+ * spirit as synthstar's star list: the detection is delegated and re-runs
+ * against whatever image the replay presents, but the frame it runs in is
+ * pinned. */
+struct rgb_align_data {
+	destructor destroy_fn;
+	int        method;      /* index into the internal registration method table */
+	rectangle  area;        /* effective registration area */
+	gboolean   have_area;
+};
+
+struct rgb_align_data *new_rgb_align_data(void);
+void free_rgb_align_data(void *p);
+
+/* Align gfit's three channels.  @area_used, when non-NULL, receives the
+ * registration area actually used, for the caller to record.
+ * Returns 0 on success; non-zero on failure (pixels left unchanged). */
+int rgb_align(int m, rectangle *area_used);
+
+int rgb_align_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
 
 #endif /* SRC_COMPOSITING_ALIGN_RGB_H_ */

@@ -1163,20 +1163,29 @@ gpointer extract_channels(gpointer p) {
 
 /****************** Color calibration ************************/
 
-/* This function equalize the background by giving equal value for all layers */
-void background_neutralize(fits* fit, rectangle black_selection) {
+/* This function equalize the background by giving equal value for all layers.
+ * Returns 0 on success.  It used to be void and to assert on a mono image,
+ * which was survivable while the only caller was a dialog button that had
+ * already checked; now that a replay can hand it whatever the history says was
+ * there, both refusals have to be answerable. */
+int background_neutralize(fits* fit, rectangle black_selection) {
 	int chan;
 	size_t i, n = fit->naxes[0] * fit->naxes[1];
 	imstats* stats[3];
 	double ref = 0;
 
-	assert(fit->naxes[2] == 3);
+	if (fit->naxes[2] != 3) {
+		siril_log_error(_("Background neutralization requires a 3-channel image.\n"));
+		return 1;
+	}
 
 	for (chan = 0; chan < 3; chan++) {
 		stats[chan] = statistics(NULL, -1, fit, chan, &black_selection, STATS_BASIC, MULTI_THREADED);
 		if (!stats[chan]) {
 			siril_log_error(_("Error: statistics computation failed.\n"));
-			return;
+			while (chan-- > 0)
+				free_stats(stats[chan]);
+			return 1;
 		}
 		ref += stats[chan]->median;
 	}
@@ -1204,7 +1213,216 @@ void background_neutralize(fits* fit, rectangle black_selection) {
 	}
 
 	invalidate_stats_from_fit(fit);
+	return 0;
 }
+
+/* ---- background neutralization: worker plumbing + NDE ------------------- */
+
+void free_bkg_neutral_data(void *p) {
+	free(p);
+}
+
+struct bkg_neutral_data *new_bkg_neutral_data(void) {
+	struct bkg_neutral_data *p = calloc(1, sizeof(struct bkg_neutral_data));
+	if (p)
+		p->destroy_fn = free_bkg_neutral_data;
+	return p;
+}
+
+int bkg_neutral_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	(void)nb_threads;
+	const struct bkg_neutral_data *p = args->user;
+	if (!p)
+		return 1;
+	return background_neutralize(fit, p->black_selection);
+}
+
+static gchar *bkg_neutral_log_hook(gpointer p, log_hook_detail detail) {
+	const struct bkg_neutral_data *d = p;
+	(void)detail;
+	if (!d)
+		return g_strdup(_("Background neutralization"));
+	return g_strdup_printf(_("Background neutralization (%d, %d, %dx%d)"),
+			d->black_selection.x, d->black_selection.y,
+			d->black_selection.w, d->black_selection.h);
+}
+
+static gchar *bkg_neutral_serialize(gconstpointer user) {
+	const struct bkg_neutral_data *p = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_int(kv, "bkg_x", p->black_selection.x);
+	nde_kv_add_int(kv, "bkg_y", p->black_selection.y);
+	nde_kv_add_int(kv, "bkg_w", p->black_selection.w);
+	nde_kv_add_int(kv, "bkg_h", p->black_selection.h);
+	return nde_kv_end(kv);
+}
+
+static gpointer bkg_neutral_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_bkg_neutral.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	gint64 x, y, w, h;
+	if (!nde_kv_get_int(kv, "bkg_x", &x) || !nde_kv_get_int(kv, "bkg_y", &y) ||
+	    !nde_kv_get_int(kv, "bkg_w", &w) || !nde_kv_get_int(kv, "bkg_h", &h) ||
+	    w < 1 || h < 1) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	struct bkg_neutral_data *p = new_bkg_neutral_data();
+	if (p) {
+		p->black_selection.x = (int)x;
+		p->black_selection.y = (int)y;
+		p->black_selection.w = (int)w;
+		p->black_selection.h = (int)h;
+	}
+	g_hash_table_unref(kv);
+	return p;
+}
+
+const op_descriptor op_desc_bkg_neutral = {
+	.id = "color.background_neutralization", .version = 1,
+	.image_hook = bkg_neutral_image_hook,
+	.log_hook = bkg_neutral_log_hook,
+	.description = N_("Background neutralization"),
+	.mem_ratio = 1.5f,
+	.flags = 0,
+	.serialize = bkg_neutral_serialize, .deserialize = bkg_neutral_deserialize,
+};
+
+/* ---- colour calibration: worker plumbing + NDE -------------------------- */
+
+void free_color_calib_data(void *p) {
+	free(p);
+}
+
+struct color_calib_data *new_color_calib_data(void) {
+	struct color_calib_data *p = calloc(1, sizeof(struct color_calib_data));
+	if (p)
+		p->destroy_fn = free_color_calib_data;
+	return p;
+}
+
+int color_calib_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	struct color_calib_data *p = args->user;
+	if (!p)
+		return 1;
+	if (fit->naxes[2] != 3) {
+		siril_log_error(_("Colour calibration requires a 3-channel image.\n"));
+		return 1;
+	}
+	/* calibrate() is a serial pass over one channel, so the three of them run
+	 * side by side — as they did in the dialog, but on the thread budget the
+	 * worker allocated rather than com.max_thread. */
+	const int threads = CLAMP(nb_threads, 1, 3);
+	const double norm = get_normalized_value(fit);
+	if (!p->have_effective) {
+		/* Manual mode's kw came off the sliders and its bg is zero, so only
+		 * the automatic mode has anything to work out.  Either way the values
+		 * are settled here and this is what gets recorded. */
+		if (!p->is_manual)
+			get_coeff_for_wb(fit, p->white_selection, p->black_selection,
+					p->kw, p->bg, norm, p->low, p->high);
+		p->have_effective = TRUE;
+	}
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(threads) schedule(static)
+#endif
+	for (int chan = 0; chan < 3; chan++) {
+		if (p->kw[chan] == 1.0)
+			continue;
+		calibrate(fit, chan, p->kw[chan], p->bg[chan], norm);
+	}
+	invalidate_stats_from_fit(fit);
+	return 0;
+}
+
+static gchar *color_calib_log_hook(gpointer p, log_hook_detail detail) {
+	const struct color_calib_data *d = p;
+	(void)detail;
+	if (!d)
+		return g_strdup(_("Color Calibration"));
+	return g_strdup_printf(_("Color Calibration (%s, %.3f/%.3f/%.3f)"),
+			d->is_manual ? _("manual") : _("automatic"),
+			d->kw[0], d->kw[1], d->kw[2]);
+}
+
+static gchar *color_calib_serialize(gconstpointer user) {
+	const struct color_calib_data *p = user;
+	GString *kv = nde_kv_start();
+	/* The effective coefficients — the contract.  A record without them
+	 * predates the feature and deserializes to NULL rather than pretending
+	 * the rectangles alone would reproduce it. */
+	for (int i = 0; i < 3; i++) {
+		char key[8];
+		g_snprintf(key, sizeof key, "kw%d", i);
+		nde_kv_add_double(kv, key, p->kw[i]);
+		g_snprintf(key, sizeof key, "bg%d", i);
+		nde_kv_add_double(kv, key, p->bg[i]);
+	}
+	/* How they were arrived at: shown by the panel, not acted on by replay. */
+	nde_kv_add_bool(kv, "manual", p->is_manual);
+	nde_kv_add_int(kv, "white_x", p->white_selection.x);
+	nde_kv_add_int(kv, "white_y", p->white_selection.y);
+	nde_kv_add_int(kv, "white_w", p->white_selection.w);
+	nde_kv_add_int(kv, "white_h", p->white_selection.h);
+	nde_kv_add_int(kv, "bkg_x", p->black_selection.x);
+	nde_kv_add_int(kv, "bkg_y", p->black_selection.y);
+	nde_kv_add_int(kv, "bkg_w", p->black_selection.w);
+	nde_kv_add_int(kv, "bkg_h", p->black_selection.h);
+	nde_kv_add_double(kv, "low", p->low);
+	nde_kv_add_double(kv, "high", p->high);
+	return nde_kv_end(kv);
+}
+
+static gpointer color_calib_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_color_calib.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	double kw[3], bg[3];
+	for (int i = 0; i < 3; i++) {
+		char key[8];
+		g_snprintf(key, sizeof key, "kw%d", i);
+		if (!nde_kv_get_double(kv, key, &kw[i])) {
+			g_hash_table_unref(kv);
+			return NULL;
+		}
+		g_snprintf(key, sizeof key, "bg%d", i);
+		if (!nde_kv_get_double(kv, key, &bg[i])) {
+			g_hash_table_unref(kv);
+			return NULL;
+		}
+	}
+	struct color_calib_data *p = new_color_calib_data();
+	if (p) {
+		memcpy(p->kw, kw, sizeof kw);
+		memcpy(p->bg, bg, sizeof bg);
+		p->have_effective = TRUE;
+		gint64 v;
+		nde_kv_get_bool(kv, "manual", &p->is_manual);
+		if (nde_kv_get_int(kv, "white_x", &v)) p->white_selection.x = (int)v;
+		if (nde_kv_get_int(kv, "white_y", &v)) p->white_selection.y = (int)v;
+		if (nde_kv_get_int(kv, "white_w", &v)) p->white_selection.w = (int)v;
+		if (nde_kv_get_int(kv, "white_h", &v)) p->white_selection.h = (int)v;
+		if (nde_kv_get_int(kv, "bkg_x", &v))   p->black_selection.x = (int)v;
+		if (nde_kv_get_int(kv, "bkg_y", &v))   p->black_selection.y = (int)v;
+		if (nde_kv_get_int(kv, "bkg_w", &v))   p->black_selection.w = (int)v;
+		if (nde_kv_get_int(kv, "bkg_h", &v))   p->black_selection.h = (int)v;
+		nde_kv_get_double(kv, "low", &p->low);
+		nde_kv_get_double(kv, "high", &p->high);
+	}
+	g_hash_table_unref(kv);
+	return p;
+}
+
+const op_descriptor op_desc_color_calib = {
+	.id = "color.calibration", .version = 1,
+	.image_hook = color_calib_image_hook,
+	.log_hook = color_calib_log_hook,
+	.description = N_("Color Calibration"),
+	.mem_ratio = 1.5f,
+	.flags = 0,
+	.serialize = color_calib_serialize, .deserialize = color_calib_deserialize,
+};
 
 
 void get_coeff_for_wb(fits *fit, rectangle white, rectangle black,

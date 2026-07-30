@@ -38,6 +38,152 @@
 #include "filters/deconvolution/deconvolution.h"
 #include "filters/synthstar.h"
 #include "core/op_descriptors.h"
+#include "core/nde_history.h"
+
+/* NDE serializers (phase 4.5 Convention 2 — captured effective kernel).
+ *
+ * The PSF is an operand, not a parameter: get_kernel() puts it in com.kernel,
+ * and which kernel that is depends on a makepsf run that happened before this
+ * op and left no record of itself here.  PSF_PREVIOUS says so outright.  So the
+ * serializer emits the kernel the pixels were made with, base64 of the raw
+ * floats, alongside the non-blind stage parameters that are genuinely this op's
+ * own.  Replay reinstalls the kernel and runs as PSF_PREVIOUS; psftype and the
+ * generator parameters are recorded for the panel to show, not to act on.  This
+ * is PCC's contract (Convention 3) applied to a PSF: replay the computed
+ * result, never re-run the estimator. */
+static void stash_effective_kernel(estk_data *args) {
+	const int ks = (int)com.kernelsize, kc = (int)com.kernelchannels;
+	if (!com.kernel || ks < 1 || kc < 1)
+		return;
+	const size_t n = (size_t)ks * ks * kc;
+	float *copy = malloc(n * sizeof(float));
+	if (!copy)
+		return;
+	memcpy(copy, com.kernel, n * sizeof(float));
+	free(args->eff_kernel);
+	args->eff_kernel = copy;
+	args->eff_ks = ks;
+	args->eff_kchans = kc;
+	args->eff_orientation = args->kernelorientation;
+}
+
+static gchar *deconvolve_serialize(gconstpointer user) {
+	const estk_data *p = user;
+	GString *kv = nde_kv_start();
+	/* The effective PSF.  Without it there is no record of what was applied,
+	 * so a blob-less record deserializes to NULL and stays honestly
+	 * non-replayable (a record captured before this feature, for instance). */
+	if (p->eff_kernel && p->eff_ks > 0 && p->eff_kchans > 0) {
+		nde_kv_add_int(kv, "kernel_ks", p->eff_ks);
+		nde_kv_add_int(kv, "kernel_kchans", p->eff_kchans);
+		nde_kv_add_int(kv, "kernel_orientation", (gint64)p->eff_orientation);
+		gchar *b64 = g_base64_encode((const guchar *)p->eff_kernel,
+				(gsize)p->eff_ks * p->eff_ks * p->eff_kchans * sizeof(float));
+		nde_kv_add_str(kv, "kernel", b64);
+		g_free(b64);
+	}
+	/* How that PSF was arrived at.  Informational — the panel shows it and a
+	 * reader can tell a blind estimate from a manual Moffat — but replay does
+	 * not re-derive from these. */
+	nde_kv_add_int(kv, "psftype", p->psftype);
+	nde_kv_add_int(kv, "blindtype", p->blindtype);
+	nde_kv_add_int(kv, "profile", p->profile);
+	nde_kv_add_float(kv, "psf_fwhm", p->psf_fwhm);
+	nde_kv_add_float(kv, "psf_beta", p->psf_beta);
+	nde_kv_add_float(kv, "psf_angle", p->psf_angle);
+	nde_kv_add_float(kv, "psf_ratio", p->psf_ratio);
+	/* The non-blind stage: this op's own parameters, and the ones an amend
+	 * should be able to change without touching the PSF. */
+	nde_kv_add_int(kv, "nonblindtype", p->nonblindtype);
+	nde_kv_add_float(kv, "alpha", p->alpha);
+	nde_kv_add_int(kv, "finaliters", p->finaliters);
+	nde_kv_add_float(kv, "stopcriterion", p->stopcriterion);
+	nde_kv_add_int(kv, "stopcriterion_active", p->stopcriterion_active);
+	nde_kv_add_int(kv, "rl_method", p->rl_method);
+	nde_kv_add_float(kv, "stepsize", p->stepsize);
+	nde_kv_add_int(kv, "regtype", p->regtype);
+	return nde_kv_end(kv);
+}
+
+static gpointer deconvolve_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_deconvolve.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	gint64 ks = 0, kc = 0, orient = 0;
+	const char *b64 = nde_kv_get_str(kv, "kernel");
+	if (!b64 || !*b64 ||
+	    !nde_kv_get_int(kv, "kernel_ks", &ks) ||
+	    !nde_kv_get_int(kv, "kernel_kchans", &kc) ||
+	    ks < 1 || kc < 1) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	nde_kv_get_int(kv, "kernel_orientation", &orient);
+	gsize len = 0;
+	guchar *bytes = g_base64_decode(b64, &len);
+	const gsize want = (gsize)ks * ks * kc * sizeof(float);
+	if (!bytes || len != want) {
+		g_free(bytes);
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	estk_data *p = calloc(1, sizeof(estk_data));
+	if (!p) {
+		g_free(bytes);
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	p->destroy_fn = free_estk_data;
+	p->eff_kernel = (float *)bytes;   /* decoded buffer adopted wholesale */
+	p->eff_ks = (int)ks;
+	p->eff_kchans = (int)kc;
+	p->eff_orientation = (orientation_t)orient;
+	p->ks = (int)ks;
+	p->kchans = (int)kc;
+	p->kernelorientation = (orientation_t)orient;
+	/* Replay consumes the stashed kernel; it never runs an estimator. */
+	p->psftype = PSF_PREVIOUS;
+
+	gint64 i;
+	float f;
+	if (nde_kv_get_int(kv, "nonblindtype", &i))         p->nonblindtype = (nonblind_t)i;
+	if (nde_kv_get_float(kv, "alpha", &f))              p->alpha = f;
+	if (nde_kv_get_int(kv, "finaliters", &i))           p->finaliters = (int)i;
+	if (nde_kv_get_float(kv, "stopcriterion", &f))      p->stopcriterion = f;
+	if (nde_kv_get_int(kv, "stopcriterion_active", &i)) p->stopcriterion_active = (int)i;
+	if (nde_kv_get_int(kv, "rl_method", &i))            p->rl_method = (rl_method_t)i;
+	if (nde_kv_get_float(kv, "stepsize", &f))           p->stepsize = f;
+	if (nde_kv_get_int(kv, "regtype", &i))              p->regtype = (regtype_t)i;
+	if (nde_kv_get_int(kv, "profile", &i))              p->profile = (profile_t)i;
+	if (nde_kv_get_float(kv, "psf_fwhm", &f))           p->psf_fwhm = f;
+	if (nde_kv_get_float(kv, "psf_beta", &f))           p->psf_beta = f;
+	if (nde_kv_get_float(kv, "psf_angle", &f))          p->psf_angle = f;
+	if (nde_kv_get_float(kv, "psf_ratio", &f))          p->psf_ratio = f;
+	g_hash_table_unref(kv);
+	return p;
+}
+
+/* replay_pre: install the recorded PSF where the hook looks for one.  It stays
+ * live afterwards, exactly as a makepsf run would have left it — the same
+ * bargain synthstar strikes with com.stars. */
+static int deconvolve_replay_pre(gpointer user, GHashTable *kv, fits *target) {
+	(void)kv; (void)target;
+	estk_data *p = user;
+	if (!p->eff_kernel || p->eff_ks < 1 || p->eff_kchans < 1)
+		return 1;
+	const size_t n = (size_t)p->eff_ks * p->eff_ks * p->eff_kchans;
+	float *k = malloc(n * sizeof(float));
+	if (!k)
+		return 1;
+	memcpy(k, p->eff_kernel, n * sizeof(float));
+	reset_conv_kernel();
+	g_mutex_lock(&com.mutex);
+	com.kernel = k;
+	com.kernelsize = (unsigned)p->eff_ks;
+	com.kernelchannels = (unsigned)p->eff_kchans;
+	g_mutex_unlock(&com.mutex);
+	return 0;
+}
 
 /* Op descriptors. estimate_only is measurement-only (one descriptor, the
  * blind/stars/manual variants are description overrides at their sites). */
@@ -48,6 +194,8 @@ const op_descriptor op_desc_deconvolve = {
 	.description = N_("Deconvolution"),
 	.mem_ratio = 4.0f,
 	.flags = OP_MASK_CAPABLE,
+	.serialize = deconvolve_serialize, .deserialize = deconvolve_deserialize,
+	.replay_pre = deconvolve_replay_pre,
 };
 
 const op_descriptor op_desc_psf_estimate = {
@@ -76,6 +224,7 @@ int sequence_is_running;
 void free_estk_data(void *p) {
 	estk_data *data = (estk_data*) p;
 	free(data->savepsf_filename);
+	free(data->eff_kernel);
 	free(p);
 }
 
@@ -772,6 +921,12 @@ gpointer deconvolve(gpointer p) {
 		retval = 1;
 		goto ENDDECONV;
 	}
+	/* The kernel is settled and matches this fit's orientation (get_kernel
+	 * sets kernelorientation from it; check_orientation flipped an inherited
+	 * one at the top).  Stash it here — the one point every psftype passes
+	 * through — so the serializer has the PSF the pixels were actually made
+	 * with rather than the name of a way to look for one. */
+	stash_effective_kernel(args);
 
 	next_psf_is_previous = (args->psftype == PSF_BLIND || args->psftype == PSF_STARS) ? TRUE : FALSE;
 

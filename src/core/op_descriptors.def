@@ -27,10 +27,13 @@ OP_DESC(op_desc_cfa_extract_haoiii)      /* cfa.extract_haoiii */
 OP_DESC(op_desc_findhot)                 /* cfa.findhot */
 OP_DESC(op_desc_fix_xtrans)              /* cfa.fix_xtrans */
 OP_DESC(op_desc_cfa_split)               /* cfa.split */
+OP_DESC(op_desc_bkg_neutral)             /* color.background_neutralization */
+OP_DESC(op_desc_color_calib)             /* color.calibration */
 OP_DESC(op_desc_ccm)                     /* color.ccm */
 OP_DESC(op_desc_grey_flat)               /* color.grey_flat */
 OP_DESC(op_desc_linear_match)            /* color.linear_match */
 OP_DESC(op_desc_photometric_cc)          /* color.photometric_cc */
+OP_DESC(op_desc_rgb_align)               /* color.rgb_align */
 OP_DESC(op_desc_saturation)              /* color.saturation */
 OP_DESC(op_desc_banding)                 /* filters.banding */
 OP_DESC(op_desc_clahe)                   /* filters.clahe */

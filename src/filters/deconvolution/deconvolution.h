@@ -103,6 +103,18 @@ EXTERNC typedef struct estk_data {
     gboolean stars_need_clearing; // for the makepsf stars option
     gboolean previewing; // Added field
     gboolean mask_aware; // Added for mask operations
+    /* NDE Convention 2 (nde-phase45-plan.md) — the effective PSF.  The kernel
+     * this op deconvolves with is not in this struct and never was: it lives in
+     * com.kernel, put there by a SEPARATE makepsf run, and PSF_PREVIOUS
+     * deliberately consumes whatever the last one left behind.  Serializing the
+     * psftype alone would therefore record a recipe whose main ingredient is
+     * "whatever was on the counter".  The hook stashes the kernel it actually
+     * used, and replay reinstalls it and runs as PSF_PREVIOUS — the same
+     * contract PCC has for its computed white balance. */
+    float        *eff_kernel;       // owned; eff_ks * eff_ks * eff_kchans floats
+    int           eff_ks;
+    int           eff_kchans;
+    orientation_t eff_orientation;  // the orientation eff_kernel is stored in
 } estk_data;
 
 /* Forward declaration for sequence type (full definition in core/siril.h).

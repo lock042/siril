@@ -70,9 +70,41 @@ int equalize_cfa_fit_with_coeffs(fits *fit, float coeff1, float coeff2, const ch
 
 gpointer extract_channels(gpointer p);
 
-void background_neutralize(fits* fit, rectangle black_selection);
+int background_neutralize(fits* fit, rectangle black_selection);
 void get_coeff_for_wb(fits *fit, rectangle white, rectangle black,
 		double kw[], double bg[], double norm, double low, double high);
+
+/* Background neutralization: the whole operation is one rectangle read off the
+ * dialog's spin buttons, so nothing outside these params decides the result. */
+struct bkg_neutral_data {
+	destructor destroy_fn;
+	rectangle  black_selection;
+};
+struct bkg_neutral_data *new_bkg_neutral_data(void);
+void free_bkg_neutral_data(void *p);
+int bkg_neutral_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
+
+/* Colour calibration.  Convention 3 (nde-phase45-plan.md): what replay applies
+ * is the COMPUTED kw/bg, never a re-run of the sampling.  The white and black
+ * rectangles are selections over the image as it looked when the user drew
+ * them; replay presents that item at a point in its own history where the same
+ * rectangles may cover quite different pixels, so re-sampling would calibrate
+ * against something the user never saw.  The hook fills kw/bg on the capturing
+ * run and sets have_effective; the serializer records them; on replay the
+ * sampling branch never runs. */
+struct color_calib_data {
+	destructor destroy_fn;
+	gboolean   is_manual;
+	rectangle  white_selection;
+	rectangle  black_selection;
+	double     low, high;        /* auto-mode rejection limits */
+	double     kw[3];
+	double     bg[3];
+	gboolean   have_effective;   /* kw/bg are the values to apply */
+};
+struct color_calib_data *new_color_calib_data(void);
+void free_color_calib_data(void *p);
+int color_calib_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
 int calibrate(fits *fit, int layer, double kw, double bg, double norm);
 int ccm_calc(fits *fit, ccm matrix, float power);
 void apply_ccm_to_sequence(struct ccm_data *ccm_args);

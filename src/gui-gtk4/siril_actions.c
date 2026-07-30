@@ -1035,7 +1035,11 @@ void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointe
  * so the menu handler's undo_save_state is the sole commit point.  The save is
  * taken before rgb_align() (which has failure/early-return paths), so provenance
  * is recorded ONLY once rgb_align returns success (0), tagging the entry saved
- * just above.  @summary is the same label used for the undo entry. */
+ * just above.  @summary is the same label used for the undo entry.
+ *
+ * The record is Tier A: the method is the user's choice and the registration
+ * area is whatever com.selection resolved to, which rgb_align reports back
+ * because by replay time the selection is long gone. */
 static void rgb_align_and_capture(int method, int undo_err, const char *summary) {
 	gint target = nde_checkpoint_active_item_id();
 	/* NDE baseline (phase 2): snapshot gfit's pre-op pixels BEFORE the
@@ -1043,10 +1047,18 @@ static void rgb_align_and_capture(int method, int undo_err, const char *summary)
 	 * record (rgb_align failure) is never persisted — the saver/loader gate
 	 * on live records — so ensuring first is safe. */
 	nde_checkpoint_baseline_ensure(gfit, target);
-	if (rgb_align(method))
+	rectangle area_used = { 0 };
+	if (rgb_align(method, &area_used))
 		return;   /* failure: pixels unchanged, no provenance */
-	gint64 rid = nde_capture_opaque("color.rgb_align", NDE_SCOPE_LAYER,
-			target, summary, gfit);
+	struct rgb_align_data *p = new_rgb_align_data();
+	if (!p)
+		return;
+	p->method = method;
+	p->area = area_used;
+	p->have_area = TRUE;
+	gint64 rid = nde_capture_from_descriptor(&op_desc_rgb_align, p, summary,
+			gfit, FALSE);
+	free_rgb_align_data(p);
 	if (!undo_err)
 		undo_tag_top_nde_record(rid);
 }

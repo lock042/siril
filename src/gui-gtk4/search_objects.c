@@ -50,6 +50,10 @@ void search_object(GtkEditable *entry) {
 	args->verbose = TRUE;
 	args->command_updates_gfit = FALSE;
 	args->command = FALSE;
+	/* Measurement-only: annotations, not pixels.  command_updates_gfit gates
+	 * the GUI refresh; only skip_generic_undo gates the NDE capture, and
+	 * without it a search plants an opaque record (see the command site). */
+	args->skip_generic_undo = TRUE;
 	args->idle_function = end_process_catsearch;
 	args->user = query_args;
 

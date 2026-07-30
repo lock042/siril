@@ -58,6 +58,10 @@
 #include "filters/unpurple.h"
 #include "algos/PSF.h"
 #include "algos/photometric_cc.h"
+#include "compositing/align_rgb.h"
+#include "io/image_format_fits.h"
+#include "core/processing.h"
+#include "filters/deconvolution/deconvolution.h"
 #include "core/icc_profile.h"
 #include "core/masks.h"
 
@@ -608,6 +612,17 @@ static const char *phase1_ids[] = {
 	"mask.clear", "mask.threshold", "mask.blur", "mask.feather",
 	"mask.multiply", "mask.invert", "mask.autostretch", "mask.bitpix",
 	"mask.from_color", "mask.from_gradient",
+	/* The last of the direct-apply colour tools.  Background neutralization
+	 * and colour calibration were never routed through generic_image_worker,
+	 * so they had no descriptor and nowhere to hang a serializer; they have
+	 * one now, the calibration recording its computed coefficients per
+	 * Convention 3.  RGB alignment records its method and the effective
+	 * registration area and re-runs the detection at replay — the delegated
+	 * provenance star.unclip settled on. */
+	"color.background_neutralization", "color.calibration", "color.rgb_align",
+	/* Convention 2 applied to a PSF: the kernel the deconvolution actually
+	 * used is stashed and replayed, never re-estimated. */
+	"filters.deconvolve",
 };
 
 Test(nde_serializers, serializer_set_is_phase1) {
@@ -1968,3 +1983,244 @@ Test(nde_serializers, mask_clear_paramless)        { check_paramless("mask.clear
 Test(nde_serializers, mask_invert_paramless)       { check_paramless("mask.invert"); }
 Test(nde_serializers, mask_autostretch_paramless)  { check_paramless("mask.autostretch"); }
 Test(nde_serializers, mask_from_gradient_paramless){ check_paramless("mask.from_gradient"); }
+
+/* ------------------------------------------------------------------ *
+ *  The direct-apply colour tools, and the PSF stash                   *
+ * ------------------------------------------------------------------ */
+
+Test(nde_serializers, bkg_neutral_roundtrip) {
+	const op_descriptor *op = op_descriptor_by_id("color.background_neutralization");
+	cr_assert_not_null(op);
+	cr_assert_not_null(op->serialize, "the tool must no longer be opaque");
+	struct bkg_neutral_data *in = new_bkg_neutral_data();
+	in->black_selection.x = 41;
+	in->black_selection.y = 97;
+	in->black_selection.w = 256;
+	in->black_selection.h = 128;
+	gchar *blob = op->serialize(in);
+	cr_assert_not_null(blob);
+	struct bkg_neutral_data *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->black_selection.x, in->black_selection.x);
+	cr_assert_eq(out->black_selection.y, in->black_selection.y);
+	cr_assert_eq(out->black_selection.w, in->black_selection.w);
+	cr_assert_eq(out->black_selection.h, in->black_selection.h);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(op, blob);
+	/* An empty rectangle samples nothing, so it cannot be a recipe. */
+	cr_assert_null(op->deserialize("bkg_x=0;bkg_y=0;bkg_w=0;bkg_h=0", op->version));
+	FREE_VIA_DESTRUCTOR(in);
+	g_free(blob);
+}
+
+/* Convention 3: the record carries the coefficients that were applied, so a
+ * replay never re-samples rectangles over pixels that have since changed. */
+Test(nde_serializers, color_calibration_records_the_computed_coefficients) {
+	const op_descriptor *op = op_descriptor_by_id("color.calibration");
+	cr_assert_not_null(op);
+	cr_assert_not_null(op->serialize);
+	struct color_calib_data *in = new_color_calib_data();
+	in->is_manual = FALSE;
+	in->white_selection = (rectangle){ 10, 20, 30, 40 };
+	in->black_selection = (rectangle){ 50, 60, 70, 80 };
+	in->low = 0.25;
+	in->high = 0.875;
+	in->kw[0] = 1.125; in->kw[1] = 1.0; in->kw[2] = 0.9375;
+	in->bg[0] = 0.03125; in->bg[1] = 0.0625; in->bg[2] = 0.125;
+	in->have_effective = TRUE;
+	gchar *blob = op->serialize(in);
+	cr_assert_not_null(blob);
+	struct color_calib_data *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	for (int i = 0; i < 3; i++) {
+		cr_assert(memcmp(&out->kw[i], &in->kw[i], sizeof(double)) == 0);
+		cr_assert(memcmp(&out->bg[i], &in->bg[i], sizeof(double)) == 0);
+	}
+	/* The whole point: the hook must take the stored values, not recompute. */
+	cr_assert(out->have_effective, "a replayed calibration must not re-sample");
+	cr_assert_eq(out->is_manual, FALSE);
+	cr_assert_eq(out->white_selection.w, 30);
+	cr_assert_eq(out->black_selection.h, 80);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(op, blob);
+	FREE_VIA_DESTRUCTOR(in);
+	g_free(blob);
+}
+
+Test(nde_serializers, a_calibration_without_coefficients_is_not_replayable) {
+	const op_descriptor *op = op_descriptor_by_id("color.calibration");
+	cr_assert_not_null(op);
+	/* Rectangles and limits alone: what a pre-feature record would look like.
+	 * It must stay honestly non-replayable rather than re-sample. */
+	cr_assert_null(op->deserialize("manual=0;white_x=1;white_y=2;white_w=3;"
+	                               "white_h=4;low=0.1;high=0.9", op->version));
+}
+
+Test(nde_serializers, rgb_align_roundtrip) {
+	const op_descriptor *op = op_descriptor_by_id("color.rgb_align");
+	cr_assert_not_null(op);
+	cr_assert_not_null(op->serialize);
+	struct rgb_align_data *in = new_rgb_align_data();
+	in->method = 2;
+	in->area = (rectangle){ 128, 256, 512, 512 };
+	in->have_area = TRUE;
+	gchar *blob = op->serialize(in);
+	cr_assert_not_null(blob);
+	struct rgb_align_data *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->method, 2);
+	cr_assert(out->have_area, "the registration area is the one thing replay "
+	                          "cannot re-derive from the image");
+	cr_assert_eq(out->area.x, 128);
+	cr_assert_eq(out->area.w, 512);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(op, blob);
+	/* There are four methods; anything else is not one of ours. */
+	cr_assert_null(op->deserialize("method=9", op->version));
+	FREE_VIA_DESTRUCTOR(in);
+	g_free(blob);
+}
+
+/* Convention 2 applied to a PSF: the kernel travels with the record, because
+ * it never lived in the params struct — it lives in com.kernel, put there by a
+ * makepsf run this record knows nothing about. */
+Test(nde_serializers, deconvolve_carries_the_kernel_it_used) {
+	const op_descriptor *op = op_descriptor_by_id("filters.deconvolve");
+	cr_assert_not_null(op);
+	cr_assert_not_null(op->serialize);
+	estk_data *in = calloc(1, sizeof(estk_data));
+	cr_assert_not_null(in);
+	in->destroy_fn = free_estk_data;
+	const int ks = 5, kc = 1;
+	in->eff_ks = ks;
+	in->eff_kchans = kc;
+	in->eff_kernel = malloc(ks * ks * kc * sizeof(float));
+	cr_assert_not_null(in->eff_kernel);
+	for (int i = 0; i < ks * ks * kc; i++)
+		in->eff_kernel[i] = (float)i / 32.0f;   /* exact in binary */
+	in->psftype = PSF_BLIND;
+	in->alpha = 1.0f / 3000.0f;
+	in->finaliters = 7;
+	in->stepsize = 0.125f;
+
+	gchar *blob = op->serialize(in);
+	cr_assert_not_null(blob);
+	estk_data *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->eff_ks, ks);
+	cr_assert_eq(out->eff_kchans, kc);
+	cr_assert_not_null(out->eff_kernel);
+	cr_assert(memcmp(out->eff_kernel, in->eff_kernel,
+	                 ks * ks * kc * sizeof(float)) == 0,
+	          "the kernel must survive base64 bit-for-bit");
+	/* Replay uses the recorded PSF; it must never re-run the estimator. */
+	cr_assert_eq(out->psftype, PSF_PREVIOUS);
+	cr_assert_eq(out->finaliters, 7);
+	cr_assert(memcmp(&out->stepsize, &in->stepsize, sizeof(float)) == 0);
+	FREE_VIA_DESTRUCTOR(out);
+	CHECK_MALFORMED(op, blob);
+	FREE_VIA_DESTRUCTOR(in);
+	g_free(blob);
+}
+
+Test(nde_serializers, a_deconvolution_without_a_kernel_is_not_replayable) {
+	const op_descriptor *op = op_descriptor_by_id("filters.deconvolve");
+	cr_assert_not_null(op);
+	/* psftype alone is a way of looking for a PSF, not a PSF. */
+	cr_assert_null(op->deserialize("psftype=0;alpha=0.000333;finaliters=1",
+	                               op->version));
+	/* A blob whose length disagrees with ks is corrupt, not "close enough". */
+	cr_assert_null(op->deserialize("kernel_ks=5;kernel_kchans=1;kernel=AAAA",
+	                               op->version));
+}
+
+/* The Convention-3 contract is a claim about the HOOK, not just the codec:
+ * a replayed calibration must apply the recorded coefficients and must not
+ * go back to the rectangles.  These two tests are the claim. */
+
+static fits *rgb_fit(int rx, int ry, float v) {
+	fits *f = NULL;
+	if (new_fit_image(&f, rx, ry, 3, DATA_FLOAT))
+		return NULL;
+	for (int c = 0; c < 3; c++)
+		for (size_t i = 0; i < (size_t)rx * ry; i++)
+			f->fpdata[c][i] = v * (float)(c + 1);
+	return f;
+}
+
+Test(nde_serializers, a_replayed_calibration_applies_what_was_recorded) {
+	fits *f = rgb_fit(16, 16, 0.1f);
+	cr_assert_not_null(f);
+	struct color_calib_data *p = new_color_calib_data();
+	p->have_effective = TRUE;              /* as deserialize leaves it */
+	p->kw[0] = 2.0; p->kw[1] = 1.0; p->kw[2] = 0.5;
+	p->bg[0] = 0.0; p->bg[1] = 0.0; p->bg[2] = 0.0;
+	/* Rectangles that would sample somewhere quite different if consulted. */
+	p->white_selection = (rectangle){ 0, 0, 4, 4 };
+	p->black_selection = (rectangle){ 8, 8, 4, 4 };
+	p->is_manual = FALSE;
+	const double kw_before[3] = { p->kw[0], p->kw[1], p->kw[2] };
+
+	struct generic_img_args args = { 0 };
+	args.user = p;
+	cr_assert_eq(color_calib_image_hook(&args, f, 1), 0);
+
+	/* Untouched: sampling would have overwritten these. */
+	for (int i = 0; i < 3; i++)
+		cr_assert(memcmp(&p->kw[i], &kw_before[i], sizeof(double)) == 0,
+		          "channel %d: replay re-sampled instead of using the record", i);
+	/* kw == 1.0 is the skip case, so the green channel must be untouched. */
+	cr_assert_float_eq(f->fpdata[1][0], 0.2f, 1e-6f);
+	cr_assert_float_eq(f->fpdata[0][0], 0.2f, 1e-6f);   /* 0.1 * 2.0 */
+	cr_assert_float_eq(f->fpdata[2][0], 0.15f, 1e-6f);  /* 0.3 * 0.5 */
+	FREE_VIA_DESTRUCTOR(p);
+	clearfits(f);
+	free(f);
+}
+
+Test(nde_serializers, a_first_run_works_the_coefficients_out_and_keeps_them) {
+	fits *f = rgb_fit(32, 32, 0.25f);
+	cr_assert_not_null(f);
+	struct color_calib_data *p = new_color_calib_data();
+	p->is_manual = FALSE;
+	p->have_effective = FALSE;             /* as the dialog leaves it */
+	p->white_selection = (rectangle){ 0, 0, 16, 16 };
+	p->black_selection = (rectangle){ 16, 16, 16, 16 };
+	p->low = 0.0;
+	p->high = 1.0;
+
+	struct generic_img_args args = { 0 };
+	args.user = p;
+	cr_assert_eq(color_calib_image_hook(&args, f, 1), 0);
+	/* The capture that follows this run is what the record is made of, so the
+	 * hook has to leave the worked-out values behind for the serializer. */
+	cr_assert(p->have_effective,
+	          "the capturing run must leave its coefficients for the record");
+	FREE_VIA_DESTRUCTOR(p);
+	clearfits(f);
+	free(f);
+}
+
+Test(nde_serializers, the_colour_tools_refuse_a_mono_image) {
+	fits *f = NULL;
+	cr_assert_eq(new_fit_image(&f, 16, 16, 1, DATA_FLOAT), 0);
+	struct generic_img_args args = { 0 };
+
+	/* background_neutralize used to assert() here, which was survivable only
+	 * while a dialog button was its one caller.  A replay can hand it anything
+	 * the history claims was there, so it has to answer instead. */
+	struct bkg_neutral_data *b = new_bkg_neutral_data();
+	b->black_selection = (rectangle){ 0, 0, 8, 8 };
+	args.user = b;
+	cr_assert_neq(bkg_neutral_image_hook(&args, f, 1), 0);
+	FREE_VIA_DESTRUCTOR(b);
+
+	struct color_calib_data *c = new_color_calib_data();
+	c->have_effective = TRUE;
+	args.user = c;
+	cr_assert_neq(color_calib_image_hook(&args, f, 1), 0);
+	FREE_VIA_DESTRUCTOR(c);
+
+	clearfits(f);
+	free(f);
+}

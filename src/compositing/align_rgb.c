@@ -33,6 +33,9 @@
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
+#include "compositing/align_rgb.h"
+#include "core/op_descriptors.h"
+#include "core/nde_history.h"
 
 #define REGLAYER 0
 
@@ -63,59 +66,79 @@ static void free_internal_sequence(sequence *seq) {
 	clear_stars_list(TRUE);
 }
 
-static int initialize_internal_rgb_sequence() {
+static int initialize_internal_rgb_sequence(fits *source) {
 	if (seq) free_internal_sequence(seq);
 
 	seq = create_internal_sequence(3);
 	for (int i = 0; i < 3; i++) {
 		fits *fit = calloc(1, sizeof(fits));
-		if (extract_fits(gfit, fit, i, FALSE)) {
+		if (extract_fits(source, fit, i, FALSE)) {
 			free(fit);
 			free_sequence(seq, TRUE);
 			return -1;
 		}
 		internal_sequence_set(seq, i, fit);
 	}
-	seq->rx = gfit->rx;
-	seq->ry = gfit->ry;
-	seq->bitpix = gfit->bitpix;
+	seq->rx = source->rx;
+	seq->ry = source->ry;
+	seq->bitpix = source->bitpix;
 
 	return 0;
 }
 
-static void compose() {
-	size_t npixels = gfit->rx * gfit->ry;
+static void compose(fits *target) {
+	size_t npixels = target->rx * target->ry;
 	fits *fit[3];
 	for (int i = 0 ; i < 3 ; i++) {
 		fit[i] = internal_sequence_get(seq, i);
 	}
-	if (gfit->type == DATA_FLOAT) {
+	if (target->type == DATA_FLOAT) {
 		for (int i = 0 ; i < 3 ; i++) {
-			memcpy(gfit->fpdata[i], fit[i]->fdata, sizeof(float) * npixels);
+			memcpy(target->fpdata[i], fit[i]->fdata, sizeof(float) * npixels);
 		}
 	} else {
 		for (int i = 0 ; i < 3 ; i++) {
-			memcpy(gfit->pdata[i], fit[i]->data, sizeof(WORD) * npixels);
+			memcpy(target->pdata[i], fit[i]->data, sizeof(WORD) * npixels);
 		}
 	}
 }
 
-int rgb_align(int m) {
+/* The alignment proper, against whichever image it is handed.
+ *
+ * @area, when non-NULL, is used verbatim instead of asking
+ * get_the_registration_area() — which reads com.selection, a live GUI state
+ * with no meaning at replay time.  @area_used, when non-NULL, receives
+ * whichever area was in force, so a capture can record it.
+ *
+ * @claim_thread says whether to take the processing slot.  The registration
+ * methods call generic_sequence_worker synchronously and poll
+ * processing_should_continue(), so the slot must be held and cancel_flag
+ * cleared for the duration — but reserve_thread() is a plain compare-and-swap,
+ * not a recursive lock, so only the caller that is NOT already inside a worker
+ * may take it.  The menu is; replay, arriving through generic_image_worker,
+ * is not. */
+static int rgb_align_core(fits *target, int m, const rectangle *area,
+                          rectangle *area_used, gboolean claim_thread) {
 	struct registration_args regargs = { 0 };
 	struct registration_method *method;
 	framing_type framing = FRAMING_COG;
 	int retval1 = 0, retval2 = 0;
 
 	initialize_methods();
-	initialize_internal_rgb_sequence();
-	gui_iface.set_busy(TRUE);
+	if (initialize_internal_rgb_sequence(target))
+		return 1;
 	gui_iface.set_progress(PROGRESS_RESET, NULL);
 
 	/* align it */
 	method = reg_methods[m];
 	regargs.seq = seq;
 	regargs.no_output = FALSE;
-	get_the_registration_area(&regargs, method);
+	if (area)
+		regargs.selection = *area;
+	else
+		get_the_registration_area(&regargs, method);
+	if (area_used)
+		*area_used = regargs.selection;
 	regargs.layer = REGLAYER;
 	seq->reference_image = 0;
 	regargs.seq->nb_layers = 1;
@@ -132,9 +155,10 @@ int rgb_align(int m) {
 	else
 		regargs.type = HOMOGRAPHY_TRANSFORMATION;
 
-	if (!reserve_thread()) {
+	if (claim_thread && !reserve_thread()) {
 		siril_log_message(_("A processing operation is already running.\n"));
-		gui_iface.set_busy(FALSE);
+		free_internal_sequence(seq);
+		seq = NULL;
 		return 1;
 	}
 	retval1 = method->method_ptr(&regargs);
@@ -144,24 +168,115 @@ int rgb_align(int m) {
 	regargs.regparam = NULL;
 	if (retval1) {
 		gui_iface.set_progress(PROGRESS_DONE, _("Error in channels alignment."));
-		gui_iface.set_busy(FALSE);
-		unreserve_thread();
+		if (claim_thread)
+			unreserve_thread();
+		free_internal_sequence(seq);
+		seq = NULL;
 		return retval1;
 	}
 	retval2 = register_apply_reg(&regargs);
-	compose();
-	unreserve_thread();
+	compose(target);
+	if (claim_thread)
+		unreserve_thread();
 
-	if (retval2) {
+	if (retval2)
 		gui_iface.set_progress(PROGRESS_DONE, _("Error in layers alignment."));
-	} else {
+	else
 		gui_iface.set_progress(PROGRESS_DONE, _("Registration complete."));
-		notify_gfit_data_modified();
-		gfit_modified_update_gui();
-	}
 	siril_log_message(_("Aligned RGB channels\n"));
-	gui_iface.set_busy(FALSE);
 	free_internal_sequence(seq);
 	seq =  NULL;
 	return retval2;
 }
+
+int rgb_align(int m, rectangle *area_used) {
+	gui_iface.set_busy(TRUE);
+	int retval = rgb_align_core(gfit, m, NULL, area_used, TRUE);
+	if (!retval) {
+		notify_gfit_data_modified();
+		gfit_modified_update_gui();
+	}
+	gui_iface.set_busy(FALSE);
+	return retval;
+}
+
+/* Replay path: the worker hands us a private fits and already holds the
+ * processing slot, and the recorded area stands in for the live selection. */
+int rgb_align_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	(void)nb_threads;
+	const struct rgb_align_data *p = args->user;
+	if (!p)
+		return 1;
+	return rgb_align_core(fit, p->method, p->have_area ? &p->area : NULL,
+	                      NULL, FALSE);
+}
+
+/* ---- params struct + NDE serializers ------------------------------------ */
+
+void free_rgb_align_data(void *p) {
+	free(p);
+}
+
+struct rgb_align_data *new_rgb_align_data(void) {
+	struct rgb_align_data *p = calloc(1, sizeof(struct rgb_align_data));
+	if (p)
+		p->destroy_fn = free_rgb_align_data;
+	return p;
+}
+
+static gchar *rgb_align_log_hook(gpointer p, log_hook_detail detail) {
+	const struct rgb_align_data *d = p;
+	(void)detail;
+	return g_strdup_printf(_("RGB alignment (method %d)"), d ? d->method : -1);
+}
+
+static gchar *rgb_align_serialize(gconstpointer user) {
+	const struct rgb_align_data *p = user;
+	GString *kv = nde_kv_start();
+	nde_kv_add_int(kv, "method", p->method);
+	if (p->have_area) {
+		nde_kv_add_int(kv, "sel_x", p->area.x);
+		nde_kv_add_int(kv, "sel_y", p->area.y);
+		nde_kv_add_int(kv, "sel_w", p->area.w);
+		nde_kv_add_int(kv, "sel_h", p->area.h);
+	}
+	return nde_kv_end(kv);
+}
+
+static gpointer rgb_align_deserialize(const gchar *blob, int version) {
+	if (version > op_desc_rgb_align.version)
+		return NULL;
+	GHashTable *kv = nde_kv_parse(blob);
+	gint64 method = 0;
+	if (!nde_kv_get_int(kv, "method", &method) || method < 0 || method > 3) {
+		g_hash_table_unref(kv);
+		return NULL;
+	}
+	gint64 x, y, w, h;
+	gboolean have_area = nde_kv_get_int(kv, "sel_x", &x) &&
+	                     nde_kv_get_int(kv, "sel_y", &y) &&
+	                     nde_kv_get_int(kv, "sel_w", &w) &&
+	                     nde_kv_get_int(kv, "sel_h", &h);
+	struct rgb_align_data *p = new_rgb_align_data();
+	if (p) {
+		p->method = (int)method;
+		p->have_area = have_area;
+		if (have_area) {
+			p->area.x = (int)x; p->area.y = (int)y;
+			p->area.w = (int)w; p->area.h = (int)h;
+		}
+	}
+	g_hash_table_unref(kv);
+	return p;
+}
+
+/* Op descriptor — single source of truth for this operation (op_descriptor.h) */
+const op_descriptor op_desc_rgb_align = {
+	.id = "color.rgb_align", .version = 1,
+	.image_hook = rgb_align_image_hook,
+	.log_hook = rgb_align_log_hook,
+	.description = N_("RGB Alignment"),
+	.mem_ratio = 3.0f,
+	.flags = 0,
+	.serialize = rgb_align_serialize, .deserialize = rgb_align_deserialize,
+};

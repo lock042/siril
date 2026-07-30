@@ -133,6 +133,23 @@ void initialize_calibration_interface() {
 }
 
 
+/* What the direct-apply path used to do inline after mutating gfit.  The
+ * worker already handles undo, the NDE record, populate_roi() and
+ * notify_gfit_data_modified(); what is left is the dialog's own tidying. */
+static gboolean end_colour_tool(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *) p;
+	stop_processing_thread();
+	gfit_modified_update_gui();
+	if (!args->retval)
+		delete_selected_area();
+	update_gfit_histogram_if_needed();
+	redraw(REDRAW_ALL);
+	gui_function(redraw_previews, NULL);
+	free_generic_img_args(args);
+	set_cursor_waiting(FALSE);
+	return FALSE;
+}
+
 void on_button_bkg_neutralization_clicked(GtkButton *button, gpointer user_data) {
 	static GtkSpinButton *selection_black_value[4] = { NULL, NULL, NULL, NULL };
 	rectangle black_selection;
@@ -161,30 +178,32 @@ void on_button_bkg_neutralization_clicked(GtkButton *button, gpointer user_data)
 	black_selection.w = gtk_spin_button_get_value(selection_black_value[2]);
 	black_selection.h = gtk_spin_button_get_value(selection_black_value[3]);
 
-	/* Direct-apply colour tool: no generic_image_worker runs, so this is
-	 * the sole commit point.  undo_save_state is called before the mutation
-	 * (background_neutralize is void — no failure path after it), so capture
-	 * once the pixels have changed and tag the entry saved just above. */
-	int undo_err = undo_save_state(gfit, _("Background neutralization"));
-
+	/* Through the generic worker, like every other pixel op.  This one used to
+	 * apply in place here and hand-roll its own undo, baseline and capture —
+	 * an oversight, and the reason its provenance was opaque: without a
+	 * descriptor there was nowhere to hang a serializer. */
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		return;
+	}
+	struct bkg_neutral_data *p = new_bkg_neutral_data();
+	if (!p) {
+		free(args);
+		PRINT_ALLOC_ERR;
+		return;
+	}
+	p->black_selection = black_selection;
+	args->fit = gfit;
+	args->op = &op_desc_bkg_neutral;
+	args->user = p;
+	args->verbose = TRUE;
+	args->idle_function = end_colour_tool;
 	set_cursor_waiting(TRUE);
-	/* NDE baseline (phase 2): direct-apply — snapshot gfit's pre-op pixels
-	 * BEFORE the void mutation below. */
-	nde_checkpoint_baseline_ensure(gfit, nde_capture_target_item());
-	background_neutralize(gfit, black_selection);
-	gint64 rid = nde_capture_opaque("color.background_neutralization",
-			NDE_SCOPE_LAYER, nde_capture_target_item(),
-			_("Background neutralization"), gfit);
-	if (!undo_err)
-		undo_tag_top_nde_record(rid);
-	populate_roi();
-	delete_selected_area();
-
-	update_gfit_histogram_if_needed();
-	notify_gfit_data_modified();
-	redraw(REDRAW_ALL);
-	gui_function(redraw_previews, NULL);
-	set_cursor_waiting(FALSE);
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		set_cursor_waiting(FALSE);
+	}
 }
 
 void on_button_white_selection_clicked(GtkButton *button, gpointer user_data) {
@@ -209,12 +228,10 @@ void on_button_white_selection_clicked(GtkButton *button, gpointer user_data) {
 	gtk_spin_button_set_value(selection_white_value[3], com.selection.h);
 }
 
-static void white_balance(fits *fit, gboolean is_manual, rectangle white_selection,
-		rectangle black_selection) {
-	int chan;
-	double norm, low, high;
-	double kw[3] = { 0.0, 0.0, 0.0 };
-	double bg[3] = { 0.0, 0.0, 0.0 };
+/* Read the dialog into the op's params.  The pixel work moved to
+ * color_calib_image_hook (algos/colors.c) — it could not be serialized while it
+ * lived here reading GtkRanges mid-calculation. */
+static void fill_calib_params_from_widgets(struct color_calib_data *p) {
 	static GtkRange *scale_white_balance[3] = { NULL, NULL, NULL };
 	static GtkRange *scaleLimit[2] = { NULL, NULL };
 
@@ -227,40 +244,25 @@ static void white_balance(fits *fit, gboolean is_manual, rectangle white_selecti
 		scaleLimit[1] = GTK_RANGE(gtk_builder_get_object(gui.builder, "upWhiteColorCalibScale"));
 	}
 
-	assert(fit->naxes[2] == 3);
-	norm = get_normalized_value(fit);
-
-	if (is_manual) {
-		kw[RLAYER] = gtk_range_get_value(scale_white_balance[RLAYER]);
-		kw[GLAYER] = gtk_range_get_value(scale_white_balance[GLAYER]);
-		kw[BLAYER] = gtk_range_get_value(scale_white_balance[BLAYER]);
-
+	if (p->is_manual) {
+		p->kw[RLAYER] = gtk_range_get_value(scale_white_balance[RLAYER]);
+		p->kw[GLAYER] = gtk_range_get_value(scale_white_balance[GLAYER]);
+		p->kw[BLAYER] = gtk_range_get_value(scale_white_balance[BLAYER]);
+		/* Manual coefficients are the effective ones already; the hook has
+		 * nothing left to work out. */
+		p->have_effective = TRUE;
 	} else {
-		low = gtk_range_get_value(scaleLimit[0]);
-		high = gtk_range_get_value(scaleLimit[1]);
-		get_coeff_for_wb(fit, white_selection, black_selection, kw, bg, norm, low, high);
+		p->low = gtk_range_get_value(scaleLimit[0]);
+		p->high = gtk_range_get_value(scaleLimit[1]);
 	}
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) private(chan) schedule(static)
-#endif
-	for (chan = 0; chan < 3; chan++) {
-		if (kw[chan] == 1.0) continue;
-		calibrate(fit, chan, kw[chan], bg[chan], norm);
-	}
-
-	invalidate_stats_from_fit(fit);
-	invalidate_gfit_histogram();
 }
 
 void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	rectangle black_selection, white_selection;
 	static GtkSpinButton *selection_black_value[4] = { NULL, NULL, NULL, NULL };
 	static GtkSpinButton *selection_white_value[4] = { NULL, NULL, NULL, NULL };
-	struct timeval t_start, t_end;
 
-	siril_log_info(_("Color Calibration: processing...\n"));
-	gettimeofday(&t_start, NULL);
-
+	/* The worker times and logs the operation itself (args->verbose). */
 	static GtkCheckButton *manual = NULL;
 	if (!manual) manual = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_manual_calibration"));
 	gboolean is_manual = siril_toggle_get_active(GTK_WIDGET(manual));
@@ -301,30 +303,33 @@ void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) 
 		return;
 	}
 
+	/* Through the generic worker, like every other pixel op — see the
+	 * background-neutralization button above. */
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		return;
+	}
+	struct color_calib_data *p = new_color_calib_data();
+	if (!p) {
+		free(args);
+		PRINT_ALLOC_ERR;
+		return;
+	}
+	p->is_manual = is_manual;
+	p->white_selection = white_selection;
+	p->black_selection = black_selection;
+	fill_calib_params_from_widgets(p);
+	args->fit = gfit;
+	args->op = &op_desc_color_calib;
+	args->user = p;
+	args->verbose = TRUE;
+	args->idle_function = end_colour_tool;
 	set_cursor_waiting(TRUE);
-	/* Direct-apply colour tool: sole commit point (no worker).  white_balance
-	 * is void — capture after it succeeds and tag the entry saved just above. */
-	int undo_err = undo_save_state(gfit, _("Color Calibration"));
-	/* NDE baseline (phase 2): direct-apply — snapshot pre-op pixels first. */
-	nde_checkpoint_baseline_ensure(gfit, nde_capture_target_item());
-	white_balance(gfit, is_manual, white_selection, black_selection);
-	gint64 rid = nde_capture_opaque("color.calibration", NDE_SCOPE_LAYER,
-			nde_capture_target_item(), _("Color Calibration"), gfit);
-	if (!undo_err)
-		undo_tag_top_nde_record(rid);
-
-	gettimeofday(&t_end, NULL);
-
-	show_time(t_start, t_end);
-
-	populate_roi();
-	delete_selected_area();
-
-	notify_gfit_data_modified();
-	redraw(REDRAW_ALL);
-	gui_function(redraw_previews, NULL);
-	update_gfit_histogram_if_needed();
-	set_cursor_waiting(FALSE);
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		set_cursor_waiting(FALSE);
+	}
 }
 
 void on_calibration_close_button_clicked(GtkButton *button, gpointer user_data) {

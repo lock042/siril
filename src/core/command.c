@@ -2508,6 +2508,12 @@ int process_makepsf(int nb) {
 
 			args->fit = gfit;
 			args->op = &op_desc_psf_estimate;
+			/* Measurement-only: the estimator fills com.kernel and leaves the
+			 * pixels alone, so an undo state would be meaningless — and without
+			 * this the swap path captures an opaque NDE record, planting a
+			 * permanent replay barrier for an op that changed nothing.  The GUI
+			 * Estimate button has always guarded itself (newdeconv.c). */
+			args->skip_generic_undo = TRUE;
 			args->idle_function = NULL;
 			args->description = _("PSF Estimation (Blind)");
 			args->verbose = TRUE;
@@ -2587,6 +2593,12 @@ int process_makepsf(int nb) {
 
 			args->fit = gfit;
 			args->op = &op_desc_psf_estimate;
+			/* Measurement-only: the estimator fills com.kernel and leaves the
+			 * pixels alone, so an undo state would be meaningless — and without
+			 * this the swap path captures an opaque NDE record, planting a
+			 * permanent replay barrier for an op that changed nothing.  The GUI
+			 * Estimate button has always guarded itself (newdeconv.c). */
+			args->skip_generic_undo = TRUE;
 			args->idle_function = NULL;
 			args->description = _("PSF Estimation (Stars)");
 			args->verbose = TRUE;
@@ -2757,6 +2769,12 @@ int process_makepsf(int nb) {
 
 			args->fit = gfit;
 			args->op = &op_desc_psf_estimate;
+			/* Measurement-only: the estimator fills com.kernel and leaves the
+			 * pixels alone, so an undo state would be meaningless — and without
+			 * this the swap path captures an opaque NDE record, planting a
+			 * permanent replay barrier for an op that changed nothing.  The GUI
+			 * Estimate button has always guarded itself (newdeconv.c). */
+			args->skip_generic_undo = TRUE;
 			args->idle_function = NULL;
 			args->description = _("PSF Estimation (Manual)");
 			args->verbose = TRUE;
@@ -14434,6 +14452,10 @@ int process_catsearch(int nb) {
 	args->op = &op_desc_catsearch;
 	args->verbose = TRUE;
 	args->command = TRUE;
+	/* Measurement-only: the hook writes an annotation catalogue, never the
+	 * pixels.  See the makepsf sites — without this the swap path captures an
+	 * opaque record and freezes the chain around a search. */
+	args->skip_generic_undo = TRUE;
 	args->user = query_args;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
