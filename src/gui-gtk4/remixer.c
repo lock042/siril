@@ -383,7 +383,7 @@ static void remixer_startup() {
 void initialise_image() {
 	clear_stars_list(TRUE);
 	com.seq.current = UNRELATED_IMAGE;
-	if (!create_uniq_from_gfit(strdup(_("Unsaved star recomposition result")), FALSE))
+	if (!create_uniq_from_gfit(strdup(_("Unsaved star recomposition result")), FALSE, "generated"))
 		com.uniq->comment = strdup(_("Star recomposition"));
 
 	initialize_display_mode();

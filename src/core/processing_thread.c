@@ -48,6 +48,12 @@ typedef struct _ProcessingJob {
 
     gboolean           fire_and_forget;
 
+    /* TRUE when the job was submitted from a python comm thread (a script's
+     * cmd() / IPC request).  Captured at submission time from the submitting
+     * thread's identity — never from com.python_command, which is a global
+     * that a concurrent GUI submission could misread. */
+    gboolean           from_python;
+
     /* Initialised only when fire_and_forget == FALSE. */
     GMutex             mutex;
     GCond              cond;
@@ -73,6 +79,16 @@ static gint      system_initialized = 0;
 
 /* Thread-local flag: non-NULL only on the worker thread itself. */
 static GPrivate  worker_tls = G_PRIVATE_INIT(NULL);
+
+/* Thread-local flag: non-NULL only on python comm threads (set by
+ * processing_mark_python_comm_thread at connection_worker start). */
+static GPrivate  python_comm_tls = G_PRIVATE_INIT(NULL);
+
+/* Origin of the job the worker is currently executing.  Written only by the
+ * worker thread around job->func; read only from the worker thread (via
+ * processing_current_job_from_python) by capture sites running inside the
+ * job, so no locking is needed. */
+static gboolean  current_job_from_python = FALSE;
 
 /* ── Cancellation and job-active ────────────────────────────────────────── */
 
@@ -252,7 +268,9 @@ static gpointer worker_thread_main(gpointer user_data G_GNUC_UNUSED) {
 
         /* ── Execute ─────────────────────────────────────────────────── */
 
+        current_job_from_python = job->from_python;
         job->result = job->func(job->data);
+        current_job_from_python = FALSE;
 
         /* ── Publish result ──────────────────────────────────────────── */
 
@@ -461,6 +479,7 @@ gboolean processing_submit_job(ProcessingFunc func, gpointer data) {
     job->func           = func;
     job->data           = data;
     job->fire_and_forget = !must_wait;
+    job->from_python    = (g_private_get(&python_comm_tls) != NULL);
 
     if (must_wait) {
         g_mutex_init(&job->mutex);
@@ -525,6 +544,18 @@ gboolean processing_is_job_active(void) {
 
 gboolean processing_in_worker_thread(void) {
     return g_private_get(&worker_tls) != NULL;
+}
+
+void processing_mark_python_comm_thread(void) {
+    g_private_set(&python_comm_tls, GINT_TO_POINTER(1));
+}
+
+gboolean processing_current_job_from_python(void) {
+    /* Meaningful only inside a job.  Outside the worker thread there is no
+     * "current job", so answer FALSE rather than exposing a stale value. */
+    if (!processing_in_worker_thread())
+        return FALSE;
+    return current_job_from_python;
 }
 
 /*****************************************************************************

@@ -62,9 +62,11 @@
  * and then it has no records to replay at all.  A copy is the only thing that
  * always exists.  It costs one mono image per masked input, and the mask
  * cascade already refreshes such copies when the mask's own chain is edited,
- * so a mask built by ops still propagates.  Only the PARTICIPATING masks are
- * stored: merge-down paints its bottom input raw, so that one's mask never
- * reaches the composite.
+ * so a mask built by ops still propagates.  EVERY input's mask is recorded and
+ * stored, but only the PARTICIPATING ones (was_masked) reach the render:
+ * merge-down paints its bottom input raw, so that one's mask never reaches the
+ * composite — its copy exists purely so that undoing the composite can put the
+ * pre-merge mask back.
  *
  * WHAT IS STILL REFUSED.  A record written before this format existed: it has
  * no pins and no state, and degrading honestly beats guessing at an opacity
@@ -115,6 +117,11 @@ typedef struct {
 	gint     group_id;      /* 0 = ungrouped */
 	gboolean was_masked;    /* carried an active layer mask into the composite */
 	gint     mask_item_id;  /* the LMASK item it came from; 0 if unmasked */
+	gint     layer_order;   /* stacking slot at capture time, so an undo puts
+	                         * the layer back where it sat among layers the
+	                         * composite did not consume.  0 = not recorded
+	                         * (an older record): undo appends to the top, as
+	                         * it did before the field existed. */
 } nde_composite_input;
 
 /** A group the composite pre-composited, or whose visibility/opacity modified

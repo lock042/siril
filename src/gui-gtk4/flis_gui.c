@@ -1173,6 +1173,10 @@ static gchar *build_hist_detail(const nde_record *rec) {
 	g_string_append_printf(s, "record %" G_GINT64_FORMAT ": %s v%d (%s)\n",
 	                       rec->record_id, rec->op_id ? rec->op_id : "?",
 	                       rec->op_version, tier_label);
+	/* The row shows only the operation's name; the full capture summary —
+	 * "Color saturation 34%, threshold 1.00" — lives here instead. */
+	if (rec->summary && *rec->summary)
+		g_string_append_printf(s, "%s\n", rec->summary);
 	if (rec->timestamp)
 		g_string_append_printf(s, "%s\n", rec->timestamp);
 	if (rec->impl)
@@ -1254,18 +1258,26 @@ static void hist_clear_drop_line(void) {
 	if (!hist_drop_line_row) return;
 	gtk_widget_remove_css_class(hist_drop_line_row, "nde-drop-line-top");
 	gtk_widget_remove_css_class(hist_drop_line_row, "nde-drop-line-bottom");
+	g_object_remove_weak_pointer(G_OBJECT(hist_drop_line_row),
+	                             (gpointer *)&hist_drop_line_row);
 	hist_drop_line_row = NULL;
 }
 
-/* Show the insertion line on @row's top (@after FALSE) or bottom edge. */
+/* Show the insertion line on @row's top (@after FALSE) or bottom edge.
+ * The static holds no ref — a weak pointer nulls it if the row is destroyed
+ * under a live drag (refresh_history rebuilds every row when a background
+ * capture lands mid-drag), so clearing later cannot touch a freed widget. */
 static void hist_show_drop_line(GtkWidget *row, gboolean after) {
-	if (hist_drop_line_row != row)
+	if (hist_drop_line_row != row) {
 		hist_clear_drop_line();
+		hist_drop_line_row = row;
+		g_object_add_weak_pointer(G_OBJECT(row),
+		                          (gpointer *)&hist_drop_line_row);
+	}
 	gtk_widget_remove_css_class(row, after ? "nde-drop-line-top"
 	                                       : "nde-drop-line-bottom");
 	gtk_widget_add_css_class(row, after ? "nde-drop-line-bottom"
 	                                    : "nde-drop-line-top");
-	hist_drop_line_row = row;
 }
 
 static gboolean hist_row_draggable(NdeHistRowItem *r) {
@@ -1446,6 +1458,10 @@ static void on_hist_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer 
 	GtkWidget *summary = g_object_get_data(G_OBJECT(item), "hist-summary");
 	if (!r || !row) return;
 	g_object_set_data(G_OBJECT(row), "hist-item", r);
+	/* The graph view anchors a mask's span bracket on the rows it masked; the
+	 * record id is how it finds them (nde_graph_view.h). */
+	g_object_set_data_full(G_OBJECT(row), "nde-record-id",
+	                       g_memdup2(&r->record_id, sizeof(gint64)), g_free);
 	gtk_label_set_text(GTK_LABEL(badge),   r->badge   ? r->badge   : "");
 	gtk_label_set_text(GTK_LABEL(summary), r->summary ? r->summary : "");
 	gtk_widget_set_tooltip_text(row, r->detail);
@@ -1890,9 +1906,7 @@ static void on_prop_edit_apply(GtkButton *b, gpointer u) {
 		                 (float)gtk_spin_button_get_value(GTK_SPIN_BUTTON(ctx->control)));
 	} else if (!g_strcmp0(ctx->op_id, "layer.set_blend")) {
 		guint sel = gtk_drop_down_get_selected(GTK_DROP_DOWN(ctx->control));
-		if (sel >= (guint)N_BLENDS)
-			sel = 0;
-		nde_kv_add_int(kv, "blend", (gint64)blend_mode_for_index_table[sel]);
+		nde_kv_add_int(kv, "blend", (gint64)comp_blend_at(FALSE, sel));
 	} else {
 		nde_kv_add_bool(kv, "visible",
 		                gtk_check_button_get_active(GTK_CHECK_BUTTON(ctx->control)));
@@ -1928,12 +1942,7 @@ static gboolean open_compositing_edit_dialog(NdeHistRowItem *r) {
 	} else if (!g_strcmp0(r->op_id, "layer.set_blend")) {
 		gint64 v = FLIS_BLEND_NORMAL;
 		nde_kv_get_int(kv, "blend", &v);
-		GtkStringList *bl = gtk_string_list_new(NULL);
-		for (int k = 0; k < N_BLENDS; k++)
-			gtk_string_list_append(bl, _(blend_names[k]));
-		control = gtk_drop_down_new(G_LIST_MODEL(bl), NULL);
-		gtk_drop_down_set_selected(GTK_DROP_DOWN(control),
-		                           index_for_blend_mode((flis_blend_mode_t)v));
+		control = comp_blend_dropdown_new(FALSE, (gint)v);
 		label = _("Blend");
 	} else if (!g_strcmp0(r->op_id, "layer.set_visible")) {
 		gboolean v = TRUE;
@@ -2462,6 +2471,44 @@ static void hist_fold_chain_marks(GHashTable *map, const nde_chain *chain) {
 	}
 }
 
+/* A mask is laid out as a SATELLITE: beside the item it belongs to, and before
+ * the band's next node, instead of in a band of its own.  A mask is an aside to
+ * one item's history rather than a stage of the document's, and giving it a
+ * band of its own put it after every layer, with its connectors crossing the
+ * layers in between to get back.
+ *
+ * A PROCESSING mask masked a run of its host's steps, and gets a bracket around
+ * that run — which is also what shows where the run ENDED: a later step outside
+ * it ran after the mask was cleared or replaced, which mere item-to-item edges
+ * cannot say.  A LAYER mask has no such run (it applies where the layer is
+ * composited), so it carries no spans and adjacency alone says whose it is.
+ *
+ * item_id → hist_sat_info, populated (and valid) only inside refresh_history;
+ * hist_node_get consults it to route the widget and to skip the "uses" line
+ * the connector replaces. */
+typedef struct {
+	gint64 first_rec;   /* host record this run's bracket opens above */
+	gint64 last_rec;    /* ... and closes below */
+} hist_sat_span;
+
+typedef struct {
+	gint    host;
+	GArray *spans;      /* hist_sat_span; one per CONTIGUOUS run of masked
+	                     * host rows — a mask disabled for a step and
+	                     * re-enabled after it gets a bracket per run, not
+	                     * one that claims it covered the gap.  spans[0]
+	                     * anchors the satellite's placement.  EMPTY for a
+	                     * layer mask, which brackets nothing. */
+} hist_sat_info;
+
+static void hist_sat_info_free(gpointer p) {
+	hist_sat_info *si = p;
+	g_array_unref(si->spans);
+	g_free(si);
+}
+
+static GHashTable *hist_sats;
+
 /* Find or create the node whose steps target @item_id, appending its frame in
  * graph order.  Nodes are rebuilt per refresh; the graph's own node ordering
  * (by each item's first record) is what keeps them from reshuffling. */
@@ -2487,13 +2534,9 @@ static hist_node_ui *hist_node_get(gint item_id, const nde_graph_node *gn,
 
 	/* Header: what the item is, and — the thing the flat list could not say
 	 * — what it is joined to.  A node with no edges shows no edge line, so a
-	 * linear document reads as a plain titled list. */
-	/* An UNKNOWN item already says in its label that it is gone, so the
-	 * generic orphan suffix would repeat it; masks get the suffix because
-	 * "Mask of Background" alone reads like a layer name. */
+	 * linear document reads as a plain titled list.  No orphan suffix: "Mask
+	 * of X" already says it is not a layer. */
 	GString *title = g_string_new(gn && gn->label ? gn->label : _("Steps"));
-	if (gn && gn->orphan && gn->kind != NDE_NODE_UNKNOWN)
-		g_string_append(title, _("  (not a layer)"));
 
 	n->expander = gtk_expander_new(NULL);
 	gtk_expander_set_label_widget(GTK_EXPANDER(n->expander),
@@ -2503,11 +2546,23 @@ static hist_node_ui *hist_node_get(gint item_id, const nde_graph_node *gn,
 
 	GtkWidget *body = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
 
+	const hist_sat_info *si = hist_sats ?
+			g_hash_table_lookup(hist_sats, GINT_TO_POINTER(item_id)) : NULL;
+
 	if (graph && gn) {
 		GString *edges = g_string_new(NULL);
 		GPtrArray *ins = nde_graph_inputs_of(graph, item_id);
 		for (guint i = 0; i < ins->len; i++) {
 			const nde_graph_edge *e = g_ptr_array_index(ins, i);
+			/* The satellite bracket says both halves of a mask's relationship
+			 * to its host — derivation out, application back — so the "uses"
+			 * lines repeating it on each node are dropped. */
+			if (si && e->src_item_id == si->host)
+				continue;
+			const hist_sat_info *src_si = hist_sats ?
+					g_hash_table_lookup(hist_sats, GINT_TO_POINTER(e->src_item_id)) : NULL;
+			if (src_si && src_si->host == item_id)
+				continue;
 			const nde_graph_node *src = nde_graph_node_for(graph, e->src_item_id);
 			if (!src || !src->label)
 				continue;
@@ -2535,8 +2590,23 @@ static hist_node_ui *hist_node_get(gint item_id, const nde_graph_node *gn,
 	n->frame = gtk_frame_new(NULL);
 	gtk_frame_set_child(GTK_FRAME(n->frame), n->expander);
 	gtk_widget_add_css_class(n->frame, "nde-graph-node");
-	nde_graph_view_add_node(NDE_GRAPH_VIEW(g_panel->hist_container), item_id,
-	                        gn ? gn->level : 0, n->frame);
+	if (si) {
+		const hist_sat_span *sp0 = si->spans->len
+				? &g_array_index(si->spans, hist_sat_span, 0) : NULL;
+		nde_graph_view_add_satellite(NDE_GRAPH_VIEW(g_panel->hist_container),
+		                             item_id, si->host,
+		                             sp0 ? sp0->first_rec : 0,
+		                             sp0 ? sp0->last_rec : 0, n->frame);
+		for (guint k = 1; k < si->spans->len; k++) {
+			const hist_sat_span *s = &g_array_index(si->spans, hist_sat_span, k);
+			nde_graph_view_satellite_add_span(
+					NDE_GRAPH_VIEW(g_panel->hist_container),
+					item_id, s->first_rec, s->last_rec);
+		}
+	} else {
+		nde_graph_view_add_node(NDE_GRAPH_VIEW(g_panel->hist_container), item_id,
+		                        gn ? gn->level : 0, n->frame);
+	}
 
 	g_ptr_array_add(g_panel->hist_nodes, n);
 	return n;
@@ -2558,6 +2628,14 @@ static void refresh_history(void) {
 	GPtrArray *snap = nde_history_snapshot_all(&live);
 	guint total = snap ? snap->len : 0;
 
+	/* A rebuild can land mid-drag (a background capture notifies from any
+	 * thread and this runs from an idle): drop the transient drag visuals
+	 * while their rows still exist.  The drag itself degrades gracefully —
+	 * with hist_drag_item gone every rebuilt row refuses the drop, and
+	 * on_hist_drag_end's clears are NULL-safe. */
+	hist_clear_drop_line();
+	g_clear_object(&hist_drag_item);
+
 	/* Drop every node widget and rebuild: the set of items and their order
 	 * both change as records come and go, and a handful of frames is not
 	 * worth an incremental diff. */
@@ -2568,15 +2646,100 @@ static void refresh_history(void) {
 	 * snapshot supplies the rows.  Built from the LIVE history, so the dead
 	 * tail below lands in whatever node its target names. */
 	nde_graph *graph = nde_graph_build();
+
+	/* Satellites (see hist_sat_info): an item whose OUTGOING edges are all
+	 * per-op "mask" pins into one host.  A mask also feeding a composite, or
+	 * one masking two items, keeps its band — the bracket has no single span
+	 * to enclose then.  Spans are contiguous runs of the host's rows IN LOG
+	 * ORDER (ids won't do: insertion hands them out out of order), broken by
+	 * any host row that did not consume the mask.
+	 *
+	 * A mask with no such run — a LAYER mask, whose only edge runs to the
+	 * composite that applied it — still belongs beside its layer, which the
+	 * document says outright (nde_graph_node.owner_item) whatever the edges
+	 * do.  It becomes a spanless satellite: adjacent, unbracketed, and with
+	 * its edge to the composite still drawn. */
+	hist_sats = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL,
+	                                  hist_sat_info_free);
+	for (guint i = 0; i < graph->nodes->len; i++) {
+		const nde_graph_node *gn = g_ptr_array_index(graph->nodes, i);
+		gint host = 0;
+		gboolean ok = FALSE;
+		GHashTable *used_by = g_hash_table_new_full(g_int64_hash, g_int64_equal,
+		                                            g_free, NULL);
+		for (guint e = 0; e < graph->edges->len; e++) {
+			const nde_graph_edge *ed = g_ptr_array_index(graph->edges, e);
+			if (ed->src_item_id != gn->item_id)
+				continue;
+			if (g_strcmp0(ed->role, "mask") ||
+			    (host && host != ed->dst_item_id)) {
+				ok = FALSE;
+				break;
+			}
+			host = ed->dst_item_id;
+			ok = TRUE;
+			gint64 *k = g_new(gint64, 1);
+			*k = ed->dst_record_id;
+			g_hash_table_add(used_by, k);
+		}
+		if (ok && host) {
+			GArray *spans = g_array_new(FALSE, TRUE, sizeof(hist_sat_span));
+			hist_sat_span run = { 0, 0 };
+			for (guint r = 0; snap && r < live; r++) {
+				const nde_record *rec = g_ptr_array_index(snap, r);
+				if (rec->target_item_id != host)
+					continue;
+				if (g_hash_table_contains(used_by, &rec->record_id)) {
+					if (!run.first_rec)
+						run.first_rec = rec->record_id;
+					run.last_rec = rec->record_id;
+				} else if (run.first_rec) {
+					g_array_append_val(spans, run);
+					run.first_rec = run.last_rec = 0;
+				}
+			}
+			if (run.first_rec)
+				g_array_append_val(spans, run);
+			if (spans->len) {
+				hist_sat_info *si = g_new0(hist_sat_info, 1);
+				si->host = host;
+				si->spans = spans;
+				g_hash_table_insert(hist_sats, GINT_TO_POINTER(gn->item_id), si);
+				g_hash_table_destroy(used_by);
+				continue;
+			}
+			g_array_unref(spans);
+		}
+		g_hash_table_destroy(used_by);
+
+		/* No bracketable run: fall back to what the document says this mask
+		 * belongs to. */
+		if ((gn->kind != NDE_NODE_MASK && gn->kind != NDE_NODE_LAYERMASK) ||
+		    !gn->owner_item || gn->owner_item == gn->item_id ||
+		    !nde_graph_node_for(graph, gn->owner_item))
+			continue;
+		hist_sat_info *si = g_new0(hist_sat_info, 1);
+		si->host = gn->owner_item;
+		si->spans = g_array_new(FALSE, TRUE, sizeof(hist_sat_span));
+		g_hash_table_insert(hist_sats, GINT_TO_POINTER(gn->item_id), si);
+	}
+
 	for (guint i = 0; i < graph->nodes->len; i++) {
 		const nde_graph_node *gn = g_ptr_array_index(graph->nodes, i);
 		hist_node_get(gn->item_id, gn, graph);
 	}
 	/* Edges are added after every node exists, since one is drawn between two
 	 * of them.  Several records may consume the same item; the view keeps one
-	 * line per pair. */
+	 * line per pair.  A satellite's edges to its host are the bracket's job. */
 	for (guint i = 0; i < graph->edges->len; i++) {
 		const nde_graph_edge *e = g_ptr_array_index(graph->edges, i);
+		const hist_sat_info *ss = g_hash_table_lookup(hist_sats,
+				GINT_TO_POINTER(e->src_item_id));
+		const hist_sat_info *ds = g_hash_table_lookup(hist_sats,
+				GINT_TO_POINTER(e->dst_item_id));
+		if ((ss && ss->host == e->dst_item_id) ||
+		    (ds && ds->host == e->src_item_id))
+			continue;
 		nde_graph_view_add_edge(NDE_GRAPH_VIEW(g_panel->hist_container),
 		                        e->src_item_id, e->dst_item_id,
 		                        nde_graph_edge_is_feedback(graph, e));
@@ -2617,7 +2780,16 @@ static void refresh_history(void) {
 			NdeHistRowItem *item = g_object_new(NDE_TYPE_HIST_ROW_ITEM, NULL);
 			item->badge   = g_strdup_printf(rec->tier == NDE_TIER_B ? "#%u·B" :
 			                                rec->tier == NDE_TIER_C ? "#%u·C" : "#%u", pos);
-			item->summary = g_strdup(rec->summary ? rec->summary : rec->op_id);
+			/* The operation's NAME, not its capture summary: "Color
+			 * saturation", not "Color saturation 34%, threshold 1.00".  The
+			 * graph pays for every node's widest row in layout width; the
+			 * parameters live in the tooltip/popover detail.  Records with no
+			 * descriptor (composites, foreign ops) keep their summary — it is
+			 * the only name they have. */
+			const op_descriptor *od = op_descriptor_by_id(rec->op_id);
+			item->summary = (od && od->description)
+					? g_strdup(_(od->description))
+					: g_strdup(rec->summary ? rec->summary : rec->op_id);
 			item->detail  = build_hist_detail(rec);
 			item->dead    = (i >= live);
 			item->record_id = rec->record_id;
@@ -2665,6 +2837,7 @@ static void refresh_history(void) {
 	g_hash_table_destroy(seq);
 	nde_graph_free(graph);
 	g_hash_table_destroy(freeze);
+	g_clear_pointer(&hist_sats, g_hash_table_destroy);
 	gtk_revealer_set_reveal_child(GTK_REVEALER(g_panel->hist_stale_revealer),
 	                              nde_history_is_stale());
 	gint64 anchor = nde_edit_at_record_id();
@@ -3274,6 +3447,23 @@ static int op_hook(struct generic_layer_args *args) {
 		 op->kind == OP_GROUP_SET_OPACITY);
 	flis_layer_t *lay = is_group_op ? NULL : flis_layer_get_by_id(op->target_id);
 	flis_group_t *grp = is_group_op ? flis_group_get_by_id(op->target_id) : NULL;
+
+	/* Removing the layer an armed edit-history insertion belongs to would
+	 * silently discard the inserted work and free the saved pre-insertion
+	 * pixels with nowhere to restore them.  Only THIS layer is refused:
+	 * other structural ops, and removing an unrelated layer, append their
+	 * records past the insertion harmlessly (insert_qualifies_locked). */
+	gint ins_item = 0;
+	if (op->kind == OP_LAYER_REMOVE && lay
+	    && nde_history_insert_point_target(&ins_item)
+	    && (lay->item_id == ins_item
+	        || (lay->lmask_item_id && lay->lmask_item_id == ins_item)
+	        || (lay->pmask_item_id && lay->pmask_item_id == ins_item))) {
+		siril_log_error(_("This layer cannot be removed while a step is being "
+		                  "inserted into its edit history — finish or cancel "
+		                  "the insertion first\n"));
+		return 1;
+	}
 
 	/* Remove frees the layer, so snapshot its name before running the op. */
 	gchar *removed_name = (op->kind == OP_LAYER_REMOVE && lay && lay->layer_name)

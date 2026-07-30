@@ -135,6 +135,44 @@ Test(nde_graph, a_linear_document_is_one_node) {
 	done(f);
 }
 
+/* The user-visible half of the origin record: an image that has had nothing
+ * done to it still has a node, so adding a second layer to a single-layer
+ * document shows BOTH — the panel used to show the new layer and not the one
+ * that was already there. */
+Test(nde_graph, an_image_has_a_node_as_soon_as_it_says_where_it_came_from) {
+	cr_assert_neq(nde_capture_image_origin("file", "x.fit", "Opened 'x.fit'"), 0);
+
+	nde_graph *g = nde_graph_build();
+	cr_assert_eq(g->nodes->len, 1, "the image is in the graph before it is edited");
+	const nde_graph_node *n = g_ptr_array_index(g->nodes, 0);
+	cr_assert_eq(n->item_id, NDE_ITEM_IMAGE);
+	cr_assert_eq(n->record_ids->len, 1, "and its origin is the step it shows");
+	nde_graph_free(g);
+}
+
+/* And it travels: promoting a plain image to a layered one rebinds the whole
+ * plain-image history onto the base layer, origin record included, so the
+ * layer that was already there is a node from the moment the document has
+ * two.  This is the case the report named. */
+Test(nde_graph, a_promoted_image_takes_its_origin_with_it) {
+	fits *f = fresh_image();
+	com.uniq->fit = f;
+	com.uniq->chans = 1;
+	cr_assert_neq(nde_capture_image_origin("file", "x.fit", "Opened 'x.fit'"), 0);
+	cr_assert_eq(flis_promote_from_gfit("Background"), 0);
+
+	nde_graph *g = nde_graph_build();
+	cr_assert_eq(g->nodes->len, 1);
+	const nde_graph_node *n = g_ptr_array_index(g->nodes, 0);
+	cr_assert_neq(n->item_id, NDE_ITEM_IMAGE, "rebound onto the base layer");
+	cr_assert_eq(n->kind, NDE_NODE_LAYER);
+	cr_assert_str_eq(n->label, "Background");
+	cr_assert_eq(n->record_ids->len, 1);
+	nde_graph_free(g);
+	/* the base layer owns f now; the suite teardown frees it */
+	nde_history_attach(NULL);
+}
+
 Test(nde_graph, an_empty_history_is_an_empty_graph) {
 	fits *f = fresh_image();
 	nde_graph *g = nde_graph_build();
@@ -195,6 +233,90 @@ Test(nde_graph, a_mask_is_its_own_node_with_an_edge_to_its_consumer) {
 
 /* Order is meaning inside a node: it is what the user drags to reorder, so
  * the graph must not sort, dedupe or regroup a node's records. */
+/* A node with no records of its own — an image consumed only as a mask's
+ * source, a layer known only from a composite's pins — has no log position to
+ * rank by, and discovery order appends it AFTER the record that named it.
+ * Ranked that way, its derivation edge read as feedback and the mask sat
+ * BESIDE its source with the arrow drawn backwards into empty space.  A
+ * record-less node is a pure source (every edge destination is some record's
+ * target), so it ranks before the whole log: what derives from it sits below
+ * it, and the edge is forward. */
+Test(nde_graph, a_recordless_source_ranks_before_what_derives_from_it) {
+	fits *f = fresh_image();
+	cr_assert_eq(run_mask_op(&op_desc_mask_from_channel, from_channel(0)), 0);
+
+	nde_graph *g = nde_graph_build();
+	cr_assert_eq(g->nodes->len, 2, "image and mask");
+	const nde_graph_node *img  = nde_graph_node_for(g, NDE_ITEM_IMAGE);
+	const nde_graph_node *mask = nde_graph_node_for(g, NDE_ITEM_PLAIN_MASK);
+	cr_assert_not_null(img);
+	cr_assert_not_null(mask);
+	cr_assert_eq(img->record_ids->len, 0u,
+	             "precondition: the image has no records of its own");
+	cr_assert_lt(img->level, mask->level,
+	             "the source sits above what was derived from it");
+	cr_assert_eq(g->depth, 2);
+
+	cr_assert_eq(g->edges->len, 1);
+	const nde_graph_edge *e = g_ptr_array_index(g->edges, 0);
+	cr_assert_eq(e->src_item_id, NDE_ITEM_IMAGE);
+	cr_assert_eq(e->dst_item_id, NDE_ITEM_PLAIN_MASK);
+	cr_assert(!nde_graph_edge_is_feedback(g, e),
+	          "derivation is a forward edge, not feedback");
+	nde_graph_free(g);
+	done(f);
+}
+
+/* graph2.png: a processing mask created on a layer, used by two steps, then
+ * CLEARED — its item resolves to nothing, and the fallback called it
+ * "Layer 5, no longer in the document": a layer the user never had.  The
+ * graph knows better: the node's records are mask ops and a record consumed
+ * it through a "mask" pin, so it is named as the mask of what it masked. */
+Test(nde_graph, a_cleared_mask_item_is_labelled_as_a_mask) {
+	flis_layer_t *base = flis_test_add_layer(
+	    flis_test_make_mono_fits(16, 12, 0.f), "base");
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+	fill_gradient(gfit);
+
+	cr_assert_eq(run_mask_op(&op_desc_mask_from_channel, from_channel(0)), 0);
+	gint mask_item = flis_layer_pmask_id(base);
+	cr_assert_neq(mask_item, 0);
+	cr_assert_eq(run_op(&op_desc_asinh, asinh_beta(20.f), TRUE), 0);
+	cr_assert_eq(run_mask_op(&op_desc_mask_clear, NULL), 0);
+
+	nde_graph *g = nde_graph_build();
+	const nde_graph_node *mn = nde_graph_node_for(g, mask_item);
+	cr_assert_not_null(mn);
+	cr_assert_eq(mn->kind, NDE_NODE_MASK,
+	             "a cleared mask item is still a mask, not an unknown layer");
+	cr_assert_not_null(strstr(mn->label, "Mask of base"),
+	                   "…and says whose it was, got: %s", mn->label);
+	nde_graph_free(g);
+	nde_history_attach(NULL);
+	gfit = NULL;
+}
+
+/* procmasksnag: a mask cleared without EVER having been used leaves nothing
+ * behind — no step consumed it, so its records describe an item that
+ * influenced no pixels, and their only future was an orphan node.  (A USED
+ * mask keeps everything and goes dormant instead — the test above.) */
+Test(nde_graph, clearing_a_never_used_mask_forgets_it_entirely) {
+	fits *f = fresh_image();
+	cr_assert_eq(run_op(&op_desc_asinh, asinh_beta(10.f), FALSE), 0);
+	cr_assert_eq(run_mask_op(&op_desc_mask_from_channel, from_channel(0)), 0);
+	cr_assert_eq(run_mask_op(&op_desc_mask_clear, NULL), 0);
+
+	nde_graph *g = nde_graph_build();
+	cr_assert_null(nde_graph_node_for(g, NDE_ITEM_PLAIN_MASK),
+	               "nothing consumed the mask, so its episode is forgotten");
+	const nde_graph_node *img = nde_graph_node_for(g, NDE_ITEM_IMAGE);
+	cr_assert_not_null(img);
+	cr_assert_eq(img->record_ids->len, 1, "the image's own history is untouched");
+	nde_graph_free(g);
+	done(f);
+}
+
 Test(nde_graph, records_keep_log_order_inside_their_node) {
 	fits *f = fresh_image();
 	cr_assert_eq(run_op(&op_desc_asinh, asinh_beta(10.f), FALSE), 0);
@@ -301,6 +423,11 @@ static void add_box(GArray *a, gint item, gint level, gint w, gint h) {
 	g_array_append_val(a, b);
 }
 
+static void add_sat(GArray *a, gint item, gint host, gint w, gint h) {
+	nde_graph_box b = { .item_id = item, .host_item = host, .w = w, .h = h };
+	g_array_append_val(a, b);
+}
+
 static const nde_graph_place *place_for(GArray *places, gint item) {
 	for (guint i = 0; i < places->len; i++) {
 		const nde_graph_place *p = &g_array_index(places, nde_graph_place, i);
@@ -380,6 +507,97 @@ Test(nde_graph, layout_preserves_the_order_it_was_given) {
 	cr_assert_eq(g_array_index(p, nde_graph_place, 0).x, 0);
 	cr_assert_eq(g_array_index(p, nde_graph_place, 2).x, 14,
 	             "second in its band, whatever its position in the list");
+	g_array_unref(p);
+	g_array_unref(b);
+}
+
+/* The defect wrongorder.png showed: a mask laid out after every band node had
+ * its connectors crossing the layers in between to get back to its host.  A
+ * satellite goes beside its host, and the band's next node beyond it. */
+Test(nde_graph, a_satellite_sits_between_its_host_and_the_next_node) {
+	GArray *b = boxes_new();
+	add_box(b, 1, 0, 200, 300);      /* the host layer */
+	add_box(b, 2, 0, 200, 100);      /* the next layer along */
+	add_sat(b, 9, 1, 150, 60);       /* a mask of layer 1 */
+	gint w = 0;
+	GArray *p = nde_graph_layout(b, 20, 6, &w, NULL);
+
+	cr_assert_eq(place_for(p, 1)->x, 0);
+	cr_assert_eq(place_for(p, 9)->x, 220, "beside its host, not after the band");
+	cr_assert_eq(place_for(p, 2)->x, 390, "the next layer starts beyond the mask");
+	cr_assert_eq(place_for(p, 9)->y, place_for(p, 1)->y, "in its host's band");
+	cr_assert_eq(w, 590);
+	g_array_unref(p);
+	g_array_unref(b);
+}
+
+/* Several masks of one layer are a column, and the band has to be tall enough
+ * to hold it — otherwise the last of them overhangs the band below. */
+Test(nde_graph, satellites_stack_and_the_band_grows_to_hold_them) {
+	GArray *b = boxes_new();
+	add_box(b, 1, 0, 200, 50);
+	add_sat(b, 9, 1, 100, 60);
+	add_sat(b, 8, 1, 140, 70);
+	add_box(b, 2, 1, 200, 40);
+	gint h = 0;
+	GArray *p = nde_graph_layout(b, 20, 6, NULL, &h);
+
+	cr_assert_eq(place_for(p, 9)->y, 0);
+	cr_assert_eq(place_for(p, 8)->y, 80, "60 tall plus the 20 column gap");
+	cr_assert_eq(place_for(p, 1)->h, 150, "the band covers the whole column");
+	cr_assert_eq(place_for(p, 2)->y, 156, "the next band clears it");
+	cr_assert_eq(h, 196);
+	g_array_unref(p);
+	g_array_unref(b);
+}
+
+/* A satellite may be slid down to meet the host row it masks, but only as far
+ * as leaves room for the satellites still below it in the column. */
+Test(nde_graph, a_satellites_slack_stops_short_of_the_ones_below_it) {
+	GArray *b = boxes_new();
+	add_box(b, 1, 0, 200, 400);
+	add_sat(b, 9, 1, 100, 60);
+	add_sat(b, 8, 1, 100, 70);
+	GArray *p = nde_graph_layout(b, 20, 6, NULL, NULL);
+
+	cr_assert_eq(place_for(p, 9)->y_min, 0);
+	cr_assert_eq(place_for(p, 9)->y_max, 400 - 60 - 90,
+	             "leaves the 70-tall mask below it, and the 20 gap, in the band");
+	cr_assert_eq(place_for(p, 8)->y_max, 400 - 70);
+	cr_assert_eq(place_for(p, 1)->y_min, place_for(p, 1)->y_max,
+	             "a band node has no slack at all");
+	g_array_unref(p);
+	g_array_unref(b);
+}
+
+/* Levelling a band gives every node in it the same bottom edge, which is where
+ * the old code started the outgoing line — far below a short node's last step,
+ * with a gap of nothing in between.  The node's own height is kept for that. */
+Test(nde_graph, a_place_remembers_the_height_the_node_measured) {
+	GArray *b = boxes_new();
+	add_box(b, 1, 0, 50, 100);
+	add_box(b, 2, 0, 50, 180);
+	GArray *p = nde_graph_layout(b, 20, 6, NULL, NULL);
+
+	cr_assert_eq(place_for(p, 1)->h, 180, "levelled to the band");
+	cr_assert_eq(place_for(p, 1)->content_h, 100, "but its own history ends here");
+	cr_assert_eq(place_for(p, 2)->content_h, 180);
+	g_array_unref(p);
+	g_array_unref(b);
+}
+
+/* A satellite whose host is not in the layout would otherwise go unplaced.
+ * Wrong-looking beats invisible. */
+Test(nde_graph, a_satellite_with_no_host_lays_out_as_an_ordinary_node) {
+	GArray *b = boxes_new();
+	add_box(b, 1, 0, 200, 100);
+	add_sat(b, 9, 77, 150, 60);
+	gint w = 0;
+	GArray *p = nde_graph_layout(b, 20, 6, &w, NULL);
+
+	cr_assert_not_null(place_for(p, 9));
+	cr_assert_eq(place_for(p, 9)->x, 220, "second in the band, on its own account");
+	cr_assert_eq(w, 370);
 	g_array_unref(p);
 	g_array_unref(b);
 }

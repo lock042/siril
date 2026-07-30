@@ -368,7 +368,7 @@ void negative_processing() {
 	nde_checkpoint_baseline_ensure(gfit, nde_capture_target_item());
 	pos_to_neg(gfit);
 	gint64 rid = nde_capture_from_descriptor(&op_desc_neg, NULL,
-			_("Negative Transformation"), gfit);
+			_("Negative Transformation"), gfit, FALSE);
 	if (!undo_err)
 		undo_tag_top_nde_record(rid);
 	invalidate_stats_from_fit(gfit);

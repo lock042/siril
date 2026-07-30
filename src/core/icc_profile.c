@@ -2092,7 +2092,7 @@ int icc_convert_to_hook(struct generic_img_args *gargs, fits *fit, int threads) 
 	 * serializer, so a plain-image conversion captures as Tier A (replayable)
 	 * — pass @args so the serializer can read the stashed profile_source. */
 	if (!gargs->for_preview && gargs->fit == gfit) {
-		gint64 rid = nde_capture_from_descriptor(&op_desc_icc_convert, args, summary, fit);
+		gint64 rid = nde_capture_from_descriptor(&op_desc_icc_convert, args, summary, fit, FALSE);
 		if (save_undo && !undo_err)
 			undo_tag_top_nde_record(rid);
 	}

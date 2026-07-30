@@ -486,7 +486,7 @@ failure:
 			clearfits(gfit);
 			memcpy(gfit, args->fit, sizeof(fits));
 			com.seq.current = UNRELATED_IMAGE;
-			create_uniq_from_gfit(strdup(_("Pixel Math result")), FALSE);
+			create_uniq_from_gfit(strdup(_("Pixel Math result")), FALSE, "generated");
 		}
 		else clearfits(args->fit);
 		free(args->fit);
@@ -502,7 +502,7 @@ failure:
 			memcpy(gfit, args->fit, offsetof(fits, rwlock));
 			icc_auto_assign(gfit, ICC_ASSIGN_ON_COMPOSITION);
 			com.seq.current = UNRELATED_IMAGE;
-			create_uniq_from_gfit(strdup(_("Pixel Math result")), FALSE);
+			create_uniq_from_gfit(strdup(_("Pixel Math result")), FALSE, "generated");
 		} else {
 			clearfits(args->fit);
 		}

@@ -199,3 +199,54 @@ Test(nde_conductor, background_stranger_waits_then_runs_after_release) {
 	g_thread_join(xt);
 	cr_assert(g_atomic_int_get(&stranger.ran), "stranger must run once released");
 }
+
+/* ---- job origin attribution --------------------------------------------- */
+
+/* The scope-suppression gates in the generic workers must be able to tell a
+ * script's own job from a user's: a resident script's open provenance scope
+ * swallows only script-submitted ops.  The origin rides on the job, captured
+ * from the submitting thread's python-comm mark. */
+
+static gpointer origin_probe_job(gpointer p) {
+	*(gboolean *)p = processing_current_job_from_python();
+	return GINT_TO_POINTER(0);
+}
+
+struct origin_probe {
+	gboolean mark_python;   /* mark the submitting thread as a comm thread */
+	gboolean from_python;   /* what the job observed */
+	gboolean submit_ret;
+};
+
+static gpointer origin_submitter_fn(gpointer p) {
+	struct origin_probe *o = p;
+	if (o->mark_python)
+		processing_mark_python_comm_thread();
+	o->from_python = TRUE;  /* poisoned: the job must overwrite it */
+	o->submit_ret = start_in_new_thread(origin_probe_job, &o->from_python);
+	return NULL;
+}
+
+Test(nde_conductor, job_origin_tracks_submitting_thread) {
+	/* A job submitted from a python comm thread reads as from-python... */
+	struct origin_probe script = { .mark_python = TRUE };
+	GThread *st = g_thread_new("comm-thread", origin_submitter_fn, &script);
+	g_thread_join(st);
+	cr_assert(script.submit_ret, "script-side submission failed");
+	cr_assert(script.from_python,
+	          "a comm-thread submission must attribute its job to the script");
+
+	/* ...and one submitted from any other thread does not. */
+	struct origin_probe user = { .mark_python = FALSE };
+	GThread *ut = g_thread_new("user-thread", origin_submitter_fn, &user);
+	g_thread_join(ut);
+	cr_assert(user.submit_ret, "user-side submission failed");
+	cr_assert(!user.from_python,
+	          "a non-comm-thread submission must not read as from-python");
+}
+
+Test(nde_conductor, job_origin_meaningless_outside_a_job) {
+	/* Outside the worker there is no current job: always FALSE, even on a
+	 * thread that marked itself as a comm thread. */
+	cr_assert(!processing_current_job_from_python());
+}

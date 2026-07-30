@@ -220,6 +220,52 @@ Test(nde_snapstore, pool_budget_lru_and_invalidation) {
 	clearfits(f); free(f);
 }
 
+/* Regression (af5ceedd8): the deposit-time over-budget loop tests
+ * live_bytes, but live_bytes only falls in nde_snap_unref, which runs after
+ * the mutex is dropped — so while the loop runs live_bytes never changes.
+ * With the naked `live_bytes > budget` condition that is loop-invariant, so
+ * one byte of overshoot drains the WHOLE pool to a single entry instead of
+ * trimming to fit.  Deposit exactly one snap's worth over budget and assert
+ * we shed only that one, not everything. */
+Test(nde_snapstore, deposit_trims_to_fit_not_to_one) {
+	/* Budget 1 MiB; each 128x128 float snap is 64 KiB → budget holds 16.
+	 * Depositing 17 leaves us 64 KiB (one snap) over budget. */
+	com.pref.nde_cache_mb = 1;
+	const guint w = 128, h = 128;
+	const gint64 snap_bytes = (gint64)w * h * sizeof(float);
+	const gint64 budget = 1 * 1024 * 1024;
+	const gint64 fit = budget / snap_bytes;   /* 16 entries fit */
+	const gint64 n = fit + 1;                 /* 17: one snap over budget */
+
+	fits *f = make_fixture(w, h, 0.f);
+	for (gint64 k = 1; k <= n; k++) {
+		f->fdata[0] = (float)k;
+		nde_snapstore_deposit(f, -1, k);
+	}
+
+	nde_snapstore_stats_t st;
+	nde_snapstore_stats(&st);
+	cr_assert_eq(st.deposits, n);
+	/* The fix trims exactly one entry; the bug drained the pool to one,
+	 * evicting fit (=16) entries. */
+	cr_assert_eq(st.evictions, 1,
+	             "over-budget deposit must trim to fit, not drain the pool");
+
+	/* Count survivors directly: the oldest (record 1) is the sole victim,
+	 * the remaining `fit` entries must all still be present. */
+	gint64 survivors = 0;
+	for (gint64 k = 1; k <= n; k++)
+		if (nde_snapstore_has(-1, k, TRUE)) survivors++;
+	cr_assert_eq(survivors, fit,
+	             "only the LRU entry should be evicted, %ld should remain", (long)fit);
+	cr_assert(!nde_snapstore_has(-1, 1, TRUE), "the LRU entry is the victim");
+	cr_assert(nde_snapstore_has(-1, n, TRUE), "the freshest deposit survives");
+	cr_assert(nde_snapstore_has(-1, 2, TRUE),
+	          "the second-oldest must NOT be drained (the bug would evict it)");
+
+	clearfits(f); free(f);
+}
+
 Test(nde_snapstore, same_tag_deposit_replaces) {
 	com.pref.nde_cache_mb = 64;
 	fits *f = make_fixture(16, 16, 0.f);

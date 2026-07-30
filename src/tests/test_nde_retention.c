@@ -25,6 +25,7 @@
 
 #include "core/siril.h"
 #include "io/image_format_fits.h"
+#include "core/nde_history.h"
 #include "core/nde_snapstore.h"
 #include "core/nde_checkpoint.h"
 #include "core/nde_retention.h"
@@ -125,6 +126,43 @@ Test(nde_retention, pins_go_oldest_first_once_the_cache_is_exhausted) {
 	cr_assert_eq(st.baselines_dropped, 0, "no baseline was involved");
 
 	for (int i = 0; i < 5; i++) { clearfits(p[i]); free(p[i]); }
+}
+
+/* procmasksnag: a used mask persists ONLY as its pinned states — clearing it
+ * releases the live slot, so once the stored copy is gone every step that ran
+ * under it is a permanent barrier.  And its record id is the OLDEST around (a
+ * mask precedes everything it masked), which is exactly what the age rule
+ * used to pick first. */
+Test(nde_retention, a_pinned_mask_state_is_never_evicted) {
+	com.uniq = g_new0(single, 1);
+	nde_record *rec = nde_record_new();
+	rec->op_id = g_strdup("image.asinh");
+	rec->op_version = 1;
+	rec->tier = NDE_TIER_A;
+	rec->scope = NDE_SCOPE_LAYER;
+	rec->target_item_id = 7;
+	rec->summary = g_strdup("masked stretch");
+	rec->mask_active = TRUE;
+	nde_record_add_input(rec, "mask", 9, 10);
+	cr_assert(nde_history_append(rec) > 0);
+
+	/* Five quarter-MB states against a 1 MB budget: one must go, and the
+	 * oldest (record 10) is the pinned mask state. */
+	fits *p[5];
+	for (int i = 0; i < 5; i++) {
+		p[i] = quarter_mb(0.1f * (float)(i + 1));
+		nde_checkpoint_output_store(p[i], 10 + i, 9);
+	}
+	cr_assert(nde_checkpoint_output_exists(10),
+	          "the pinned mask state must be passed over");
+	cr_assert(!nde_checkpoint_output_exists(11),
+	          "the oldest UNPINNED state goes instead");
+	cr_assert_leq(nde_snapstore_total_bytes(), nde_retention_budget_bytes());
+
+	for (int i = 0; i < 5; i++) { clearfits(p[i]); free(p[i]); }
+	nde_history_attach(NULL);
+	g_free(com.uniq);
+	com.uniq = NULL;
 }
 
 /* A baseline costs an item its WHOLE chain, so it goes only after every

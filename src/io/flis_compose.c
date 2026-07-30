@@ -898,6 +898,15 @@ static fits *flis_render_layers_internal(GSList *layers,
             if (!grp_trigger)    grp_trigger    = g_hash_table_new(g_direct_hash, g_direct_equal);
             if (!skip_in_main)   skip_in_main   = g_hash_table_new(g_direct_hash, g_direct_equal);
 
+            /* Defensive: a duplicated group (same item_id appearing twice in
+             * ctx->groups) would replace the first sub-composite in the hash
+             * without freeing it, since the table has no value-destroy. Skip
+             * and free the redundant one here — same ownership as cleanup. */
+            if (g_hash_table_contains(grp_composites, GINT_TO_POINTER(_grp->item_id))) {
+                free(_sub->fdata);
+                free(_sub);
+                continue;
+            }
             g_hash_table_insert(grp_composites, GINT_TO_POINTER(_grp->item_id), _sub);
 
             /* Find first member in the sorted layers list to use as trigger */

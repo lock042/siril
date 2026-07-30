@@ -1075,7 +1075,7 @@ static gpointer rebayer_cmd_worker(gpointer p) {
 	free(out);
 	clear_stars_list(TRUE);
 	com.seq.current = UNRELATED_IMAGE;
-	if (!create_uniq_from_gfit(strdup(_("Unsaved Bayer pattern merge")), FALSE))
+	if (!create_uniq_from_gfit(strdup(_("Unsaved Bayer pattern merge")), FALSE, "generated"))
 		com.uniq->comment = strdup(_("Bayer pattern merge"));
 	if (!com.script) {
 		gui_iface.on_image_loaded();
@@ -8025,7 +8025,7 @@ int process_new(int nb){
 	memset(gfit->fdata, 0, width * height * layers * sizeof(float));
 
 	com.seq.current = UNRELATED_IMAGE;
-	create_uniq_from_gfit(filename, FALSE);
+	create_uniq_from_gfit(filename, FALSE, "generated");
 	if (!com.headless)
 		gui_iface.on_image_loaded();
 	return CMD_OK;
@@ -17397,10 +17397,22 @@ int process_flis_editat(int nb) {
 	}
 	if (!nde_edit_at_start(record_id, NULL, NULL))
 		return CMD_GENERIC_ERROR;
-	/* The conductor runs synchronously in a script; report the outcome the
-	 * caller cares about (the begin logs its own reason on failure). */
-	if (!nde_edit_at_active())
+	/* The conductor only joins the begin worker in synchronous contexts
+	 * (com.script || com.python_command); there the insertion point is already
+	 * open by the time we get here, so nde_edit_at_active() reports the real
+	 * outcome and the begin logs its own reason on failure. Typed into the GUI
+	 * console both flags are FALSE: the worker runs detached and completes later
+	 * via the idle handler, so an inactive state here is merely "not yet", not a
+	 * failure. */
+	if ((com.script || com.python_command) && !nde_edit_at_active())
 		return CMD_GENERIC_ERROR;
+	if (!com.script && !com.python_command && !nde_edit_at_active()) {
+		siril_log_message(_("Opening insertion point before step %" G_GINT64_FORMAT ": the display "
+		                    "will change to the pre-step state; then run operations and "
+		                    "'flis_editat done' to keep them or 'flis_editat cancel' to discard\n"),
+		                  record_id);
+		return CMD_OK;
+	}
 	siril_log_message(_("Inserting before step %" G_GINT64_FORMAT ": run operations, then "
 	                    "'flis_editat done' to keep them or 'flis_editat cancel' to discard\n"),
 	                  record_id);

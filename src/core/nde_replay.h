@@ -79,6 +79,13 @@ typedef struct {
 	guint      tail_start;      /* first tail member index (== len ⇒ empty tail) */
 	gboolean   tail_replayable; /* the tail applies cleanly from its restart point */
 	gint64     restart_ckpt_id; /* record id of the restart checkpoint; 0 = baseline */
+	guint      first_block;     /* member index of the first HARD blocker (the
+	                             * position the first ->reasons entry describes):
+	                             * members [0..first_block) replay cleanly from
+	                             * the baseline or from barrier checkpoints among
+	                             * them.  G_MAXUINT = no hard blocker.  Lets a
+	                             * PREFIX consumer (an input pin) succeed when
+	                             * only the far end of the chain is broken. */
 } nde_chain;
 
 /**

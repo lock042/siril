@@ -42,6 +42,7 @@
 #include "core/siril_log.h"
 #include "core/nde_snapstore.h"
 #include "core/nde_checkpoint.h"
+#include "core/nde_history.h"
 #include "core/nde_retention.h"
 #include "io/image_format_flis.h"
 
@@ -373,6 +374,18 @@ gboolean nde_checkpoint_evict_oldest(nde_checkpoint_eviction *out, gint64 protec
 	gint64  victim_record = 0;
 	gint    victim_item = 0;
 
+	/* A used mask persists ONLY as its pinned states — clearing it releases
+	 * the live slot, so there is nothing to rebuild one from once its stored
+	 * copy is gone, and every step that ran under it becomes a permanent
+	 * barrier.  They are also the oldest record ids around (a mask precedes
+	 * everything it masked), which made them the first victims.  Masks are
+	 * mono and cheap to keep; keep them all.  Collected BEFORE cp_mutex —
+	 * the history mutex is a separate leaf and must never nest inside it. */
+	GHashTable *mask_recs = g_hash_table_new_full(g_int64_hash, g_int64_equal,
+	                                              g_free, NULL);
+	GHashTable *mask_items = g_hash_table_new(g_direct_hash, g_direct_equal);
+	nde_history_mask_pin_coords(mask_recs, mask_items);
+
 	g_mutex_lock(&cp_mutex);
 	GHashTableIter it;
 	gpointer k, v;
@@ -386,6 +399,8 @@ gboolean nde_checkpoint_evict_oldest(nde_checkpoint_eviction *out, gint64 protec
 		while (g_hash_table_iter_next(&it, &k, &v)) {
 			gint64 rid = *(gint64 *)k;
 			if (rid == protect_record)
+				continue;
+			if (g_hash_table_contains(mask_recs, &rid))
 				continue;
 			if (!victim || rid < best) { best = rid; victim = v; victim_key = k; }
 		}
@@ -407,6 +422,10 @@ gboolean nde_checkpoint_evict_oldest(nde_checkpoint_eviction *out, gint64 protec
 			 * the user could act on. */
 			if (item == protect)
 				continue;
+			/* Nor a baseline that is itself a pinned mask state (a mask used
+			 * in the state it was created in pins record 0 = its baseline). */
+			if (g_hash_table_contains(mask_items, GINT_TO_POINTER(item)))
+				continue;
 			if (!victim || item < best) { best = item; victim = v; victim_key = k; }
 		}
 		if (victim) {
@@ -417,6 +436,8 @@ gboolean nde_checkpoint_evict_oldest(nde_checkpoint_eviction *out, gint64 protec
 		}
 	}
 	g_mutex_unlock(&cp_mutex);
+	g_hash_table_destroy(mask_recs);
+	g_hash_table_destroy(mask_items);
 
 	if (!victim)
 		return FALSE;
@@ -510,10 +531,14 @@ void nde_checkpoint_purge(void) {
 }
 
 gint nde_checkpoint_active_item_id(void) {
-	if (is_current_image_flis()) {
-		flis_layer_t *lay = flis_active_layer();
-		if (lay)
-			return lay->item_id;
-	}
-	return -1;
+	/* One answer to "which item does this capture belong to", shared with the
+	 * record-capture sites: nde_capture_target_item() consults the borrowed
+	 * item first, so a baseline seeded while an insertion has borrowed the
+	 * display files against the item whose pixels are actually shown — where
+	 * baseline_ensure's first-writer-wins makes it a no-op (a merge input
+	 * always got its baseline at capture time) — instead of seeding the
+	 * ACTIVE layer with another item's pixels.  Answering this with a second,
+	 * borrowed-blind body was the defect class the 5262b1bd5 audit removed
+	 * from the other capture sites. */
+	return nde_capture_target_item();
 }

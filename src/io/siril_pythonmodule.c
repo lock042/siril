@@ -776,14 +776,19 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	 * Runs on the python-comm worker thread while thread_claimed; the append
 	 * is leaf-mutex-safe from any thread. */
 	if (fit == gfit) {
-		if (nde_script_scope_active()) {
+		if (processing_is_reserved_for_replay()) {
+			/* A Tier-C replay re-run opens no scope of its own; its writes
+			 * reproduce an existing record and must neither capture new ones
+			 * nor mark an unrelated resident script's open scope dirty (a
+			 * resident script cannot be writing here mid-replay — its
+			 * claim_thread is refused while SLOT_REPLAY is held), so this
+			 * guard comes BEFORE the scope check. */
+		} else if (nde_script_scope_active()) {
 			/* Inside a script scope: the end-of-scope net-effect record subsumes
 			 * this write (nde-phase5).  Just flag the pixel mutation — never one
 			 * record per set_pixeldata call. */
 			nde_script_scope_mark_pixels_dirty();
-		} else if (!processing_is_reserved_for_replay()) {
-			/* A Tier-C replay re-run opens no scope; its writes reproduce an
-			 * existing record and must not capture new ones. */
+		} else {
 			nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER,
 			                   nde_capture_target_item(),
 			                   _("Python script pixel update"), fit);
@@ -968,13 +973,16 @@ gboolean handle_set_image_mask_request(Connection *conn, fits *fit, incoming_ima
 	/* NDE provenance (sketch §13.2): a script set/updated the document's mask.
 	 * Only for the document image (fit == gfit); Tier B (opaque). */
 	if (fit == gfit) {
-		if (nde_script_scope_active()) {
+		if (processing_is_reserved_for_replay()) {
+			/* Replay re-runs reproduce an existing record — no new capture,
+			 * and no marking of an unrelated resident script's open scope
+			 * (checked BEFORE the scope, same as handle_set_pixeldata). */
+		} else if (nde_script_scope_active()) {
 			/* Inside a script scope: coalesce into the end-of-scope record.  A
 			 * mask change is invisible to the pixel-hash net-effect test, so
 			 * flag it as a non-pixel mutation to force a record. */
 			nde_script_scope_mark_nonpixel_dirty();
-		} else if (!processing_is_reserved_for_replay()) {
-			/* Replay re-runs reproduce an existing record — no new capture. */
+		} else {
 			nde_capture_opaque("python.set_mask", NDE_SCOPE_LAYER,
 			                   nde_capture_target_item(),
 			                   _("Python script mask update"), fit);
@@ -2273,6 +2281,10 @@ static void teardown_connection_and_worker(Connection *conn, GThread *worker) {
 
 static gpointer connection_worker(gpointer data) {
 	Connection *conn = (Connection*)data;
+	/* Job submissions from this thread (a script's cmd()/IPC requests) must
+	 * be attributed to the script, not the user — see the scope-suppression
+	 * gates in processing.c. */
+	processing_mark_python_comm_thread();
 	siril_log_debug("Python communication initialized...\n");
 	while (!conn->should_stop) {
 		if (wait_for_client(conn)) {

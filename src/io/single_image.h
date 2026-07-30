@@ -3,7 +3,20 @@
 
 void close_single_image();
 void free_image_data();
-int create_uniq_from_gfit(char *filename, gboolean exists);
+/**
+ * Install @gfit as the loaded single-image document.
+ *
+ * @filename: the file it came from, or a label for a generated result.
+ *            com.uniq takes ownership.
+ * @exists:   TRUE when @filename names a real file that Save may overwrite.
+ * @origin:   how this image came to exist — "file", "stack" or "generated".
+ *            Recorded as the first step of its NDE history
+ *            (nde_capture_image_origin); it is a parameter rather than
+ *            something inferred from @filename because @exists answers a
+ *            different question (is this file writable-in-place?) and a
+ *            generated result's label is not a path.
+ */
+int create_uniq_from_gfit(char *filename, gboolean exists, const char *origin);
 int read_single_image(const char* filename, fits *dest, char **realname_out, gboolean allow_sequences, gboolean *is_sequence, gboolean allow_dialogs, gboolean force_float, gboolean no_debayer);
 /* Set/query whether the shared image readers should report decode progress on
  * the progress bar.  Active only during an interactive single-image open. */

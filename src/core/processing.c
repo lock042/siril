@@ -35,6 +35,7 @@
 #include "core/nde_history.h"
 #include "core/nde_replay.h"
 #include "core/nde_checkpoint.h"
+#include "core/nde_snapstore.h"
 #include "core/nde_script_scope.h"
 #include "core/op_descriptor.h"
 #include "core/siril_log.h"
@@ -1807,9 +1808,14 @@ gpointer generic_image_worker(gpointer p) {
 		 * when previewing, running from a script, inside a python script
 		 * provenance scope (the scope suppresses per-command undo — its single
 		 * record covers the whole script), or during an NDE replay (a replayed
-		 * Tier-C script's cmd() ops reproduce existing history). */
+		 * Tier-C script's cmd() ops reproduce existing history).  The scope
+		 * suppression applies only to the script's own ops (jobs submitted from
+		 * a python comm thread): a resident script merely being connected must
+		 * not swallow the undo of ops the user runs from the GUI. */
 		undo_state = use_swap && !(args->skip_generic_undo || args->for_preview
-		                           || com.script || nde_script_scope_active()
+		                           || com.script
+		                           || (nde_script_scope_active()
+		                               && processing_current_job_from_python())
 		                           || processing_is_reserved_for_replay());
 		if (undo_state)
 			summary = args->log_hook ? args->log_hook(args->user, SUMMARY): g_strdup(args->description);
@@ -1894,16 +1900,21 @@ the_end:;
 	 * prepared here; the append itself is a few pointer ops under the
 	 * leaf mutex. */
 	gint64 nde_rec_id = 0;
-	if (!retval && use_swap && !arg_skip_undo && !argpreview && nde_script_scope_active()) {
-		/* Under a python script provenance scope: the end-of-scope record
-		 * subsumes this op's provenance (nde-phase5 scope engine).  Flag the
-		 * net pixel mutation and skip per-op capture. */
-		nde_script_scope_mark_pixels_dirty();
+	if (!retval && use_swap && !arg_skip_undo && !argpreview
+	    && processing_is_reserved_for_replay()) {
+		/* The replay guard, checked before the scope: a Tier-C script re-run
+		 * issues cmd() ops on gfit with no scope of its own — they reproduce
+		 * an existing record and must neither capture new ones nor mark an
+		 * unrelated resident script's open scope dirty. */
 	} else if (!retval && use_swap && !arg_skip_undo && !argpreview
-	           && !processing_is_reserved_for_replay()) {
-		/* (The replay guard: a Tier-C script re-run issues cmd() ops on gfit
-		 * with no scope open — they reproduce an existing record and must not
-		 * capture new ones.) */
+	    && nde_script_scope_active() && processing_current_job_from_python()) {
+		/* Under a python script provenance scope, and this job came from the
+		 * script itself: the end-of-scope record subsumes this op's provenance
+		 * (nde-phase5 scope engine).  Flag the net pixel mutation and skip
+		 * per-op capture.  A user-run op while a resident script merely holds
+		 * a scope open falls through and captures its own record. */
+		nde_script_scope_mark_pixels_dirty();
+	} else if (!retval && use_swap && !arg_skip_undo && !argpreview) {
 		const op_descriptor *op = args->op;
 		gboolean tier_a = op && op->serialize;
 		nde_record *rec = nde_record_new();
@@ -2107,6 +2118,19 @@ gpointer generic_mask_worker(gpointer p) {
 		goto the_end;
 	}
 
+	/* Same shape as generic_image_worker's geometry guard: an image-deriving
+	 * mask op records an "image" pin against the item's LAST record, but while
+	 * an edit-history insertion is open the display holds an earlier state —
+	 * the pin would name a state the op never saw.  Refuse rather than record
+	 * a lie.  A Tier-C replay re-run is exempt: it reproduces an existing
+	 * record and its pin is not re-captured. */
+	if (args->op && (args->op->flags & OP_MASK_FROM_IMAGE)
+	    && args->fit == gfit && !processing_is_reserved_for_replay()
+	    && nde_edit_at_refuses_op(args->description)) {
+		args->retval = 1;
+		goto the_end;
+	}
+
 	/* §5.2 routing pre-check: when the mask is destined for a layer's
 	 * lmask, validate the target BEFORE generating anything.  The
 	 * post-hoc check in the routing block below (kept as a backstop)
@@ -2287,8 +2311,24 @@ the_end:
 	 *
 	 * Tier follows the descriptor as everywhere else — no mask op carries a
 	 * serializer yet, so these are all opaque today: the log says what was
-	 * done to the mask, and replaying it is a separate piece of work. */
-	if (!retval && args->op) {
+	 * done to the mask, and replaying it is a separate piece of work.
+	 *
+	 * Same capture gate as generic_image_worker, replay guard first: a Tier-C
+	 * script re-run's mask commands (cmd("mask_from_lum") etc.) travel through
+	 * this worker under SLOT_REPLAY and reproduce existing records — capturing
+	 * here would grow the mask's chain by one bogus step per replay.  And a
+	 * script's own mask op under an open provenance scope coalesces into the
+	 * end-of-scope record instead of capturing per-op. */
+	if (!retval && args->op && processing_is_reserved_for_replay()) {
+		/* Replay re-run: no capture, and never mark an unrelated resident
+		 * script's open scope dirty. */
+	} else if (!retval && args->op && nde_script_scope_active()
+	           && processing_current_job_from_python()) {
+		/* The script's own mask op: a mask change is invisible to the scope's
+		 * pixel-hash net-effect test, so flag it as a non-pixel mutation to
+		 * force an end-of-scope record (same as handle_set_image_mask). */
+		nde_script_scope_mark_nonpixel_dirty();
+	} else if (!retval && args->op) {
 		/* The image the op saw, captured BEFORE the ids below, because a
 		 * mask-creation op reads the layer's pixels to build the mask:
 		 * mask.from_channel and friends are image -> MASK nodes, and their
@@ -2312,7 +2352,28 @@ the_end:
 		}
 		/* 0 means there was no mask item at all: a routing failure that left
 		 * nothing behind, or a clear of a slot that never held one. */
-		if (mask_item != 0) {
+		gboolean forget = FALSE;
+		if (mask_item != 0 && !routed_to_layer &&
+		    !g_strcmp0(args->op->id, "mask.clear") &&
+		    !nde_history_item_is_pinned(mask_item) &&
+		    !nde_edit_at_active()) {
+			/* Clearing a mask nothing ever consumed: no step pins it, so its
+			 * records describe an item that influenced no pixels and its only
+			 * future would be an orphan node in the graph.  Forget the whole
+			 * episode — records, stored states, cache — instead of recording
+			 * the clear.  A USED mask takes the ordinary path below: its
+			 * records and pinned states must persist so the steps that ran
+			 * under it stay replayable after it is cleared (it goes dormant,
+			 * not away).  Not during an open insertion point, whose stashed
+			 * tail is invisible to the pin scan. */
+			forget = TRUE;
+			if (nde_history_forget_item(mask_item)) {
+				nde_checkpoint_drop(mask_item);
+				nde_snapstore_invalidate_from(mask_item, 0);
+				nde_history_notify_panel();
+			}
+		}
+		if (mask_item != 0 && !forget) {
 			nde_record *rec = nde_record_new();
 			gboolean tier_a = args->op->serialize != NULL;
 			rec->op_id      = g_strdup(args->op->id);
@@ -2347,9 +2408,13 @@ the_end:
 			rec->impl       = nde_impl_string();
 			gint64 mask_rec_id = nde_history_append(rec);
 			nde_history_notify_panel();
-			/* The hook saved an undo entry above; couple it so undo/redo
-			 * moves live_count with the pixels. */
-			undo_tag_top_nde_record(mask_rec_id);
+			/* Couple the undo entry the worker saved above so undo/redo moves
+			 * live_count with the pixels — under the SAME condition the save
+			 * used (args->fit == gfit && !args->command).  A command-context
+			 * mask op saves no entry, and an unguarded tag would re-couple
+			 * whatever unrelated entry sits on top of the undo stack. */
+			if (args->fit == gfit && !args->command)
+				undo_tag_top_nde_record(mask_rec_id);
 		}
 	}
 
@@ -2501,7 +2566,17 @@ gpointer generic_layer_worker(gpointer p) {
 	 * below) frees args, so capture here.  Skip on failure — the hook did not
 	 * validly mutate the document. */
 	gint64 nde_rec_id = 0;
-	if (!retval && args->op) {
+	if (!retval && args->op && processing_is_reserved_for_replay()) {
+		/* Same replay-first gate as the image and mask workers: a Tier-C
+		 * script re-run reproduces existing records — no new capture, and no
+		 * marking of an unrelated resident script's open scope. */
+	} else if (!retval && args->op && nde_script_scope_active()
+	           && processing_current_job_from_python()) {
+		/* The script's own layer op coalesces into its end-of-scope record.
+		 * Layer-worker ops rewrite document pixels, so the pixel-hash
+		 * net-effect test will see them. */
+		nde_script_scope_mark_pixels_dirty();
+	} else if (!retval && args->op) {
 		const op_descriptor *op = args->op;
 		/* Layer-worker ops act on the WHOLE document (DOCUMENT scope) and are
 		 * hard blockers in nde_chain_build (a document-wide pixel record fails

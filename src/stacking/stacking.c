@@ -32,6 +32,7 @@
 #include "core/siril_date.h"
 #include "core/siril_log.h"
 #include "core/arithm.h"
+#include "core/nde_history.h"
 #include "io/image_format_fits.h"
 #include "io/image_format_flis.h"
 #include "io/path_parse.h"
@@ -161,6 +162,21 @@ gpointer stack_function_handler(gpointer p) {
 		 * stacked result would be saved without an embedded profile. */
 		if (!com.script)
 			icc_auto_assign(gfit, ICC_ASSIGN_ON_STACK);
+		/* Where this image came from, as the first step of its history.  A
+		 * stack result is an origin like any other: these pixels were not
+		 * derived from anything the history can name, so what the history can
+		 * say is how many frames went into them and from which sequence.
+		 * After the fresh com.uniq, which is where the history lives. */
+		{
+			gchar *sum = g_strdup_printf(
+					ngettext("Stacked %d image", "Stacked %d images",
+					         args->nb_images_to_stack),
+					args->nb_images_to_stack);
+			nde_capture_image_origin("stack",
+			                         args->seq && args->seq->seqname ?
+			                                 args->seq->seqname : "", sum);
+			g_free(sum);
+		}
 		/* Giving summary if average rejection stacking */
 		_show_summary(args);
 

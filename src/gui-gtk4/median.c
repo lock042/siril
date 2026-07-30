@@ -244,7 +244,7 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 			 * runs in the worker below.  Median is Tier A with no mask here,
 			 * so it is not a barrier and post is ignored anyway — but pass
 			 * NULL to stay correct should a mask ever make it a barrier. */
-			rid = nde_capture_from_descriptor(&op_desc_median, params, summary, NULL);
+			rid = nde_capture_from_descriptor(&op_desc_median, params, summary, NULL, FALSE);
 		}
 		if (!undo_save_state(gfit, "%s", summary) && gui.roi.active)
 			undo_tag_top_nde_record(rid);

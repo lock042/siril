@@ -229,7 +229,7 @@ gboolean end_open_single_image(gpointer arg) {
 }
 
 /* filename will be freed when the unique file is closed */
-int create_uniq_from_gfit(char *filename, gboolean exists) {
+int create_uniq_from_gfit(char *filename, gboolean exists, const char *origin) {
 	/* If com.uniq is already populated as a FLIS (load_flis ran during
 	 * read_single_image via the readfits FLIS dispatch), preserve the
 	 * layer/group state and only fill in filename + fileexist.  Without
@@ -257,6 +257,18 @@ int create_uniq_from_gfit(char *filename, gboolean exists) {
 	 * routes to the staging area when com.uniq is NULL (i.e. during
 	 * load, before this function runs). */
 	install_staged_icc_profile();
+
+	/* Where this image came from, as the first step of its history.  After
+	 * com.uniq exists, because that is where the history lives.  A generated
+	 * result's @filename is a label rather than a path, so only a real file
+	 * gets a basename out of it. */
+	gchar *base = g_strcmp0(origin, "file") ? NULL :
+			g_path_get_basename(filename ? filename : "");
+	gchar *summary = base ? g_strdup_printf(_("Opened '%s'"), base)
+	                      : g_strdup(filename ? filename : _("New image"));
+	nde_capture_image_origin(origin, base ? base : filename, summary);
+	g_free(summary);
+	g_free(base);
 	return 0;
 }
 
@@ -294,7 +306,7 @@ int open_single_image_internal(const char* filename) {
 
 		/* Now initializing com struct */
 		com.seq.current = UNRELATED_IMAGE;
-		create_uniq_from_gfit(realname, get_type_from_filename(realname) == TYPEFITS);
+		create_uniq_from_gfit(realname, get_type_from_filename(realname) == TYPEFITS, "file");
 		if (!com.headless)
 			gui_iface.execute_idle_sync(end_open_single_image, NULL);
 	} else {
@@ -451,7 +463,7 @@ int install_new_single_image(fits *newfit, char *realname) {
 	 * thread, so end_open_single_image() is called directly rather than via
 	 * execute_idle_sync() as the straight-line path does from the worker). */
 	com.seq.current = UNRELATED_IMAGE;
-	create_uniq_from_gfit(realname, get_type_from_filename(realname) == TYPEFITS);
+	create_uniq_from_gfit(realname, get_type_from_filename(realname) == TYPEFITS, "file");
 	if (!com.headless)
 		end_open_single_image(NULL);
 	gui_iface.reset_cut_gui_filedependent(NULL);

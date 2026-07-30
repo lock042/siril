@@ -825,7 +825,7 @@ static void check_gfit_is_ours() {
 	clear_stars_list(TRUE);
 	com.seq.current = UNRELATED_IMAGE;
 	char *temp = strdup(_("Unsaved compositing result"));
-	if (!create_uniq_from_gfit(temp, FALSE))
+	if (!create_uniq_from_gfit(temp, FALSE, "generated"))
 		com.uniq->comment = strdup(_("Compositing result image"));
 	else
 		free(temp);

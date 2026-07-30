@@ -1052,7 +1052,7 @@ Test(nde_composite, a_dialog_captured_op_also_lands_in_the_borrowed_input) {
 	/* Exactly what a dialog does on Apply: no worker, just the capture. */
 	asinh_params ap = { .beta = 14.f, .clip_mode = RESCALE };
 	gint64 rid = nde_capture_from_descriptor(&op_desc_asinh, &ap,
-	                                         "Asinh from a dialog", NULL);
+	                                         "Asinh from a dialog", NULL, FALSE);
 	cr_assert_neq(rid, 0, "the capture must be recorded");
 
 	GPtrArray *snap = nde_history_snapshot(NULL);
@@ -1066,6 +1066,42 @@ Test(nde_composite, a_dialog_captured_op_also_lands_in_the_borrowed_input) {
 	cr_assert_eq(target, bottom_item,
 	             "a dialog-driven op must be filed against the borrowed item, "
 	             "not the layer that happens to be active");
+
+	cr_assert(reserve_thread());
+	nde_edit_at_end_execute(FALSE, &err);
+	unreserve_thread();
+	g_free(err);
+	done();
+}
+
+/* The checkpoint side of the same question: baselines seeded from dialog
+ * commit-points go through nde_checkpoint_active_item_id(), which used to be
+ * a borrowed-blind copy of the capture-target answer — so a baseline seeded
+ * while an insertion had borrowed the display filed the borrowed item's
+ * pre-anchor pixels under the ACTIVE layer (a merge product, which must have
+ * no baseline of its own).  One answer now: it follows the borrowed item. */
+Test(nde_composite, checkpoint_item_answer_follows_the_borrowed_input) {
+	gint bottom_item = 0;
+	two_edited_layers_merged(&bottom_item, NULL, FLIS_BLEND_NORMAL, 0.5f);
+	gint64 anchor = record_for_item(bottom_item);
+	cr_assert_neq(anchor, 0);
+
+	flis_layer_t *active = flis_active_layer();
+	cr_assert_not_null(active);
+	cr_assert_neq(active->item_id, bottom_item,
+	              "precondition: the merge product is a different item");
+	cr_assert_eq(nde_checkpoint_active_item_id(), active->item_id,
+	             "no insertion open: the active layer answers");
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_edit_at_begin_execute(anchor, &err), "%s", err ? err : "?");
+	unreserve_thread();
+	g_free(err);
+
+	cr_assert_eq(nde_checkpoint_active_item_id(), bottom_item,
+	             "insertion open on a consumed input: the borrowed item answers, "
+	             "so a baseline cannot be seeded under the merge product");
 
 	cr_assert(reserve_thread());
 	nde_edit_at_end_execute(FALSE, &err);
@@ -1227,6 +1263,182 @@ Test(nde_composite, a_flatten_over_a_masked_layer_replays) {
 	clearfits(result); free(result);
 	nde_chain_free(chain);
 	clearfits(&expected);
+	done();
+}
+
+/* Undoing the composite must bring the mask back with the layer: the capture
+ * stored a copy of every input's mask, and restoring the layer without it
+ * would not restore the document (and a re-flatten would blend unmasked). */
+Test(nde_composite, undoing_a_flatten_restores_the_layer_mask) {
+	com.pref.nde_cache_mb = 256;
+	flis_test_add_layer(flis_test_make_rgb_fits(4, 4, 0.5f, 0.5f, 0.5f), "bottom");
+	flis_layer_t *top = flis_test_add_layer(
+	    flis_test_make_rgb_fits(4, 4, 0.25f, 0.25f, 0.25f), "top");
+	cr_assert_eq(flis_layer_set_lmask(top, flis_test_make_const_lmask(4, 4, 8, 0.5)), 0);
+	top->lmask_active = TRUE;
+	const gint top_item = top->item_id;
+
+	cr_assert_eq(flis_flatten_all(), 0);
+	gfit = ((flis_layer_t *)com.uniq->layers->data)->fit;
+	const nde_record *rec = find_composite_record();
+	cr_assert_not_null(rec);
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_composite_undo_execute(rec->record_id, &err),
+	          "undo failed: %s", err ? err : "?");
+	unreserve_thread();
+	g_free(err);
+
+	flis_layer_t *t = flis_layer_get_by_id(top_item);
+	cr_assert_not_null(t);
+	cr_assert_not_null(t->lmask, "the undo must bring the layer mask back");
+	cr_assert(t->lmask_active);
+	cr_assert_neq(t->lmask_item_id, 0, "re-linked to its mask item");
+	cr_assert_eq(t->lmask->bitpix, 8,
+	             "an 8-bit mask stays 8-bit through the round trip");
+	cr_assert_eq(((const uint8_t *)t->lmask->data)[0], 128,
+	             "and keeps its pixels");
+	done();
+}
+
+/* A flatten frees the layers it consumed but leaves their group object alive in
+ * com.uniq->groups.  The undo re-creates every recorded group, so it must reuse
+ * the survivor rather than append a second flis_group_t with the same item_id —
+ * a duplicate wrote doubled rows on save, doubled the "Move to group" dropdown,
+ * and leaked a sub-composite per render.  So exactly one group with that id may
+ * exist after the undo, and the restored layers must be members of it. */
+Test(nde_composite, undoing_a_flatten_does_not_duplicate_the_group) {
+	com.pref.nde_cache_mb = 256;
+	flis_layer_t *l[3] = {
+	    flis_test_add_layer(flis_test_make_rgb_fits(4, 4, 0.5f, 0.5f, 0.5f), "bottom"),
+	    flis_test_add_layer(flis_test_make_rgb_fits(4, 4, 0.25f, 0.25f, 0.25f), "g1"),
+	    flis_test_add_layer(flis_test_make_rgb_fits(4, 4, 0.6f, 0.6f, 0.6f), "g2"),
+	};
+	flis_group_t *grp = flis_group_add("stack");
+	cr_assert_not_null(grp);
+	grp->blend_mode = FLIS_BLEND_MULTIPLY;   /* not PASS_THROUGH: pre-composited */
+	grp->opacity    = 0.6f;
+	grp->visible    = TRUE;
+	const gint grp_item = grp->item_id;
+	const gint g1_item = l[1]->item_id, g2_item = l[2]->item_id;
+	cr_assert_eq(flis_layer_set_group(l[1], grp_item), 0);
+	cr_assert_eq(flis_layer_set_group(l[2], grp_item), 0);
+
+	cr_assert_eq(flis_flatten_all(), 0);
+	gfit = ((flis_layer_t *)com.uniq->layers->data)->fit;
+	const nde_record *rec = find_composite_record();
+	cr_assert_not_null(rec);
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_composite_undo_execute(rec->record_id, &err),
+	          "undo failed: %s", err ? err : "?");
+	unreserve_thread();
+	g_free(err);
+
+	/* Exactly one group carries that id — not two. */
+	guint matches = 0;
+	for (GSList *s = com.uniq->groups; s; s = s->next) {
+		const flis_group_t *gr = (const flis_group_t *)s->data;
+		if (gr && gr->item_id == grp_item) matches++;
+	}
+	cr_assert_eq(matches, 1,
+	             "the undo must reuse the surviving group, not duplicate it (found %u)",
+	             matches);
+
+	/* And the restored layers are members of it again. */
+	flis_layer_t *g1 = flis_layer_get_by_id(g1_item);
+	flis_layer_t *g2 = flis_layer_get_by_id(g2_item);
+	cr_assert_not_null(g1);
+	cr_assert_not_null(g2);
+	cr_assert_eq(g1->group_id, grp_item, "the first member rejoins the group");
+	cr_assert_eq(g2->group_id, grp_item, "and so does the second");
+	done();
+}
+
+/* Merge-down paints its bottom input raw, so that mask never participates in
+ * the render — but it existed on the pre-merge document, so the undo must put
+ * it back too.  Its item id rides in the params with was_masked FALSE. */
+Test(nde_composite, undoing_a_merge_down_restores_the_bottom_raw_mask) {
+	com.pref.nde_cache_mb = 256;
+	flis_layer_t *bottom = flis_test_add_layer(
+	    flis_test_make_rgb_fits(4, 4, 0.5f, 0.5f, 0.5f), "bottom");
+	flis_layer_t *top = flis_test_add_layer(
+	    flis_test_make_rgb_fits(4, 4, 0.25f, 0.25f, 0.25f), "top");
+	cr_assert_eq(flis_layer_set_lmask(bottom,
+	                                  flis_test_make_const_lmask(4, 4, 8, 0.25)), 0);
+	bottom->lmask_active = TRUE;
+	const gint bottom_item = bottom->item_id;
+
+	cr_assert_eq(flis_merge_down_layer(top), 0);
+	gfit = ((flis_layer_t *)com.uniq->layers->data)->fit;
+	const nde_record *rec = find_composite_record();
+	cr_assert_not_null(rec);
+
+	nde_composite_state *st = nde_composite_state_parse(rec->params);
+	cr_assert_not_null(st);
+	const nde_composite_input *base_in =
+	    &g_array_index(st->inputs, nde_composite_input, 0);
+	cr_assert(!base_in->was_masked, "raw base: the mask is not applied");
+	cr_assert_neq(base_in->mask_item_id, 0, "but it is recorded for the undo");
+	nde_composite_state_free(st);
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_composite_undo_execute(rec->record_id, &err),
+	          "undo failed: %s", err ? err : "?");
+	unreserve_thread();
+	g_free(err);
+
+	flis_layer_t *b = flis_layer_get_by_id(bottom_item);
+	cr_assert_not_null(b);
+	cr_assert_not_null(b->lmask, "the bottom layer's mask must come back");
+	cr_assert(b->lmask_active);
+	cr_assert_eq(((const uint8_t *)b->lmask->data)[0], 64);
+	done();
+}
+
+/* A merge-down in a 3+ layer document: the undo must put the restored layers
+ * back into their recorded stacking slots, below layers the merge never
+ * consumed — not on top of them, which would change the blend order and the
+ * rendered image the undo claims to restore.  And the active layer must be
+ * one the undo brought back. */
+Test(nde_composite, undoing_a_merge_down_restores_the_stacking_order) {
+	com.pref.nde_cache_mb = 256;
+	flis_layer_t *a = flis_test_add_layer(
+	    flis_test_make_rgb_fits(4, 4, 0.5f, 0.5f, 0.5f), "A");
+	flis_layer_t *b = flis_test_add_layer(
+	    flis_test_make_rgb_fits(4, 4, 0.25f, 0.25f, 0.25f), "B");
+	flis_layer_t *c = flis_test_add_layer(
+	    flis_test_make_rgb_fits(4, 4, 0.75f, 0.75f, 0.75f), "C");
+	const gint a_item = a->item_id, b_item = b->item_id, c_item = c->item_id;
+
+	cr_assert_eq(flis_merge_down_layer(b), 0);   /* B onto A; C untouched */
+	cr_assert_eq(flis_layer_count(), 2);
+	gfit = flis_active_layer_fit();
+	const nde_record *rec = find_composite_record();
+	cr_assert_not_null(rec);
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_composite_undo_execute(rec->record_id, &err),
+	          "undo failed: %s", err ? err : "?");
+	unreserve_thread();
+	g_free(err);
+
+	cr_assert_eq(flis_layer_count(), 3);
+	const flis_layer_t *l0 = g_slist_nth_data(com.uniq->layers, 0);
+	const flis_layer_t *l1 = g_slist_nth_data(com.uniq->layers, 1);
+	const flis_layer_t *l2 = g_slist_nth_data(com.uniq->layers, 2);
+	cr_assert_eq(l0->item_id, a_item, "A back at the bottom");
+	cr_assert_eq(l1->item_id, b_item, "B back in the middle");
+	cr_assert_eq(l2->item_id, c_item, "C still on top, where the merge left it");
+
+	flis_layer_t *active = flis_active_layer();
+	cr_assert_not_null(active);
+	cr_assert_eq(active->item_id, a_item,
+	             "the active layer is one the undo brought back");
 	done();
 }
 

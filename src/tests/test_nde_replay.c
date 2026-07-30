@@ -127,8 +127,8 @@ Test(nde_replay, chain_replays_bit_exact) {
 	nde_checkpoint_baseline_ensure(f, -1);
 	struct mirror_args ma = { 0 };
 	ma.x_axis = TRUE;
-	cr_assert(nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m1", NULL) > 0);
-	cr_assert(nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m2", NULL) > 0);
+	cr_assert(nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m1", NULL, FALSE) > 0);
+	cr_assert(nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m2", NULL, FALSE) > 0);
 
 	nde_chain *chain = nde_chain_build(-1);
 	cr_assert(chain->replayable, "all-Tier-A chain with baseline must be replayable (first reason: %s)",
@@ -196,7 +196,7 @@ Test(nde_replay, chain_blockers_are_reported) {
 
 	/* missing baseline → not replayable */
 	struct mirror_args ma = { 0 };
-	nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m", NULL);
+	nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m", NULL, FALSE);
 	nde_checkpoint_purge();
 	chain = nde_chain_build(-1);
 	cr_assert(!chain->replayable);
@@ -1018,9 +1018,9 @@ Test(nde_replay, document_scope_pixel_ops_block_chains) {
 	fits *f = flis_test_make_mono_fits(8, 8, 0.5f);
 	nde_checkpoint_baseline_ensure(f, -1);
 	struct mirror_args ma = { 0 };
-	nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m", NULL);
+	nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m", NULL, FALSE);
 	nde_capture_opaque("icc.convert", NDE_SCOPE_DOCUMENT, -1, "Converted profile", NULL);
-	nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m2", NULL);
+	nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m2", NULL, FALSE);
 
 	nde_chain *chain = nde_chain_build(-1);
 	cr_assert(!chain->replayable,
@@ -1260,9 +1260,15 @@ Test(nde_replay, capture_opaque_wires_output_checkpoint) {
 }
 
 /* A Tier-A capture is not a barrier: it stores no output checkpoint even when
- * a post fits is supplied.  A Tier-A capture with a mask active IS a barrier
- * and does store one. */
-Test(nde_replay, capture_tier_a_checkpoint_only_when_mask_active) {
+ * a post fits is supplied.  missedasinh.png: a masked dialog capture used to
+ * be a barrier outright — the flag was set from gfit but neither WHICH mask
+ * nor its pixels were recorded, so a stretch applied from a dialog froze its
+ * whole chain.  It now pins the mask and keeps its state, like the worker's
+ * own capture, so it stays replayable; and a NON-mask-aware dialog (curves
+ * before it learned to blend, median, background extraction) records an
+ * unmasked step even with a mask sitting active, because its op never read
+ * it. */
+Test(nde_replay, masked_dialog_capture_pins_the_mask_instead_of_freezing) {
 	fits *f = flis_test_make_mono_fits(8, 8, 0.4f);
 	gfit = f;
 	nde_checkpoint_baseline_ensure(f, -1);
@@ -1270,24 +1276,40 @@ Test(nde_replay, capture_tier_a_checkpoint_only_when_mask_active) {
 	/* Tier A, no mask → not a barrier → no checkpoint even with a post fits */
 	struct mirror_args ma = { 0 };
 	ma.x_axis = TRUE;
-	gint64 a = nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m", f);
+	gint64 a = nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m", f, FALSE);
 	cr_assert(a > 0);
 	cr_assert(!nde_checkpoint_output_exists(a),
 	          "a Tier-A capture without a mask is not a barrier — no checkpoint");
 
-	/* Tier A WITH a mask active → barrier → checkpoint stored.  The
-	 * descriptor path reads gfit->mask/mask_active, so install a minimal
-	 * mask (a non-NULL mask_t with mask_active is all the check needs). */
+	/* Tier A WITH a mask active, caller mask-aware: pinned + kept. */
 	cr_assert_null(gfit->mask);
 	gfit->mask = calloc(1, sizeof(mask_t));
-	gfit->mask->bitpix = FLOAT_IMG;
-	gfit->mask->data = calloc((size_t)gfit->rx * gfit->ry, sizeof(float));
+	gfit->mask->bitpix = BYTE_IMG;
+	gfit->mask->data = calloc((size_t)gfit->rx * gfit->ry, 1);
 	gfit->mask_active = TRUE;
 
-	gint64 am = nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m-masked", f);
+	gint64 am = nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m-masked", f, TRUE);
 	cr_assert(am > 0);
-	cr_assert(nde_checkpoint_output_exists(am),
-	          "a Tier-A capture with a mask active is a barrier — checkpoint stored");
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	const nde_record *rec = g_ptr_array_index(snap, snap->len - 1);
+	cr_assert(rec->mask_active);
+	const nde_input_pin *pin = nde_record_input(rec, "mask");
+	cr_assert_not_null(pin, "the capture must say WHICH mask");
+	cr_assert_eq(pin->src_item_id, NDE_ITEM_PLAIN_MASK);
+	cr_assert(nde_mask_pin_resolvable(rec), "and keep its pixels");
+	cr_assert(!nde_checkpoint_output_exists(am),
+	          "with the mask kept there is nothing to freeze — not a barrier");
+
+	/* Same mask still active, but the caller's op ignored it. */
+	gint64 nm = nde_capture_from_descriptor(&op_desc_mirrorx, &ma, "m-unaware", f, FALSE);
+	cr_assert(nm > 0);
+	g_ptr_array_unref(snap);
+	snap = nde_history_snapshot(NULL);
+	rec = g_ptr_array_index(snap, snap->len - 1);
+	cr_assert(!rec->mask_active,
+	          "an op that never read the mask must not claim it was masked");
+	cr_assert_null(nde_record_input(rec, "mask"));
+	g_ptr_array_unref(snap);
 
 	gfit->mask_active = FALSE;
 	free(gfit->mask->data);
@@ -2442,6 +2464,84 @@ Test(nde_replay, amending_a_crop_moves_the_layer) {
 	gfit = NULL;
 }
 
+/* An amended geometry step on a CONSUMED input must move where that input
+ * lands in the composite.  A chain with a geometry member re-derives its
+ * position on replay — the same rule the live layer's own amend follows
+ * (amending_a_crop_moves_the_layer above) — so the render must use the
+ * replayed position, not the offset recorded at capture time.  Before the
+ * fix the amended pixels were rendered at the stale recorded offset. */
+Test(nde_replay, amending_a_crop_on_a_consumed_input_moves_it_in_the_composite) {
+	com.pref.nde_cache_mb = 256;
+	flis_test_add_layer(flis_test_make_mono_fits(64, 48, 0.f), "bottom");
+	flis_layer_t *top = flis_test_add_layer(
+	    flis_test_make_mono_fits(64, 48, 0.f), "top");
+	uniq_set_active_layer(com.uniq, 1);
+	gfit = flis_active_layer_fit();
+	fill_mono_gradient(gfit);
+	gint top_item = top->item_id;
+
+	/* a reference copy of the gradient, indexed in canvas coordinates */
+	fits *ref = flis_test_make_mono_fits(64, 48, 0.f);
+	fill_mono_gradient(ref);
+
+	struct crop_args *ca = calloc(1, sizeof(*ca));
+	ca->area = (rectangle){ .x = 8, .y = 6, .w = 32, .h = 24 };
+	cr_assert_eq(apply_op_real(&op_desc_crop, ca), 0);
+	cr_assert_eq(top->position_x, 8);
+	cr_assert_eq(top->position_y, 6);
+
+	cr_assert_eq(flis_merge_down_layer(top), 0);
+	cr_assert_eq(flis_layer_count(), 1);
+	flis_layer_t *merged = (flis_layer_t *)com.uniq->layers->data;
+	gfit = merged->fit;
+
+	/* the crop record on the consumed input */
+	gint64 crop_id = 0;
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	for (guint i = 0; snap && i < snap->len; i++) {
+		const nde_record *r = g_ptr_array_index(snap, i);
+		if (r->target_item_id == top_item && !g_strcmp0(r->op_id, "geometry.crop"))
+			crop_id = r->record_id;
+	}
+	g_ptr_array_unref(snap);
+	cr_assert_neq(crop_id, 0, "the consumed input's crop record must survive");
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_amend_execute(crop_id, "x=4;y=2;w=32;h=24", &err),
+	          "amend failed: %s", err ? err : "?");
+	unreserve_thread();
+
+	/* The patch now sits at (4,2), so inside it the composite reproduces the
+	 * gradient IN PLACE — content and position both follow the amended crop —
+	 * and outside it the bottom layer's zeros show.  With the stale-offset
+	 * bug the same content rendered at (8,6). */
+	/* Positions are display coordinates; fdata rows run bottom-up, so the
+	 * patch at position (4,2), 32x24 on the 64x48 canvas occupies fdata
+	 * x[4..35], rows [48-2-24 .. 48-2) = [22..45].  Both the crop window and
+	 * the placement flip the same way, so inside the patch the composite
+	 * reproduces the gradient at IDENTICAL raw indices. */
+	const fits *m = merged->fit;
+	cr_assert_eq(m->rx, 64u);
+	cr_assert_eq(m->ry, 48u);
+	#define MPX(x, y) m->fdata[(x) + (size_t)(y) * m->rx]
+	#define RPX(x, y) ref->fdata[(x) + (size_t)(y) * ref->rx]
+	cr_assert_float_eq(MPX(4, 22), RPX(4, 22), 1e-6,
+	                   "patch corner must land at the amended origin");
+	cr_assert_float_eq(MPX(35, 45), RPX(35, 45), 1e-6,
+	                   "opposite patch corner too");
+	cr_assert_float_eq(MPX(2, 1), 0.f, 1e-6,
+	                   "outside the patch the bottom layer shows");
+	cr_assert_float_eq(MPX(38, 30), 0.f, 1e-6,
+	                   "nothing may render at the stale pre-amend offset");
+	#undef MPX
+	#undef RPX
+
+	clearfits(ref); free(ref);
+	nde_history_attach(NULL);
+	gfit = NULL;
+}
+
 /* No recorded starting position (an older file) degrades honestly rather than
  * replaying from a position it made up. */
 Test(nde_replay, flis_geometry_without_a_start_position_is_a_blocker) {
@@ -2787,6 +2887,328 @@ Test(nde_replay, a_pin_before_the_edit_is_not_disturbed) {
 	golden_teardown(NULL, f);
 }
 
+/* ---------------- the image's own origin ---------------- */
+
+/* The origin record says where the BASELINE came from, and a replay starts
+ * from the baseline itself — so it must not be a chain member.  It is
+ * DOCUMENT-scope, and the chain builder FAILS CLOSED on a DOCUMENT-scope
+ * record it does not recognise: get this wrong and every image that has ever
+ * been opened becomes unreplayable. */
+Test(nde_replay, the_image_origin_record_is_not_a_step_to_re_run) {
+	com.pref.nde_cache_mb = 256;
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+	cr_assert_neq(nde_capture_image_origin("file", "x.fit", "Opened 'x.fit'"), 0);
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(10.f)), 0);
+
+	nde_chain *c = nde_chain_build(NDE_ITEM_IMAGE);
+	cr_assert(c->replayable, "chain not replayable: %s",
+	          c->reasons->len ? (char *)g_ptr_array_index(c->reasons, 0) : "none");
+	cr_assert_eq(c->records->len, 1, "the stretch is the only step to re-run");
+	nde_chain_free(c);
+
+	/* And it offers nothing to edit: where an image came from is not a step
+	 * whose parameters you can change, nor one you can remove. */
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	cr_assert_eq(snap->len, 2);
+	const nde_record *origin = g_ptr_array_index(snap, 0);
+	cr_assert_str_eq(origin->op_id, NDE_OP_IMAGE_ORIGIN);
+	cr_assert(!nde_record_amendable(origin));
+	cr_assert(!nde_record_deletable(origin));
+	g_ptr_array_unref(snap);
+	golden_teardown(NULL, f);
+}
+
+/* ------------- the reverse edge: image -> the masks built from it -------- */
+
+/* Asinh params as the record's own serializer writes them, with beta varied:
+ * an amend has to hand back a complete blob, not just the field that moved. */
+#define ASINH_PARAMS(b) "beta=" b ";offset=0;human=0;clip_mode=1"
+
+/* Stretch a gradient, then derive a mask from the stretched pixels.  Returns
+ * the mask (caller g_free()s) and its size, and leaves no history behind. */
+static guint8 *run_derived_mask(float beta, size_t *n_out) {
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(beta)), 0);
+	cr_assert_eq(apply_mask_op(&op_desc_mask_from_channel, from_channel(0)), 0);
+	guint8 *out = snapshot_mask(gfit, n_out);
+	nde_history_attach(NULL);      /* also purges the checkpoint store */
+	clearfits(f);
+	free(f);
+	gfit = NULL;
+	return out;
+}
+
+/* The edge the pin exists for, read the other way round.  A mask derived from
+ * an image records WHICH point of that image's history it read; editing the
+ * image at or before that point changes the pixels the mask was built from,
+ * so the mask has to be re-derived.  Nothing propagated that: the mask went on
+ * describing pixels that no longer existed anywhere.
+ *
+ * Asserted against the same work done natively in that order — "it changed"
+ * would not prove it changed to the right thing. */
+Test(nde_replay, amending_the_image_re_derives_a_mask_built_from_it) {
+	com.pref.nde_cache_mb = 256;
+	size_t n_native = 0;
+	guint8 *native = run_derived_mask(200.f, &n_native);
+
+	/* the same document built at beta 10, then amended to 200 */
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(10.f)), 0);
+	cr_assert_eq(apply_mask_op(&op_desc_mask_from_channel, from_channel(0)), 0);
+	size_t n = 0;
+	guint8 *before = snapshot_mask(gfit, &n);
+	cr_assert_eq(n, n_native);
+	cr_assert_neq(memcmp(before, native, n), 0,
+	              "fixture: the two stretches must give different masks");
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_amend_execute(1, ASINH_PARAMS("200"), &err),
+	          "amend failed: %s", err ? err : "?");
+	unreserve_thread();
+
+	cr_assert_not_null(gfit->mask, "the commit emptied the mask slot");
+	cr_assert_eq(memcmp(gfit->mask->data, native, n), 0,
+	             "the mask must be re-derived from the amended pixels");
+	g_free(before);
+	g_free(native);
+	golden_teardown(NULL, f);
+}
+
+/* Deleting a step is the same edge: what the mask read is gone. */
+Test(nde_replay, deleting_an_image_step_re_derives_a_mask_built_from_it) {
+	com.pref.nde_cache_mb = 256;
+	size_t n = 0;
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+	/* the unstretched mask, for comparison, before the stretch exists */
+	cr_assert_eq(apply_mask_op(&op_desc_mask_from_channel, from_channel(0)), 0);
+	guint8 *unstretched = snapshot_mask(gfit, &n);
+	nde_history_attach(NULL);
+	clearfits(f);
+	free(f);
+
+	f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(10.f)), 0);
+	cr_assert_eq(apply_mask_op(&op_desc_mask_from_channel, from_channel(0)), 0);
+	size_t n2 = 0;
+	guint8 *stretched = snapshot_mask(gfit, &n2);
+	cr_assert_eq(n, n2);
+	cr_assert_neq(memcmp(unstretched, stretched, n), 0, "fixture: the stretch matters");
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_delete_execute(1, &err), "delete failed: %s", err ? err : "?");
+	unreserve_thread();
+
+	cr_assert_not_null(gfit->mask, "the commit emptied the mask slot");
+	cr_assert_eq(memcmp(gfit->mask->data, unstretched, n), 0,
+	             "without the stretch the mask must be the unstretched one");
+	g_free(unstretched);
+	g_free(stretched);
+	golden_teardown(NULL, f);
+}
+
+/* A mask is a DIFFERENT ITEM with its own history, so replaying an image's
+ * pixels has no business touching the mask slot — and the replay produces no
+ * mask at all (mask_pin_clear runs after every masked member), so the
+ * wholesale commit swap moved that nothing in and freed the user's mask with
+ * the discarded pixels.  This mask is pinned to the image's BASELINE, which
+ * the reverse cascade deliberately skips: what has to keep it is the commit. */
+Test(nde_replay, a_history_edit_leaves_the_mask_slot_alone) {
+	com.pref.nde_cache_mb = 256;
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+	cr_assert_eq(apply_mask_op(&op_desc_mask_from_channel, from_channel(0)), 0);
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(10.f)), 0);
+	size_t n = 0;
+	guint8 *before = snapshot_mask(gfit, &n);
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_amend_execute(2, ASINH_PARAMS("200"), &err),
+	          "amend failed: %s", err ? err : "?");
+	unreserve_thread();
+
+	cr_assert_not_null(gfit->mask, "the edit emptied the mask slot");
+	cr_assert_eq(memcmp(gfit->mask->data, before, n), 0,
+	             "and nothing this mask was built from moved, so it must be "
+	             "the same mask");
+	g_free(before);
+	golden_teardown(NULL, f);
+}
+
+/* A mask can read the image MORE THAN ONCE: built from one channel, then
+ * rebuilt from another after the image was stretched again.  Each read is
+ * pinned to its own point, and both halves of the machinery have to honour
+ * that — the replay, which used to resolve only the FIRST record's pin and so
+ * fed every later read the first one's pixels, and the reverse cascade, which
+ * used to stop looking at a mask after its first pin and so missed an edit
+ * that moved only the second. */
+Test(nde_replay, a_mask_that_reads_the_image_twice_reads_each_point_it_pinned) {
+	com.pref.nde_cache_mb = 256;
+
+	/* the mask that sequence gives natively at beta 50 */
+	fits *nat = flis_test_make_rgb_fits(16, 12, 0.f, 0.f, 0.f);
+	fill_rgb_gradient(nat);
+	gfit = nat;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(10.f)), 0);
+	cr_assert_eq(apply_mask_op(&op_desc_mask_from_channel, from_channel(0)), 0);
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(50.f)), 0);
+	cr_assert_eq(apply_mask_op(&op_desc_mask_from_channel, from_channel(2)), 0);
+	size_t n_native = 0;
+	guint8 *native = snapshot_mask(gfit, &n_native);
+	nde_history_attach(NULL);
+	clearfits(nat);
+	free(nat);
+
+	/* the same thing with the SECOND stretch at 200, then amended to 50 */
+	fits *f = flis_test_make_rgb_fits(16, 12, 0.f, 0.f, 0.f);
+	fill_rgb_gradient(f);
+	gfit = f;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(10.f)), 0);
+	cr_assert_eq(apply_mask_op(&op_desc_mask_from_channel, from_channel(0)), 0);
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(200.f)), 0);
+	cr_assert_eq(apply_mask_op(&op_desc_mask_from_channel, from_channel(2)), 0);
+	size_t n = 0;
+	guint8 *before = snapshot_mask(gfit, &n);
+	cr_assert_eq(n, n_native);
+	cr_assert_neq(memcmp(before, native, n), 0,
+	              "fixture: the second stretch must reach the second read");
+
+	/* record 3 is the second stretch: the FIRST read is pinned before it and
+	 * must be left alone, the second is pinned at it and must be rebuilt. */
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_amend_execute(3, ASINH_PARAMS("50"), &err),
+	          "amend failed: %s", err ? err : "?");
+	unreserve_thread();
+
+	cr_assert_not_null(gfit->mask);
+	cr_assert_eq(memcmp(gfit->mask->data, native, n), 0,
+	             "the second read must re-derive from the amended pixels");
+	g_free(before);
+	g_free(native);
+	golden_teardown(NULL, f);
+}
+
+
+/* procmasksnag.png: an opaque step AFTER everything the mask's pin needs made
+ * resolve_item_state refuse the whole input — "the source of this input
+ * cannot be rebuilt: " with NOTHING after the colon, because a checkpointed
+ * barrier sets replayable FALSE without adding a reason.  Only the replayed
+ * prefix matters: the pin predates the barrier entirely. */
+Test(nde_replay, a_mask_pin_survives_a_barrier_recorded_after_it) {
+	com.pref.nde_cache_mb = 256;
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	cr_assert_eq(apply_mask_op(&op_desc_mask_from_channel, from_channel(0)), 0);
+	cr_assert_eq(apply_op_masked(&op_desc_asinh, asinh_beta(20.f)), 0);
+	/* An opaque freehand with its restart checkpoint: a barrier on the image
+	 * chain, well after the state the mask derives from. */
+	gfit->fdata[0] += 0.125f;
+	cr_assert(nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, -1,
+	                             "freehand", gfit) > 0);
+
+	size_t n = 0;
+	guint8 *before = snapshot_mask(gfit, &n);
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	gboolean ok = nde_amend_execute(1, "channel=0;autostretch=0;invert=1;bitpix=8",
+	                                &err);
+	unreserve_thread();
+	cr_assert(ok, "amending the mask's origin failed: %s", err ? err : "?");
+	assert_mask_differs(gfit, before, n, "amend-past-barrier");
+	g_free(before);
+	golden_teardown(NULL, f);
+}
+
+/* The pin can also land AFTER a barrier: a mask built once an opaque step had
+ * already run derives from pixels no from-baseline replay can produce.  The
+ * barrier's output checkpoint is that state — restart there. */
+Test(nde_replay, a_mask_built_after_a_barrier_restarts_from_its_checkpoint) {
+	com.pref.nde_cache_mb = 256;
+	fits *f = flis_test_make_mono_fits(16, 12, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(10.f)), 0);
+	gfit->fdata[5] += 0.25f;
+	cr_assert(nde_capture_opaque("python.set_pixeldata", NDE_SCOPE_LAYER, -1,
+	                             "freehand", gfit) > 0);
+	cr_assert_eq(apply_mask_op(&op_desc_mask_from_channel, from_channel(0)), 0);
+	cr_assert_eq(apply_op_masked(&op_desc_asinh, asinh_beta(20.f)), 0);
+
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	const nde_input_pin *img = nde_record_input(g_ptr_array_index(snap, 2), "image");
+	cr_assert_not_null(img);
+	cr_assert_eq(img->src_record_id, 2, "fixture: the mask derives from the barrier's output");
+	g_ptr_array_unref(snap);
+
+	size_t n = 0;
+	guint8 *before = snapshot_mask(gfit, &n);
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	gboolean ok = nde_amend_execute(3, "channel=0;autostretch=0;invert=1;bitpix=8",
+	                                &err);
+	unreserve_thread();
+	cr_assert(ok, "amending a mask derived from a barrier state failed: %s",
+	          err ? err : "?");
+	assert_mask_differs(gfit, before, n, "amend-from-barrier-state");
+	g_free(before);
+	golden_teardown(NULL, f);
+}
+
+/* procmasksnag: clearing a USED processing mask sends it dormant, not away.
+ * Its records stay editable — the rebuilt value refreshes the stored copies
+ * its consumers read and the consumers recompute — and the edit must not
+ * resurrect the mask the user cleared. */
+Test(nde_replay, editing_a_cleared_masks_step_still_reaches_its_consumers) {
+	com.pref.nde_cache_mb = 256;
+	flis_layer_t *lay = flis_test_add_layer(
+	    flis_test_make_mono_fits(16, 12, 0.f), "base");
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+	fill_mono_gradient(gfit);
+
+	cr_assert_eq(apply_mask_op(&op_desc_mask_from_channel, from_channel(0)), 0);
+	gint mask_item = flis_layer_pmask_id(lay);
+	cr_assert_neq(mask_item, 0);
+	cr_assert_eq(apply_op_masked(&op_desc_asinh, asinh_beta(20.f)), 0);
+	cr_assert_eq(apply_mask_op(&op_desc_mask_clear, NULL), 0);
+	cr_assert_null(lay->fit->mask, "fixture: the mask is cleared");
+
+	size_t n = (size_t)gfit->rx * gfit->ry;
+	float *before = g_malloc(n * sizeof(float));
+	memcpy(before, gfit->fdata, n * sizeof(float));
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	gboolean ok = nde_amend_execute(1, "channel=0;autostretch=0;invert=1;bitpix=8",
+	                                &err);
+	unreserve_thread();
+	cr_assert(ok, "editing a cleared mask's step failed: %s", err ? err : "?");
+	cr_assert_neq(memcmp(gfit->fdata, before, n * sizeof(float)), 0,
+	              "the step that ran under the mask must be recomputed");
+	cr_assert_null(lay->fit->mask, "the edit must not resurrect a cleared mask");
+
+	g_free(before);
+	nde_history_attach(NULL);
+	gfit = NULL;
+}
+
 /* An 8-bit mask survives its trip through the snapshot store as an 8-bit mask.
  * It used to come back 16-bit: mask_to_fits widens 8-bit mask bytes into WORDs
  * and fits_to_mask reads orig_bitpix to decide what to rebuild, but the
@@ -2898,3 +3320,4 @@ Test(nde_replay, losing_the_baseline_blocks_the_chain_not_a_member) {
 
 	golden_teardown(NULL, f);
 }
+

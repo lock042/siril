@@ -451,9 +451,20 @@ void nde_snapstore_deposit(const fits *state, gint item_id, gint64 record_id) {
 	 * document holding many editability pins leaves the cache less room —
 	 * which is the intended priority, cache yielding to pins. */
 	gint64 budget = pool_budget_bytes();
-	while (live_bytes > budget && pool.length > 1) {
+	/* live_bytes only drops in nde_snap_unref, which runs in pool_release()
+	 * AFTER we drop the mutex — so it stays put while we evict.  Track the
+	 * would-be freed bytes locally and test live_bytes - evicted, otherwise
+	 * the condition is loop-invariant and we drain the pool to one entry
+	 * instead of trimming to fit (mirrors nde_snapstore_reclaim_pool, which
+	 * accumulates freed bytes the same way).  A victim still pinned elsewhere
+	 * (refcount > 1) won't actually free memory when we drop our ref, so this
+	 * estimate can under-shoot the budget — accepted: cache entries yield to
+	 * pins, and over-eviction of an in-use snap would be the worse error. */
+	gint64 evicted = 0;
+	while (live_bytes - evicted > budget && pool.length > 1) {
 		nde_snap *victim = g_queue_pop_tail(&pool);
 		pool_bytes -= victim->bytes;
+		evicted += victim->bytes;
 		stats.evictions++;
 		g_ptr_array_add(doomed, victim);
 	}

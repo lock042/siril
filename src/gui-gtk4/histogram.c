@@ -1540,7 +1540,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 					.is_preview = FALSE
 				};
 				log_string = generate_mtf_log_message(&data, SUMMARY);
-				rid = nde_capture_from_descriptor(&op_desc_mtf, &data, log_string, gfit);
+				rid = nde_capture_from_descriptor(&op_desc_mtf, &data, log_string, gfit, TRUE);
 
 			} else if (invocation == GHT_STRETCH) {
 				struct ght_params params = {
@@ -1563,7 +1563,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 					.params_ght = &params,
 					.auto_display_compensation = FALSE
 				};
-				rid = nde_capture_from_descriptor(&op_desc_ghs, &data, log_string, gfit);
+				rid = nde_capture_from_descriptor(&op_desc_ghs, &data, log_string, gfit, TRUE);
 			}
 
 			if (log_string) {

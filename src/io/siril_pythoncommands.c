@@ -3495,7 +3495,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				filename[payload_length] = '\0'; // Null-terminate the string
 				gboolean exists = g_file_test(filename, G_FILE_TEST_EXISTS);
 				if (!com.uniq) {
-					create_uniq_from_gfit(filename, exists);  // com.uniq takes ownership of filename, no need to free it here
+					// A name for an image the script produced, or the file it
+					// read: only the second is an origin "from a file".
+					create_uniq_from_gfit(filename, exists,
+					                      exists ? "file" : "generated");  // com.uniq takes ownership of filename, no need to free it here
 				} else {
 					free(com.uniq->filename);
 					com.uniq->filename = filename; // com.uniq takes ownership of filename, no need to free it here

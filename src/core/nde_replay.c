@@ -70,6 +70,11 @@ static void add_reason(nde_chain *chain, const char *fmt, ...) {
 	va_start(ap, fmt);
 	g_ptr_array_add(chain->reasons, g_strdup_vprintf(fmt, ap));
 	va_end(ap);
+	/* Every reason is added while the build stands at the blocked position:
+	 * records->len is the index the offending member would have (or has not
+	 * yet) taken, so everything before it is still clean. */
+	if (chain->records->len < chain->first_block)
+		chain->first_block = chain->records->len;
 }
 
 /* ---- Tier-C: replayable Python scripts (nde-phase5) -------------------- */
@@ -274,6 +279,30 @@ static void mask_pin_clear(fits *scratch) {
 	scratch->mask_active = FALSE;
 }
 
+/* Swap @result's pixels into @target — the commit every replay ends with —
+ * LEAVING THE MASK SLOT WHERE IT IS.
+ *
+ * A mask is an item in its own right, with a history of its own; a replay of
+ * the pixels neither produces one (mask_pin_clear runs after every masked
+ * member, so a replayed result carries no mask at all) nor has any business
+ * replacing one.  The wholesale swap did both: every amend, delete, reorder or
+ * insertion on an image silently emptied that image's processing mask slot,
+ * because the replay's NULL went in and the user's mask came out and was freed
+ * with the discarded pixels.  Pre-swapping the slots means the wholesale swap
+ * below puts them back, and the value @result then holds is the replay's own
+ * (usually none), freed with it.
+ *
+ * Caller holds @target's writer lock, as it did for the bare swap. */
+static void commit_pixels(fits *target, fits *result) {
+	mask_t *m = target->mask;
+	target->mask = result->mask;
+	result->mask = m;
+	gboolean active = target->mask_active;
+	target->mask_active = result->mask_active;
+	result->mask_active = active;
+	fits_swap_all_except_rwlock(target, result);
+}
+
 /* TRUE when the record's params pin an external image file (Convention 1) —
  * a mask built from one needs no image input, because the hook loads it. */
 static gboolean record_names_a_file(const nde_record *rec) {
@@ -361,6 +390,7 @@ static nde_chain *chain_build_excluding(gint item_id, gint64 exclude_record_id) 
 	chain->reasons = g_ptr_array_new_with_free_func(g_free);
 	chain->snapshot = nde_history_snapshot(NULL);
 	chain->member_flags = g_array_new(FALSE, TRUE, sizeof(guint8));
+	chain->first_block = G_MAXUINT;
 	gboolean is_flis = is_current_image_flis();
 	/* Barrier tracking (phase 4): tail_possible follows the LAST freeze
 	 * cause in document order — TRUE when it left a restart point. */
@@ -409,7 +439,11 @@ static nde_chain *chain_build_excluding(gint item_id, gint64 exclude_record_id) 
 			                      !g_strcmp0(rec->op_id, "layer.add") ||
 			                      !g_strcmp0(rec->op_id, "layer.duplicate") ||
 			                      !g_strcmp0(rec->op_id, "layer.remove") ||
-			                      !g_strcmp0(rec->op_id, "layer.reorder");
+			                      !g_strcmp0(rec->op_id, "layer.reorder") ||
+			                      /* Says where the BASELINE came from, which is
+			                       * where a replay already starts; running it
+			                       * would mean re-opening the file. */
+			                      !g_strcmp0(rec->op_id, NDE_OP_IMAGE_ORIGIN);
 			if (destructive && rec->target_item_id == item_id) {
 				if (nde_composite_record_replayable(rec)) {
 					/* A composite node (graph step 7): its inputs are
@@ -462,6 +496,8 @@ static nde_chain *chain_build_excluding(gint item_id, gint64 exclude_record_id) 
 					/* Checkpoint-less barrier (pre-phase-4 capture): hard
 					 * blocker for itself and everything after it. */
 					g_ptr_array_add(chain->reasons, invalid);
+					if (chain->records->len < chain->first_block)
+						chain->first_block = chain->records->len;
 					tail_possible = FALSE;
 				}
 			}
@@ -487,9 +523,11 @@ static nde_chain *chain_build_excluding(gint item_id, gint64 exclude_record_id) 
 	}
 	if (chain->is_mask) {
 		const nde_record *first = g_ptr_array_index(chain->records, 0);
-		if (!nde_record_input(first, "image") && !record_names_a_file(first))
+		if (!nde_record_input(first, "image") && !record_names_a_file(first)) {
 			add_reason(chain, _("record %" G_GINT64_FORMAT " (%s) does not say what this mask was built from — not replayable"),
 			           first->record_id, first->op_id ? first->op_id : "?");
+			chain->first_block = 0;   /* the origin itself: no prefix survives */
+		}
 	} else if (chain->records->len && !chain->from_composite &&
 	           !nde_checkpoint_baseline_exists(item_id)) {
 		add_reason(chain, _("no baseline checkpoint — the file predates baselines, or the history began before this build"));
@@ -552,6 +590,9 @@ static void commit_layer_offset(gint item_id, gint pos_x, gint pos_y) {
 }
 
 static fits *resolve_item_state(gint item_id, gint64 upto_record_id, gchar **err);
+static fits *resolve_item_state_pos(gint item_id, gint64 upto_record_id,
+                                    gint *pos_x, gint *pos_y,
+                                    gboolean *pos_valid, gchar **err);
 
 /* Run one composite member (graph step 7, nde_composite.h) — merge-down with
  * two inputs, flatten with all of them.
@@ -597,8 +638,11 @@ static fits *composite_apply(fits *base, const nde_record *rec, gint item_id,
 		}
 		if (in->item_id == item_id) {
 			pixels[i] = base;
-			/* A geometry step before the composite moves this input, so an
-			 * amend of that step must move where it lands here too. */
+			/* Reached only if a composite record ever sits mid-chain on its
+			 * own item.  The current capture reissues the survivor's identity
+			 * before committing (image_format_flis.c), so today no recorded
+			 * input matches the target and base is always NULL — resolved
+			 * inputs are re-anchored below instead. */
 			if (pos_x && pos_y) {
 				in->position_x = *pos_x;
 				in->position_y = *pos_y;
@@ -614,9 +658,21 @@ static fits *composite_apply(fits *base, const nde_record *rec, gint item_id,
 			ok = FALSE;
 			break;
 		}
-		pixels[i] = resolve_item_state(pin->src_item_id, pin->src_record_id, err);
+		gint rpx = 0, rpy = 0;
+		gboolean rpos = FALSE;
+		pixels[i] = resolve_item_state_pos(pin->src_item_id, pin->src_record_id,
+		                                   &rpx, &rpy, &rpos, err);
 		owned[i] = TRUE;
 		ok = pixels[i] != NULL;
+		if (ok && rpos) {
+			/* A geometry member owns this input's position — the same rule
+			 * commit_layer_offset applies to a live layer's replay — so an
+			 * amended geometry step (a crop moved to a new origin) moves
+			 * where the input lands in the composite.  The recorded position
+			 * stays authoritative only for chains that never moved. */
+			in->position_x = rpx;
+			in->position_y = rpy;
+		}
 	}
 	fits *out = ok ? nde_composite_render(st, pixels, masks, err) : NULL;
 	for (guint i = 0; i < n; i++) {
@@ -748,7 +804,14 @@ fail:
 static fits *edit_target_fits(gint item_id);
 static void commit_restore_metadata(fits *target, fits *old);
 
-static fits *resolve_item_state(gint item_id, gint64 upto_record_id, gchar **err) {
+/* As resolve_item_state, additionally reporting where the replayed chain left
+ * the input's layer.  *pos_valid is set TRUE only when the chain carries an
+ * offset (a geometry member with a stored start offset — the same condition
+ * replay_start_offset applies everywhere else); otherwise the recorded
+ * capture-time position remains the only truth and the outs are untouched. */
+static fits *resolve_item_state_pos(gint item_id, gint64 upto_record_id,
+                                    gint *pos_x, gint *pos_y,
+                                    gboolean *pos_valid, gchar **err) {
 	nde_chain *c = nde_chain_build(item_id);
 	/* A pin's src_record_id of 0 means the item's BASELINE, not "all of it"
 	 * (nde_history.h) — the state before anything was recorded against it.
@@ -800,9 +863,16 @@ static fits *resolve_item_state(gint item_id, gint64 upto_record_id, gchar **err
 			upto = i + 1;
 		}
 	}
-	if (!c->replayable) {
+	/* Only the members actually replayed matter: [0..upto).  Demanding
+	 * whole-chain replayability here refused every pin into a chain with a
+	 * barrier anywhere — including barriers far past the pin — and did so
+	 * with an EMPTY reason list when the freeze cause was a checkpointed
+	 * barrier (those add no reasons, they only move tail_start). */
+	if (upto > c->first_block) {
 		GString *m = g_string_new(NULL);
 		g_string_append_printf(m, _("the source of this input cannot be rebuilt: "));
+		if (!c->reasons->len)
+			g_string_append(m, _("an earlier step on it cannot be replayed"));
 		for (guint i = 0; i < c->reasons->len; i++) {
 			if (i)
 				g_string_append(m, "; ");
@@ -811,6 +881,59 @@ static fits *resolve_item_state(gint item_id, gint64 upto_record_id, gchar **err
 		*err = g_string_free(m, FALSE);
 		nde_chain_free(c);
 		return NULL;
+	}
+	/* A barrier member inside the prefix cannot itself be re-run, but it left
+	 * its post-op pixels as a restart point (a checkpoint-less barrier is a
+	 * hard blocker, refused above).  Restart from the last one before the
+	 * pin and replay only what follows it. */
+	gint64 prefix_restart = 0;
+	guint prefix_start = 0;
+	for (guint i = 0; i < upto; i++) {
+		if (g_array_index(c->member_flags, guint8, i) & NDE_CHAIN_MEMBER_BARRIER) {
+			const nde_record *b = g_ptr_array_index(c->records, i);
+			prefix_restart = b->record_id;
+			prefix_start = i + 1;
+		}
+	}
+	if (prefix_restart) {
+		fits *start = nde_checkpoint_output_get(prefix_restart);
+		if (!start) {
+			*err = g_strdup_printf(_("the source of this input cannot be rebuilt: "
+			                         "the stored pixels of step %" G_GINT64_FORMAT
+			                         " are no longer kept"), prefix_restart);
+			nde_chain_free(c);
+			return NULL;
+		}
+		gint px = 0, py = 0;
+		gboolean carry = replay_start_offset(c, prefix_restart, &px, &py);
+		fits *out = replay_apply_records(start, c, prefix_start, upto,
+		                                 carry ? &px : NULL, carry ? &py : NULL,
+		                                 err);
+		if (out && carry && pos_x && pos_y) {
+			*pos_x = px;
+			*pos_y = py;
+			if (pos_valid)
+				*pos_valid = TRUE;
+		}
+		nde_chain_free(c);
+		return out;
+	}
+	/* Born of a merge: there is no baseline and none is wanted — the first
+	 * member renders the inputs it was given.  The same exemption its
+	 * siblings have (nde_chain_replay, chain_restart_state, recompute_item);
+	 * without it a composite-born input whose baseline had been evicted
+	 * failed here while nde_chain_replay on the same item succeeded. */
+	if (c->from_composite) {
+		if (upto == 0) {
+			/* The pin names a state before the item's origin — nothing can
+			 * produce it. */
+			*err = g_strdup(_("the input predates the merge that created it"));
+			nde_chain_free(c);
+			return NULL;
+		}
+		fits *out = replay_apply_records(NULL, c, 0, upto, NULL, NULL, err);
+		nde_chain_free(c);
+		return out;
 	}
 	fits *start = nde_checkpoint_baseline_get(item_id);
 	if (!start && c->records->len == 0) {
@@ -837,9 +960,23 @@ static fits *resolve_item_state(gint item_id, gint64 upto_record_id, gchar **err
 		nde_chain_free(c);
 		return NULL;
 	}
-	fits *out = replay_apply_records(start, c, 0, upto, NULL, NULL, err);
+	gint px = 0, py = 0;
+	gboolean carry = replay_start_offset(c, 0, &px, &py);
+	fits *out = replay_apply_records(start, c, 0, upto,
+	                                 carry ? &px : NULL, carry ? &py : NULL,
+	                                 err);
+	if (out && carry && pos_x && pos_y) {
+		*pos_x = px;
+		*pos_y = py;
+		if (pos_valid)
+			*pos_valid = TRUE;
+	}
 	nde_chain_free(c);
 	return out;
+}
+
+static fits *resolve_item_state(gint item_id, gint64 upto_record_id, gchar **err) {
+	return resolve_item_state_pos(item_id, upto_record_id, NULL, NULL, NULL, err);
 }
 
 /* Replay members [0..upto) of a MASK chain.  The result is a fits carrying
@@ -850,35 +987,64 @@ static fits *resolve_item_state(gint item_id, gint64 upto_record_id, gchar **err
  * must not do. */
 static fits *mask_chain_replay(const nde_chain *chain, guint upto, gchar **err) {
 	g_return_val_if_fail(chain->records->len > 0, NULL);
-	const nde_record *first = g_ptr_array_index(chain->records, 0);
-	const nde_input_pin *img = nde_record_input(first, "image");
 	fits *scratch = NULL;
-	if (img) {
-		scratch = resolve_item_state(img->src_item_id, img->src_record_id, err);
-		if (!scratch)
-			return NULL;
-	} else {
-		/* Built from a file the hook loads itself; it still needs somewhere
-		 * to put the mask, and the file decides the size. */
-		scratch = calloc(1, sizeof(fits));
-		if (!scratch) {
-			*err = g_strdup(_("out of memory"));
-			return NULL;
-		}
-	}
-	/* The chain rebuilds the mask from nothing: drop anything the starting
-	 * image happened to carry. */
-	if (scratch->mask) {
-		free_mask(scratch->mask);
-		scratch->mask = NULL;
-	}
-	scratch->mask_active = FALSE;
+	/* Which image state @scratch currently holds, so a run of records reading
+	 * the same one costs a single replay. */
+	gint     src_item = 0;
+	gint64   src_rec  = 0;
+	gboolean have_src = FALSE;
 
 	for (guint i = 0; i < upto; i++) {
 		const nde_record *rec = g_ptr_array_index(chain->records, i);
 		if (!processing_should_continue()) {
 			*err = g_strdup(_("cancelled"));
 			goto fail;
+		}
+		/* EVERY record that reads the image reads it AT ITS OWN recorded
+		 * point.  Only the first record's pin used to be resolved, so a mask
+		 * rebuilt later in its own history — mask.from_stars over a stretch
+		 * added after mask.from_channel — silently read the pixels the FIRST
+		 * record had named, and the replayed mask disagreed with the one the
+		 * user had actually built. */
+		const nde_input_pin *img = nde_record_input(rec, "image");
+		if (img && (!have_src || img->src_item_id != src_item ||
+		            img->src_record_id != src_rec)) {
+			fits *next = resolve_item_state(img->src_item_id, img->src_record_id, err);
+			if (!next)
+				goto fail;
+			/* The chain rebuilds the mask from nothing: whatever the resolved
+			 * image happened to carry is not part of this chain's value. */
+			if (next->mask) {
+				free_mask(next->mask);
+				next->mask = NULL;
+			}
+			next->mask_active = FALSE;
+			/* But the mask built SO FAR crosses the change of source when it
+			 * still fits.  A from-image op replaces it in practice; nothing in
+			 * the model says one has to, and losing it here would be silent. */
+			if (scratch && scratch->mask &&
+			    next->rx == scratch->rx && next->ry == scratch->ry) {
+				next->mask = scratch->mask;
+				scratch->mask = NULL;
+				next->mask_active = scratch->mask_active;
+			}
+			if (scratch) {
+				clearfits(scratch);
+				free(scratch);
+			}
+			scratch  = next;
+			src_item = img->src_item_id;
+			src_rec  = img->src_record_id;
+			have_src = TRUE;
+		}
+		if (!scratch) {
+			/* Built from a file the hook loads itself; it still needs
+			 * somewhere to put the mask, and the file decides the size. */
+			scratch = calloc(1, sizeof(fits));
+			if (!scratch) {
+				*err = g_strdup(_("out of memory"));
+				return NULL;
+			}
 		}
 		const op_descriptor *op = op_descriptor_by_id(rec->op_id);
 		gpointer user = op ? op->deserialize(rec->params, rec->op_version) : NULL;
@@ -905,8 +1071,10 @@ static fits *mask_chain_replay(const nde_chain *chain, guint upto, gchar **err) 
 	return scratch;
 
 fail:
-	clearfits(scratch);
-	free(scratch);
+	if (scratch) {
+		clearfits(scratch);
+		free(scratch);
+	}
 	return NULL;
 }
 
@@ -1122,7 +1290,7 @@ static gboolean recompute_item(gint item_id, gchar **err) {
 		return FALSE;
 	}
 	g_rw_lock_writer_lock(&target->rwlock);
-	fits_swap_all_except_rwlock(target, result);
+	commit_pixels(target, result);
 	g_rw_lock_writer_unlock(&target->rwlock);
 	commit_restore_metadata(target, result);
 	clearfits(result);
@@ -1382,6 +1550,132 @@ static void cascade_mask_consumers(gint mask_item, guint from_pos) {
 	if (redone || stale)
 		siril_log_info(_("Mask change applied to %u earlier step(s) and %u image(s)\n"),
 		               refreshed, redone);
+}
+
+/* Position of @record_id among @item_id's OWN records, in log order, or -1
+ * when the log no longer holds it.  The log, not the pixel chain: a pin names
+ * a record in the item's history, which is the wider set (nde_history.h).
+ * Position, never id — insertion hands ids out of order. */
+static gint log_position_of(const GPtrArray *live, gint item_id, gint64 record_id) {
+	gint pos = 0;
+	for (guint i = 0; live && i < live->len; i++) {
+		const nde_record *r = g_ptr_array_index(live, i);
+		if (r->target_item_id != item_id)
+			continue;
+		if (r->record_id == record_id)
+			return pos;
+		pos++;
+	}
+	return -1;
+}
+
+/* The record just BEFORE @record_id in @item_id's log, or 0 when it is the
+ * first — "the last step of this item an edit at @record_id leaves alone".
+ * Call it BEFORE the mutation for anything that moves records about. */
+static gint64 log_predecessor(gint item_id, gint64 record_id) {
+	GPtrArray *live = nde_history_snapshot(NULL);
+	gint64 prev = 0;
+	for (guint i = 0; live && i < live->len; i++) {
+		const nde_record *r = g_ptr_array_index(live, i);
+		if (r->target_item_id != item_id)
+			continue;
+		if (r->record_id == record_id)
+			break;
+		prev = r->record_id;
+	}
+	if (live)
+		g_ptr_array_unref(live);
+	return prev;
+}
+
+/* THE OTHER DIRECTION of cascade_mask_consumers.  A mask built from an image
+ * — mask.from_stars, mask.from_channel and the rest — pins the exact point in
+ * that image's history its pixels came from, and mask_chain_replay resolves
+ * the pin live.  So editing the MASK re-derives it from the right place; what
+ * had no answer at all was editing the IMAGE.  The mask then went on
+ * describing stars, or a channel, of pixels that no longer existed anywhere,
+ * and so did every step that had used it.
+ *
+ * @unchanged_upto is the last record of @item_id's log the edit left alone
+ * (0 = none of it — the change reaches back to the baseline).  A mask pinned
+ * at or before that point read the same pixels as before and is not touched:
+ * re-deriving it would give identical results, but only after recomputing
+ * every image that consumed it, which is a visible cost for no change.
+ *
+ * Runs AFTER the log and pixel commits — it re-derives by replaying the image
+ * from the amended log. */
+static void cascade_derived_masks(gint item_id, gint64 unchanged_upto) {
+	GPtrArray *live = nde_history_snapshot(NULL);
+	if (!live)
+		return;
+	/* -1 = "nothing of this item is unchanged", which is what a missing
+	 * anchor should also mean: rebuilding too much is a cost, rebuilding too
+	 * little is a lie. */
+	const gint safe_pos = unchanged_upto ?
+			log_position_of(live, item_id, unchanged_upto) : -1;
+
+	GHashTable *seen = g_hash_table_new(g_direct_hash, g_direct_equal);
+	guint rebuilt = 0, stale = 0;
+	for (guint i = 0; i < live->len; i++) {
+		const nde_record *rec = g_ptr_array_index(live, i);
+		/* An "image" pin is what a mask records its origin as, and nothing
+		 * else uses that role (processing.c).  Only a mask chain's FIRST
+		 * record carries one — an edit of an existing mask reads the mask. */
+		const nde_input_pin *pin = nde_record_input(rec, "image");
+		if (!pin || pin->src_item_id != item_id)
+			continue;
+		const gint mask_item = rec->target_item_id;
+		if (!pin->src_record_id)
+			continue;   /* pinned to the BASELINE, which no edit can move */
+		const gint pinned = log_position_of(live, item_id, pin->src_record_id);
+		if (pinned >= 0 && pinned <= safe_pos)
+			continue;   /* the edit lands after the state this mask read */
+		/* Claimed only once a record has actually asked for the rebuild.  A
+		 * mask reads the image more than once when it was rebuilt partway
+		 * through its own history, and marking it seen at the first pin let
+		 * an unaffected early read suppress an affected later one. */
+		if (!g_hash_table_add(seen, GINT_TO_POINTER(mask_item)))
+			continue;
+
+		gchar *err = NULL;
+		nde_chain *mc = nde_chain_build(mask_item);
+		fits *built = (mc->is_mask && mc->replayable && mc->records->len)
+				? mask_chain_replay(mc, mc->records->len, &err) : NULL;
+		nde_chain_free(mc);
+		if (!built) {
+			stale++;
+			siril_log_warning(_("The mask built from this image could not be "
+			                    "rebuilt, so it still describes the old pixels: %s\n"),
+			                  err ? err : "?");
+			g_free(err);
+			continue;
+		}
+		/* Same three homes as an edit of the mask's own history: a live slot,
+		 * or none at all when the mask is dormant or held only by a composite
+		 * — and then what shows the change is the cascade below. */
+		const gboolean dormant = mask_item != NDE_ITEM_PLAIN_MASK &&
+				flis_item_lookup(mask_item, NULL) == FLIS_ITEM_NONE;
+		if (!nde_item_is_retained_input(mask_item) && !dormant &&
+		    !commit_mask_value(mask_item, built, &err)) {
+			stale++;
+			siril_log_warning(_("The mask built from this image was rebuilt but "
+			                    "could not be stored: %s\n"), err ? err : "?");
+			g_free(err);
+		} else {
+			rebuilt++;
+		}
+		clearfits(built);
+		free(built);
+		/* Every step that ran under this mask holds a stored copy of it at a
+		 * pinned coordinate; those copies are now the old mask.  from_pos 0:
+		 * the mask changed from its first step, because its INPUT did. */
+		cascade_mask_consumers(mask_item, 0);
+	}
+	g_hash_table_destroy(seen);
+	g_ptr_array_unref(live);
+	if (rebuilt || stale)
+		siril_log_info(_("Image change applied to %u mask(s) built from it\n"),
+		               rebuilt);
 }
 
 /* Shared core of amend (new_params != NULL) and delete (new_params == NULL).
@@ -1648,8 +1942,15 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 		 * — the layer it belonged to is gone.  The replay above still had to
 		 * run, to prove the edited chain applies; what shows the change is the
 		 * composite that kept a copy of this mask, refreshed by the cascade
-		 * below. */
-		gboolean ok = nde_item_is_retained_input(item_id) ||
+		 * below.
+		 *
+		 * A mask that was CLEARED after being used is the same shape: dormant,
+		 * no live slot to commit into, but its consumers' pinned copies remain
+		 * the states their replays read.  Editing its history refreshes those
+		 * copies and recomputes the consumers; it does not resurrect the mask. */
+		gboolean dormant = item_id != NDE_ITEM_PLAIN_MASK &&
+		                   flis_item_lookup(item_id, NULL) == FLIS_ITEM_NONE;
+		gboolean ok = nde_item_is_retained_input(item_id) || dormant ||
 		              commit_mask_value(item_id, built, err);
 		clearfits(built);
 		free(built);
@@ -1677,6 +1978,9 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 	}
 
 	gui_iface.set_progress(0.f, _("Recomputing edit history..."));
+	/* Taken BEFORE the log is touched, because a delete removes the very
+	 * record the position would be measured against (cascade_derived_masks). */
+	const gint64 unchanged_upto = log_predecessor(item_id, record_id);
 	/* Convergence C3 invalidation, BEFORE replay: pool states at-or-after
 	 * the edit describe the OLD chain and must not survive (they are never
 	 * consulted as restarts for THIS edit, but they would be stale for the
@@ -1732,6 +2036,7 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 			gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
 			return FALSE;
 		}
+		cascade_derived_masks(item_id, unchanged_upto);
 		cascade_composite_consumers(item_id);
 		undo_flush();
 		gui_iface.invalidate_histogram();
@@ -1750,7 +2055,7 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 	/* Atomic commit: swap pixels, then the log.  `result` holds the OLD
 	 * pixels after the swap, so a log-commit failure can restore them. */
 	g_rw_lock_writer_lock(&target->rwlock);
-	fits_swap_all_except_rwlock(target, result);
+	commit_pixels(target, result);
 	g_rw_lock_writer_unlock(&target->rwlock);
 
 	gboolean log_ok = new_params ? nde_history_amend(record_id, new_params, err)
@@ -1759,7 +2064,7 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 		/* Should be unreachable (everything was validated, we own the
 		 * slot); restore the old pixels so nothing is half-committed. */
 		g_rw_lock_writer_lock(&target->rwlock);
-		fits_swap_all_except_rwlock(target, result);
+		commit_pixels(target, result);
 		g_rw_lock_writer_unlock(&target->rwlock);
 		clearfits(result);
 		free(result);
@@ -1771,6 +2076,11 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 	free(result);
 	if (carry)
 		commit_layer_offset(item_id, pos_x, pos_y);
+
+	/* Reverse invalidation: these pixels are what a mask built from them was
+	 * derived from.  After the log commit, so the re-derivation reads the
+	 * amended history. */
+	cascade_derived_masks(item_id, unchanged_upto);
 
 	/* No meta-undo (sketch §7): stale undo entries would restore pixels the
 	 * log no longer describes. */
@@ -1937,10 +2247,15 @@ gboolean nde_composite_undo_execute(gint64 record_id, gchar **err) {
 	const gint produced = rec->target_item_id;
 	GArray *doomed = records_from(snap, pos, produced);
 
-	/* Rebuild every consumed layer's pixels BEFORE touching the document, so
-	 * a failure half way leaves the image exactly as it was. */
+	/* Rebuild every consumed layer's pixels — and fetch every recorded layer
+	 * mask's stored copy — BEFORE touching the document, so a failure half
+	 * way leaves the image exactly as it was.  The mask is a pinned copy, not
+	 * a replay (nde_composite.h); a recorded copy that is no longer stored
+	 * refuses the undo the same way an unbuildable layer does, because
+	 * restoring the layer without its mask would not restore the document. */
 	guint n = st->inputs->len;
 	fits **pix = g_new0(fits *, n);
+	fits **msk = g_new0(fits *, n);
 	gboolean ok = TRUE;
 	for (guint i = 0; i < n && ok; i++) {
 		const nde_composite_input *in = &g_array_index(st->inputs, nde_composite_input, i);
@@ -1956,12 +2271,25 @@ gboolean nde_composite_undo_execute(gint64 record_id, gchar **err) {
 			ok = FALSE;
 		}
 		nde_chain_free(c);
+		if (ok && in->mask_item_id) {
+			const nde_input_pin *mp = nde_record_input_by_item(rec, in->mask_item_id);
+			msk[i] = mp ? nde_checkpoint_get_at(mp->src_item_id, mp->src_record_id)
+			            : NULL;
+			if (!msk[i]) {
+				*err = g_strdup_printf(_("the stored layer mask of '%s' is no "
+				                         "longer available"),
+				                       in->name ? in->name : _("a consumed layer"));
+				ok = FALSE;
+			}
+		}
 	}
 	if (!ok) {
 		for (guint i = 0; i < n; i++) {
 			if (pix[i]) { clearfits(pix[i]); free(pix[i]); }
+			if (msk[i]) { clearfits(msk[i]); free(msk[i]); }
 		}
 		g_free(pix);
+		g_free(msk);
 		g_array_unref(doomed);
 		nde_composite_state_free(st);
 		g_ptr_array_unref(snap);
@@ -1980,10 +2308,25 @@ gboolean nde_composite_undo_execute(gint64 record_id, gchar **err) {
 	GHashTable *group_map = g_hash_table_new(g_direct_hash, g_direct_equal);
 	for (guint i = 0; i < st->groups->len; i++) {
 		const nde_composite_group *g = &g_array_index(st->groups, nde_composite_group, i);
-		flis_group_t *grp = flis_group_add(g->name ? g->name : _("Group"));
-		if (!grp)
-			continue;
-		grp->item_id    = g->item_id;   /* the id its members were recorded with */
+		/* A flatten/merge only frees the layers it consumed, never the group
+		 * objects — those still live in com.uniq->groups.  Blindly re-adding
+		 * every recorded group would therefore append a duplicate flis_group_t
+		 * with the same item_id (writing duplicate rows on save, a doubled
+		 * entry in "Move to group", and a leaked per-render sub-composite).
+		 * So reuse the survivor when it exists and only reissue its recorded
+		 * properties; add a fresh group only when none is present. */
+		flis_group_t *grp = flis_group_get_by_id(g->item_id);
+		if (grp) {
+			if (g->name) {
+				g_free(grp->name);
+				grp->name = g_strdup(g->name);
+			}
+		} else {
+			grp = flis_group_add(g->name ? g->name : _("Group"));
+			if (!grp)
+				continue;
+			grp->item_id = g->item_id;   /* the id its members were recorded with */
+		}
 		grp->blend_mode = (flis_blend_mode_t)g->blend_mode;
 		grp->opacity    = (gfloat)g->opacity;
 		grp->visible    = g->visible;
@@ -1995,6 +2338,7 @@ gboolean nde_composite_undo_execute(gint64 record_id, gchar **err) {
 		if (!lay) {
 			clearfits(pix[i]);
 			free(pix[i]);
+			if (msk[i]) { clearfits(msk[i]); free(msk[i]); msk[i] = NULL; }
 			continue;
 		}
 		/* The identity is restored, not reissued: the layer's own history is
@@ -2005,8 +2349,44 @@ gboolean nde_composite_undo_execute(gint64 record_id, gchar **err) {
 		lay->position_x  = in->position_x;
 		lay->position_y  = in->position_y;
 		lay->visible     = in->visible;
+		/* Back into its recorded stacking slot, not on top of layers the
+		 * composite never consumed — a merge-down undo in a 3+ layer document
+		 * would otherwise reorder the stack and change the render.  0 = an
+		 * older record that carried no order: keep flis_layer_add's top slot,
+		 * as before.  The list is re-sorted after the loop. */
+		if (in->layer_order)
+			lay->layer_order = in->layer_order;
 		if (in->group_id && g_hash_table_contains(group_map, GINT_TO_POINTER(in->group_id)))
 			flis_layer_set_group(lay, in->group_id);
+		/* Reinstall the layer mask from its stored copy — same unwrapping as
+		 * nde_composite_render — and re-link the mask ITEM, so records that
+		 * target it name a mask a layer carries again. */
+		if (msk[i]) {
+			mask_t *m = fits_to_mask(msk[i]);
+			layermask_t *lm = m ? calloc(1, sizeof(layermask_t)) : NULL;
+			if (lm) {
+				lm->w      = msk[i]->rx;
+				lm->h      = msk[i]->ry;
+				lm->bitpix = m->bitpix;
+				lm->data   = m->data;   /* moved */
+				free(m);
+				if (flis_layer_set_lmask(lay, lm)) {
+					/* Cannot happen for a copy stored with the layer's own
+					 * dimensions; degrade rather than abort mid-restore. */
+					layermask_free(lm);
+					siril_log_warning(_("the layer mask of '%s' could not be "
+					                    "restored\n"),
+					                  in->name ? in->name : "?");
+				} else {
+					lay->lmask_item_id = in->mask_item_id;
+					lay->lmask_active  = TRUE;
+				}
+			} else if (m) {
+				free_mask(m);
+			}
+			clearfits(msk[i]);
+			free(msk[i]);
+		}
 		/* The layer took the fits POINTER (flis_layer_new: layer->fit = fit),
 		 * so there is nothing here left to free — freeing it left the layer
 		 * pointing at released memory, which only showed up as a crash in the
@@ -2014,17 +2394,26 @@ gboolean nde_composite_undo_execute(gint64 record_id, gchar **err) {
 	}
 	g_hash_table_destroy(group_map);
 	g_free(pix);
+	g_free(msk);
 	if (flat)
 		flis_layer_remove(flat);
+	flis_sort_layer_stack();
 
 	/* The log last, so a failure above leaves it describing what is there. */
 	nde_history_drop_records(doomed);
 	guint discarded = doomed->len;
 	g_array_unref(doomed);
+
+	/* Activate a layer the undo actually brought back — the first input (the
+	 * merge's survivor) — not whatever happens to sit at the bottom of the
+	 * stack. */
+	flis_layer_t *back = flis_layer_get_by_id(
+	    g_array_index(st->inputs, nde_composite_input, 0).item_id);
+	gint back_idx = back ? g_slist_index(com.uniq->layers, back) : -1;
 	nde_composite_state_free(st);
 	g_ptr_array_unref(snap);
 
-	uniq_set_active_layer(com.uniq, 0);
+	uniq_set_active_layer(com.uniq, back_idx >= 0 ? back_idx : 0);
 	gfit = flis_active_layer_fit();
 	undo_flush();
 	gui_iface.flis_invalidate_composite();
@@ -2153,6 +2542,9 @@ gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after,
 			g_ptr_array_unref(snap2);
 	}
 
+	/* Taken while the log still holds the pre-move order (cascade_derived_masks). */
+	const gint64 unchanged_upto = log_predecessor(item_id, boundary_pre_id);
+
 	/* Permute the trial chain in place (records + parallel flags). */
 	nde_record *moved = g_ptr_array_steal_index(chain->records, (guint)i_old);
 	g_ptr_array_insert(chain->records, dest, moved);
@@ -2202,6 +2594,7 @@ gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after,
 			gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
 			return FALSE;
 		}
+		cascade_derived_masks(item_id, unchanged_upto);
 		cascade_composite_consumers(item_id);
 		undo_flush();
 		gui_iface.invalidate_histogram();
@@ -2216,13 +2609,13 @@ gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after,
 		return FALSE;
 	}
 	g_rw_lock_writer_lock(&target->rwlock);
-	fits_swap_all_except_rwlock(target, result);
+	commit_pixels(target, result);
 	g_rw_lock_writer_unlock(&target->rwlock);
 
 	gboolean log_ok = nde_history_reorder(record_id, log_before_id, err);
 	if (!log_ok) {
 		g_rw_lock_writer_lock(&target->rwlock);
-		fits_swap_all_except_rwlock(target, result);
+		commit_pixels(target, result);
 		g_rw_lock_writer_unlock(&target->rwlock);
 		clearfits(result);
 		free(result);
@@ -2234,6 +2627,10 @@ gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after,
 	free(result);
 	if (carry)
 		commit_layer_offset(item_id, pos_x, pos_y);
+
+	/* Reverse invalidation: a mask built from these pixels read a prefix the
+	 * move may have reordered (cascade_derived_masks). */
+	cascade_derived_masks(item_id, unchanged_upto);
 
 	undo_flush();   /* no meta-undo (sketch §7) */
 	invalidate_stats_from_fit(target);
@@ -2481,8 +2878,10 @@ gboolean nde_reorder_start(gint64 record_id, gint64 anchor_id, gboolean after) {
 
 /* Single instance.  While `installed`, the record's target fits holds the
  * synthesized pre-K state and `saved` holds the true pixels, swapped out
- * wholesale with fits_swap_all_except_rwlock — the restore is the reverse
- * swap, bit-exact including metadata.  The heavy transitions (begin/end
+ * wholesale with commit_pixels — the restore is the reverse swap, bit-exact
+ * including metadata.  The mask slot stays put through both, as it does for
+ * every other commit: the mask is a different item, and a preview of these
+ * pixels says nothing about it.  The heavy transitions (begin/end
  * _execute) run on the replay conductor holding SLOT_REPLAY, so the
  * reservation serializes them; apv_mutex is a leaf guard for the flag reads
  * that happen on other threads (GUI enablement, the edit_execute guard). */
@@ -2555,7 +2954,7 @@ static void apv_swap_into_target(fits *target, fits *incoming) {
 	if (is_display)
 		gui_iface.set_suppress_redraws(TRUE);
 	g_rw_lock_writer_lock(&target->rwlock);
-	fits_swap_all_except_rwlock(target, incoming);
+	commit_pixels(target, incoming);
 	g_rw_lock_writer_unlock(&target->rwlock);
 	if (is_display)
 		gui_iface.set_suppress_redraws(FALSE);
@@ -2908,6 +3307,10 @@ gboolean nde_edit_at_end_execute(gboolean apply, gchar **err) {
 	}
 
 	gint64 first_inserted = g_array_index(inserted, gint64, 0);
+	/* The last step of this item the insertion left alone, for the reverse
+	 * mask cascade below.  The inserted records are already in the log, so
+	 * the predecessor of the first of them is exactly that. */
+	const gint64 unchanged_upto = log_predecessor(item_id, first_inserted);
 
 	/* Replay the anchor and everything after it over the inserted work. */
 	nde_chain *chain = nde_chain_build(item_id);
@@ -2939,6 +3342,7 @@ gboolean nde_edit_at_end_execute(gboolean apply, gchar **err) {
 		clearfits(saved);
 		free(saved);
 		saved = NULL;
+		cascade_derived_masks(item_id, unchanged_upto);
 		cascade_composite_consumers(item_id);
 		g_array_unref(inserted);
 		undo_flush();
@@ -2976,11 +3380,15 @@ gboolean nde_edit_at_end_execute(gboolean apply, gchar **err) {
 	g_array_unref(inserted);
 
 	g_rw_lock_writer_lock(&target->rwlock);
-	fits_swap_all_except_rwlock(target, result);
+	commit_pixels(target, result);
 	g_rw_lock_writer_unlock(&target->rwlock);
 	commit_restore_metadata(target, result);
 	clearfits(result);
 	free(result);
+
+	/* Reverse invalidation: a mask built from these pixels read a prefix the
+	 * inserted steps now sit inside (cascade_derived_masks). */
+	cascade_derived_masks(item_id, unchanged_upto);
 
 	undo_flush();
 	invalidate_stats_from_fit(target);

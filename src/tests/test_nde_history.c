@@ -51,6 +51,46 @@ static void teardown(void) {
 
 TestSuite(nde_history, .init = setup, .fini = teardown);
 
+/* ---- the image's own origin ---- */
+
+/* Every other item's history opens with the step that made it — layer.add,
+ * layer.duplicate, the composite that produced it.  The image was the one
+ * item whose origin went unrecorded, so a freshly opened file had no history
+ * at all and no node in the graph until something was done to it. */
+Test(nde_history, an_image_records_where_it_came_from) {
+	gint64 id = nde_capture_image_origin("file", "ngc7000.fit",
+	                                     "Opened 'ngc7000.fit'");
+	cr_assert_neq(id, 0);
+
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	cr_assert_eq(snap->len, 1);
+	const nde_record *rec = g_ptr_array_index(snap, 0);
+	cr_assert_str_eq(rec->op_id, NDE_OP_IMAGE_ORIGIN);
+	cr_assert_eq(rec->target_item_id, NDE_ITEM_IMAGE,
+	             "the image's own history, so a promote can rebind it");
+	cr_assert_eq(rec->scope, NDE_SCOPE_DOCUMENT,
+	             "structural: it says where the baseline came from, it is not "
+	             "a step to re-run");
+	GHashTable *kv = nde_kv_parse(rec->params);
+	cr_assert_str_eq(nde_kv_get_str(kv, "kind"), "file");
+	cr_assert_str_eq(nde_kv_get_str(kv, "src"), "ngc7000.fit");
+	g_hash_table_unref(kv);
+	g_ptr_array_unref(snap);
+}
+
+/* A FLIS file brings its own history, and promoting a plain image rebinds
+ * this record onto the base layer.  A second one would claim the image began
+ * twice. */
+Test(nde_history, an_image_records_its_origin_only_once) {
+	cr_assert_neq(nde_capture_image_origin("file", "a.fit", "Opened 'a.fit'"), 0);
+	cr_assert_eq(nde_capture_image_origin("file", "b.fit", "Opened 'b.fit'"), 0,
+	             "a document that already has a history has already begun");
+
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	cr_assert_eq(snap->len, 1);
+	g_ptr_array_unref(snap);
+}
+
 /* Convenience: append a minimal record with the given op id. */
 static gint64 append_op(const char *op_id) {
 	nde_record *rec = nde_record_new();
@@ -377,7 +417,7 @@ Test(nde_history, capture_from_descriptor) {
 	/* Tier A: a descriptor with a serializer (crop is POD) */
 	struct crop_args ca = { 0 };
 	ca.area.x = 1; ca.area.y = 2; ca.area.w = 30; ca.area.h = 40;
-	gint64 id = nde_capture_from_descriptor(&op_desc_crop, &ca, "crop it", NULL);
+	gint64 id = nde_capture_from_descriptor(&op_desc_crop, &ca, "crop it", NULL, FALSE);
 	cr_assert(id > 0);
 
 	GPtrArray *snap = nde_history_snapshot(NULL);
@@ -400,7 +440,7 @@ Test(nde_history, capture_from_descriptor) {
 		if (!all[i]->serialize)
 			opaque = all[i];
 	cr_assert_not_null(opaque, "expected at least one serializer-less descriptor");
-	id = nde_capture_from_descriptor(opaque, NULL, "opaque op", NULL);
+	id = nde_capture_from_descriptor(opaque, NULL, "opaque op", NULL, FALSE);
 	cr_assert(id > 0);
 	snap = nde_history_snapshot(NULL);
 	rec = g_ptr_array_index(snap, snap->len - 1);
@@ -682,6 +722,31 @@ Test(nde_history, insert_point_disturbing_records_raise_the_flag) {
 	append_scoped("layer.merge_down", NDE_SCOPE_DOCUMENT, 7);
 	cr_assert(nde_history_insert_point_disturbed());
 	g_array_unref(nde_history_insert_point_clear());
+}
+
+/* Removing the insertion's own item deletes the image the armed insertion
+ * describes; removing an unrelated layer stays a harmless append.  The GUI
+ * refuses the former up front — this is the engine backstop. */
+Test(nde_history, insert_point_target_removal_disturbs) {
+	gint64 anchor = append_scoped("filters.unsharp", NDE_SCOPE_LAYER, 7);
+	gchar *err = NULL;
+	cr_assert(nde_history_insert_point_set(anchor, 7, &err), "arm failed: %s", err ? err : "?");
+
+	gint item = 0;
+	cr_assert(nde_history_insert_point_target(&item), "the armed point is queryable");
+	cr_assert_eq(item, 7);
+
+	/* removing an UNRELATED layer: appended, and harmless */
+	append_scoped("layer.remove", NDE_SCOPE_DOCUMENT, 9);
+	cr_assert(!nde_history_insert_point_disturbed());
+
+	/* removing the insertion's own item: abandon rather than lie */
+	append_scoped("layer.remove", NDE_SCOPE_DOCUMENT, 7);
+	cr_assert(nde_history_insert_point_disturbed());
+	g_array_unref(nde_history_insert_point_clear());
+
+	cr_assert(!nde_history_insert_point_target(NULL),
+	          "no armed point once cleared");
 }
 
 Test(nde_history, insert_point_undo_lifts_the_record_out_and_redo_puts_it_back) {

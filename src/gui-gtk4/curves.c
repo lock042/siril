@@ -395,6 +395,10 @@ static int curves_process_with_worker(gboolean for_preview, gboolean for_roi) {
 	args->verbose = !for_preview;
 	args->user = params;
 	args->max_threads = com.max_thread;
+	/* Blend through the processing mask like the other stretches
+	 * (saturation, asinh, MTF/GHS) — curves silently ignored an active
+	 * mask while its history record claimed one was in effect. */
+	args->mask_aware = TRUE;
 	args->for_preview = for_preview;
 	args->for_roi = for_roi;
 
@@ -835,7 +839,7 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 			if (nde_base)
 				nde_checkpoint_baseline_ensure(nde_base, nde_checkpoint_active_item_id());
 			gint64 rid = nde_capture_from_descriptor(&op_desc_curves,
-					&undo_params, summary, gfit);
+					&undo_params, summary, gfit, TRUE);
 			/* One entry captures pre-curve pixels + pre-curve ICC
 			 * profile so a single Ctrl-Z reverts the operation. */
 			if (!undo_save_state_with_icc(get_preview_gfit_backup(),

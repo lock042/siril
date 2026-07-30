@@ -32,6 +32,8 @@
 #include "core/op_descriptor.h"
 #include "core/nde_history.h"
 #include "core/nde_replay.h"
+#include "core/nde_script_scope.h"
+#include "core/processing_thread.h"
 
 cominfo com;
 fits *gfit;
@@ -385,4 +387,101 @@ Test(flis_mask_route, a_failed_mask_op_records_nothing) {
 	generic_mask_worker(args);
 
 	cr_assert_eq(nde_history_live_count(), 0);
+}
+
+/* A Tier-C script re-run's mask commands travel through this worker under
+ * SLOT_REPLAY; they reproduce an existing record and must not append a
+ * duplicate on every replay (the guard the pixel-op capture always had). */
+Test(flis_mask_route, replay_rerun_mask_op_captures_no_record) {
+	flis_test_add_layer(flis_test_make_mono_fits(16, 16, 0.0f), "base");
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+
+	GPtrArray *before = nde_history_snapshot(NULL);
+	guint n_before = before ? before->len : 0;
+	if (before) g_ptr_array_unref(before);
+
+	cr_assert(replay_reserve_slot(), "precondition: replay slot free");
+	run_mask_op(gfit, 0);
+	replay_release_slot();
+
+	cr_assert_not_null(gfit->mask, "the op itself must still run under replay");
+	GPtrArray *after = nde_history_snapshot(NULL);
+	guint n_after = after ? after->len : 0;
+	if (after) g_ptr_array_unref(after);
+	cr_assert_eq(n_after, n_before,
+	             "a replayed mask op must not append a duplicate record");
+}
+
+/* A resident script's open provenance scope must swallow only the script's
+ * own ops.  This op runs from the test thread — a stand-in for a user-run
+ * op, which is not a python-comm job — so it must capture per-op provenance
+ * even while a scope is open. */
+Test(flis_mask_route, resident_scope_does_not_swallow_user_mask_op) {
+	flis_layer_t *base = flis_test_add_layer(
+	    flis_test_make_mono_fits(16, 16, 0.0f), "base");
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+
+	nde_script_scope_begin(NULL);
+	run_mask_op(gfit, 0);
+	nde_script_scope_end();
+
+	const nde_record *rec = only_record();
+	cr_assert_not_null(rec, "user op must leave provenance despite the scope");
+	cr_assert_str_eq(rec->op_id, "mask.test_fill");
+	cr_assert_eq(rec->target_item_id, flis_layer_pmask_id(base));
+}
+
+/* A command-context mask op saves no undo entry (the save is gated on
+ * !args->command), so it must not re-tag whatever unrelated entry sits on
+ * top of the undo stack — that would re-couple the previous operation's
+ * snapshot to the mask record and desynchronise undo from the history. */
+Test(flis_mask_route, command_mask_op_does_not_retag_foreign_undo_entry) {
+	com.script = FALSE;    /* GUI-mode: the undo stack is live */
+	com.headless = TRUE;
+	flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.0f), "base");
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+
+	/* A previous operation's undo entry, coupled to its own record. */
+	undo_save_state(gfit, "previous op");
+	cr_assert_eq(g_list_length(com.undo_stack), 1);
+	historic *top = (historic *)com.undo_stack->data;
+	top->nde_record_id = 4242;
+
+	run_mask_op(gfit, 0);   /* command context: saves no undo entry */
+
+	cr_assert_eq(g_list_length(com.undo_stack), 1,
+	             "a command mask op must not push an undo entry");
+	cr_assert_eq(top->nde_record_id, 4242,
+	             "…and must not re-tag the previous op's entry");
+}
+
+/* Guard-order regression: a Tier-C replay re-run while an unrelated resident
+ * script's scope is open must not mark that scope dirty — or the innocent
+ * script's exit would emit a spurious opaque barrier record for pixels the
+ * replay legitimately reproduced.  The replay guard runs BEFORE the scope
+ * check at every capture site. */
+Test(flis_mask_route, replay_rerun_does_not_mark_stranger_scope) {
+	flis_test_add_layer(flis_test_make_mono_fits(16, 16, 0.0f), "base");
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+
+	GPtrArray *before = nde_history_snapshot(NULL);
+	guint n_before = before ? before->len : 0;
+	if (before) g_ptr_array_unref(before);
+
+	nde_script_scope_begin(NULL);           /* the resident stranger */
+	cr_assert(replay_reserve_slot());
+	run_mask_op(gfit, 0);                   /* the replay's mask command */
+	replay_release_slot();
+	nde_script_scope_end();                 /* stranger exits, wrote nothing */
+
+	GPtrArray *after = nde_history_snapshot(NULL);
+	guint n_after = after ? after->len : 0;
+	if (after) g_ptr_array_unref(after);
+	cr_assert_eq(n_after, n_before,
+	             "neither the replayed op nor the innocent scope's exit "
+	             "may append a record");
 }

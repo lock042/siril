@@ -131,8 +131,13 @@ static nde_composite_state *state_from_layers(GSList *layers, gboolean raw_first
 		if (!lay)
 			continue;
 		/* A mask on the raw-painted first input is not applied — that is what
-		 * raw means — so it is neither recorded nor stored. */
-		gboolean masked = layer_is_masked(lay) && !(idx == 0 && raw_first);
+		 * raw means — so it does not participate in the render (was_masked
+		 * stays FALSE).  Its item id is still recorded and its copy stored so
+		 * that UNDOING the composite can put the pre-merge mask back
+		 * (nde_composite_undo_execute); records written before this carry no
+		 * id for it and restore that layer maskless, as they always did. */
+		gboolean has_mask = layer_is_masked(lay);
+		gboolean masked = has_mask && !(idx == 0 && raw_first);
 		nde_composite_input in = {
 			.item_id    = lay->item_id,
 			.name       = g_strdup(lay->layer_name ? lay->layer_name : ""),
@@ -146,10 +151,11 @@ static nde_composite_state *state_from_layers(GSList *layers, gboolean raw_first
 			.tint_g     = lay->layer_tint.g,
 			.tint_b     = lay->layer_tint.b,
 			.group_id   = lay->group_id,
+			.layer_order = lay->layer_order,
 			.was_masked = masked,
 			/* flis_layer_lmask_id hands out an id on first use, so ask for one
 			 * only when the mask is going to be stored under it. */
-			.mask_item_id = masked ? flis_layer_lmask_id(lay) : 0,
+			.mask_item_id = has_mask ? flis_layer_lmask_id(lay) : 0,
 		};
 		g_array_append_val(st->inputs, in);
 	}
@@ -182,6 +188,7 @@ static gchar *state_encode(const nde_composite_state *st) {
 		nde_kv_add_double(kv, ikey(k, "i", i, "tint_g"), in->tint_g);
 		nde_kv_add_double(kv, ikey(k, "i", i, "tint_b"), in->tint_b);
 		nde_kv_add_int(kv, ikey(k, "i", i, "group"), in->group_id);
+		nde_kv_add_int(kv, ikey(k, "i", i, "order"), in->layer_order);
 		nde_kv_add_bool(kv, ikey(k, "i", i, "masked"), in->was_masked);
 		nde_kv_add_int(kv, ikey(k, "i", i, "maskitem"), in->mask_item_id);
 	}
@@ -291,6 +298,10 @@ nde_composite_state *nde_composite_state_parse(const char *params) {
 		gint64 maskitem = 0;
 		nde_kv_get_int(kv, ikey(k, "i", (guint)i, "maskitem"), &maskitem);
 		in.mask_item_id = (gint)maskitem;
+		/* Optional, like maskitem: 0 in records written before it existed. */
+		gint64 order = 0;
+		nde_kv_get_int(kv, ikey(k, "i", (guint)i, "order"), &order);
+		in.layer_order = (gint)order;
 		const char *name = nde_kv_get_str(kv, ikey(k, "i", (guint)i, "name"));
 		in.item_id    = (gint)item;
 		in.blend_mode = (gint)blend;

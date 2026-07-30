@@ -165,6 +165,34 @@ gchar *nde_pins_to_string(GPtrArray *pins);
  */
 gint64 nde_history_last_record_for_item(gint item_id);
 
+/**
+ * The coordinates of every stored mask state some record still reads: each
+ * mask-role pin ("mask", composite "mask0", "mask1"…) in the log.  Fills
+ * @record_ids (heap gint64 keys, table must own+free them) with the
+ * src_record_id != 0 coordinates, and @baseline_items (direct gint keys) with
+ * the src_record_id == 0 sources.  Either table may be NULL.  These are the
+ * states retention must not evict: a mask survives being cleared only through
+ * them, and losing one turns every step that used it into a permanent
+ * barrier.
+ */
+void nde_history_mask_pin_coords(GHashTable *record_ids, GHashTable *baseline_items);
+
+/** TRUE when any record in the log (live or undone) pins @item_id as an
+ *  input.  "Has this mask ever been used?" is exactly this question. */
+gboolean nde_history_item_is_pinned(gint item_id);
+
+/**
+ * Remove every record targeting @item_id from the log outright — live and
+ * dead — and release their output checkpoints and pool states.  Returns the
+ * number of records removed.
+ *
+ * NOT a history edit: there is no replay and no validation, so this is only
+ * sound for an item whose records influenced no other pixels — a mask that
+ * was cleared without ever having masked anything.  A used mask must keep its
+ * records (and its pinned states) so its consumers stay replayable.
+ */
+guint nde_history_forget_item(gint item_id);
+
 typedef struct nde_history {
 	GPtrArray *records;      /* of nde_record*, position == order */
 	guint      live_count;   /* records[0..live_count-1] reflect current pixels */
@@ -322,6 +350,11 @@ gboolean nde_history_insert_point_set(gint64 before_id, gint item_id, gchar **er
 /** Anchor record id, or 0 when no insertion point is armed. */
 gint64   nde_history_insert_point(void);
 
+/** TRUE while an insertion point is armed; *item_out gets the item whose
+ *  chain it belongs to (may be -1: the plain image).  The Layers panel uses
+ *  it to refuse removing the very layer an insertion is armed on. */
+gboolean nde_history_insert_point_target(gint *item_out);
+
 /** TRUE when an operation ran that invalidates a forward replay past the
  *  anchor.  Read it BEFORE nde_history_insert_point_clear(). */
 gboolean nde_history_insert_point_disturbed(void);
@@ -379,6 +412,38 @@ gint nde_capture_target_item(void);
 gint64 nde_capture_structural(const char *op_id, gint scope,
                               gint target_item_id, gchar *params,
                               const char *summary);
+
+/** The op_id of the record every image's history opens with. */
+#define NDE_OP_IMAGE_ORIGIN "image.origin"
+
+/**
+ * nde_capture_image_origin:
+ * @kind: how the image came to exist — "file", "stack" or "generated".
+ * @src:  the file it was read from, or the label its producer gave it.
+ * @summary: the history line, already translated.
+ *
+ * The FIRST step of a plain image's history: where its pixels came from.
+ * Every other item already says this for itself — a layer's history opens
+ * with the layer.add or layer.duplicate that made it, an item born of a merge
+ * with the composite that produced it — and the image was the one item whose
+ * origin went unrecorded.  So a freshly opened file had no history at all and
+ * no node in the graph until something was done to it: add a second layer and
+ * the panel showed the NEW layer and not the one that was already there.
+ *
+ * DOCUMENT-scope and structural, so it is never a chain member: what a replay
+ * starts from is the baseline checkpoint, and this record only says where that
+ * baseline came from.  It is therefore neither amendable nor deletable, which
+ * is right — where an image came from is not a step you can edit.
+ *
+ * A no-op when the document already has a history: a FLIS file brings its own,
+ * and promoting a plain image REBINDS this record onto the base layer
+ * (flis_promote_from_gfit) rather than wanting a second one.  Also a no-op
+ * during replay, which must not grow the log it is reproducing.
+ *
+ * Returns the new record id, or 0 when nothing was recorded.
+ */
+gint64 nde_capture_image_origin(const char *kind, const char *src,
+                                const char *summary);
 
 /** One input pin, as a capture site states it. */
 typedef struct {
@@ -438,14 +503,20 @@ gint64 nde_capture_script(const char *op_id, gint scope,
  * and couple with undo_tag_top_nde_record() when that save succeeds.
  *
  * @post (may be NULL) is the POST-op image at capture: when the resolved
- * record is a barrier (Tier B, or Tier A with a mask active) and @post is
- * non-NULL, its pixels are stored as the record's output checkpoint
- * (nde-phase4 P4.3).  Tier-A records without a mask ignore @post.
+ * record is a barrier (Tier B, or Tier A whose mask was not kept) and @post
+ * is non-NULL, its pixels are stored as the record's output checkpoint
+ * (nde-phase4 P4.3).  Non-barrier records ignore @post.
+ *
+ * @mask_aware says whether the caller's worker run blended through the
+ * processing mask (args->mask_aware on the apply).  TRUE + a live active
+ * mask records the mask as a pinned input with its pixels kept, so the
+ * step stays replayable; FALSE captures an unmasked record even when a mask
+ * is sitting active on the image — because the op never read it.
  */
 struct op_descriptor;
 gint64 nde_capture_from_descriptor(const struct op_descriptor *op,
                                    gconstpointer params, const char *summary,
-                                   const fits *post);
+                                   const fits *post, gboolean mask_aware);
 
 /** Heap ISO 8601 UTC timestamp, matching FLIS layer CREATED/MODIFIED style. */
 gchar *nde_iso8601_now(void);

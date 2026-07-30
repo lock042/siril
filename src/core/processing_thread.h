@@ -119,6 +119,16 @@ void     cancel_and_wait_for_preview (void);
  */
 gboolean processing_in_worker_thread (void);
 
+/* Python comm threads mark themselves at startup so job submissions can carry
+ * their origin.  processing_current_job_from_python() answers, from inside a
+ * running job, whether that job was submitted by a python comm thread (a
+ * script's cmd()/IPC request) rather than by the user.  The scope-suppression
+ * gates in the generic workers use it: a resident script's provenance scope
+ * must swallow only the script's own ops, not ops the user runs while the
+ * script happens to be connected. */
+void     processing_mark_python_comm_thread (void);
+gboolean processing_current_job_from_python (void);
+
 
 /* --------------------------------------------------------------------------
  * Python reservation

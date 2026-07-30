@@ -68,6 +68,13 @@ typedef struct {
 	 */
 	gint            level;
 	/**
+	 * The item this one BELONGS to, or 0.  A mask is owned by the layer whose
+	 * pixels it modulates — the document says so directly, whatever the edges
+	 * happen to be — and that is what lets a layer mask be drawn beside its
+	 * layer even though the only edge it has runs to a composite further down.
+	 */
+	gint            owner_item;
+	/**
 	 * TRUE when the Layers panel does not list this item: masks always, and
 	 * (from step 7) inputs retained behind a composite.  These are exactly
 	 * the items the flat list had nowhere to put — it rendered them
@@ -130,13 +137,33 @@ gboolean nde_graph_edge_is_feedback(const nde_graph *g, const nde_graph_edge *e)
 typedef struct {
 	gint item_id;
 	gint level;
+	/**
+	 * 0 for an ordinary band node.  Otherwise the item this box is a
+	 * SATELLITE of: it is laid out immediately beside that box, in its band,
+	 * and the band's next node starts to the right of the pair.  @level is
+	 * then ignored — a satellite sits in its host's band by definition.
+	 * A satellite whose host is absent, or is itself a satellite, degrades to
+	 * an ordinary node at its own level rather than going unplaced.
+	 */
+	gint host_item;
 	gint w, h;
 } nde_graph_box;
 
 /** Where that node goes.  Origin is the top-left of the whole layout. */
 typedef struct {
 	gint item_id;
-	gint x, y, w, h;
+	gint x, y, w;
+	/**
+	 * @h is the BAND's height for an ordinary node — every node in a band is
+	 * levelled to it, so the band has one bottom edge and satellites have one
+	 * range to be anchored in.  @content_h is what the node actually measured,
+	 * and is where its outgoing edges leave: a short node in a tall band drew
+	 * its line starting at the band's bottom, which read as a line that had
+	 * come adrift from the end of its history.  For a satellite the two are
+	 * equal — it is not levelled to anything.
+	 */
+	gint h, content_h;
+	gint y_min, y_max;   /* the range a satellite's host allows it; else = y */
 } nde_graph_place;
 
 /**
@@ -150,6 +177,13 @@ typedef struct {
  * bottom inside a node, and running derivation left to right as well made the
  * two axes fight — a layer's history read down the page while the history of
  * the document read across it.
+ *
+ * A box with a host_item is a SATELLITE: it goes in a column immediately to
+ * the right of its host, inside the host's band, and the band's next node
+ * starts beyond that column.  Masks are laid out this way, so a mask sits
+ * beside the layer it applies to instead of after every layer — where its
+ * connecting lines had to cross the layers in between to get back.  Several
+ * satellites of one host stack down the column; the band grows to hold them.
  *
  * Returns a GArray of nde_graph_place, one per box and in the same order; free
  * with g_array_unref().  @total_w / @total_h may be NULL.  No boxes yields an

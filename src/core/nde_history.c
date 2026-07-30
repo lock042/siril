@@ -33,6 +33,7 @@
 #include "core/nde_composite.h"
 #include "core/nde_snapstore.h"
 #include "core/nde_replay.h"    /* nde_item_is_retained_input() */
+#include "core/processing_thread.h"   /* processing_is_reserved_for_replay() */
 #include "io/image_format_flis.h"
 
 /* Leaf lock guarding the CURRENT document's log (com.uniq->nde_history and
@@ -286,7 +287,15 @@ static gboolean insert_qualifies_locked(const nde_history *h, const nde_record *
 static gboolean insert_disturbs(const nde_history *h, const nde_record *rec) {
 	return (rec->scope == NDE_SCOPE_CANVAS && h->ins_item >= 0) ||
 	       !g_strcmp0(rec->op_id, "document.flatten") ||
-	       !g_strcmp0(rec->op_id, "layer.merge_down");
+	       !g_strcmp0(rec->op_id, "layer.merge_down") ||
+	       /* Removing the insertion's own item deletes the image the armed
+	        * insertion describes — the end path would have nothing to restore
+	        * into.  The GUI refuses it up front (op_hook); this is the
+	        * backstop.  Other structural ops (add / duplicate / reorder, and
+	        * removing an UNRELATED layer) stay harmless appends, as the
+	        * qualification tests document. */
+	       (!g_strcmp0(rec->op_id, "layer.remove") &&
+	        rec->target_item_id == h->ins_item);
 }
 
 gint64 nde_history_append(nde_record *rec) {
@@ -487,6 +496,87 @@ GPtrArray *nde_history_snapshot_all(guint *live_count_out) {
 	}
 	g_mutex_unlock(&nde_mutex);
 	return out;
+}
+
+gboolean nde_history_item_is_pinned(gint item_id) {
+	if (!com.uniq)
+		return FALSE;
+	gboolean pinned = FALSE;
+	g_mutex_lock(&nde_mutex);
+	nde_history *h = com.uniq->nde_history;
+	/* Whole log again: an undone consumer still counts — redo revives it. */
+	for (guint i = 0; !pinned && h && i < h->records->len; i++) {
+		const nde_record *rec = g_ptr_array_index(h->records, i);
+		for (guint k = 0; rec->inputs && k < rec->inputs->len; k++) {
+			const nde_input_pin *pin = g_ptr_array_index(rec->inputs, k);
+			if (pin->src_item_id == item_id) {
+				pinned = TRUE;
+				break;
+			}
+		}
+	}
+	g_mutex_unlock(&nde_mutex);
+	return pinned;
+}
+
+guint nde_history_forget_item(gint item_id) {
+	if (!com.uniq)
+		return 0;
+	GArray *dropped = g_array_new(FALSE, FALSE, sizeof(gint64));
+	g_mutex_lock(&nde_mutex);
+	nde_history *h = com.uniq->nde_history;
+	guint removed = 0;
+	for (guint i = h ? h->records->len : 0; i-- > 0; ) {
+		nde_record *rec = g_ptr_array_index(h->records, i);
+		if (rec->target_item_id != item_id)
+			continue;
+		gint64 id = rec->record_id;
+		g_array_append_val(dropped, id);
+		g_ptr_array_remove_index(h->records, i);   /* frees the record */
+		if (i < h->live_count)
+			h->live_count--;
+		removed++;
+	}
+	g_mutex_unlock(&nde_mutex);
+	/* Checkpoint and pool entries outside the mutex — separate leaves. */
+	for (guint i = 0; i < dropped->len; i++) {
+		gint64 id = g_array_index(dropped, gint64, i);
+		nde_checkpoint_output_drop(id);
+		nde_snapstore_evict_record(id);
+	}
+	g_array_unref(dropped);
+	return removed;
+}
+
+void nde_history_mask_pin_coords(GHashTable *record_ids, GHashTable *baseline_items) {
+	if (!com.uniq)
+		return;
+	g_mutex_lock(&nde_mutex);
+	nde_history *h = com.uniq->nde_history;
+	/* The whole log, not just the live prefix: an undone masked step's pin
+	 * matters again the moment it is redone, and the dead tail is short-lived
+	 * either way (truncated by the next capture). */
+	for (guint i = 0; h && i < h->records->len; i++) {
+		const nde_record *rec = g_ptr_array_index(h->records, i);
+		if (!rec->inputs)
+			continue;
+		for (guint k = 0; k < rec->inputs->len; k++) {
+			const nde_input_pin *pin = g_ptr_array_index(rec->inputs, k);
+			if (!pin->role || strncmp(pin->role, "mask", 4))
+				continue;
+			if (pin->src_record_id) {
+				if (record_ids) {
+					gint64 *key = g_new(gint64, 1);
+					*key = pin->src_record_id;
+					g_hash_table_add(record_ids, key);
+				}
+			} else if (baseline_items) {
+				g_hash_table_add(baseline_items,
+				                 GINT_TO_POINTER(pin->src_item_id));
+			}
+		}
+	}
+	g_mutex_unlock(&nde_mutex);
 }
 
 gint64 nde_history_last_record_for_item(gint item_id) {
@@ -880,6 +970,18 @@ gint64 nde_history_insert_point(void) {
 	return id;
 }
 
+gboolean nde_history_insert_point_target(gint *item_out) {
+	if (!com.uniq)
+		return FALSE;
+	g_mutex_lock(&nde_mutex);
+	nde_history *h = com.uniq->nde_history;
+	gboolean armed = h && h->ins_before != 0;
+	if (armed && item_out)
+		*item_out = h->ins_item;
+	g_mutex_unlock(&nde_mutex);
+	return armed;
+}
+
 gboolean nde_history_insert_point_disturbed(void) {
 	if (!com.uniq)
 		return FALSE;
@@ -992,13 +1094,17 @@ void nde_history_notify_panel(void) {
 /* ======================================================================= */
 
 /* TRUE when @rec is a barrier: a live chain-member record that cannot be
- * replayed — Tier B, or Tier A with a mask active at capture (nde-phase4
- * plan "barrier model").  Barriers store their POST-op pixels as an output
- * checkpoint so everything after them stays editable. */
+ * replayed — Tier B, or Tier A whose mask was not kept (nde-phase4 plan
+ * "barrier model").  A masked record with a RESOLVABLE pin is not a barrier:
+ * the replay puts the stored mask back and reproduces the op — the same rule
+ * the generic worker's capture applies (processing.c).  Barriers store their
+ * POST-op pixels as an output checkpoint so everything after them stays
+ * editable. */
 static gboolean record_is_barrier(const nde_record *rec) {
 	return rec->tier == NDE_TIER_B ||
 	       rec->tier == NDE_TIER_C ||   /* checkpointed: restart point for the tail */
-	       (rec->tier == NDE_TIER_A && rec->mask_active);
+	       (rec->tier == NDE_TIER_A && rec->mask_active
+	        && !nde_mask_pin_resolvable(rec));
 }
 
 /* Shared tail for the one-call capture helpers: fill timestamp/impl, append
@@ -1042,6 +1148,19 @@ gint64 nde_capture_structural(const char *op_id, gint scope,
                               const char *summary) {
 	return nde_capture_structural_pinned(op_id, scope, target_item_id, params,
 	                                     summary, NULL, 0);
+}
+
+gint64 nde_capture_image_origin(const char *kind, const char *src,
+                                const char *summary) {
+	if (!com.uniq || com.uniq->nde_history)
+		return 0;
+	if (processing_is_reserved_for_replay())
+		return 0;
+	GString *kv = nde_kv_start();
+	nde_kv_add_str(kv, "kind", kind ? kind : "generated");
+	nde_kv_add_str(kv, "src", src ? src : "");
+	return nde_capture_structural(NDE_OP_IMAGE_ORIGIN, NDE_SCOPE_DOCUMENT,
+	                              NDE_ITEM_IMAGE, nde_kv_end(kv), summary);
 }
 
 gint64 nde_capture_structural_pinned(const char *op_id, gint scope,
@@ -1093,7 +1212,7 @@ gint64 nde_capture_script(const char *op_id, gint scope,
 
 gint64 nde_capture_from_descriptor(const op_descriptor *op,
                                    gconstpointer params, const char *summary,
-                                   const fits *post) {
+                                   const fits *post, gboolean mask_aware) {
 	g_return_val_if_fail(op != NULL, 0);
 	nde_record *rec = nde_record_new();
 	gboolean tier_a = op->serialize != NULL;
@@ -1104,7 +1223,25 @@ gint64 nde_capture_from_descriptor(const op_descriptor *op,
 	rec->scope      = (op->flags & OP_GEOMETRY_CHANGING) ?
 	                  NDE_SCOPE_CANVAS : NDE_SCOPE_LAYER;
 	rec->target_item_id = nde_capture_target_item();
-	rec->mask_active = gfit && gfit->mask && gfit->mask_active;
+	/* The caller says whether its worker run blended through the mask
+	 * (missedasinh.png).  This used to read the flag off gfit alone, which
+	 * was wrong twice over: a dialog whose op IGNORED the mask captured
+	 * mask_active anyway — freezing its chain over a mask that never touched
+	 * the pixels — and a dialog whose op USED it recorded neither WHICH mask
+	 * nor its pixels, so the record was an unreplayable barrier and the graph
+	 * showed no mask edge.  A masked capture now pins the mask and keeps its
+	 * state, exactly like the generic worker's own capture (processing.c). */
+	rec->mask_active = mask_aware && gfit && gfit->mask && gfit->mask_active;
+	if (rec->mask_active) {
+		gint mask_item = NDE_ITEM_PLAIN_MASK;
+		if (is_current_image_flis())
+			mask_item = flis_layer_pmask_id(flis_active_layer());
+		if (mask_item != 0) {
+			nde_record_add_input(rec, "mask", mask_item,
+			                     nde_history_last_record_for_item(mask_item));
+			nde_mask_pin_store(rec, gfit);
+		}
+	}
 	return capture_finish(rec, summary, post);
 }
 

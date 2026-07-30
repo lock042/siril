@@ -422,7 +422,7 @@ static gpointer merge_cfa_img_worker(gpointer p) {
 	free(out);
 	clear_stars_list(TRUE);
 	com.seq.current = UNRELATED_IMAGE;
-	if (!create_uniq_from_gfit(strdup(_("Unsaved Bayer pattern merge")), FALSE))
+	if (!create_uniq_from_gfit(strdup(_("Unsaved Bayer pattern merge")), FALSE, "generated"))
 		com.uniq->comment = strdup(_("Bayer pattern merge"));
 	if (!com.headless) {
 		notify_gfit_data_modified();
