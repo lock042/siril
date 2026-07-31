@@ -1749,3 +1749,69 @@ Test(nde_composite, the_merged_away_layer_is_joined_to_its_consumer) {
 	nde_graph_free(g);
 	done();
 }
+
+/* ---- the merge is where the item begins -------------------------------- */
+
+/* Reported as a segfault: "Move up" on the step after a merge-down took the
+ * composite out of position 0.  An item born of a merge has no baseline —
+ * member 0 renders the composite's inputs and IS its origin — so the reordered
+ * chain handed an ordinary op a NULL scratch, which it dereferenced.  The move
+ * has to be refused, not survived. */
+Test(nde_composite, nothing_can_be_moved_in_front_of_the_merge_that_made_the_image) {
+	flis_layer_t *result = two_edited_layers_merged(NULL, NULL,
+	                                                FLIS_BLEND_NORMAL, 1.0f);
+	cr_assert_not_null(result);
+	select_layer(result);
+	/* A step of the merged item's own, after the composite. */
+	cr_assert_eq(run_op_on_active(&op_desc_asinh, asinh_beta(30.0f)), 0);
+
+	const nde_record *merge = find_composite_record();
+	cr_assert_not_null(merge);
+	gint64 merge_id = merge->record_id;
+	gint64 step_id = record_for_item(result->item_id);
+	cr_assert_neq(step_id, 0, "the post-merge step is in the log");
+	cr_assert_neq(step_id, merge_id);
+
+	float before = first_pixel();
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	gboolean ok = nde_reorder_execute(step_id, merge_id, /*after=*/FALSE, &err);
+	unreserve_thread();
+
+	cr_assert(!ok, "moving a step in front of the merge must be refused");
+	cr_assert_not_null(err, "and must say why");
+	cr_assert(strstr(err, "produced by that merge") != NULL, "got: %s", err);
+	g_free(err);
+	cr_assert_float_eq(first_pixel(), before, 0.0f,
+	                   "a refused move must leave the pixels alone");
+	done();
+}
+
+/* The other half of the same invariant, and the reason the guard above only
+ * has to state one direction: a composite is not a reorderable record at all,
+ * so it can never be moved off the front.  Pinned here because the guard
+ * leans on it. */
+Test(nde_composite, the_merge_itself_cannot_be_moved_off_the_front) {
+	flis_layer_t *result = two_edited_layers_merged(NULL, NULL,
+	                                                FLIS_BLEND_NORMAL, 1.0f);
+	cr_assert_not_null(result);
+	select_layer(result);
+	cr_assert_eq(run_op_on_active(&op_desc_asinh, asinh_beta(30.0f)), 0);
+
+	const nde_record *merge = find_composite_record();
+	cr_assert_not_null(merge);
+	gint64 merge_id = merge->record_id;
+	gint64 step_id = record_for_item(result->item_id);
+	cr_assert_neq(step_id, 0);
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	gboolean ok = nde_reorder_execute(merge_id, step_id, /*after=*/TRUE, &err);
+	unreserve_thread();
+
+	cr_assert(!ok, "moving the merge off the front must be refused");
+	cr_assert_not_null(err);
+	cr_assert(strstr(err, "cannot be reordered") != NULL, "got: %s", err);
+	g_free(err);
+	done();
+}

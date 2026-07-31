@@ -711,6 +711,20 @@ static fits *replay_apply_records(fits *scratch, const nde_chain *chain,
 			*err = g_strdup(_("cancelled"));
 			goto fail;
 		}
+		/* A NULL scratch is legal for exactly one kind of record: the
+		 * composite that gives an item born of a merge its origin, which
+		 * renders its own inputs and wants no prior state.  Anything else
+		 * needs pixels to work on, and used to take the absence of them as
+		 * far as scratch->mask.  Callers guard their own restart points; this
+		 * is the last one, so that a gap upstream is a failed replay and not
+		 * a lost session. */
+		if (!scratch && !nde_composite_is_op(rec->op_id)) {
+			*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) has no "
+			                         "image to run on — the history has no "
+			                         "starting state before it"),
+			                       rec->record_id, rec->op_id ? rec->op_id : "?");
+			goto fail;
+		}
 		if (rec->tier == NDE_TIER_C) {
 			/* Replayable Python script: re-run it on the accumulated state
 			 * (nde-phase5).  Chain membership already vetted the recipe via
@@ -2498,6 +2512,20 @@ gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after,
 	if (dest == i_old) {
 		nde_chain_free(chain);
 		return TRUE;   /* no-op move */
+	}
+	/* An item born of a merge has no state before that merge: member 0 IS its
+	 * origin, rendering the composite's inputs where every other chain starts
+	 * from a baseline (nde_replay.h).  Move something in front of it and the
+	 * replay has an ordinary op to run against no state at all, which it duly
+	 * dereferenced.  Only this direction needs stating: the composite itself
+	 * can never be the record being moved, the reorderable-record check above
+	 * having refused it already. */
+	if (chain->from_composite && dest == 0) {
+		*err = g_strdup(_("this image was produced by that merge, so nothing "
+		                  "can come before it — move the step within one of "
+		                  "the layers the merge consumed instead"));
+		nde_chain_free(chain);
+		return FALSE;
 	}
 	guint min_idx = (guint)MIN(i_old, dest);
 	if (min_idx < chain->tail_start) {

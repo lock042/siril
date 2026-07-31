@@ -151,6 +151,11 @@ struct _NdeHistRowItem {
 	/* The record's target item — drag-reorder is only valid between chain
 	 * members of the SAME item. */
 	gint     target_item_id;
+	/* An item born of a merge has its origin composite as chain member 0, and
+	 * it has to stay there: there is no state before it for anything else to
+	 * run against (nde_replay.h). */
+	gboolean is_origin;       /* this row IS that composite */
+	gboolean prev_is_origin;  /* the member above it is */
 };
 
 G_DEFINE_TYPE(NdeHistRowItem, nde_hist_row_item, G_TYPE_OBJECT)
@@ -2234,6 +2239,18 @@ static const char *hist_move_disabled_reason(const NdeHistRowItem *r,
 		return _("Opacity, blend mode and visibility are read as they stand "
 		         "rather than replayed in order, so moving this step would "
 		         "change nothing");
+	/* The merge that produced an item is where that item begins; nothing can
+	 * precede it, in either direction of travel.  The same rule "Insert
+	 * before…" states below.  The engine refuses both regardless — a
+	 * composite is not a reorderable record, and nde_reorder_execute rejects
+	 * a destination of 0 on a merge-born chain — so this is the tooltip, not
+	 * the enforcement. */
+	if (r->is_origin)
+		return _("This step produced the image, so it has to stay first");
+	if (up && r->prev_is_origin)
+		return _("The step above produced the image, so nothing can come "
+		         "before it. Move this step within one of the layers the "
+		         "merge consumed instead.");
 	if (!r->amendable || !r->deletable || !r->in_tail)
 		return _("Only steps after the last opaque step can be moved");
 	gint64 neighbour = up ? r->prev_member_id : r->next_member_id;
@@ -2411,6 +2428,7 @@ typedef struct {
 	gboolean in_tail;
 	gint64   prev_member_id, next_member_id;
 	gboolean prev_in_tail, next_in_tail;
+	gboolean is_origin, prev_is_origin;
 	/* Why the WHOLE chain cannot be replayed, when that is the case (a
 	 * merged-away layer whose baseline went with it, a file older than
 	 * baselines).  OWNED: the chain it came from is freed before the rows
@@ -2457,6 +2475,10 @@ static void hist_fold_chain_marks(GHashTable *map, const nde_chain *chain) {
 		 * regains editability of the prefix. */
 		m->last_barrier = !blocked && is_barrier && (i == tail - 1);
 		m->in_tail = !blocked && (i >= tail);
+		/* from_composite says member 0 is the composite that produced this
+		 * item, so it anchors the chain and member 1 has nowhere above it. */
+		m->is_origin      = chain->from_composite && i == 0;
+		m->prev_is_origin = chain->from_composite && i == 1;
 		if (i > 0) {
 			const nde_record *p = g_ptr_array_index(chain->records, i - 1);
 			m->prev_member_id = p->record_id;
@@ -2808,6 +2830,8 @@ static void refresh_history(void) {
 				item->next_member_id = m->next_member_id;
 				item->prev_in_tail   = m->prev_in_tail;
 				item->next_in_tail   = m->next_in_tail;
+				item->is_origin      = m->is_origin;
+				item->prev_is_origin = m->prev_is_origin;
 			}
 			/* Frozen rows explain why they are locked in the detail text.
 			 * A chain-level blocker gets its own reason: "a later opaque
