@@ -169,30 +169,7 @@ void nde_checkpoint_rebind_item(gint from_item, gint to_item);
 /** Payload bytes held by the baseline and output-checkpoint tables. */
 gint64 nde_checkpoint_bytes(void);
 
-/** What one eviction cost, so the caller can say so. */
-typedef struct {
-	gint64   bytes;
-	gboolean is_baseline;   /* TRUE: an item lost its whole chain */
-	gint     item_id;
-	gint64   record_id;     /* 0 for a baseline */
-} nde_checkpoint_eviction;
 
-/**
- * Drop the single oldest evictable pin and describe it in @out (may be NULL).
- * FALSE when there is nothing left to drop.
- *
- * Order: output checkpoints by ascending record_id, then baselines by
- * ascending item_id.
- *
- * Two things are never evicted, so that a budget too small to hold even one
- * checkpoint degrades into "keeps the newest" rather than into churn:
- *   - the ACTIVE item's baseline — losing it would make the user's next
- *     operation unreplayable before they could react;
- *   - @protect_record (0 for none) — the checkpoint just stored, which is the
- *     most useful one there is and must not be dropped on the way in.
- * Below that floor the budget stops being a limit and becomes a request.
- */
-gboolean nde_checkpoint_evict_oldest(nde_checkpoint_eviction *out, gint64 protect_record);
 
 /**
  * Active FLIS layer item_id for baseline targeting, or −1 for a plain image.

@@ -24,25 +24,31 @@
  * \file nde_retention.h
  * \brief One storage budget for everything nondestructive editing keeps.
  *
- * ONE BUDGET, TWO PRIORITIES (design note §7).  `com.pref.nde_cache_mb` is
+ * ONE BUDGET, TWO KINDS OF DATA (design note §7).  `com.pref.nde_cache_mb` is
  * not the cache's budget — it is the budget for ALL edit-history storage,
- * measured against nde_snapstore_total_bytes().  What differs between the
- * two kinds of stored data is not their allowance but their eviction order:
+ * measured against nde_snapstore_total_bytes().  What differs between the two
+ * kinds of stored data is whether the budget may take them:
  *
- *   1. SPEED CACHE (the snapstore LRU pool) goes first, silently.  Losing a
- *      pool entry costs time: a later replay restarts further back.
- *   2. EDITABILITY PINS (baselines, output checkpoints, pinned operation
- *      masks) go only when the cache is exhausted, and are ANNOUNCED.
- *      Losing one costs a capability: steps that depended on it become
- *      fixed and can no longer be amended.
+ *   1. SPEED CACHE (the snapstore LRU pool) is evictable, oldest first, and
+ *      goes silently.  Losing a pool entry costs only time: a later replay
+ *      restarts further back and recomputes more.
+ *   2. RECONSTRUCTION DATA (baselines, barrier output checkpoints, pinned
+ *      operation masks) is NEVER evicted, even when that means exceeding the
+ *      budget.  Losing one of these does not cost time, it costs the ability
+ *      to rebuild the image at all: a baseline is where a chain starts, and a
+ *      barrier's checkpoint is the only thing the steps after an
+ *      unreplayable step can be rebuilt from.
  *
- * The honesty requirement is the part not to compromise on: a silent
- * capability downgrade is worse than a refusal.  The user is told at the
- * moment it happens, not when a later amend fails.
+ * The rule that decides this: an edit history that cannot reconstruct its
+ * image is not an edit history.  A budget is a request about disk; being
+ * unable to re-run the user's own processing is a broken promise, and the
+ * second outranks the first.  So the budget bends.  It is announced once so
+ * the overshoot is not a surprise, and raising the setting buys back cache —
+ * it does not change what is kept.
  *
  * There is no "off".  A single always-on budget is one code path; a machine
- * short of disk sets the number small and gets the old behaviour without a
- * separate mode to test.
+ * short of disk sets the number small, keeps only what reconstruction needs,
+ * and recomputes the rest.
  *
  * Threading: callable from any thread.  Takes the snapstore and checkpoint
  * leaf locks one at a time, never together and never across I/O, so it
@@ -56,15 +62,12 @@ extern "C" {
 #endif
 
 /**
- * Bring total NDE storage back within the budget, cache first and pins only
- * if that is not enough.  A cheap no-op when already inside it, so capture
- * sites can call it unconditionally after storing.
- *
- * @keep_record_id is the checkpoint just stored (0 for none), which is never
- * evicted: a budget too small to hold even one checkpoint must degrade into
- * "keeps the newest", not into storing and immediately dropping it.
+ * Reclaim from the speed cache until total NDE storage is inside the budget,
+ * or until the cache is empty and only reconstruction data remains — in which
+ * case the budget is knowingly exceeded and said so once.  A cheap no-op when
+ * already inside it, so capture sites can call it unconditionally.
  */
-void nde_retention_enforce(gint64 keep_record_id);
+void nde_retention_enforce(void);
 
 /**
  * Forget that the limit has been announced (document closed or replaced), so
@@ -80,9 +83,12 @@ gint64 nde_retention_budget_bytes(void);
 
 typedef struct {
 	guint  cache_evictions;    /* silent pool reclaims that freed something */
-	guint  pins_dropped;       /* announced editability losses */
-	guint  baselines_dropped;  /* of those, whole-chain losses */
 	gint64 bytes_reclaimed;
+	/* What the budget could not take because dropping it would cost the
+	 * ability to rebuild an image: 0 while inside the budget, otherwise the
+	 * most recent overshoot.  There is no pins_dropped counter any more —
+	 * the answer is structurally zero. */
+	gint64 bytes_over_budget;
 } nde_retention_stats_t;
 
 void nde_retention_stats(nde_retention_stats_t *out);

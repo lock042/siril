@@ -41,26 +41,22 @@ gint64 nde_retention_budget_bytes(void) {
  * nde_retention_notice_reset() when the document changes. */
 static gboolean warned_limit;
 
-static void announce(guint pins, guint baselines) {
-	if (!pins)
+static void announce(gint64 over) {
+	if (over <= 0 || warned_limit)
 		return;
-	if (!warned_limit) {
-		warned_limit = TRUE;
-		siril_log_message(_("Edit history storage limit reached (%d MB). The oldest "
-		                    "steps can no longer be re-run, and are marked as fixed "
-		                    "in the history.\n"), com.pref.nde_cache_mb);
-		/* Name the setting rather than a Preferences page: this one has no GUI
-		 * control, so "see Preferences" would send the user looking for
-		 * something that is not there. */
-		siril_log_message(_("Raise core.nde_cache_mb to keep more of the history "
-		                    "editable.\n"));
-	}
-	/* A lost baseline is a strictly worse event — a whole image's history stops
-	 * being amendable, not just its oldest steps — and is rare enough that
-	 * saying so every time cannot become noise. */
-	if (baselines)
-		siril_log_message(_("%u image(s) lost their original state, so none of their "
-		                    "steps can be amended.\n"), baselines);
+	warned_limit = TRUE;
+	siril_log_message(_("Edit history storage is over the %d MB budget by %.0f MB. "
+	                    "The states needed to rebuild your images are kept "
+	                    "regardless — only cached intermediate results are "
+	                    "discarded, so nothing becomes un-editable.\n"),
+	                  com.pref.nde_cache_mb, (double)over / (1024.0 * 1024.0));
+	/* Name the setting rather than a Preferences page: this one has no GUI
+	 * control, so "see Preferences" would send the user looking for something
+	 * that is not there.  And be accurate about what raising it buys — not
+	 * editability, which is never traded away, but the cache that makes an
+	 * edit fast instead of slow. */
+	siril_log_message(_("Raise core.nde_cache_mb to keep more intermediate "
+	                    "results and make history edits faster.\n"));
 }
 
 void nde_retention_notice_reset(void) {
@@ -69,46 +65,40 @@ void nde_retention_notice_reset(void) {
 	g_mutex_unlock(&ret_mutex);
 }
 
-void nde_retention_enforce(gint64 keep_record_id) {
+void nde_retention_enforce(void) {
 	gint64 budget = nde_retention_budget_bytes();
 	if (budget <= 0)
-		return;   /* deposits are already suppressed; pins are all that is left */
+		return;   /* deposits are already suppressed; reconstruction data is all
+		           * that is left, and that is kept whatever the budget says */
 
-	/* Serialised so two workers finishing together cannot both decide the
-	 * same pins must go and announce it twice. */
+	/* Serialised so two workers finishing together cannot both reclaim for the
+	 * same overshoot and announce it twice. */
 	g_mutex_lock(&ret_mutex);
 
 	gint64 total = nde_snapstore_total_bytes();
 	if (total <= budget) {
+		ret_stats.bytes_over_budget = 0;
 		g_mutex_unlock(&ret_mutex);
 		return;
 	}
 
-	/* 1. Cache first, silently. */
+	/* The cache is the only thing the budget may take.  Baselines, barrier
+	 * checkpoints and pinned masks are what the image is rebuilt FROM; dropping
+	 * one to save disk trades a capability for a number, which is the wrong way
+	 * round (see the header). */
 	gint64 freed = nde_snapstore_reclaim_pool(total - budget);
 	if (freed) {
 		ret_stats.cache_evictions++;
 		ret_stats.bytes_reclaimed += freed;
 	}
 
-	/* 2. Only then pins, and only as many as the overshoot actually needs.
-	 * Re-reading the total each round rather than subtracting keeps this
-	 * honest when another thread frees something underneath us. */
-	guint pins = 0, baselines = 0;
-	while (nde_snapstore_total_bytes() > budget) {
-		nde_checkpoint_eviction ev = { 0 };
-		if (!nde_checkpoint_evict_oldest(&ev, keep_record_id))
-			break;   /* nothing left that may go — see the header's floor */
-		pins++;
-		if (ev.is_baseline)
-			baselines++;
-		ret_stats.pins_dropped++;
-		ret_stats.baselines_dropped += ev.is_baseline ? 1 : 0;
-		ret_stats.bytes_reclaimed += ev.bytes;
-	}
+	/* Re-read rather than subtract: another thread may have freed something
+	 * underneath us, and the overshoot we report should be the real one. */
+	gint64 over = nde_snapstore_total_bytes() - budget;
+	ret_stats.bytes_over_budget = over > 0 ? over : 0;
 	g_mutex_unlock(&ret_mutex);
 
-	announce(pins, baselines);
+	announce(over);
 }
 
 void nde_retention_stats(nde_retention_stats_t *out) {

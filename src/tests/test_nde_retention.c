@@ -100,32 +100,62 @@ Test(nde_retention, the_cache_yields_to_pins) {
 
 	nde_retention_stats_t st;
 	nde_retention_stats(&st);
-	cr_assert_eq(st.pins_dropped, 0, "no pin should have been touched");
+	cr_assert_eq(st.bytes_over_budget, 0, "the cache was enough to absorb it");
 
 	clearfits(a); free(a); clearfits(b); free(b);
 	clearfits(p1); free(p1); clearfits(p2); free(p2); clearfits(p3); free(p3);
 }
 
-/* ---- pins, oldest first, and only once the cache is gone --------------- */
+/* ---- reconstruction data outranks the budget ---------------------------- */
 
-Test(nde_retention, pins_go_oldest_first_once_the_cache_is_exhausted) {
-	/* Five quarter-MB pins against a 1 MB budget: the oldest must go. */
+/* The rule this file exists to protect: an edit history that cannot rebuild
+ * its image is not an edit history.  Baselines and barrier checkpoints are
+ * what the rebuild starts FROM, so the budget bends rather than taking them.
+ * This used to evict the oldest and mark those steps fixed. */
+Test(nde_retention, reconstruction_data_is_never_evicted_even_over_budget) {
+	/* Five quarter-MB checkpoints against a 1 MB budget, and no cache to give
+	 * up instead. */
 	fits *p[5];
 	for (int i = 0; i < 5; i++) {
 		p[i] = quarter_mb(0.1f * (float)(i + 1));
 		nde_checkpoint_output_store(p[i], 10 + i, 7);
 	}
 
-	cr_assert(!nde_checkpoint_output_exists(10), "record 10 was the oldest");
-	cr_assert(nde_checkpoint_output_exists(14), "the newest must survive");
-	cr_assert_leq(nde_snapstore_total_bytes(), nde_retention_budget_bytes());
+	for (int i = 0; i < 5; i++)
+		cr_assert(nde_checkpoint_output_exists(10 + i),
+		          "checkpoint %d must survive: without it the steps after an "
+		          "unreplayable one cannot be rebuilt at all", 10 + i);
+	cr_assert_gt(nde_snapstore_total_bytes(), nde_retention_budget_bytes(),
+	             "and the budget is knowingly exceeded to manage it");
 
 	nde_retention_stats_t st;
 	nde_retention_stats(&st);
-	cr_assert_gt(st.pins_dropped, 0, "the loss must be counted, not silent");
-	cr_assert_eq(st.baselines_dropped, 0, "no baseline was involved");
+	cr_assert_gt(st.bytes_over_budget, 0, "the overshoot is reported, not hidden");
 
 	for (int i = 0; i < 5; i++) { clearfits(p[i]); free(p[i]); }
+}
+
+/* The cache is still the first and now the ONLY thing the budget may take,
+ * and it must be given up before the overshoot is declared. */
+Test(nde_retention, the_cache_is_spent_before_the_budget_is_broken) {
+	fits *c1 = quarter_mb(0.1f), *c2 = quarter_mb(0.2f);
+	nde_snapstore_deposit(c1, 1, 101);
+	nde_snapstore_deposit(c2, 1, 102);
+
+	/* Four pins = 1 MB on their own; with the cache the total is 1.5 MB. */
+	fits *p[4];
+	for (int i = 0; i < 4; i++) {
+		p[i] = quarter_mb(0.5f + 0.1f * (float)i);
+		nde_checkpoint_output_store(p[i], 30 + i, 7);
+	}
+
+	cr_assert_eq(nde_snapstore_pool_bytes(), 0,
+	             "the cache is emptied before the budget is allowed to break");
+	for (int i = 0; i < 4; i++)
+		cr_assert(nde_checkpoint_output_exists(30 + i));
+
+	clearfits(c1); free(c1); clearfits(c2); free(c2);
+	for (int i = 0; i < 4; i++) { clearfits(p[i]); free(p[i]); }
 }
 
 /* procmasksnag: a used mask persists ONLY as its pinned states — clearing it
@@ -146,18 +176,19 @@ Test(nde_retention, a_pinned_mask_state_is_never_evicted) {
 	nde_record_add_input(rec, "mask", 9, 10);
 	cr_assert(nde_history_append(rec) > 0);
 
-	/* Five quarter-MB states against a 1 MB budget: one must go, and the
-	 * oldest (record 10) is the pinned mask state. */
+	/* Five quarter-MB states against a 1 MB budget.  Record 10 is the pinned
+	 * mask state and used to be the first victim of the age rule; now nothing
+	 * is a victim, but the mask case is kept because it is the one where the
+	 * loss was permanent rather than merely expensive. */
 	fits *p[5];
 	for (int i = 0; i < 5; i++) {
 		p[i] = quarter_mb(0.1f * (float)(i + 1));
 		nde_checkpoint_output_store(p[i], 10 + i, 9);
 	}
 	cr_assert(nde_checkpoint_output_exists(10),
-	          "the pinned mask state must be passed over");
-	cr_assert(!nde_checkpoint_output_exists(11),
-	          "the oldest UNPINNED state goes instead");
-	cr_assert_leq(nde_snapstore_total_bytes(), nde_retention_budget_bytes());
+	          "the pinned mask state must survive");
+	cr_assert(nde_checkpoint_output_exists(11),
+	          "and so must every other checkpoint — nothing here is evictable");
 
 	for (int i = 0; i < 5; i++) { clearfits(p[i]); free(p[i]); }
 	nde_history_attach(NULL);
@@ -165,9 +196,9 @@ Test(nde_retention, a_pinned_mask_state_is_never_evicted) {
 	com.uniq = NULL;
 }
 
-/* A baseline costs an item its WHOLE chain, so it goes only after every
- * output checkpoint has already gone. */
-Test(nde_retention, baselines_are_evicted_after_output_checkpoints) {
+/* A baseline is where a chain starts; a barrier's checkpoint is the only thing
+ * the steps after it can be rebuilt from.  Neither is negotiable. */
+Test(nde_retention, baselines_and_checkpoints_both_outlast_the_budget) {
 	fits *base = quarter_mb(0.1f);
 	nde_checkpoint_baseline_ensure(base, 4);       /* item 4, not the active one */
 	cr_assert(nde_checkpoint_baseline_exists(4));
@@ -176,25 +207,23 @@ Test(nde_retention, baselines_are_evicted_after_output_checkpoints) {
 	nde_checkpoint_output_store(o1, 20, 4);
 	nde_checkpoint_output_store(o2, 21, 4);
 	nde_checkpoint_output_store(o3, 22, 4);   /* baseline + 3 = exactly 1 MB */
-	cr_assert(nde_checkpoint_output_exists(20), "at the budget nothing goes yet");
 
-	/* One past the budget, and it must be the oldest OUTPUT checkpoint that
-	 * goes, not the baseline. */
+	/* One past the budget. */
 	fits *o4 = quarter_mb(0.5f);
 	nde_checkpoint_output_store(o4, 23, 4);
 
-	cr_assert(nde_checkpoint_baseline_exists(4), "the baseline must outlast them");
-	cr_assert(!nde_checkpoint_output_exists(20), "the oldest checkpoint went first");
-	cr_assert(nde_checkpoint_output_exists(23), "the newest survives");
+	cr_assert(nde_checkpoint_baseline_exists(4), "the baseline stays");
+	cr_assert(nde_checkpoint_output_exists(20), "so does the oldest checkpoint");
+	cr_assert(nde_checkpoint_output_exists(23), "and the newest");
 
 	clearfits(base); free(base);
 	clearfits(o1); free(o1); clearfits(o2); free(o2);
 	clearfits(o3); free(o3); clearfits(o4); free(o4);
 }
 
-/* Evicting the baseline of the item being worked on would make the user's
- * very next operation unreplayable, before they could act on the warning. */
-Test(nde_retention, the_active_items_baseline_is_never_evicted) {
+/* Every baseline survives now, not just the active item's — an inactive layer
+ * whose baseline went was a layer the user could no longer edit at all. */
+Test(nde_retention, every_baseline_survives_the_budget) {
 	/* nde_checkpoint_active_item_id() reports -1 for a plain image, which is
 	 * the item every capture in a non-FLIS session targets. */
 	cr_assert_eq(nde_checkpoint_active_item_id(), -1);
@@ -210,35 +239,32 @@ Test(nde_retention, the_active_items_baseline_is_never_evicted) {
 		nde_checkpoint_baseline_ensure(other[i], 9 + i);
 	}
 
-	cr_assert(nde_checkpoint_baseline_exists(-1),
-	          "the active item's baseline must survive any pressure");
-	cr_assert(!nde_checkpoint_baseline_exists(9),
-	          "the oldest inactive baseline is what gives way");
-	cr_assert(nde_checkpoint_baseline_exists(12), "the newest survives");
+	cr_assert(nde_checkpoint_baseline_exists(-1), "the active item's");
+	for (int i = 0; i < 4; i++)
+		cr_assert(nde_checkpoint_baseline_exists(9 + i),
+		          "and every inactive one: item %d", 9 + i);
 
 	nde_retention_stats_t st;
 	nde_retention_stats(&st);
-	cr_assert_eq(st.baselines_dropped, 1, "and the whole-chain loss is reported");
+	cr_assert_gt(st.bytes_over_budget, 0, "the overshoot is what is reported");
 
 	clearfits(active); free(active);
 	for (int i = 0; i < 4; i++) { clearfits(other[i]); free(other[i]); }
 }
 
-/* A budget too small to hold even one checkpoint must degrade into "keeps the
- * newest", not into storing each one and immediately dropping it — which is
- * what an unprotected oldest-first rule does when the newest IS also the
- * oldest.  Found by running it, not by reasoning about it. */
-Test(nde_retention, the_checkpoint_just_stored_is_never_the_one_evicted) {
+/* A budget smaller than a single checkpoint used to need a "protect the one
+ * just stored" rule, or an oldest-first pass would store each checkpoint and
+ * immediately drop it again.  With nothing evictable the problem cannot
+ * arise, and the rule went with it. */
+Test(nde_retention, a_budget_smaller_than_one_checkpoint_still_keeps_them_all) {
 	fits *big = make_image(1024, 512, 0.1f);   /* 2 MB, twice the budget */
 
 	nde_checkpoint_output_store(big, 80, 7);
-	cr_assert(nde_checkpoint_output_exists(80),
-	          "storing it and dropping it again would be pure waste");
+	cr_assert(nde_checkpoint_output_exists(80));
 
-	/* The next one displaces it, rather than being discarded on arrival. */
 	nde_checkpoint_output_store(big, 81, 7);
-	cr_assert(!nde_checkpoint_output_exists(80), "the older one gives way");
-	cr_assert(nde_checkpoint_output_exists(81), "the newest is what is kept");
+	cr_assert(nde_checkpoint_output_exists(80), "the older one is not displaced");
+	cr_assert(nde_checkpoint_output_exists(81), "and the newer one is stored");
 
 	clearfits(big); free(big);
 }
@@ -262,7 +288,7 @@ Test(nde_retention, a_zero_budget_suppresses_the_cache_and_keeps_pins) {
 
 	nde_retention_stats_t st;
 	nde_retention_stats(&st);
-	cr_assert_eq(st.pins_dropped, 0);
+	cr_assert_eq(st.cache_evictions, 0, "there was no cache to evict");
 
 	clearfits(a); free(a);
 	clearfits(pin); free(pin);
@@ -276,12 +302,12 @@ Test(nde_retention, enforcing_inside_the_budget_is_a_no_op) {
 	nde_retention_stats_reset();
 
 	for (int i = 0; i < 5; i++)
-		nde_retention_enforce(0);
+		nde_retention_enforce();
 
 	cr_assert(nde_checkpoint_output_exists(60));
 	nde_retention_stats_t st;
 	nde_retention_stats(&st);
-	cr_assert_eq(st.pins_dropped, 0);
+	cr_assert_eq(st.bytes_over_budget, 0);
 	cr_assert_eq(st.bytes_reclaimed, 0);
 
 	clearfits(pin); free(pin);
