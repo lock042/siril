@@ -2120,15 +2120,24 @@ directly), freeing `slot->tiles` while the main thread was mid-render in
 held across the whole render/prefetch and by every invalidation entry
 point. Reproduced and verified with `src/tests/diag_flis_gpu_stress.c`
 (threaded invalidator + eviction/mip/pan churn): segfaults without the
-mutex, clean with it. The stress harness is a temporary diag target like
-the other two.
+mutex, clean with it. The stress harness is still in the tree
+(`diag_flis_gpu_stress.c`, untracked, no meson target) — it outlived the
+other two diag harnesses, which have been removed.
+
+Monochrome rendering of flislrgb.fit — **CLOSED** (702295bcc, Jul 2026).
+Not reproducible headless because it was never a compositing or shader
+bug: the composite was chromatic throughout, and so was every renderer
+path examined here. `flis_composite_is_chromatic()` was right too. What
+was wrong is that only the LOAD path ever asked it — `close_tab()` decides
+the R/G/B/RGB viewport set from that predicate and was reached from
+`open_single_image_from_gfit()` alone, so a stack that GAINED colour (a
+mono layer being tinted) kept the viewport set it was handed at open time.
+Hence a saved file displayed correctly and building the same document by
+hand did not. Re-asked from `notify_gfit_data_modified()` through a new
+`gui_iface.sync_colour_vports()`, which acts only when the answer moves.
+The `diag_flislrgb.c` and `diag_flis_gpu.c` harnesses were built for this
+investigation and have been removed.
 
 **OPEN / deferred:**
-- Monochrome rendering of flislrgb.fit in the GUI: not reproducible
-  headless — CPU composite, GSK node tree (cairo + GL renderers) all
-  chromatic; GTK 4.18 blend shaders reviewed OK. Diagnostic harnesses
-  left in `src/tests/diag_flislrgb.c` and `src/tests/diag_flis_gpu.c`
-  (temporary meson targets at the end of `src/tests/meson.build` —
-  remove both when the bug is closed).
 - Group-props undo record type.
 - GUI crop on offset sparse layers (see 3ec666e2d above).

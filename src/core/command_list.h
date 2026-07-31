@@ -74,7 +74,10 @@ static command commands[] = {
 	{"fixbanding", 2, "fixbanding amount sigma [-vertical]", process_fixbanding, STR_FIXBANDING, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
 	{"flis_active_layer", 0, "flis_active_layer [<id|\"name\">]", process_flis_active_layer, STR_FLIS_ACTIVE_LAYER, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_addgroup", 0, "flis_addgroup [-name=\"X\"]", process_flis_addgroup, STR_FLIS_ADDGROUP, TRUE, REQ_CMD_FLIS_IMAGE},
-	{"flis_addlayer", 1, "flis_addlayer <file> [-name=\"X\"]", process_flis_addlayer, STR_FLIS_ADDLAYER, TRUE, REQ_CMD_FLIS_IMAGE},
+	/* Not REQ_CMD_FLIS_IMAGE: adding a layer to a plain FITS can only mean
+	 * "promote, then add", and flis_addlayer_hook does exactly that — so the
+	 * command asks for an image, not for a layered one. */
+	{"flis_addlayer", 1, "flis_addlayer <file> [-name=\"X\"]", process_flis_addlayer, STR_FLIS_ADDLAYER, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"flis_amend", 2, "flis_amend <record_id> <params>", process_flis_amend, STR_FLIS_AMEND, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"flis_canvas_fit", 0, "flis_canvas_fit [-all]", process_flis_canvas_fit, STR_FLIS_CANVAS_FIT, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_canvas_mirrorx", 0, "flis_canvas_mirrorx", process_flis_canvas_mirrorx, STR_FLIS_CANVAS_MIRRORX, TRUE, REQ_CMD_FLIS_IMAGE},
