@@ -84,6 +84,8 @@ void set_output_filename_to_sequence_name();
 gboolean close_tab(gpointer user_data);
 void activate_tab(int vport);
 gboolean init_right_tab(gpointer user_data);
+/* Re-apply the viewport set when a FLIS composite's chromaticity changes. */
+gboolean sync_colour_vports(gpointer user_data);
 
 void update_prepro_interface(gboolean allow_debayer);
 

@@ -212,6 +212,7 @@ gboolean show_or_hide_mask_tab_idle(gpointer p) { (void)p; return FALSE; }
 /* Window / tab / dialog control */
 void control_window_switch_to_tab(int tab) { (void)tab; }
 gboolean close_tab(gpointer user_data) { (void)user_data; return FALSE; }
+gboolean sync_colour_vports(gpointer user_data) { (void)user_data; return FALSE; }
 int number_of_dialogs(void) { return 0; }
 
 /* Sliders / precision / debayer controls */

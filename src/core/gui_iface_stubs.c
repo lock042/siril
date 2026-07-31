@@ -281,6 +281,7 @@ static void stub_sequence_list_change_current(void) {}
 static void stub_enable_view_reference_checkbox(gboolean status) { (void)status; }
 static void stub_close_tab(void) {}
 static void stub_init_right_tab(void) {}
+static void stub_sync_colour_vports(void) {}
 static void stub_initialize_display_mode(void) {}
 static void stub_display_filename(void) {}
 static void stub_update_display_fwhm(void) {}
@@ -508,6 +509,7 @@ SirilGuiInterface gui_iface = {
 	.enable_view_reference_checkbox  = stub_enable_view_reference_checkbox,
 	.close_tab                       = stub_close_tab,
 	.init_right_tab                  = stub_init_right_tab,
+	.sync_colour_vports              = stub_sync_colour_vports,
 	.initialize_display_mode         = stub_initialize_display_mode,
 	.display_filename                = stub_display_filename,
 	.update_display_fwhm             = stub_update_display_fwhm,

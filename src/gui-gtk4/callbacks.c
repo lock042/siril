@@ -1838,6 +1838,12 @@ void show_or_hide_mask_tab() {
 	return;
 }
 
+/* Which viewport set close_tab() last applied, so that a document which
+ * CHANGES colour can be told from one that merely redrew.  -1 until the first
+ * call: sync_colour_vports() then has nothing to compare against and defers to
+ * the load path, which is about to run close_tab() itself. */
+static int vports_are_mono = -1;
+
 gboolean close_tab(gpointer user_data) {
 	GtkNotebook* Color_Layers = GTK_NOTEBOOK(lookup_widget("notebook1"));
 	GtkWidget* page;
@@ -1888,7 +1894,34 @@ gboolean close_tab(gpointer user_data) {
 		page = gtk_notebook_get_nth_page(Color_Layers, RGB_VPORT);
 		gtk_widget_set_visible(page, TRUE);
 	}
+	vports_are_mono = is_mono;
 	show_or_hide_mask_tab_idle(NULL);
+	return FALSE;
+}
+
+/* A FLIS document can BECOME chromatic, or stop being so, long after it was
+ * opened: tinting a mono layer is the plainest case — one command, and a stack
+ * that displayed as black-and-white now has colour in it.  close_tab() knows
+ * how to decide the viewport set, but only the load path ever asked it, so the
+ * tabs kept whatever they were told at open time and a freshly tinted stack
+ * stayed resolutely mono.
+ *
+ * Called whenever the document changes, and deliberately does nothing unless
+ * the answer moved: init_right_tab() switches the active viewport, and running
+ * that on every layer edit would yank the user off the Green channel each time
+ * they nudged an opacity.
+ *
+ * FLIS only.  A plain image's channel count is gfit's own and changes just
+ * where an op changed it, which those ops already announce; a FLIS composite's
+ * is a property of the whole stack, and no single edit owns it. */
+gboolean sync_colour_vports(gpointer user_data) {
+	(void)user_data;
+	if (!is_current_image_flis() || vports_are_mono < 0)
+		return FALSE;
+	if ((int)!flis_composite_is_chromatic() == vports_are_mono)
+		return FALSE;
+	close_tab(NULL);        /* re-decides, and records the new answer */
+	init_right_tab(NULL);
 	return FALSE;
 }
 

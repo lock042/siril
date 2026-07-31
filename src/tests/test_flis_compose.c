@@ -258,3 +258,59 @@ Test(flis_compose, group_bottom_member_lmask_applies) {
 	                   "a zero lmask on the bottom group member must hide it");
 	free(out->fdata); free(out);
 }
+
+/* ---- when a stack counts as coloured ----------------------------------- */
+
+/* flis_composite_is_chromatic() is what decides whether the GUI offers R/G/B/
+ * RGB viewports or a single B&W one.  The composite buffer is always three
+ * channels, so it cannot answer the question — an all-mono, untinted stack
+ * fills all three identically and should still present as mono.  A mono layer
+ * carrying a primary tint is the case that used to be missed by the caller
+ * rather than by this predicate: nothing re-asked it after a tint was set, so
+ * an LRGB stack stayed stubbornly black-and-white until it was reloaded. */
+Test(flis_compose, an_untinted_mono_stack_is_not_coloured) {
+	flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "L");
+	flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.25f), "R");
+	cr_assert(!flis_composite_is_chromatic(),
+	          "three channels of the same thing is still mono");
+}
+
+Test(flis_compose, a_mono_layer_with_a_primary_tint_makes_the_stack_coloured) {
+	flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "L");
+	flis_layer_t *r = flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.25f), "R");
+	cr_assert_not_null(r);
+	cr_assert(!flis_composite_is_chromatic(), "not yet");
+	r->has_tint = TRUE;
+	r->layer_tint.r = 1.0; r->layer_tint.g = 0.0; r->layer_tint.b = 0.0;
+	cr_assert(flis_composite_is_chromatic(),
+	          "a red-tinted mono layer puts colour in the composite");
+}
+
+/* A tint whose components are equal is a brightness scalar wearing a colour
+ * picker, and must not promote the stack. */
+Test(flis_compose, a_grey_tint_is_only_a_brightness_scale) {
+	flis_layer_t *l = flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "L");
+	cr_assert_not_null(l);
+	l->has_tint = TRUE;
+	l->layer_tint.r = l->layer_tint.g = l->layer_tint.b = 0.5;
+	cr_assert(!flis_composite_is_chromatic(),
+	          "an equal-component tint adds no chroma");
+}
+
+Test(flis_compose, clearing_the_last_tint_makes_the_stack_mono_again) {
+	flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "L");
+	flis_layer_t *r = flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.25f), "R");
+	r->has_tint = TRUE;
+	r->layer_tint.r = 0.0; r->layer_tint.g = 0.0; r->layer_tint.b = 1.0;
+	cr_assert(flis_composite_is_chromatic());
+	r->has_tint = FALSE;
+	cr_assert(!flis_composite_is_chromatic(),
+	          "the viewports have to be able to collapse again too");
+}
+
+/* An RGB layer brings chromaticity whatever the tints say. */
+Test(flis_compose, one_rgb_layer_is_enough) {
+	flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "L");
+	flis_test_add_layer(flis_test_make_rgb_fits(4, 4, 0.2f, 0.4f, 0.6f), "colour");
+	cr_assert(flis_composite_is_chromatic());
+}

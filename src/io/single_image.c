@@ -674,6 +674,11 @@ void notify_gfit_data_modified() {
 	if (is_current_image_flis()) {
 		gui_iface.flis_invalidate_composite();
 		gui_iface.flis_gui_update();   /* layers panel sees new stack */
+		/* The stack may have just changed colour — tinting a mono layer is
+		 * enough — and the viewport set was decided once, at open time.
+		 * Ask again here, where every edit to the document arrives, rather
+		 * than at each of the places one can be made. */
+		gui_iface.sync_colour_vports();
 	}
 	// The following are only required in GUI mode
 	if (!com.headless) {

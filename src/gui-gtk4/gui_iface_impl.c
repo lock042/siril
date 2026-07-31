@@ -1359,6 +1359,10 @@ static void impl_close_tab(void) {
 	gui_function(close_tab, NULL);
 }
 
+static void impl_sync_colour_vports(void) {
+	gui_function(sync_colour_vports, NULL);
+}
+
 static void impl_init_right_tab(void) {
 	gui_function(init_right_tab, NULL);
 }
@@ -1708,6 +1712,7 @@ void siril_register_gui_iface(void) {
 	gui_iface.enable_view_reference_checkbox  = impl_enable_view_reference_checkbox;
 	gui_iface.close_tab                       = impl_close_tab;
 	gui_iface.init_right_tab                  = impl_init_right_tab;
+	gui_iface.sync_colour_vports              = impl_sync_colour_vports;
 	gui_iface.initialize_display_mode         = impl_initialize_display_mode;
 	gui_iface.display_filename                = impl_display_filename;
 	gui_iface.update_display_fwhm             = impl_update_display_fwhm;

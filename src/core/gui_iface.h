@@ -613,6 +613,10 @@ typedef struct {
 	void     (*close_tab)(void);
 	/* (Re-)initialise the right-hand image tab (call as idle; arg unused). */
 	void     (*init_right_tab)(void);
+	/* Re-apply the R/G/B/RGB viewport set when a FLIS composite's
+	 * chromaticity has changed under it (a mono layer gaining a tint).
+	 * No-op unless the answer actually moved. */
+	void     (*sync_colour_vports)(void);
 	/* Set the display mode combo to the image's own colour space. */
 	void     (*initialize_display_mode)(void);
 	/* Update the window title / filename label to show the current image. */
