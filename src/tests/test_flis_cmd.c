@@ -269,6 +269,39 @@ Test(flis_cmd, addlayer_hook_adds_layer_with_derived_name) {
 	g_free(path);
 }
 
+/* Adding a layer to a plain FITS can only mean "promote, then add", so the
+ * hook does it rather than refuse — which is what lets the panel's Add button
+ * work on an unpromoted image instead of telling the user to go and run a
+ * command first. */
+Test(flis_cmd, addlayer_to_a_plain_image_promotes_it_first) {
+	fits *f = flis_test_make_mono_fits(32, 32, 0.5f);
+	gfit = f;
+	com.uniq->fit = f;
+	com.uniq->chans = 1;
+	cr_assert(!is_current_image_flis(), "fixture must start as a plain image");
+
+	gchar *path = write_tmp_mono_fits(16, 16, 0.25f);
+	cr_assert_not_null(path);
+	struct flis_addlayer_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn = flis_addlayer_args_free;
+	payload->filename   = g_strdup(path);
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook  = flis_addlayer_hook;
+	args->user        = payload;
+	args->command     = TRUE;
+	args->description = g_strdup("addlayer onto plain");
+
+	cr_assert_eq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+	cr_assert(is_current_image_flis(), "the image should now be layered");
+	/* The promoted image is the base; the added file sits on top. */
+	cr_assert_eq(flis_layer_count(), 2u);
+	flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+	cr_assert_not_null(base);
+	cr_assert_str_eq(base->layer_name, "Background");
+	g_unlink(path);
+	g_free(path);
+}
+
 Test(flis_cmd, addlayer_hook_uses_explicit_name) {
 	load_two_layer_fixture();
 	gchar *path = write_tmp_mono_fits(8, 8, 0.1f);
@@ -805,6 +838,50 @@ Test(flis_cmd, setblend_rejects_unknown_mode) {
 	load_two_layer_fixture();
 	word[0] = "flis_setblend"; word[1] = "Ha"; word[2] = "BLOWUP"; word[3] = NULL;
 	cr_assert_eq(process_flis_setblend(3), CMD_ARG_ERROR);
+}
+
+/* The panel's Blend dropdown serves layers and groups alike, and an LRGB stack
+ * wants Chroma on the group holding R, G and B rather than on any one of them.
+ * The command mirrors that dropdown, so it has to accept both. */
+Test(flis_cmd, setblend_takes_a_group_by_name) {
+	load_two_layer_fixture();
+	flis_group_t *grp = flis_group_add("Narrowband");
+	cr_assert_not_null(grp);
+	cr_assert_neq(grp->blend_mode, FLIS_BLEND_CHROMA);
+	word[0] = "flis_setblend"; word[1] = "Narrowband"; word[2] = "chroma"; word[3] = NULL;
+	cr_assert_eq(process_flis_setblend(3), CMD_OK);
+	cr_assert_eq(grp->blend_mode, FLIS_BLEND_CHROMA);
+}
+
+Test(flis_cmd, setblend_takes_a_group_by_id) {
+	load_two_layer_fixture();
+	flis_group_t *grp = flis_group_add("Narrowband");
+	cr_assert_not_null(grp);
+	gchar *id = g_strdup_printf("%d", grp->item_id);
+	word[0] = "flis_setblend"; word[1] = id; word[2] = "multiply"; word[3] = NULL;
+	cr_assert_eq(process_flis_setblend(3), CMD_OK);
+	cr_assert_eq(grp->blend_mode, FLIS_BLEND_MULTIPLY);
+	g_free(id);
+}
+
+/* Layers still resolve first, and an id that is neither says so once. */
+Test(flis_cmd, setblend_rejects_an_identifier_that_is_neither) {
+	load_two_layer_fixture();
+	word[0] = "flis_setblend"; word[1] = "Nonesuch"; word[2] = "screen"; word[3] = NULL;
+	cr_assert_eq(process_flis_setblend(3), CMD_ARG_ERROR);
+}
+
+/* PASS_THROUGH says "members composite at natural z-order", which is a
+ * statement about a group's contents; a layer has none. */
+Test(flis_cmd, only_a_group_can_be_pass_through) {
+	load_two_layer_fixture();
+	flis_group_t *grp = flis_group_add("Narrowband");
+	word[0] = "flis_setblend"; word[1] = "Ha"; word[2] = "PASS_THROUGH"; word[3] = NULL;
+	cr_assert_eq(process_flis_setblend(3), CMD_ARG_ERROR);
+	cr_assert_neq(flis_layer_get_by_name("Ha")->blend_mode, FLIS_BLEND_PASS_THROUGH);
+	word[1] = "Narrowband";
+	cr_assert_eq(process_flis_setblend(3), CMD_OK);
+	cr_assert_eq(grp->blend_mode, FLIS_BLEND_PASS_THROUGH);
 }
 
 Test(flis_cmd, setopacity_sets_value) {

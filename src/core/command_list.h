@@ -97,7 +97,7 @@ static command commands[] = {
 	{"flis_promote", 0, "flis_promote [-name=\"X\"]", process_flis_promote, STR_FLIS_PROMOTE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"flis_register_layers", 0, "flis_register_layers [-method=<global|2pass|dft|kombat>] [-ref=<id|\"name\">] [-interp=<nearest|linear|cubic|area|lanczos>] [-noclamp]", process_flis_register_layers, STR_FLIS_REGISTER_LAYERS, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_replay_check", 0, "flis_replay_check", process_flis_replay_check, STR_FLIS_REPLAY_CHECK, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"flis_setblend", 2, "flis_setblend <id|\"name\"> <mode>", process_flis_setblend, STR_FLIS_SETBLEND, TRUE, REQ_CMD_FLIS_IMAGE},
+	{"flis_setblend", 2, "flis_setblend <layer-or-group-id|\"name\"> <mode>", process_flis_setblend, STR_FLIS_SETBLEND, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_setgroup", 1, "flis_setgroup <layer-id|\"name\"> { <group-id|\"name\"> | -clear }", process_flis_setgroup, STR_FLIS_SETGROUP, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_setlocked", 2, "flis_setlocked <id|\"name\"> <on|off>", process_flis_setlocked, STR_FLIS_SETLOCKED, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_setmask", 2, "flis_setmask <id|\"name\"> <file> [-bitpix=8|32]", process_flis_setmask, STR_FLIS_SETMASK, TRUE, REQ_CMD_FLIS_IMAGE},

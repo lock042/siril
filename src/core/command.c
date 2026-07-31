@@ -17104,15 +17104,41 @@ static int parse_bool_arg(const char *s) {
  * layer name in double quotes, e.g. `flis_layer_info 3` or
  * `flis_layer_info "Ha Narrowband"`.  Returns the layer or NULL with an
  * error logged. */
+/* An identifier is either a bare item id or a name, and the name may arrive
+ * quoted or not depending which parser path it came down.  Shared by the layer
+ * and group resolvers and by the one that accepts either. */
+static gboolean flis_ident_all_digits(const char *arg) {
+	if (!arg || !*arg) return FALSE;
+	for (const char *p = arg; *p; p++) if (!g_ascii_isdigit(*p)) return FALSE;
+	return TRUE;
+}
+
+static gchar *flis_ident_unquote(const char *arg) {
+	gchar *trimmed = g_strdup(arg);
+	size_t len = strlen(trimmed);
+	if (len >= 2 && trimmed[0] == '"' && trimmed[len-1] == '"') {
+		trimmed[len-1] = '\0';
+		memmove(trimmed, trimmed + 1, len - 1);
+	}
+	return trimmed;
+}
+
+static flis_group_t *flis_group_get_by_name(const char *name) {
+	for (GSList *l = com.uniq ? com.uniq->groups : NULL; l; l = l->next) {
+		flis_group_t *cand = (flis_group_t *)l->data;
+		if (cand && cand->name && !strcmp(cand->name, name))
+			return cand;
+	}
+	return NULL;
+}
+
 static flis_layer_t *resolve_layer_arg(const char *arg) {
 	if (!arg || !*arg) {
 		siril_log_error(_("flis: layer identifier required\n"));
 		return NULL;
 	}
 	/* Integer form: digits only */
-	gboolean all_digits = TRUE;
-	for (const char *p = arg; *p; p++) if (!g_ascii_isdigit(*p)) { all_digits = FALSE; break; }
-	if (all_digits) {
+	if (flis_ident_all_digits(arg)) {
 		gint64 id64 = g_ascii_strtoll(arg, NULL, 10);
 		if (id64 <= 0 || id64 > G_MAXINT) {
 			siril_log_error(_("flis: layer id '%s' out of range\n"), arg);
@@ -17125,12 +17151,7 @@ static flis_layer_t *resolve_layer_arg(const char *arg) {
 	}
 	/* Name form: strip surrounding quotes if present (the command parser
 	 * may or may not have done this for us depending on path). */
-	gchar *trimmed = g_strdup(arg);
-	size_t len = strlen(trimmed);
-	if (len >= 2 && trimmed[0] == '"' && trimmed[len-1] == '"') {
-		trimmed[len-1] = '\0';
-		memmove(trimmed, trimmed + 1, len - 1);
-	}
+	gchar *trimmed = flis_ident_unquote(arg);
 	flis_layer_t *l = flis_layer_get_by_name(trimmed);
 	if (!l) siril_log_error(_("flis: no layer named \"%s\"\n"), trimmed);
 	g_free(trimmed);
@@ -17142,28 +17163,53 @@ static flis_group_t *resolve_group_arg(const char *arg) {
 		siril_log_error(_("flis: group identifier required\n"));
 		return NULL;
 	}
-	gboolean all_digits = TRUE;
-	for (const char *p = arg; *p; p++) if (!g_ascii_isdigit(*p)) { all_digits = FALSE; break; }
-	if (all_digits) {
+	if (flis_ident_all_digits(arg)) {
 		gint id = atoi(arg);
 		flis_group_t *g = flis_group_get_by_id(id);
 		if (!g) siril_log_error(_("flis: no group with id %d\n"), id);
 		return g;
 	}
-	gchar *trimmed = g_strdup(arg);
-	size_t len = strlen(trimmed);
-	if (len >= 2 && trimmed[0] == '"' && trimmed[len-1] == '"') {
-		trimmed[len-1] = '\0';
-		memmove(trimmed, trimmed + 1, len - 1);
-	}
-	flis_group_t *g = NULL;
-	for (GSList *l = com.uniq->groups; l; l = l->next) {
-		flis_group_t *cand = (flis_group_t *)l->data;
-		if (cand && cand->name && !strcmp(cand->name, trimmed)) { g = cand; break; }
-	}
+	gchar *trimmed = flis_ident_unquote(arg);
+	flis_group_t *g = flis_group_get_by_name(trimmed);
 	if (!g) siril_log_error(_("flis: no group named \"%s\"\n"), trimmed);
 	g_free(trimmed);
 	return g;
+}
+
+/* Resolve an identifier that may name EITHER a layer or a group.  The panel's
+ * Blend dropdown serves both, and an LRGB stack wants Chroma on the group
+ * holding R, G and B rather than on any one of them, so the command that
+ * mirrors that dropdown has to accept both too.  Item ids are unique across
+ * layers and groups, so an integer is unambiguous; a bare name is looked for
+ * among layers first, which is the older meaning of the argument.  Exactly one
+ * of @lay / @grp is set on success. */
+static gboolean resolve_layer_or_group_arg(const char *arg, const char *cmdname,
+                                           flis_layer_t **lay,
+                                           flis_group_t **grp) {
+	*lay = NULL;
+	*grp = NULL;
+	if (!arg || !*arg) {
+		siril_log_error(_("%s: layer or group identifier required\n"), cmdname);
+		return FALSE;
+	}
+	if (flis_ident_all_digits(arg)) {
+		gint64 id64 = g_ascii_strtoll(arg, NULL, 10);
+		if (id64 > 0 && id64 <= G_MAXINT) {
+			*lay = flis_layer_get_by_id((gint)id64);
+			if (!*lay) *grp = flis_group_get_by_id((gint)id64);
+		}
+		if (!*lay && !*grp)
+			siril_log_error(_("%s: no layer or group with id %s\n"), cmdname, arg);
+		return (*lay || *grp);
+	}
+	gchar *name = flis_ident_unquote(arg);
+	*lay = flis_layer_get_by_name(name);
+	if (!*lay)
+		*grp = flis_group_get_by_name(name);
+	if (!*lay && !*grp)
+		siril_log_error(_("%s: no layer or group named \"%s\"\n"), cmdname, name);
+	g_free(name);
+	return (*lay || *grp);
 }
 
 /* Parse -format=text|csv option from word[1..nb-1]; default text. */
@@ -17969,14 +18015,34 @@ int process_flis_setname(int nb) {
 
 int process_flis_setblend(int nb) {
 	if (nb < 3) {
-		siril_log_error(_("Usage: flis_setblend <id|\"name\"> <mode>\n"));
+		siril_log_error(_("Usage: flis_setblend <layer-or-group-id|\"name\"> <mode>\n"));
 		return CMD_WRONG_N_ARG;
 	}
-	flis_layer_t *target = resolve_layer_arg(word[1]);
-	if (!target) return CMD_ARG_ERROR;
+	flis_layer_t *target = NULL;
+	flis_group_t *group = NULL;
+	if (!resolve_layer_or_group_arg(word[1], "flis_setblend", &target, &group))
+		return CMD_ARG_ERROR;
 	flis_blend_mode_t mode = flis_blend_mode_from_name(word[2]);
 	if (!mode) {
 		siril_log_error(_("flis_setblend: unknown blend mode '%s'\n"), word[2]);
+		return CMD_ARG_ERROR;
+	}
+	if (group) {
+		/* No group-props undo record type exists, and the panel captures no
+		 * provenance for group properties either (dispatch_op in flis_gui.c
+		 * excludes them deliberately).  Match that rather than invent a
+		 * second answer for the same operation. */
+		if (flis_group_set_blend_mode(group, mode))
+			return CMD_GENERIC_ERROR;
+		if (!com.script)
+			siril_log_message(_("Note: group property changes cannot be undone yet\n"));
+		notify_gfit_data_modified();
+		return CMD_OK;
+	}
+	if (mode == FLIS_BLEND_PASS_THROUGH) {
+		/* "Members composite directly at natural z-order" is a statement about
+		 * a group's contents; a layer has none. */
+		siril_log_error(_("flis_setblend: PASS_THROUGH applies to groups, not layers\n"));
 		return CMD_ARG_ERROR;
 	}
 	flis_layer_props_t pre;

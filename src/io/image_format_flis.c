@@ -3911,6 +3911,17 @@ int flis_addlayer_hook(struct generic_layer_args *args) {
         free(f);
         return 1;
     }
+    /* Adding a layer to a plain FITS can only mean one thing, so do it rather
+     * than refuse: the image becomes the base layer and the new one lands on
+     * top.  On the worker, where the stack writer lock is already held — and
+     * after the read, so a filename that turns out to be unreadable leaves a
+     * plain image plain rather than promoting it for nothing. */
+    if (!is_current_image_flis() && flis_promote_from_gfit(NULL)) {
+        siril_log_error(_("flis_addlayer: could not make this image a layered document\n"));
+        clearfits(f);
+        free(f);
+        return 1;
+    }
     gchar *name = a->name;
     gchar *derived = NULL;
     if (!name || !*name) {

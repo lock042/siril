@@ -80,13 +80,19 @@ extern gboolean is_current_image_flis(void);
 
 #define FLIS_ROW_KIND_LAYER  0
 #define FLIS_ROW_KIND_GROUP  1
+/* A plain FITS shown as the single layer it would become.  There is no
+ * flis_layer_t behind it — the panel reads gfit directly — so row_layer()
+ * and row_group() both return NULL for it, and everything that asks "which
+ * layer is selected" keeps answering "none", which is the truth until the
+ * image is promoted. */
+#define FLIS_ROW_KIND_PLAIN  2
 
 #define FLIS_TYPE_ROW_ITEM (flis_row_item_get_type())
 G_DECLARE_FINAL_TYPE(FlisRowItem, flis_row_item, FLIS, ROW_ITEM, GObject)
 
 struct _FlisRowItem {
 	GObject parent_instance;
-	int   kind;          /* FLIS_ROW_KIND_LAYER / FLIS_ROW_KIND_GROUP */
+	int   kind;          /* FLIS_ROW_KIND_LAYER / _GROUP / _PLAIN */
 	gint  item_id;       /* layer or group item_id (look up live each access) */
 	int   indent_level;  /* 0 = flat row, 1 = grouped-layer (indent for hierarchy) */
 };
@@ -705,9 +711,8 @@ static void on_row_setup(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
  * neighbour downsample; called once per layer per panel refresh.  The
  * texture is freshly allocated on every call — GdkPicture takes its
  * own ref so it's safe to unref locally. */
-static GdkTexture *build_layer_thumb(flis_layer_t *lay) {
-	if (!lay || !lay->fit) return NULL;
-	const fits *f = lay->fit;
+static GdkTexture *build_fits_thumb(const fits *f) {
+	if (!f) return NULL;
 	const int sw = (int)f->rx;
 	const int sh = (int)f->ry;
 	if (sw <= 0 || sh <= 0) return NULL;
@@ -749,6 +754,10 @@ static GdkTexture *build_layer_thumb(flis_layer_t *lay) {
 	                                          bytes, (gsize)tw * 4);
 	g_bytes_unref(bytes);
 	return tex;
+}
+
+static GdkTexture *build_layer_thumb(flis_layer_t *lay) {
+	return lay ? build_fits_thumb(lay->fit) : NULL;
 }
 
 static void on_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
@@ -834,6 +843,24 @@ static void on_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 		rw->lock_handler_id = g_signal_connect(rw->lock_toggle, "toggled",
 		                          G_CALLBACK(on_row_lock_toggled),
 		                          GINT_TO_POINTER(ri->item_id));
+	} else if (ri->kind == FLIS_ROW_KIND_PLAIN) {
+		/* The plain image, shown as the single layer it would become.  It is
+		 * a picture of the document, not a control surface: there is nothing
+		 * to hide it behind, nothing above it to lock it against, and no
+		 * second layer for either to mean anything relative to.  So the
+		 * toggles are hidden rather than shown doing nothing, and the name is
+		 * the one flis_promote will give it, which makes the row an honest
+		 * preview of what Add or Duplicate is about to produce. */
+		gtk_widget_set_visible(rw->expander,       FALSE);
+		gtk_widget_set_visible(rw->visible_toggle, FALSE);
+		gtk_widget_set_visible(rw->lock_toggle,    FALSE);
+		gtk_widget_set_visible(rw->thumb,          TRUE);
+		gtk_widget_add_css_class(rw->row_box, "flis-active-layer-row");
+		gtk_label_set_text(GTK_LABEL(rw->name_label), _("Background"));
+		GdkTexture *thumb = build_fits_thumb(gfit);
+		gtk_picture_set_paintable(GTK_PICTURE(rw->thumb), GDK_PAINTABLE(thumb));
+		if (thumb) g_object_unref(thumb);
+		gtk_label_set_text(GTK_LABEL(rw->kind_badge), _("FITS"));
 	} else {
 		/* Group header row: distinguished visually so the hierarchy is
 		 * obvious.  Bold label with a folder symbol, no lock toggle,
@@ -3130,8 +3157,13 @@ static void update_toolbar_sensitivity(void) {
 	flis_group_t  *sel_grp  = current_selected_group();
 	const gboolean have_sel = (sel_lay != NULL) || (sel_grp != NULL);
 
+	/* The plain-image row has no flis_layer_t behind it, so sel_lay is NULL
+	 * for it — but Duplicate is exactly the button that should work there,
+	 * promoting first.  Remove and the move buttons stay off: there is
+	 * nothing to remove it from and nowhere to move it to. */
+	const gboolean plain_row = !is_flis && com.uniq && gfit;
 	gtk_widget_set_sensitive(g_panel->btn_remove,    have_sel);
-	gtk_widget_set_sensitive(g_panel->btn_duplicate, sel_lay != NULL);
+	gtk_widget_set_sensitive(g_panel->btn_duplicate, sel_lay != NULL || plain_row);
 	gtk_widget_set_sensitive(g_panel->btn_move_up,   have_sel);
 	gtk_widget_set_sensitive(g_panel->btn_move_down, have_sel);
 	gtk_widget_set_sensitive(g_panel->btn_drag,      sel_lay != NULL);
@@ -3223,6 +3255,15 @@ static void refresh_panel(void) {
 	 * indent_level=1.  A layer with group_id==0 stays flat
 	 * (indent_level=0, no header). */
 	g_list_store_remove_all(g_panel->list_store);
+	if (!is_flis && com.uniq && gfit) {
+		/* A plain FITS is a stack of one, and saying so is what makes the
+		 * panel's toolbar mean anything before the image is promoted: an
+		 * empty list read as "layers are not for this image" when in fact
+		 * Add and Duplicate are one promote away. */
+		FlisRowItem *ri = flis_row_item_new(FLIS_ROW_KIND_PLAIN, 0, 0);
+		g_list_store_append(g_panel->list_store, ri);
+		g_object_unref(ri);
+	}
 	if (is_flis && com.uniq && com.uniq->layers) {
 		/* Snapshot to a pointer array for index-based reverse walk. */
 		const guint n = g_slist_length(com.uniq->layers);
@@ -3514,6 +3555,14 @@ static int op_hook(struct generic_layer_args *args) {
 		case OP_GROUP_SET_OPACITY: rc = grp ? flis_group_set_opacity(grp, op->float_v)   : 1; break;
 		case OP_LAYER_REMOVE: rc = lay ? flis_layer_remove(lay) : 1; break;
 		case OP_LAYER_DUPLICATE: {
+			/* target_id 0 is the plain-image row: promote first, then
+			 * duplicate the base layer that promotion just made.  Same
+			 * bargain flis_addlayer_hook strikes, for the same reason —
+			 * duplicating a plain image can only mean this. */
+			if (!lay && op->target_id == 0 && !is_current_image_flis()) {
+				if (flis_promote_from_gfit(NULL)) { rc = 1; break; }
+				lay = flis_active_layer();
+			}
 			if (!lay) { rc = 1; break; }
 			flis_layer_t *dup = flis_layer_duplicate(lay);
 			op->dup_item_id = dup ? dup->item_id : 0;
@@ -4045,8 +4094,11 @@ static void on_add_file_chosen(GObject *src, GAsyncResult *res, gpointer ud) {
 
 static void on_add_clicked(GtkButton *b, gpointer u) {
 	(void)b; (void)u;
-	if (!is_current_image_flis()) {
-		siril_log_message(_("FLIS: Add Layer requires a FLIS image (use flis_promote on a plain FITS first)\n"));
+	/* A plain FITS is no longer turned away: flis_addlayer_hook promotes it
+	 * on the way in, so the user gets the two layers they asked for instead
+	 * of an instruction to go and run a command first. */
+	if (!com.uniq || !gfit) {
+		siril_log_message(_("FLIS: Add Layer needs an image to add to\n"));
 		return;
 	}
 	GtkFileDialog *fd = gtk_file_dialog_new();
@@ -4107,10 +4159,13 @@ static void on_remove_clicked(GtkButton *b, gpointer u) {
 static void on_duplicate_clicked(GtkButton *b, gpointer u) {
 	(void)b; (void)u;
 	flis_layer_t *lay = current_selected_layer();
-	if (!lay) return;
+	/* No layer, but a loaded plain image: the row on screen is that image,
+	 * and target_id 0 tells the hook to promote it and duplicate the result. */
+	if (!lay && !(com.uniq && gfit && !is_current_image_flis()))
+		return;
 	struct op_payload *op = g_new0(struct op_payload, 1);
 	op->destroy_fn = op_payload_free;
-	op->target_id = lay->item_id;
+	op->target_id = lay ? lay->item_id : 0;
 	op->kind = OP_LAYER_DUPLICATE;
 	dispatch_op(op, _("Duplicate layer"), FLIS_INV_ALL);
 }
