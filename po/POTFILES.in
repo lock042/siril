@@ -122,6 +122,7 @@ src/core/processing.c
 src/core/processing_thread.c
 src/core/sequence_filtering.c
 src/core/settings.c
+src/core/signals.c
 src/core/siril.c
 src/core/siril.h
 src/core/siril_log.c
@@ -184,6 +185,7 @@ src/gui-gtk4/gui_iface_impl.c
 src/gui-gtk4/histogram.c
 src/gui-gtk4/icc_profile.c
 src/gui-gtk4/image_display.c
+src/gui-gtk4/image_interactions.h
 src/gui-gtk4/keywords_tree.c
 src/gui-gtk4/linear_match.c
 src/gui-gtk4/livestacking_gui.c
@@ -193,7 +195,10 @@ src/gui-gtk4/menu_gray_geometry.c
 src/gui-gtk4/merge_cfa.c
 src/gui-gtk4/message_dialog.c
 src/gui-gtk4/mouse_action_functions.c
+src/gui-gtk4/mouse_action_functions.h
 src/gui-gtk4/mouse_action_preferences.c
+src/gui-gtk4/mpp_ap_editor.c
+src/gui-gtk4/mpp_shift_viewer.c
 src/gui-gtk4/newdeconv.c
 src/gui-gtk4/nina_light_curve.c
 src/gui-gtk4/open_dialog.c
@@ -232,6 +237,8 @@ src/gui-gtk4/unpurple.c
 src/gui-gtk4/utils.c
 src/gui-gtk4/wavelets.c
 src/io/FITS_symlink.c
+src/io/SirilJpegXLWrapper.cpp
+src/io/SirilXISFReader.cpp
 src/io/aavso_extended.c
 src/io/annotation_catalogues.c
 src/io/conversion.c
@@ -241,6 +248,7 @@ src/io/fits_sequence.c
 src/io/gps_parser.c
 src/io/healpix/fluxcache.cpp
 src/io/healpix/healpix.cpp
+src/io/healpix/healpix_image.cpp
 src/io/image_format_fits.c
 src/io/image_format_flis.c
 src/io/image_formats_internal.c
@@ -275,11 +283,13 @@ src/registration/distorsion.c
 src/registration/flis_register.c
 src/registration/global.c
 src/registration/mpp.cpp
+src/registration/mpp/mpp_stack.cpp
 src/registration/registration.c
 src/registration/shift_methods.c
 src/stacking/blending.c
 src/stacking/median_and_mean.c
 src/stacking/normalization.c
+src/stacking/stack_mpp.c
 src/stacking/stacking.c
 src/stacking/stackminmax.c
 src/stacking/sum.c
