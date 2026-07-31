@@ -108,6 +108,14 @@ src/core/cut.c
 src/core/icc_profile.c
 src/core/initfile.c
 src/core/masks.c
+src/core/nde_composite.c
+src/core/nde_compositing.c
+src/core/nde_graph.c
+src/core/nde_history.c
+src/core/nde_replay.c
+src/core/nde_retention.c
+src/core/nde_script_scope.c
+src/core/nde_snapstore.c
 src/core/pipe.c
 src/core/preprocess.c
 src/core/processing.c
@@ -169,6 +177,8 @@ src/gui-gtk4/documentation.c
 src/gui-gtk4/epf.c
 src/gui-gtk4/fft.c
 src/gui-gtk4/file_browser.c
+src/gui-gtk4/flis_gpu_compose.c
+src/gui-gtk4/flis_gui.c
 src/gui-gtk4/git_gui.c
 src/gui-gtk4/gui_iface_impl.c
 src/gui-gtk4/histogram.c
@@ -232,6 +242,7 @@ src/io/gps_parser.c
 src/io/healpix/fluxcache.cpp
 src/io/healpix/healpix.cpp
 src/io/image_format_fits.c
+src/io/image_format_flis.c
 src/io/image_formats_internal.c
 src/io/image_formats_libraries.c
 src/io/local_catalogues.c
@@ -261,6 +272,7 @@ src/registration/applyreg.c
 src/registration/astrometric.c
 src/registration/comet.c
 src/registration/distorsion.c
+src/registration/flis_register.c
 src/registration/global.c
 src/registration/mpp.cpp
 src/registration/registration.c
