@@ -55,6 +55,8 @@
 #include "core/nde_compositing.h"  /* nde_compositing_is_op */
 #include "core/nde_composite.h"    /* the composite node's own editor */
 #include "gui-gtk4/nde_editors.h"
+#include "gui-gtk4/file_browser.h"  /* SirilFileBrowser: the chooser with the preview */
+#include "gui-gtk4/open_dialog.h"   /* FITS_EXTENSIONS */
 #include "core/op_descriptor.h" /* op_descriptor_by_id for the edit round-trip check */
 #include "core/gui_iface.h"
 #include "io/image_format_flis.h"
@@ -4058,23 +4060,10 @@ static void on_tint_color_chosen(GtkColorDialogButton *btn, GParamSpec *p, gpoin
 /* Toolbar handlers — these are stubs that print a TODO until the
  * matching flis_* commands ship in §4.3.  The structural wiring is in
  * place; only the body of each handler awaits its command. */
-/* GtkFileDialog completion for the Add Layer toolbar button.  Builds
- * the same flis_addlayer_args + generic_layer_args struct the
+/* Builds the same flis_addlayer_args + generic_layer_args struct the
  * flis_addlayer command builds, then submits to generic_layer_worker
- * — guaranteed parity with the command path. */
-static void on_add_file_chosen(GObject *src, GAsyncResult *res, gpointer ud) {
-	(void)ud;
-	GtkFileDialog *fd = GTK_FILE_DIALOG(src);
-	GError *err = NULL;
-	GFile *file = gtk_file_dialog_open_finish(fd, res, &err);
-	if (!file) {
-		if (err && !g_error_matches(err, GTK_DIALOG_ERROR, GTK_DIALOG_ERROR_DISMISSED))
-			siril_log_error(_("FLIS: Add Layer: %s\n"), err->message);
-		g_clear_error(&err);
-		return;
-	}
-	gchar *path = g_file_get_path(file);
-	g_object_unref(file);
+ * — guaranteed parity with the command path.  Takes ownership of @path. */
+static void flis_add_layer_from_path(gchar *path) {
 	if (!path) return;
 
 	struct flis_addlayer_args *payload = calloc(1, sizeof(*payload));
@@ -4101,24 +4090,20 @@ static void on_add_clicked(GtkButton *b, gpointer u) {
 		siril_log_message(_("FLIS: Add Layer needs an image to add to\n"));
 		return;
 	}
-	GtkFileDialog *fd = gtk_file_dialog_new();
-	gtk_file_dialog_set_title(fd, _("Add layer from FITS file"));
-	GtkFileFilter *filter = gtk_file_filter_new();
-	gtk_file_filter_set_name(filter, _("FITS files"));
-	gtk_file_filter_add_pattern(filter, "*.fit");
-	gtk_file_filter_add_pattern(filter, "*.fits");
-	gtk_file_filter_add_pattern(filter, "*.fts");
-	gtk_file_filter_add_pattern(filter, "*.FIT");
-	gtk_file_filter_add_pattern(filter, "*.FITS");
-	GListStore *filters = g_list_store_new(GTK_TYPE_FILE_FILTER);
-	g_list_store_append(filters, filter);
-	gtk_file_dialog_set_default_filter(fd, filter);
-	gtk_file_dialog_set_filters(fd, G_LIST_MODEL(filters));
-	g_object_unref(filters);
-	g_object_unref(filter);
-	gtk_file_dialog_open(fd, g_panel ? GTK_WINDOW(g_panel->window) : NULL,
-	                      NULL, on_add_file_chosen, NULL);
-	g_object_unref(fd);
+	/* Siril's own browser, not GtkFileDialog: picking a layer is picking an
+	 * image, and the autostretched preview is how you tell one calibrated
+	 * stack from another when the filenames do not. Same chooser the Open
+	 * Image path uses (open_dialog.c). */
+	SirilFileBrowser *fb = siril_file_browser_new(
+			g_panel ? GTK_WINDOW(g_panel->window) : NULL,
+			_("Add layer from FITS file"));
+	siril_file_browser_add_filter_pattern(fb,
+			_("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"),
+			FITS_EXTENSIONS, TRUE);
+	if (com.wd && *com.wd)
+		siril_file_browser_set_initial_folder(fb, com.wd);
+	if (siril_file_browser_run(fb) == GTK_RESPONSE_ACCEPT)
+		flis_add_layer_from_path(siril_file_browser_get_path(fb));
 }
 /* Confirmation dialog callback for Remove Layer.  Remove is destructive
  * and not undoable on this branch (the §1.4 undo plumbing for layer
@@ -4299,19 +4284,8 @@ static void dispatch_clearmask(flis_layer_t *lay) {
 		free_generic_layer_args(args);   /* busy refusal: nothing ran */
 }
 
-static void on_mask_file_chosen(GObject *src, GAsyncResult *res, gpointer ud) {
-	gint target_id = GPOINTER_TO_INT(ud);
-	GtkFileDialog *fd = GTK_FILE_DIALOG(src);
-	GError *err = NULL;
-	GFile *file = gtk_file_dialog_open_finish(fd, res, &err);
-	if (!file) {
-		if (err && !g_error_matches(err, GTK_DIALOG_ERROR, GTK_DIALOG_ERROR_DISMISSED))
-			siril_log_error(_("FLIS: Set Mask: %s\n"), err->message);
-		g_clear_error(&err);
-		return;
-	}
-	gchar *path = g_file_get_path(file);
-	g_object_unref(file);
+/* Takes ownership of @path. */
+static void flis_set_mask_from_path(gint target_id, gchar *path) {
 	if (!path) return;
 
 	struct flis_setmask_args *payload = calloc(1, sizeof(*payload));
@@ -4354,25 +4328,18 @@ static void on_mask_toggle_clicked(GtkButton *b, gpointer u) {
 		dispatch_clearmask(lay);
 		return;
 	}
-	GtkFileDialog *fd = gtk_file_dialog_new();
-	gtk_file_dialog_set_title(fd, _("Add layer mask from FITS file"));
-	GtkFileFilter *filter = gtk_file_filter_new();
-	gtk_file_filter_set_name(filter, _("FITS files"));
-	gtk_file_filter_add_pattern(filter, "*.fit");
-	gtk_file_filter_add_pattern(filter, "*.fits");
-	gtk_file_filter_add_pattern(filter, "*.fts");
-	gtk_file_filter_add_pattern(filter, "*.FIT");
-	gtk_file_filter_add_pattern(filter, "*.FITS");
-	GListStore *filters = g_list_store_new(GTK_TYPE_FILE_FILTER);
-	g_list_store_append(filters, filter);
-	gtk_file_dialog_set_default_filter(fd, filter);
-	gtk_file_dialog_set_filters(fd, G_LIST_MODEL(filters));
-	g_object_unref(filters);
-	g_object_unref(filter);
-	gtk_file_dialog_open(fd, g_panel ? GTK_WINDOW(g_panel->window) : NULL,
-	                      NULL, on_mask_file_chosen,
-	                      GINT_TO_POINTER(lay->item_id));
-	g_object_unref(fd);
+	/* A mask is an image too, and picking the wrong one is easy without the
+	 * preview — see the Add Layer button above. */
+	SirilFileBrowser *fb = siril_file_browser_new(
+			g_panel ? GTK_WINDOW(g_panel->window) : NULL,
+			_("Add layer mask from FITS file"));
+	siril_file_browser_add_filter_pattern(fb,
+			_("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"),
+			FITS_EXTENSIONS, TRUE);
+	if (com.wd && *com.wd)
+		siril_file_browser_set_initial_folder(fb, com.wd);
+	if (siril_file_browser_run(fb) == GTK_RESPONSE_ACCEPT)
+		flis_set_mask_from_path(lay->item_id, siril_file_browser_get_path(fb));
 }
 
 /* Mask Move dialog — same shape as Move-to-group: small modal with a
@@ -4894,19 +4861,8 @@ static void on_ctx_move_to_group(GSimpleAction *a, GVariant *v, gpointer u) {
  * dialog; on confirm, dispatches flis_exportlayer_hook through the
  * worker so the panel and the flis_exportlayer command share the same
  * code path. */
-static void on_export_file_chosen(GObject *src, GAsyncResult *res, gpointer ud) {
-	gint target_id = GPOINTER_TO_INT(ud);
-	GtkFileDialog *fd = GTK_FILE_DIALOG(src);
-	GError *err = NULL;
-	GFile *file = gtk_file_dialog_save_finish(fd, res, &err);
-	if (!file) {
-		if (err && !g_error_matches(err, GTK_DIALOG_ERROR, GTK_DIALOG_ERROR_DISMISSED))
-			siril_log_error(_("FLIS: Export Layer: %s\n"), err->message);
-		g_clear_error(&err);
-		return;
-	}
-	gchar *path = g_file_get_path(file);
-	g_object_unref(file);
+/* Takes ownership of @path. */
+static void flis_export_layer_to_path(gint target_id, gchar *path) {
 	if (!path) return;
 
 	struct flis_exportlayer_args *payload = calloc(1, sizeof(*payload));
@@ -4929,16 +4885,24 @@ static void on_ctx_export_layer(GSimpleAction *a, GVariant *v, gpointer u) {
 		siril_log_message(_("FLIS: Export Layer — no layer selected\n"));
 		return;
 	}
-	GtkFileDialog *fd = gtk_file_dialog_new();
-	gtk_file_dialog_set_title(fd, _("Export layer as FITS file"));
+	/* Save mode of the same browser Save As uses (save_dialog.c), so the
+	 * export lands in the same place and looks the same as every other
+	 * file Siril writes. */
+	SirilFileBrowser *fb = siril_file_browser_new(
+			g_panel ? GTK_WINDOW(g_panel->window) : NULL,
+			_("Export layer as FITS file"));
+	siril_file_browser_set_save_mode(fb, TRUE);
 	gchar *suggested = g_strdup_printf("%s.fit",
 		lay->layer_name && *lay->layer_name ? lay->layer_name : "layer");
-	gtk_file_dialog_set_initial_name(fd, suggested);
+	siril_file_browser_set_suggested_name(fb, suggested);
 	g_free(suggested);
-	gtk_file_dialog_save(fd, g_panel ? GTK_WINDOW(g_panel->window) : NULL,
-	                      NULL, on_export_file_chosen,
-	                      GINT_TO_POINTER(lay->item_id));
-	g_object_unref(fd);
+	siril_file_browser_add_filter_pattern(fb,
+			_("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"),
+			FITS_EXTENSIONS, TRUE);
+	if (com.wd && *com.wd)
+		siril_file_browser_set_initial_folder(fb, com.wd);
+	if (siril_file_browser_run(fb) == GTK_RESPONSE_ACCEPT)
+		flis_export_layer_to_path(lay->item_id, siril_file_browser_get_path(fb));
 }
 
 /* ---- Layers match (§5.7 — background neutralise) ---------------------
