@@ -86,6 +86,15 @@ if criterion_dep.found()
 
      test('ser_test', ser_exec)
 
+     healpix_cat_exec = executable('healpix_cat_test',
+                                   'healpix_cat_test.c',
+                                   dependencies : [siril_dep, criterion_dep],
+                                   link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                   c_args : siril_c_flag,
+                                   cpp_args : siril_cpp_flag)
+
+     test('healpix_cat_test', healpix_cat_exec)
+
      siril_spawn_test_exec = executable('siril_spawn_test',
                                         'siril_spawn_test.c',
                                         dependencies : [siril_dep, criterion_dep],
