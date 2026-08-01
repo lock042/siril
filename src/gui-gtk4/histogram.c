@@ -244,25 +244,33 @@ static void histo_startup() {
 		}
 	}
 	// also get the backup histogram
+	/* histogram_mutex guards layers_hist[]/sat_hist against the worker thread,
+	 * which frees and recomputes them in notify_gfit_data_modified(). */
+	g_mutex_lock(&com.histogram_mutex);
 	stretch_dialog_compute_histograms(fit);
 	for (int i = 0; i < fit->naxes[2]; i++)
-		hist_backup[i] = gsl_histogram_clone(com.layers_hist[i]);
+		hist_backup[i] = com.layers_hist[i] ? gsl_histogram_clone(com.layers_hist[i]) : NULL;
 	if (com.sat_hist) {
 		if (hist_sat_backup)
 			gsl_histogram_free(hist_sat_backup);
 		hist_sat_backup = gsl_histogram_clone(com.sat_hist);
 	}
+	g_mutex_unlock(&com.histogram_mutex);
 }
 
 static void histo_close(gboolean revert, gboolean update_image_if_needed, gboolean revert_icc_profile) {
 	if (revert) {
 
+		/* Ownership of the backups transfers to com.layers_hist[]/sat_hist;
+		 * take histogram_mutex so no reader sees a half-swapped array. */
+		g_mutex_lock(&com.histogram_mutex);
 		for (int i = 0; i < fit->naxes[2]; i++) {
 			set_histogram(hist_backup[i], i);
 			hist_backup[i] = NULL;
 		}
 		set_sat_histogram(hist_sat_backup);
 		hist_sat_backup = NULL;
+		g_mutex_unlock(&com.histogram_mutex);
 		if (is_preview_active() && !copy_backup_to_gfit() && update_image_if_needed) {
 			set_cursor_waiting(TRUE);
 			/* Remap the Cairo display buffers from the restored gfit.
@@ -1039,11 +1047,16 @@ static void stretch_dialog_compute_histograms(fits *thefit) {
 
 /* call from main thread */
 void update_gfit_histogram_if_needed() {
+	/* Hold histogram_mutex across the invalidate+recompute pair so no other
+	 * thread observes a partially-nullified layers_hist[]. */
+	g_mutex_lock(&com.histogram_mutex);
 	invalidate_gfit_histogram();
-	if (is_histogram_visible()) {
+	gboolean visible = is_histogram_visible();
+	if (visible)
 		stretch_dialog_compute_histograms(fit);
+	g_mutex_unlock(&com.histogram_mutex);
+	if (visible)
 		queue_window_redraw();
-	}
 }
 
 /* Trigger a visual refresh of the histogram window if it is currently visible.
@@ -1066,7 +1079,9 @@ gboolean mtf_single_image_idle(gpointer p) {
 	// Check if processing succeeded
 	if (args->retval == 0) {
 		// Update histograms
+		g_mutex_lock(&com.histogram_mutex);
 		stretch_dialog_compute_histograms(fit);
+		g_mutex_unlock(&com.histogram_mutex);
 		queue_window_redraw();
 
 		// Notify that gfit was modified
@@ -1103,7 +1118,9 @@ gboolean ght_single_image_idle(gpointer p) {
 	// Check if processing succeeded
 	if (args->retval == 0) {
 		// Update histograms
+		g_mutex_lock(&com.histogram_mutex);
 		stretch_dialog_compute_histograms(fit);
+		g_mutex_unlock(&com.histogram_mutex);
 		queue_window_redraw();
 
 		// Notify that gfit was modified
@@ -1172,10 +1189,12 @@ static void setup_hsl() {
 		lumbuf = malloc(fit->rx * fit->ry * sizeof(WORD));
 	}
 	fit_to_hsl();
+	g_mutex_lock(&com.histogram_mutex);
 	set_sat_histogram(computeHistoSat(satbuf_working));
 	if (hist_sat_backup)
 		gsl_histogram_free(hist_sat_backup);
-	hist_sat_backup = gsl_histogram_clone(com.sat_hist);
+	hist_sat_backup = com.sat_hist ? gsl_histogram_clone(com.sat_hist) : NULL;
+	g_mutex_unlock(&com.histogram_mutex);
 }
 
 static void clear_hsl() {
@@ -1187,10 +1206,12 @@ static void clear_hsl() {
 	satbuf_working = NULL;
 	free(lumbuf);
 	lumbuf = NULL;
+	g_mutex_lock(&com.histogram_mutex);
 	gsl_histogram_free(com.sat_hist);
 	com.sat_hist = NULL;
 	gsl_histogram_free(hist_sat_backup);
 	hist_sat_backup = NULL;
+	g_mutex_unlock(&com.histogram_mutex);
 }
 
 /* Callback functions */
@@ -1232,14 +1253,19 @@ gboolean redraw_histo(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	erase_histo_display(cr, width, height - GRADIENT_HEIGHT);
 
 	gboolean is_mono = (fit->naxes[2] == 1);
+	/* Lock against notify_gfit_data_modified() on the worker thread, which
+	 * frees and recomputes layers_hist[]/sat_hist under the same mutex.  A
+	 * preview stretch launched by a slider move runs concurrently with this
+	 * draw handler, so without the lock the worker can free a histogram while
+	 * display_histo() is still walking its bins, causing a SIGSEGV inside
+	 * gsl_histogram_get(). */
+	g_mutex_lock(&com.histogram_mutex);
 	for (i = 0; i < RGB_VPORT; i++) {
-		if (com.layers_hist[i]) {
-			if (siril_toggle_get_active(GTK_WIDGET(toggleOrig))) {
-				display_histo(hist_backup[i], cr, i, width, height - GRADIENT_HEIGHT, zoomH, zoomV, TRUE, is_log_scale(), is_mono);
-			}
-			if (!toggles[i] || siril_toggle_get_active(GTK_WIDGET(toggles[i]))) {
-				display_histo(com.layers_hist[i], cr, i, width, height - GRADIENT_HEIGHT, zoomH, zoomV, FALSE, is_log_scale(), is_mono);
-			}
+		if (siril_toggle_get_active(GTK_WIDGET(toggleOrig))) {
+			display_histo(hist_backup[i], cr, i, width, height - GRADIENT_HEIGHT, zoomH, zoomV, TRUE, is_log_scale(), is_mono);
+		}
+		if (!toggles[i] || siril_toggle_get_active(GTK_WIDGET(toggles[i]))) {
+			display_histo(com.layers_hist[i], cr, i, width, height - GRADIENT_HEIGHT, zoomH, zoomV, FALSE, is_log_scale(), is_mono);
 		}
 	}
 	if (invocation == GHT_STRETCH && _payne_colourstretchmodel == COL_SAT && fit->naxes[2] == 3) {
@@ -1247,6 +1273,7 @@ gboolean redraw_histo(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		if (siril_toggle_get_active(GTK_WIDGET(toggleOrig)))
 			display_histo(hist_sat_backup, cr, -2, width, height - GRADIENT_HEIGHT, zoomH, zoomV, FALSE, is_log_scale(), FALSE);
 	}
+	g_mutex_unlock(&com.histogram_mutex);
 	display_scale(cr, width, height);
 	return FALSE;
 }
@@ -1286,7 +1313,9 @@ void on_histogram_window_show(GtkWidget *object, gpointer user_data) {
 	histo_startup();
 	_initialize_clip_text();
 	reset_cursors_and_values(TRUE);
+	g_mutex_lock(&com.histogram_mutex);
 	stretch_dialog_compute_histograms(fit);
+	g_mutex_unlock(&com.histogram_mutex);
 
 	if (histo_amend_mode) {
 		/* Show the RECORD's parameters, not a fresh autostretch: prefill

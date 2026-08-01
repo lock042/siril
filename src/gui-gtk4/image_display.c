@@ -1943,8 +1943,16 @@ static void remap(int vport) {
 		double hist_sum, nb_pixels;
 		size_t i, hist_nb_bins;
 		gsl_histogram *histo;
+		/* histogram_mutex guards layers_hist[] against concurrent
+		 * free/recompute by notify_gfit_data_modified() and against the
+		 * histogram dialog's draw handler. */
+		g_mutex_lock(&com.histogram_mutex);
 		compute_histo_for_fit(gfit);
 		histo = com.layers_hist[vport];
+		if (!histo) {
+			g_mutex_unlock(&com.histogram_mutex);
+			return;
+		}
 		hist_nb_bins = gsl_histogram_bins(histo);
 		nb_pixels = (double)(gfit->rx * gfit->ry);
 		// build the remap_index
@@ -1955,9 +1963,9 @@ static void remap(int vport) {
 			hist_sum += gsl_histogram_get(histo, i);
 			index[i] = round_to_BYTE((hist_sum / nb_pixels) * UCHAR_MAX_DOUBLE);
 		}
+		g_mutex_unlock(&com.histogram_mutex);
 
 		last_mode = gui.rendering_mode;
-		histo = com.layers_hist[vport];
 		/* Widget-sensitivity changes must happen on the GTK main thread. */
 		siril_add_idle(viewer_mode_sensitive_idle, GINT_TO_POINTER(FALSE));
 	} else {
