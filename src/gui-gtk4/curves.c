@@ -302,10 +302,15 @@ static void curves_startup() {
 }
 
 static void curves_close(gboolean update_image_if_needed, gboolean revert_icc_profile) {
+	/* Ownership of the display histograms transfers to com.layers_hist[];
+	 * take histogram_mutex so no reader sees a half-swapped array.  Released
+	 * before notify_gfit_data_modified() below, which takes it itself. */
+	g_mutex_lock(&com.histogram_mutex);
 	for (int i = 0; i < fit->naxes[2]; i++) {
 		set_histogram(display_histogram[i], i);
 		display_histogram[i] = NULL;
 	}
+	g_mutex_unlock(&com.histogram_mutex);
 	if (is_preview_active() && !copy_backup_to_gfit() && update_image_if_needed) {
 		set_cursor_waiting(TRUE);
 		notify_gfit_data_modified();
