@@ -6,6 +6,7 @@ siril-1.5.0
 
 **Fixes**
 * Fixed issue with bgnoise calculation that could result in a small overestimate (#1817)
+* Fixed reading of FITS images storing floating point data as BSCALE/BZERO-scaled integers, which loaded as pure black and white: they are now read as 32-bit float and normalized to Siril's [0, 1] range, the normalization being recorded in HISTORY and the DATA* keywords describing the original physical data dropped
 
 **Improvements**
 * Vectorized rejection stacking hotspot with portable SIMD, ~13% cold / ~22% warm stacking speedup (!1032)

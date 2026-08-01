@@ -211,6 +211,15 @@ if criterion_dep.found()
 
      test('da3d_dft_perf', da3d_dft_perf_exec, suite: 'perfs', protocol: 'exitcode', is_parallel : false)
 
+     fits_scaling_exec = executable('fits_scaling_test',
+                                    'fits_scaling_test.c',
+                                    dependencies : [siril_dep, criterion_dep],
+                                    link_args : siril_link_arg,
+                                    c_args : siril_c_flag,
+                                    cpp_args : siril_cpp_flag)
+
+     test('fits_scaling_test', fits_scaling_exec)
+
      # ----- FLIS tests (stage 1.7) -----
      test_flis_lifecycle_exec = executable('test_flis_lifecycle',
                                 'test_flis_lifecycle.c',
