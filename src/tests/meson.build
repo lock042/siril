@@ -139,6 +139,15 @@ if criterion_dep.found()
 
      test('mpp_sidecar_test', mpp_sidecar_exec, suite: 'mpp')
 
+     homography_exec = executable('homography_test',
+                                  'homography_test.c',
+                                  dependencies : [siril_dep, criterion_dep],
+                                  link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                  c_args : siril_c_flag,
+                                  cpp_args : siril_cpp_flag)
+
+     test('homography_test', homography_exec, suite: 'arithmetic')
+
      gps_exec = executable('qhy_gps_test',
                            ['qhy_gps_test.c', 'download_files.c'],
                            dependencies : [siril_dep, criterion_dep],
