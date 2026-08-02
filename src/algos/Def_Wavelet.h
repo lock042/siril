@@ -125,6 +125,14 @@ typedef struct {
 #define TO1_ROBUST 7
 #define TO1_D1GAUS 8
 
+/* OpenMP requires a positive num_threads. Callers reach the wavelet code with
+ * a budget computed elsewhere -- and some of them leave it zero in a calloc'd
+ * generic_img_args, relying on generic_image_worker to fill it in -- so every
+ * public entry point normalises rather than trusting that. */
+static inline int wavelet_threads(int threads) {
+	return threads > 0 ? threads : 1;
+}
+
 size_t wave_io_size_data (int Nl, int Nc, int Nbr_Plan, int Type_Wave_Transform);
 int wave_io_read (char *File_Name_In, wave_transf_des *Wave_Trans);
 int wave_io_write (char *File_Name_In, wave_transf_des *Wave_Trans);

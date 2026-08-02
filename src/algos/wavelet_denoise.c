@@ -50,6 +50,7 @@ static wd_factor_cache wd_cache[WD_TYPE_SLOTS];
 static GMutex wd_cache_mutex;
 
 int wavelet_noise_factors(int type, int nbr_plan, double *e_out, int threads) {
+	threads = wavelet_threads(threads);
 	if (!e_out)
 		return 1;
 	if (type != TO_PAVE_LINEAR && type != TO_PAVE_BSPLINE)
@@ -293,6 +294,7 @@ double wavelet_mad_sigma_float(const float *band, size_t n, int threads) {
 
 double wavelet_estimate_noise_float(const float *band0, size_t n, double e1,
 		int threads) {
+	threads = wavelet_threads(threads);
 	if (e1 <= 0.0)
 		return -1.0;
 	const double s = wavelet_mad_sigma_float(band0, n, threads);
@@ -302,6 +304,7 @@ double wavelet_estimate_noise_float(const float *band0, size_t n, double e1,
 }
 
 int wavelet_sigma_from_file(const char *filename, double *sigma_out, int threads) {
+	threads = wavelet_threads(threads);
 	if (!filename || !sigma_out)
 		return 1;
 	wave_transf_des wave = { 0 };
@@ -339,6 +342,7 @@ void denoise_params_init(struct denoise_params *dp) {
 }
 
 void anscombe_forward(float *data, size_t n, double scale, int threads) {
+	threads = wavelet_threads(threads);
 	if (!data || scale <= 0.0)
 		return;
 #ifdef _OPENMP
@@ -353,6 +357,7 @@ void anscombe_forward(float *data, size_t n, double scale, int threads) {
 }
 
 void anscombe_inverse(float *data, size_t n, double scale, int threads) {
+	threads = wavelet_threads(threads);
 	if (!data || scale <= 0.0)
 		return;
 #ifdef _OPENMP
@@ -544,6 +549,7 @@ static void bishrink_plane(float *child, const float *parent,
 
 int wavelet_denoise_planes(float *pave_data, int type, int nbr_plan, int Nl,
 		int Nc, const struct denoise_params *dp, int threads) {
+	threads = wavelet_threads(threads);
 	if (!pave_data || !dp || !dp->enabled)
 		return 0;
 	if (nbr_plan < 2)

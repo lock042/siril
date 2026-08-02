@@ -160,6 +160,7 @@ void free_atrous_data(void *p) {
  * Keeping it in memory also makes this function re-entrant, which is what lets
  * seqatrous process several frames at once. */
 int atrous_transform_image(fits *fit, const struct atrous_data *args, int threads) {
+	threads = wavelet_threads(threads);
 	const int Nl = fit->ry, Nc = fit->rx;
 	const size_t n = (size_t) Nl * (size_t) Nc;
 	const int nb_chan = fit->naxes[2];
@@ -359,6 +360,7 @@ void apply_atrous_to_sequence(struct atrous_data *a_args) {
 
 int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer,
 		int threads) {
+	threads = wavelet_threads(threads);
 	int chan, start, end, retval = 0;
 	wave_transf_des wavelet[3] = { 0 };
 

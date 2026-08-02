@@ -118,6 +118,7 @@
 #include "algos/wavelet_denoise.h"
 
 int prepare_rawdata(float *Imag, int Nl, int Nc, WORD *buf, int threads) {
+	threads = wavelet_threads(threads);
 	float *im = Imag;
 	int i;
 
@@ -149,6 +150,7 @@ float *f_vector_alloc(size_t Nbr_Elem)
 int wavelet_transform_file(float *Imag, int Nl, int Nc,
 		char *File_Name_Transform, int Type_Transform, int Nbr_Plan, WORD *data,
 		int anscombe, int threads) {
+	threads = wavelet_threads(threads);
 	wave_transf_des Wavelet;
 	memset(&Wavelet, 0, sizeof(wave_transf_des));
 
@@ -176,6 +178,7 @@ int wavelet_transform_file(float *Imag, int Nl, int Nc,
 int wavelet_transform_file_float(float *Imag, int Nl, int Nc,
 		char *File_Name_Transform, int Type_Transform, int Nbr_Plan,
 		int anscombe, int threads) {
+	threads = wavelet_threads(threads);
 	wave_transf_des Wavelet;
 	memset(&Wavelet, 0, sizeof(wave_transf_des));
 
@@ -220,6 +223,7 @@ int wavelet_transform_file_float(float *Imag, int Nl, int Nc,
 int wavelet_transform(float *Imag, int Nl, int Nc,
 		wave_transf_des *Wavelet, int Type_Transform, int Nbr_Plan, WORD *data,
 		int threads) {
+	threads = wavelet_threads(threads);
 
 	memset(Wavelet, 0, sizeof(wave_transf_des));
 
@@ -237,6 +241,7 @@ int wavelet_transform(float *Imag, int Nl, int Nc,
 
 int wavelet_transform_float(float *Imag, int Nl, int Nc,
 		wave_transf_des *Wavelet, int Type_Transform, int Nbr_Plan, int threads) {
+	threads = wavelet_threads(threads);
 
 	memset(Wavelet, 0, sizeof(wave_transf_des));
 
@@ -252,6 +257,7 @@ int wavelet_transform_float(float *Imag, int Nl, int Nc,
 
 int wavelet_transform_data(float *Imag, int Nl, int Nc,
 		wave_transf_des *Wavelet, int Type_Transform, int Nbr_Plan, int threads) {
+	threads = wavelet_threads(threads);
 	float *Pave;
 	double Exp;
 	int Min, temp;

@@ -120,6 +120,7 @@
 #include "algos/wavelet_denoise.h"
 
 int reget_rawdata(float *Imag, int Nl, int Nc, WORD *buf, int threads) {
+	threads = wavelet_threads(threads);
 	float *im = Imag;
 	float maximum = 0.f;
 	double ratio;
@@ -146,6 +147,7 @@ int reget_rawdata(float *Imag, int Nl, int Nc, WORD *buf, int threads) {
 /*****************************************************************************/
 
 int wavelet_reconstruct_file(char *File_Name_Transform, float *coef, const struct denoise_params *dp, WORD *data, int threads) {
+	threads = wavelet_threads(threads);
 	float *Imag;
 	wave_transf_des Wavelet;
 	int Nl, Nc;
@@ -188,6 +190,7 @@ int wavelet_reconstruct_file(char *File_Name_Transform, float *coef, const struc
 }
 
 int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, const struct denoise_params *dp, float *data, int threads) {
+	threads = wavelet_threads(threads);
 	wave_transf_des Wavelet;
 
 	/* read the wavelet file */
@@ -227,6 +230,7 @@ int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, const
 int wavelet_reconstruct_file_roi(char *File_Name_Transform, float *coef,
 		const struct denoise_params *dp, int roi_x, int roi_y, int roi_w,
 		int roi_h, int chan, fits *roifit, int threads) {
+	threads = wavelet_threads(threads);
 	const int margin = WD_BISHRINK_MARGIN;
 	wave_transf_des hdr;
 	FILE *f = g_fopen(File_Name_Transform, "rb");
@@ -315,6 +319,7 @@ int wavelet_reconstruct_file_roi(char *File_Name_Transform, float *coef,
 /*****************************************************************************/
 
 int wavelet_reconstruct_data(wave_transf_des *Wavelet, float *Imag, float *coef, int threads) {
+	threads = wavelet_threads(threads);
 	float *Pave;
 	int Nl, Nc, Nbr_Plan;
 

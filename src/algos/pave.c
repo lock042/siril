@@ -261,6 +261,7 @@ static int pave_2d_smooth(const float *src, float *dst, float *scratch, int Nl,
 
 int pave_2d_tfo(float *Pict, float *Pave, int Nl, int Nc, int Nbr_Plan,
 		int Type_To, int threads) {
+	threads = wavelet_threads(threads);
 	if (Type_To != TO_PAVE_LINEAR && Type_To != TO_PAVE_BSPLINE) {
 		siril_log_message(_("pave_2d_tfo: unknown transform\n"));
 		return 1;
@@ -321,6 +322,7 @@ int pave_2d_tfo(float *Pict, float *Pave, int Nl, int Nc, int Nbr_Plan,
 
 int pave_2d_build(float *Pave, float *Imag, int Nl, int Nc, int Nbr_Plan,
 		const float *coef, int threads) {
+	threads = wavelet_threads(threads);
 	const size_t N = (size_t) Nl * (size_t) Nc;
 	const size_t nblocks = (N + PAVE_BUILD_BLOCK - 1) / PAVE_BUILD_BLOCK;
 
