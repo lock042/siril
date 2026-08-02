@@ -43,7 +43,7 @@ siril-1.5.0
 * Removed original Starnet C interface (now covered by the new python script) (!tbc)
 * Added static autostretch mode to keep display stretch parameters fixed across images
 * Improve speed of extract_thumbnail_from_fits (!1066)
-* Improved à trous wavelets tool: better strength control, per-scale denoising (!1049)
+* Improved à trous wavelets tool: better strength control, per-scale denoising, faster (!1049, !1085)
 * Added a nondestructive edit history to FLIS layered images: operations are recorded with their parameters, persisted in .flis files, shown in the Layers panel's History section and inspectable with the new `flis_history` command (!tbc)
 * FLIS files carrying an edit history remain readable by builds without the feature, but those builds drop the history on their next save; tile-compressed saves omit the per-layer pixel checksums used to warn about external edits (!tbc)
 * Opaque operations in an FLIS edit history (ICC conversions, Python pixel edits and the like) now store a restart checkpoint so later steps stay editable instead of freezing the whole history; deleting the most recent opaque step unlocks the steps before it. Saved .flis files grow by one embedded image per opaque step (!tbc)

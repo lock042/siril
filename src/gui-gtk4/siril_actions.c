@@ -1031,64 +1031,31 @@ void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointe
 		free_generic_img_args(args);
 }
 
-/* RGB channel alignment shares a direct-apply path (no generic_image_worker),
- * so the menu handler's undo_save_state is the sole commit point.  The save is
- * taken before rgb_align() (which has failure/early-return paths), so provenance
- * is recorded ONLY once rgb_align returns success (0), tagging the entry saved
- * just above.  @summary is the same label used for the undo entry.
- *
- * The record is Tier A: the method is the user's choice and the registration
- * area is whatever com.selection resolved to, which rgb_align reports back
- * because by replay time the selection is long gone. */
-static void rgb_align_and_capture(int method, int undo_err, const char *summary) {
-	gint target = nde_checkpoint_active_item_id();
-	/* NDE baseline (phase 2): snapshot gfit's pre-op pixels BEFORE the
-	 * direct-apply mutation.  A stray baseline for an item with no live
-	 * record (rgb_align failure) is never persisted — the saver/loader gate
-	 * on live records — so ensuring first is safe. */
-	nde_checkpoint_baseline_ensure(gfit, target);
-	rectangle area_used = { 0 };
-	if (rgb_align(method, &area_used))
-		return;   /* failure: pixels unchanged, no provenance */
-	struct rgb_align_data *p = new_rgb_align_data();
-	if (!p)
+/* the undo state must only be pushed once the prerequisites are known to be
+ * met, otherwise an aborted alignment leaves a no-op entry on the undo stack.
+ * rgb_align_and_capture (align_rgb.c) records the NDE provenance for the
+ * direct-apply path and tags the undo entry saved here. */
+static void align_activate(rgb_align_method m, const char *summary) {
+	if (!rgb_align_prerequisites_met(m))
 		return;
-	p->method = method;
-	p->area = area_used;
-	p->have_area = TRUE;
-	gint64 rid = nde_capture_from_descriptor(&op_desc_rgb_align, p, summary,
-			gfit, FALSE);
-	free_rgb_align_data(p);
-	if (!undo_err)
-		undo_tag_top_nde_record(rid);
+	int undo_err = undo_save_state(gfit, "%s", summary);
+	rgb_align_and_capture(m, undo_err, summary);
 }
 
 void align_dft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	const char *summary = _("RGB alignment (DFT)");
-	int undo_err = undo_save_state(gfit, "%s", summary);
-	rgb_align_and_capture(1, undo_err, summary);
+	align_activate(RGBALIGN_DFT, _("RGB alignment (DFT)"));
 }
 
 void align_global_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	const char *summary = _("RGB alignment (Global stars)");
-	int undo_err = undo_save_state(gfit, "%s", summary);
-	rgb_align_and_capture(2, undo_err, summary);
+	align_activate(RGBALIGN_GLOBAL, _("RGB alignment (Global stars)"));
 }
 
 void align_kombat_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	const char *summary = _("RGB alignment (KOMBAT)");
-	int undo_err = undo_save_state(gfit, "%s", summary);
-	rgb_align_and_capture(3, undo_err, summary);
+	align_activate(RGBALIGN_KOMBAT, _("RGB alignment (KOMBAT)"));
 }
 
 void align_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	const char *summary = _("RGB alignment (PSF)");
-	int undo_err = undo_save_state(gfit, "%s", summary);
-	if (com.selection.w > 300 || com.selection.h > 300) {
-		siril_log_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
-		return;
-	}
-	rgb_align_and_capture(0, undo_err, summary);
+	align_activate(RGBALIGN_PSF, _("RGB alignment (PSF)"));
 }
 
 void icc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

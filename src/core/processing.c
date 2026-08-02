@@ -1752,7 +1752,9 @@ gpointer generic_image_worker(gpointer p) {
 		}
 	}
 
-	// Set default max_threads if not specified
+	/* An unset (zero) max_threads means "use the whole machine"; callers only
+	 * set it when they want fewer. Resolve it here so the hook always receives
+	 * a usable positive count. */
 	if (args->max_threads < 1)
 		args->max_threads = com.max_thread;
 

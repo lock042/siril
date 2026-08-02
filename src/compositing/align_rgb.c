@@ -19,7 +19,7 @@
  */
 
 /* This file is currently not used by compositing, only by the RGB align menu
- * entry in the RGB image popup. */
+ * entry in the RGB image popup and by the rgbalign command. */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,8 +36,14 @@
 #include "compositing/align_rgb.h"
 #include "core/op_descriptors.h"
 #include "core/nde_history.h"
+#include "core/nde_checkpoint.h"
+#include "core/undo.h"
 
 #define REGLAYER 0
+
+/* the largest selection accepted by the one-star method: it must contain a
+ * single star for the PSF fit to be meaningful */
+#define MAX_PSF_SELECTION 300
 
 static sequence *seq = NULL;		// the sequence of channels
 static struct registration_method *reg_methods[5];
@@ -53,6 +59,41 @@ static void initialize_methods() {
 	reg_methods[3] = new_reg_method(_("KOMBAT registration (planetary / deep-sky)"),
 			&register_kombat, REQUIRES_ANY_SELECTION, REGTYPE_DEEPSKY);
 	reg_methods[4] = NULL;
+}
+
+const char *rgb_align_method_name(rgb_align_method m) {
+	switch (m) {
+		case RGBALIGN_PSF:
+			return _("one star");
+		case RGBALIGN_DFT:
+			return _("image pattern");
+		case RGBALIGN_KOMBAT:
+			return _("KOMBAT");
+		default:
+			return _("global star");
+	}
+}
+
+/* Checks that the loaded image and the current selection are suitable for the
+ * requested alignment method, logging the reason if they are not. Shared by the
+ * RGB align menu entries and the rgbalign command. */
+gboolean rgb_align_prerequisites_met(rgb_align_method m) {
+	if (!single_image_is_loaded() || !isrgb(gfit)) {
+		siril_log_message(_("RGB alignment requires a loaded colour image.\n"));
+		return FALSE;
+	}
+	/* the global star method registers on the whole image, the others all
+	 * need an area to work on */
+	if (m != RGBALIGN_GLOBAL && (com.selection.w <= 0 || com.selection.h <= 0)) {
+		siril_log_message(_("The %s alignment method requires a selection. Make one in the "
+					"image or use the boxselect command.\n"), rgb_align_method_name(m));
+		return FALSE;
+	}
+	if (m == RGBALIGN_PSF && (com.selection.w > MAX_PSF_SELECTION || com.selection.h > MAX_PSF_SELECTION)) {
+		siril_log_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
+		return FALSE;
+	}
+	return TRUE;
 }
 
 // We cannot currently do this in free_sequence() because compositing still
@@ -89,6 +130,14 @@ static int initialize_internal_rgb_sequence(fits *source) {
 static void compose(fits *target) {
 	size_t npixels = target->rx * target->ry;
 	fits *fit[3];
+	/* Channels the registration failed on are excluded from the sequence and
+	 * so keep their original data: the result is only partially aligned, which
+	 * is easy to miss in a script if we don't say so. */
+	for (int i = 0; i < 3; i++) {
+		if (!seq->imgparam[i].incl)
+			siril_log_warning(_("The %s channel could not be aligned and is left unchanged.\n"),
+					channel_number_to_name(i));
+	}
 	for (int i = 0 ; i < 3 ; i++) {
 		fit[i] = internal_sequence_get(seq, i);
 	}
@@ -115,9 +164,9 @@ static void compose(fits *target) {
  * processing_should_continue(), so the slot must be held and cancel_flag
  * cleared for the duration — but reserve_thread() is a plain compare-and-swap,
  * not a recursive lock, so only the caller that is NOT already inside a worker
- * may take it.  The menu is; replay, arriving through generic_image_worker,
- * is not. */
-static int rgb_align_core(fits *target, int m, const rectangle *area,
+ * may take it.  The menu and the command are; replay, arriving through
+ * generic_image_worker, is not. */
+static int rgb_align_core(fits *target, rgb_align_method m, const rectangle *area,
                           rectangle *area_used, gboolean claim_thread) {
 	struct registration_args regargs = { 0 };
 	struct registration_method *method;
@@ -125,8 +174,10 @@ static int rgb_align_core(fits *target, int m, const rectangle *area,
 	int retval1 = 0, retval2 = 0;
 
 	initialize_methods();
-	if (initialize_internal_rgb_sequence(target))
+	if (initialize_internal_rgb_sequence(target)) {
+		siril_log_message(_("Could not extract the channels of the loaded image.\n"));
 		return 1;
+	}
 	gui_iface.set_progress(PROGRESS_RESET, NULL);
 
 	/* align it */
@@ -181,15 +232,16 @@ static int rgb_align_core(fits *target, int m, const rectangle *area,
 
 	if (retval2)
 		gui_iface.set_progress(PROGRESS_DONE, _("Error in layers alignment."));
-	else
+	else {
 		gui_iface.set_progress(PROGRESS_DONE, _("Registration complete."));
-	siril_log_message(_("Aligned RGB channels\n"));
+		siril_log_message(_("Aligned RGB channels using the %s method\n"), rgb_align_method_name(m));
+	}
 	free_internal_sequence(seq);
 	seq =  NULL;
 	return retval2;
 }
 
-int rgb_align(int m, rectangle *area_used) {
+int rgb_align(rgb_align_method m, rectangle *area_used) {
 	gui_iface.set_busy(TRUE);
 	int retval = rgb_align_core(gfit, m, NULL, area_used, TRUE);
 	if (!retval) {
@@ -198,6 +250,40 @@ int rgb_align(int m, rectangle *area_used) {
 	}
 	gui_iface.set_busy(FALSE);
 	return retval;
+}
+
+/* RGB channel alignment shares a direct-apply path (no generic_image_worker),
+ * so the caller's undo_save_state is the sole commit point.  The save is
+ * taken before rgb_align() (which has failure/early-return paths), so
+ * provenance is recorded ONLY once rgb_align returns success (0), tagging the
+ * entry saved just above (@undo_err gates the tag).
+ *
+ * The record is Tier A: the method is the user's choice and the registration
+ * area is whatever com.selection resolved to, which rgb_align reports back
+ * because by replay time the selection is long gone. */
+int rgb_align_and_capture(rgb_align_method m, int undo_err, const char *summary) {
+	gint target = nde_checkpoint_active_item_id();
+	/* NDE baseline (phase 2): snapshot gfit's pre-op pixels BEFORE the
+	 * direct-apply mutation.  A stray baseline for an item with no live
+	 * record (rgb_align failure) is never persisted — the saver/loader gate
+	 * on live records — so ensuring first is safe. */
+	nde_checkpoint_baseline_ensure(gfit, target);
+	rectangle area_used = { 0 };
+	int retval = rgb_align(m, &area_used);
+	if (retval)
+		return retval;   /* failure: pixels unchanged, no provenance */
+	struct rgb_align_data *p = new_rgb_align_data();
+	if (!p)
+		return 0;
+	p->method = m;
+	p->area = area_used;
+	p->have_area = TRUE;
+	gint64 rid = nde_capture_from_descriptor(&op_desc_rgb_align, p, summary,
+			gfit, FALSE);
+	free_rgb_align_data(p);
+	if (!undo_err)
+		undo_tag_top_nde_record(rid);
+	return 0;
 }
 
 /* Replay path: the worker hands us a private fits and already holds the
@@ -227,7 +313,10 @@ struct rgb_align_data *new_rgb_align_data(void) {
 static gchar *rgb_align_log_hook(gpointer p, log_hook_detail detail) {
 	const struct rgb_align_data *d = p;
 	(void)detail;
-	return g_strdup_printf(_("RGB alignment (method %d)"), d ? d->method : -1);
+	if (!d)
+		return g_strdup(_("RGB alignment"));
+	return g_strdup_printf(_("RGB alignment (%s)"),
+			rgb_align_method_name((rgb_align_method)d->method));
 }
 
 static gchar *rgb_align_serialize(gconstpointer user) {

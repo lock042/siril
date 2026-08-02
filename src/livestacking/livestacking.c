@@ -533,6 +533,42 @@ static int start_global_registration(sequence *seq) {
 	return retval || !sadata->success[1];
 }
 
+/* Live stacking replaces the first image of the sequence by the stacking
+ * result, which Siril always saves as 16-bit or 32-bit data. Images stored in
+ * the sequence with any other bit depth (8-bit FITS) would make it
+ * heterogeneous from the second stacking on, which stacking rejects with
+ * 'input images have different precision', so their depth is normalized when
+ * they enter the sequence. savefits() rescales the 8-bit data on its own, it
+ * uses orig_bitpix for that, which must be left untouched. */
+static gboolean depth_can_be_stacked(int bitpix) {
+	return bitpix == USHORT_IMG || bitpix == FLOAT_IMG;
+}
+
+static void normalize_depth(fits *fit) {
+	if (!depth_can_be_stacked(fit->bitpix))
+		fit->bitpix = fit->type == DATA_USHORT ? USHORT_IMG : FLOAT_IMG;
+}
+
+/* makes the input image available as the next image of the live stacking
+ * sequence, linking it if possible, converting it if its depth is unusable */
+static int add_image_to_sequence(gchar *filename, gchar *target) {
+	fits metadata = { 0 };
+	if (!read_fits_metadata_from_path(filename, &metadata) &&
+			!depth_can_be_stacked(metadata.bitpix)) {
+		clearfits(&metadata);
+		fits fit = { 0 };
+		int retval = readfits(filename, &fit, NULL, FALSE);
+		if (!retval) {
+			normalize_depth(&fit);
+			retval = savefits(target, &fit);
+		}
+		clearfits(&fit);
+		return retval;
+	}
+	clearfits(&metadata);
+	return symlink_uniq_file(filename, target, do_links);
+}
+
 static int preprocess_image(char *filename, char *target) {
 	if (!prepro || (!prepro->use_dark && !prepro->use_flat)) return 1;
 
@@ -543,8 +579,10 @@ static int preprocess_image(char *filename, char *target) {
 	}
 	struct generic_seq_args generic = { .user = prepro };
 	ret = prepro_image_hook(&generic, 0, 0, &fit, NULL, com.max_thread);
-	if (!ret)
+	if (!ret) {
+		normalize_depth(&fit);
 		ret = savefits(target, &fit);
+	}
 	clearfits(&fit);
 	if (ret) {
 		char *msg = siril_log_error(_("preprocessing failed\n"));
@@ -619,8 +657,10 @@ static gpointer live_stacker(gpointer arg) {
 			int retval = readfits(filename, &fit, NULL, !com.pref.force_16bit);
 			if (!retval)
 				retval = debayer_if_needed(TYPEFITS, &fit, TRUE);
-			if (!retval)
+			if (!retval) {
+				normalize_depth(&fit);
 				retval = savefits(target, &fit);
+			}
 			if (!retval) {
 				g_free(filename);
 				filename = target;
@@ -632,7 +672,7 @@ static gpointer live_stacker(gpointer arg) {
 		show_time_msg(tv_start, tv_end, "calibration and demosaicing");
 		tv_tmp = tv_end;
 
-		if (target && symlink_uniq_file(filename, target, do_links)) {
+		if (target && add_image_to_sequence(filename, target)) {
 			g_free(target);
 			livestacking_display(_("Failed to rename or make a symbolic link to the input file"), FALSE);
 			break;
