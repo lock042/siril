@@ -119,14 +119,15 @@
 #include "algos/Def_Wavelet.h"
 #include "algos/wavelet_denoise.h"
 
-int reget_rawdata(float *Imag, int Nl, int Nc, WORD *buf) {
+int reget_rawdata(float *Imag, int Nl, int Nc, WORD *buf, int threads) {
+	threads = wavelet_threads(threads);
 	float *im = Imag;
 	float maximum = 0.f;
 	double ratio;
 	int i;
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static) reduction(max:maximum)
+#pragma omp parallel for num_threads(threads) schedule(static) reduction(max:maximum)
 #endif
 	for (i = 0; i < Nl * Nc; ++i) {
 		if (im[i] > maximum)
@@ -135,7 +136,7 @@ int reget_rawdata(float *Imag, int Nl, int Nc, WORD *buf) {
 	ratio = (maximum > USHRT_MAX) ? USHRT_MAX_DOUBLE / maximum : 1.0;
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for num_threads(threads) schedule(static)
 #endif
 	for (i = 0; i < Nl * Nc; ++i) {
 		buf[i] = round_to_WORD(im[i] * ratio);
@@ -145,7 +146,8 @@ int reget_rawdata(float *Imag, int Nl, int Nc, WORD *buf) {
 
 /*****************************************************************************/
 
-int wavelet_reconstruct_file(char *File_Name_Transform, float *coef, const struct denoise_params *dp, WORD *data) {
+int wavelet_reconstruct_file(char *File_Name_Transform, float *coef, const struct denoise_params *dp, WORD *data, int threads) {
+	threads = wavelet_threads(threads);
 	float *Imag;
 	wave_transf_des Wavelet;
 	int Nl, Nc;
@@ -164,7 +166,7 @@ int wavelet_reconstruct_file(char *File_Name_Transform, float *coef, const struc
 		siril_log_error(_("Error: number of plans reported by wavelets file is out of bounds.\n"));
 		return 1;
 	}
-	Imag = f_vector_alloc(Nl * Nc);
+	Imag = f_vector_alloc((size_t) Nl * (size_t) Nc);
 	if (Imag == NULL) {
 		PRINT_ALLOC_ERR;
 		return 1;
@@ -172,22 +174,23 @@ int wavelet_reconstruct_file(char *File_Name_Transform, float *coef, const struc
 	/* Optional per-scale denoising on the coefficient planes before synthesis;
 	 * the per-scale amplitude coef[] is still applied afterwards. */
 	wavelet_denoise_planes(Wavelet.Pave.Data, Wavelet.Type_Wave_Transform,
-			Wavelet.Nbr_Plan, Nl, Nc, dp);
-	wavelet_reconstruct_data(&Wavelet, Imag, coef);
+			Wavelet.Nbr_Plan, Nl, Nc, dp, threads);
+	wavelet_reconstruct_data(&Wavelet, Imag, coef, threads);
 
 	/* invert the Anscombe VST applied at decomposition, back to linear ADU */
 	if (dp && dp->anscombe)
-		anscombe_inverse(Imag, (size_t) Nl * Nc, ANSCOMBE_USHORT_SCALE);
+		anscombe_inverse(Imag, (size_t) Nl * Nc, ANSCOMBE_USHORT_SCALE, threads);
 
 	/* get and view result */
-	reget_rawdata(Imag, Nl, Nc, data);
+	reget_rawdata(Imag, Nl, Nc, data, threads);
 
 	wave_io_free(&Wavelet);
 	free(Imag);
 	return 0;
 }
 
-int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, const struct denoise_params *dp, float *data) {
+int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, const struct denoise_params *dp, float *data, int threads) {
+	threads = wavelet_threads(threads);
 	wave_transf_des Wavelet;
 
 	/* read the wavelet file */
@@ -205,13 +208,13 @@ int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, const
 	}
 
 	wavelet_denoise_planes(Wavelet.Pave.Data, Wavelet.Type_Wave_Transform,
-			Wavelet.Nbr_Plan, Wavelet.Nbr_Ligne, Wavelet.Nbr_Col, dp);
-	wavelet_reconstruct_data(&Wavelet, data, coef);
+			Wavelet.Nbr_Plan, Wavelet.Nbr_Ligne, Wavelet.Nbr_Col, dp, threads);
+	wavelet_reconstruct_data(&Wavelet, data, coef, threads);
 
 	/* invert the Anscombe VST applied at decomposition, back to linear [0,1] */
 	if (dp && dp->anscombe)
 		anscombe_inverse(data, (size_t) Wavelet.Nbr_Ligne * Wavelet.Nbr_Col,
-				ANSCOMBE_FLOAT_SCALE);
+				ANSCOMBE_FLOAT_SCALE, threads);
 
 	wave_io_free(&Wavelet);
 	return 0;
@@ -224,28 +227,11 @@ int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, const
  * sub-transform. roi_x/roi_y are the selection's top-left in top-down display
  * coordinates; the result is written into roifit's channel buffer in roifit's
  * (top-down) layout, matching populate_roi(). */
-int wavelet_reconstruct_file_roi(char *File_Name_Transform, float *coef,
-		const struct denoise_params *dp, int roi_x, int roi_y, int roi_w,
-		int roi_h, int chan, fits *roifit) {
+/* Padded crop window for an ROI reconstruction, in FITS (bottom-up) rows.
+ * Shared by the file-backed and in-memory front ends. Returns 1 if unusable. */
+static int roi_window(int Nl, int Nc, int roi_x, int roi_y, int roi_w, int roi_h,
+		int *cy0_out, int *cx0_out, int *ch_out, int *cw_out) {
 	const int margin = WD_BISHRINK_MARGIN;
-	wave_transf_des hdr;
-	FILE *f = g_fopen(File_Name_Transform, "rb");
-	if (!f)
-		return 1;
-	if (fread(&hdr, sizeof(wave_transf_des), 1, f) != 1) {
-		fclose(f);
-		return 1;
-	}
-	const int Nl = hdr.Nbr_Ligne, Nc = hdr.Nbr_Col, Nbr_Plan = hdr.Nbr_Plan;
-	const int type = hdr.Type_Wave_Transform;
-	if (Nbr_Plan < 1 || Nbr_Plan > 6 || Nl < 1 || Nc < 1
-			|| Nl > MAX_IMAGE_DIM || Nc > MAX_IMAGE_DIM
-			|| (type != TO_PAVE_LINEAR && type != TO_PAVE_BSPLINE)) {
-		fclose(f);
-		return 1;
-	}
-
-	/* ROI bounding box in FITS (bottom-up) rows, padded by the margin */
 	int cy0 = (Nl - roi_y - roi_h) - margin;
 	int cy1 = (Nl - 1 - roi_y) + margin;
 	int cx0 = roi_x - margin;
@@ -255,44 +241,30 @@ int wavelet_reconstruct_file_roi(char *File_Name_Transform, float *coef,
 	if (cx0 < 0) cx0 = 0;
 	if (cx1 > Nc - 1) cx1 = Nc - 1;
 	const int ch = cy1 - cy0 + 1, cw = cx1 - cx0 + 1;
-	if (ch < 1 || cw < 1) {
-		fclose(f);
+	if (ch < 1 || cw < 1)
 		return 1;
-	}
+	*cy0_out = cy0; *cx0_out = cx0; *ch_out = ch; *cw_out = cw;
+	return 0;
+}
 
-	const off_t data_off = (off_t) sizeof(wave_transf_des);
-	float *rows = malloc((size_t) ch * Nc * sizeof(float)); /* one plane's ROI rows */
-	float *sub = f_vector_alloc((size_t) cw * ch * Nbr_Plan);
+/* Denoise and rebuild an already-cropped sub-transform, then copy the inner ROI
+ * into roifit. Takes ownership of nothing; sub is modified in place. */
+static int roi_finish(float *sub, int type, int Nbr_Plan, int Nl, int cy0,
+		int cx0, int ch, int cw, float *coef, const struct denoise_params *dp,
+		int roi_x, int roi_y, int roi_w, int roi_h, int chan, fits *roifit,
+		int threads) {
 	float *out = f_vector_alloc((size_t) cw * ch);
-	if (!rows || !sub || !out) {
-		free(rows); if (sub) free(sub); if (out) free(out);
-		fclose(f);
+	if (!out) {
+		PRINT_ALLOC_ERR;
 		return 1;
 	}
 
-	for (int p = 0; p < Nbr_Plan; p++) {
-		off_t off = data_off + ((off_t) p * Nl * Nc + (off_t) cy0 * Nc) * (off_t) sizeof(float);
-		if (fseeko(f, off, SEEK_SET) != 0
-				|| fread(rows, sizeof(float), (size_t) ch * Nc, f) != (size_t) ch * Nc) {
-			free(rows); free(sub); free(out);
-			fclose(f);
-			return 1;
-		}
-		float *dstplane = sub + (size_t) cw * ch * p;
-		for (int r = 0; r < ch; r++)
-			memcpy(dstplane + (size_t) r * cw, rows + (size_t) r * Nc + cx0,
-					(size_t) cw * sizeof(float));
-	}
-	fclose(f);
-	free(rows);
-
-	/* denoise + reconstruct only the cropped sub-transform */
-	wavelet_denoise_planes(sub, type, Nbr_Plan, ch, cw, dp);
-	pave_2d_build(sub, out, ch, cw, Nbr_Plan, coef);
-	free(sub);
+	wavelet_denoise_planes(sub, type, Nbr_Plan, ch, cw, dp, threads);
+	pave_2d_build(sub, out, ch, cw, Nbr_Plan, coef, threads);
 	if (dp && dp->anscombe)
 		anscombe_inverse(out, (size_t) cw * ch,
-				(roifit->type == DATA_USHORT) ? ANSCOMBE_USHORT_SCALE : ANSCOMBE_FLOAT_SCALE);
+				(roifit->type == DATA_USHORT) ? ANSCOMBE_USHORT_SCALE : ANSCOMBE_FLOAT_SCALE,
+				threads);
 
 	/* copy the inner ROI into roifit (top-down), flipping FITS rows */
 	for (int y = 0; y < roi_h; y++) {
@@ -311,9 +283,151 @@ int wavelet_reconstruct_file_roi(char *File_Name_Transform, float *coef,
 	return 0;
 }
 
+int wavelet_reconstruct_file_roi(char *File_Name_Transform, float *coef,
+		const struct denoise_params *dp, int roi_x, int roi_y, int roi_w,
+		int roi_h, int chan, fits *roifit, int threads) {
+	threads = wavelet_threads(threads);
+	wave_transf_des hdr;
+	FILE *f = g_fopen(File_Name_Transform, "rb");
+	if (!f)
+		return 1;
+	if (fread(&hdr, sizeof(wave_transf_des), 1, f) != 1) {
+		fclose(f);
+		return 1;
+	}
+	const int Nl = hdr.Nbr_Ligne, Nc = hdr.Nbr_Col, Nbr_Plan = hdr.Nbr_Plan;
+	const int type = hdr.Type_Wave_Transform;
+	if (Nbr_Plan < 1 || Nbr_Plan > 6 || Nl < 1 || Nc < 1
+			|| Nl > MAX_IMAGE_DIM || Nc > MAX_IMAGE_DIM
+			|| (type != TO_PAVE_LINEAR && type != TO_PAVE_BSPLINE)) {
+		fclose(f);
+		return 1;
+	}
+
+	int cy0, cx0, ch, cw;
+	if (roi_window(Nl, Nc, roi_x, roi_y, roi_w, roi_h, &cy0, &cx0, &ch, &cw)) {
+		fclose(f);
+		return 1;
+	}
+
+	const off_t data_off = (off_t) sizeof(wave_transf_des);
+	float *rows = malloc((size_t) ch * Nc * sizeof(float)); /* one plane's ROI rows */
+	float *sub = f_vector_alloc((size_t) cw * ch * Nbr_Plan);
+	if (!rows || !sub) {
+		free(rows); free(sub);
+		fclose(f);
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+
+	for (int p = 0; p < Nbr_Plan; p++) {
+		off_t off = data_off + ((off_t) p * Nl * Nc + (off_t) cy0 * Nc) * (off_t) sizeof(float);
+		if (fseeko(f, off, SEEK_SET) != 0
+				|| fread(rows, sizeof(float), (size_t) ch * Nc, f) != (size_t) ch * Nc) {
+			free(rows); free(sub);
+			fclose(f);
+			return 1;
+		}
+		float *dstplane = sub + (size_t) cw * ch * p;
+		for (int r = 0; r < ch; r++)
+			memcpy(dstplane + (size_t) r * cw, rows + (size_t) r * Nc + cx0,
+					(size_t) cw * sizeof(float));
+	}
+	fclose(f);
+	free(rows);
+
+	const int ret = roi_finish(sub, type, Nbr_Plan, Nl, cy0, cx0, ch, cw, coef,
+			dp, roi_x, roi_y, roi_w, roi_h, chan, roifit, threads);
+	free(sub);
+	return ret;
+}
+
+/* Same, from a transform already in memory. The cropped copy is what gets
+ * denoised, so the source transform is left untouched and can be reused for
+ * the next preview. */
+int wavelet_reconstruct_data_roi(const wave_transf_des *Wavelet, float *coef,
+		const struct denoise_params *dp, int roi_x, int roi_y, int roi_w,
+		int roi_h, int chan, fits *roifit, int threads) {
+	threads = wavelet_threads(threads);
+	const int Nl = Wavelet->Nbr_Ligne, Nc = Wavelet->Nbr_Col;
+	const int Nbr_Plan = Wavelet->Nbr_Plan;
+	const int type = Wavelet->Type_Wave_Transform;
+	if (!Wavelet->Pave.Data || Nbr_Plan < 1 || Nl < 1 || Nc < 1
+			|| (type != TO_PAVE_LINEAR && type != TO_PAVE_BSPLINE))
+		return 1;
+
+	int cy0, cx0, ch, cw;
+	if (roi_window(Nl, Nc, roi_x, roi_y, roi_w, roi_h, &cy0, &cx0, &ch, &cw))
+		return 1;
+
+	float *sub = f_vector_alloc((size_t) cw * ch * Nbr_Plan);
+	if (!sub) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+	for (int p = 0; p < Nbr_Plan; p++) {
+		const float *srcplane = Wavelet->Pave.Data + (size_t) Nl * Nc * p;
+		float *dstplane = sub + (size_t) cw * ch * p;
+		for (int r = 0; r < ch; r++)
+			memcpy(dstplane + (size_t) r * cw,
+					srcplane + (size_t) (cy0 + r) * Nc + cx0,
+					(size_t) cw * sizeof(float));
+	}
+
+	const int ret = roi_finish(sub, type, Nbr_Plan, Nl, cy0, cx0, ch, cw, coef,
+			dp, roi_x, roi_y, roi_w, roi_h, chan, roifit, threads);
+	free(sub);
+	return ret;
+}
+
 /*****************************************************************************/
 
-int wavelet_reconstruct_data(wave_transf_des *Wavelet, float *Imag, float *coef) {
+/* Reconstruct a full image from a transform that must survive the call.
+ *
+ * wavelet_denoise_planes shrinks the coefficient planes in place, which is why
+ * the file-backed path can afford to denoise directly: it re-reads a pristine
+ * transform every time. A cached transform has to stay pristine for the next
+ * reconstruction, so denoising works on a copy. With denoising off -- the usual
+ * case while dragging the layer sliders -- the synthesis only reads, and no
+ * copy is made at all. */
+int wavelet_reconstruct_preserving(const wave_transf_des *Wavelet, float *Imag,
+		float *coef, const struct denoise_params *dp, int threads) {
+	threads = wavelet_threads(threads);
+	const int Nl = Wavelet->Nbr_Ligne, Nc = Wavelet->Nbr_Col;
+	const int Nbr_Plan = Wavelet->Nbr_Plan;
+	if (!Wavelet->Pave.Data || Nl < 1 || Nc < 1 || Nbr_Plan < 1)
+		return 1;
+	if (Wavelet->Type_Wave_Transform != TO_PAVE_LINEAR
+			&& Wavelet->Type_Wave_Transform != TO_PAVE_BSPLINE) {
+		siril_log_message(_("Unknown transform\n"));
+		return 1;
+	}
+
+	const size_t cube = (size_t) Nl * (size_t) Nc * (size_t) Nbr_Plan;
+	float *planes = Wavelet->Pave.Data;
+	float *scratch = NULL;
+
+	if (dp && dp->enabled) {
+		scratch = malloc(cube * sizeof(float));
+		if (!scratch) {
+			PRINT_ALLOC_ERR;
+			return 1;
+		}
+		memcpy(scratch, Wavelet->Pave.Data, cube * sizeof(float));
+		wavelet_denoise_planes(scratch, Wavelet->Type_Wave_Transform, Nbr_Plan,
+				Nl, Nc, dp, threads);
+		planes = scratch;
+	}
+
+	pave_2d_build(planes, Imag, Nl, Nc, Nbr_Plan, coef, threads);
+	free(scratch);
+	return 0;
+}
+
+/*****************************************************************************/
+
+int wavelet_reconstruct_data(wave_transf_des *Wavelet, float *Imag, float *coef, int threads) {
+	threads = wavelet_threads(threads);
 	float *Pave;
 	int Nl, Nc, Nbr_Plan;
 
@@ -324,7 +438,7 @@ int wavelet_reconstruct_data(wave_transf_des *Wavelet, float *Imag, float *coef)
 	case TO_PAVE_LINEAR:
 	case TO_PAVE_BSPLINE:
 		Pave = Wavelet->Pave.Data;
-		pave_2d_build(Pave, Imag, Nl, Nc, Nbr_Plan, coef);
+		pave_2d_build(Pave, Imag, Nl, Nc, Nbr_Plan, coef, threads);
 		break;
 	default:
 		siril_log_message(_("Unknown transform\n"));
