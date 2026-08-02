@@ -223,33 +223,104 @@ static void threshold_plane(float *plane, size_t n, float t, gboolean soft) {
 	}
 }
 
-/* Local mean of src^2 over a (2r+1)x(2r+1) window (separable, replicated
- * borders). dst receives the result; tmp is scratch of npix floats. */
-static void box_mean_sq(const float *src, float *dst, float *tmp, int Nl,
-		int Nc, int r) {
+/* Local mean of src^2 over a (2r+1)x(2r+1) window, r = WD_BISHRINK_RADIUS
+ * (separable, replicated borders). dst receives the result; tmp is scratch of
+ * npix floats and acc is scratch of com.max_thread * Nc doubles.
+ *
+ * The row pass splits the borders off so its interior needs no index clamping
+ * and vectorises. The column pass keeps a running row sum: moving down one row
+ * adds one row and removes one, instead of summing 2r+1 rows for every output
+ * row. The rows are banded so each thread seeds its own accumulator, which also
+ * bounds how far the running sum can drift. */
+static void box_mean_sq(const float *src, float *dst, float *tmp, double *acc,
+		int Nl, int Nc) {
+	const int r = WD_BISHRINK_RADIUS;
 	const double norm = 1.0 / ((double) (2 * r + 1) * (2 * r + 1));
+
+	if (Nl < 1 || Nc < 1)
+		return;
+
+	/* row pass: window sum of src^2 along each row.
+	 * v*v is exact in double for a float v, so this matches a direct sum. */
+	int lo = r, hi = Nc - r;
+	if (lo > Nc)
+		lo = Nc;
+	if (hi < lo)
+		hi = lo;
+
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 	for (int y = 0; y < Nl; y++) {
-		for (int x = 0; x < Nc; x++) {
-			double s = 0.0;
+		const float *s = src + (size_t) y * Nc;
+		float *t = tmp + (size_t) y * Nc;
+
+		for (int x = 0; x < lo; x++) {
+			double sum = 0.0;
 			for (int dx = -r; dx <= r; dx++) {
-				const float v = src[y * Nc + clampi(x + dx, 0, Nc - 1)];
-				s += (double) v * v;
+				const double v = s[clampi(x + dx, 0, Nc - 1)];
+				sum += v * v;
 			}
-			tmp[y * Nc + x] = (float) s;
+			t[x] = (float) sum;
+		}
+		for (int x = hi; x < Nc; x++) {
+			double sum = 0.0;
+			for (int dx = -r; dx <= r; dx++) {
+				const double v = s[clampi(x + dx, 0, Nc - 1)];
+				sum += v * v;
+			}
+			t[x] = (float) sum;
+		}
+		for (int x = lo; x < hi; x++) {
+			double sum = 0.0;
+			for (int dx = -r; dx <= r; dx++) {
+				const double v = s[x + dx];
+				sum += v * v;
+			}
+			t[x] = (float) sum;
 		}
 	}
+
+	/* column pass: running row sum over bands of rows */
+	int nbands = com.max_thread > 0 ? com.max_thread : 1;
+	if (nbands > Nl)
+		nbands = Nl;
+	const int band = (Nl + nbands - 1) / nbands;
+
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
-	for (int y = 0; y < Nl; y++) {
-		for (int x = 0; x < Nc; x++) {
-			double s = 0.0;
-			for (int dy = -r; dy <= r; dy++)
-				s += tmp[clampi(y + dy, 0, Nl - 1) * Nc + x];
-			dst[y * Nc + x] = (float) (s * norm);
+	for (int b = 0; b < nbands; b++) {
+		const int y0 = b * band;
+		int y1 = y0 + band;
+		if (y1 > Nl)
+			y1 = Nl;
+		if (y0 >= y1)
+			continue;
+
+		double *a = acc + (size_t) b * Nc;
+
+		/* seed the window on the band's first row */
+		memset(a, 0, (size_t) Nc * sizeof(double));
+		for (int dy = -r; dy <= r; dy++) {
+			const float *t = tmp + (size_t) clampi(y0 + dy, 0, Nl - 1) * Nc;
+			for (int x = 0; x < Nc; x++)
+				a[x] += t[x];
+		}
+		float *d = dst + (size_t) y0 * Nc;
+		for (int x = 0; x < Nc; x++)
+			d[x] = (float) (a[x] * norm);
+
+		/* then slide it down the band: the clamped window at row y differs
+		 * from the one at y-1 by exactly these two rows */
+		for (int y = y0 + 1; y < y1; y++) {
+			const float *add = tmp + (size_t) clampi(y + r, 0, Nl - 1) * Nc;
+			const float *sub = tmp + (size_t) clampi(y - 1 - r, 0, Nl - 1) * Nc;
+			d = dst + (size_t) y * Nc;
+			for (int x = 0; x < Nc; x++) {
+				a[x] += (double) add[x] - (double) sub[x];
+				d[x] = (float) (a[x] * norm);
+			}
 		}
 	}
 }
@@ -316,12 +387,17 @@ int wavelet_denoise_planes(float *pave_data, int type, int nbr_plan, int Nl,
 	 * band. Process finest -> coarsest so each plane's parent is still the
 	 * original (noisy) band when used. */
 	float *locms = NULL, *tmp = NULL;
+	double *acc = NULL;
 	if (dp->method == WD_BISHRINK) {
+		const int nbands = com.max_thread > 0 ? com.max_thread : 1;
 		locms = malloc(npix * sizeof(float));
 		tmp = malloc(npix * sizeof(float));
-		if (!locms || !tmp) {
+		/* one running-sum row per band of the local-variance column pass */
+		acc = malloc((size_t) nbands * (size_t) Nc * sizeof(double));
+		if (!locms || !tmp || !acc) {
 			free(locms);
 			free(tmp);
+			free(acc);
 			return 1;
 		}
 	}
@@ -341,7 +417,7 @@ int wavelet_denoise_planes(float *pave_data, int type, int nbr_plan, int Nl,
 				continue; /* factor 0 -> leave this scale untouched */
 			const float *parent = (j + 1 < ndetail)
 					? pave_data + npix * (size_t) (j + 1) : NULL;
-			box_mean_sq(plane, locms, tmp, Nl, Nc, WD_BISHRINK_RADIUS);
+			box_mean_sq(plane, locms, tmp, acc, Nl, Nc);
 			bishrink_plane(plane, parent, locms, npix, sigma_n);
 		} else {
 			const float t = (float) (k * dp->f[j] * sigma_j);
@@ -351,5 +427,6 @@ int wavelet_denoise_planes(float *pave_data, int type, int nbr_plan, int Nl,
 
 	free(locms);
 	free(tmp);
+	free(acc);
 	return 0;
 }
