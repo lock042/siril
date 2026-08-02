@@ -153,4 +153,8 @@ int wavelet_reconstruct_data (wave_transf_des *Wavelet, float *Imag, float *coef
 int wavelet_reconstruct_file (char *File_Name_Transform, float *coef, const struct denoise_params *dp, WORD *data, int threads);
 int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, const struct denoise_params *dp, float *data, int threads);
 int wavelet_reconstruct_file_roi(char *File_Name_Transform, float *coef, const struct denoise_params *dp, int roi_x, int roi_y, int roi_w, int roi_h, int chan, fits *roifit, int threads);
+int wavelet_reconstruct_data_roi(const wave_transf_des *Wavelet, float *coef, const struct denoise_params *dp, int roi_x, int roi_y, int roi_w, int roi_h, int chan, fits *roifit, int threads);
+int wavelet_reconstruct_preserving(const wave_transf_des *Wavelet, float *Imag, float *coef, const struct denoise_params *dp, int threads);
+/* Global noise sigma of an in-memory transform, from its finest detail plane. */
+int wavelet_sigma_from_data(const wave_transf_des *wave, double *sigma_out, int threads);
 int reget_rawdata(float *Imag, int Nl, int Nc, WORD *buf, int threads);

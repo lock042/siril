@@ -71,6 +71,8 @@ double wavelet_estimate_noise_float(const float *band0, size_t n, double e1,
  * from its finest detail plane. Writes the result to *sigma_out. Returns 0 on
  * success, non-zero on read/estimation failure. */
 int wavelet_sigma_from_file(const char *filename, double *sigma_out, int threads);
+/* wavelet_sigma_from_data(), the same from an in-memory transform, is declared
+ * in Def_Wavelet.h where wave_transf_des is defined. */
 
 /* Shrinkage method. WD_THRESHOLD is implemented now; WD_BISHRINK (the intended
  * default) and WD_GSM are added in later phases. */

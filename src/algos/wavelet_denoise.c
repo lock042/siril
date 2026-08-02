@@ -303,6 +303,23 @@ double wavelet_estimate_noise_float(const float *band0, size_t n, double e1,
 	return s / e1;
 }
 
+int wavelet_sigma_from_data(const wave_transf_des *wave, double *sigma_out,
+		int threads) {
+	threads = wavelet_threads(threads);
+	if (!wave || !sigma_out || !wave->Pave.Data || wave->Nbr_Plan < 2)
+		return 1;
+	double e[WD_MAX_PLAN];
+	if (wavelet_noise_factors(wave->Type_Wave_Transform, wave->Nbr_Plan, e, threads))
+		return 1;
+	const size_t npix = (size_t) wave->Nbr_Ligne * (size_t) wave->Nbr_Col;
+	const double s = wavelet_estimate_noise_float(wave->Pave.Data, npix, e[0],
+			threads);
+	if (s < 0.0)
+		return 1;
+	*sigma_out = s;
+	return 0;
+}
+
 int wavelet_sigma_from_file(const char *filename, double *sigma_out, int threads) {
 	threads = wavelet_threads(threads);
 	if (!filename || !sigma_out)
@@ -310,20 +327,7 @@ int wavelet_sigma_from_file(const char *filename, double *sigma_out, int threads
 	wave_transf_des wave = { 0 };
 	if (wave_io_read((char *) filename, &wave))
 		return 1;
-	int ret = 1;
-	if (wave.Nbr_Plan >= 2) {
-		double e[WD_MAX_PLAN];
-		if (!wavelet_noise_factors(wave.Type_Wave_Transform, wave.Nbr_Plan, e,
-				threads)) {
-			const size_t npix = (size_t) wave.Nbr_Ligne * (size_t) wave.Nbr_Col;
-			const double s = wavelet_estimate_noise_float(wave.Pave.Data, npix, e[0],
-					threads);
-			if (s >= 0.0) {
-				*sigma_out = s;
-				ret = 0;
-			}
-		}
-	}
+	const int ret = wavelet_sigma_from_data(&wave, sigma_out, threads);
 	wave_io_free(&wave);
 	return ret;
 }

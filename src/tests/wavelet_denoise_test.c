@@ -370,6 +370,134 @@ Test(wavelet_denoise, vst_decompose_reconstruct_identity) {
 	free(out);
 }
 
+/* The tool window keeps the transform in memory and reconstructs from it
+ * repeatedly. Those reconstructions must match what re-reading the .wave file
+ * gives, and must leave the transform intact for the next one -- the denoising
+ * shrinks coefficient planes in place, so a careless implementation would
+ * corrupt the held copy on the first preview and drift on every one after. */
+Test(wavelet_denoise, held_reconstruct_matches_file_and_is_repeatable) {
+	const int N = 256;
+	const int nplan = 5;
+	const size_t n = (size_t) N * N;
+	float *clean = malloc(n * sizeof(float));
+	float *noisy = malloc(n * sizeof(float));
+	float *ref = malloc(n * sizeof(float));
+	float *got1 = malloc(n * sizeof(float));
+	float *got2 = malloc(n * sizeof(float));
+	cr_assert(clean && noisy && ref && got1 && got2);
+
+	int sx[3] = { 100, 150, 180 }, sy[3] = { 110, 160, 90 };
+	make_scene(clean, noisy, N, 0.03, sx, sy);
+
+	const char *tmpdir = g_get_tmp_dir();
+	gchar *fname = g_build_filename(tmpdir, "siril_wd_held.wave", NULL);
+
+	float coef[7] = { 1.4f, 1.f, 0.6f, 1.f, 1.f, 1.f, 1.f };
+
+	/* once with plain synthesis, once with the in-place shrinkage active */
+	for (int pass = 0; pass < 2; pass++) {
+		struct denoise_params dp;
+		denoise_params_init(&dp);
+		if (pass == 1) {
+			dp.enabled = TRUE;
+			dp.method = WD_BISHRINK;
+			dp.k = 3.0f;
+		}
+
+		cr_assert_eq(wavelet_transform_file_float(noisy, N, N, fname,
+				TO_PAVE_BSPLINE, nplan, 0, com.max_thread), 0);
+		cr_assert_eq(wavelet_reconstruct_file_float(fname, coef, &dp, ref,
+				com.max_thread), 0);
+
+		wave_transf_des held = { 0 };
+		cr_assert_eq(wavelet_transform_float(noisy, N, N, &held, TO_PAVE_BSPLINE,
+				nplan, com.max_thread), 0);
+
+		cr_assert_eq(wavelet_reconstruct_preserving(&held, got1, coef, &dp,
+				com.max_thread), 0);
+		cr_assert_eq(wavelet_reconstruct_preserving(&held, got2, coef, &dp,
+				com.max_thread), 0);
+		wave_io_free(&held);
+
+		for (size_t i = 0; i < n; i++) {
+			cr_assert_float_eq(got1[i], ref[i], 0.0,
+					"pass %d: held reconstruction differs from the file at %zu",
+					pass, i);
+			cr_assert_float_eq(got2[i], got1[i], 0.0,
+					"pass %d: second reconstruction from the same held transform "
+					"differs at %zu -- it was modified in place", pass, i);
+		}
+	}
+
+	g_unlink(fname);
+	g_free(fname);
+	free(clean); free(noisy); free(ref); free(got1); free(got2);
+}
+
+/* Same for the ROI preview path. */
+Test(wavelet_denoise, held_roi_matches_file_roi) {
+	const int N = 256;
+	const int nplan = 5;
+	const size_t n = (size_t) N * N;
+	float *clean = malloc(n * sizeof(float));
+	float *noisy = malloc(n * sizeof(float));
+	cr_assert(clean && noisy);
+
+	int sx[3] = { 90, 140, 200 }, sy[3] = { 100, 150, 120 };
+	make_scene(clean, noisy, N, 0.03, sx, sy);
+
+	const char *tmpdir = g_get_tmp_dir();
+	gchar *fname = g_build_filename(tmpdir, "siril_wd_heldroi.wave", NULL);
+	cr_assert_eq(wavelet_transform_file_float(noisy, N, N, fname,
+			TO_PAVE_BSPLINE, nplan, 0, com.max_thread), 0);
+
+	wave_transf_des held = { 0 };
+	cr_assert_eq(wavelet_transform_float(noisy, N, N, &held, TO_PAVE_BSPLINE,
+			nplan, com.max_thread), 0);
+
+	float coef[7] = { 1.2f, 1.f, 0.8f, 1.f, 1.f, 1.f, 1.f };
+	struct denoise_params dp;
+	denoise_params_init(&dp);
+	dp.enabled = TRUE;
+	dp.method = WD_BISHRINK;
+	dp.k = 3.0f;
+
+	const int rx = 40, ry = 50, w = 64, h = 48;
+	fits a = { 0 }, b = { 0 };
+	for (int k = 0; k < 2; k++) {
+		fits *f = k ? &b : &a;
+		f->type = DATA_FLOAT;
+		f->rx = f->naxes[0] = w;
+		f->ry = f->naxes[1] = h;
+		f->naxes[2] = 1;
+		f->naxis = 2;
+		f->fdata = malloc((size_t) w * h * sizeof(float));
+		cr_assert_not_null(f->fdata);
+		f->fpdata[0] = f->fdata;
+	}
+
+	cr_assert_eq(wavelet_reconstruct_file_roi(fname, coef, &dp, rx, ry, w, h, 0,
+			&a, com.max_thread), 0);
+	cr_assert_eq(wavelet_reconstruct_data_roi(&held, coef, &dp, rx, ry, w, h, 0,
+			&b, com.max_thread), 0);
+	for (size_t i = 0; i < (size_t) w * h; i++)
+		cr_assert_float_eq(b.fdata[i], a.fdata[i], 0.0,
+				"held ROI differs from the file ROI at %zu", i);
+
+	/* and again, to show the held transform survived the first one */
+	memset(b.fdata, 0, (size_t) w * h * sizeof(float));
+	cr_assert_eq(wavelet_reconstruct_data_roi(&held, coef, &dp, rx, ry, w, h, 0,
+			&b, com.max_thread), 0);
+	for (size_t i = 0; i < (size_t) w * h; i++)
+		cr_assert_float_eq(b.fdata[i], a.fdata[i], 0.0,
+				"second held ROI differs at %zu", i);
+
+	wave_io_free(&held);
+	g_unlink(fname);
+	g_free(fname);
+	free(a.fdata); free(b.fdata); free(clean); free(noisy);
+}
+
 Test(wavelet_denoise, roi_reconstruct_matches_full) {
 	const int N = 256;
 	const int nplan = 5;
