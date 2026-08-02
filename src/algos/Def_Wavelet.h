@@ -125,26 +125,36 @@ typedef struct {
 #define TO1_ROBUST 7
 #define TO1_D1GAUS 8
 
-int wave_io_size_data (int Nl, int Nc, int Nbr_Plan, int Type_Wave_Transform);
+/* OpenMP requires a positive num_threads. Callers reach the wavelet code with
+ * a budget computed elsewhere -- and some of them leave it zero in a calloc'd
+ * generic_img_args, relying on generic_image_worker to fill it in -- so every
+ * public entry point normalises rather than trusting that. */
+static inline int wavelet_threads(int threads) {
+	return threads > 0 ? threads : 1;
+}
+
+size_t wave_io_size_data (int Nl, int Nc, int Nbr_Plan, int Type_Wave_Transform);
 int wave_io_read (char *File_Name_In, wave_transf_des *Wave_Trans);
 int wave_io_write (char *File_Name_In, wave_transf_des *Wave_Trans);
 int wave_io_free (wave_transf_des *Wave_Trans);
 int wave_io_alloc (wave_transf_des *Wave_Trans, int Type_Transform, int Nbr_Plan, int Nl, int Nc);
-float *f_vector_alloc(int Nbr_Elem);
-int wavelet_transform_file (float *Imag, int Nl, int Nc, char *File_Name_Transform, int Type_Transform, int Nbr_Plan, WORD *data, int anscombe);
-int wavelet_transform_file_float (float *Imag, int Nl, int Nc, char *File_Name_Transform, int Type_Transform, int Nbr_Plan, int anscombe);
-int wavelet_transform(float *Imag, int Nl, int Nc, wave_transf_des *Wavelet, int Type_Transform, int Nbr_Plan, WORD *data);
-int wavelet_transform_float(float *Imag, int Nl, int Nc, wave_transf_des *Wavelet, int Type_Transform, int Nbr_Plan);
-int wavelet_transform_data (float *Imag, int Nl, int Nc, wave_transf_des *Wavelet, int Type_Transform, int Nbr_Plan);
-int pave_2d_linear_smooth (const float *Imag, float *Smooth, int Nl, int Nc, int Num_Plan);
-int pave_2d_tfo (float *Pict, float *Pave, int Nl, int Nc, int Nbr_Plan, int Type_To);
-int pave_2d_build (float *Pave, float *Imag, int Nl, int Nc, int Nbr_Plan, const float *coef);
+float *f_vector_alloc(size_t Nbr_Elem);
+int wavelet_transform_file (float *Imag, int Nl, int Nc, char *File_Name_Transform, int Type_Transform, int Nbr_Plan, WORD *data, int anscombe, int threads);
+int wavelet_transform_file_float (float *Imag, int Nl, int Nc, char *File_Name_Transform, int Type_Transform, int Nbr_Plan, int anscombe, int threads);
+int wavelet_transform(float *Imag, int Nl, int Nc, wave_transf_des *Wavelet, int Type_Transform, int Nbr_Plan, WORD *data, int threads);
+int wavelet_transform_float(float *Imag, int Nl, int Nc, wave_transf_des *Wavelet, int Type_Transform, int Nbr_Plan, int threads);
+int wavelet_transform_data (float *Imag, int Nl, int Nc, wave_transf_des *Wavelet, int Type_Transform, int Nbr_Plan, int threads);
+int pave_2d_tfo (float *Pict, float *Pave, int Nl, int Nc, int Nbr_Plan, int Type_To, int threads);
+int pave_2d_build (float *Pave, float *Imag, int Nl, int Nc, int Nbr_Plan, const float *coef, int threads);
 int pave_2d_extract_plan (float *Pave, float *Imag, int Nl, int Nc, int Num_Plan);
-int pave_2d_bspline_smooth (const float *Imag, float *Smooth, int Nl, int Nc, int Num_Plan);
-int prepare_rawdata(float *Imag, int Nl, int Nc, WORD *data);
+int prepare_rawdata(float *Imag, int Nl, int Nc, WORD *data, int threads);
 struct denoise_params; /* defined in algos/wavelet_denoise.h */
-int wavelet_reconstruct_data (wave_transf_des *Wavelet, float *Imag, float *coef);
-int wavelet_reconstruct_file (char *File_Name_Transform, float *coef, const struct denoise_params *dp, WORD *data);
-int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, const struct denoise_params *dp, float *data);
-int wavelet_reconstruct_file_roi(char *File_Name_Transform, float *coef, const struct denoise_params *dp, int roi_x, int roi_y, int roi_w, int roi_h, int chan, fits *roifit);
-int reget_rawdata(float *Imag, int Nl, int Nc, WORD *buf);
+int wavelet_reconstruct_data (wave_transf_des *Wavelet, float *Imag, float *coef, int threads);
+int wavelet_reconstruct_file (char *File_Name_Transform, float *coef, const struct denoise_params *dp, WORD *data, int threads);
+int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, const struct denoise_params *dp, float *data, int threads);
+int wavelet_reconstruct_file_roi(char *File_Name_Transform, float *coef, const struct denoise_params *dp, int roi_x, int roi_y, int roi_w, int roi_h, int chan, fits *roifit, int threads);
+int wavelet_reconstruct_data_roi(const wave_transf_des *Wavelet, float *coef, const struct denoise_params *dp, int roi_x, int roi_y, int roi_w, int roi_h, int chan, fits *roifit, int threads);
+int wavelet_reconstruct_preserving(const wave_transf_des *Wavelet, float *Imag, float *coef, const struct denoise_params *dp, int threads);
+/* Global noise sigma of an in-memory transform, from its finest detail plane. */
+int wavelet_sigma_from_data(const wave_transf_des *wave, double *sigma_out, int threads);
+int reget_rawdata(float *Imag, int Nl, int Nc, WORD *buf, int threads);
