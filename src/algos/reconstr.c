@@ -119,14 +119,14 @@
 #include "algos/Def_Wavelet.h"
 #include "algos/wavelet_denoise.h"
 
-int reget_rawdata(float *Imag, int Nl, int Nc, WORD *buf) {
+int reget_rawdata(float *Imag, int Nl, int Nc, WORD *buf, int threads) {
 	float *im = Imag;
 	float maximum = 0.f;
 	double ratio;
 	int i;
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static) reduction(max:maximum)
+#pragma omp parallel for num_threads(threads) schedule(static) reduction(max:maximum)
 #endif
 	for (i = 0; i < Nl * Nc; ++i) {
 		if (im[i] > maximum)
@@ -135,7 +135,7 @@ int reget_rawdata(float *Imag, int Nl, int Nc, WORD *buf) {
 	ratio = (maximum > USHRT_MAX) ? USHRT_MAX_DOUBLE / maximum : 1.0;
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for num_threads(threads) schedule(static)
 #endif
 	for (i = 0; i < Nl * Nc; ++i) {
 		buf[i] = round_to_WORD(im[i] * ratio);
@@ -145,7 +145,7 @@ int reget_rawdata(float *Imag, int Nl, int Nc, WORD *buf) {
 
 /*****************************************************************************/
 
-int wavelet_reconstruct_file(char *File_Name_Transform, float *coef, const struct denoise_params *dp, WORD *data) {
+int wavelet_reconstruct_file(char *File_Name_Transform, float *coef, const struct denoise_params *dp, WORD *data, int threads) {
 	float *Imag;
 	wave_transf_des Wavelet;
 	int Nl, Nc;
@@ -172,22 +172,22 @@ int wavelet_reconstruct_file(char *File_Name_Transform, float *coef, const struc
 	/* Optional per-scale denoising on the coefficient planes before synthesis;
 	 * the per-scale amplitude coef[] is still applied afterwards. */
 	wavelet_denoise_planes(Wavelet.Pave.Data, Wavelet.Type_Wave_Transform,
-			Wavelet.Nbr_Plan, Nl, Nc, dp);
-	wavelet_reconstruct_data(&Wavelet, Imag, coef);
+			Wavelet.Nbr_Plan, Nl, Nc, dp, threads);
+	wavelet_reconstruct_data(&Wavelet, Imag, coef, threads);
 
 	/* invert the Anscombe VST applied at decomposition, back to linear ADU */
 	if (dp && dp->anscombe)
-		anscombe_inverse(Imag, (size_t) Nl * Nc, ANSCOMBE_USHORT_SCALE);
+		anscombe_inverse(Imag, (size_t) Nl * Nc, ANSCOMBE_USHORT_SCALE, threads);
 
 	/* get and view result */
-	reget_rawdata(Imag, Nl, Nc, data);
+	reget_rawdata(Imag, Nl, Nc, data, threads);
 
 	wave_io_free(&Wavelet);
 	free(Imag);
 	return 0;
 }
 
-int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, const struct denoise_params *dp, float *data) {
+int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, const struct denoise_params *dp, float *data, int threads) {
 	wave_transf_des Wavelet;
 
 	/* read the wavelet file */
@@ -205,13 +205,13 @@ int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, const
 	}
 
 	wavelet_denoise_planes(Wavelet.Pave.Data, Wavelet.Type_Wave_Transform,
-			Wavelet.Nbr_Plan, Wavelet.Nbr_Ligne, Wavelet.Nbr_Col, dp);
-	wavelet_reconstruct_data(&Wavelet, data, coef);
+			Wavelet.Nbr_Plan, Wavelet.Nbr_Ligne, Wavelet.Nbr_Col, dp, threads);
+	wavelet_reconstruct_data(&Wavelet, data, coef, threads);
 
 	/* invert the Anscombe VST applied at decomposition, back to linear [0,1] */
 	if (dp && dp->anscombe)
 		anscombe_inverse(data, (size_t) Wavelet.Nbr_Ligne * Wavelet.Nbr_Col,
-				ANSCOMBE_FLOAT_SCALE);
+				ANSCOMBE_FLOAT_SCALE, threads);
 
 	wave_io_free(&Wavelet);
 	return 0;
@@ -226,7 +226,7 @@ int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, const
  * (top-down) layout, matching populate_roi(). */
 int wavelet_reconstruct_file_roi(char *File_Name_Transform, float *coef,
 		const struct denoise_params *dp, int roi_x, int roi_y, int roi_w,
-		int roi_h, int chan, fits *roifit) {
+		int roi_h, int chan, fits *roifit, int threads) {
 	const int margin = WD_BISHRINK_MARGIN;
 	wave_transf_des hdr;
 	FILE *f = g_fopen(File_Name_Transform, "rb");
@@ -287,12 +287,13 @@ int wavelet_reconstruct_file_roi(char *File_Name_Transform, float *coef,
 	free(rows);
 
 	/* denoise + reconstruct only the cropped sub-transform */
-	wavelet_denoise_planes(sub, type, Nbr_Plan, ch, cw, dp);
-	pave_2d_build(sub, out, ch, cw, Nbr_Plan, coef);
+	wavelet_denoise_planes(sub, type, Nbr_Plan, ch, cw, dp, threads);
+	pave_2d_build(sub, out, ch, cw, Nbr_Plan, coef, threads);
 	free(sub);
 	if (dp && dp->anscombe)
 		anscombe_inverse(out, (size_t) cw * ch,
-				(roifit->type == DATA_USHORT) ? ANSCOMBE_USHORT_SCALE : ANSCOMBE_FLOAT_SCALE);
+				(roifit->type == DATA_USHORT) ? ANSCOMBE_USHORT_SCALE : ANSCOMBE_FLOAT_SCALE,
+				threads);
 
 	/* copy the inner ROI into roifit (top-down), flipping FITS rows */
 	for (int y = 0; y < roi_h; y++) {
@@ -313,7 +314,7 @@ int wavelet_reconstruct_file_roi(char *File_Name_Transform, float *coef,
 
 /*****************************************************************************/
 
-int wavelet_reconstruct_data(wave_transf_des *Wavelet, float *Imag, float *coef) {
+int wavelet_reconstruct_data(wave_transf_des *Wavelet, float *Imag, float *coef, int threads) {
 	float *Pave;
 	int Nl, Nc, Nbr_Plan;
 
@@ -324,7 +325,7 @@ int wavelet_reconstruct_data(wave_transf_des *Wavelet, float *Imag, float *coef)
 	case TO_PAVE_LINEAR:
 	case TO_PAVE_BSPLINE:
 		Pave = Wavelet->Pave.Data;
-		pave_2d_build(Pave, Imag, Nl, Nc, Nbr_Plan, coef);
+		pave_2d_build(Pave, Imag, Nl, Nc, Nbr_Plan, coef, threads);
 		break;
 	default:
 		siril_log_message(_("Unknown transform\n"));

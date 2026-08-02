@@ -118,7 +118,7 @@ static inline int clamp_ind(int ind, int N) {
  * middle of each row needs no index clamping, so that part is a plain
  * unit-stride loop the compiler can vectorise. */
 static void pave_hpass(const float *src, float *dst, int Nl, int Nc, int Step,
-		int r, const float *t) {
+		int r, const float *t, int threads) {
 	int lo = r * Step;
 	int hi = Nc - r * Step;
 	if (lo > Nc)
@@ -127,7 +127,7 @@ static void pave_hpass(const float *src, float *dst, int Nl, int Nc, int Step,
 		hi = lo;
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for num_threads(threads) schedule(static)
 #endif
 	for (int i = 0; i < Nl; i++) {
 		const float *s = src + (size_t) i * Nc;
@@ -175,7 +175,7 @@ static void pave_hpass(const float *src, float *dst, int Nl, int Nc, int Step,
  * rows; those row pointers are hoisted out of the pixel loop, which is then
  * unit-stride over the whole row. */
 static void pave_vpass(const float *src, float *dst, int Nl, int Nc, int Step,
-		int r, const float *t) {
+		int r, const float *t, int threads) {
 	int lo = r * Step;
 	int hi = Nl - r * Step;
 	if (lo > Nl)
@@ -184,7 +184,7 @@ static void pave_vpass(const float *src, float *dst, int Nl, int Nc, int Step,
 		hi = lo;
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for num_threads(threads) schedule(static)
 #endif
 	for (int i = 0; i < Nl; i++) {
 		float *d = dst + (size_t) i * Nc;
@@ -233,7 +233,7 @@ static void pave_vpass(const float *src, float *dst, int Nl, int Nc, int Step,
 /* Smooth src into dst at scale Num_Plan, using scratch (Nl*Nc floats) for the
  * intermediate of the separable pass. scratch must not alias src or dst. */
 static int pave_2d_smooth(const float *src, float *dst, float *scratch, int Nl,
-		int Nc, int Num_Plan, int Type_To) {
+		int Nc, int Num_Plan, int Type_To, int threads) {
 	const int Step = 1 << Num_Plan;
 	int r;
 	const float *t;
@@ -252,15 +252,15 @@ static int pave_2d_smooth(const float *src, float *dst, float *scratch, int Nl,
 		return 1;
 	}
 
-	pave_hpass(src, scratch, Nl, Nc, Step, r, t);
-	pave_vpass(scratch, dst, Nl, Nc, Step, r, t);
+	pave_hpass(src, scratch, Nl, Nc, Step, r, t, threads);
+	pave_vpass(scratch, dst, Nl, Nc, Step, r, t, threads);
 	return 0;
 }
 
 /***************************************************************************/
 
 int pave_2d_tfo(float *Pict, float *Pave, int Nl, int Nc, int Nbr_Plan,
-		int Type_To) {
+		int Type_To, int threads) {
 	if (Type_To != TO_PAVE_LINEAR && Type_To != TO_PAVE_BSPLINE) {
 		siril_log_message(_("pave_2d_tfo: unknown transform\n"));
 		return 1;
@@ -286,7 +286,7 @@ int pave_2d_tfo(float *Pict, float *Pave, int Nl, int Nc, int Nbr_Plan,
 	for (int Num_Plan = 0; Num_Plan < Nbr_Plan - 1; Num_Plan++) {
 		float *Plan = Pave + N * (size_t) Num_Plan;
 
-		if (pave_2d_smooth(cur, next, Plan, Nl, Nc, Num_Plan, Type_To)) {
+		if (pave_2d_smooth(cur, next, Plan, Nl, Nc, Num_Plan, Type_To, threads)) {
 			free(cur);
 			free(next);
 			return 1;
@@ -294,7 +294,7 @@ int pave_2d_tfo(float *Pict, float *Pave, int Nl, int Nc, int Nbr_Plan,
 
 		/* the wavelet plane is the difference between two resolutions */
 #ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for simd num_threads(threads) schedule(static)
 #endif
 		for (size_t i = 0; i < N; i++)
 			Plan[i] = cur[i] - next[i];
@@ -320,12 +320,12 @@ int pave_2d_tfo(float *Pict, float *Pave, int Nl, int Nc, int Nbr_Plan,
 #define PAVE_BUILD_BLOCK 4096
 
 int pave_2d_build(float *Pave, float *Imag, int Nl, int Nc, int Nbr_Plan,
-		const float *coef) {
+		const float *coef, int threads) {
 	const size_t N = (size_t) Nl * (size_t) Nc;
 	const size_t nblocks = (N + PAVE_BUILD_BLOCK - 1) / PAVE_BUILD_BLOCK;
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for num_threads(threads) schedule(static)
 #endif
 	for (size_t b = 0; b < nblocks; b++) {
 		const size_t beg = b * PAVE_BUILD_BLOCK;

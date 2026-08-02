@@ -24,6 +24,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <glib.h>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #include "core/siril.h"
 #include "algos/Def_Wavelet.h"
@@ -46,7 +49,7 @@ typedef struct {
 static wd_factor_cache wd_cache[WD_TYPE_SLOTS];
 static GMutex wd_cache_mutex;
 
-int wavelet_noise_factors(int type, int nbr_plan, double *e_out) {
+int wavelet_noise_factors(int type, int nbr_plan, double *e_out, int threads) {
 	if (!e_out)
 		return 1;
 	if (type != TO_PAVE_LINEAR && type != TO_PAVE_BSPLINE)
@@ -80,7 +83,7 @@ int wavelet_noise_factors(int type, int nbr_plan, double *e_out) {
 	impulse[(size_t) (N / 2) * N + (N / 2)] = 1.0f;
 
 	wave_transf_des wave = { 0 };
-	if (wavelet_transform_data(impulse, N, N, &wave, type, nbr_plan)) {
+	if (wavelet_transform_data(impulse, N, N, &wave, type, nbr_plan, threads)) {
 		free(impulse);
 		return 1;
 	}
@@ -104,7 +107,7 @@ int wavelet_noise_factors(int type, int nbr_plan, double *e_out) {
 	return 0;
 }
 
-double wavelet_mad_sigma_float(const float *band, size_t n) {
+double wavelet_mad_sigma_float(const float *band, size_t n, int threads) {
 	if (!band || n == 0)
 		return 0.0;
 	float *buf = malloc(n * sizeof(float));
@@ -122,16 +125,17 @@ double wavelet_mad_sigma_float(const float *band, size_t n) {
 	return mad * MAD_TO_SIGMA;
 }
 
-double wavelet_estimate_noise_float(const float *band0, size_t n, double e1) {
+double wavelet_estimate_noise_float(const float *band0, size_t n, double e1,
+		int threads) {
 	if (e1 <= 0.0)
 		return -1.0;
-	const double s = wavelet_mad_sigma_float(band0, n);
+	const double s = wavelet_mad_sigma_float(band0, n, threads);
 	if (s < 0.0)
 		return -1.0;
 	return s / e1;
 }
 
-int wavelet_sigma_from_file(const char *filename, double *sigma_out) {
+int wavelet_sigma_from_file(const char *filename, double *sigma_out, int threads) {
 	if (!filename || !sigma_out)
 		return 1;
 	wave_transf_des wave = { 0 };
@@ -140,9 +144,11 @@ int wavelet_sigma_from_file(const char *filename, double *sigma_out) {
 	int ret = 1;
 	if (wave.Nbr_Plan >= 2) {
 		double e[WD_MAX_PLAN];
-		if (!wavelet_noise_factors(wave.Type_Wave_Transform, wave.Nbr_Plan, e)) {
+		if (!wavelet_noise_factors(wave.Type_Wave_Transform, wave.Nbr_Plan, e,
+				threads)) {
 			const size_t npix = (size_t) wave.Nbr_Ligne * (size_t) wave.Nbr_Col;
-			const double s = wavelet_estimate_noise_float(wave.Pave.Data, npix, e[0]);
+			const double s = wavelet_estimate_noise_float(wave.Pave.Data, npix, e[0],
+					threads);
 			if (s >= 0.0) {
 				*sigma_out = s;
 				ret = 0;
@@ -166,11 +172,11 @@ void denoise_params_init(struct denoise_params *dp) {
 		dp->f[i] = 1.0f;
 }
 
-void anscombe_forward(float *data, size_t n, double scale) {
+void anscombe_forward(float *data, size_t n, double scale, int threads) {
 	if (!data || scale <= 0.0)
 		return;
 #ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for simd num_threads(threads) schedule(static)
 #endif
 	for (size_t i = 0; i < n; i++) {
 		double x = (double) data[i] * scale;
@@ -180,11 +186,11 @@ void anscombe_forward(float *data, size_t n, double scale) {
 	}
 }
 
-void anscombe_inverse(float *data, size_t n, double scale) {
+void anscombe_inverse(float *data, size_t n, double scale, int threads) {
 	if (!data || scale <= 0.0)
 		return;
 #ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for simd num_threads(threads) schedule(static)
 #endif
 	for (size_t i = 0; i < n; i++) {
 		const double y = (double) data[i];
@@ -195,17 +201,23 @@ void anscombe_inverse(float *data, size_t n, double scale) {
 /* Half-width of the local-variance window used by the bivariate shrinkage. */
 #define WD_BISHRINK_RADIUS 3
 
+/* Rows per band of the local-variance column pass. Fixed, so the result does
+ * not depend on the number of threads; small enough to balance across them,
+ * large enough that re-seeding each band's window is a rounding error. */
+#define WD_BOX_BAND_ROWS 512
+
 static inline int clampi(int v, int lo, int hi) {
 	return v < lo ? lo : (v > hi ? hi : v);
 }
 
 /* In-place soft/hard thresholding of one detail plane at threshold t. */
-static void threshold_plane(float *plane, size_t n, float t, gboolean soft) {
+static void threshold_plane(float *plane, size_t n, float t, gboolean soft,
+		int threads) {
 	if (t <= 0.f)
 		return; /* factor 0 (or no noise) -> leave this scale untouched */
 	if (soft) {
 #ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for simd num_threads(threads) schedule(static)
 #endif
 		for (size_t i = 0; i < n; i++) {
 			const float w = plane[i];
@@ -214,7 +226,7 @@ static void threshold_plane(float *plane, size_t n, float t, gboolean soft) {
 		}
 	} else {
 #ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for simd num_threads(threads) schedule(static)
 #endif
 		for (size_t i = 0; i < n; i++) {
 			if (fabsf(plane[i]) <= t)
@@ -225,7 +237,7 @@ static void threshold_plane(float *plane, size_t n, float t, gboolean soft) {
 
 /* Local mean of src^2 over a (2r+1)x(2r+1) window, r = WD_BISHRINK_RADIUS
  * (separable, replicated borders). dst receives the result; tmp is scratch of
- * npix floats and acc is scratch of com.max_thread * Nc doubles.
+ * npix floats and acc is scratch of `threads` * Nc doubles.
  *
  * The row pass splits the borders off so its interior needs no index clamping
  * and vectorises. The column pass keeps a running row sum: moving down one row
@@ -233,7 +245,7 @@ static void threshold_plane(float *plane, size_t n, float t, gboolean soft) {
  * row. The rows are banded so each thread seeds its own accumulator, which also
  * bounds how far the running sum can drift. */
 static void box_mean_sq(const float *src, float *dst, float *tmp, double *acc,
-		int Nl, int Nc) {
+		int Nl, int Nc, int threads) {
 	const int r = WD_BISHRINK_RADIUS;
 	const double norm = 1.0 / ((double) (2 * r + 1) * (2 * r + 1));
 
@@ -249,7 +261,7 @@ static void box_mean_sq(const float *src, float *dst, float *tmp, double *acc,
 		hi = lo;
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for num_threads(threads) schedule(static)
 #endif
 	for (int y = 0; y < Nl; y++) {
 		const float *s = src + (size_t) y * Nc;
@@ -281,24 +293,30 @@ static void box_mean_sq(const float *src, float *dst, float *tmp, double *acc,
 		}
 	}
 
-	/* column pass: running row sum over bands of rows */
-	int nbands = com.max_thread > 0 ? com.max_thread : 1;
-	if (nbands > Nl)
-		nbands = Nl;
-	const int band = (Nl + nbands - 1) / nbands;
+	/* Column pass: running row sum over fixed-height bands. The height is a
+	 * constant rather than Nl/threads so that the result does not depend on how
+	 * many threads happened to be available -- otherwise a sequence would
+	 * reconstruct slightly differently depending on how many frames ran at
+	 * once. Each band re-seeds its window, which also bounds the drift. */
+	const int nbands = (Nl + WD_BOX_BAND_ROWS - 1) / WD_BOX_BAND_ROWS;
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for num_threads(threads) schedule(static)
 #endif
 	for (int b = 0; b < nbands; b++) {
-		const int y0 = b * band;
-		int y1 = y0 + band;
+		const int y0 = b * WD_BOX_BAND_ROWS;
+		int y1 = y0 + WD_BOX_BAND_ROWS;
 		if (y1 > Nl)
 			y1 = Nl;
 		if (y0 >= y1)
 			continue;
 
-		double *a = acc + (size_t) b * Nc;
+		/* the accumulator is per running thread, not per band */
+		int slot = 0;
+#ifdef _OPENMP
+		slot = omp_get_thread_num();
+#endif
+		double *a = acc + (size_t) slot * Nc;
 
 		/* seed the window on the band's first row */
 		memset(a, 0, (size_t) Nc * sizeof(double));
@@ -330,11 +348,11 @@ static void box_mean_sq(const float *src, float *dst, float *tmp, double *acc,
  * locally-adaptive soft threshold. locms is the local mean of child^2; sigma_n
  * is the (effective) noise std of this scale. */
 static void bishrink_plane(float *child, const float *parent,
-		const float *locms, size_t n, double sigma_n) {
+		const float *locms, size_t n, double sigma_n, int threads) {
 	const double sn2 = sigma_n * sigma_n;
 	const double sqrt3 = 1.7320508075688772;
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for num_threads(threads) schedule(static)
 #endif
 	for (size_t i = 0; i < n; i++) {
 		const double c = child[i];
@@ -359,7 +377,7 @@ static void bishrink_plane(float *child, const float *parent,
 }
 
 int wavelet_denoise_planes(float *pave_data, int type, int nbr_plan, int Nl,
-		int Nc, const struct denoise_params *dp) {
+		int Nc, const struct denoise_params *dp, int threads) {
 	if (!pave_data || !dp || !dp->enabled)
 		return 0;
 	if (nbr_plan < 2)
@@ -369,14 +387,14 @@ int wavelet_denoise_planes(float *pave_data, int type, int nbr_plan, int Nl,
 	const int ndetail = nbr_plan - 1; /* planes 0..nbr_plan-2; last is residual */
 
 	double e[WD_MAX_PLAN];
-	if (wavelet_noise_factors(type, nbr_plan, e))
+	if (wavelet_noise_factors(type, nbr_plan, e, threads))
 		return 1;
 
 	/* Global noise from the finest detail plane (plane 0), unless each band is
 	 * measured independently. */
 	double sigma_g = 0.0;
 	if (dp->sigma_source != WD_SIGMA_PER_BAND) {
-		sigma_g = wavelet_estimate_noise_float(pave_data, npix, e[0]);
+		sigma_g = wavelet_estimate_noise_float(pave_data, npix, e[0], threads);
 		if (sigma_g < 0.0)
 			return 1;
 	}
@@ -389,11 +407,11 @@ int wavelet_denoise_planes(float *pave_data, int type, int nbr_plan, int Nl,
 	float *locms = NULL, *tmp = NULL;
 	double *acc = NULL;
 	if (dp->method == WD_BISHRINK) {
-		const int nbands = com.max_thread > 0 ? com.max_thread : 1;
+		const int nslots = threads > 0 ? threads : 1;
 		locms = malloc(npix * sizeof(float));
 		tmp = malloc(npix * sizeof(float));
-		/* one running-sum row per band of the local-variance column pass */
-		acc = malloc((size_t) nbands * (size_t) Nc * sizeof(double));
+		/* one running-sum row per thread of the local-variance column pass */
+		acc = malloc((size_t) nslots * (size_t) Nc * sizeof(double));
 		if (!locms || !tmp || !acc) {
 			free(locms);
 			free(tmp);
@@ -405,7 +423,7 @@ int wavelet_denoise_planes(float *pave_data, int type, int nbr_plan, int Nl,
 	for (int j = 0; j < ndetail; j++) {
 		float *plane = pave_data + npix * (size_t) j;
 		const double sigma_j = (dp->sigma_source == WD_SIGMA_PER_BAND)
-				? wavelet_mad_sigma_float(plane, npix)
+				? wavelet_mad_sigma_float(plane, npix, threads)
 				: sigma_g * e[j];
 
 		if (dp->method == WD_BISHRINK) {
@@ -417,11 +435,11 @@ int wavelet_denoise_planes(float *pave_data, int type, int nbr_plan, int Nl,
 				continue; /* factor 0 -> leave this scale untouched */
 			const float *parent = (j + 1 < ndetail)
 					? pave_data + npix * (size_t) (j + 1) : NULL;
-			box_mean_sq(plane, locms, tmp, acc, Nl, Nc);
-			bishrink_plane(plane, parent, locms, npix, sigma_n);
+			box_mean_sq(plane, locms, tmp, acc, Nl, Nc, threads);
+			bishrink_plane(plane, parent, locms, npix, sigma_n, threads);
 		} else {
 			const float t = (float) (k * dp->f[j] * sigma_j);
-			threshold_plane(plane, npix, t, dp->soft);
+			threshold_plane(plane, npix, t, dp->soft, threads);
 		}
 	}
 

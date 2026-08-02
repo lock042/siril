@@ -53,12 +53,13 @@ struct wavelet_transform_data {
 	GSourceFunc idle;
 };
 
-int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer);
+int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer,
+		int threads);
 /* One-shot à trous decompose + denoise + weighted reconstruct of a single image
  * in place. The transform is held in memory for the reconstruction that
  * immediately consumes it, so this is re-entrant and safe to run on several
  * frames at once. Returns 0 on success. */
-int atrous_transform_image(fits *fit, const struct atrous_data *args);
+int atrous_transform_image(fits *fit, const struct atrous_data *args, int threads);
 /* Image hook for the single-image atrous command (used with generic_image_worker). */
 int atrous_image_hook(struct generic_img_args *args, fits *fit, int threads);
 gchar *atrous_log_hook(gpointer p, log_hook_detail detail);

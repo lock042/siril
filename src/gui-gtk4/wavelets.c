@@ -393,7 +393,7 @@ static void update_sigma_readout(void) {
 	for (int i = 0; i < gfit->naxes[2]; i++) {
 		gchar *dir = g_build_filename(tmpdir, names[i], NULL);
 		double s;
-		if (!wavelet_sigma_from_file(dir, &s))
+		if (!wavelet_sigma_from_file(dir, &s, com.max_thread))
 			g_string_append_printf(str, "%s%.4g", i ? ", " : "", s);
 		else
 			g_string_append(str, i ? ", ?" : "?");

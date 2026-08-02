@@ -73,7 +73,8 @@ gpointer wavelet_transform_worker(gpointer p) {
 			for (int i = 0; i < nb_chan; i++) {
 				gchar *dir = g_build_filename(tmpdir, File_Name_Transform[i], NULL);
 				wavelet_transform_file(Imag, gfit->ry, gfit->rx, dir,
-						args->Type_Transform, args->Nbr_Plan, gfit->pdata[i], args->anscombe);
+						args->Type_Transform, args->Nbr_Plan, gfit->pdata[i],
+						args->anscombe, com.max_thread);
 				g_free(dir);
 			}
 			free(Imag);
@@ -82,7 +83,8 @@ gpointer wavelet_transform_worker(gpointer p) {
 		for (int i = 0; i < nb_chan; i++) {
 			gchar *dir = g_build_filename(tmpdir, File_Name_Transform[i], NULL);
 			wavelet_transform_file_float(gfit->fpdata[i], gfit->ry, gfit->rx, dir,
-					args->Type_Transform, args->Nbr_Plan, args->anscombe);
+					args->Type_Transform, args->Nbr_Plan, args->anscombe,
+					com.max_thread);
 			g_free(dir);
 		}
 	} else {
@@ -122,11 +124,11 @@ int wrecons_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 			/* Reconstruct only the selection: reads just the ROI rows of the
 			 * transform and denoises/reconstructs that small window. */
 			ret = wavelet_reconstruct_file_roi(dir, args->coef, &args->denoise,
-					args->roi_x, args->roi_y, fit->rx, fit->ry, i, fit);
+					args->roi_x, args->roi_y, fit->rx, fit->ry, i, fit, threads);
 		} else if (fit->type == DATA_USHORT) {
-			ret = wavelet_reconstruct_file(dir, args->coef, &args->denoise, fit->pdata[i]);
+			ret = wavelet_reconstruct_file(dir, args->coef, &args->denoise, fit->pdata[i], threads);
 		} else if (fit->type == DATA_FLOAT) {
-			ret = wavelet_reconstruct_file_float(dir, args->coef, &args->denoise, fit->fpdata[i]);
+			ret = wavelet_reconstruct_file_float(dir, args->coef, &args->denoise, fit->fpdata[i], threads);
 		} else {
 			g_free(dir);
 			return 1;
@@ -157,7 +159,7 @@ void free_atrous_data(void *p) {
  * layers that file is ~550 MB per channel, written and read back for nothing.
  * Keeping it in memory also makes this function re-entrant, which is what lets
  * seqatrous process several frames at once. */
-int atrous_transform_image(fits *fit, const struct atrous_data *args) {
+int atrous_transform_image(fits *fit, const struct atrous_data *args, int threads) {
 	const int Nl = fit->ry, Nc = fit->rx;
 	const size_t n = (size_t) Nl * (size_t) Nc;
 	const int nb_chan = fit->naxes[2];
@@ -190,14 +192,14 @@ int atrous_transform_image(fits *fit, const struct atrous_data *args) {
 		float *src, *dst;
 
 		if (fit->type == DATA_USHORT) {
-			prepare_rawdata(Imag, Nl, Nc, fit->pdata[i]);
+			prepare_rawdata(Imag, Nl, Nc, fit->pdata[i], threads);
 			if (args->anscombe)
-				anscombe_forward(Imag, n, ans_scale);
+				anscombe_forward(Imag, n, ans_scale, threads);
 			src = Imag;
 			dst = Imag; /* reconstructed into the same scratch, then requantised */
 		} else if (args->anscombe) {
 			memcpy(Imag, fit->fpdata[i], n * sizeof(float));
-			anscombe_forward(Imag, n, ans_scale);
+			anscombe_forward(Imag, n, ans_scale, threads);
 			src = Imag;
 			dst = fit->fpdata[i];
 		} else {
@@ -208,21 +210,21 @@ int atrous_transform_image(fits *fit, const struct atrous_data *args) {
 		/* pave_2d_tfo copies its input before recursing, so src is intact here
 		 * and dst may safely alias it */
 		if (wavelet_transform_data(src, Nl, Nc, &wavelet, args->type,
-				args->nbr_plan)) {
+				args->nbr_plan, threads)) {
 			retval = 1;
 			break;
 		}
 		wavelet_denoise_planes(wavelet.Pave.Data, args->type, args->nbr_plan,
-				Nl, Nc, &args->denoise);
-		retval = wavelet_reconstruct_data(&wavelet, dst, coef);
+				Nl, Nc, &args->denoise, threads);
+		retval = wavelet_reconstruct_data(&wavelet, dst, coef, threads);
 		wave_io_free(&wavelet);
 		if (retval)
 			break;
 
 		if (args->anscombe)
-			anscombe_inverse(dst, n, ans_scale);
+			anscombe_inverse(dst, n, ans_scale, threads);
 		if (fit->type == DATA_USHORT)
-			reget_rawdata(dst, Nl, Nc, fit->pdata[i]);
+			reget_rawdata(dst, Nl, Nc, fit->pdata[i], threads);
 	}
 	free(Imag);
 	return retval;
@@ -230,7 +232,7 @@ int atrous_transform_image(fits *fit, const struct atrous_data *args) {
 
 int atrous_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 	struct atrous_data *args = (struct atrous_data *)gargs->user;
-	return atrous_transform_image(fit, args);
+	return atrous_transform_image(fit, args, threads);
 }
 
 gchar *atrous_log_hook(gpointer p, log_hook_detail detail) {
@@ -245,7 +247,7 @@ gchar *atrous_log_hook(gpointer p, log_hook_detail detail) {
 static int atrous_seq_image_hook(struct generic_seq_args *args, int out_index,
 		int in_index, fits *fit, rectangle *_, int threads) {
 	struct atrous_data *a_args = (struct atrous_data *)args->user;
-	return atrous_transform_image(fit, a_args);
+	return atrous_transform_image(fit, a_args, threads);
 }
 
 /* Memory needed per frame, on top of the frame itself:
@@ -355,7 +357,8 @@ void apply_atrous_to_sequence(struct atrous_data *a_args) {
 /* This function computes wavelets with the number of Nbr_Plan and
  * extracts plan "Plan" in fit parameters */
 
-int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer) {
+int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer,
+		int threads) {
 	int chan, start, end, retval = 0;
 	wave_transf_des wavelet[3] = { 0 };
 
@@ -386,7 +389,7 @@ int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer
 		if (fit->type == DATA_USHORT) {
 			/* float wavelet of data [0, 65535] */
 			if (wavelet_transform(Imag, fit->ry, fit->rx, &wavelet[chan],
-						Type, Nbr_Plan, fit->pdata[chan])) {
+						Type, Nbr_Plan, fit->pdata[chan], threads)) {
 				retval = 1;
 				break;
 			}
@@ -395,7 +398,7 @@ int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer
 			/* float wavelet of data [0, 1] */
 			Imag = fit->fpdata[chan];
 			if (wavelet_transform_float(Imag, fit->ry, fit->rx, &wavelet[chan],
-						Type, Nbr_Plan)) {
+						Type, Nbr_Plan, threads)) {
 				retval = 1;
 				break;
 			}
@@ -407,7 +410,7 @@ int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer
 		Nc = wavelet[chan].Nbr_Col;
 		pave_2d_extract_plan(wavelet[chan].Pave.Data, Imag, Nl, Nc, Plan);
 		if (fit->type == DATA_USHORT)
-			reget_rawdata(Imag, Nl, Nc, fit->pdata[chan]);
+			reget_rawdata(Imag, Nl, Nc, fit->pdata[chan], threads);
 		wave_io_free(&wavelet[chan]);
 	}
 
@@ -447,7 +450,7 @@ gpointer extract_plans(gpointer p) {
 		filename = g_strdup_printf("layer%02d", i);
 		msg = g_strdup_printf(_("Extracting %s..."), filename);
 		gui_iface.set_progress((double)i / args->Nbr_Plan, msg);
-		get_wavelet_layers(&fit, args->Nbr_Plan, i, args->Type, -1);
+		get_wavelet_layers(&fit, args->Nbr_Plan, i, args->Type, -1, com.max_thread);
 		savefits(filename, &fit);
 		g_free(filename);
 		g_free(msg);
