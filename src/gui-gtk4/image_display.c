@@ -1596,7 +1596,14 @@ void hd_remap_indices_cleanup() {
 	}
 }
 
-static int make_index_for_current_display(int vport);
+/* Return values from make_index_for_current_display() */
+enum {
+	INDEX_BUILT = 0,	/* recomputed; the display transform still needs composing in */
+	INDEX_UNSUPPORTED,	/* the rendering mode has no LUT of this kind */
+	INDEX_REUSED		/* the previous LUT is still valid, transform already composed */
+};
+
+static int make_index_for_current_display(int vport, float *fidx);
 
 static int make_hd_index_for_current_display(int vport);
 
@@ -1804,7 +1811,7 @@ static void remap(int vport) {
 			make_hd_index_for_current_display(vport);
 		}
 		else
-			make_index_for_current_display(vport);
+			make_index_for_current_display(vport, NULL);
 		siril_add_idle(viewer_mode_sensitive_idle,
 		               GINT_TO_POINTER(gui.rendering_mode != STF_DISPLAY));
 	}
@@ -2019,14 +2026,43 @@ static void remap_all_vports() {
 		}
 	}
 
-	make_index_for_current_display(0);
+	/* The display transform is composed into the LUTs rather than applied per
+	 * pixel whenever the primaries match, so that it costs one 65536-entry
+	 * transform per rebuild instead of one per pixel.
+	 *
+	 * Compose from the unquantised stretch output where the encoding curve is
+	 * steep enough for the 8-bit values to posterise, which in practice means a
+	 * linear source TRC: there it is free, as linear profiles already carry
+	 * cmsFLAGS_NOOPTIMIZE and so run the same unoptimised float pipeline
+	 * whichever input format they are given. For anything else lcms has an
+	 * optimised 8-bit path that is ~25x faster and the posterisation costs at
+	 * most 3 code values, so the 8-bit composition is kept. If the scratch
+	 * cannot be allocated, fall back to it as well - posterised beats
+	 * uncolour-managed. */
+	const gboolean compose = (gfit->color_managed && com.gui_icc.same_primaries &&
+			com.gui_icc.proofing_transform && gui.rendering_mode != STF_DISPLAY);
+	float *fidx = NULL;
+	if (compose && fit_icc_is_linear(gfit)) {
+		fidx = malloc((USHRT_MAX + 1) * sizeof(float));
+		if (!fidx)
+			PRINT_ALLOC_ERR;
+	}
+
+	int status = make_index_for_current_display(0, fidx);
 	index[0] = gui.remap_index[0];
 	if (gfit->color_managed) {
 		for (int i = 1 ; i < 3 ; i++) {
-			make_index_for_current_display(i);
+			make_index_for_current_display(i, NULL);
 			index[i] = gui.remap_index[i];
 		}
 	}
+	/* One transform for all three channels: they are built from identical
+	 * inputs here, as per-channel LUTs differ only in unlinked STF, which is
+	 * excluded above. Skipped when the LUTs were reused, as they then already
+	 * have the transform composed in from the rebuild that built them. */
+	if (compose && status == INDEX_BUILT)
+		display_index_transform(fidx, index);
+	free(fidx);
 	unlock_display_transform();
 
 	com.gui_icc.profile_changed = FALSE;
@@ -2336,7 +2372,16 @@ static int make_hd_index_for_current_display(int vport) {
 	return 0;
 }
 
-static int make_index_for_current_display(int vport) {
+/* Builds gui.remap_index[vport] for the current display mode and levels.
+ *
+ * This does NOT compose the display transform into the result: the caller owns
+ * that, because all three channels are composed together in a single transform
+ * (see remap_all_vports()). Only remap_all_vports() ever needs it - remap() is
+ * dispatched for STF and HISTEQ alone, neither of which is composed.
+ *
+ * If fidx is non-NULL it receives the stretch output before quantisation,
+ * normalised to [0, 1], for the caller to compose from. */
+static int make_index_for_current_display(int vport, float *fidx) {
 	g_mutex_lock(&com.mutex);
 	WORD lo = gui.lo;
 	WORD hi = gui.hi;
@@ -2366,7 +2411,7 @@ static int make_index_for_current_display(int vport) {
 			slope = UCHAR_MAX_SINGLE;
 			break;
 		default:
-			return 1;
+			return INDEX_UNSUPPORTED;
 	}
 	if(!(slope == last_pente && gui.rendering_mode == last_mode))
 		com.gui_icc.profile_changed = TRUE;
@@ -2374,7 +2419,7 @@ static int make_index_for_current_display(int vport) {
 	if ((gui.rendering_mode != HISTEQ_DISPLAY && gui.rendering_mode != STF_DISPLAY) &&
 			slope == last_pente && gui.rendering_mode == last_mode && !com.gui_icc.profile_changed) {
 		siril_log_debug("Re-using previous gui.remap_index\n");
-		return 0;
+		return INDEX_REUSED;
 	}
 
 	/************* Building the remap_index **************/
@@ -2382,29 +2427,6 @@ static int make_index_for_current_display(int vport) {
 	// target_index only used for STF mode
 	int target_index = gui.rendering_mode == STF_DISPLAY && gui.unlink_channels ? vport : 0;
 	index = gui.remap_index[vport];
-
-	/* When the display transform is composed into this LUT, keep the
-	 * unquantised stretch output alongside it so the encoding curve can be
-	 * evaluated before quantisation: composing from the 8-bit values leaves the
-	 * shadows posterised (see display_index_transform()).
-	 *
-	 * Only worth doing for a linear source TRC. There it is free, because the
-	 * transform carries cmsFLAGS_NOOPTIMIZE for linear profiles and so runs the
-	 * same unoptimised float pipeline whichever input format it is given. For
-	 * anything else lcms has an optimised 8-bit path that is ~25x faster, and
-	 * the posterisation it costs is at most 3 code values, so the 8-bit
-	 * composition is kept.
-	 *
-	 * If the scratch cannot be allocated we compose from the 8-bit values
-	 * rather than abandon the rebuild - posterised beats uncolour-managed. */
-	const gboolean compose = (gfit->color_managed && com.gui_icc.same_primaries &&
-			com.gui_icc.proofing_transform && gui.rendering_mode != STF_DISPLAY);
-	float *fidx = NULL;
-	if (compose && fit_icc_is_linear(gfit)) {
-		fidx = malloc((USHRT_MAX + 1) * sizeof(float));
-		if (!fidx)
-			PRINT_ALLOC_ERR;
-	}
 
 	for (i = 0; i <= USHRT_MAX; i++) {
 		float val;
@@ -2436,8 +2458,7 @@ static int make_index_for_current_display(int vport) {
 				val = (MTFp(pxl, stf[target_index])) * slope;
 				break;
 			default:
-				free(fidx);
-				return 1;
+				return INDEX_UNSUPPORTED;
 		}
 		index[i] = roundf_to_BYTE(val);
 		if (fidx)
@@ -2454,13 +2475,9 @@ static int make_index_for_current_display(int vport) {
 				fidx[i] = 1.f;
 		}
 	}
-	if (compose)
-		display_index_transform(fidx, index, vport);
-	free(fidx);
-
 	last_pente = slope;
 	last_mode = gui.rendering_mode;
-	return 0;
+	return INDEX_BUILT;
 }
 
 static int make_index_for_rainbow(BYTE index[][3]) {

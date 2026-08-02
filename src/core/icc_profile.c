@@ -216,12 +216,17 @@ static cmsHTRANSFORM build_proofing_transform(gboolean float_input);
  * small: the transform wants all 3 planes present even though only one is used. */
 #define LUT_TRANSFORM_CHUNK 4096
 
-/* Composes the display transform into a freshly built display LUT.
+/* Composes the display transform into the three freshly built display LUTs.
  *
- * index[] maps 16-bit image values to 8-bit screen values; fsrc[] holds the
- * same mapping before quantisation, normalised to [0, 1]. Transforming fsrc
- * rather than index means the encoding curve is evaluated at full precision
- * and the result is quantised once, at the end.
+ * index[c] maps 16-bit image values to 8-bit screen values for channel c;
+ * fsrc[] holds the same mapping before quantisation, normalised to [0, 1].
+ * Transforming fsrc rather than index means the encoding curve is evaluated at
+ * full precision and the result is quantised once, at the end.
+ *
+ * The three channels are only ever composed together, from identical input:
+ * per-channel LUTs differ only in unlinked STF, which is never composed. So one
+ * transform with all three planes filled does the work of three, which is worth
+ * having as it is by far the most expensive part of a LUT rebuild.
  *
  * Feeding the transform the 8-bit values instead restricts the composed LUT to
  * those output levels reachable from a 256-entry domain. For a linear-TRC image
@@ -236,11 +241,11 @@ static cmsHTRANSFORM build_proofing_transform(gboolean float_input);
  * and above leaves at most 3, which is not visible. See the caller.
  *
  * Only called when the image and monitor primaries match, so the transform is
- * diagonal and composing one channel at a time is valid.
+ * diagonal and each output plane depends only on its own input plane.
  *
- * This must be locked by the display_transform_mutex, but it is done from
- * remap_all_vports() so the mutex lock covers all 3 calls to this function */
-void display_index_transform(const float *fsrc, BYTE *index, int vport) {
+ * This must be locked by the display_transform_mutex, which remap_all_vports()
+ * holds around its LUT rebuild */
+void display_index_transform(const float *fsrc, BYTE *index[3]) {
 	cmsHTRANSFORM transform;
 	if (fsrc) {
 		if (!com.gui_icc.proofing_lut_transform)
@@ -252,7 +257,7 @@ void display_index_transform(const float *fsrc, BYTE *index, int vport) {
 	if (!transform)
 		return;
 	const size_t insize = fsrc ? sizeof(float) : sizeof(BYTE);
-	char *in = calloc(3 * LUT_TRANSFORM_CHUNK, insize);
+	char *in = malloc(3 * LUT_TRANSFORM_CHUNK * insize);
 	BYTE *out = malloc(3 * LUT_TRANSFORM_CHUNK);
 	if (!in || !out) {
 		PRINT_ALLOC_ERR;
@@ -260,19 +265,22 @@ void display_index_transform(const float *fsrc, BYTE *index, int vport) {
 		free(out);
 		return;
 	}
-	/* The planes other than vport's stay zeroed from the calloc() throughout */
-	char *chan_in = in + (vport * LUT_TRANSFORM_CHUNK * insize);
-	BYTE *chan_out = out + (vport * LUT_TRANSFORM_CHUNK);
 	for (int pos = 0; pos <= USHRT_MAX; pos += LUT_TRANSFORM_CHUNK) {
 		int n = min(LUT_TRANSFORM_CHUNK, USHRT_MAX + 1 - pos);
-		if (fsrc)
-			memcpy(chan_in, fsrc + pos, n * insize);
-		else
-			memcpy(chan_in, index + pos, n * insize);
+		/* index[0] is read for every plane, and is only written back below
+		 * once the whole chunk has been read, so the aliasing is safe */
+		for (int c = 0 ; c < 3 ; c++) {
+			char *plane = in + (c * LUT_TRANSFORM_CHUNK * insize);
+			if (fsrc)
+				memcpy(plane, fsrc + pos, n * insize);
+			else
+				memcpy(plane, index[0] + pos, n * insize);
+		}
 		cmsDoTransformLineStride(transform, in, out, n, 1,
 				LUT_TRANSFORM_CHUNK * 3 * insize, LUT_TRANSFORM_CHUNK * 3,
 				LUT_TRANSFORM_CHUNK * insize, LUT_TRANSFORM_CHUNK);
-		memcpy(index + pos, chan_out, n);
+		for (int c = 0 ; c < 3 ; c++)
+			memcpy(index[c] + pos, out + (c * LUT_TRANSFORM_CHUNK), n);
 	}
 	free(in);
 	free(out);

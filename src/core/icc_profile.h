@@ -72,7 +72,7 @@ void export_profile(cmsHPROFILE profile, const char *provided_filename);
 void color_manage(fits *fit, gboolean active);
 void lock_display_transform();
 void unlock_display_transform();
-void display_index_transform(const float *fsrc, BYTE *index, int vport);
+void display_index_transform(const float *fsrc, BYTE *index[3]);
 cmsHTRANSFORM initialize_proofing_transform();
 void clear_proofing_transforms();
 gboolean same_primaries(cmsHPROFILE a, cmsHPROFILE b, cmsHPROFILE c);
