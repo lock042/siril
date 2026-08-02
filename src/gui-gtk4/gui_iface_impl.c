@@ -71,7 +71,7 @@
 #include "gui-gtk4/remixer.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
-#include "filters/wavelets.h"
+#include "gui-gtk4/wavelets.h"
 
 /* ── Main-thread dispatch helpers ────────────────────────────────────────────
  *
@@ -935,11 +935,11 @@ static gboolean active_layer_reconcile_idle(gpointer p) {
 	}
 	if (gui.roi.active)
 		populate_roi();
-	/* The wavelets tool's held decomposition is keyed to gfit's pixels but
-	 * guarded only by geometry — another layer of the same size would pass
-	 * the guard and reconstruct the OLD layer's pixels into the new one.
-	 * Drop it; the tool falls back to the .wave files / recompute. */
-	wavelet_session_release();
+	/* The wavelets tool's decomposition (held transform + .wave files) is
+	 * keyed to gfit's pixels but guarded only by geometry — another layer of
+	 * the same size would pass the guard and reconstruct the OLD layer's
+	 * pixels into the new one.  Invalidate the tool: it must recompute. */
+	wavelets_active_layer_changed();
 	show_or_hide_mask_tab();
 	flis_gui_update_from_idle();
 	redraw(REDRAW_OVERLAY);

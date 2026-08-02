@@ -498,6 +498,40 @@ Test(wavelet_denoise, held_roi_matches_file_roi) {
 	free(a.fdata); free(b.fdata); free(clean); free(noisy);
 }
 
+/* The file reconstruction writers size their output from the .wave header,
+ * not from the destination, so wrecons_image_hook refuses a geometry mismatch
+ * before reconstructing (stale files outlive the image — or the FLIS active
+ * layer — that produced them).  Verify the header reader it relies on agrees
+ * with what was written and fails cleanly on a missing file. */
+Test(wavelet_denoise, wave_header_geometry_readback) {
+	const int N = 128;
+	const int nplan = 4;
+	const size_t n = (size_t) N * N;
+	float *img = calloc(n, sizeof(float));
+	cr_assert_not_null(img);
+	img[(N / 2) * N + N / 2] = 1.f;
+
+	const char *tmpdir = g_get_tmp_dir();
+	gchar *fname = g_build_filename(tmpdir, "siril_wd_hdr.wave", NULL);
+	cr_assert_eq(wavelet_transform_file_float(img, N, N, fname,
+			TO_PAVE_BSPLINE, nplan, 0, com.max_thread), 0);
+
+	int nl = 0, nc = 0, plans = 0;
+	cr_assert_eq(wave_io_read_header(fname, &nl, &nc, &plans), 0);
+	cr_assert_eq(nl, N);
+	cr_assert_eq(nc, N);
+	cr_assert_eq(plans, nplan);
+
+	/* NULL outputs are allowed */
+	cr_assert_eq(wave_io_read_header(fname, NULL, NULL, NULL), 0);
+
+	g_unlink(fname);
+	cr_assert_neq(wave_io_read_header(fname, &nl, &nc, &plans), 0,
+			"missing file must be reported");
+	g_free(fname);
+	free(img);
+}
+
 Test(wavelet_denoise, roi_reconstruct_matches_full) {
 	const int N = 256;
 	const int nplan = 5;

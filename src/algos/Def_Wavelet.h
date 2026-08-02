@@ -135,6 +135,8 @@ static inline int wavelet_threads(int threads) {
 
 size_t wave_io_size_data (int Nl, int Nc, int Nbr_Plan, int Type_Wave_Transform);
 int wave_io_read (char *File_Name_In, wave_transf_des *Wave_Trans);
+/* Descriptor-only read, for geometry checks before a full reconstruction. */
+int wave_io_read_header(const char *File_Name_In, int *Nl, int *Nc, int *Nbr_Plan);
 int wave_io_write (char *File_Name_In, wave_transf_des *Wave_Trans);
 int wave_io_free (wave_transf_des *Wave_Trans);
 int wave_io_alloc (wave_transf_des *Wave_Trans, int Type_Transform, int Nbr_Plan, int Nl, int Nc);

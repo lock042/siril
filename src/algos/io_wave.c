@@ -225,6 +225,44 @@ int wave_io_read(char *File_Name_In, wave_transf_des *Wave_Trans) {
 
 /****************************************************************************/
 
+/* Read only the descriptor of a .wave file, for callers that must check the
+ * transform's geometry against a destination image before reconstructing
+ * into it (the reconstruction writers size their output from this header,
+ * not from the destination).  Same metadata validity checks as
+ * wave_io_read.  Returns 0 on success. */
+int wave_io_read_header(const char *File_Name_In, int *Nl, int *Nc, int *Nbr_Plan) {
+	FILE *File_Des;
+	wave_transf_des hdr = { 0 };
+	string File_Name = { 0 };
+
+	wave_io_name((char *) File_Name_In, File_Name);
+
+	File_Des = g_fopen(File_Name, "rb");
+	if (File_Des == NULL) {
+		printf("wave_io_read_header: error opening file: %s\n", File_Name_In);
+		return 1;
+	}
+	if (fread((char *) &hdr, sizeof(wave_transf_des), 1, File_Des) <= 0) {
+		printf("wave_io_read_header: error reading data\n");
+		fclose(File_Des);
+		return 1;
+	}
+	fclose(File_Des);
+
+	if (hdr.Nbr_Plan <= 0 || hdr.Nbr_Plan > MAX_NBR_PLANS
+			|| hdr.Nbr_Ligne < 1 || hdr.Nbr_Col < 1
+			|| hdr.Nbr_Ligne > MAX_IMAGE_DIM || hdr.Nbr_Col > MAX_IMAGE_DIM) {
+		printf("wave_io_read_header: file metadata fails validity checking\n");
+		return 1;
+	}
+	if (Nl) *Nl = hdr.Nbr_Ligne;
+	if (Nc) *Nc = hdr.Nbr_Col;
+	if (Nbr_Plan) *Nbr_Plan = hdr.Nbr_Plan;
+	return 0;
+}
+
+/****************************************************************************/
+
 int wave_io_write(char *File_Name_In, wave_transf_des *Wave_Trans) {
 	FILE *File_Des;
 	int Nbr, Nl, Nc, Nbr_Plan;

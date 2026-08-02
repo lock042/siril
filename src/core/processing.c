@@ -1862,9 +1862,31 @@ the_end:;
 	 * gfit's writer lock on the swap path. */
 	if (use_swap) {
 		if (!retval) {
-			g_rw_lock_writer_lock(&gfit->rwlock);
-			fits_swap_all_except_rwlock(gfit, orig);
-			g_rw_lock_writer_unlock(&gfit->rwlock);
+			/* Re-check the swap target: on a FLIS image the active-layer
+			 * switch can retarget gfit while the hook runs on the snapshot
+			 * of the previous layer (nothing gates the layers panel during
+			 * processing).  Swapping blindly would install the previous
+			 * layer's result — and its geometry — into the new layer, and
+			 * send the new layer's pixels to orig's clearfits below.
+			 * Lock argfit (the fits this job was started on), NOT the
+			 * possibly-retargeted gfit: the switch path's preview restore
+			 * writer-locks the outgoing fits, so this serialises with it.
+			 * The retarget flag covers the remainder of the switch body
+			 * (restore→repoint), where gfit still equals argfit but is
+			 * about to stop being current.  A discarded result is the
+			 * right outcome either way: the job ran against a layer the
+			 * user is leaving. */
+			g_rw_lock_writer_lock(&argfit->rwlock);
+			gboolean retargeted = (gfit != argfit) || flis_gfit_retarget_in_progress();
+			if (!retargeted)
+				fits_swap_all_except_rwlock(gfit, orig);
+			g_rw_lock_writer_unlock(&argfit->rwlock);
+			if (retargeted) {
+				siril_log_message(_("%s: the active layer changed during processing, discarding the result.\n"),
+						desc ? desc : _("Operation"));
+				args->retval = 1;
+				retval = 1;
+			}
 		}
 	} else {
 		g_rw_lock_writer_unlock(&argfit->rwlock);

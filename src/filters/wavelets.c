@@ -362,7 +362,22 @@ int wrecons_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 		}
 
 		gchar *dir = g_build_filename(tmpdir, File_Name_Transform[i], NULL);
-		if (args->for_roi) {
+		/* The file reconstruction writers size their output from the .wave
+		 * header, NOT from the destination: a transform of a larger image
+		 * would write past the end of the destination buffer.  Stale files
+		 * are easy to come by — they survive the image (and the FLIS active
+		 * layer) that produced them — so refuse any geometry mismatch here.
+		 * For an ROI preview the geometry to match is the full image. */
+		const int exp_nl = args->for_roi ? args->full_ry : (int) fit->ry;
+		const int exp_nc = args->for_roi ? args->full_rx : (int) fit->rx;
+		int wnl = 0, wnc = 0;
+		if (wave_io_read_header(dir, &wnl, &wnc, NULL)
+				|| wnl != exp_nl || wnc != exp_nc) {
+			siril_log_error(_("The stored wavelet transform (%d x %d) does not match "
+					"the current image (%d x %d): run the wavelet transform again.\n"),
+					wnc, wnl, exp_nc, exp_nl);
+			ret = 1;
+		} else if (args->for_roi) {
 			/* Reconstruct only the selection: reads just the ROI rows of the
 			 * transform and denoises/reconstructs that small window. */
 			ret = wavelet_reconstruct_file_roi(dir, args->coef, &args->denoise,

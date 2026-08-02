@@ -389,6 +389,10 @@ void uniq_set_active_layer(single *uniq, gint index);
 /* Preview/ROI-coherent variant for user-driven switches (panel, command);
  * see the implementation comment.  Not callable from worker hooks. */
 void flis_switch_active_layer_gui(gint index);
+/* TRUE while flis_switch_active_layer_gui is retargeting gfit.  Checked by
+ * the generic_image_worker swap point (with gfit identity) so a result
+ * computed against the outgoing layer is never installed mid-switch. */
+gboolean flis_gfit_retarget_in_progress(void);
 
 /* -----------------------------------------------------------------------
  * COORDINATE MODEL (the single source of truth — new code must use the

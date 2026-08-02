@@ -334,6 +334,10 @@ static void reset_scale_w() {
  * adjusted strength; every other layer is held at the neutral 1.0 so the
  * preview isolates the previewed layers. Denoising/VST ride in wrecons_data. */
 static int update_wavelets() {
+	/* No live decomposition — the tool was invalidated (dialog hidden or the
+	 * active FLIS layer changed) after this update was scheduled. */
+	if (nb_computed_layers == 0)
+		return 0;
 	struct wrecons_data *wrecons_args = calloc(1, sizeof(struct wrecons_data));
 	if (!wrecons_args) {
 		PRINT_ALLOC_ERR;
@@ -466,6 +470,34 @@ void on_wavelets_dialog_show(GtkWidget *widget, gpointer user_data) {
 	/* A reused window can reappear at its previous (taller) size with blank space
 	 * at the bottom now that the controls start hidden; snap it back to natural. */
 	request_window_natural_size(widget, FALSE);
+}
+
+/* Active-layer reconciler entry point (gui_iface_impl.c): the computed
+ * decomposition — the transform held in memory AND the .wave files — describes
+ * the pixels of the layer gfit no longer points at.  Geometry guards cannot
+ * catch a same-size layer, which would silently get the OLD layer's
+ * reconstruction previewed (and on Apply, committed) into it.  So the whole
+ * tool state goes stale on a switch: mirror the decomposition teardown of
+ * on_wavelets_dialog_hide but keep the dialog open — the user re-runs the
+ * transform on the new layer.  The preview backup needs no handling here: the
+ * switch path already reverted the outgoing layer and re-armed the incoming
+ * one. */
+void wavelets_active_layer_changed(void) {
+	/* Drop any held transform even if the dialog never opened this session:
+	 * cheap, and keeps the reconciler's contract simple.  May briefly block
+	 * on an in-flight reconstruction (whose result the swap-point identity
+	 * check then discards). */
+	wavelet_session_release();
+	if (!wavelets_frame || nb_computed_layers == 0)
+		return;	/* dialog never built, or nothing computed — nothing stale */
+	cancel_pending_update();
+	gtk_widget_set_sensitive(wavelets_frame, FALSE);
+	gtk_widget_set_sensitive(wavelets_reset_btn, FALSE);
+	gtk_widget_set_sensitive(denoise_frame, FALSE);
+	nb_computed_layers = 0;
+	refresh_layer_visibility();
+	siril_log_message(_("Active layer changed: the wavelet decomposition no longer "
+			"matches the image, please run the wavelet transform again.\n"));
 }
 
 void on_wavelets_dialog_hide(GtkWidget *widget, gpointer user_data) {

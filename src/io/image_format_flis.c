@@ -1462,8 +1462,24 @@ gboolean flis_display_to_active_layer_rect(const rectangle *disp,
         && local.y + local.h <= (gint)gfit->ry;
 }
 
+/* Raised for the duration of a user-driven active-layer switch (below).
+ * The generic_image_worker swap point re-checks its target identity under
+ * gfit's writer lock before installing a result; that alone still leaves a
+ * hole between the preview restore and the gfit repoint here, during which
+ * gfit == the job's fits again.  The worker also refuses to swap while this
+ * flag is up, closing that window: any job completing mid-switch is
+ * discarded, which is the desired outcome for a layer the user is leaving.
+ * Worker-hook and replay switches call uniq_set_active_layer directly and
+ * hold the processing slot, so no generic worker can race those. */
+static gint gfit_retarget_in_progress = 0;
+
+gboolean flis_gfit_retarget_in_progress(void) {
+    return g_atomic_int_get(&gfit_retarget_in_progress) != 0;
+}
+
 void flis_switch_active_layer_gui(gint index) {
     if (!com.uniq) return;
+    g_atomic_int_set(&gfit_retarget_in_progress, 1);
     gboolean preview_was_active = gui_iface.is_preview_active();
     if (preview_was_active) {
         gui_iface.copy_backup_to_gfit();
@@ -1474,6 +1490,7 @@ void flis_switch_active_layer_gui(gint index) {
         gui_iface.populate_roi();
     if (preview_was_active)
         gui_iface.copy_gfit_to_backup();
+    g_atomic_int_set(&gfit_retarget_in_progress, 0);
 }
 
 /* ===================================================================== */
