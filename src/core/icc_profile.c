@@ -210,14 +210,85 @@ void unlock_display_transform() {
 	g_mutex_unlock(&display_transform_mutex);
 }
 
-// This must be locked by the display_transform_mutex, but it is done from
-// remap_all_vports() so the mutex lock covers all 3 calls to this function
-void display_index_transform(BYTE* index, int vport) {
-	BYTE buf[3 * (USHRT_MAX + 1)] = { 0 };
-	BYTE* chan = &buf[0] + (vport * (USHRT_MAX + 1));
-	memcpy(chan, index, USHRT_MAX + 1);
-	cmsDoTransformLineStride(com.gui_icc.proofing_transform, &buf, &buf, USHRT_MAX + 1, 1, (USHRT_MAX + 1) * 3, (USHRT_MAX + 1) * 3, USHRT_MAX + 1, USHRT_MAX + 1);
-	memcpy(index, chan, USHRT_MAX + 1);
+static cmsHTRANSFORM build_proofing_transform(gboolean float_input);
+
+/* Number of LUT entries composed per call to lcms2. Keeps the planar scratch
+ * small: the transform wants all 3 planes present even though only one is used. */
+#define LUT_TRANSFORM_CHUNK 4096
+
+/* Composes the display transform into a freshly built display LUT.
+ *
+ * index[] maps 16-bit image values to 8-bit screen values; fsrc[] holds the
+ * same mapping before quantisation, normalised to [0, 1]. Transforming fsrc
+ * rather than index means the encoding curve is evaluated at full precision
+ * and the result is quantised once, at the end.
+ *
+ * Feeding the transform the 8-bit values instead restricts the composed LUT to
+ * those output levels reachable from a 256-entry domain. For a linear-TRC image
+ * on an sRGB-like monitor the encoding curve is near-vertical at the bottom, so
+ * the reachable shadow levels are 0, 13, 22, 28, 34, ... - roughly 40 levels
+ * across the lower half of the range instead of 128. That is the posterisation
+ * reported in #1948.
+ *
+ * fsrc may be NULL, in which case the transform is composed from index[] itself
+ * as it used to be. That is only worth avoiding when the source TRC is much
+ * steeper than the monitor's: a linear TRC leaves gaps of 13 codes, gamma 1.4
+ * and above leaves at most 3, which is not visible. See the caller.
+ *
+ * Only called when the image and monitor primaries match, so the transform is
+ * diagonal and composing one channel at a time is valid.
+ *
+ * This must be locked by the display_transform_mutex, but it is done from
+ * remap_all_vports() so the mutex lock covers all 3 calls to this function */
+void display_index_transform(const float *fsrc, BYTE *index, int vport) {
+	cmsHTRANSFORM transform;
+	if (fsrc) {
+		if (!com.gui_icc.proofing_lut_transform)
+			com.gui_icc.proofing_lut_transform = build_proofing_transform(TRUE);
+		transform = com.gui_icc.proofing_lut_transform;
+	} else {
+		transform = com.gui_icc.proofing_transform;
+	}
+	if (!transform)
+		return;
+	const size_t insize = fsrc ? sizeof(float) : sizeof(BYTE);
+	char *in = calloc(3 * LUT_TRANSFORM_CHUNK, insize);
+	BYTE *out = malloc(3 * LUT_TRANSFORM_CHUNK);
+	if (!in || !out) {
+		PRINT_ALLOC_ERR;
+		free(in);
+		free(out);
+		return;
+	}
+	/* The planes other than vport's stay zeroed from the calloc() throughout */
+	char *chan_in = in + (vport * LUT_TRANSFORM_CHUNK * insize);
+	BYTE *chan_out = out + (vport * LUT_TRANSFORM_CHUNK);
+	for (int pos = 0; pos <= USHRT_MAX; pos += LUT_TRANSFORM_CHUNK) {
+		int n = min(LUT_TRANSFORM_CHUNK, USHRT_MAX + 1 - pos);
+		if (fsrc)
+			memcpy(chan_in, fsrc + pos, n * insize);
+		else
+			memcpy(chan_in, index + pos, n * insize);
+		cmsDoTransformLineStride(transform, in, out, n, 1,
+				LUT_TRANSFORM_CHUNK * 3 * insize, LUT_TRANSFORM_CHUNK * 3,
+				LUT_TRANSFORM_CHUNK * insize, LUT_TRANSFORM_CHUNK);
+		memcpy(index + pos, chan_out, n);
+	}
+	free(in);
+	free(out);
+}
+
+/* Deletes both cached display transforms. The display_transform_mutex must be
+ * held by the caller wherever the display may be rendering concurrently. */
+void clear_proofing_transforms() {
+	if (com.gui_icc.proofing_transform) {
+		cmsDeleteTransform(com.gui_icc.proofing_transform);
+		com.gui_icc.proofing_transform = NULL;
+	}
+	if (com.gui_icc.proofing_lut_transform) {
+		cmsDeleteTransform(com.gui_icc.proofing_lut_transform);
+		com.gui_icc.proofing_lut_transform = NULL;
+	}
 }
 
 void icc_lock_monitor_profile(void)   { g_mutex_lock(&monitor_profile_mutex); }
@@ -225,7 +296,10 @@ void icc_unlock_monitor_profile(void) { g_mutex_unlock(&monitor_profile_mutex); 
 void icc_lock_soft_proof_profile(void)   { g_mutex_lock(&soft_proof_profile_mutex); }
 void icc_unlock_soft_proof_profile(void) { g_mutex_unlock(&soft_proof_profile_mutex); }
 
-cmsHTRANSFORM initialize_proofing_transform() {
+/* Builds the display transform. float_input selects the variant used to compose
+ * the transform into the display LUT, which is fed unquantised stretch output;
+ * everything else is identical to the 8-bit per-pixel variant. */
+static cmsHTRANSFORM build_proofing_transform(gboolean float_input) {
 	g_assert(com.gui_icc.monitor);
 	if (gfit->icc_profile == NULL || gfit->color_managed == FALSE)
 		return NULL;
@@ -236,7 +310,11 @@ cmsHTRANSFORM initialize_proofing_transform() {
 	if (gamutcheck) {
 		flags |= cmsFLAGS_GAMUTCHECK;
 	}
-	cmsUInt32Number type = (gfit->naxes[2] == 1 ? TYPE_GRAY_8 : TYPE_RGB_8_PLANAR);
+	cmsUInt32Number type;
+	if (float_input)
+		type = (gfit->naxes[2] == 1 ? TYPE_GRAY_FLT : TYPE_RGB_FLT_PLANAR);
+	else
+		type = (gfit->naxes[2] == 1 ? TYPE_GRAY_8 : TYPE_RGB_8_PLANAR);
 	g_mutex_lock(&soft_proof_profile_mutex);
 	g_mutex_lock(&monitor_profile_mutex);
 	cmsHPROFILE proofing_transform = cmsCreateProofingTransformTHR(
@@ -252,6 +330,10 @@ cmsHTRANSFORM initialize_proofing_transform() {
 	g_mutex_unlock(&monitor_profile_mutex);
 	g_mutex_unlock(&soft_proof_profile_mutex);
 	return proofing_transform;
+}
+
+cmsHTRANSFORM initialize_proofing_transform() {
+	return build_proofing_transform(FALSE);
 }
 
 //Two functions to check if profiles are RGB or Gray
@@ -321,10 +403,7 @@ gboolean same_primaries(cmsHPROFILE a, cmsHPROFILE b, cmsHPROFILE c) {
 void reset_icc_transforms() {
 	g_mutex_lock(&display_transform_mutex);
 //	if (gfit->color_managed) {
-		if (com.gui_icc.proofing_transform) {
-			cmsDeleteTransform(com.gui_icc.proofing_transform);
-			com.gui_icc.proofing_transform = NULL;
-		}
+		clear_proofing_transforms();
 //	}
 	com.gui_icc.same_primaries = FALSE;
 	com.gui_icc.profile_changed = TRUE;
@@ -509,8 +588,7 @@ void cleanup_common_profiles() {
 		cmsCloseProfile(com.gui_icc.monitor);
 	if (com.gui_icc.soft_proof)
 		cmsCloseProfile(com.gui_icc.soft_proof);
-	if (com.gui_icc.proofing_transform)
-		cmsDeleteTransform(com.gui_icc.proofing_transform);
+	clear_proofing_transforms();
 	memset(&com.gui_icc, 0, sizeof(struct gui_icc));
 	if (com.icc.context_single)
 		cmsDeleteContext(com.icc.context_single);
@@ -591,8 +669,7 @@ void refresh_icc_transforms() {
 	if (!com.headless) {
 		com.gui_icc.same_primaries = same_primaries(gfit->icc_profile, com.gui_icc.monitor, (com.gui_icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? com.gui_icc.soft_proof : NULL);
 		g_mutex_lock(&display_transform_mutex);
-		if (com.gui_icc.proofing_transform)
-			cmsDeleteTransform(com.gui_icc.proofing_transform);
+		clear_proofing_transforms();
 		com.gui_icc.proofing_transform = initialize_proofing_transform();
 		g_mutex_unlock(&display_transform_mutex);
 		com.gui_icc.profile_changed = TRUE;

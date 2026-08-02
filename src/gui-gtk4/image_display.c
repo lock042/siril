@@ -2382,39 +2382,66 @@ static int make_index_for_current_display(int vport) {
 	// target_index only used for STF mode
 	int target_index = gui.rendering_mode == STF_DISPLAY && gui.unlink_channels ? vport : 0;
 	index = gui.remap_index[vport];
+
+	/* When the display transform is composed into this LUT, keep the
+	 * unquantised stretch output alongside it so the encoding curve can be
+	 * evaluated before quantisation: composing from the 8-bit values leaves the
+	 * shadows posterised (see display_index_transform()).
+	 *
+	 * Only worth doing for a linear source TRC. There it is free, because the
+	 * transform carries cmsFLAGS_NOOPTIMIZE for linear profiles and so runs the
+	 * same unoptimised float pipeline whichever input format it is given. For
+	 * anything else lcms has an optimised 8-bit path that is ~25x faster, and
+	 * the posterisation it costs is at most 3 code values, so the 8-bit
+	 * composition is kept.
+	 *
+	 * If the scratch cannot be allocated we compose from the 8-bit values
+	 * rather than abandon the rebuild - posterised beats uncolour-managed. */
+	const gboolean compose = (gfit->color_managed && com.gui_icc.same_primaries &&
+			com.gui_icc.proofing_transform && gui.rendering_mode != STF_DISPLAY);
+	float *fidx = NULL;
+	if (compose && fit_icc_is_linear(gfit)) {
+		fidx = malloc((USHRT_MAX + 1) * sizeof(float));
+		if (!fidx)
+			PRINT_ALLOC_ERR;
+	}
+
 	for (i = 0; i <= USHRT_MAX; i++) {
+		float val;
 		switch (gui.rendering_mode) {
 			case LOG_DISPLAY:
 				// ln(5.56*10^110) = 255
-				if (i < 10)
-					index[i] = 0; /* avoid null and negative values */
-				else
-					index[i] = roundf_to_BYTE(logf((float) i / 10.f) * slope); //10.f is arbitrary: good matching with ds9
+				/* i < 10 avoids null and negative values */
+				val = i < 10 ? 0.f : logf((float) i / 10.f) * slope; //10.f is arbitrary: good matching with ds9
 				break;
 			case SQRT_DISPLAY:
 				// sqrt(2^16) = 2^8
-				index[i] = roundf_to_BYTE(sqrtf((float) i) * slope);
+				val = sqrtf((float) i) * slope;
 				break;
 			case SQUARED_DISPLAY:
 				// pow(2^4,2) = 2^8
-				index[i] = roundf_to_BYTE(SQR((float)i) * slope);
+				val = SQR((float)i) * slope;
 				break;
 			case ASINH_DISPLAY:
 				// asinh(2.78*10^110) = 255
-				index[i] = roundf_to_BYTE(asinhf((float) i / 1000.f) * slope); //1000.f is arbitrary: good matching with ds9, could be asinhf(a*Q*i)/Q
+				val = asinhf((float) i / 1000.f) * slope; //1000.f is arbitrary: good matching with ds9, could be asinhf(a*Q*i)/Q
 				break;
 			case LINEAR_DISPLAY:
-				index[i] = roundf_to_BYTE((float) i * slope);
+				val = (float) i * slope;
 				break;
 			case STF_DISPLAY:
 				pxl = (gfit->orig_bitpix == BYTE_IMG ?
 						(float) i / UCHAR_MAX_SINGLE :
 						(float) i / USHRT_MAX_SINGLE);
-				index[i] = roundf_to_BYTE((MTFp(pxl, stf[target_index])) * slope);
+				val = (MTFp(pxl, stf[target_index])) * slope;
 				break;
 			default:
+				free(fidx);
 				return 1;
 		}
+		index[i] = roundf_to_BYTE(val);
+		if (fidx)
+			fidx[i] = set_float_in_interval(val * (1.f / UCHAR_MAX_SINGLE), 0.f, 1.f);
 		// check for maximum overflow, given that df/di > 0. Should not happen with round_to_BYTE
 		if (index[i] == UCHAR_MAX)
 			break;
@@ -2423,10 +2450,13 @@ static int make_index_for_current_display(int vport) {
 		/* no more computation needed, just fill with max value */
 		for (++i; i <= USHRT_MAX; i++) {
 			index[i] = UCHAR_MAX;
+			if (fidx)
+				fidx[i] = 1.f;
 		}
 	}
-	if (gfit->color_managed && com.gui_icc.same_primaries && com.gui_icc.proofing_transform && gui.rendering_mode != STF_DISPLAY)
-		display_index_transform(index, vport);
+	if (compose)
+		display_index_transform(fidx, index, vport);
+	free(fidx);
 
 	last_pente = slope;
 	last_mode = gui.rendering_mode;

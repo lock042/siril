@@ -911,10 +911,7 @@ static void impl_restore_roi(const rectangle *rect) {
 
 static void impl_reset_display_transform(void) {
 	lock_display_transform();
-	if (com.gui_icc.proofing_transform) {
-		cmsDeleteTransform(com.gui_icc.proofing_transform);
-		com.gui_icc.proofing_transform = NULL;
-	}
+	clear_proofing_transforms();
 	unlock_display_transform();
 }
 

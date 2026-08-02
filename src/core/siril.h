@@ -827,6 +827,10 @@ struct gui_icc {
 	cmsHPROFILE monitor;
 	cmsHPROFILE soft_proof;
 	cmsHTRANSFORM proofing_transform;
+	/* The same transform with a float input, used to compose the display
+	 * transform into the display LUT at full precision. Built lazily, as it
+	 * is only needed when the image and monitor primaries match. */
+	cmsHTRANSFORM proofing_lut_transform;
 	cmsUInt32Number proofing_flags;
 	gboolean same_primaries;
 	gboolean profile_changed;
