@@ -1283,7 +1283,7 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 		if (ret) {
 			siril_debug_print("XISF Header cannot be read despite formatting.\n");
 		}
-	} else {
+	} else if (xdata->fitsHeader) {
 		// If formatting fails, use the original header
 		fit->header = strdup(xdata->fitsHeader);
 		siril_debug_print("Failed to format XISF header, using original.\n");
@@ -1293,6 +1293,9 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 			siril_debug_print("XISF Header cannot be read.\n");
 		}
 	}
+	/* nothing to do when the file carries no FITS keywords at all:
+	 * format_fits_header_for_xisf() returns NULL for a NULL input and
+	 * fit->header legitimately stays NULL */
 
 	fits_flip_top_to_bottom(fit);
 	siril_log_color_message(_("XISF is supported in read-only mode for compatibility; "
