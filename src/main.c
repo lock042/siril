@@ -346,8 +346,10 @@ static void siril_app_activate(GApplication *application) {
 
 	// After this point com.pref is populated
 	siril_language_parser_init();
-	if (com.pref.lang)
-		language_init(com.pref.lang);
+	/* called unconditionally: an empty preference means "System Language",
+	 * which still needs negotiating on platforms that give us no locale
+	 * environment to inherit */
+	language_init(com.pref.lang);
 
 	gchar *version_string = get_siril_version_string();
 	siril_log_message(_("Welcome to %s - GUI\n"), version_string);

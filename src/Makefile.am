@@ -563,7 +563,7 @@ AM_LDFLAGS += -mwindows -lbcrypt
 endif
 else
 if PLATFORM_OSX
-AM_LDFLAGS += -rdynamic -Wl,-framework,Security
+AM_LDFLAGS += -rdynamic -Wl,-framework,Security -Wl,-framework,CoreFoundation
 else
 AM_LDFLAGS += -rdynamic
 endif

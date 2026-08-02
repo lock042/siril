@@ -30,7 +30,12 @@
 #include "core/proto.h"
 #include "core/initfile.h"
 #include "core/siril_app_dirs.h"
+#include "core/siril_log.h"
 #include "gui/utils.h"
+
+#ifdef OS_OSX
+#include <CoreFoundation/CoreFoundation.h>
+#endif
 
 #include "siril_language.h"
 
@@ -175,9 +180,165 @@ void siril_language_fill_combo(const gchar *language) {
 	g_list_free(list);
 }
 
+#ifdef OS_OSX
+/* TRUE if we ship a message catalog for this exact locale code. */
+static gboolean have_catalog(const gchar *code) {
+	gchar *filename = g_build_filename(siril_get_locale_dir(), code,
+			"LC_MESSAGES", PACKAGE ".mo", NULL);
+	gboolean exists = g_file_test(filename, G_FILE_TEST_EXISTS);
+	g_free(filename);
+	return exists;
+}
+
+/* Find the catalog that serves @code, which is a locale code as the platform
+ * spells it ("nl_NL", "de_CH", "zh_Hant_TW"). An exact match wins; failing
+ * that any catalog for the same language will do, because gettext strips the
+ * territory but never substitutes a different one: a nl_NL locale would find
+ * GTK's nl catalog but not our nl_BE one, leaving the interface half
+ * translated. Returns the catalog name, or NULL if we have none.
+ */
+static gchar *find_catalog_for(const gchar *code) {
+	if (have_catalog(code))
+		return g_strdup(code);
+
+	gchar **parts = g_strsplit(code, "_", -1);
+	const gchar *lang = parts[0];
+	const gchar *region = NULL;	// last subtag, if any: "zh_Hant_TW" -> "TW"
+	for (guint i = 1; parts[i]; i++)
+		region = parts[i];
+
+	gchar *found = NULL;
+	if (have_catalog(lang)) {
+		found = g_strdup(lang);		// "de" serves "de_CH"
+	} else {
+		GSList *candidates = NULL;
+		GDir *locales_dir = g_dir_open(siril_get_locale_dir(), 0, NULL);
+		if (locales_dir) {
+			const gchar *name;
+			gsize len = strlen(lang);
+
+			while ((name = g_dir_read_name(locales_dir)) != NULL) {
+				if (strncmp(name, lang, len) || (name[len] && name[len] != '_'))
+					continue;
+				if (have_catalog(name))	// sorted, g_dir_read_name order is not
+					candidates = g_slist_insert_sorted(candidates,
+							g_strdup(name), (GCompareFunc) g_strcmp0);
+			}
+			g_dir_close(locales_dir);
+		}
+		/* prefer the catalog for the region that was actually asked for, so
+		 * that zh_Hant_TW picks zh_TW rather than zh_CN */
+		for (GSList *l = candidates; l && region; l = l->next) {
+			const gchar *sep = strchr((const gchar *) l->data, '_');
+			if (sep && !g_ascii_strcasecmp(sep + 1, region)) {
+				found = g_strdup((const gchar *) l->data);
+				break;
+			}
+		}
+		if (!found && candidates)
+			found = g_strdup((const gchar *) candidates->data);
+		g_slist_free_full(candidates, g_free);
+	}
+	g_strfreev(parts);
+	return found;
+}
+
+/* The user's preferred interface languages, most wanted first, as BCP 47 tags
+ * rewritten into the POSIX form gettext uses ("nl-NL" -> "nl_NL"). This is the
+ * raw preference list, not the one macOS filters through the bundle's
+ * CFBundleLocalizations, so it is unaffected by which localizations the .app
+ * happens to advertise. Free with g_strfreev(). */
+static gchar **macos_preferred_languages(void) {
+	CFPropertyListRef value = CFPreferencesCopyAppValue(CFSTR("AppleLanguages"),
+			kCFPreferencesCurrentApplication);
+	if (!value)
+		return NULL;
+	if (CFGetTypeID(value) != CFArrayGetTypeID()) {
+		CFRelease(value);
+		return NULL;
+	}
+
+	CFArrayRef languages = (CFArrayRef) value;
+	CFIndex count = CFArrayGetCount(languages);
+	GPtrArray *codes = g_ptr_array_new();
+
+	for (CFIndex i = 0; i < count; i++) {
+		CFTypeRef tag = CFArrayGetValueAtIndex(languages, i);
+		char buffer[64];
+
+		if (!tag || CFGetTypeID(tag) != CFStringGetTypeID())
+			continue;
+		if (!CFStringGetCString((CFStringRef) tag, buffer, sizeof(buffer),
+				kCFStringEncodingASCII))
+			continue;
+		for (char *p = buffer; *p; p++)
+			if (*p == '-')
+				*p = '_';
+		g_ptr_array_add(codes, g_strdup(buffer));
+	}
+	CFRelease(value);
+
+	g_ptr_array_add(codes, NULL);
+	return (gchar **) g_ptr_array_free(codes, FALSE);
+}
+
+/* Pick a language for the "System Language" setting.
+ *
+ * A bundled application launched from the Finder gets no LANG or LC_* in its
+ * environment at all, so gettext falls back to CoreFoundation and uses
+ * AppleLocale, which is the first preferred language glued to the region,
+ * regardless of what the application can actually offer. English is not a
+ * catalog, it is only what a failed lookup falls back to, so it can never win
+ * that comparison: an English-first user whose second language is Dutch gets
+ * our strings in English (we have no nl_NL catalog) and GTK's in Dutch (it has
+ * an nl one). Do the negotiation ourselves instead, walking the preferences in
+ * order and stopping at the first language we can serve, counting English as
+ * always available since it is the language the sources are written in.
+ *
+ * Returns the language to use, or NULL to leave the environment alone.
+ */
+static gchar *negotiate_system_language(void) {
+	static const gchar * const locale_vars[] = { "LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG" };
+
+	for (gsize i = 0; i < G_N_ELEMENTS(locale_vars); i++) {
+		const gchar *value = g_getenv(locale_vars[i]);
+		if (value && value[0] != '\0')
+			return NULL;	// started from a shell that asked for something
+	}
+
+	gchar **preferred = macos_preferred_languages();
+	if (!preferred)
+		return NULL;
+
+	gchar *language = NULL;
+	for (gsize i = 0; preferred[i] && !language; i++) {
+		if (!g_ascii_strncasecmp(preferred[i], "en", 2)
+				&& (preferred[i][2] == '\0' || preferred[i][2] == '_'))
+			language = g_strdup("en");
+		else
+			language = find_catalog_for(preferred[i]);
+	}
+	g_strfreev(preferred);
+
+	/* nothing we can serve: English is every application's last resort here,
+	 * and picking it keeps GTK's half of the interface in step with ours */
+	return language ? language : g_strdup("en");
+}
+#endif
+
 void language_init(const gchar *language) {
-	if ((!language) || (language[0] == '\0'))
+	gchar *negotiated = NULL;
+
+	if ((!language) || (language[0] == '\0')) {
+#ifdef OS_OSX
+		negotiated = negotiate_system_language();
+		if (!negotiated)
+			return;
+		language = negotiated;
+#else
 		return;
+#endif
+	}
 
 	g_mutex_lock(&com.env_mutex);
 	/* This is default language */
@@ -191,6 +352,12 @@ void language_init(const gchar *language) {
 	g_mutex_unlock(&com.env_mutex);
 	setlocale(LC_ALL, "");
 	setlocale(LC_NUMERIC, "C");
+	if (negotiated) {
+		/* worth a line in the log: this is the case users report against */
+		siril_log_message(_("Interface language taken from the system preferences: %s\n"),
+				negotiated);
+		g_free(negotiated);
+	}
 }
 
 gchar *get_interface_language() {

@@ -177,8 +177,7 @@ static void siril_app_activate(GApplication *application) {
 		exit(EXIT_FAILURE);
 	}
 
-	if (com.pref.lang)
-		language_init(com.pref.lang);
+	language_init(com.pref.lang);
 
 	gchar *version_string = get_siril_version_string();
 	siril_log_message(_("Welcome to %s - CLI\n"), version_string);
