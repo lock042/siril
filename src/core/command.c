@@ -121,6 +121,7 @@
 #include "registration/mpp/mpp_config.h"
 #include "registration/mpp/mpp_shift.h"
 #include "registration/mpp/mpp_sidecar.h"
+#include "compositing/align_rgb.h"
 #include "livestacking/livestacking.h"
 #include "pixelMath/pixel_math_runner.h"
 #include "io/healpix/healpix_cat.h"
@@ -12767,12 +12768,50 @@ int process_boxselect(int nb){
 	return CMD_OK;
 }
 
-static void rgb_extract_last_options(int next_arg, gchar **result_filename,
-		const gchar *default_filename, gboolean *do_sum) {
+int process_rgbalign(int nb) {
+	rgb_align_method method = RGBALIGN_GLOBAL;
+	gboolean method_given = FALSE;
+
+	for (int i = 1; i < nb; i++) {
+		rgb_align_method m;
+		if (!g_strcmp0(word[i], "-global"))
+			m = RGBALIGN_GLOBAL;
+		else if (!g_strcmp0(word[i], "-psf"))
+			m = RGBALIGN_PSF;
+		else if (!g_strcmp0(word[i], "-dft"))
+			m = RGBALIGN_DFT;
+		else if (!g_strcmp0(word[i], "-kombat"))
+			m = RGBALIGN_KOMBAT;
+		else {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+		if (method_given) {
+			siril_log_message(_("Only one alignment method can be given.\n"));
+			return CMD_ARG_ERROR;
+		}
+		method = m;
+		method_given = TRUE;
+	}
+
+	if (!rgb_align_prerequisites_met(method))
+		return CMD_ARG_ERROR;
+
+	undo_save_state(gfit, _("RGB alignment (%s)"), rgb_align_method_name(method));
+	if (rgb_align(method))
+		return CMD_GENERIC_ERROR;
+	return CMD_OK;
+}
+
+static int rgb_extract_last_options(int next_arg, gchar **result_filename,
+		const gchar *default_filename, gboolean *do_sum, gboolean has_lum,
+		coloring_type_enum *coloring) {
 	gchar *filename = NULL;
 	*do_sum = TRUE;
+	*coloring = COLORING_HSL;
 
 	for (int i = next_arg; word[i]; i++) {
+		gboolean is_coloring = FALSE;
 		if (g_str_has_prefix(word[i], "-out=") && word[i][5] != '\0') {
 			gchar* val = word[i] + 5;
 			if (filename) g_free(filename);
@@ -12783,12 +12822,33 @@ static void rgb_extract_last_options(int next_arg, gchar **result_filename,
 			}
 		} else if (!g_strcmp0(word[i], "-nosum")) {
 			*do_sum = FALSE;
+		} else if (!g_strcmp0(word[i], "-hsl")) {
+			*coloring = COLORING_HSL;
+			is_coloring = TRUE;
+		} else if (!g_strcmp0(word[i], "-hsv")) {
+			*coloring = COLORING_HSV;
+			is_coloring = TRUE;
+		} else if (!g_strcmp0(word[i], "-lab")) {
+			*coloring = COLORING_CIELAB;
+			is_coloring = TRUE;
+		} else {
+			g_free(filename);
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+		/* the colour space only has a meaning when a luminance is substituted */
+		if (is_coloring && !has_lum) {
+			g_free(filename);
+			siril_log_message(_("The %s option only applies to LRGB composition, "
+						"it requires a luminance image given with -lum=\n"), word[i]);
+			return CMD_ARG_ERROR;
 		}
 	}
 	if (filename == NULL) {
 		filename = g_strdup_printf("%s%s", default_filename, com.pref.ext);
 	}
 	*result_filename = filename;
+	return CMD_OK;
 }
 
 int process_rgbcomp(int nb) {
@@ -12797,6 +12857,7 @@ int process_rgbcomp(int nb) {
 	int retval = 0, next_arg;
 	gboolean do_sum;
 	gchar *result_filename;
+	coloring_type_enum coloring;
 
 	if (g_str_has_prefix(word[1], "-lum=")) {
 		char *lum_file = word[1] + 5;
@@ -12843,22 +12904,29 @@ int process_rgbcomp(int nb) {
 		}
 
 		/* we need to parse last parameters before merge_fits_headers_to_result */
-		rgb_extract_last_options(next_arg, &result_filename, "composed_lrgb", &do_sum);
+		retval = rgb_extract_last_options(next_arg, &result_filename, "composed_lrgb",
+				&do_sum, TRUE, &coloring);
+		if (retval) {
+			clearfits(&l); clearfits(&r); clearfits(&g); clearfits(&b); clearfits(rgbptr);
+			return retval;
+		}
 
 		if (had_an_rgb_image)
 			merge_fits_headers_to_result(rgbptr, do_sum, &l, &r, NULL);
 		else merge_fits_headers_to_result(rgbptr, do_sum, &l, &r, &g, &b, NULL);
-		rgbptr->history = g_slist_append(rgbptr->history, g_strdup("LRGB composition"));
+		rgbptr->history = g_slist_append(rgbptr->history,
+				g_strdup_printf("LRGB composition (%s)", coloring_type_to_str(coloring)));
 
 		size_t nbpix = l.naxes[0] * l.naxes[1];
 		for (size_t i = 0; i < nbpix; i++) {
-			gdouble h, s, el, rd, gd, bd;
-			rgb_to_hsl(r.fdata[i], g.fdata[i], b.fdata[i], &h, &s, &el);
-			hsl_to_rgb(h, s, l.fdata[i], &rd, &gd, &bd);
-			rgb.fpdata[RLAYER][i] = (float)rd;
-			rgb.fpdata[GLAYER][i] = (float)gd;
-			rgb.fpdata[BLAYER][i] = (float)bd;
+			gdouble rd, gd, bd;
+			merge_luminance(r.fdata[i], g.fdata[i], b.fdata[i], l.fdata[i], coloring, &rd, &gd, &bd);
+			/* the HSV and L*a*b* paths can send values slightly out of range */
+			rgb.fpdata[RLAYER][i] = set_float_in_interval((float)rd, 0.f, 1.f);
+			rgb.fpdata[GLAYER][i] = set_float_in_interval((float)gd, 0.f, 1.f);
+			rgb.fpdata[BLAYER][i] = set_float_in_interval((float)bd, 0.f, 1.f);
 		}
+		siril_log_message(_("LRGB composition using %s\n"), coloring_type_to_str(coloring));
 		clearfits(&l);
 	} else {
 		if (readfits(word[1], &r, NULL, TRUE)) return CMD_INVALID_IMAGE;
@@ -12876,7 +12944,12 @@ int process_rgbcomp(int nb) {
 			return CMD_ALLOC_ERROR;
 		}
 		next_arg = 4;
-		rgb_extract_last_options(next_arg, &result_filename, "composed_rgb", &do_sum);
+		retval = rgb_extract_last_options(next_arg, &result_filename, "composed_rgb",
+				&do_sum, FALSE, &coloring);
+		if (retval) {
+			clearfits(&r); clearfits(&g); clearfits(&b); clearfits(rgbptr);
+			return retval;
+		}
 
 		merge_fits_headers_to_result(rgbptr, do_sum, &r, &g, &b, NULL);
 		rgbptr->history = g_slist_append(rgbptr->history, g_strdup("RGB composition"));

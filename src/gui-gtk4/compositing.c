@@ -80,13 +80,9 @@ static void compositing_dialog_init_statics(void) {
 	comp_align_method_combo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "compositing_align_method_combo"));
 }
 
-typedef enum {
-	HSL,
-	HSV,
-	CIELAB
-} coloring_type_enum;
-
-static coloring_type_enum coloring_type = HSL;
+/* coloring_type_enum is defined in algos/colors.h, shared with the rgbcomp
+ * command. The order must match the items of composition_combo_coloringtype. */
+static coloring_type_enum coloring_type = COLORING_HSL;
 
 /* The result is stored in gfit->
  * gfit->rx and gfit->ry are the reference 1x1 binning output image size. */
@@ -1546,9 +1542,6 @@ static void luminance_and_colors_align_and_compose() {
 	for (y = 0; y < gfit->ry; y++) {
 		for (x = 0; x < gfit->rx; x++) {
 			int layer;
-			gdouble h, s, i;
-			gdouble X, Y, Z;
-			gdouble a, b;
 			/* get color information */
 			GdkRGBA pixel;
 			clear_pixel(&pixel);
@@ -1563,35 +1556,10 @@ static void luminance_and_colors_align_and_compose() {
 
 			/* GdkRGBA fields are float in GTK4 but the colour-space
 			 * helpers all take double*; use scratch doubles. */
-			switch (coloring_type) {
-				case HSL: {
-					double r, g, bb;
-					rgb_to_hsl(pixel.red, pixel.green, pixel.blue, &h, &s, &i);
-					i = (double) get_composition_pixel_value(0, 0, x, y) / norm;
-					hsl_to_rgb(h, s, i, &r, &g, &bb);
-					pixel.red = r; pixel.green = g; pixel.blue = bb;
-					break;
-				}
-				case HSV: {
-					double r, g, bb;
-					rgb_to_hsv(pixel.red, pixel.green, pixel.blue, &h, &s, &i);
-					i = (double) get_composition_pixel_value(0, 0, x, y) / norm;
-					hsv_to_rgb(h, s, i, &r, &g, &bb);
-					pixel.red = r; pixel.green = g; pixel.blue = bb;
-					break;
-				}
-				case CIELAB: {
-					double r, g, bb;
-					rgb_to_xyz(pixel.red, pixel.green, pixel.blue, &X, &Y, &Z);
-					xyz_to_LAB(X, Y, Z, &i, &a, &b);
-					i = (double) get_composition_pixel_value(0, 0, x, y) / norm;
-					i *= 100.0; // 0 < L < 100
-					LAB_to_xyz(i, a, b, &X, &Y, &Z);
-					xyz_to_rgb(X, Y, Z, &r, &g, &bb);
-					pixel.red = r; pixel.green = g; pixel.blue = bb;
-					break;
-				}
-			}
+			double r, g, bb;
+			double lum = (double) get_composition_pixel_value(0, 0, x, y) / norm;
+			merge_luminance(pixel.red, pixel.green, pixel.blue, lum, coloring_type, &r, &g, &bb);
+			pixel.red = r; pixel.green = g; pixel.blue = bb;
 
 			rgb_pixel_limiter(&pixel);
 

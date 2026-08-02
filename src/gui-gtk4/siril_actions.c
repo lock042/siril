@@ -1004,28 +1004,29 @@ void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointe
 		free_generic_img_args(args);
 }
 
+/* the undo state must only be pushed once the prerequisites are known to be
+ * met, otherwise an aborted alignment leaves a no-op entry on the undo stack */
+static void align_activate(rgb_align_method m, const char *undo_message) {
+	if (!rgb_align_prerequisites_met(m))
+		return;
+	undo_save_state(gfit, undo_message);
+	rgb_align(m);
+}
+
 void align_dft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	undo_save_state(gfit, _("RGB alignment (DFT)"));
-	rgb_align(1);
+	align_activate(RGBALIGN_DFT, _("RGB alignment (DFT)"));
 }
 
 void align_global_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	undo_save_state(gfit, _("RGB alignment (Global stars)"));
-	rgb_align(2);
+	align_activate(RGBALIGN_GLOBAL, _("RGB alignment (Global stars)"));
 }
 
 void align_kombat_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	undo_save_state(gfit, _("RGB alignment (KOMBAT)"));
-	rgb_align(3);
+	align_activate(RGBALIGN_KOMBAT, _("RGB alignment (KOMBAT)"));
 }
 
 void align_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	undo_save_state(gfit, _("RGB alignment (PSF)"));
-	if (com.selection.w > 300 || com.selection.h > 300) {
-		siril_log_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
-		return;
-	}
-	rgb_align(0);
+	align_activate(RGBALIGN_PSF, _("RGB alignment (PSF)"));
 }
 
 void icc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

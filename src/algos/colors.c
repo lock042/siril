@@ -652,6 +652,44 @@ void xyz_to_rgbf(float x, float y, float z, float *r, float *g, float *b) {
 	*b = (*b > 0.0031308f) ? 1.055f * (powf(*b, (1.f / 2.4f))) - 0.055f : 12.92f * (*b);
 }
 
+const char *coloring_type_to_str(coloring_type_enum type) {
+	switch (type) {
+		case COLORING_HSV:
+			return "HSV";
+		case COLORING_CIELAB:
+			return "CIE L*a*b*";
+		default:
+			return "HSL";
+	}
+}
+
+/* Substitutes the luminance value lum into the colour information carried by
+ * (r, g, b), in the requested colour space. All values are in the [0, 1] range;
+ * the result may fall slightly outside it for the HSV and L*a*b* modes, so
+ * callers are expected to clip it. */
+void merge_luminance(double r, double g, double b, double lum, coloring_type_enum type,
+		double *ro, double *go, double *bo) {
+	double h, s, i, X, Y, Z, a, bb;
+
+	switch (type) {
+		default:
+		case COLORING_HSL:
+			rgb_to_hsl(r, g, b, &h, &s, &i);
+			hsl_to_rgb(h, s, lum, ro, go, bo);
+			break;
+		case COLORING_HSV:
+			rgb_to_hsv(r, g, b, &h, &s, &i);
+			hsv_to_rgb(h, s, lum, ro, go, bo);
+			break;
+		case COLORING_CIELAB:
+			rgb_to_xyz(r, g, b, &X, &Y, &Z);
+			xyz_to_LAB(X, Y, Z, &i, &a, &bb);
+			LAB_to_xyz(lum * 100.0, a, bb, &X, &Y, &Z);	// 0 < L < 100
+			xyz_to_rgb(X, Y, Z, ro, go, bo);
+			break;
+	}
+}
+
 // Reference: https://en.wikipedia.org/wiki/Color_index and https://arxiv.org/abs/1201.1809 (Ballesteros, F. J., 2012)
 // Uses Ballesteros' formula based on considering stars as black bodies
 double BV_to_T(double BV) {
