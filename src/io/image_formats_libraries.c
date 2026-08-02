@@ -1309,6 +1309,14 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 	 * format_fits_header_for_xisf() returns NULL for a NULL input and
 	 * fit->header legitimately stays NULL */
 
+	/* If the file ships no BAYERPAT keyword, fall back to the native XISF
+	 * <ColorFilterArray> element. Both describe the mosaic in the top-down
+	 * raster frame, so this must happen before the flip below. */
+	if (fit->keywords.bayer_pattern[0] == '\0' && xdata->cfa_pattern[0] != '\0') {
+		g_strlcpy(fit->keywords.bayer_pattern, xdata->cfa_pattern, FLEN_VALUE);
+		siril_log_debug("Using XISF ColorFilterArray pattern %s\n", xdata->cfa_pattern);
+	}
+
 	fits_flip_top_to_bottom(fit);
 	/* The buffer is now bottom-up. Any ROWORDER keyword carried in the
 	 * embedded FITS keyword list describes the FITS file the image was

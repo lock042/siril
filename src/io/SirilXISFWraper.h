@@ -40,6 +40,9 @@ struct xisf_data {
     char *fitsHeader;
 	uint8_t *icc_buffer;
 	uint32_t icc_length;
+	/* Native XISF <ColorFilterArray> element, expressed in the top-down
+	 * raster frame. Empty string when the file declares no CFA. */
+	char cfa_pattern[37];
 };
 
 int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata);
