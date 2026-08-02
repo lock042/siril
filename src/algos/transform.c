@@ -133,7 +133,7 @@ int prepare_rawdata(float *Imag, int Nl, int Nc, WORD *buf) {
 /****************************************************************************/
 
 /* allocates a vector of float */
-float *f_vector_alloc(int Nbr_Elem)
+float *f_vector_alloc(size_t Nbr_Elem)
 {
 	float *Vector;
 
@@ -253,7 +253,7 @@ int wavelet_transform_data(float *Imag, int Nl, int Nc,
 		wave_transf_des *Wavelet, int Type_Transform, int Nbr_Plan) {
 	float *Pave;
 	double Exp;
-	int Size, Min, temp;
+	int Min, temp;
 
 	Wavelet->Nbr_Ligne = Nl;
 	Wavelet->Nbr_Col = Nc;
@@ -271,16 +271,21 @@ int wavelet_transform_data(float *Imag, int Nl, int Nc,
 
 	switch (Type_Transform) {
 	case TO_PAVE_LINEAR:
-	case TO_PAVE_BSPLINE:
-		Size = Nl * Nc * Nbr_Plan;
+	case TO_PAVE_BSPLINE: {
+		const size_t Size = (size_t) Nl * (size_t) Nc * (size_t) Nbr_Plan;
 		Wavelet->Pave.Data = f_vector_alloc(Size);
 		if (Wavelet->Pave.Data == NULL) {
 			PRINT_ALLOC_ERR;
 			return 1;
 		}
 		Pave = Wavelet->Pave.Data;
-		pave_2d_tfo(Imag, Pave, Nl, Nc, Nbr_Plan, Type_Transform);
+		if (pave_2d_tfo(Imag, Pave, Nl, Nc, Nbr_Plan, Type_Transform)) {
+			free(Wavelet->Pave.Data);
+			Wavelet->Pave.Data = NULL;
+			return 1;
+		}
 		break;
+	}
 	default:
 		printf("wavelet_transform_data: wrong transform type\n");
 		return 1;

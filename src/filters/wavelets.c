@@ -20,13 +20,13 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <glib/gstdio.h>
 
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "core/processing.h"
 #include "core/gui_iface.h"
 #include "io/image_format_fits.h"
+#include "io/sequence.h"
 #include "algos/Def_Wavelet.h"
 #include "algos/wavelet_denoise.h"
 #include "wavelets.h"
@@ -65,7 +65,7 @@ gpointer wavelet_transform_worker(gpointer p) {
 	int nb_chan = gfit->naxes[2];
 
 	if (gfit->type == DATA_USHORT) {
-		float *Imag = f_vector_alloc(gfit->rx * gfit->ry);
+		float *Imag = f_vector_alloc((size_t) gfit->rx * (size_t) gfit->ry);
 		if (!Imag) {
 			PRINT_ALLOC_ERR;
 			retval = 1;
@@ -151,51 +151,78 @@ void free_atrous_data(void *p) {
 	free(args);
 }
 
-int atrous_transform_image(fits *fit, const struct atrous_data *args, int id) {
-	const char chan_id[3] = { 'r', 'g', 'b' };
-	const char *tmpdir = g_get_tmp_dir();
-	int nb_chan = fit->naxes[2];
+/* The decomposition produced here is consumed by the reconstruction a few lines
+ * below and then thrown away, so it is kept in memory rather than round-tripped
+ * through a .wave file in the temporary directory: for a 24 Mpx frame at 6
+ * layers that file is ~550 MB per channel, written and read back for nothing.
+ * Keeping it in memory also makes this function re-entrant, which is what lets
+ * seqatrous process several frames at once. */
+int atrous_transform_image(fits *fit, const struct atrous_data *args) {
+	const int Nl = fit->ry, Nc = fit->rx;
+	const size_t n = (size_t) Nl * (size_t) Nc;
+	const int nb_chan = fit->naxes[2];
 	int retval = 0;
 	/* per-layer weights are read (not written) by the reconstruction, but the
 	 * API takes a non-const pointer, so work from a local copy */
 	float coef[7];
 	memcpy(coef, args->coef, sizeof coef);
 
+	if (fit->type != DATA_USHORT && fit->type != DATA_FLOAT)
+		return 1;
+
+	/* USHORT works in a float scratch buffer; float decomposes straight from
+	 * the image buffer, except under Anscombe where the variance-stabilised
+	 * copy must not clobber the original pixels before the transform succeeds. */
 	float *Imag = NULL;
-	if (fit->type == DATA_USHORT) {
-		Imag = f_vector_alloc(fit->rx * fit->ry);
+	if (fit->type == DATA_USHORT || args->anscombe) {
+		Imag = malloc(n * sizeof(float));
 		if (!Imag) {
 			PRINT_ALLOC_ERR;
 			return 1;
 		}
-	} else if (fit->type != DATA_FLOAT) {
-		return 1;
 	}
 
+	const double ans_scale = (fit->type == DATA_USHORT) ? ANSCOMBE_USHORT_SCALE
+			: ANSCOMBE_FLOAT_SCALE;
+
 	for (int i = 0; i < nb_chan; i++) {
-		/* a private transform file per (id, channel): the decomposition is only
-		 * needed for the reconstruction that immediately follows, so it is
-		 * removed afterwards rather than left to accumulate over a sequence */
-		gchar *name = g_strdup_printf("atrous_%d_%c.wave", id, chan_id[i]);
-		gchar *dir = g_build_filename(tmpdir, name, NULL);
-		g_free(name);
+		wave_transf_des wavelet = { 0 };
+		float *src, *dst;
+
 		if (fit->type == DATA_USHORT) {
-			if (wavelet_transform_file(Imag, fit->ry, fit->rx, dir, args->type,
-					args->nbr_plan, fit->pdata[i], args->anscombe))
-				retval = 1;
-			else
-				retval = wavelet_reconstruct_file(dir, coef, &args->denoise, fit->pdata[i]);
+			prepare_rawdata(Imag, Nl, Nc, fit->pdata[i]);
+			if (args->anscombe)
+				anscombe_forward(Imag, n, ans_scale);
+			src = Imag;
+			dst = Imag; /* reconstructed into the same scratch, then requantised */
+		} else if (args->anscombe) {
+			memcpy(Imag, fit->fpdata[i], n * sizeof(float));
+			anscombe_forward(Imag, n, ans_scale);
+			src = Imag;
+			dst = fit->fpdata[i];
 		} else {
-			if (wavelet_transform_file_float(fit->fpdata[i], fit->ry, fit->rx, dir,
-					args->type, args->nbr_plan, args->anscombe))
-				retval = 1;
-			else
-				retval = wavelet_reconstruct_file_float(dir, coef, &args->denoise, fit->fpdata[i]);
+			src = fit->fpdata[i];
+			dst = fit->fpdata[i];
 		}
-		g_unlink(dir);
-		g_free(dir);
+
+		/* pave_2d_tfo copies its input before recursing, so src is intact here
+		 * and dst may safely alias it */
+		if (wavelet_transform_data(src, Nl, Nc, &wavelet, args->type,
+				args->nbr_plan)) {
+			retval = 1;
+			break;
+		}
+		wavelet_denoise_planes(wavelet.Pave.Data, args->type, args->nbr_plan,
+				Nl, Nc, &args->denoise);
+		retval = wavelet_reconstruct_data(&wavelet, dst, coef);
+		wave_io_free(&wavelet);
 		if (retval)
 			break;
+
+		if (args->anscombe)
+			anscombe_inverse(dst, n, ans_scale);
+		if (fit->type == DATA_USHORT)
+			reget_rawdata(dst, Nl, Nc, fit->pdata[i]);
 	}
 	free(Imag);
 	return retval;
@@ -203,7 +230,7 @@ int atrous_transform_image(fits *fit, const struct atrous_data *args, int id) {
 
 int atrous_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 	struct atrous_data *args = (struct atrous_data *)gargs->user;
-	return atrous_transform_image(fit, args, 0);
+	return atrous_transform_image(fit, args);
 }
 
 gchar *atrous_log_hook(gpointer p, log_hook_detail detail) {
@@ -214,13 +241,82 @@ gchar *atrous_log_hook(gpointer p, log_hook_detail detail) {
 	return g_strdup_printf(_("À trous wavelet transform (%d layers)"), args->nbr_plan);
 }
 
-/* Sequence hook: decompose + reconstruct one frame in place. The output index is
- * used as the transform-file id so nothing collides if this is ever run with more
- * than one image in parallel. */
+/* Sequence hook: decompose + reconstruct one frame in place. */
 static int atrous_seq_image_hook(struct generic_seq_args *args, int out_index,
 		int in_index, fits *fit, rectangle *_, int threads) {
 	struct atrous_data *a_args = (struct atrous_data *)args->user;
-	return atrous_transform_image(fit, a_args, out_index);
+	return atrous_transform_image(fit, a_args);
+}
+
+/* Memory needed per frame, on top of the frame itself:
+ *   the transform cube          -> nbr_plan planes of one channel
+ *   pave_2d_tfo's two scratch planes
+ *   the USHORT/Anscombe scratch -> one plane
+ *   bivariate shrinkage         -> two more planes while it runs
+ * all in float, all sized on a single channel. */
+static int atrous_mem_limits_hook(struct generic_seq_args *args, gboolean for_writer) {
+	struct atrous_data *a_args = (struct atrous_data *)args->user;
+	unsigned int MB_per_image, MB_avail;
+	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image,
+			NULL, &MB_avail);
+	unsigned int required = MB_per_image;
+
+	if (limit > 0) {
+		/* the transform runs on one channel at a time, whatever the frame's
+		 * channel count, so the scratch is sized on a single channel */
+		const guint64 chan_bytes = (guint64) args->seq->rx * args->seq->ry
+				* sizeof(float);
+		unsigned int MB_per_channel_float = max(1,
+				(unsigned int) (chan_bytes / BYTES_IN_A_MB));
+		int planes = a_args->nbr_plan + 2; /* cube + the two tfo scratch planes */
+		if (a_args->anscombe || get_data_type(args->seq->bitpix) == DATA_USHORT)
+			planes += 1;
+		if (a_args->denoise.enabled && a_args->denoise.method == WD_BISHRINK)
+			planes += 2;
+
+		required = MB_per_image + planes * MB_per_channel_float;
+
+		int thread_limit = MB_avail / required;
+		if (thread_limit > com.max_thread)
+			thread_limit = com.max_thread;
+
+		if (for_writer) {
+			/* the already-accounted processing images, plus whatever else fits
+			 * in what the main computation leaves unused */
+			limit = thread_limit
+					+ (MB_avail - required * thread_limit) / MB_per_image;
+		} else
+			limit = thread_limit;
+	}
+
+	if (limit == 0) {
+		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB,
+				G_FORMAT_SIZE_IEC_UNITS);
+		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB,
+				G_FORMAT_SIZE_IEC_UNITS);
+
+		siril_log_error(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
+				args->description, mem_per_thread, mem_available);
+
+		g_free(mem_per_thread);
+		g_free(mem_available);
+	} else {
+#ifdef _OPENMP
+		if (for_writer) {
+			int max_queue_size = com.max_thread * 3;
+			if (limit > max_queue_size)
+				limit = max_queue_size;
+		}
+		siril_log_debug("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+				required, MB_per_image, limit, for_writer ? "images" : "threads");
+#else
+		if (!for_writer)
+			limit = 1;
+		else if (limit > 3)
+			limit = 3;
+#endif
+	}
+	return limit;
 }
 
 static int atrous_finalize_hook(struct generic_seq_args *args) {
@@ -244,9 +340,9 @@ void apply_atrous_to_sequence(struct atrous_data *a_args) {
 	args->new_seq_prefix = strdup(a_args->seqEntry);
 	args->load_new_sequence = TRUE;
 	args->user = a_args;
-	/* The decomposition saves every scale of the frame to disk, so processing
-	 * frames one at a time keeps disk and memory use bounded and deterministic. */
-	args->max_parallel_images = 1;
+	/* The transform is held in memory, so frames can be processed in parallel
+	 * up to whatever the transform cube plus scratch allows. */
+	args->compute_mem_limits_hook = atrous_mem_limits_hook;
 
 	a_args->fit = NULL; /* not used in sequence mode */
 

@@ -164,7 +164,7 @@ int wavelet_reconstruct_file(char *File_Name_Transform, float *coef, const struc
 		siril_log_error(_("Error: number of plans reported by wavelets file is out of bounds.\n"));
 		return 1;
 	}
-	Imag = f_vector_alloc(Nl * Nc);
+	Imag = f_vector_alloc((size_t) Nl * (size_t) Nc);
 	if (Imag == NULL) {
 		PRINT_ALLOC_ERR;
 		return 1;
