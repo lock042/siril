@@ -107,21 +107,187 @@ int wavelet_noise_factors(int type, int nbr_plan, double *e_out, int threads) {
 	return 0;
 }
 
+/* ---- exact order statistics over a band, without copying it ----
+ *
+ * The MAD needs two medians of a full coefficient plane. Doing that with a
+ * destructive quickselect meant copying the plane, selecting on the copy,
+ * overwriting it with |x - median|, and selecting again: two full-size
+ * temporary buffers and two serial selections, which on a 24 Mpx band was the
+ * most expensive single step of the whole denoising path.
+ *
+ * Instead, select on the monotone unsigned key of the float bit pattern, a few
+ * bits at a time. Each level counts how many samples fall in each bucket of
+ * the next WD_SEL_BITS bits below the prefix already fixed, which says which
+ * bucket holds the wanted rank. This finds the true k-th sample -- it is not a
+ * binned approximation like histogram_median_float -- it only ever reads the
+ * band, and the counting parallelises. |x - centre| is applied as the samples
+ * are read, so the second median needs no buffer at all. */
+
+#define WD_SEL_BITS 11
+#define WD_SEL_BUCKETS (1u << WD_SEL_BITS)
+
+/* Order-preserving map between a float and an unsigned key: flip the sign bit
+ * for positives and every bit for negatives, so unsigned integer order matches
+ * float order across zero. */
+static inline guint32 wd_float_key(float f) {
+	guint32 u;
+	memcpy(&u, &f, sizeof(u));
+	return (u & 0x80000000u) ? ~u : (u | 0x80000000u);
+}
+
+static inline float wd_key_float(guint32 key) {
+	const guint32 u = (key & 0x80000000u) ? (key & 0x7fffffffu) : ~key;
+	float f;
+	memcpy(&f, &u, sizeof(f));
+	return f;
+}
+
+/* Count into `histo` the samples whose key matches `prefix` in the bits
+ * selected by `pmask`, bucketed by the `bits` key bits at `shift`. `slab` is
+ * threads * WD_SEL_BUCKETS of private counters. */
+static void wd_count(const float *band, size_t n, gboolean use_abs, float centre,
+		guint32 prefix, guint32 pmask, int shift, guint32 nbuckets,
+		guint64 *histo, guint64 *slab, int threads) {
+	memset(slab, 0, (size_t) threads * WD_SEL_BUCKETS * sizeof(guint64));
+
+#ifdef _OPENMP
+#pragma omp parallel num_threads(threads)
+#endif
+	{
+		int slot = 0;
+#ifdef _OPENMP
+		slot = omp_get_thread_num();
+#endif
+		guint64 *local = slab + (size_t) slot * WD_SEL_BUCKETS;
+#ifdef _OPENMP
+#pragma omp for schedule(static) nowait
+#endif
+		for (size_t i = 0; i < n; i++) {
+			const float v = use_abs ? fabsf(band[i] - centre) : band[i];
+			const guint32 key = wd_float_key(v);
+			if ((key & pmask) == prefix)
+				local[(key >> shift) & (nbuckets - 1)]++;
+		}
+	}
+
+	memset(histo, 0, nbuckets * sizeof(guint64));
+	for (int t = 0; t < threads; t++) {
+		const guint64 *local = slab + (size_t) t * WD_SEL_BUCKETS;
+		for (guint32 b = 0; b < nbuckets; b++)
+			histo[b] += local[b];
+	}
+}
+
+/* Which bucket holds *rank, converting *rank to a rank within that bucket. */
+static gboolean wd_pick(const guint64 *histo, guint32 nbuckets, guint64 *rank,
+		guint32 *digit) {
+	guint64 cum = 0;
+	for (guint32 b = 0; b < nbuckets; b++) {
+		if (*rank < cum + histo[b]) {
+			*digit = b;
+			*rank -= cum;
+			return TRUE;
+		}
+		cum += histo[b];
+	}
+	return FALSE;
+}
+
+/* The k1-th and k2-th smallest samples (0-based). The two ranks share their
+ * counting passes for as long as they share a key prefix, which for the
+ * adjacent ranks of an even-length median is nearly always all the way down. */
+static gboolean wd_select_two(const float *band, size_t n, gboolean use_abs,
+		float centre, size_t k1, size_t k2, int threads, float *o1, float *o2) {
+	guint64 histo[WD_SEL_BUCKETS];
+	guint64 *slab = malloc((size_t) threads * WD_SEL_BUCKETS * sizeof(guint64));
+	if (!slab)
+		return FALSE;
+
+	guint32 pfx1 = 0, pfx2 = 0, pmask = 0;
+	guint64 r1 = k1, r2 = k2;
+	gboolean joined = TRUE, ok = TRUE;
+	int done = 0;
+
+	while (done < 32 && ok) {
+		const int bits = (32 - done < WD_SEL_BITS) ? 32 - done : WD_SEL_BITS;
+		const int shift = 32 - done - bits;
+		const guint32 nb = 1u << bits;
+		guint32 d1 = 0, d2 = 0;
+
+		if (joined) {
+			wd_count(band, n, use_abs, centre, pfx1, pmask, shift, nb, histo,
+					slab, threads);
+			ok = wd_pick(histo, nb, &r1, &d1) && wd_pick(histo, nb, &r2, &d2);
+			if (d1 != d2)
+				joined = FALSE;
+		} else {
+			wd_count(band, n, use_abs, centre, pfx1, pmask, shift, nb, histo,
+					slab, threads);
+			ok = wd_pick(histo, nb, &r1, &d1);
+			if (ok) {
+				wd_count(band, n, use_abs, centre, pfx2, pmask, shift, nb, histo,
+						slab, threads);
+				ok = wd_pick(histo, nb, &r2, &d2);
+			}
+		}
+		if (!ok)
+			break;
+
+		pfx1 |= (guint32) d1 << shift;
+		pfx2 |= (guint32) d2 << shift;
+		done += bits;
+		pmask = (done >= 32) ? 0xffffffffu : ~((1u << (32 - done)) - 1);
+	}
+
+	free(slab);
+	if (!ok)
+		return FALSE;
+	*o1 = wd_key_float(pfx1);
+	*o2 = wd_key_float(pfx2);
+	return TRUE;
+}
+
+/* Median with quickmedian_float's convention: the middle sample for odd n, the
+ * mean of the two middle samples for even n. */
+static gboolean wd_median(const float *band, size_t n, gboolean use_abs,
+		float centre, int threads, double *out) {
+	float a = 0.f, b = 0.f;
+	if (n & 1) {
+		if (!wd_select_two(band, n, use_abs, centre, n / 2, n / 2, threads, &a, &b))
+			return FALSE;
+		*out = (double) a;
+	} else {
+		if (!wd_select_two(band, n, use_abs, centre, n / 2 - 1, n / 2, threads,
+				&a, &b))
+			return FALSE;
+		*out = ((double) a + (double) b) / 2.0;
+	}
+	return TRUE;
+}
+
 double wavelet_mad_sigma_float(const float *band, size_t n, int threads) {
 	if (!band || n == 0)
 		return 0.0;
-	float *buf = malloc(n * sizeof(float));
-	if (!buf)
+	if (threads < 1)
+		threads = 1;
+
+	/* quickmedian_float switches to a sorting network below 9 samples; keep
+	 * deferring to it there so small bands behave exactly as they did */
+	if (n < 9) {
+		float buf[8];
+		for (size_t i = 0; i < n; i++)
+			buf[i] = band[i];
+		const float med = (float) quickmedian_float(buf, n);
+		for (size_t i = 0; i < n; i++)
+			buf[i] = fabsf(band[i] - med);
+		return quickmedian_float(buf, n) * MAD_TO_SIGMA;
+	}
+
+	double med, mad;
+	if (!wd_median(band, n, FALSE, 0.f, threads, &med))
 		return -1.0;
-
-	memcpy(buf, band, n * sizeof(float));
-	const float med = (float) quickmedian_float(buf, n);
-
-	for (size_t i = 0; i < n; i++)
-		buf[i] = fabsf(band[i] - med);
-	const double mad = quickmedian_float(buf, n);
-
-	free(buf);
+	if (!wd_median(band, n, TRUE, (float) med, threads, &mad))
+		return -1.0;
 	return mad * MAD_TO_SIGMA;
 }
 

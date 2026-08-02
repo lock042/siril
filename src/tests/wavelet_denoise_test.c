@@ -25,6 +25,7 @@
 
 #include "core/siril.h"
 #include "algos/Def_Wavelet.h"
+#include "algos/sorting.h"
 #include "algos/wavelet_denoise.h"
 
 cominfo com;	// the core data struct
@@ -32,7 +33,7 @@ fits *gfit;	// currently loaded image (now a pointer)
 
 static void setup(void) {
 	com.headless = TRUE;
-	com.max_thread = 1; /* pave.c OpenMP pragmas read com.max_thread */
+	com.max_thread = 1; /* the tests pass this as their thread budget */
 }
 
 TestSuite(wavelet_denoise, .init = setup);
@@ -109,6 +110,53 @@ Test(wavelet_denoise, mad_sigma_recovers_gaussian) {
 	cr_assert_float_eq(est, sigma, 0.02 * sigma, "MAD sigma %.4f != %.4f", est,
 			sigma);
 	free(band);
+}
+
+/* What wavelet_mad_sigma_float did before it selected on the float bit
+ * pattern: copy, destructive quickselect, rewrite as |x - median|, select
+ * again. The replacement must agree with this exactly, whatever the thread
+ * count, or it would silently move everyone's denoising threshold. */
+static double mad_sigma_reference(const float *band, size_t n) {
+	float *buf = malloc(n * sizeof(float));
+	cr_assert_not_null(buf);
+	memcpy(buf, band, n * sizeof(float));
+	const float med = (float) quickmedian_float(buf, n);
+	for (size_t i = 0; i < n; i++)
+		buf[i] = fabsf(band[i] - med);
+	const double mad = quickmedian_float(buf, n);
+	free(buf);
+	return mad * 1.482602218505602;
+}
+
+Test(wavelet_denoise, mad_sigma_matches_quickselect) {
+	/* odd and even lengths, either side of the small-n sorting network, and
+	 * data carrying signed zeroes, exact ties and denormals -- the selection
+	 * works on the float bit pattern, so those are where it could diverge */
+	const size_t sizes[] = { 8, 9, 10, 1001, 4096, 65537, 200000 };
+	srand(1234);
+	for (unsigned s = 0; s < G_N_ELEMENTS(sizes); s++) {
+		const size_t n = sizes[s];
+		float *band = malloc(n * sizeof(float));
+		cr_assert_not_null(band);
+		for (size_t i = 0; i < n; i++) {
+			switch (i % 7) {
+			case 0: band[i] = 0.f; break;
+			case 1: band[i] = -0.f; break;
+			case 2: band[i] = 1e-40f * (float) (rand() % 5); break; /* denormal */
+			case 3: band[i] = 0.25f; break;                         /* exact ties */
+			case 4: band[i] = -0.25f; break;
+			default: band[i] = (float) (gauss() * 3.0); break;
+			}
+		}
+		const double ref = mad_sigma_reference(band, n);
+		for (int th = 1; th <= 4; th++) {
+			const double got = wavelet_mad_sigma_float(band, n, th);
+			cr_assert_float_eq(got, ref, 0.0,
+					"n=%zu threads=%d: got %.17g, reference %.17g",
+					n, th, got, ref);
+		}
+		free(band);
+	}
 }
 
 /* Standard deviation of (a - b) over a sub-rectangle of an N-wide image. */
