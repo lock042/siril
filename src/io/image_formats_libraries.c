@@ -63,6 +63,7 @@
 #include "core/siril_log.h"
 #include "core/exif.h"
 #include "io/fits_keywords.h"
+#include "io/gps_parser.h"
 #include "algos/geometry.h"
 #include "algos/demosaicing.h"
 #include "core/gui_iface.h"
@@ -1279,7 +1280,10 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 	}
 	free(xdata->icc_buffer);
 
-	/* let's do it before header parsing. */
+	/* XISF rasters are always stored top-down: the first row of the data
+	 * block is the top row of the image. Set it before header parsing so
+	 * that the keyword handlers see a consistent value; it is re-asserted
+	 * below once the buffer has been flipped. */
 	g_snprintf(fit->keywords.row_order, FLEN_VALUE, "%s", "TOP-DOWN");
 
 	// Format the header to ensure it's properly structured
@@ -1306,6 +1310,14 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 	 * fit->header legitimately stays NULL */
 
 	fits_flip_top_to_bottom(fit);
+	/* The buffer is now bottom-up. Any ROWORDER keyword carried in the
+	 * embedded FITS keyword list describes the FITS file the image was
+	 * originally converted from, not the XISF raster, so it must not be
+	 * allowed to describe our buffer: debayering derives the CFA
+	 * orientation from this value and a stale one flips the pattern
+	 * vertically, swapping the red and blue channels for green. */
+	g_snprintf(fit->keywords.row_order, FLEN_VALUE, "%s", "BOTTOM-UP");
+	apply_flip_to_gps_data(fit);
 	siril_log_message(_("Reading XISF: file %s, %ld layer(s), %ux%u pixels\n"),
 			name, fit->naxes[2], fit->rx, fit->ry);
 
