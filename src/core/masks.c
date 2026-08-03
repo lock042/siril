@@ -452,9 +452,12 @@ static gpointer mask_from_color_deserialize(const gchar *blob, int version) {
 	return d;
 }
 
-/* Op descriptors for the mask operations (generic_mask_worker).  mem_ratio 0
- * means no memory check (matches the legacy sites).  Sites that create a mask
- * keep their per-invocation mask_creation flag. */
+/* Op descriptors for the mask operations (generic_mask_worker).  mem_ratio
+ * describes the hook's own working set in units of the MASK size; the
+ * worker's swap-path snapshot of the whole fit is accounted separately by
+ * default_mask_mem_hook, which also runs for mem_ratio-0 ops (they pay the
+ * snapshot too — ratio 0 only means the hook itself allocates nothing).
+ * Sites that create a mask keep their per-invocation mask_creation flag. */
 const op_descriptor op_desc_mask_from_stars = {
 	.id = "mask.from_stars", .version = 1, .mask_hook = mask_from_stars_hook,
 	.log_hook = mask_from_stars_log, .description = N_("Mask from stars"),

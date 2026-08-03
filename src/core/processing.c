@@ -1346,6 +1346,20 @@ static int default_mask_mem_hook(struct generic_mask_args *args) {
 		required_mem = (gint64) (args->mem_ratio * args->fit->rx * args->fit->ry * 4); // worst case
 	}
 
+	/* The worker's swap path (fit == gfit) snapshots the WHOLE fit — pixels
+	 * and mask — before the hook runs.  That cost scales with the image,
+	 * not the mask, so it cannot be folded into mem_ratio (whose basis is
+	 * the mask size): add it explicitly.  The ratio keeps describing the
+	 * hook's own working set on top. */
+	if (args->fit == gfit) {
+		required_mem += (gint64) args->fit->rx * args->fit->ry
+			* args->fit->naxes[2]
+			* (args->fit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD));
+		if (args->fit->mask)
+			required_mem += (gint64) args->fit->rx * args->fit->ry
+				* (args->fit->mask->bitpix >> 3);
+	}
+
 	gint64 available_mem = get_available_memory();
 
 	if (required_mem > available_mem) {
@@ -2335,8 +2349,10 @@ gpointer generic_mask_worker(gpointer p) {
 	if (args->max_threads < 1)
 		args->max_threads = com.max_thread;
 
-	// Memory check
-	if (args->mem_ratio > 0.0f) {
+	/* Memory check.  Ratio-0 ops used to skip it entirely; on the swap path
+	 * they still pay the full-fit snapshot, so run the hook for them too —
+	 * it adds the snapshot term on its own. */
+	if (args->mem_ratio > 0.0f || use_swap) {
 		if (default_mask_mem_hook(args)) {
 			args->retval = 1;
 			goto the_end;
