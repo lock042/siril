@@ -349,9 +349,7 @@ int undo_display_data(int dir) {
 			update_gfit_histogram_if_needed();
 			gui_function(update_MenuItem, NULL);
 			lock_display_transform();
-			if (gui.icc.proofing_transform)
-				cmsDeleteTransform(gui.icc.proofing_transform);
-			gui.icc.proofing_transform = NULL;
+			clear_proofing_transforms();
 			unlock_display_transform();
 			refresh_annotations(TRUE);
 			gui_function(close_tab, NULL); // These 2 lines account for possible change from mono to RGB
@@ -391,9 +389,7 @@ int undo_display_data(int dir) {
 			gui_function(update_MenuItem, NULL);
 			refresh_annotations(TRUE);
 			lock_display_transform();
-			if (gui.icc.proofing_transform)
-				cmsDeleteTransform(gui.icc.proofing_transform);
-			gui.icc.proofing_transform = NULL;
+			clear_proofing_transforms();
 			unlock_display_transform();
 			gui_function(close_tab, NULL); // These 2 lines account for possible change from mono to RGB
 			redraw(REMAP_ALL);
