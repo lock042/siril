@@ -767,6 +767,21 @@ static gboolean materialise_tile_rgb(struct image_view *view,
 	return TRUE;
 }
 
+/* Which gui.remap_index[] slot holds channel c's LUT.
+ *
+ * Most modes build one shared curve in slot 0 and all three channels read it.
+ * The exceptions are the modes whose curve is derived per channel: unlinked STF
+ * (a separate midtones balance per channel) and HISTEQ (each channel equalised
+ * against its own histogram).  Those must read the slot matching the channel.
+ *
+ * HISTEQ used to be missing from this test while remap() wrote each channel's
+ * curve into slot 0 in turn, so the composite read whichever channel happened
+ * to be written last.  Keep this as the single definition of the rule. */
+static inline int lut_slot_for_channel(int c) {
+	return ((gui.rendering_mode == HISTEQ_DISPLAY)
+			|| (gui.rendering_mode == STF_DISPLAY && gui.unlink_channels)) ? c : 0;
+}
+
 /* Dispatch to the right per-vport implementation.  Materialises the tile
  * if it's dirty, has no data, or its current mip differs from the one the
  * caller is asking for; no-op otherwise.  `mip` is the downsample level
@@ -782,8 +797,7 @@ static gboolean materialise_tile(struct image_view *view, int vport,
 		return TRUE;
 	}
 
-	const int target_index = (gui.rendering_mode == STF_DISPLAY && gui.unlink_channels)
-		? vport : 0;
+	const int target_index = lut_slot_for_channel(vport);
 	const gboolean hd_mode = (gui.rendering_mode == STF_DISPLAY
 		&& gui.use_hd_remap && gfit->type == DATA_FLOAT);
 
@@ -812,8 +826,7 @@ static gboolean materialise_tile(struct image_view *view, int vport,
 		 * data for non-unlinked modes. */
 		const BYTE *idx[3];
 		for (int c = 0; c < 3; c++) {
-			const int slot = (gui.rendering_mode == STF_DISPLAY
-			                  && gui.unlink_channels) ? c : 0;
+			const int slot = lut_slot_for_channel(c);
 			idx[c] = hd_mode ? gui.hd_remap_index[slot]
 			                 : gui.remap_index[slot];
 		}
@@ -962,8 +975,7 @@ static void ensure_proxy(struct image_view *view, int vport) {
 	if (vport == RGB_VPORT) {
 		const BYTE *idx[3];
 		for (int c = 0; c < 3; c++) {
-			const int slot = (gui.rendering_mode == STF_DISPLAY
-			                  && gui.unlink_channels) ? c : 0;
+			const int slot = lut_slot_for_channel(c);
 			idx[c] = hd_mode ? gui.hd_remap_index[slot] : gui.remap_index[slot];
 		}
 		const gboolean do_icc = (gfit->color_managed
@@ -971,8 +983,7 @@ static void ensure_proxy(struct image_view *view, int vport) {
 			&& !com.gui_icc.same_primaries);
 		fill_proxy_rgb(view, idx, hd_mode, neg, do_icc, data, pw, ph, step);
 	} else if (vport >= 0 && vport <= 2) {
-		const int target_index = (gui.rendering_mode == STF_DISPLAY
-			&& gui.unlink_channels) ? vport : 0;
+		const int target_index = lut_slot_for_channel(vport);
 		const BYTE *lut = hd_mode ? gui.hd_remap_index[target_index]
 		                          : gui.remap_index[target_index];
 		fill_proxy_gray(view, vport, lut, hd_mode, neg, data, pw, ph, step);
@@ -1102,15 +1113,13 @@ static gboolean pick_render_luts(int vport, const BYTE *idx[3],
 	idx[0] = idx[1] = idx[2] = NULL;
 	if (vport == RGB_VPORT) {
 		for (int c = 0; c < 3; c++) {
-			const int slot = (gui.rendering_mode == STF_DISPLAY
-			                  && gui.unlink_channels) ? c : 0;
+			const int slot = lut_slot_for_channel(c);
 			idx[c] = hd_mode ? gui.hd_remap_index[slot] : gui.remap_index[slot];
 		}
 		*out_do_icc = (gfit->color_managed && com.gui_icc.proofing_transform
 			&& !identical && !com.gui_icc.same_primaries);
 	} else {
-		const int ti = (gui.rendering_mode == STF_DISPLAY
-		                && gui.unlink_channels) ? vport : 0;
+		const int ti = lut_slot_for_channel(vport);
 		idx[0] = hd_mode ? gui.hd_remap_index[ti] : gui.remap_index[ti];
 		*out_do_icc = FALSE;
 	}
@@ -1787,8 +1796,9 @@ static void remap(int vport) {
 		}
 		hist_nb_bins = gsl_histogram_bins(histo);
 		nb_pixels = (double)(gfit->rx * gfit->ry);
-		// build the remap_index
-		index = gui.remap_index[0];
+		// build the remap_index; HISTEQ derives a curve per channel, so it
+		// belongs in this channel's slot (see lut_slot_for_channel)
+		index = gui.remap_index[vport];
 		index[0] = 0;
 		hist_sum = gsl_histogram_get(histo, 0);
 		for (i = 1; i < hist_nb_bins; i++) {
@@ -1841,7 +1851,7 @@ static void remap(int vport) {
 
 	if (color == RAINBOW_COLOR)
 		make_index_for_rainbow(rainbow_index);
-	int target_index = gui.rendering_mode == STF_DISPLAY && gui.unlink_channels ? vport : 0;
+	int target_index = lut_slot_for_channel(vport);
 
 	gboolean hd_mode = (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit->type == DATA_FLOAT);
 	if (hd_mode) {
@@ -2424,7 +2434,9 @@ static int make_index_for_current_display(int vport, float *fidx) {
 
 	/************* Building the remap_index **************/
 	siril_log_debug("Rebuilding gui.remap_index %d\n", vport);
-	// target_index only used for STF mode
+	/* Indexes stf[], not the LUT slots — unlinked STF has a midtones balance
+	 * per channel.  Deliberately not lut_slot_for_channel(), which answers a
+	 * different question and also fires for HISTEQ (which never reaches here). */
 	int target_index = gui.rendering_mode == STF_DISPLAY && gui.unlink_channels ? vport : 0;
 	index = gui.remap_index[vport];
 
