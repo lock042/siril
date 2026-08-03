@@ -650,7 +650,7 @@ static gboolean materialise_tile_rgb(struct image_view *view,
                                       const BYTE * const idx[3],
                                       gboolean hd_mode,
                                       gboolean inverted,
-                                      gboolean do_icc) {
+                                      cmsHTRANSFORM icc_tf) {
 	int x0, y0, tw, th, tex_w, tex_h;
 	tile_dims_padded(view, tx, ty, &x0, &y0, &tw, &th, &tex_w, &tex_h);
 	if (tex_w <= 0 || tex_h <= 0) return TRUE;
@@ -737,8 +737,8 @@ static gboolean materialise_tile_rgb(struct image_view *view,
 			}
 		}
 
-		if (do_icc)
-			cmsDoTransformLineStride(com.gui_icc.proofing_transform,
+		if (icc_tf)
+			cmsDoTransformLineStride(icc_tf,
 				lb, lb, out_w, 1, out_w * 3, out_w * 3, out_w, out_w);
 
 		for (int ox = 0; ox < out_w; ox++) {
@@ -780,6 +780,40 @@ static gboolean materialise_tile_rgb(struct image_view *view,
 static inline int lut_slot_for_channel(int c) {
 	return ((gui.rendering_mode == HISTEQ_DISPLAY)
 			|| (gui.rendering_mode == STF_DISPLAY && gui.unlink_channels)) ? c : 0;
+}
+
+/* The transform the per-pixel RGB display path should apply, or NULL for none.
+ *
+ * Which half of the display transform is meaningful depends on what the display
+ * stretch has done to the data:
+ *
+ *  - LINEAR and the fixed stretches (log/sqrt/squared/asinh) leave the output
+ *    linear-referred - they are defined on linear light and the monitor applies
+ *    its own EOTF afterwards - so the encoding curve still applies and they take
+ *    the full transform.
+ *  - Linked STF replaces the encoding curve, so the TRC half is meaningless, but
+ *    one identical curve across all three channels preserves neutrality and
+ *    leaves chromaticity readable. It takes the primaries-only transform.
+ *  - Unlinked STF and HISTEQ derive a curve per channel, which decouples them:
+ *    a grey pixel no longer maps to a grey triple and there is no chromaticity
+ *    left to map. They take nothing.
+ *
+ * Callers must still have established that the primaries differ; when they match
+ * the transform is either composed into the LUT or an identity. */
+static cmsHTRANSFORM display_pixel_transform(void) {
+	switch (gui.rendering_mode) {
+		case HISTEQ_DISPLAY:
+			return NULL;
+		case STF_DISPLAY:
+			if (gui.unlink_channels)
+				return NULL;
+			/* Fall back to the full transform if the profiles cannot support a
+			 * primaries-only one: wrong tone beats wrong colour. */
+			cmsHTRANSFORM gamut = get_gamut_transform();
+			return gamut ? gamut : com.gui_icc.proofing_transform;
+		default:
+			return com.gui_icc.proofing_transform;
+	}
 }
 
 /* Dispatch to the right per-vport implementation.  Materialises the tile
@@ -830,10 +864,9 @@ static gboolean materialise_tile(struct image_view *view, int vport,
 			idx[c] = hd_mode ? gui.hd_remap_index[slot]
 			                 : gui.remap_index[slot];
 		}
-		const gboolean do_icc = (gfit->color_managed
-			&& com.gui_icc.proofing_transform && !identical
-			&& !com.gui_icc.same_primaries);
-		return materialise_tile_rgb(view, tx, ty, mip, idx, hd_mode, neg, do_icc);
+		cmsHTRANSFORM icc_tf = (gfit->color_managed && !identical
+			&& !com.gui_icc.same_primaries) ? display_pixel_transform() : NULL;
+		return materialise_tile_rgb(view, tx, ty, mip, idx, hd_mode, neg, icc_tf);
 	}
 
 	if (vport >= 0 && vport <= 2) {
@@ -891,7 +924,7 @@ static void fill_proxy_gray(struct image_view *view, int vport,
 }
 
 static void fill_proxy_rgb(struct image_view *view, const BYTE * const idx[3],
-                           gboolean hd_mode, gboolean inverted, gboolean do_icc,
+                           gboolean hd_mode, gboolean inverted, cmsHTRANSFORM icc_tf,
                            guchar *data, int out_w, int out_h, int step) {
 	const int img_w = view->buf_stride / 4;
 	const int img_h = view->buf_height;
@@ -925,8 +958,8 @@ static void fill_proxy_rgb(struct image_view *view, const BYTE * const idx[3],
 			}
 			lb_r[ox] = v[0]; lb_g[ox] = v[1]; lb_b[ox] = v[2];
 		}
-		if (do_icc)
-			cmsDoTransformLineStride(com.gui_icc.proofing_transform,
+		if (icc_tf)
+			cmsDoTransformLineStride(icc_tf,
 				lb, lb, out_w, 1, out_w * 3, out_w * 3, out_w, out_w);
 		for (int ox = 0; ox < out_w; ox++)
 			row_out[ox] = ((guint32)lb_r[ox] << 16)
@@ -978,10 +1011,9 @@ static void ensure_proxy(struct image_view *view, int vport) {
 			const int slot = lut_slot_for_channel(c);
 			idx[c] = hd_mode ? gui.hd_remap_index[slot] : gui.remap_index[slot];
 		}
-		const gboolean do_icc = (gfit->color_managed
-			&& com.gui_icc.proofing_transform && !identical
-			&& !com.gui_icc.same_primaries);
-		fill_proxy_rgb(view, idx, hd_mode, neg, do_icc, data, pw, ph, step);
+		cmsHTRANSFORM icc_tf = (gfit->color_managed && !identical
+			&& !com.gui_icc.same_primaries) ? display_pixel_transform() : NULL;
+		fill_proxy_rgb(view, idx, hd_mode, neg, icc_tf, data, pw, ph, step);
 	} else if (vport >= 0 && vport <= 2) {
 		const int target_index = lut_slot_for_channel(vport);
 		const BYTE *lut = hd_mode ? gui.hd_remap_index[target_index]
@@ -1104,10 +1136,10 @@ static GThreadPool *materialise_pool = NULL;
 
 /* Select the LUT pointer(s) for a viewport, mirroring the materialise_tile
  * dispatcher's slot logic exactly.  idx[0..2] for the RGB composite; idx[0]
- * only for a gray channel.  Returns hd_mode and sets *out_do_icc.  Reads gui.*
+ * only for a gray channel.  Returns hd_mode and sets *out_icc_tf.  Reads gui.*
  * / gfit->* and so must be called with gui.cairo_mutex held. */
 static gboolean pick_render_luts(int vport, const BYTE *idx[3],
-                                 gboolean *out_do_icc) {
+                                 cmsHTRANSFORM *out_icc_tf) {
 	const gboolean hd_mode = (gui.rendering_mode == STF_DISPLAY
 		&& gui.use_hd_remap && gfit->type == DATA_FLOAT);
 	idx[0] = idx[1] = idx[2] = NULL;
@@ -1116,12 +1148,12 @@ static gboolean pick_render_luts(int vport, const BYTE *idx[3],
 			const int slot = lut_slot_for_channel(c);
 			idx[c] = hd_mode ? gui.hd_remap_index[slot] : gui.remap_index[slot];
 		}
-		*out_do_icc = (gfit->color_managed && com.gui_icc.proofing_transform
-			&& !identical && !com.gui_icc.same_primaries);
+		*out_icc_tf = (gfit->color_managed && !identical
+			&& !com.gui_icc.same_primaries) ? display_pixel_transform() : NULL;
 	} else {
 		const int ti = lut_slot_for_channel(vport);
 		idx[0] = hd_mode ? gui.hd_remap_index[ti] : gui.remap_index[ti];
-		*out_do_icc = FALSE;
+		*out_icc_tf = NULL;
 	}
 	return hd_mode;
 }
@@ -1195,7 +1227,7 @@ static void wk_fill_rgb(int gfit_type, const WORD *const psrc[3],
                         const float *const fpsrc[3], int img_w, int img_h,
                         int x0, int y0, int tex_w, int tex_h, int mip,
                         const BYTE *const idx[3], guint hd_max, gboolean hd_mode,
-                        gboolean inverted, gboolean do_icc,
+                        gboolean inverted, cmsHTRANSFORM icc_tf,
                         guchar *data, int out_w, int out_h) {
 	const int step = 1 << mip;
 	BYTE *lb = malloc((size_t)out_w * 3);
@@ -1243,8 +1275,8 @@ static void wk_fill_rgb(int gfit_type, const WORD *const psrc[3],
 				lb_r[ox] = lb_g[ox] = lb_b[ox] = 0;
 			}
 		}
-		if (do_icc)
-			cmsDoTransformLineStride(com.gui_icc.proofing_transform,
+		if (icc_tf)
+			cmsDoTransformLineStride(icc_tf,
 				lb, lb, out_w, 1, out_w * 3, out_w * 3, out_w, out_w);
 		for (int ox = 0; ox < out_w; ox++)
 			row_out[ox] = ((guint32)lb_r[ox] << 16)
@@ -1406,8 +1438,8 @@ static void materialise_worker(gpointer data, gpointer user) {
 		const int gtype = gfit->type;
 		const guint hd_max = gui.hd_remap_max;
 		const BYTE *idx[3];
-		gboolean do_icc = FALSE;
-		const gboolean hd_mode = pick_render_luts(vport, idx, &do_icc);
+		cmsHTRANSFORM icc_tf = NULL;
+		const gboolean hd_mode = pick_render_luts(vport, idx, &icc_tf);
 		const WORD *psrc[3] = { gfit->pdata[0], gfit->pdata[1], gfit->pdata[2] };
 		const float *fpsrc[3] = { gfit->fpdata[0], gfit->fpdata[1], gfit->fpdata[2] };
 
@@ -1427,7 +1459,7 @@ static void materialise_worker(gpointer data, gpointer user) {
 		}
 		if (vport == RGB_VPORT)
 			wk_fill_rgb(gtype, psrc, fpsrc, img_w, img_h, gx0, gy0,
-				gtex_w, gtex_h, jmip, idx, hd_max, hd_mode, neg, do_icc,
+				gtex_w, gtex_h, jmip, idx, hd_max, hd_mode, neg, icc_tf,
 				buf, out_w, out_h);
 		else
 			wk_fill_gray(gtype, psrc[vport], fpsrc[vport], img_w, img_h,
@@ -1565,12 +1597,67 @@ static void remaprgb(void) {
 	dst = (guint32*) rgbview->buf;	// index is j
 	nbdata = (rgbview->buf_stride / 4) * rgbview->buf_height;
 
+	/* remap_all_vports() transforms its own buffers, so only the STF/HISTEQ
+	 * path has anything left to do here: it is rendered by remap(), one gray
+	 * vport at a time, and a colour transform needs all three channels at once
+	 * - this composite is the first point at which they exist together.
+	 * display_pixel_transform() then yields the primaries-only transform for
+	 * linked STF, and nothing for unlinked STF or HISTEQ. */
+	cmsHTRANSFORM icc_tf = NULL;
+	if ((gui.rendering_mode == STF_DISPLAY || gui.rendering_mode == HISTEQ_DISPLAY)
+			&& gfit->color_managed && !identical && !com.gui_icc.same_primaries)
+		icc_tf = display_pixel_transform();
+
+	BYTE *scratch = NULL;
+	const int chunk = 4096;
+	int nthreads = 1;
+	if (icc_tf) {
+#ifdef _OPENMP
+		nthreads = com.max_thread > 0 ? com.max_thread : 1;
+#endif
+		scratch = malloc((size_t) nthreads * 3 * chunk);
+		if (!scratch) {
+			PRINT_ALLOC_ERR;
+			icc_tf = NULL;	/* composite uncorrected rather than not at all */
+		}
+	}
+
+	if (icc_tf) {
+		/* cairo_mutex is already held; taking the display transform lock second
+		 * matches the order remap_all_vports() uses. */
+		lock_display_transform();
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(nthreads) schedule(static)
+#endif
+		for (int base = 0; base < nbdata; base += chunk) {
+			const int n = min(chunk, nbdata - base);
+#ifdef _OPENMP
+			BYTE *plane = scratch + (size_t) omp_get_thread_num() * 3 * chunk;
+#else
+			BYTE *plane = scratch;
+#endif
+			for (int k = 0; k < n; k++) {
+				plane[k]             = (bufr[base + k] >> 16) & 0xFF;
+				plane[chunk + k]     = (bufg[base + k] >> 8) & 0xFF;
+				plane[2 * chunk + k] =  bufb[base + k] & 0xFF;
+			}
+			cmsDoTransformLineStride(icc_tf, plane, plane, n, 1,
+					chunk * 3, chunk * 3, chunk, chunk);
+			for (int k = 0; k < n; k++)
+				dst[base + k] = (guint32) plane[k] << 16
+				              | (guint32) plane[chunk + k] << 8
+				              | (guint32) plane[2 * chunk + k];
+		}
+		unlock_display_transform();
+	} else {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
-	for (i = 0; i < nbdata; ++i) {
-		dst[i] = (bufr[i] & 0xFF0000) | (bufg[i] & 0xFF00) | (bufb[i] & 0xFF);
+		for (i = 0; i < nbdata; ++i) {
+			dst[i] = (bufr[i] & 0xFF0000) | (bufg[i] & 0xFF00) | (bufb[i] & 0xFF);
+		}
 	}
+	free(scratch);
 
 	view_refresh_tile_textures(rgbview);
 	g_mutex_unlock(&gui.cairo_mutex);
@@ -2124,8 +2211,14 @@ static void remap_all_vports() {
 	gboolean alloc_error = FALSE;
 
 	{
-		siril_log_debug((com.gui_icc.proofing_transform && !identical && (!com.gui_icc.same_primaries || com.gui_icc.profile_changed)) ? "Non-identical primaries: doing expensive color transform\n" : "");
-		const gboolean do_transform = (com.gui_icc.proofing_transform && !identical && (!com.gui_icc.same_primaries || com.gui_icc.profile_changed));
+		/* Only reached for the linear-referred modes, so display_pixel_transform()
+		 * yields the full transform here; routed through it anyway to keep one
+		 * definition of the rule. (The old condition also tested profile_changed,
+		 * which is cleared above before this point and so was always FALSE.) */
+		cmsHTRANSFORM icc_tf = (!identical && !com.gui_icc.same_primaries)
+			? display_pixel_transform() : NULL;
+		siril_log_debug(icc_tf ? "Non-identical primaries: doing expensive color transform\n" : "");
+		const gboolean do_transform = (icc_tf != NULL);
 
 		if (do_transform)
 			lock_display_transform();
@@ -2231,7 +2324,7 @@ static void remap_all_vports() {
 				}
 			}
 			if (do_transform) {
-				cmsDoTransformLineStride(com.gui_icc.proofing_transform, pixelbuf_byte, pixelbuf_byte, width, 1, width * 3, width * 3, width, width);
+				cmsDoTransformLineStride(icc_tf, pixelbuf_byte, pixelbuf_byte, width, 1, width * 3, width * 3, width, width);
 			}
 
 			const guint dst_row_start = (height - 1 - sy) * (guint)width * 4;

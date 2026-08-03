@@ -297,6 +297,11 @@ void clear_proofing_transforms() {
 		cmsDeleteTransform(com.gui_icc.proofing_lut_transform);
 		com.gui_icc.proofing_lut_transform = NULL;
 	}
+	if (com.gui_icc.gamut_transform) {
+		cmsDeleteTransform(com.gui_icc.gamut_transform);
+		com.gui_icc.gamut_transform = NULL;
+	}
+	com.gui_icc.gamut_transform_tried = FALSE;
 }
 
 void icc_lock_monitor_profile(void)   { g_mutex_lock(&monitor_profile_mutex); }
@@ -342,6 +347,108 @@ static cmsHTRANSFORM build_proofing_transform(gboolean float_input) {
 
 cmsHTRANSFORM initialize_proofing_transform() {
 	return build_proofing_transform(FALSE);
+}
+
+/* Builds the transform for the modes whose output is display-referred but whose
+ * chromaticity still means something - currently linked autostretch.
+ *
+ * It maps the image's primaries onto the monitor's while leaving tone alone, by
+ * transforming from a synthetic profile that carries the image's colorants and
+ * the *monitor's* tone curves. Both ends then share a TRC, so the decode and the
+ * encode cancel and only the colorant matrix survives.
+ *
+ * The full transform is wrong here because its encoding curve would run over
+ * values the autostretch has already mapped to display code values, which is
+ * what makes the TRC half meaningless in those modes. Skipping the transform
+ * altogether is also wrong: it renders the image's numbers through the monitor's
+ * primaries, mis-stating every hue and saturation - very visible on the P3
+ * panels now common in laptops.
+ *
+ * Builds the synthetic profile by copying tags rather than going through
+ * cmsCreateRGBProfile(): the colorant tags are already adapted to the D50 PCS,
+ * so feeding them back as xyY primaries would adapt them a second time.
+ *
+ * Returns NULL if either profile is not a matrix-shaper and so has no colorant
+ * or TRC tags to copy, leaving the caller to fall back. */
+static cmsHTRANSFORM build_gamut_transform() {
+	if (!gfit->icc_profile || !gfit->color_managed || !com.gui_icc.monitor)
+		return NULL;
+
+	g_mutex_lock(&soft_proof_profile_mutex);
+	g_mutex_lock(&monitor_profile_mutex);
+
+	cmsHTRANSFORM transform = NULL;
+	cmsHPROFILE synthetic = NULL;
+	const cmsTagSignature colorants[3] = { cmsSigRedColorantTag,
+			cmsSigGreenColorantTag, cmsSigBlueColorantTag };
+	const cmsTagSignature trcs[3] = { cmsSigRedTRCTag, cmsSigGreenTRCTag,
+			cmsSigBlueTRCTag };
+
+	for (int i = 0 ; i < 3 ; i++) {
+		if (!cmsIsTag(gfit->icc_profile, colorants[i]) ||
+				!cmsIsTag(com.gui_icc.monitor, trcs[i]))
+			goto out;
+	}
+	if (!cmsIsTag(gfit->icc_profile, cmsSigMediaWhitePointTag))
+		goto out;
+
+	synthetic = cmsCreateProfilePlaceholder(com.icc.context_single);
+	if (!synthetic)
+		goto out;
+	cmsSetProfileVersion(synthetic, 4.3);
+	cmsSetDeviceClass(synthetic, cmsSigDisplayClass);
+	cmsSetColorSpace(synthetic, cmsSigRgbData);
+	cmsSetPCS(synthetic, cmsSigXYZData);
+	if (!cmsWriteTag(synthetic, cmsSigMediaWhitePointTag,
+			cmsReadTag(gfit->icc_profile, cmsSigMediaWhitePointTag)))
+		goto out;
+	for (int i = 0 ; i < 3 ; i++) {
+		if (!cmsWriteTag(synthetic, colorants[i],
+					cmsReadTag(gfit->icc_profile, colorants[i])) ||
+				!cmsWriteTag(synthetic, trcs[i],
+					cmsReadTag(com.gui_icc.monitor, trcs[i])))
+			goto out;
+	}
+
+	/* No cmsFLAGS_NOOPTIMIZE: that is set for linear sources to keep precision
+	 * on a steep encoding curve, and this transform has no encoding curve left
+	 * to be steep - the two cancel. */
+	cmsUInt32Number flags = com.gui_icc.proofing_flags;
+	if (gui_iface.get_gamut_check_active())
+		flags |= cmsFLAGS_GAMUTCHECK;
+	transform = cmsCreateProofingTransformTHR(com.icc.context_single,
+			synthetic, TYPE_RGB_8_PLANAR,
+			com.gui_icc.monitor, TYPE_RGB_8_PLANAR,
+			(com.gui_icc.soft_proof && com.pref.icc.soft_proofing_profile_active)
+				? com.gui_icc.soft_proof : com.gui_icc.monitor,
+			com.pref.icc.rendering_intent, com.pref.icc.proofing_intent, flags);
+
+out:
+	if (synthetic)
+		cmsCloseProfile(synthetic);
+	g_mutex_unlock(&monitor_profile_mutex);
+	g_mutex_unlock(&soft_proof_profile_mutex);
+	if (!transform)
+		siril_log_debug("gamut-only transform unavailable, falling back\n");
+	return transform;
+}
+
+/* Cached accessor for the above. Returns NULL if it could not be built, which
+ * the caller must treat as "use the full transform instead".
+ *
+ * Reached from the tile workers, so the build is serialised: the unlocked test
+ * is a benign race that costs at most one redundant lock. No caller holds the
+ * display transform mutex at this point. */
+cmsHTRANSFORM get_gamut_transform() {
+	if (com.gui_icc.gamut_transform || com.gui_icc.gamut_transform_tried)
+		return com.gui_icc.gamut_transform;
+	lock_display_transform();
+	if (!com.gui_icc.gamut_transform_tried) {
+		com.gui_icc.gamut_transform = build_gamut_transform();
+		com.gui_icc.gamut_transform_tried = TRUE;
+	}
+	unlock_display_transform();
+	return com.gui_icc.gamut_transform;
 }
 
 //Two functions to check if profiles are RGB or Gray
