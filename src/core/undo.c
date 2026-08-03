@@ -858,9 +858,22 @@ static int undo_restore(fits *fit, historic *hist) {
 		return 0;
 	}
 
-	/* Processing-mask-only: restore fit->mask, leave pixels alone. */
+	/* Processing-mask-only: restore fit->mask, leave pixels alone.  When
+	 * the entry names a layer, restore into THAT layer's fit — the active
+	 * layer may have changed since the routed op saved it. */
 	if (hist->pmask_only) {
-		return undo_get_mask_data(fit, hist);
+		fits *pmask_target = fit;
+		if (hist->flis_layer_id != FLIS_UNDO_LAYER_NONE
+		    && is_current_image_flis()) {
+			flis_layer_t *lay = flis_layer_get_by_id(hist->flis_layer_id);
+			if (!lay || !lay->fit) {
+				siril_log_warning(_("Undo: target layer (id %d) no longer exists\n"),
+				                  hist->flis_layer_id);
+				return 1;
+			}
+			pmask_target = lay->fit;
+		}
+		return undo_get_mask_data(pmask_target, hist);
 	}
 
 	/* ICC-profile-only: install the snapshot via the accessor so the
@@ -1390,14 +1403,23 @@ static int undo_push_counterpart_to(GList **stack, fits *fit, const historic *to
 		return 0;
 	}
 
-	/* Processing-mask-only. */
+	/* Processing-mask-only.  Capture from the entry's own layer fit when it
+	 * has one, and carry the attribution onto the counterpart, so redo also
+	 * targets the layer the op ran on. */
 	if (top->pmask_only) {
+		fits *src = fit;
+		if (top->flis_layer_id != FLIS_UNDO_LAYER_NONE && is_current_image_flis()) {
+			flis_layer_t *lay = flis_layer_get_by_id(top->flis_layer_id);
+			if (!lay || !lay->fit) return 1;
+			src = lay->fit;
+		}
 		historic *h = flis_alloc_historic(top->history);
 		h->pmask_only  = TRUE;
-		h->rx = fit->rx;
-		h->ry = fit->ry;
-		h->mask_bitpix = (fit->mask && fit->mask->data) ? fit->mask->bitpix : 0;
-		int mfd = undo_build_mask_swapfile(fit);
+		h->flis_layer_id = top->flis_layer_id;
+		h->rx = src->rx;
+		h->ry = src->ry;
+		h->mask_bitpix = (src->mask && src->mask->data) ? src->mask->bitpix : 0;
+		int mfd = undo_build_mask_swapfile(src);
 		if (mfd == -2) { undo_free_item(h); return 1; }
 		h->mask_fd = mfd;
 		*stack = g_list_prepend(*stack, h);
@@ -1712,6 +1734,15 @@ int undo_save_processing_mask(fits *fit, const char *message, ...) {
 
 	historic *h = flis_alloc_historic(msg_buf);
 	h->pmask_only  = TRUE;
+	/* Attribute the layer whose processing mask this is (mirrors the plain
+	 * entry attribution in undo_push_to): without it a later undo restored
+	 * the pmask into whatever fit was current by then, so undoing a routed
+	 * mask op after a layer switch dressed the wrong layer in the old mask. */
+	if (is_current_image_flis()) {
+		flis_layer_t *lay = flis_layer_get_by_fit(fit);
+		if (lay)
+			h->flis_layer_id = lay->item_id;
+	}
 	h->rx = fit->rx;
 	h->ry = fit->ry;
 	h->mask_bitpix = (fit->mask && fit->mask->data) ? fit->mask->bitpix : 0;

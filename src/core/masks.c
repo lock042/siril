@@ -2079,7 +2079,10 @@ int mask_from_lum_hook(struct generic_mask_args *args) {
 
 int mask_thresh_hook(struct generic_mask_args *args) {
 	mask_thresh_data *data = (mask_thresh_data*) args->user;
-	return mask_threshold(gfit, data->min_val, data->max_val, data->range);
+	/* args->fit, not gfit: the mask worker runs hooks on a private snapshot
+	 * and installs the result by swap — a hook reaching for the global
+	 * would mutate the live image behind the swap's back. */
+	return mask_threshold(args->fit, data->min_val, data->max_val, data->range);
 }
 
 int mask_blur_hook(struct generic_mask_args *args) {

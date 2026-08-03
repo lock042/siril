@@ -1660,6 +1660,11 @@ gpointer generic_image_worker(gpointer p) {
 	gchar *history = NULL;
 	gchar *summary = NULL;
 	gboolean undo_state = FALSE;
+	/* Assigned below once hook_fit's mask state is known; declared here so
+	 * the guard gotos above the assignment don't leave it indeterminate at
+	 * the_end (never read on those paths — retval gates it — but the
+	 * compiler cannot see that). */
+	gboolean using_mask = FALSE;
 
 	/* Suppress viewport redraws for any op that writes gfit, so partial
 	 * remap_index updates from background threads don't make it to the
@@ -1765,7 +1770,7 @@ gpointer generic_image_worker(gpointer p) {
 		}
 	}
 
-	gboolean using_mask = args->mask_aware && hook_fit->mask && hook_fit->mask_active;
+	using_mask = args->mask_aware && hook_fit->mask && hook_fit->mask_active;
 
 	/* Capture pre-op layer state for the FLIS geometry undo path.  The hook
 	 * has not run yet, so the active layer's lmask and props still hold their
@@ -2153,15 +2158,74 @@ the_end:;
 	return GINT_TO_POINTER(retval);
 }
 
-/* TODO: apply the same swap-on-completion treatment to generic_mask_worker
- * that generic_image_worker now uses (commit 28ea0b5c7).  Today this worker
- * holds args->fit->rwlock as a writer for the entire duration of the
- * mask_hook — usually fast, but long-running mask ops would block GUI
- * readers the same way image-hook ops used to.  The fix would mirror
- * generic_image_worker: snapshot the fit (or just mask) into a private
- * buffer, run the hook lock-free, briefly take the writer lock for a
- * fits_swap_all_except_rwlock at the end.  Low priority while mask ops
- * stay short. */
+/* FLIS layermask routing + mask activation, shared by generic_mask_worker's
+ * two install paths.  Moves the freshly-built mask onto the target layer's
+ * lmask slot and clears the processing-mask slot; a routing failure (no FLIS
+ * / layer gone / dimension mismatch) leaves the mask as the processing mask —
+ * better than dropping it on the floor.  The caller holds @fit's writer lock;
+ * taking the stack lock under it is the allowed direction (fits → stack,
+ * M-F12; see the rules in image_format_flis.c).  Returns the item id of the
+ * layer whose lmask received the mask, else 0. */
+static gint mask_route_and_activate(struct generic_mask_args *args, fits *fit) {
+	gint routed_to_layer = 0;
+	if (args->target_layer_id != 0 && fit->mask && fit->mask->data
+	    && is_current_image_flis()) {
+		flis_stack_writer_lock();
+		flis_layer_t *target = flis_layer_get_by_id(args->target_layer_id);
+		if (!target || !target->fit) {
+			siril_log_warning(_("Mask routing: target layer (id %d) not found; "
+			                    "mask left on processing slot\n"),
+			                  args->target_layer_id);
+		} else if ((size_t)target->fit->rx != fit->rx
+		           || (size_t)target->fit->ry != fit->ry) {
+			siril_log_warning(_("Mask routing: target layer '%s' (%ux%u) "
+			                    "does not match mask dimensions (%ux%u); "
+			                    "mask left on processing slot\n"),
+			                  target->layer_name ? target->layer_name : "?",
+			                  target->fit->rx, target->fit->ry,
+			                  fit->rx, fit->ry);
+		} else {
+			layermask_t *lm = calloc(1, sizeof(layermask_t));
+			if (lm) {
+				lm->w      = fit->rx;
+				lm->h      = fit->ry;
+				lm->bitpix = fit->mask->bitpix;
+				lm->data   = fit->mask->data;
+				fit->mask->data = NULL;
+				free_mask(fit->mask);
+				fit->mask = NULL;
+				set_mask_active(fit, FALSE);
+				if (flis_layer_set_lmask(target, lm)) {
+					layermask_free(lm);
+				} else {
+					routed_to_layer = target->item_id;
+					/* Name the destination.  The dialog's Target dropdown is
+					 * the only other place it appears, and when a mask turns
+					 * up on the wrong layer that dropdown is exactly what is
+					 * in question — so the log has to settle it. */
+					siril_log_message(_("FLIS: layer mask created on '%s'\n"),
+					                  target->layer_name ? target->layer_name : "?");
+					/* Show the result: flip the mask-view radio to
+					 * LAYER so the (now visible) mask tab displays
+					 * the lmask that was just created, not the empty
+					 * processing slot. */
+					if (com.uniq)
+						com.uniq->flis_mask_view = 1;
+					gui_iface.flis_invalidate_composite();
+					gui_iface.flis_gui_update();
+				}
+				/* Suppress the generic mask_creation activate below — the
+				 * processing mask is now empty. */
+				args->mask_creation = FALSE;
+			}
+		}
+		flis_stack_writer_unlock();
+	}
+	if (args->mask_creation)
+		set_mask_active(fit, TRUE);
+	return routed_to_layer;
+}
+
 gpointer generic_mask_worker(gpointer p) {
 	struct generic_mask_args *args = (struct generic_mask_args *)p;
 	struct timeval t_start, t_end;
@@ -2175,6 +2239,16 @@ gpointer generic_mask_worker(gpointer p) {
 	gboolean verbose = args->verbose;
 	gchar *history = NULL;
 	gboolean rwlocked = FALSE;
+
+	/* Swap-path state (mirrors generic_image_worker): when the job targets
+	 * gfit, the hook runs on a private snapshot (`orig`) with no lock held,
+	 * and the result is installed — or discarded on a mid-job layer
+	 * retarget — in a microsecond writer-lock window at the end.  Declared
+	 * up here because the guard gotos below jump over the point of use and
+	 * the cleanup at the end must see initialised values. */
+	fits *argfit = args->fit;
+	gboolean use_swap = (argfit == gfit);
+	fits *orig = NULL;
 
 	/* Job identity, resolved ONCE at job start (same rationale as
 	 * generic_image_worker): the provenance block at the end runs after the
@@ -2278,34 +2352,70 @@ gpointer generic_mask_worker(gpointer p) {
 
 	gui_iface.set_progress(0.1f, _("Processing mask..."));
 
-	g_rw_lock_writer_lock(&args->fit->rwlock);
-	rwlocked = TRUE;
-	if (args->fit == gfit && !args->command) {
-		gchar *undo_msg = args->log_hook ? args->log_hook(args->user, SUMMARY) : g_strdup(args->description);
-		/* args->fit, not gfit, below: the gate just proved them equal, and
-		 * args->fit cannot be repointed by a layer switch landing between
-		 * the check and the snapshot. */
-		if (args->target_layer_id != 0 && is_current_image_flis()) {
-			/* §5.2 routed op (target validated by the pre-check above):
-			 * the meaningful pre-state is the target layer's lmask —
-			 * plus the processing mask the hook will clobber while
-			 * generating, if one exists.  A flavour-blind pixel
-			 * snapshot here left undo restoring identical pixels while
-			 * the freshly routed lmask survived untouched. */
-			if (args->fit->mask && args->fit->mask->data)
-				undo_save_processing_mask(args->fit, "%s", undo_msg);
-			flis_layer_t *undo_target =
-				flis_layer_get_by_id(args->target_layer_id);
-			if (undo_target)
-				undo_save_flis_lmask(undo_target, undo_msg);
-		} else {
-			undo_save_state(args->fit, undo_msg);
+	if (use_swap) {
+		/* Swap path: snapshot gfit → orig (CP_DEEPCOPY includes the mask)
+		 * under a brief reader lock, then drop it — the hook runs on the
+		 * snapshot with GUI readers unblocked.  The pre-hook undo saves
+		 * happen under the same reader lock: they only READ the fits (the
+		 * writer lock the old in-place flow held around them was for the
+		 * hook's benefit), and saving from the LIVE fit is load-bearing —
+		 * undo_push_to captures the ICC profile and the layer attribution
+		 * only when its argument is a live gfit, neither of which a
+		 * post-swap save from the private snapshot could provide.  The
+		 * cost: a discarded or failed op leaves a no-op entry on the
+		 * stack, a wart the hook-failure path always had. */
+		orig = calloc(1, sizeof(fits));
+		if (!orig) {
+			PRINT_ALLOC_ERR;
+			args->retval = 1;
+			goto the_end;
 		}
-		pushed_undo = TRUE;
-		g_free(undo_msg);
+		g_rw_lock_reader_lock(&gfit->rwlock);
+		if (!args->command) {
+			gchar *undo_msg = args->log_hook ? args->log_hook(args->user, SUMMARY) : g_strdup(args->description);
+			if (args->target_layer_id != 0 && is_current_image_flis()) {
+				/* §5.2 routed op (target validated by the pre-check above):
+				 * the meaningful pre-state is the target layer's lmask —
+				 * plus the processing mask the hook will clobber while
+				 * generating, if one exists.  A flavour-blind pixel
+				 * snapshot here left undo restoring identical pixels while
+				 * the freshly routed lmask survived untouched. */
+				if (argfit->mask && argfit->mask->data)
+					undo_save_processing_mask(argfit, "%s", undo_msg);
+				flis_layer_t *undo_target =
+					flis_layer_get_by_id(args->target_layer_id);
+				if (undo_target)
+					undo_save_flis_lmask(undo_target, undo_msg);
+			} else {
+				undo_save_state(argfit, undo_msg);
+			}
+			pushed_undo = TRUE;
+			g_free(undo_msg);
+		}
+		int rc = copyfits(gfit, orig, CP_DEEPCOPY | CP_ALLOC, -1);
+		g_rw_lock_reader_unlock(&gfit->rwlock);
+		if (rc) {
+			siril_log_error(_("Failed to copy original image.\n"));
+			args->retval = 1;
+			goto the_end;
+		}
+	} else {
+		/* Non-swap path: legacy in-place pattern — writer-lock args->fit
+		 * for the hook's duration.  No undo here: the undo gate requires
+		 * the job to target gfit, which is exactly use_swap. */
+		g_rw_lock_writer_lock(&argfit->rwlock);
+		rwlocked = TRUE;
 	}
-	// Call the mask processing hook
-	if (args->mask_hook(args)) {
+
+	/* Run the mask processing hook — on the snapshot (swap path) or in
+	 * place (non-swap).  Mask hooks receive only args, so the redirect
+	 * repoints args->fit for the call; the hook audit (all 13 hooks in
+	 * core/masks.c) confirmed they operate on args->fit alone. */
+	if (use_swap)
+		args->fit = orig;
+	int hook_failed = args->mask_hook(args);
+	args->fit = argfit;
+	if (hook_failed) {
 		siril_log_error(_("%s mask processing failed.\n"), args->description);
 		args->retval = 1;
 	} else {
@@ -2330,75 +2440,38 @@ the_end:
 
 	int retval = args->retval;
 
-	/* FLIS layermask routing: move the freshly-built mask onto the target
-	 * layer's lmask slot and clear the processing-mask slot.  Only when the
-	 * hook succeeded and produced a mask.  Failure here (no FLIS / layer
-	 * gone / dimension mismatch) leaves the mask as the processing mask —
-	 * better than dropping it on the floor. */
+	/* Install the result.  Swap path: one writer-lock window that mirrors
+	 * generic_image_worker's swap point — re-check the target under the
+	 * lock, swap the snapshot in, and route/activate the mask inside the
+	 * same window so no reader observes the intermediate processing-mask
+	 * state.  A layer switch that retargeted gfit while the hook ran means
+	 * the result is discarded: the job ran against a layer the user is
+	 * leaving.  (That covers routed ops too — the routing target is an
+	 * explicit layer, but the mask was derived from the departed layer's
+	 * pixels, and one discard rule beats two.)  Non-swap path: route and
+	 * activate in place under the still-held writer lock, as before. */
 	gint routed_to_layer = 0;   /* layer whose lmask received the mask, if any */
-	if (!retval && args->target_layer_id != 0 && args->fit->mask
-	    && args->fit->mask->data && is_current_image_flis()) {
-		/* M-F12: the routing mutates a layer's lmask from the worker
-		 * thread.  Taking the stack lock while args->fit->rwlock is held
-		 * is the allowed direction (fits → stack); see the rules in
-		 * image_format_flis.c. */
-		flis_stack_writer_lock();
-		flis_layer_t *target = flis_layer_get_by_id(args->target_layer_id);
-		if (!target || !target->fit) {
-			siril_log_warning(_("Mask routing: target layer (id %d) not found; "
-			                    "mask left on processing slot\n"),
-			                  args->target_layer_id);
-		} else if ((size_t)target->fit->rx != args->fit->rx
-		           || (size_t)target->fit->ry != args->fit->ry) {
-			siril_log_warning(_("Mask routing: target layer '%s' (%ux%u) "
-			                    "does not match mask dimensions (%ux%u); "
-			                    "mask left on processing slot\n"),
-			                  target->layer_name ? target->layer_name : "?",
-			                  target->fit->rx, target->fit->ry,
-			                  args->fit->rx, args->fit->ry);
-		} else {
-			layermask_t *lm = calloc(1, sizeof(layermask_t));
-			if (lm) {
-				lm->w      = args->fit->rx;
-				lm->h      = args->fit->ry;
-				lm->bitpix = args->fit->mask->bitpix;
-				lm->data   = args->fit->mask->data;
-				args->fit->mask->data = NULL;
-				free_mask(args->fit->mask);
-				args->fit->mask = NULL;
-				set_mask_active(args->fit, FALSE);
-				if (flis_layer_set_lmask(target, lm)) {
-					layermask_free(lm);
-				} else {
-					routed_to_layer = target->item_id;
-					/* Name the destination.  The dialog's Target dropdown is
-					 * the only other place it appears, and when a mask turns
-					 * up on the wrong layer that dropdown is exactly what is
-					 * in question — so the log has to settle it. */
-					siril_log_message(_("FLIS: layer mask created on '%s'\n"),
-					                  target->layer_name ? target->layer_name : "?");
-					/* Show the result: flip the mask-view radio to
-					 * LAYER so the (now visible) mask tab displays
-					 * the lmask that was just created, not the empty
-					 * processing slot. */
-					if (com.uniq)
-						com.uniq->flis_mask_view = 1;
-					gui_iface.flis_invalidate_composite();
-					gui_iface.flis_gui_update();
-				}
-				/* Suppress the generic mask_creation activate below — the
-				 * processing mask is now empty. */
-				args->mask_creation = FALSE;
+	if (use_swap) {
+		if (!retval) {
+			g_rw_lock_writer_lock(&argfit->rwlock);
+			gboolean retargeted = (gfit != argfit) || flis_gfit_retarget_in_progress();
+			if (!retargeted) {
+				fits_swap_all_except_rwlock(argfit, orig);
+				routed_to_layer = mask_route_and_activate(args, argfit);
+			}
+			g_rw_lock_writer_unlock(&argfit->rwlock);
+			if (retargeted) {
+				siril_log_message(_("%s: the active layer changed during processing, discarding the result.\n"),
+						args->description ? args->description : _("Mask operation"));
+				args->retval = 1;
+				retval = 1;
 			}
 		}
-		flis_stack_writer_unlock();
+	} else if (rwlocked) {
+		if (!retval)
+			routed_to_layer = mask_route_and_activate(args, argfit);
+		g_rw_lock_writer_unlock(&argfit->rwlock);
 	}
-
-	if (args->mask_creation) {
-		set_mask_active(args->fit, TRUE);
-	}
-	if (rwlocked)
-		g_rw_lock_writer_unlock(&args->fit->rwlock);
 	g_rw_lock_reader_unlock(&com.pref_rwlock);
 
 	/* NDE provenance.  A mask is an item in its own right (step 3 gave it a
@@ -2535,6 +2608,13 @@ the_end:
 		siril_add_idle(args->idle_function, args);
 	} else {
 		siril_add_idle(end_generic_mask, args);
+	}
+
+	/* After a successful swap, orig holds the pre-op image; on failure or
+	 * discard it holds the (dead) hook result.  Either way it is ours. */
+	if (orig) {
+		clearfits(orig);
+		free(orig);
 	}
 
 	return GINT_TO_POINTER(retval);
