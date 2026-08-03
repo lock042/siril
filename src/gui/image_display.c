@@ -121,6 +121,40 @@ void check_gfit_profile_identical_to_monitor() {
 	siril_debug_print("gfit profile identical to monitor profile: %d\n", identical);
 }
 
+/* The transform the per-pixel RGB display path should apply, or NULL for none.
+ *
+ * Which half of the display transform is meaningful depends on what the display
+ * stretch has done to the data:
+ *
+ *  - LINEAR and the fixed stretches (log/sqrt/squared/asinh) leave the output
+ *    linear-referred - they are defined on linear light and the monitor applies
+ *    its own EOTF afterwards - so the encoding curve still applies and they take
+ *    the full transform.
+ *  - Linked STF replaces the encoding curve, so the TRC half is meaningless, but
+ *    one identical curve across all three channels preserves neutrality and
+ *    leaves chromaticity readable. It takes the primaries-only transform.
+ *  - Unlinked STF and HISTEQ derive a curve per channel, which decouples them:
+ *    a grey pixel no longer maps to a grey triple and there is no chromaticity
+ *    left to map. They take nothing.
+ *
+ * Callers must still have established that the primaries differ; when they match
+ * the transform is either composed into the LUT or an identity. */
+static cmsHTRANSFORM display_pixel_transform(void) {
+	switch (gui.rendering_mode) {
+		case HISTEQ_DISPLAY:
+			return NULL;
+		case STF_DISPLAY:
+			if (gui.unlink_channels)
+				return NULL;
+			/* Fall back to the full transform if the profiles cannot support a
+			 * primaries-only one: wrong tone beats wrong colour. */
+			cmsHTRANSFORM gamut = get_gamut_transform();
+			return gamut ? gamut : gui.icc.proofing_transform;
+		default:
+			return gui.icc.proofing_transform;
+	}
+}
+
 static void remaprgb(void) {
 	guint32 *dst;
 	const guint32 *bufr, *bufg, *bufb;
@@ -147,12 +181,65 @@ static void remaprgb(void) {
 	dst = (guint32*) rgbview->buf;	// index is j
 	nbdata = gfit.rx * gfit.ry;	// source images are 32-bit RGBA
 
+	/* remap_all_vports() transforms its own buffers, so only the STF/HISTEQ
+	 * path has anything left to do here: it is rendered by remap(), one gray
+	 * vport at a time, and a colour transform needs all three channels at once
+	 * - this composite is the first point at which they exist together.
+	 * display_pixel_transform() then yields the primaries-only transform for
+	 * linked STF, and nothing for unlinked STF or HISTEQ. */
+	cmsHTRANSFORM icc_tf = NULL;
+	if ((gui.rendering_mode == STF_DISPLAY || gui.rendering_mode == HISTEQ_DISPLAY)
+			&& gfit.color_managed && !identical && !gui.icc.same_primaries)
+		icc_tf = display_pixel_transform();
+
+	BYTE *scratch = NULL;
+	const int chunk = 4096;
+	int nthreads = 1;
+	if (icc_tf) {
+#ifdef _OPENMP
+		nthreads = com.max_thread > 0 ? com.max_thread : 1;
+#endif
+		scratch = malloc((size_t) nthreads * 3 * chunk);
+		if (!scratch) {
+			PRINT_ALLOC_ERR;
+			icc_tf = NULL;	/* composite uncorrected rather than not at all */
+		}
+	}
+
+	if (icc_tf) {
+		lock_display_transform();
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(nthreads) schedule(static)
+#endif
+		for (int base = 0; base < nbdata; base += chunk) {
+			const int n = min(chunk, nbdata - base);
+#ifdef _OPENMP
+			BYTE *plane = scratch + (size_t) omp_get_thread_num() * 3 * chunk;
+#else
+			BYTE *plane = scratch;
+#endif
+			for (int k = 0; k < n; k++) {
+				plane[k]             = (bufr[base + k] >> 16) & 0xFF;
+				plane[chunk + k]     = (bufg[base + k] >> 8) & 0xFF;
+				plane[2 * chunk + k] =  bufb[base + k] & 0xFF;
+			}
+			cmsDoTransformLineStride(icc_tf, plane, plane, n, 1,
+					chunk * 3, chunk * 3, chunk, chunk);
+			for (int k = 0; k < n; k++)
+				dst[base + k] = (guint32) plane[k] << 16
+				              | (guint32) plane[chunk + k] << 8
+				              | (guint32) plane[2 * chunk + k];
+		}
+		unlock_display_transform();
+	} else {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
-	for (i = 0; i < nbdata; ++i) {
-		dst[i] = (bufr[i] & 0xFF0000) | (bufg[i] & 0xFF00) | (bufb[i] & 0xFF);
+		for (i = 0; i < nbdata; ++i) {
+			dst[i] = (bufr[i] & 0xFF0000) | (bufg[i] & 0xFF00) | (bufb[i] & 0xFF);
+		}
 	}
+	free(scratch);
 
 // flush to ensure all writing to the image was done and redraw the surface
 	cairo_surface_flush(rgbview->full_surface);
@@ -435,8 +522,16 @@ static void remap_all_vports() {
 
 	int norm = (int) get_normalized_value(&gfit);
 	{
-		siril_debug_print((gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed)) ? "Non-identical primaries: doing expensive color transform\n" : "");
-		if (gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed))
+		/* Only reached for the linear-referred modes, so display_pixel_transform()
+		 * yields the full transform here; routed through it anyway to keep one
+		 * definition of the rule. (The old condition also tested profile_changed,
+		 * which is cleared above before this point and so was always FALSE.) */
+		cmsHTRANSFORM icc_tf = (!identical && !gui.icc.same_primaries)
+			? display_pixel_transform() : NULL;
+		siril_debug_print(icc_tf ? "Non-identical primaries: doing expensive color transform\n" : "");
+		const gboolean do_transform = (icc_tf != NULL);
+
+		if (do_transform)
 			lock_display_transform();
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) private(y) schedule(static)
@@ -495,8 +590,8 @@ static void remap_all_vports() {
 						linebuf_byte[c][x] = UCHAR_MAX - linebuf_byte[c][x];
 				}
 			}
-			if (gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed)) {
-				cmsDoTransformLineStride(gui.icc.proofing_transform, pixelbuf_byte, pixelbuf_byte, gfit.rx, 1, gfit.rx * 3, gfit.rx * 3, gfit.rx, gfit.rx);
+			if (do_transform) {
+				cmsDoTransformLineStride(icc_tf, pixelbuf_byte, pixelbuf_byte, gfit.rx, 1, gfit.rx * 3, gfit.rx * 3, gfit.rx, gfit.rx);
 			}
 			switch (color) {
 				case NORMAL_COLOR:
@@ -525,7 +620,7 @@ static void remap_all_vports() {
 			free(pixelbuf);
 			free(pixelbuf_byte);
 		}
-		if (gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed))
+		if (do_transform)
 			unlock_display_transform();
 	}
 	// flush to ensure all writing to the image was done and redraw the surface

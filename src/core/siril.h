@@ -754,6 +754,12 @@ struct gui_icc {
 	 * transform into the display LUT at full precision. Built lazily, as it
 	 * is only needed when the image and monitor primaries match. */
 	cmsHTRANSFORM proofing_lut_transform;
+	/* Primaries-only variant, for modes whose stretch has already replaced the
+	 * encoding curve but whose chromaticity survives it (linked autostretch).
+	 * gamut_transform_tried stops us retrying the build every remap when the
+	 * profiles cannot support it. */
+	cmsHTRANSFORM gamut_transform;
+	gboolean gamut_transform_tried;
 	cmsUInt32Number proofing_flags;
 	gboolean same_primaries;
 	gboolean profile_changed;

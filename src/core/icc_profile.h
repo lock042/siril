@@ -74,6 +74,7 @@ void lock_display_transform();
 void unlock_display_transform();
 void display_index_transform(const float *fsrc, BYTE *index[3]);
 cmsHTRANSFORM initialize_proofing_transform();
+cmsHTRANSFORM get_gamut_transform();
 void clear_proofing_transforms();
 gboolean same_primaries(cmsHPROFILE a, cmsHPROFILE b, cmsHPROFILE c);
 void reset_icc_transforms();
