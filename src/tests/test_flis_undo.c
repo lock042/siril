@@ -297,6 +297,48 @@ Test(flis_undo_gui, plain_undo_restores_into_saved_layer) {
 	cr_assert_float_eq(b->fit->fdata[0], 0.75f, 1e-6);
 }
 
+/* The generic image worker saves undo from a PRIVATE pre-op snapshot
+ * (`orig`), which no pointer walk can attribute to a layer — before the
+ * explicit-id variant, such entries carried FLIS_UNDO_LAYER_NONE and a
+ * later undo restored the pixels into whichever layer was active by then.
+ * The worker now captures the layer id at job start and passes it
+ * explicitly; the entry must behave exactly like a live-fit save. */
+Test(flis_undo_gui, snapshot_undo_restores_into_captured_layer) {
+	com.headless = TRUE;
+	flis_layer_t *a = flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.25f), "a");
+	flis_layer_t *b = flis_test_add_layer(flis_test_make_mono_fits(6, 6, 0.75f), "b");
+	uniq_set_active_layer(com.uniq, 0);   /* a active, gfit = a->fit */
+
+	/* The worker's `orig`: a's pre-op pixels in a standalone fits. */
+	fits *snap = flis_test_make_mono_fits(4, 4, 0.25f);
+	cr_assert_eq(undo_save_state_for_layer(snap, a->item_id, "stretch"), 0);
+	clearfits(snap);
+	free(snap);
+
+	cr_assert_eq(g_list_length(com.undo_stack), 1);
+	historic *h = (historic *)com.undo_stack->data;
+	cr_assert_eq(h->flis_layer_id, a->item_id,
+	             "explicit-id save must attribute the entry to the captured layer");
+
+	for (size_t i = 0; i < 16; i++)
+		a->fit->fdata[i] = 0.6f;          /* the op's result */
+
+	uniq_set_active_layer(com.uniq, 1);   /* b now active, gfit = b->fit */
+	cr_assert_eq(undo_display_data(UNDO), 0);
+
+	cr_assert_float_eq(a->fit->fdata[0], 0.25f, 1e-6,
+	                   "undo must restore the layer captured at job start");
+	cr_assert_float_eq(b->fit->fdata[0], 0.75f, 1e-6,
+	                   "undo must not clobber the now-active layer");
+	cr_assert_eq(b->fit->rx, 6u);
+
+	cr_assert_eq(g_list_length(com.redo_stack), 1);
+	historic *r = (historic *)com.redo_stack->data;
+	cr_assert_eq(r->flis_layer_id, a->item_id);
+	cr_assert_eq(undo_display_data(REDO), 0);
+	cr_assert_float_eq(a->fit->fdata[0], 0.6f, 1e-6, "redo must reapply into layer a");
+}
+
 /* ----- NDE provenance coupling (nde sketch §13.3) ----- */
 
 Test(flis_undo_gui, nde_tag_top_entry) {

@@ -40,6 +40,16 @@ int undo_save_state(fits *fit, const char *message, ...);
  * together. */
 int undo_save_state_with_icc(fits *fit, cmsHPROFILE pre_icc,
                              const char *message, ...);
+/* Variant of undo_save_state that takes the FLIS layer attribution
+ * explicitly instead of resolving it from @fit's pointer identity.  For
+ * callers (the generic image worker) whose @fit is a private pre-op
+ * snapshot rather than a live layer fit: pointer resolution never matches
+ * a snapshot, and re-reading the active layer at push time races a layer
+ * switch that landed during processing.  @flis_layer_id is the layer's
+ * item_id captured when the job STARTED, or FLIS_UNDO_LAYER_NONE for a
+ * plain (non-FLIS) image. */
+int undo_save_state_for_layer(fits *fit, gint flis_layer_id,
+                              const char *message, ...);
 int	undo_flush();
 gboolean undo_in_thread(gpointer user_data);
 gboolean redo_in_thread(gpointer user_data);

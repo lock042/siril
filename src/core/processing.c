@@ -1598,6 +1598,36 @@ gpointer generic_image_worker(gpointer p) {
 		}
 	}
 
+	/* Job identity, resolved ONCE at job start.  Everything the post-swap
+	 * bookkeeping needs to attribute the result — the NDE target item, the
+	 * undo layer, the mask pin — is captured here, from the state the user
+	 * actually launched the op against.  Re-reading the live globals after
+	 * the swap raced the layers panel: a switch landing in the microseconds
+	 * between the swap and the bookkeeping attributed the old layer's op to
+	 * the new layer.  It also closes a non-race gap in the undo push: the
+	 * pointer walk in undo_push_to can never match `orig` (a private
+	 * snapshot), so generic-path FLIS entries carried no layer id and a
+	 * later undo restored the pixels into whatever layer was active by
+	 * then.  A job that survives the swap-point retarget guard necessarily
+	 * ran against this identity: any intervening switch (even away and
+	 * back) leaves the active layer equal to the one captured here. */
+	gint job_item_id    = -1;                    /* NDE target (edit-at borrow aware) */
+	gint job_undo_layer = FLIS_UNDO_LAYER_NONE;  /* undo attribution */
+	gint job_pmask_id   = 0;                     /* mask-pin item id */
+	if (argfit == gfit && !args->nde_replay) {
+		job_item_id = nde_capture_target_item();
+		if (is_current_image_flis()) {
+			flis_layer_t *job_lay = flis_layer_get_by_fit(argfit);
+			if (job_lay)
+				job_undo_layer = job_lay->item_id;
+			/* Same materialisation the capture block used to do post-swap,
+			 * under the same effective condition (a mask the op will run
+			 * under exists now, pre-hook, or not at all). */
+			if (args->mask_aware && argfit->mask && argfit->mask_active)
+				job_pmask_id = flis_layer_pmask_id(flis_active_layer());
+		}
+	}
+
 	/* Two processing strategies live in this one function:
 	 *
 	 *   Swap path (argfit == gfit) — the long-running image_hook works
@@ -1878,8 +1908,11 @@ the_end:;
 			 * user is leaving. */
 			g_rw_lock_writer_lock(&argfit->rwlock);
 			gboolean retargeted = (gfit != argfit) || flis_gfit_retarget_in_progress();
+			/* Swap into argfit, not gfit: the check just proved them equal,
+			 * and argfit is a local the switch path cannot repoint between
+			 * the check and the swap. */
 			if (!retargeted)
-				fits_swap_all_except_rwlock(gfit, orig);
+				fits_swap_all_except_rwlock(argfit, orig);
 			g_rw_lock_writer_unlock(&argfit->rwlock);
 			if (retargeted) {
 				siril_log_message(_("%s: the active layer changed during processing, discarding the result.\n"),
@@ -1911,8 +1944,16 @@ the_end:;
 
 	/* Carry out data updates (statistics, histograms, update Cairo
 	 * buffers in GUI mode).  Only invoke on success; on failure gfit
-	 * was not validly modified.  Runs outside the writer-lock window. */
-	if (!retval) {
+	 * was not validly modified.  Runs outside the writer-lock window.
+	 * Swap path: skip when a layer switch retargeted gfit AFTER the
+	 * successful swap — the display now shows a different layer and the
+	 * switch's own reconciliation refreshes it.  Best-effort (unlocked
+	 * pointer read): a refresh that slips through is redundant work, not
+	 * a correctness problem, which is why the bookkeeping below does NOT
+	 * use this check — it relies on the identity captured at job start. */
+	gboolean still_current = !use_swap
+			|| (gfit == argfit && !flis_gfit_retarget_in_progress());
+	if (!retval && still_current) {
 		notify_gfit_data_modified();
 	}
 
@@ -1950,17 +1991,18 @@ the_end:;
 				args->log_hook(args->user, SUMMARY) : g_strdup(args->description);
 		rec->scope = (op && (op->flags & OP_GEOMETRY_CHANGING)) ?
 				NDE_SCOPE_CANVAS : NDE_SCOPE_LAYER;
-		rec->target_item_id = nde_capture_target_item();
+		rec->target_item_id = job_item_id;
 		rec->mask_active = using_mask;
 		/* The mask is a real INPUT, not a flag.  mask_active only ever said
 		 * "something was masking this"; the pin says WHICH mask and in what
 		 * state, which is what a replay needs to reproduce the op rather than
 		 * refuse it (nde_history.h).  The mask item is the one step 3
-		 * allocated; its state is whatever record last touched it. */
+		 * allocated; its state is whatever record last touched it — resolved
+		 * at job start (job_pmask_id), not from the live active layer. */
 		if (using_mask) {
 			gint mask_item = NDE_ITEM_PLAIN_MASK;
 			if (is_current_image_flis())
-				mask_item = flis_layer_pmask_id(flis_active_layer());
+				mask_item = job_pmask_id;
 			if (mask_item != 0)
 				nde_record_add_input(rec, "mask", mask_item,
 				                     nde_history_last_record_for_item(mask_item));
@@ -1997,11 +2039,13 @@ the_end:;
 		nde_rec_id = nde_history_append(rec);
 		/* Output checkpoint (nde phase 4 P4.3): a barrier record stores its
 		 * POST-op pixels as the restart point that keeps the tail editable.
-		 * After the swap, gfit holds the post-op pixels (this block already
-		 * runs post-swap).  Stored OUTSIDE the history leaf mutex (append has
-		 * unlocked) and the stack writer lock (released above). */
+		 * The swap installed them into argfit — which still points at the
+		 * job's layer's fits even if a switch retargeted gfit since; the
+		 * global could already name another layer's pixels.  Stored OUTSIDE
+		 * the history leaf mutex (append has unlocked) and the stack writer
+		 * lock (released above). */
 		if (nde_rec_id > 0 && nde_barrier) {
-			nde_checkpoint_output_store(gfit, nde_rec_id, nde_target);
+			nde_checkpoint_output_store(argfit, nde_rec_id, nde_target);
 			/* A restart point is a layer value too: record where the layer
 			 * ended up, so a tail replay starting here has its anchor. */
 			if (nde_target >= 0 && is_current_image_flis()) {
@@ -2019,8 +2063,12 @@ the_end:;
 	 * so the ROI preview reflects the result.  Only meaningful for the
 	 * swap path — non-swap ops worked on roi.fit directly and
 	 * re-populating from gfit would overwrite the result.
-	 * populate_roi() short-circuits if no ROI is selected. */
-	if (use_swap && !com.script && !com.python_command && !com.headless) {
+	 * populate_roi() short-circuits if no ROI is selected.  Skipped (same
+	 * best-effort check as notify above) when gfit was retargeted after the
+	 * swap: the ROI now belongs to the incoming layer and the switch path
+	 * repopulates it itself. */
+	if (use_swap && still_current && !com.script && !com.python_command
+	    && !com.headless) {
 		gui_iface.populate_roi();
 	}
 
@@ -2072,9 +2120,13 @@ the_end:;
 			                                     geom_pre_lmask, &geom_pre_props,
 			                                     summary);
 			if (undo_err)
-				undo_err = undo_save_state(orig, summary);
+				undo_err = undo_save_state_for_layer(orig, job_undo_layer, summary);
 		} else {
-			undo_err = undo_save_state(orig, summary);
+			/* Explicit layer attribution: `orig` is a private snapshot, so
+			 * undo_save_state's pointer walk could never resolve its layer —
+			 * the entry restored into whichever layer was active at undo
+			 * time.  job_undo_layer was captured at job start. */
+			undo_err = undo_save_state_for_layer(orig, job_undo_layer, summary);
 		}
 		/* Couple the fresh undo entry to the provenance record so
 		 * undo/redo of this op moves live_count (nde sketch §13.3). */
@@ -2123,6 +2175,26 @@ gpointer generic_mask_worker(gpointer p) {
 	gboolean verbose = args->verbose;
 	gchar *history = NULL;
 	gboolean rwlocked = FALSE;
+
+	/* Job identity, resolved ONCE at job start (same rationale as
+	 * generic_image_worker): the provenance block at the end runs after the
+	 * writer lock is released, and reading flis_active_layer() there raced
+	 * a layer switch — the mask record would attribute this op to the
+	 * incoming layer's mask.  job_layer_item names the layer whose
+	 * processing mask the op ran under; job_image_item is the image input
+	 * a mask-derivation op read. */
+	gint job_layer_item = 0;
+	gint job_image_item = NDE_ITEM_IMAGE;
+	if (is_current_image_flis()) {
+		flis_layer_t *job_lay = flis_active_layer();
+		job_layer_item = job_lay ? job_lay->item_id : 0;
+		job_image_item = nde_checkpoint_active_item_id();
+	}
+	/* Whether the undo-save block below actually pushed an entry; the NDE
+	 * tag at the end must match the SAVE's decision, not re-read gfit —
+	 * a switch between the two would tag an unrelated top-of-stack entry
+	 * (or skip a tag the entry needs). */
+	gboolean pushed_undo = FALSE;
 
 	gui_iface.set_progress(PROGRESS_RESET, NULL);
 	gettimeofday(&t_start, NULL);
@@ -2210,6 +2282,9 @@ gpointer generic_mask_worker(gpointer p) {
 	rwlocked = TRUE;
 	if (args->fit == gfit && !args->command) {
 		gchar *undo_msg = args->log_hook ? args->log_hook(args->user, SUMMARY) : g_strdup(args->description);
+		/* args->fit, not gfit, below: the gate just proved them equal, and
+		 * args->fit cannot be repointed by a layer switch landing between
+		 * the check and the snapshot. */
 		if (args->target_layer_id != 0 && is_current_image_flis()) {
 			/* §5.2 routed op (target validated by the pre-check above):
 			 * the meaningful pre-state is the target layer's lmask —
@@ -2217,15 +2292,16 @@ gpointer generic_mask_worker(gpointer p) {
 			 * generating, if one exists.  A flavour-blind pixel
 			 * snapshot here left undo restoring identical pixels while
 			 * the freshly routed lmask survived untouched. */
-			if (gfit->mask && gfit->mask->data)
-				undo_save_processing_mask(gfit, "%s", undo_msg);
+			if (args->fit->mask && args->fit->mask->data)
+				undo_save_processing_mask(args->fit, "%s", undo_msg);
 			flis_layer_t *undo_target =
 				flis_layer_get_by_id(args->target_layer_id);
 			if (undo_target)
 				undo_save_flis_lmask(undo_target, undo_msg);
 		} else {
-			undo_save_state(gfit, undo_msg);
+			undo_save_state(args->fit, undo_msg);
 		}
+		pushed_undo = TRUE;
 		g_free(undo_msg);
 	}
 	// Call the mask processing hook
@@ -2360,12 +2436,16 @@ the_end:
 		 * (nde_replay.h).  Recorded as an ordinary input edge so the replay
 		 * re-derives the image instead of storing a copy of it. */
 		gint image_item = is_current_image_flis() ?
-				nde_checkpoint_active_item_id() : NDE_ITEM_IMAGE;
+				job_image_item : NDE_ITEM_IMAGE;
 		gint mask_item = NDE_ITEM_PLAIN_MASK;
 		if (routed_to_layer) {
 			mask_item = flis_layer_lmask_id(flis_layer_get_by_id(routed_to_layer));
 		} else if (is_current_image_flis()) {
-			flis_layer_t *active = flis_active_layer();
+			/* The layer the op ran on, captured at job start — the live
+			 * active layer may already be a different one.  Resolved by id
+			 * post-hook (not a captured value) because a mask-CREATION op
+			 * allocates the pmask id during the hook. */
+			flis_layer_t *active = flis_layer_get_by_id(job_layer_item);
 			/* An op that EMPTIED the slot (mask.clear) still belongs to the
 			 * mask it emptied — and the accessor releases the id precisely
 			 * because the mask is now gone, so read it first. */
@@ -2433,11 +2513,12 @@ the_end:
 			gint64 mask_rec_id = nde_history_append(rec);
 			nde_history_notify_panel();
 			/* Couple the undo entry the worker saved above so undo/redo moves
-			 * live_count with the pixels — under the SAME condition the save
-			 * used (args->fit == gfit && !args->command).  A command-context
-			 * mask op saves no entry, and an unguarded tag would re-couple
-			 * whatever unrelated entry sits on top of the undo stack. */
-			if (args->fit == gfit && !args->command)
+			 * live_count with the pixels — pushed_undo records the SAVE's own
+			 * decision, so save and tag cannot disagree (re-checking gfit here
+			 * raced a layer switch).  A command-context mask op saves no
+			 * entry, and an unguarded tag would re-couple whatever unrelated
+			 * entry sits on top of the undo stack. */
+			if (pushed_undo)
 				undo_tag_top_nde_record(mask_rec_id);
 		}
 	}

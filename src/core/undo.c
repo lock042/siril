@@ -555,9 +555,19 @@ static void undo_free_item(historic *h) {
 	g_free(h);
 }
 
+/* undo_push_to's @layer_id value meaning "resolve the layer from @fit's
+ * pointer identity" — the historical behaviour, correct when callers push a
+ * live layer fit (dialogs push gfit directly).  Distinct from
+ * FLIS_UNDO_LAYER_NONE (-1), which explicitly records "plain image". */
+#define FLIS_UNDO_LAYER_AUTO (-2)
+
 /* Save current gfit pixels to a new swap file and push the resulting historic
- * entry to *stack. label is the operation name (may be empty, not NULL). */
-static int undo_push_to(GList **stack, fits *fit, const char *label) {
+ * entry to *stack. label is the operation name (may be empty, not NULL).
+ * @layer_id: FLIS_UNDO_LAYER_AUTO to resolve the layer attribution from
+ * @fit's pointer, an explicit item_id captured by the caller, or
+ * FLIS_UNDO_LAYER_NONE. */
+static int undo_push_to(GList **stack, fits *fit, const char *label,
+                        gint layer_id) {
 	nde_snap *snap = nde_snap_create(fit);
 	if (!snap)
 		return 1;
@@ -595,16 +605,30 @@ static int undo_push_to(GList **stack, fits *fit, const char *label) {
 	h->lmask_dest_layer_id = FLIS_UNDO_LAYER_NONE;
 	h->reorder_layer_a_id  = FLIS_UNDO_LAYER_NONE;
 	h->reorder_layer_b_id  = FLIS_UNDO_LAYER_NONE;
-	/* When @fit is a FLIS layer's fit, record the layer identity: the
-	 * active layer may change between save and restore, and without it a
-	 * later undo would write these pixels into whatever layer is active
-	 * by then. */
+	/* Record the layer identity: the active layer may change between save
+	 * and restore, and without it a later undo would write these pixels
+	 * into whatever layer is active by then.  AUTO resolves from @fit's
+	 * pointer (only meaningful when @fit is a live layer fit); an explicit
+	 * id comes from a caller that captured it at job start, because its
+	 * @fit is a private snapshot no pointer walk can attribute. */
 	if (is_current_image_flis()) {
-		flis_layer_t *lay = flis_layer_get_by_fit(fit);
+		flis_layer_t *lay = NULL;
+		if (layer_id == FLIS_UNDO_LAYER_AUTO)
+			lay = flis_layer_get_by_fit(fit);
+		else if (layer_id != FLIS_UNDO_LAYER_NONE)
+			lay = flis_layer_get_by_id(layer_id);
 		if (lay) {
 			h->flis_layer_id   = lay->item_id;
 			h->flis_position_x = lay->position_x;
 			h->flis_position_y = lay->position_y;
+		} else if (layer_id != FLIS_UNDO_LAYER_AUTO
+		           && layer_id != FLIS_UNDO_LAYER_NONE) {
+			/* The captured layer vanished mid-job (it cannot have been the
+			 * active one — deleting that retargets gfit and the swap-point
+			 * guard discards the op).  Keep the id: restore will refuse
+			 * with "layer no longer exists" rather than silently writing
+			 * the pixels into an unrelated layer. */
+			h->flis_layer_id = layer_id;
 		}
 	}
 
@@ -1002,7 +1026,30 @@ int undo_save_state(fits *fit, const char *message, ...) {
 	g_list_free_full(com.redo_stack, (GDestroyNotify) undo_free_item);
 	com.redo_stack = NULL;
 
-	if (undo_push_to(&com.undo_stack, fit, histo))
+	if (undo_push_to(&com.undo_stack, fit, histo, FLIS_UNDO_LAYER_AUTO))
+		return 1;
+
+	gui_iface.update_menu_state();
+	return 0;
+}
+
+int undo_save_state_for_layer(fits *fit, gint flis_layer_id,
+                              const char *message, ...) {
+	if (!single_image_is_loaded())
+		return 0;
+
+	char histo[FLEN_VALUE] = { 0 };
+	if (message != NULL) {
+		va_list args;
+		va_start(args, message);
+		vsnprintf(histo, FLEN_VALUE, message, args);
+		va_end(args);
+	}
+
+	g_list_free_full(com.redo_stack, (GDestroyNotify) undo_free_item);
+	com.redo_stack = NULL;
+
+	if (undo_push_to(&com.undo_stack, fit, histo, flis_layer_id))
 		return 1;
 
 	gui_iface.update_menu_state();
@@ -1025,7 +1072,7 @@ int undo_save_state_with_icc(fits *fit, cmsHPROFILE pre_icc,
 	g_list_free_full(com.redo_stack, (GDestroyNotify) undo_free_item);
 	com.redo_stack = NULL;
 
-	if (undo_push_to(&com.undo_stack, fit, histo))
+	if (undo_push_to(&com.undo_stack, fit, histo, FLIS_UNDO_LAYER_AUTO))
 		return 1;
 
 	/* Override the entry's ICC snapshot with the caller-supplied pre-op
@@ -1476,7 +1523,7 @@ static int undo_push_counterpart_to(GList **stack, fits *fit, const historic *to
 		if (!lay || !lay->fit) return 1;
 		src_fit = lay->fit;
 	}
-	return undo_push_to(stack, src_fit, top->history);
+	return undo_push_to(stack, src_fit, top->history, FLIS_UNDO_LAYER_AUTO);
 }
 
 /* Format a printf-style varargs message into msg_var, identically to
