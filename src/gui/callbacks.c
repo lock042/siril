@@ -426,7 +426,7 @@ void set_sliders_value_to_gfit() {
  * Should be done on first image load of a sequence and when single images are loaded.
  * Max value is taken from gfit.maxi, recomputed if not present.
  */
-void set_cutoff_sliders_max_values() {
+static gboolean set_cutoff_sliders_max_values_idle(gpointer p) {
 	static GtkAdjustment *adj1 = NULL, *adj2 = NULL;
 	gdouble max_val;
 	if (adj1 == NULL) {
@@ -442,6 +442,13 @@ void set_cutoff_sliders_max_values() {
 	gtk_adjustment_set_lower(adj2, 0.0);
 	gtk_adjustment_set_upper(adj1, max_val);
 	gtk_adjustment_set_upper(adj2, max_val);
+	return FALSE;
+}
+
+/* Callable from any thread: the fmul command reaches this on the script /
+ * python connection worker thread, while GTK is main-thread-only. */
+void set_cutoff_sliders_max_values() {
+	gui_function(set_cutoff_sliders_max_values_idle, NULL);
 }
 
 /* Sets the value scalemin and scalemax sliders so that they match the hi and
@@ -609,7 +616,7 @@ void set_unlink_channels(gboolean unlinked) {
 
 /* fill the label indicating how many images are selected in the gray and
  * which one is the reference image, at the bottom of the main window */
-void adjust_sellabel() {
+static void adjust_sellabel_now() {
 	static GtkLabel *global_label = NULL, *label_name_of_seq = NULL;
 	gchar *buffer_global, *buffer_title;
 
@@ -645,6 +652,19 @@ void adjust_sellabel() {
 
 	g_free(buffer_global);
 	g_free(buffer_title);
+}
+
+static gboolean adjust_sellabel_idle(gpointer p) {
+	adjust_sellabel_now();
+	return FALSE;
+}
+
+/* Callable from any thread: commands sent by python scripts run on the
+ * connection worker thread and update this label (e.g. process_save), but
+ * GTK/cairo/pixman are main-thread-only — concurrent widget access corrupts
+ * pixman state and crashes (SIGBUS/SIGSEGV in pixman_op). */
+void adjust_sellabel() {
+	gui_function(adjust_sellabel_idle, NULL);
 }
 
 static gboolean update_seq_gui_idle(gpointer p) {
@@ -1027,7 +1047,7 @@ void update_display_fwhm() {
 /* displays the opened image file name in the layers window.
  * if a unique file is loaded, its details are used instead of any sequence data
  */
-void display_filename() {
+static void display_filename_now() {
 	gboolean local_filename = FALSE;
 	int nb_layers, vport;
 	char *filename;
@@ -1085,6 +1105,19 @@ void display_filename() {
 	if (concat_base_name) g_string_free(concat_base_name, TRUE);
 }
 
+static gboolean display_filename_idle(gpointer p) {
+	display_filename_now();
+	return FALSE;
+}
+
+/* Callable from any thread: commands sent by python scripts run on the
+ * connection worker thread and update these labels (e.g. process_save →
+ * display_filename → gtk_label_set_text), racing the main thread inside
+ * pixman and crashing with SIGBUS/SIGSEGV in pixman_op / composite_boxes. */
+void display_filename() {
+	gui_function(display_filename_idle, NULL);
+}
+
 void on_precision_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data) {
 	if (!single_image_is_loaded()) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Cannot convert a sequence file"),
@@ -1137,7 +1170,7 @@ gboolean set_precision_switch(gpointer user_data) {
 }
 
 /* updates the combo box of registration layers to reflect data availability */
-int set_layers_for_registration() {
+static int set_layers_for_registration_now() {
 	static GtkComboBoxText *cbbt_layers = NULL;
 	int i;
 	int reminder;
@@ -1172,6 +1205,22 @@ int set_layers_for_registration() {
 	else
 		gtk_combo_box_set_active(GTK_COMBO_BOX(cbbt_layers), reminder);
 
+	return reminder;
+}
+
+static gboolean set_layers_for_registration_idle(gpointer p) {
+	*((int *) p) = set_layers_for_registration_now();
+	return FALSE;
+}
+
+/* Callable from any thread: the seq_clean command reaches this on the script /
+ * python connection worker thread; synchronous because it returns the
+ * selected layer. */
+int set_layers_for_registration() {
+	if (com.headless || g_main_context_is_owner(g_main_context_default()))
+		return set_layers_for_registration_now();
+	int reminder = -1;
+	execute_idle_and_wait_for_it(set_layers_for_registration_idle, &reminder);
 	return reminder;
 }
 

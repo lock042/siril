@@ -1965,14 +1965,9 @@ void initialize_image_display() {
 	cairo_matrix_init_identity(&gui.display_matrix);
 }
 
-/* this function calculates the "fit to window" zoom values, given the window
- * size in argument and the image size in gfit.
- * Should not be called before displaying the main gray window when using zoom to fit */
-double get_zoom_val() {
+static double get_zoom_val_now() {
 	int window_width, window_height;
-	if (gui.zoom_value > 0.)
-		return gui.zoom_value;
-	/* else if zoom is < 0, it means fit to window */
+	/* fit to window: read the drawing area allocation */
 	window_width = gtk_widget_get_allocated_width(gui.view[RED_VPORT].drawarea);
 	window_height = gtk_widget_get_allocated_height(gui.view[RED_VPORT].drawarea);
 	if (gfit.rx == 0 || gfit.ry == 0 || window_height <= 1 || window_width <= 1)
@@ -1980,6 +1975,28 @@ double get_zoom_val() {
 	double wtmp = (double) window_width / (double) gfit.rx;
 	double htmp = (double) window_height / (double) gfit.ry;
 	return min(wtmp, htmp);
+}
+
+static gboolean get_zoom_val_idle(gpointer p) {
+	*((double *) p) = get_zoom_val_now();
+	return FALSE;
+}
+
+/* this function calculates the "fit to window" zoom values, given the window
+ * size in argument and the image size in gfit.
+ * Should not be called before displaying the main gray window when using zoom to fit.
+ * Callable from any thread: the python bridge and scripted commands query the
+ * zoom from the connection worker thread, and the fit-to-window case reads a
+ * widget allocation, which must happen on the GTK main thread. */
+double get_zoom_val() {
+	if (gui.zoom_value > 0.)
+		return gui.zoom_value;
+	/* else if zoom is < 0, it means fit to window */
+	if (com.headless || g_main_context_is_owner(g_main_context_default()))
+		return get_zoom_val_now();
+	double zoom = 1.0;
+	execute_idle_and_wait_for_it(get_zoom_val_idle, &zoom);
+	return zoom;
 }
 
 // passing -1 means invalidate all

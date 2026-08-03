@@ -1854,6 +1854,14 @@ class SirilInterface:
         By default Siril will recalculate statistics for the sample points
         on receipt, but this can be overridden with the argument recalculate=False
 
+        Note:
+            Siril 1.4.x does not require the processing thread to be claimed
+            for this call, but from Siril 1.5.x onwards the request is refused
+            unless the thread is claimed. It is good practice to call this
+            method inside a ``with image_lock():`` block (or between
+            ``claim_thread()`` and ``release_thread()``) so that scripts
+            remain forward compatible with 1.5.x and later.
+
         Args:
             points: List of sample points, either as (x,y) tuples or BGSample objects
             show_samples: Whether to show the sample points in Siril
@@ -1966,6 +1974,12 @@ class SirilInterface:
     def set_image_pixeldata(self, image_data: np.ndarray) -> bool:
         """
         Send image data to Siril using shared memory.
+
+        Note:
+            This method modifies the loaded image and requires the processing
+            thread to be claimed: call it inside a ``with image_lock():`` block
+            (or between ``claim_thread()`` and ``release_thread()``), otherwise
+            Siril will refuse the request with an error.
 
         Args:
             image_data: numpy.ndarray containing the image data.
@@ -3901,6 +3915,14 @@ class SirilInterface:
             # Send the metadata to Siril
             siril.set_image_metadata_from_header_string(header_string)
 
+        Note:
+            Siril 1.4.x does not require the processing thread to be claimed
+            for this call, but from Siril 1.5.x onwards the request is refused
+            unless the thread is claimed. It is good practice to call this
+            method inside a ``with image_lock():`` block (or between
+            ``claim_thread()`` and ``release_thread()``) so that scripts
+            remain forward compatible with 1.5.x and later.
+
         Args:
             header: string containing the FITS header data
 
@@ -4772,6 +4794,14 @@ class SirilInterface:
     def set_image_iccprofile(self, iccprofile: bytes):
         """
         Set the image ICC profile in Siril
+
+        Note:
+            Siril 1.4.x does not require the processing thread to be claimed
+            for this call, but from Siril 1.5.x onwards the request is refused
+            unless the thread is claimed. It is good practice to call this
+            method inside a ``with image_lock():`` block (or between
+            ``claim_thread()`` and ``release_thread()``) so that scripts
+            remain forward compatible with 1.5.x and later.
 
         Args:
             iccprofile (bytes): The ICC profile to send to Siril. This will

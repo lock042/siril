@@ -1337,6 +1337,11 @@ int process_grey_flat(int nb) {
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
+static gboolean savekernel_dialog_idle(gpointer p) {
+	on_bdeconv_savekernel_clicked(NULL, NULL);
+	return FALSE;
+}
+
 int process_makepsf(int nb) {
 	gboolean error = FALSE;
 	estk_data* data = calloc(1, sizeof(estk_data));
@@ -1357,7 +1362,10 @@ int process_makepsf(int nb) {
 		if (!g_strcmp0(arg_1, "save")) {
 			siril_log_message(_("Save PSF to file:\n"));
 			if (!word[2] || word[2][0] == '\0') {
-				on_bdeconv_savekernel_clicked(NULL, NULL);
+				// opens a GTK file chooser: commands run on the script /
+				// python connection worker thread, dialogs must be created
+				// on the GTK main thread (no-op when headless)
+				execute_idle_and_wait_for_it(savekernel_dialog_idle, NULL);
 			} else {
 				if (!(g_str_has_suffix(word[2], ".fit") || g_str_has_suffix(word[2], ".fits") || g_str_has_suffix(word[2], ".fts") || g_str_has_suffix(word[2], ".tif"))) {
 					siril_log_color_message(_("Error: filename must have the extension \".fit\", \".fits\", \".fts\" or \".tif\"\n"), "red");

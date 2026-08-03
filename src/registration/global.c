@@ -396,22 +396,26 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		// reference image
 		cvGetEye(&H);
 		sadata->current_regdata[in_index].H = H;
-		regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
-		regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
-		if (!regargs->no_output && (regargs->output_scale != 1.f || regargs->driz || regargs->undistort)) {
-			if (apply_reg_image_hook(args, out_index, in_index, fit, _, threads)) {
-				args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
-				return 1;
+		/* imgparam and regparam describe the output sequence, they are only
+		 * allocated when there is one (see registration_prepare_results) */
+		if (!regargs->no_output) {
+			regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
+			regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
+			if (regargs->output_scale != 1.f || regargs->driz || regargs->undistort) {
+				if (apply_reg_image_hook(args, out_index, in_index, fit, _, threads)) {
+					args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
+					return 1;
+				}
+			} else {
+				regargs->imgparam[out_index].rx = fit->rx;
+				regargs->imgparam[out_index].ry = fit->ry;
+				regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
+				regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
+				regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
+				regargs->regparam[out_index].background_lvl = sadata->current_regdata[in_index].background_lvl;
+				regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
+				regargs->regparam[out_index].H = H;
 			}
-		} else {
-			regargs->imgparam[out_index].rx = fit->rx;
-			regargs->imgparam[out_index].ry = fit->ry;
-			regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
-			regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
-			regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
-			regargs->regparam[out_index].background_lvl = sadata->current_regdata[in_index].background_lvl;
-			regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
-			regargs->regparam[out_index].H = H;
 		}
 	}
 

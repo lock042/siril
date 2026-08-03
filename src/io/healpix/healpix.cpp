@@ -69,6 +69,17 @@ static int siril_fseek64(FILE* f, gint64 offset, int whence) {
 #endif
 }
 
+// 64-bit ftell, for the same reason as siril_fseek64() above.
+static gint64 siril_ftell64(FILE* f) {
+#if defined(_WIN32)
+    return _ftelli64(f);
+#elif defined(__GLIBC__) || defined(__gnu_hurd__)
+    return ftello64(f);
+#else
+    return (gint64)ftello(f);
+#endif
+}
+
 // Enum for Gaia version designator
 enum class GaiaVersion {
     DR1 = 0,
@@ -141,8 +152,33 @@ static std::vector<HealPixelRange> create_healpixel_ranges(const std::vector<int
     return ranges;
 }
 
-// Function to read the Healpix catalogue header
-static HealpixCatHeader read_healpix_cat_header(const std::string& filename, int* error_status) {
+// The catalogues distributed for Siril are indexed at Healpix level 8. Anything
+// much larger is not a Siril catalogue: the index alone would be several GB. The
+// limit mostly matters because an out-of-range level makes T_Healpix_Base throw a
+// PlanckError, which, escaping through the extern "C" boundary, terminates Siril.
+#define MAX_HEALPIX_CAT_LEVEL 13
+
+// Sanity check on a header read from a file (or downloaded from a mirror): it
+// tells apart a real catalogue from a truncated download, an error page or a
+// file that simply isn't a Siril Healpix catalogue at all. Only clearly invalid
+// values are rejected, so that catalogues built with other parameters than the
+// ones we distribute still work.
+static bool healpix_cat_header_is_valid(const HealpixCatHeader& header) {
+    if (header.healpix_level < 1 || header.healpix_level > MAX_HEALPIX_CAT_LEVEL)
+        return false;
+    if (static_cast<int>(header.gaia_version) > static_cast<int>(GaiaVersion::DR5))
+        return false;
+    if (static_cast<int>(header.cat_type) > static_cast<int>(CatalogueType::Photometric_XP_Continuous))
+        return false;
+    if (header.chunked && header.chunk_level > header.healpix_level)
+        return false;
+    return true;
+}
+
+// Function to read the Healpix catalogue header. If quiet is true, an invalid
+// header is reported through error_status only: this is used by the catalogue
+// availability checks, which are called often and must not spam the log.
+static HealpixCatHeader read_healpix_cat_header(const std::string& filename, int* error_status, bool quiet = false) {
     HealpixCatHeader header = {
         "",                     // title: empty string
         static_cast<GaiaVersion>(0),  // gaia_version: zero
@@ -201,6 +237,18 @@ static HealpixCatHeader read_healpix_cat_header(const std::string& filename, int
         return header;
     }
 
+    if (!healpix_cat_header_is_valid(header)) {
+        if (!quiet)
+            siril_log_color_message(_("Error: %s is not a valid Siril Healpix catalogue "
+                        "file, or it is corrupted. Check the catalogue paths in "
+                        "Preferences and that the file downloaded completely.\n"),
+                    "red", filename.c_str());
+        if (error_status) {
+            *error_status = -4; // Invalid header
+        }
+        return {}; // don't hand back a header nothing can be done with
+    }
+
     return header;
 }
 
@@ -237,6 +285,16 @@ static std::vector<EntryType> query_catalog(const std::string& filename, std::ve
     }
     FILE* fp = file.get();
     bool read_error = false;
+
+    // The offsets read from the index are checked against the file size below,
+    // so that a corrupted index cannot make us request an absurd allocation
+    gint64 file_size = -1;
+    if (siril_fseek64(fp, 0, SEEK_END) == 0)
+        file_size = siril_ftell64(fp);
+    if (file_size < 0) {
+        siril_log_color_message(_("Failed to open file: %s\n"), "red", filename.c_str());
+        return results;
+    }
 
     // Function to read a single index entry at a specific position
     auto read_index_entry = [fp, &results, &read_error](uint32_t healpixel_id) -> uint32_t {
@@ -280,7 +338,13 @@ static std::vector<EntryType> query_catalog(const std::string& filename, std::ve
         gint64 data_start_pos = (gint64)HEADER_SIZE + (gint64)INDEX_SIZE + (gint64)start_offset * sizeof(EntryType);
 
         // Read the required data entries
-        size_t num_records = end_offset - start_offset;
+        size_t num_records = (end_offset > start_offset) ? end_offset - start_offset : 0;
+        if (end_offset < start_offset ||
+                data_start_pos + (gint64)num_records * (gint64)sizeof(EntryType) > file_size) {
+            siril_log_color_message(_("Catalogue index is corrupted: %s\n"), "red", filename.c_str());
+            results.clear();
+            return results;
+        }
         std::vector<EntryType> buffer(num_records);
 
         if (siril_fseek64(fp, data_start_pos, SEEK_SET) != 0 ||
@@ -387,8 +451,13 @@ static HealpixCatHeader read_healpix_cat_header_http_with_curl(CURL* curl, const
         free(buffer);
     }
 
-    return read_healpix_cat_header(cache_path, error_status);
-
+    header = read_healpix_cat_header(cache_path, error_status);
+    if (error_status && *error_status) {
+        // the cached header is unusable (truncated download, error page from the
+        // mirror...): drop it so that the next attempt fetches it again
+        g_remove(cache_path.c_str());
+    }
+    return header;
 }
 
 template<typename EntryType>
@@ -830,7 +899,18 @@ extern "C" {
         return (!first_chunk.empty());
     }
 
-    int get_raw_stars_from_local_gaia_astro_catalogue(double ra, double dec, double radius, double limitmag, gboolean phot, deepStarData **stars, uint32_t *nb_stars) {
+    // Checks that the file configured as the local Gaia astrometric catalogue
+    // really is one: this is what allows the callers to fall back to another
+    // catalogue instead of failing the solve when the file is not usable.
+    int local_gaia_astro_available() {
+        if (!com.pref.catalogue_paths[4] || com.pref.catalogue_paths[4][0] == '\0')
+            return 0;
+        int status = 0;
+        read_healpix_cat_header(std::string(com.pref.catalogue_paths[4]), &status, true);
+        return status == 0;
+    }
+
+    static int get_raw_stars_from_local_gaia_astro_catalogue_impl(double ra, double dec, double radius, double limitmag, gboolean phot, deepStarData **stars, uint32_t *nb_stars) {
 
 #ifdef HEALPIX_DEBUG
         show_healpixel_entries(0);
@@ -854,13 +934,12 @@ extern "C" {
             *nb_stars = 0;
             return 1;
         }
-        T_Healpix_Base<int> healpix_base(header.healpix_level, NEST);
-
         pointing point(theta, phi);
         std::vector<int> pixel_indices;
         siril_debug_print("query_disc_inclusive params: theta = %f, phi = %f, rad = %f\n", point.theta, point.phi, radius_rad);
 
         // Perform the cone search
+        T_Healpix_Base<int> healpix_base(header.healpix_level, NEST);
         healpix_base.query_disc_inclusive(point, radius_rad, pixel_indices);
 
         // Reduce the pixels to a list of continuous ranges
@@ -939,7 +1018,22 @@ extern "C" {
         return 0;
     }
 
-    int get_raw_stars_from_local_gaia_xpsampled_catalogue(double ra, double dec, double radius, double limitmag, SourceEntryXPsamp **stars, uint32_t *nb_stars) {
+    int get_raw_stars_from_local_gaia_astro_catalogue(double ra, double dec, double radius, double limitmag, gboolean phot, deepStarData **stars, uint32_t *nb_stars) {
+        // Nothing may escape into the C caller: the healpix library reports errors
+        // by throwing, and an uncaught exception would terminate Siril
+        try {
+            return get_raw_stars_from_local_gaia_astro_catalogue_impl(ra, dec, radius, limitmag, phot, stars, nb_stars);
+        } catch (const std::exception& e) {
+            siril_log_color_message(_("Error querying the local Gaia astrometric catalogue: %s\n"), "red", e.what());
+        } catch (...) {
+            siril_log_color_message(_("Error querying the local Gaia astrometric catalogue\n"), "red");
+        }
+        *stars = nullptr;
+        *nb_stars = 0;
+        return 1;
+    }
+
+    static int get_raw_stars_from_local_gaia_xpsampled_catalogue_impl(double ra, double dec, double radius, double limitmag, SourceEntryXPsamp **stars, uint32_t *nb_stars) {
         radius /= 60.0; // the catalogue radius is in arcmin, we want it in degrees to convert to radians
         siril_debug_print("Search radius: %f deg\n", radius);
         const double DEG_TO_RAD = M_PI / 180.0;
@@ -974,12 +1068,11 @@ extern "C" {
             return 1;
         }
 
-        T_Healpix_Base<int> healpix_base(header.healpix_level, NEST); // For getting the pixel indices to look up
-
         pointing point(theta, phi);
 
         // Perform the cone search
         std::vector<int> pixel_indices;
+        T_Healpix_Base<int> healpix_base(header.healpix_level, NEST); // For getting the pixel indices to look up
         healpix_base.query_disc_inclusive(point, radius_rad, pixel_indices);
 
         // Get the set of unique chunks
@@ -1017,9 +1110,14 @@ extern "C" {
             // Read this specific header
             int status = 0;
             HealpixCatHeader this_header = read_healpix_cat_header(this_chunk_path, &status);
+            if (status) {
+                file_error = true;
+                break;
+            }
             if (!header_compatible(header, this_header)) {
-                siril_log_color_message(_("Error: catalog header values for chunk %lu are incompatible with previous values. All chunk files must have the same chunk level and indexing level and must represent the same Gaia data release\n"), "red");
-                return 1;
+                siril_log_color_message(_("Error: catalog header values for chunk %d are incompatible with previous values. All chunk files must have the same chunk level and indexing level and must represent the same Gaia data release\n"), "red", chunk_id);
+                file_error = true;
+                break;
             }
             // Query the catalogue for matches
             results_in_chunks[i] = query_catalog<SourceEntryXPsamp>(this_chunk_path, healpixel_ranges, this_header);
@@ -1077,8 +1175,21 @@ extern "C" {
         return 0;
     }
 
+    int get_raw_stars_from_local_gaia_xpsampled_catalogue(double ra, double dec, double radius, double limitmag, SourceEntryXPsamp **stars, uint32_t *nb_stars) {
+        try {
+            return get_raw_stars_from_local_gaia_xpsampled_catalogue_impl(ra, dec, radius, limitmag, stars, nb_stars);
+        } catch (const std::exception& e) {
+            siril_log_color_message(_("Error querying the local Gaia photometric catalogue: %s\n"), "red", e.what());
+        } catch (...) {
+            siril_log_color_message(_("Error querying the local Gaia photometric catalogue\n"), "red");
+        }
+        *stars = nullptr;
+        *nb_stars = 0;
+        return 1;
+    }
+
 #ifdef HAVE_LIBCURL
-    int get_raw_stars_from_remote_gaia_xpsampled_catalogue(double ra, double dec, double radius,
+    static int get_raw_stars_from_remote_gaia_xpsampled_catalogue_impl(double ra, double dec, double radius,
                                                            double limitmag, SourceEntryXPsamp **stars,
                                                            uint32_t *nb_stars) {
         radius /= 60.0;
@@ -1112,12 +1223,21 @@ extern "C" {
             return 1;
         }
 
-        T_Healpix_Base<int> healpix_base(header.healpix_level, NEST);
         pointing point(theta, phi);
 
-        // Perform cone search
+        // Perform cone search. The curl handle must be released whatever happens,
+        // so the healpix calls, which report errors by throwing, are guarded here
         std::vector<int> pixel_indices;
-        healpix_base.query_disc_inclusive(point, radius_rad, pixel_indices);
+        try {
+            T_Healpix_Base<int> healpix_base(header.healpix_level, NEST);
+            healpix_base.query_disc_inclusive(point, radius_rad, pixel_indices);
+        } catch (const std::exception& e) {
+            siril_log_color_message(_("Error querying the remote Gaia photometric catalogue: %s\n"), "red", e.what());
+            curl_easy_cleanup(curl);
+            *stars = nullptr;
+            *nb_stars = 0;
+            return 1;
+        }
 
         // Get unique chunks
         std::set<int> chunks;
@@ -1232,6 +1352,21 @@ extern "C" {
         std::copy(matches.begin(), matches.end(), *stars);
 
         return 0;
+    }
+
+    int get_raw_stars_from_remote_gaia_xpsampled_catalogue(double ra, double dec, double radius,
+                                                           double limitmag, SourceEntryXPsamp **stars,
+                                                           uint32_t *nb_stars) {
+        try {
+            return get_raw_stars_from_remote_gaia_xpsampled_catalogue_impl(ra, dec, radius, limitmag, stars, nb_stars);
+        } catch (const std::exception& e) {
+            siril_log_color_message(_("Error querying the remote Gaia photometric catalogue: %s\n"), "red", e.what());
+        } catch (...) {
+            siril_log_color_message(_("Error querying the remote Gaia photometric catalogue\n"), "red");
+        }
+        *stars = nullptr;
+        *nb_stars = 0;
+        return 1;
     }
 #else
     int get_raw_stars_from_remote_gaia_xpsampled_catalogue(double ra, double dec, double radius,

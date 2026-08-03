@@ -656,7 +656,10 @@ gboolean set_seq(gpointer user_data){
 	int convert = (int)((com.headless));
 	if (!com.headless) {
 		if (seq->type == SEQ_AVI) {
-			convert = siril_confirm_dialog(_("Deprecated sequence"),
+			/* set_seq also runs on the script/python worker thread (load_seq
+			 * command); the _async variant shows the dialog from a main-thread
+			 * idle and blocks for the answer */
+			convert = siril_confirm_dialog_async(_("Deprecated sequence"),
 					_("Film sequences are now deprecated in Siril: some features are disabled and others may crash."
 							" We strongly encourage you to convert this sequence into a SER file."
 							" SER file format is a simple image sequence format, similar to uncompressed films."), _("Convert to SER"));
@@ -711,8 +714,29 @@ gboolean set_seq(gpointer user_data){
  * if load_it is true, dest is assumed to be gfit
  * TODO: cut that method in two, with an internal func taking a filename and a fits
  */
-// This function is OK to have GUI calls in it as it is only ever called from GUI functions
+struct seq_load_image_data {
+	sequence *seq;
+	int index;
+	gboolean load_it;
+	int retval;
+};
+
+static gboolean seq_load_image_idle(gpointer p) {
+	struct seq_load_image_data *data = p;
+	data->retval = seq_load_image(data->seq, data->index, data->load_it);
+	return FALSE;
+}
+
+// This function contains many GUI calls, so when it is reached from a worker
+// thread (process_set_ref and scripted commands run on the script / python
+// connection thread) it must be re-dispatched to the GTK main thread: GTK is
+// main-thread-only and concurrent widget access crashes inside pixman.
 int seq_load_image(sequence *seq, int index, gboolean load_it) {
+	if (!com.headless && !g_main_context_is_owner(g_main_context_default())) {
+		struct seq_load_image_data data = { seq, index, load_it, 0 };
+		execute_idle_and_wait_for_it(seq_load_image_idle, &data);
+		return data.retval;
+	}
 	gboolean do_refresh_annotations = com.found_object != NULL;
 	if (!single_image_is_loaded()) {
 		if (is_preview_active())

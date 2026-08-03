@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-11 13:08+0100\n"
-"PO-Revision-Date: 2026-06-17 05:51+0000\n"
-"Last-Translator: Kei Mizuta <kmzt1013@gmail.com>\n"
+"PO-Revision-Date: 2026-07-19 06:24+0000\n"
+"Last-Translator: Tomoya Maeda <yumyum.ytm6020@gmail.com>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
 "Language: ja_JP\n"
@@ -206,7 +206,7 @@ msgstr "輝度を使用"
 
 #: src/gui/uifiles/SCNR_dialog.ui:41
 msgid "Subtractive Chromatic Green Noise Reduction"
-msgstr "減法混色グリーンノイズ低減"
+msgstr "減法混色緑ノイズ低減"
 
 #: src/gui/uifiles/SCNR_dialog.ui:124
 msgid "Protection method: "
@@ -216,8 +216,9 @@ msgstr "保護方法: "
 msgid ""
 "Average Neutral Protection is the default option. This is the recommended "
 "option in most cases."
-msgstr "Average Neutral保護がデフォルトのオプションです。これはほとんどの場合に推奨さ"
-"れるオプションです。"
+msgstr ""
+"平均中立保護がデフォルトのオプションです。これはほとんどの場合に推奨される"
+"オプションです。"
 
 #: src/gui/uifiles/SCNR_dialog.ui:141
 msgid "Average Neutral"
@@ -225,15 +226,15 @@ msgstr "平均中立"
 
 #: src/gui/uifiles/SCNR_dialog.ui:142
 msgid "Maximum Neutral"
-msgstr ""
+msgstr "最大中立"
 
 #: src/gui/uifiles/SCNR_dialog.ui:143
 msgid "Maximum Mask"
-msgstr ""
+msgstr "最大マスク"
 
 #: src/gui/uifiles/SCNR_dialog.ui:144
 msgid "Additive Mask"
-msgstr ""
+msgstr "加算マスク"
 
 #: src/gui/uifiles/SCNR_dialog.ui:171
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:111
@@ -273,7 +274,7 @@ msgstr "[0, 1]の実数に正規化"
 
 #: src/gui/uifiles/StatWindow.ui:120
 msgid "Per CFA channel"
-msgstr "CFAチャネルごと"
+msgstr "CFAチャンネルごと"
 
 #: src/gui/uifiles/StatWindow.ui:125
 msgid ""
@@ -321,7 +322,7 @@ msgstr "正方形以外のピクセルを入力することもできますが, �
 
 #: src/gui/uifiles/aavso_dialog.ui:71
 msgid "Obstype: "
-msgstr ""
+msgstr "観測タイプ: "
 
 #: src/gui/uifiles/aavso_dialog.ui:82
 msgid ""
@@ -331,11 +332,11 @@ msgstr "AAVSOによって割当済のAAVSO公式観測者コード。"
 
 #: src/gui/uifiles/aavso_dialog.ui:100
 msgid "Obscode: "
-msgstr ""
+msgstr "観測所コード: "
 
 #: src/gui/uifiles/aavso_dialog.ui:112
 msgid "Filter: "
-msgstr ""
+msgstr "フィルター: "
 
 #: src/gui/uifiles/aavso_dialog.ui:123
 msgid "The filter used for the observation."
@@ -355,12 +356,18 @@ msgid ""
 "label for the comparison star used. If not present, use \"na\". Limit: 20 "
 "characters."
 msgstr ""
+"使用した比較星の名称またはラベルを入力します。AUID（推奨）またはチャート上の"
+"比較星ラベルを使用してください。値がない場合は \"na\" を入力します。最大 20 "
+"文字まで。"
 
 #: src/gui/uifiles/aavso_dialog.ui:210
 msgid ""
 "Check star name or label such as the AUID (much preferred) or the chart "
 "label for the check star. If not present, use \"na\". Limit: 20 characters."
 msgstr ""
+"チェック星の名称またはラベルを入力します。AUID（強く推奨）またはチャート上の"
+"チェック星ラベルを使用できます。存在しない場合は \"na\" を使用してください。"
+"最大 20 文字です。"
 
 #: src/gui/uifiles/aavso_dialog.ui:228
 msgid "Starid: "
@@ -372,6 +379,9 @@ msgid ""
 "the AAVSO Unique Identifier, but NOT more than one of these. Limit: 30 "
 "characters."
 msgstr ""
+"星の識別子です。AAVSO Designation、AAVSO Name、または AAVSO Unique "
+"Identifier のいずれかを使用できますが、複数を同時に使用してはいけません。最"
+"大 30 文字です。"
 
 #: src/gui/uifiles/aavso_dialog.ui:256
 msgid ""
@@ -379,6 +389,9 @@ msgid ""
 "Photoelectric Photometry). If absent, it is assumed to be CCD.  If you use a "
 "CMOS camera please report it as CCD."
 msgstr ""
+"データファイルに記録されている観測方式を指定します。CCD、DSLR、PEP（光電測光"
+"）のいずれかを使用できます。未記入の場合は CCD とみなされます。CMOS カメラを"
+"使用している場合も CCD として報告してください。"
 
 #: src/gui/uifiles/aavso_dialog.ui:273
 msgid "Comparison star: "
@@ -402,6 +415,12 @@ msgid ""
 "instrumental value of the comparison, and Cstd is the chart magnitude for "
 "the comparison."
 msgstr ""
+"変光星の標準等級（Vstd）は、次の式で計算されます\n"
+"\n"
+"Vstd = (Vins - Cins) + Cstd\n"
+"\n"
+"Vins は変光星の器械等級、Cins は比較星の器械等級、Cstd は比較星のチャート等級"
+"です。"
 
 #: src/gui/uifiles/aavso_dialog.ui:313 src/gui/uifiles/astrometry_dialog.ui:180
 #: src/gui/uifiles/astrometry_dialog.ui:202
@@ -418,7 +437,7 @@ msgstr "0"
 
 #: src/gui/uifiles/aavso_dialog.ui:326
 msgid "Check star: "
-msgstr ""
+msgstr "比較星: "
 
 #: src/gui/uifiles/aavso_dialog.ui:337
 msgid "The number of the check star."
@@ -447,6 +466,8 @@ msgstr ""
 #: src/gui/uifiles/aavso_dialog.ui:388
 msgid "Comments or notes about the observation. If no comments, use \"na\"."
 msgstr ""
+"観測に関するコメントまたは注記です。コメントがない場合は \"na\" を使用してく"
+"ださい。"
 
 #: src/gui/uifiles/aberration_inspector.ui:32 src/gui/uifiles/siril.ui:2491
 msgid "Aberration Inspector"
@@ -469,7 +490,7 @@ msgstr "クリア"
 
 #: src/gui/uifiles/annotate_dialog.ui:34
 msgid "Clear all current temporary annotations (in red by default)"
-msgstr ""
+msgstr "現在の一時的なアノテーション（デフォルトでは赤色）をすべて消去します"
 
 #: src/gui/uifiles/annotate_dialog.ui:51
 #: src/gui/uifiles/astrometry_dialog.ui:117
@@ -480,7 +501,7 @@ msgstr "ウインドウを閉じる."
 
 #: src/gui/uifiles/annotate_dialog.ui:67
 msgid "Apply requested annotation."
-msgstr "要求されたアノテーションを適用"
+msgstr "アノテーションを適用。"
 
 #: src/gui/uifiles/annotate_dialog.ui:110
 msgid "Catalogue: "
@@ -501,6 +522,19 @@ msgid ""
 "- for solar system objects: solsys (closest IAU observatory code can be "
 "passed in the dedicated text field."
 msgstr ""
+"読み込まれているプレートソルブ済み画像に対して使用されるカタログです：\n"
+"\n"
+"- Automatic：ローカルカタログが利用可能な場合はそれを使用し、利用できない場合"
+"は nomad をデフォルトとして使用します。\n"
+"\n"
+"別のオンラインカタログを選択することもできます：\n"
+"\n"
+"- 星用：tycho2、nomad、gaia、ppmxl、bsc、apass、gcvs、vsx、simbad、"
+"aavso_chart\n"
+"- 系外惑星用：exo\n"
+"- ディープスカイ用：pgc\n"
+"- 太陽系天体用：solsys（最寄りの IAU 観測所コードを専用のテキスト欄に入力でき"
+"ます）。"
 
 #: src/gui/uifiles/annotate_dialog.ui:133
 msgid "automatic"
@@ -571,6 +605,8 @@ msgid ""
 "For stars catalogues containing photometric data, stars with no B-V "
 "information will be kept; they can be excluded by check this option."
 msgstr ""
+"測光データを含む星表の場合、B–V 情報を持たない星も保持されます。この"
+"オプションをチェックすると、それらを除外できます。"
 
 #: src/gui/uifiles/annotate_dialog.ui:174
 #: src/gui/uifiles/annotate_dialog.ui:426
@@ -588,6 +624,12 @@ msgid ""
 "with the tag check button to display names alongside markers and log check "
 "button to list the objects in the console log."
 msgstr ""
+"いくつかのカタログ（bsc、gcvs、pgc、exo、aavso_chart、varisum、solsys）は、"
+"デフォルトでマーカーの横に名前を表示し、ログにも一覧を出力します。一方、vsx "
+"と simbad のように天体数が多いカタログでは、この情報も表示できますが、画面が"
+"煩雑になる可能性があるためデフォルトでは無効になっています。この動作は、タグ"
+"（名前表示）チェックボタンでマーカー横の名前表示を、ログチェックボタンで"
+"コンソールログへの出力をオン／オフできます。"
 
 #: src/gui/uifiles/annotate_dialog.ui:189
 #: src/gui/uifiles/annotate_dialog.ui:442
@@ -596,13 +638,15 @@ msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:207
 msgid "Save to: "
-msgstr "… に保存: "
+msgstr "保存先: "
 
 #: src/gui/uifiles/annotate_dialog.ui:239
 msgid ""
 "The list of elements present in the image can be saved in a csv file by "
 "filling in this text field or by clicking on the button to the right."
 msgstr ""
+"画像内に存在する要素の一覧は、このテキストフィールドに名前を入力するか、右側"
+"のボタンをクリックすることで csv ファイルとして保存できます。"
 
 #: src/gui/uifiles/annotate_dialog.ui:252
 msgid "Limit magnitude used in the query."
@@ -664,12 +708,12 @@ msgstr "CSVをインポート"
 #: src/gui/uifiles/annotate_dialog.ui:474
 #: src/gui/uifiles/astrometry_dialog.ui:299
 msgid "Right Ascension: "
-msgstr ""
+msgstr "赤経: "
 
 #: src/gui/uifiles/annotate_dialog.ui:486
 #: src/gui/uifiles/astrometry_dialog.ui:310
 msgid "Declination: "
-msgstr "偏角: "
+msgstr "赤緯: "
 
 #: src/gui/uifiles/annotate_dialog.ui:497
 #: src/gui/uifiles/annotate_dialog.ui:508
@@ -679,6 +723,9 @@ msgid ""
 "(degrees, minutes, seconds) for declination, or as decimal degrees (e.g., "
 "184.000785, 14.899070)."
 msgstr ""
+"これらのフィールドには、赤経（Right Ascension）と赤緯（Declination）を入力で"
+"きます。赤経は hms 形式（時・分・秒）、赤緯は dms 形式（度・分・秒）で入力す"
+"るか、どちらも小数度（例：184.000785、14.899070）で入力することもできます。"
 
 #: src/gui/uifiles/annotate_dialog.ui:520
 msgid "Display Name:"
@@ -732,13 +779,12 @@ msgid "Asinh Transformation"
 msgstr "Arcsinh 変換"
 
 #: src/gui/uifiles/asinh_dialog.ui:123
-#, fuzzy
 msgid "Stretch factor"
-msgstr "画像パラメーター"
+msgstr "ストレッチ係数"
 
 #: src/gui/uifiles/asinh_dialog.ui:160
 msgid "The parameter stretch factor allows to adjust the non-linearity factor."
-msgstr ""
+msgstr "ストレッチ係数パラメータは、非線形性の強さを調整するためのものです。"
 
 #: src/gui/uifiles/asinh_dialog.ui:182
 msgid "Black Point"
@@ -746,21 +792,23 @@ msgstr ""
 
 #: src/gui/uifiles/asinh_dialog.ui:218
 msgid "Constant value that is subtracted from the image."
-msgstr ""
+msgstr "画像から減算される定数値"
 
 #: src/gui/uifiles/asinh_dialog.ui:234
 msgid "Human-weighted luminance"
-msgstr ""
+msgstr "視覚重み付き輝度"
 
 #: src/gui/uifiles/asinh_dialog.ui:238
 msgid ""
 "For colour images, use human eye luminous efficiency weights to compute the "
 "luminance used to compute the stretch for each pixel."
 msgstr ""
+"カラー画像の場合、各ピクセルのストレッチ計算に用いる輝度を、人間の視覚効率に"
+"基づく重み付けで算出します。"
 
 #: src/gui/uifiles/asinh_dialog.ui:276
 msgid "Clip mode"
-msgstr ""
+msgstr "クリップモード"
 
 #: src/gui/uifiles/asinh_dialog.ui:288 src/gui/uifiles/histogram_dialog.ui:760
 msgid ""
@@ -775,6 +823,17 @@ msgid ""
 "Clip is fastest: set one of the other modes when you're happy with your "
 "stretch if you notice colour artefacts around bright stars."
 msgstr ""
+"ブレンドモードを選択します。\n"
+"Clip：値を 0.0〜1.0 の範囲にクリップします。<b>デフォルト</b> \n"
+"Rescale：クリップされたピクセルの RGB 値を、ピクセルごとに 1.0 を超えないよう"
+"再スケールします。\n"
+"RGB blend：ハイライトの色を滑らかに再構成するためのブレンド関数を適用します"
+"。\n"
+"Global rescale：Rescale と同じですが、画像全体の最大成分値に合わせて再"
+"スケールします。\n"
+"\n"
+"Clip が最も高速です。明るい星の周囲に色のアーティファクトが見える場合は、"
+"ストレッチに満足した段階で他のモードに切り替えてください。"
 
 #: src/gui/uifiles/asinh_dialog.ui:297 src/gui/uifiles/dialog_star_remix.ui:166
 #: src/gui/uifiles/histogram_dialog.ui:769
@@ -788,9 +847,8 @@ msgstr ""
 
 #: src/gui/uifiles/asinh_dialog.ui:299 src/gui/uifiles/dialog_star_remix.ui:168
 #: src/gui/uifiles/histogram_dialog.ui:771
-#, fuzzy
 msgid "RGB Blend"
-msgstr "RGB 整列"
+msgstr ""
 
 #: src/gui/uifiles/asinh_dialog.ui:300
 msgid "Global Rescale"
@@ -798,7 +856,7 @@ msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:97
 msgid "Image Plate Solver"
-msgstr ""
+msgstr "画像プレートソルバー"
 
 #: src/gui/uifiles/astrometry_dialog.ui:128 src/gui/uifiles/s_pcc_dialog.ui:156
 #: src/gui/uifiles/s_pcc_dialog.ui:175
@@ -818,7 +876,7 @@ msgstr "Plate solving アルゴリズムを開始."
 msgid ""
 "Initial equatorial coordinates. Input value must be inside the image, close "
 "to the centre."
-msgstr ""
+msgstr "初期赤道座標を入力します。値は画像内のできるだけ中心付近を指定してください。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:319
 msgid "S"
@@ -826,7 +884,7 @@ msgstr "S"
 
 #: src/gui/uifiles/astrometry_dialog.ui:323
 msgid "This button is checked for negative declination (southern hemisphere)."
-msgstr ""
+msgstr "このボタンは、赤緯が負（天の南半球）の場合にチェックされます。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:337
 msgid ""
@@ -836,6 +894,11 @@ msgid ""
 "If coordinates are already filled when clicking on the Get Metadata From "
 "Image button below, this is probably not required."
 msgstr ""
+"画像中心付近にある天体の識別子または名称を入力します。この機能は"
+"インターネット接続を必要とし、デフォルトでは SIMBAD（または右側で選択した"
+"サーバー）に問い合わせます。\n"
+"下の「画像からメタデータを取得」ボタンを押した際に座標がすでに自動入力されて"
+"いる場合は、この操作を行う必要はありません。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:353
 #: src/gui/uifiles/python_scratchpad.ui:302
@@ -851,6 +914,10 @@ msgid ""
 "If coordinates are already filled when clicking on the Get Metadata From "
 "Image button below, this is probably not required."
 msgstr ""
+"入力した天体名の座標の検索を開始します。この機能はインターネット接続を必要と"
+"し、デフォルトでは SIMBAD（または右側で選択したサーバー）に問い合わせます。\n"
+"下の「画像からメタデータを取得」ボタンで座標がすでに自動入力されている場合は"
+"、この操作を行なう必要はありません。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:372
 #: src/gui/uifiles/astrometry_dialog.ui:408
@@ -859,6 +926,8 @@ msgid ""
 "input value has not to be very accurate, try to give a value with an error "
 "not exceeding 20%."
 msgstr ""
+"光学系の有効焦点距離（mm）を入力します。厳密な値でなくても構いませんが、誤差"
+"は 20% 以内に収めてください。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:390
 msgid ""
@@ -866,6 +935,9 @@ msgid ""
 "already multiplied by the camera binning if the \"Real pixel size\" box is "
 "checked in the Tool->Image Information dialog box."
 msgstr ""
+"ピクセルサイズ（µm）を入力します。画像は正方ピクセルである前提です。ツール->"
+"画像情報の\"実ピクセルサイズ\"を有効にしている場合、ここに入力する値はカメラ"
+"のビニングを反映した値になります。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:409
 msgid "Focal length (mm):"
@@ -873,7 +945,7 @@ msgstr "焦点距離 (mm):"
 
 #: src/gui/uifiles/astrometry_dialog.ui:420
 msgid "Pixel size in microns. The image is assumed to have square pixels."
-msgstr ""
+msgstr "ピクセルサイズ（µm）を入力します。画像は正方ピクセルである前提です。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:421
 msgid "Pixel size (µm):"
@@ -885,6 +957,8 @@ msgid ""
 "The resolution of the image that is automatically determined from the focal "
 "and pixel size value. Unit is arc second per pixel."
 msgstr ""
+"焦点距離とピクセルサイズから自動計算される画像の解像度です。単位は「角秒/"
+"pixel」です。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:435
 msgid "Resolution: "
@@ -897,24 +971,25 @@ msgid ""
 "or the others should not influence the plate-solving or the photometry data, "
 "which is based on the selected catalogue."
 msgstr ""
+"いくつかのリゾルバがこのリストに表示されますが、天体中心の座標を取得するため"
+"のものです。どれを選んでも、プレートソルブや測光データには影響しません。これ"
+"らは選択したカタログに基づいています。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:481
 msgid "Resolver"
-msgstr "Resolver"
+msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:512
-#, fuzzy
 msgid "Flip image if needed"
 msgstr "画像/ビデオを開く"
 
 #: src/gui/uifiles/astrometry_dialog.ui:516
 msgid "Flip image at the end of the platesolving if image is mirrored."
-msgstr ""
+msgstr "もし画像が左右反転している場合、プレートソルブ完了時に自動で反転します。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:528
-#, fuzzy
 msgid "Downsample image"
-msgstr "画像を正規化"
+msgstr "画像をダウンサンプリングする"
 
 #: src/gui/uifiles/astrometry_dialog.ui:532
 msgid ""
@@ -922,31 +997,36 @@ msgid ""
 "resolve astrometry data. In consequence, downsampling data generally helps "
 "and also makes star detection run faster."
 msgstr ""
+"Drizzle などでオーバーサンプリングされた画像は、プレートソルブが難しくなるこ"
+"とがあります。そのため、画像をダウンサンプリングするとソルブが安定しやすくな"
+"り、星検出も高速になります。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:543
 msgid "Auto-crop (for wide field)"
-msgstr ""
+msgstr "自動クロップ（広視野用）"
 
 #: src/gui/uifiles/astrometry_dialog.ui:547
 msgid ""
 "Only use the center of the image (or selection) if the field is too wide, "
 "larger than 5 degrees."
-msgstr ""
+msgstr "視野が 5 度を超える場合は、画像（または選択範囲）の中心部分だけを使用します。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:560
 msgid "Get Metadata From Image"
-msgstr "画像からメタデータを得る"
+msgstr "画像からメタデータを取得"
 
 #: src/gui/uifiles/astrometry_dialog.ui:564
 msgid ""
 "Click on this button to get focal length, pixel size and RA/Dec pointing "
 "coordinates from the header of the file if they exist."
 msgstr ""
+"ヘッダに情報がある場合、焦点距離・ピクセルサイズ・RA/Dec の指向座標を取得しま"
+"す。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:592
 msgid ""
 "Select the server that searches the coordinates of the entered object name."
-msgstr ""
+msgstr "入力した天体名の座標を検索するサーバーを選択します。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:595
 #, fuzzy
@@ -963,7 +1043,7 @@ msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:611
 msgid "Server:"
-msgstr ""
+msgstr "サーバ:"
 
 #: src/gui/uifiles/astrometry_dialog.ui:622
 #: src/gui/uifiles/astrometry_dialog.ui:645
@@ -975,17 +1055,23 @@ msgid ""
 "When selecting an order with distortions, additional terms are added to the "
 "solution, using SIP convention"
 msgstr ""
+"解の次数を選択します：\n"
+"Linear は画像に歪みがない前提で計算します。\n"
+"Quadratic／Cubic／Quartic／Quintic を選ぶと、2〜5 次の多項式歪みをモデルに含"
+"めます。\n"
+"歪みを扱う次数を選択した場合、SIP 形式に基づく追加項が解に加えられます"
 
 #: src/gui/uifiles/astrometry_dialog.ui:651
-#, fuzzy
 msgid "Solution order: "
-msgstr "解像度: "
+msgstr "解の次数: "
 
 #: src/gui/uifiles/astrometry_dialog.ui:662
 msgid ""
 "Choose Siril internal solver or local Astrometry.net (needs to be installed "
 "on your system)"
 msgstr ""
+"Siril 内蔵ソルバー、またはローカルにインストールされた Astrometry.net のどち"
+"らを使用するか選択します"
 
 #: src/gui/uifiles/astrometry_dialog.ui:665
 #, fuzzy
@@ -993,9 +1079,8 @@ msgid "Siril solver"
 msgstr "Siril コントロール センター"
 
 #: src/gui/uifiles/astrometry_dialog.ui:666
-#, fuzzy
 msgid "Astrometry.net (local)"
-msgstr "Plate solving アルゴリズムを開始."
+msgstr "Astrometry.net (local)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:679
 #: src/gui/uifiles/astrometry_dialog.ui:697
@@ -1056,7 +1141,7 @@ msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:874
 msgid "Image Parameters"
-msgstr "画像パラメーター"
+msgstr "画像パラメータ"
 
 #: src/gui/uifiles/astrometry_dialog.ui:906
 #: src/gui/uifiles/s_pcc_dialog.ui:1026
@@ -1084,9 +1169,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:951
-#, fuzzy
 msgid "Star Catalogue: "
-msgstr "測光"
+msgstr "星表: "
 
 #: src/gui/uifiles/astrometry_dialog.ui:963
 msgid ""
@@ -1132,9 +1216,8 @@ msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:1025
 #: src/gui/uifiles/s_pcc_dialog.ui:1106
-#, fuzzy
 msgid "Catalogue Parameters"
-msgstr "画像パラメーター"
+msgstr "星表パラメータ"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1046
 #, fuzzy
@@ -1156,37 +1239,38 @@ msgid "Star Detection"
 msgstr "星の検出"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1086
-#, fuzzy
 msgid "Solve whole sequence"
-msgstr "画像シーケンスを検索"
+msgstr "シーケンス全体をソルブ"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1090
 msgid "Tick this box to solve the whole sequence."
-msgstr ""
+msgstr "シーケンス全体をソルブするには、このボックスをチェックします。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1112
-#, fuzzy
 msgid "Use as registration information"
-msgstr "カラー反転"
+msgstr "位置合わせ情報として利用"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1116
 msgid "Tick this box to use astrometric data to compute sequence registration."
 msgstr ""
+"シーケンスの位置合わせを計算するの天体測量データを使用するには、このボックス"
+"をチェックします。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1129
 msgid "Skip already solved images"
-msgstr ""
+msgstr "すでにソルブされた画像はスキップ"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1133
 msgid ""
 "Tick this box to skip solving the images of the sequence that already have a "
 "solution."
 msgstr ""
+"すでにソルブされているシーケンスの画像をソルブするのをスキップするには、この"
+"ボックスをチェックします。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1146
-#, fuzzy
 msgid "Fetch catalog for each image"
-msgstr "リファレンス画像の読み込み失敗\n"
+msgstr "各画像ごとに星表を取得"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1150
 msgid ""
@@ -1196,49 +1280,56 @@ msgid ""
 "box to fetch a new catalogue for each image. The information contained in "
 "the headers will be used to recompute the new position/resolution."
 msgstr ""
+"Siril のソルバーでオンライン星表を使用する場合、デフォルトではシーケンス全体"
+"に対して 1 つの星表だけを取得します。しかし、画像が同じ視野ではなかったり、解"
+"像度が異なる場合、この方法では失敗する可能性があります。そのような場合は、こ"
+"のボックスをチェックして、各画像ごとに新しい星表を取得してください。ヘッダに"
+"含まれる情報をもとに、新しい位置や解像度が再計算されます。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1175
-#, fuzzy
 msgid "Use coordinates from headers"
-msgstr "画像 %s を保存中"
+msgstr "ヘッダの座標を使用"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1179
 msgid ""
 "Use the coordinates contained in each image header instead of those given in "
 "this dialog"
 msgstr ""
+"このダイアログで指定した座標ではなく、各画像ヘッダに含まれている座標を使用し"
+"ます"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1190
-#, fuzzy
 msgid "Use pixel size from headers"
-msgstr "画像 %s を保存中"
+msgstr "ヘッダのピクセルサイズを使用"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1194
 msgid ""
 "Use the pixel size contained in each image header instead of those given in "
 "this dialog"
 msgstr ""
+"このダイアログで指定したピクセルサイズではなく、各画像ヘッダに含まれている"
+"ピクセルサイズを使用します"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1205
-#, fuzzy
 msgid "Use focal length from headers"
-msgstr "画像 %s を保存中"
+msgstr "ヘッダの焦点距離を使用"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1209
 msgid ""
 "Use the focal length contained in each image header instead of those given "
 "in this dialog"
 msgstr ""
+"このダイアログで指定した焦点距離ではなく、各画像ヘッダに含まれている焦点距離"
+"を使用します"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1238
-#, fuzzy
 msgid "Sequence / Astrometric Registration"
-msgstr "ヒストグラム変換を適用する"
+msgstr "シーケンス / 天体測量位置合わせ"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:55
 #: src/algos/background_extraction.c:1388
 msgid "Background Extraction"
-msgstr ""
+msgstr "背景抽出"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:93
 msgid ""
@@ -1247,16 +1338,17 @@ msgid ""
 "<b>Apply to sequence</b> button is checked, this will compute the model and "
 "apply it to the whole sequence."
 msgstr ""
+"これは、 <b> バックグラウンドを計算 </b> ボタンで生成した背景モデルを確定しま"
+"す。ただし、シーケンス処理の場合に <b> シーケンスに適用 </b> が有効になってい"
+"ると、背景モデルを再計算し、シーケンス全体に適用します。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:127
-#, fuzzy
 msgid "Choose between interpolation methods."
-msgstr "ディベイヤー 補間: "
+msgstr "補間方法を選択します"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:131
-#, fuzzy
 msgid "RBF"
-msgstr "RGB"
+msgstr "RBF"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:132
 msgid "Polynomial"
@@ -1270,7 +1362,7 @@ msgstr ""
 #: src/gui/uifiles/background_extraction_dialog.ui:311
 #: src/gui/uifiles/background_extraction_dialog.ui:338
 msgid "Number of sample per line that will be automatically placed."
-msgstr ""
+msgstr "自動的に配置される、1 行あたりのサンプル数です。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:203
 msgid ""
@@ -1279,6 +1371,9 @@ msgid ""
 "points in the background, while a smoothing parameter that is too large may "
 "not be suitable for large deviations in gradient."
 msgstr ""
+"補間に使用するスムージング量を調整します。値が小さすぎると背景の点間で"
+"オーバーシュート／アンダーシュートが発生しやすく、逆に大きすぎると大きな勾配"
+"変化を適切に表現できなくなる場合があります。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:219
 msgid "page 1"
@@ -1286,7 +1381,7 @@ msgstr ""
 
 #: src/gui/uifiles/background_extraction_dialog.ui:237
 msgid "Degree order: "
-msgstr ""
+msgstr "次数: "
 
 #: src/gui/uifiles/background_extraction_dialog.ui:249
 msgid ""
@@ -1294,6 +1389,9 @@ msgid ""
 "By default the value is of 4.\n"
 "The higher the degree order is, the more complex the gradient can be removed."
 msgstr ""
+"フィットに使用する多項式の次数を選択します。\n"
+"デフォルトは 4 です。\n"
+"次数を上げるほど、より複雑な背景勾配を取り除くことができます。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:299
 #, fuzzy
@@ -1306,6 +1404,9 @@ msgid ""
 "background gradient.\n"
 "This should be enabled for non-stretched images."
 msgstr ""
+"低ダイナミックな背景勾配にランダムノイズを加えて、バンディングの発生を防ぎま"
+"す。\n"
+"非ストレッチ画像では、このオプションを有効にすることを推奨します。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:360
 msgid "Grid tolerance"
@@ -1398,9 +1499,8 @@ msgid "Correction"
 msgstr "修正"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:567
-#, fuzzy
 msgid "Compute Background"
-msgstr "背景"
+msgstr "バックグラウンドを計算"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:571
 msgid ""
@@ -1464,17 +1564,16 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/bdeconv_dialog.ui:369
-#, fuzzy
 msgid "Blind deconvolution"
-msgstr "逆畳み込み"
+msgstr ""
 
 #: src/gui/uifiles/bdeconv_dialog.ui:373
 msgid "Estimates a PSF from the image"
-msgstr ""
+msgstr "画像から PSF を推定します"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:386
 msgid "PSF from stars"
-msgstr ""
+msgstr "星像から PSF を推定"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:390
 msgid ""
@@ -1482,42 +1581,48 @@ msgid ""
 "no stars have been detected, an attempt will be made to detect stars in the "
 "image within a suitable range of peak brightness."
 msgstr ""
+"検出された星の平均 PSF パラメータに基づいて PSF をモデル化します。星が検出さ"
+"れていない場合は、適切なピーク輝度範囲で星を自動検出する処理が行われます。"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:403
 msgid "Manual PSF"
-msgstr ""
+msgstr "手動 PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:407
 msgid "Use a manually defined PSF based on the parameters chosen."
-msgstr ""
+msgstr "選択したパラメータに基づいて、手動で定義した PSF を使用します。"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:422
 msgid ""
 "Select the blind PSF estimation method to use. ℓ0 descent is the default and "
 "usually the best option."
 msgstr ""
+"使用するブラインド PSF 推定法を選択します。L0 降下法がデフォルトで、通常は最"
+"も良い選択です。"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:425
 msgid "Spectral Irregularity"
-msgstr ""
+msgstr "スペクトル不規則性"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:426
 msgid "ℓ0 Descent"
-msgstr ""
+msgstr "L0 降下法"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:437
 msgid "Previous PSF"
-msgstr ""
+msgstr "前回の PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:441
 msgid "Reuse the previously calculated PSF."
-msgstr ""
+msgstr "前回計算した PSF を再利用します。"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:456
 msgid ""
 "Select a PSF to load from file. The PSF must be square and should ideally "
 "have odd length / width."
 msgstr ""
+"読み込む PSF ファイルを選択する。PSF は正方形であり、理想的には縦横が奇数であ"
+"る必要があります。"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:471
 msgid "Load PSF from file"
@@ -1530,7 +1635,7 @@ msgstr "生成"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:489
 msgid "Generate and preview the PSF, but do not carry out deconvolution"
-msgstr ""
+msgstr "PSF を生成してプレビューしますが、デコンボリューションは実行しません"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:511
 #, fuzzy
@@ -1651,7 +1756,7 @@ msgstr "ピクセルサイズ (µm):"
 #: src/gui/photometric_cc.c:1524
 #, c-format
 msgid "Wavelength / nm"
-msgstr ""
+msgstr "波長 (nm)"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:880
 msgid "Focal length / mm"
@@ -1997,9 +2102,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2029
-#, fuzzy
 msgid "Regularization"
-msgstr "Background Extraction…"
+msgstr "正則化"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2041
 msgid "Gradient descent step size"
@@ -2127,7 +2231,7 @@ msgstr ""
 
 #: src/gui/uifiles/ccm_dialog.ui:32
 msgid "Reactivate ICC profile previously disabled by applying a CCM"
-msgstr ""
+msgstr "CCM を適用した際に無効化された ICC プロファイルを再度有効化します"
 
 #: src/gui/uifiles/ccm_dialog.ui:120 src/gui/uifiles/ccm_dialog.ui:176
 #: src/gui/uifiles/ccm_dialog.ui:232
@@ -2982,30 +3086,28 @@ msgid "Wavenumber"
 msgstr ""
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:382
-#, fuzzy
 msgid "Spectroscopic Calibration Points"
-msgstr "フォトメトリック 色補正."
+msgstr "スペクトル校正点"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:414
-#, fuzzy
 msgid "Polynomial degree"
-msgstr "多項式の次数が過大."
+msgstr "多項式の次数"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:425
 msgid ""
 "Sets the degree of polynomial used for background fitting, between 1 (linear "
 "fit) and 6 (sextic polynomial)"
 msgstr ""
+"背景フィッティングに使用する多項式の次数を設定します。1（一次：線形フィット）"
+"から 6（六次多項式）まで指定できます"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:436
-#, fuzzy
 msgid "Plot measured and modelled background"
-msgstr "背景"
+msgstr "測定背景とモデル背景をプロットします"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:465
-#, fuzzy
 msgid "Background Removal"
-msgstr "背景"
+msgstr "バックグラウンド除去"
 
 #: src/gui/uifiles/data_dialog.ui:49
 msgid "More details..."
@@ -3166,25 +3268,23 @@ msgstr "フーリエ変換"
 
 #: src/gui/uifiles/dialog_FFT.ui:104
 msgid "Name of the magnitude file: "
-msgstr ""
+msgstr "強度ファイルの名前: "
 
 #: src/gui/uifiles/dialog_FFT.ui:116
 msgid "Name of the phase file: "
-msgstr ""
+msgstr "位相ファイルの名前: "
 
 #: src/gui/uifiles/dialog_FFT.ui:128
 msgid "Order: "
 msgstr ""
 
 #: src/gui/uifiles/dialog_FFT.ui:141
-#, fuzzy
 msgid "modulus"
-msgstr "モジュラス"
+msgstr "modulus"
 
 #: src/gui/uifiles/dialog_FFT.ui:155
-#, fuzzy
 msgid "phase"
-msgstr "相"
+msgstr "phase"
 
 #: src/gui/uifiles/dialog_FFT.ui:165
 #, fuzzy
@@ -3196,14 +3296,12 @@ msgid "Direct Transform"
 msgstr "順変換"
 
 #: src/gui/uifiles/dialog_FFT.ui:203
-#, fuzzy
 msgid "Magnitude of the image: "
-msgstr "他のフィルターを追加"
+msgstr "画像の強度: "
 
 #: src/gui/uifiles/dialog_FFT.ui:215
-#, fuzzy
 msgid "Phase of the image: "
-msgstr "他のフィルターを追加"
+msgstr "画像の位相: "
 
 #: src/gui/uifiles/dialog_FFT.ui:229
 #, fuzzy
@@ -3220,9 +3318,8 @@ msgid "Inverse Transform"
 msgstr "逆変換"
 
 #: src/gui/uifiles/dialog_star_remix.ui:97
-#, fuzzy
 msgid "Star Recomposition"
-msgstr "HSL 色空間"
+msgstr "星の再合成"
 
 #: src/gui/uifiles/dialog_star_remix.ui:114
 #, fuzzy
@@ -3240,9 +3337,8 @@ msgid "Show advanced stretch options"
 msgstr ""
 
 #: src/gui/uifiles/dialog_star_remix.ui:151
-#, fuzzy
 msgid "Clipping mode:"
-msgstr "Sigma Clipping"
+msgstr "クリッピングモード："
 
 #: src/gui/uifiles/dialog_star_remix.ui:163
 msgid "Select the clipping mode for partially clipped pixels."
@@ -3575,9 +3671,8 @@ msgid "Edge Preserving Filters"
 msgstr "明るさを維持"
 
 #: src/gui/uifiles/epf_dialog.ui:143
-#, fuzzy
 msgid "Filter Type"
-msgstr "メディアンフィルター..."
+msgstr "フィルタータイプ"
 
 #: src/gui/uifiles/epf_dialog.ui:155
 msgid ""
@@ -3596,9 +3691,8 @@ msgid "Guided filter"
 msgstr "他のフィルターを追加"
 
 #: src/gui/uifiles/epf_dialog.ui:188
-#, fuzzy
 msgid "Guide Image"
-msgstr "RAW 画像"
+msgstr "ガイド画像"
 
 #: src/gui/uifiles/epf_dialog.ui:199
 msgid ""
@@ -3607,26 +3701,32 @@ msgid ""
 "WARNING: using guide images that are not based on the original image is "
 "likely to produce bad results."
 msgstr ""
+"ガイド画像を選択してください。「セルフガイド」を有効にしている場合は、"
+"ファイルを選択する必要はありません。\n"
+"警告：元の画像から生成されていないガイド画像を使用すると、品質の低い結果にな"
+"る可能性があります。"
 
 #: src/gui/uifiles/epf_dialog.ui:211
 msgid "self guided"
-msgstr ""
+msgstr "セルフガイド"
 
 #: src/gui/uifiles/epf_dialog.ui:216
-#, fuzzy
 msgid "Check this to use the current image as the guided filter guide image"
-msgstr "…この FITS 画像に同じ名前で保存"
+msgstr ""
+"現在の画像をガイドフィルターのガイド画像として使用する場合は、この項目を有効"
+"にします"
 
 #: src/gui/uifiles/epf_dialog.ui:243 src/gui/uifiles/epf_dialog.ui:307
 msgid ""
 "If set to 0, the diameter will automatically be set based on the spatial "
 "sigma parameter"
 msgstr ""
+"値を 0 にすると、直径は空間シグマ（spatial sigma）に基づいて自動的に決定され"
+"ます"
 
 #: src/gui/uifiles/epf_dialog.ui:245
-#, fuzzy
 msgid "Diameter"
-msgstr "画像パラメーター"
+msgstr "直径"
 
 #: src/gui/uifiles/epf_dialog.ui:257
 msgid ""
@@ -4039,15 +4139,16 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/icc_dialog.ui:80
-#, fuzzy
 msgid "Export"
-msgstr "CSV形式にエクスポート"
+msgstr "エクスポート"
 
 #: src/gui/uifiles/icc_dialog.ui:84
 msgid ""
 "Export the profile currently assigned to the image to the working directory. "
 "It will be saved with the filename {imagename}.icc"
 msgstr ""
+"その画像に現在割り当てられているプロファイルを、作業ディレクトリに"
+"エクスポートします。ファイル名は {画像名}.icc として保存されます"
 
 #: src/gui/uifiles/icc_dialog.ui:95 src/gui/uifiles/siril.ui:3718
 msgid "Remove"
@@ -4055,11 +4156,11 @@ msgstr "除去"
 
 #: src/gui/uifiles/icc_dialog.ui:99
 msgid "Remove the ICC profile from the image and stop color managing it"
-msgstr ""
+msgstr "画像からICCプロファイルを削除し、その画像のカラーマネージメントを停止します"
 
 #: src/gui/uifiles/icc_dialog.ui:110 src/core/icc_profile.c:1311
 msgid "Assign"
-msgstr ""
+msgstr "割り当て"
 
 #: src/gui/uifiles/icc_dialog.ui:114
 msgid ""
@@ -4067,6 +4168,8 @@ msgid ""
 "color space transform. This is useful if the image has an incorrect ICC "
 "profile."
 msgstr ""
+"色空間変換を行わずに、選択したICCプロファイルを現在の画像に割り当てます。これ"
+"は、画像に誤ったICCプロファイルが設定されている場合に役立ちます。"
 
 #: src/gui/uifiles/icc_dialog.ui:128 src/gui/uifiles/siril.ui:3870
 #: src/core/icc_profile.c:1313
@@ -4078,24 +4181,25 @@ msgid ""
 "Converts the image to a different color space. This can be useful for "
 "exporting an image to sRGB for WWW use, for example."
 msgstr ""
+"画像を別の色空間に変換します。これは、例えば、Web上で使用するために画像をsRGB"
+"形式でエクスポートする場合などに役立ちます。"
 
 #: src/gui/uifiles/icc_dialog.ui:178
 msgid "<b><i>Current ICC profile</i></b>"
-msgstr ""
+msgstr "<b><i>現在のICCプロファイル</i></b>"
 
 #: src/gui/uifiles/icc_dialog.ui:228
-#, fuzzy
 msgid "<b><i>Target ICC profile</i></b>"
-msgstr "<b>FITS 形式</b>"
+msgstr "<b><i>対象のICCプロファイルe</i></b>"
 
 #: src/gui/uifiles/icc_dialog.ui:254 src/gui/uifiles/icc_dialog.ui:308
 #: src/gui/uifiles/spcc_details.ui:96
 msgid "Manufacturer"
-msgstr ""
+msgstr "作成者"
 
 #: src/gui/uifiles/icc_dialog.ui:267 src/gui/uifiles/icc_dialog.ui:321
 msgid "Copyright"
-msgstr ""
+msgstr "著作権情報"
 
 #: src/gui/uifiles/icc_dialog.ui:332
 msgid "\n"
@@ -4103,7 +4207,7 @@ msgstr ""
 
 #: src/gui/uifiles/icc_dialog.ui:360
 msgid "Built-in profile"
-msgstr ""
+msgstr "組み込みプロファイル"
 
 #: src/gui/uifiles/icc_dialog.ui:371
 msgid ""
@@ -4113,9 +4217,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/icc_dialog.ui:374
-#, fuzzy
 msgid "None selected"
-msgstr "選択"
+msgstr "選択されていません"
 
 #: src/gui/uifiles/icc_dialog.ui:375
 msgid "sRGB (linear TRC)"
@@ -4146,9 +4249,8 @@ msgid "Gray (Rec709 TRC)"
 msgstr ""
 
 #: src/gui/uifiles/icc_dialog.ui:394
-#, fuzzy
 msgid "Load profile from file"
-msgstr "ファイルを保存"
+msgstr "ファイルからプロファイルを読み込む"
 
 #: src/gui/uifiles/icc_dialog.ui:424
 msgid "<b>Color Management Operations</b>"
@@ -4156,9 +4258,8 @@ msgstr "<b>カラーマネージメント操作</b>"
 
 #: src/gui/uifiles/icc_gamut_dialog.ui:32
 #: src/gui/uifiles/settings_window.ui:4164
-#, fuzzy
 msgid "Gamut visualisation"
-msgstr "可視化の為のみ"
+msgstr "色域の可視化"
 
 #: src/gui/uifiles/icc_gamut_dialog.ui:76
 msgid ""
@@ -4823,9 +4924,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:363
-#, fuzzy
 msgid "Enable test arguments"
-msgstr "FITS ファイル %s を開けない\n"
+msgstr "テスト引数を有効にする"
 
 #: src/gui/uifiles/python_scratchpad.ui:371
 msgid ""
@@ -4973,14 +5073,12 @@ msgid "Siril Command Reference"
 msgstr "Sirilコマンドリファレンス"
 
 #: src/gui/uifiles/python_scratchpad.ui:573
-#, fuzzy
 msgid "Script type"
-msgstr "スクリプト"
+msgstr "スクリプトタイプ"
 
 #: src/gui/uifiles/python_scratchpad.ui:642
-#, fuzzy
 msgid "Arguments:"
-msgstr "エラー"
+msgstr "引数:"
 
 #: src/gui/uifiles/python_scratchpad.ui:654
 msgid ""
@@ -4990,6 +5088,11 @@ msgid ""
 "script is run from the Scripts menu, so scripts should not be solely reliant "
 "on arguments for input."
 msgstr ""
+"このエントリを使用すると、スクリプトを実行する際の引数を設定できます。これに"
+"より、<b>pyscript</b> コマンドを引数付きで呼び出した際の動作をテストすること"
+"が可能になります。なお、スクリプトメニューからスクリプトを実行する際には引数"
+"を指定できないため、スクリプトは入力として引数のみに依存すべきではありません"
+"。"
 
 #: src/gui/uifiles/resample_dialog.ui:63
 #, fuzzy
@@ -5108,9 +5211,8 @@ msgid "Y coordinate of the center of polar coordinates."
 msgstr "極座標の中心の Y 座標."
 
 #: src/gui/uifiles/rotation_dialog.ui:41 src/gui/uifiles/siril.ui:2137
-#, fuzzy
 msgid "Rotate&Crop"
-msgstr "回転"
+msgstr "回転・切り抜き"
 
 #: src/gui/uifiles/rotation_dialog.ui:104
 msgid "Angle (°)"
@@ -5174,9 +5276,8 @@ msgid "Green Filter:"
 msgstr "メディアンフィルター..."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:282
-#, fuzzy
 msgid "OSC Filter:"
-msgstr "ファイルを開く"
+msgstr "OSCフィルター："
 
 #: src/gui/uifiles/s_pcc_dialog.ui:294
 #, fuzzy
@@ -5648,9 +5749,8 @@ msgid "Estimate size"
 msgstr "評価"
 
 #: src/gui/uifiles/savepopup.ui:582
-#, fuzzy
 msgid "Computes the size of the compressed file"
-msgstr "最初の画像の「核」の X-座標."
+msgstr "圧縮後のファイルサイズを計算します"
 
 #: src/gui/uifiles/savepopup.ui:630
 msgid "JPEG"
@@ -5744,7 +5844,7 @@ msgstr "X"
 
 #: src/gui/uifiles/seqlist_dialog.ui:137
 msgid "Y"
-msgstr "Y"
+msgstr "はい"
 
 #: src/gui/uifiles/seqlist_dialog.ui:150
 #: src/gui/uifiles/settings_window.ui:5271
@@ -5800,9 +5900,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/seqlist_dialog.ui:339
-#, fuzzy
 msgid "Enter the number of the image you want to reach."
-msgstr "エクスポートされた CSV 形式のファイルのファイル名を入力."
+msgstr "移動したい画像の番号を入力してください。"
 
 #: src/gui/uifiles/settings_window.ui:223 src/gui/uifiles/siril.ui:474
 msgid "Preferences"
@@ -6030,13 +6129,12 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:708
-#, fuzzy
 msgid "Default Type:"
-msgstr "ディスプレーモード"
+msgstr "デフォルトの種類:"
 
 #: src/gui/uifiles/settings_window.ui:717
 msgid "Allow FITS cubes to have images of different sizes"
-msgstr ""
+msgstr "FITSキューブに異なるサイズの画像を含めることを許可する"
 
 #: src/gui/uifiles/settings_window.ui:721
 msgid ""
@@ -6044,6 +6142,9 @@ msgid ""
 "Siril and that contain multiple images of different dimensions, which would "
 "otherwise considered as invalid Siril FITSEQ files."
 msgstr ""
+"これは、Sirilで作成されたものではなく、異なるサイズの画像が複数含まれている科"
+"学用FITSファイルを開く際に役立ちます。こうしたファイルは、そうでなければ無効"
+"なSiril FITSEQファイルとみなされてしまうからです。"
 
 #: src/gui/uifiles/settings_window.ui:739
 msgid "<b>FITS Format</b>"
@@ -6189,9 +6290,8 @@ msgid "Astrometry"
 msgstr "天体測量"
 
 #: src/gui/uifiles/settings_window.ui:1196 src/gui/uifiles/siril.ui:10928
-#, fuzzy
 msgid "Catalogue"
-msgstr "画像整列"
+msgstr "カタログ"
 
 #: src/gui/uifiles/settings_window.ui:1226
 msgid ""
@@ -6538,13 +6638,12 @@ msgid "Master-dark:"
 msgstr "Flat を使用"
 
 #: src/gui/uifiles/settings_window.ui:2090
-#, fuzzy
 msgid ""
 "Instead of an image, you can also specify a uniform level to be subtracted, "
 "starting with an \"=\" sign, such as =256 or =64*$OFFSET"
 msgstr ""
-"マスター bias ファイル名をここに入力するか ブラウスボタンを使用して下さい.\n"
-"Bias マスター画像はこの画像シーケンスの全ての画像から削除されます."
+"画像の代わりに、= 記号で始まる“定数レベル”を指定して減算することもできます。"
+"例：=256 や =64*$OFFSET"
 
 #: src/gui/uifiles/settings_window.ui:2104
 msgid ""
@@ -6796,6 +6895,9 @@ msgid ""
 "pixels. The higher you set the value, the more stars you will see, but at a "
 "lower resolution."
 msgstr ""
+"モザイクに使用されるパネルのサイズを指定します。このサイズはピクセル単位で表"
+"されます。この値を高く設定するほど、表示される星の数は増えますが、解像度は低"
+"下します。"
 
 #: src/gui/uifiles/settings_window.ui:3260
 msgid "Panel size (px):"
@@ -6811,12 +6913,12 @@ msgstr "ウインドウのサイズを定義する。"
 
 #: src/gui/uifiles/settings_window.ui:3305
 msgid "<b>Aberration Inspector</b>"
-msgstr "<b>収差検査</b>"
+msgstr "<b>収差インスペクタ</b>"
 
 #: src/gui/uifiles/settings_window.ui:3334
 #: src/gui/uifiles/settings_window.ui:4079
 msgid "User Interface"
-msgstr "ユーザインタフェース"
+msgstr "ユーザーインタフェース"
 
 #: src/gui/uifiles/settings_window.ui:3370
 #: src/gui/uifiles/settings_window.ui:3446
@@ -6838,11 +6940,11 @@ msgstr "言語（要再起動）"
 msgid ""
 "Set the scale of the fonts. 90 is the smallest scale you can have while the "
 "maximum is at 150."
-msgstr ""
+msgstr "フォントの大きさを設定します。90が最小の大きさで、最大は150です。"
 
 #: src/gui/uifiles/settings_window.ui:3435
 msgid "Font scale:"
-msgstr ""
+msgstr "フォントの大きさ:"
 
 #: src/gui/uifiles/settings_window.ui:3449
 msgid "Dark theme"
@@ -6878,33 +6980,35 @@ msgstr "ウインドウ"
 
 #: src/gui/uifiles/settings_window.ui:3553
 msgid "Show thumbnails in file chooser"
-msgstr ""
+msgstr "ファイル選択画面にサムネイルを表示"
 
 #: src/gui/uifiles/settings_window.ui:3557
 msgid ""
 "Show preview, if possible, in the file chooser dialog box when opening an "
 "unique file."
 msgstr ""
+"特定のファイルを開く際、可能であればファイル選択ダイアログボックスに"
+"プレビューを表示します。"
 
 #: src/gui/uifiles/settings_window.ui:3574
 msgid "Size of thumbnails:"
-msgstr ""
+msgstr "サムネイルの大きさ:"
 
 #: src/gui/uifiles/settings_window.ui:3587
 msgid "Small (128x128)"
-msgstr ""
+msgstr "小 (128x128)"
 
 #: src/gui/uifiles/settings_window.ui:3588
 msgid "Normal (256x256)"
-msgstr ""
+msgstr "中 (256x256)"
 
 #: src/gui/uifiles/settings_window.ui:3589
 msgid "Large (512x512)"
-msgstr ""
+msgstr "大 (512x512)"
 
 #: src/gui/uifiles/settings_window.ui:3605
 msgid "Image Thumbnails"
-msgstr ""
+msgstr "画像のサムネイル"
 
 #: src/gui/uifiles/settings_window.ui:3639
 #, fuzzy
@@ -6967,7 +7071,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:3788
 msgid "Manual"
-msgstr ""
+msgstr "手動"
 
 #: src/gui/uifiles/settings_window.ui:3789
 #, fuzzy
@@ -7048,6 +7152,9 @@ msgid ""
 "the workflow. For a discussion of which gamut to pick, see the Color "
 "Management section of the manual."
 msgstr ""
+"ここでは、ワークフローの大部分で使用されるRGBプロファイルのファミリーを選択し"
+"ます。どの色域を選択すべきかについては、マニュアルのカラーマネジメントの節を"
+"参照してください。"
 
 #: src/gui/uifiles/settings_window.ui:4137
 msgid "Preferred Color Space:"
@@ -7065,11 +7172,11 @@ msgstr ""
 #: src/gui/uifiles/settings_window.ui:4520
 #: src/gui/uifiles/settings_window.ui:4600 src/core/icc_profile.c:1575
 msgid "sRGB"
-msgstr ""
+msgstr "sRGB"
 
 #: src/gui/uifiles/settings_window.ui:4152
 msgid "Rec2020"
-msgstr ""
+msgstr "Rec2020"
 
 #: src/gui/uifiles/settings_window.ui:4153
 msgid "From files"
@@ -7079,7 +7186,7 @@ msgstr "ファイルから"
 msgid ""
 "Show the CIE1931 xy space and a representation of various color gamuts "
 "within it."
-msgstr ""
+msgstr "CIE1931 xy座標系と、その中に含まれるさまざまな色域の表現を示します。"
 
 #: src/gui/uifiles/settings_window.ui:4180
 msgid ""
@@ -7453,13 +7560,13 @@ msgid ""
 "only take place when the Apply button is clicked, in the usual way."
 msgstr ""
 "Sirilは、公式のsiril-scriptsリポジトリからスクリプトを取得して更新します。こ"
-"れらはオフラインでも利用可能となり、特定のスクリプトを選択して「スクリプト」"
-"メニューに追加することができます。\n"
+"れらはオフラインでも利用可能となり、特定のスクリプトを選択して"
+"スクリプトメニューに追加できます。\n"
 "\n"
 "<b>注:</b>\n"
 "リポジトリの有効化は即時に行われるため、リストが表示され次第、スクリプトを選"
 "択できるようになります。リポジトリの無効化は、通常通り、適用ボタンをクリック"
-"した時点で行われます。"
+"した時点で行なわれます。"
 
 #: src/gui/uifiles/settings_window.ui:5130
 msgid "Automatic updates"
@@ -7510,13 +7617,12 @@ msgid "Category"
 msgstr "カテゴリー"
 
 #: src/gui/uifiles/settings_window.ui:5240
-#, fuzzy
 msgid "Script"
 msgstr "スクリプト"
 
 #: src/gui/uifiles/settings_window.ui:5256
 msgid "Type"
-msgstr "型"
+msgstr "タイプ"
 
 #: src/gui/uifiles/settings_window.ui:5307
 msgid "<b>Siril Scripts Repository</b>"
@@ -7547,7 +7653,7 @@ msgstr "パフォーマンス"
 
 #: src/gui/uifiles/settings_window.ui:5440
 msgid "Ratio of available"
-msgstr ""
+msgstr "利用可能な割合"
 
 #: src/gui/uifiles/settings_window.ui:5444
 msgid ""
@@ -7559,10 +7665,17 @@ msgid ""
 "If you don't have paged memory configured on some storage, a value of 1 or "
 "above will likely result in a crash of siril or of the operating system."
 msgstr ""
+"Sirilは、空き物理メモリの量の割合を上限として動作し、必要に応じて作業タスクの"
+"サイズを縮小します。\n"
+"1より大きな値は、設定されたストレージにページングされたメモリが一部使用される"
+"ことになり、プロセス全体の処理速度が低下し、一部の操作中にシステムが応答しな"
+"くなる可能性があります。\n"
+"特定のストレージにページングメモリが設定されていない場合、この値を1以上に設定"
+"すると、Sirilまたはオペレーティングシステムがクラッシュする可能性があります。"
 
 #: src/gui/uifiles/settings_window.ui:5460
 msgid "Fixed amount (GB)"
-msgstr ""
+msgstr "固定量(GB)"
 
 #: src/gui/uifiles/settings_window.ui:5464
 msgid ""
@@ -7571,6 +7684,10 @@ msgid ""
 "Configuring a memory amount larger than what is available on your system may "
 "result in a crash of siril or of the operating system."
 msgstr ""
+"Sirilはメモリ使用量を一定量に制限し、必要に応じて作業タスクのサイズを縮小しま"
+"す。\n"
+"システムで利用可能なメモリ量よりも大きなメモリ量を設定すると、Sirilまたは"
+"オペレーティングシステムがクラッシュする可能性があります。"
 
 #: src/gui/uifiles/settings_window.ui:5480
 msgid ""
@@ -7583,7 +7700,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5525
 msgid "<b>Memory management</b>"
-msgstr "<b>メモリー管理</b>"
+msgstr "<b>メモリ管理</b>"
 
 #: src/gui/uifiles/settings_window.ui:5558
 msgid "Default bit depth for HD AutoStretch"
@@ -7616,7 +7733,7 @@ msgstr "自動イコライゼーション"
 
 #: src/gui/uifiles/settings_window.ui:5649
 msgid "Multithreaded FFTW"
-msgstr ""
+msgstr "マルチスレッド版FFTW"
 
 #: src/gui/uifiles/settings_window.ui:5653
 msgid ""
@@ -7624,6 +7741,9 @@ msgid ""
 "large images, but will increase initial planning time the first time FFTW "
 "operates on an image of a given size."
 msgstr ""
+"このオプションを選択すると、FFTWは複数のスレッドを使用します。通常、大きな画"
+"像では処理速度が向上しますが、特定のサイズの画像に対してFFTWを初めて実行する"
+"際は、初期の計画処理に時間がかかるようになります。"
 
 #: src/gui/uifiles/settings_window.ui:5668 src/core/settings.c:383
 msgid "FFTW planning strategy"
@@ -7946,7 +8066,7 @@ msgstr "シーケンスに対する点像分布関数"
 
 #: src/gui/uifiles/siril.ui:783
 msgid "Pick a Star"
-msgstr "星を選択"
+msgstr "星を検出"
 
 #: src/gui/uifiles/siril.ui:807
 msgid "Free aspect ratio"
@@ -8012,9 +8132,8 @@ msgid "Rule of fifths"
 msgstr "5等分の補助線"
 
 #: src/gui/uifiles/siril.ui:1014
-#, fuzzy
 msgid "Rotate & Crop"
-msgstr "回転"
+msgstr "回転とクロップ"
 
 #: src/gui/uifiles/siril.ui:1022
 msgid "Crop Sequence..."
@@ -8038,14 +8157,12 @@ msgid "RGB align"
 msgstr "RGB 整列"
 
 #: src/gui/uifiles/siril.ui:1081
-#, fuzzy
 msgid "2-pass global star alignment (deep-sky)"
-msgstr "位置合わせパターン (惑星/天空)"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:1090
-#, fuzzy
 msgid "KOMBAT alignment (planetary/deep-sky)"
-msgstr "位置合わせパターン (惑星/天空)"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:1130
 msgid ""
@@ -8054,6 +8171,10 @@ msgid ""
 "<b>WARNING</b>: if the data do not have a valid photometry, they will not be "
 "displayed, contrary of what you can see in the plot tab."
 msgstr ""
+"新しい Sirilグラフウインドウを開いてデータを表示します。\n"
+"\n"
+"<b>警告</b>：データに有効な測光値がない場合、グラフタブで見えていても表示され"
+"ません。"
 
 #: src/gui/uifiles/siril.ui:1133
 msgid "Show valid data in Siril Plot"
@@ -8077,32 +8198,28 @@ msgid "32 bits"
 msgstr "32ビット"
 
 #: src/gui/uifiles/siril.ui:1201
-#, fuzzy
 msgid "Stretches"
-msgstr "自動イコライゼーション"
+msgstr "ストレッチ"
 
 #: src/gui/uifiles/siril.ui:1240
-#, fuzzy
 msgid "Open the color saturation dialog"
-msgstr "測光色補正アルゴリズムを開始."
+msgstr "彩度ダイアログを開く"
 
 #: src/gui/uifiles/siril.ui:1242
 msgid "Color Saturation..."
 msgstr "彩度..."
 
 #: src/gui/uifiles/siril.ui:1255
-#, fuzzy
 msgid "Open the subtractive chromatic noise reduction dialog"
-msgstr "測光色補正アルゴリズムを開始."
+msgstr "SCNRダイアログを開く"
 
 #: src/gui/uifiles/siril.ui:1257
 msgid "Remove Green Noise..."
 msgstr "グリーンノイズを除く..."
 
 #: src/gui/uifiles/siril.ui:1270
-#, fuzzy
 msgid "Compute the inverse of the image"
-msgstr "最初の画像の「核」の X-座標."
+msgstr "反転画像を計算する"
 
 #: src/gui/uifiles/siril.ui:1272 src/gui/colors.c:317
 msgid "Negative Transformation"
@@ -8113,77 +8230,67 @@ msgid "Filters"
 msgstr "フィルター"
 
 #: src/gui/uifiles/siril.ui:1321 src/gui/uifiles/siril.ui:1769
-#, fuzzy
 msgid "Star Processing"
-msgstr "前処理開始"
+msgstr "星の処理（Star Processing）"
 
 #: src/gui/uifiles/siril.ui:1346 src/gui/uifiles/siril.ui:2089
 msgid "Geometry"
-msgstr "幾何"
+msgstr "幾何変換（Geometry）"
 
 #: src/gui/uifiles/siril.ui:1371
-#, fuzzy
 msgid "Open the background extraction dialog"
-msgstr "Background Extraction…"
+msgstr "バックグラウンド抽出ダイアログを開く"
 
 #: src/gui/uifiles/siril.ui:1373
 msgid "Background Extraction..."
 msgstr "Background Extraction…"
 
 #: src/gui/uifiles/siril.ui:1400
-#, fuzzy
 msgid "Open the linear match dialog"
-msgstr "測光色補正アルゴリズムを開始."
+msgstr "リニアマッチダイアログを開く"
 
 #: src/gui/uifiles/siril.ui:1402
 msgid "Linear Match..."
 msgstr "Linear Match…"
 
 #: src/gui/uifiles/siril.ui:1426 src/gui/uifiles/siril.ui:1638
-#, fuzzy
 msgid "Composition"
-msgstr "X 座標"
+msgstr "画像合成（Composition）"
 
 #: src/gui/uifiles/siril.ui:1440
-#, fuzzy
 msgid "Open the pixel math dialog"
-msgstr "ダイアログを閉じる."
+msgstr "ピクセルマスダイアログを開く"
 
 #: src/gui/uifiles/siril.ui:1442
-#, fuzzy
 msgid "Pixel Math..."
-msgstr "Linear Match…"
+msgstr "ピクセルマス（Pixel Math）"
 
 #: src/gui/uifiles/siril.ui:1468 src/gui/uifiles/siril.ui:1558
 #: src/gui/uifiles/siril.ui:1637 src/gui/uifiles/siril.ui:1696
 #: src/gui/uifiles/siril.ui:1768 src/gui/uifiles/siril.ui:1893
 #: src/gui/uifiles/siril.ui:2088
 msgid "Go back to main menu"
-msgstr ""
+msgstr "メインメニューに戻る"
 
 #: src/gui/uifiles/siril.ui:1469
-#, fuzzy
 msgid "Stretches Processing"
-msgstr "前処理開始"
+msgstr "ストレッチ処理"
 
 #: src/gui/uifiles/siril.ui:1485
-#, fuzzy
 msgid "Open the inverse hyperbolic sine dialog"
-msgstr "カラー反転"
+msgstr "Asinhストレッチのダイアログを開く"
 
 #: src/gui/uifiles/siril.ui:1487
 msgid "Asinh Transformation..."
 msgstr "Arcsinh 変換..."
 
 #: src/gui/uifiles/siril.ui:1500
-#, fuzzy
 msgid "Open the curves transform dialog"
-msgstr "ヒストグラム変換を適用する"
+msgstr "カーブ変換ダイアログを開く"
 
 #: src/gui/uifiles/siril.ui:1502
-#, fuzzy
 msgid "Curves Transformation..."
-msgstr "カラー反転"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:1515
 msgid "Open the hystogram transform dialog"
@@ -8194,14 +8301,12 @@ msgid "Histogram Transformation..."
 msgstr "ヒストグラム変換..."
 
 #: src/gui/uifiles/siril.ui:1530
-#, fuzzy
 msgid "Open the generalized hyperbolic transform dialog"
-msgstr "カラー反転"
+msgstr "GHS(Generalized Hyperbolic Stretch)変換ダイアログを開く"
 
 #: src/gui/uifiles/siril.ui:1532
-#, fuzzy
 msgid "Generalised Hyperbolic Stretch Transformations..."
-msgstr "ヒストグラム変換..."
+msgstr "GHS変換..."
 
 #: src/gui/uifiles/siril.ui:1575
 msgid "Open the manual color calibration dialog"
@@ -8212,42 +8317,44 @@ msgid "Color Calibration..."
 msgstr "色補正..."
 
 #: src/gui/uifiles/siril.ui:1590
-#, fuzzy
 msgid ""
 "Open the photometric color calibration dialog.\n"
 "\n"
 "<b>WARNING: image must be platesolved before.</b>"
-msgstr "測光色補正ダイアログを開く。"
+msgstr ""
+"測光色補正ダイアログを開く。\n"
+"\n"
+"<b>警告：画像は事前にプレートソルブされている必要があります。</b>"
 
 #: src/gui/uifiles/siril.ui:1594
 msgid "Photometric Color Calibration..."
 msgstr "測光色補正..."
 
 #: src/gui/uifiles/siril.ui:1607
-#, fuzzy
 msgid ""
 "Open the spectrophotometric color calibration dialog.\n"
 "\n"
 "<b>WARNING: image must be platesolved before.</b>"
-msgstr "分光測光色補正ダイアログを開く。"
+msgstr ""
+"分光測光色補正ダイアログを開く。\n"
+"\n"
+"<b>警告：画像は事前にプレートソルブされている必要があります。</b>"
 
 #: src/gui/uifiles/siril.ui:1611
 msgid "Spectrophotometric Color Calibration..."
 msgstr "分光測光色補正…"
 
 #: src/gui/uifiles/siril.ui:1654
-#, fuzzy
 msgid "Open the RGB compositing tool dialog"
-msgstr "測光色補正アルゴリズムを開始."
+msgstr "RGB 合成ツールのダイアログを開く"
 
 #: src/gui/uifiles/siril.ui:1656
 msgid "RGB Compositing..."
 msgstr "RGB 合成…"
 
 #: src/gui/uifiles/siril.ui:1670
-#, fuzzy
 msgid "Merge CFA Channels..."
-msgstr "CFA チャンネルを分離…"
+msgstr "CFA チャンネルの結合…"
 
 #: src/gui/uifiles/siril.ui:1714
 msgid "Split Channels..."
@@ -8262,23 +8369,23 @@ msgid "Wavelet Layers..."
 msgstr "ウェーブレット レベル…"
 
 #: src/gui/uifiles/siril.ui:1785
-#, fuzzy
 msgid "Run Starnet++"
-msgstr "重ね合わせ"
+msgstr "StarNet++を開く"
 
 #: src/gui/uifiles/siril.ui:1787
 msgid "StarNet Star Removal..."
-msgstr ""
+msgstr "StarNet で星の除去"
 
 #: src/gui/uifiles/siril.ui:1800
 msgid ""
 "Blends a starless image and star mask, each with separate stretches applied"
 msgstr ""
+"星なし画像とスター・マスクをブレンドします。両方に個別のストレッチが適用され"
+"ます"
 
 #: src/gui/uifiles/siril.ui:1802
-#, fuzzy
 msgid "Star Recomposition..."
-msgstr "HSL 色空間"
+msgstr "星の再合成（Star Recomposition）"
 
 #: src/gui/uifiles/siril.ui:1815
 msgid ""
@@ -8286,10 +8393,13 @@ msgid ""
 "maximum 16-bit or 32-bit pixel range. Should be applied <i>before</i> "
 "<b>stretching</b> to achieve the best result."
 msgstr ""
+"クリップされた星の色を減彩し、出力が 16bit／32bit の最大値を超えないように再"
+"スケールします。最良の結果を得るため、これは <b>ストレッチ前</b> に適用してく"
+"ださい。"
 
 #: src/gui/uifiles/siril.ui:1817
 msgid "Desaturate Stars"
-msgstr ""
+msgstr "星の減彩（Desaturate Stars）"
 
 #: src/gui/uifiles/siril.ui:1834
 msgid ""
@@ -8300,10 +8410,16 @@ msgid ""
 "Star synthesis should be applied <i>before</i> <b>stretching</b>.\n"
 "Star selection can be manually fine-tuned using the Dynamic PSF tool."
 msgstr ""
+"Siril の星検出で見つかった星ごとに、元画像から測定したパラメータを使って、理"
+"想的なガウシアン／モファット形状の“合成星マスク”を生成します。この星マスクは"
+"、星なし画像と再合成することで、光学収差などの星の乱れを補正できます。\n"
+"星の合成（Star Synthesis）は、最良の結果を得るために <b>ストレッチ前</b> に適"
+"用してください。\n"
+"また、どの星を合成対象にするかは、Dynamic PSF ツールで手動調整できます。"
 
 #: src/gui/uifiles/siril.ui:1838
 msgid "Full Resynthesis"
-msgstr ""
+msgstr "完全再合成（Full Resynthesis）"
 
 #: src/gui/uifiles/siril.ui:1851
 #, fuzzy
@@ -8316,7 +8432,6 @@ msgid "Filters Processing"
 msgstr "前処理開始"
 
 #: src/gui/uifiles/siril.ui:1910
-#, fuzzy
 msgid "Open the À Trou wavelet transform dialog"
 msgstr "定常ウェーブレット変換..."
 
@@ -8331,7 +8446,7 @@ msgstr "測光色補正アルゴリズムを開始."
 
 #: src/gui/uifiles/siril.ui:1927
 msgid "Banding Reduction..."
-msgstr "帯域圧縮..."
+msgstr "縞ノイズ低減"
 
 #: src/gui/uifiles/siril.ui:1940
 #, fuzzy
@@ -8390,9 +8505,8 @@ msgid "Open the denoise dialog"
 msgstr "ダイアログを閉じる."
 
 #: src/gui/uifiles/siril.ui:2032
-#, fuzzy
 msgid "Noise Reduction..."
-msgstr "帯域圧縮..."
+msgstr "ノイズリダクション"
 
 #: src/gui/uifiles/siril.ui:2045
 #, fuzzy
@@ -8409,9 +8523,8 @@ msgid "Open the unpurple filter dialog"
 msgstr "ダイアログを閉じる."
 
 #: src/gui/uifiles/siril.ui:2062
-#, fuzzy
 msgid "Unpurple Filter..."
-msgstr "メディアンフィルター..."
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:2105
 #, fuzzy
@@ -8432,9 +8545,8 @@ msgid "Rotate 90 degrees, counter-clockwise"
 msgstr "反時計回りに90度回転"
 
 #: src/gui/uifiles/siril.ui:2135
-#, fuzzy
 msgid "Open the rotation dialog"
-msgstr "測光色補正アルゴリズムを開始."
+msgstr "回転ツールのダイアログを開きます"
 
 #: src/gui/uifiles/siril.ui:2162
 msgid "Horizontal Mirror"
@@ -8490,12 +8602,11 @@ msgstr "クリップボードへコピー"
 
 #: src/gui/uifiles/siril.ui:2406
 msgid "Image Plate Solver..."
-msgstr "アストロメトリ…"
+msgstr "画像プレートソルバー…"
 
 #: src/gui/uifiles/siril.ui:2420
-#, fuzzy
 msgid "Annotate..."
-msgstr "回転"
+msgstr "アノテーション"
 
 #: src/gui/uifiles/siril.ui:2446 src/gui/uifiles/siril.ui:2702
 msgid "Image Analysis"
@@ -8805,7 +8916,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:4172
 msgid "Open Frame List"
-msgstr "Frame リストを開く"
+msgstr "フレーム一覧を開く"
 
 #: src/gui/uifiles/siril.ui:4176 src/gui/uifiles/siril.ui:10323
 msgid "Show/Hide list of images in the sequence with registration data"
@@ -8880,13 +8991,12 @@ msgid "Select area to crop"
 msgstr "切り抜き領域を選択"
 
 #: src/gui/uifiles/siril.ui:4371
-#, fuzzy
 msgid "Image selection uses the same controls as for stacking:"
-msgstr "controle —> critère "
+msgstr "画像の選択方法はスタックと同じです："
 
 #: src/gui/uifiles/siril.ui:4381
 msgid "Go to the stacking tab"
-msgstr "``重ね合わせ’’ タブに移動"
+msgstr "「重ね合わせ」タブに移動"
 
 #: src/gui/uifiles/siril.ui:4409
 msgid "Fps:"
@@ -8905,20 +9015,20 @@ msgid ""
 "Check this box if you want to resize exported sequence. Note that this will "
 "degrade image quality."
 msgstr ""
-"エクスポートされたシーケンスをリサイズしたければこのボックスをチェックしてく"
-"ださい. これは画像の品質を下げることに注意してください."
+"エクスポートされたシーケンスのサイズを変更したければこのボックスをチェックし"
+"てください。これは画像の品質を下げることに注意してください。"
 
 #: src/gui/uifiles/siril.ui:4462
 msgid "Full HD"
-msgstr ""
+msgstr "フルHD"
 
 #: src/gui/uifiles/siril.ui:4463
 msgid "4K"
-msgstr ""
+msgstr "4K"
 
 #: src/gui/uifiles/siril.ui:4464
 msgid "8K"
-msgstr ""
+msgstr "8K"
 
 #: src/gui/uifiles/siril.ui:4479
 msgid "Width of output video"
@@ -8998,9 +9108,8 @@ msgstr ""
 
 #. Offset is the kind of the picture used here. In french I've decided to not translate the word.
 #: src/gui/uifiles/siril.ui:4742
-#, fuzzy
 msgid "Use bias"
-msgstr "Flat を使用"
+msgstr "bias を使用"
 
 #: src/gui/uifiles/siril.ui:4746 src/gui/uifiles/siril.ui:4778
 #: src/gui/uifiles/siril.ui:5752
@@ -9032,10 +9141,9 @@ msgid "Equalize CFA"
 msgstr "CFA を均等化"
 
 #: src/gui/uifiles/siril.ui:4801
-#, fuzzy
 msgid ""
 "This option equalizes the mean intensity of RGB layers in a CFA flat image."
-msgstr "このオプションは CFA flat image における RGB layer の平均強度を均等化します."
+msgstr "このオプションは CFA フラット画像の RGB 各チャンネルの平均輝度を揃えます。"
 
 #: src/gui/uifiles/siril.ui:4813
 msgid "Auto evaluate normalisation value"
@@ -9055,7 +9163,7 @@ msgstr "正規化値を選択してください."
 
 #: src/gui/uifiles/siril.ui:4852
 msgid "Fix X-Trans AF artifact"
-msgstr "X-Trans AF アーティファクトを削除"
+msgstr "X-Trans AF アーティファクトを補正"
 
 #: src/gui/uifiles/siril.ui:4856
 msgid ""
@@ -9125,7 +9233,7 @@ msgid ""
 "Hot pixels are located on the master-dark."
 msgstr ""
 "ホットピクセルの除去を行いたい場合は、チェックしてください.\n"
-"ホットピクセルは、マスター - dark にあります."
+"ホットピクセルは、マスターダーク にあります."
 
 #: src/gui/uifiles/siril.ui:4962
 msgid "CFA data"
@@ -9144,8 +9252,8 @@ msgid ""
 "higher than 1% of the total of pixels, you will be encouraged to change "
 "sigma values."
 msgstr ""
-"Deviant pixel の個数を評価するには、このボタンをクリックして下さい. もし、"
-"その値が pixel 総数の 1 % 以上ならば、標準偏差の値を変える事が推奨されます."
+"このボタンを押すと、異常ピクセルの数を評価します。全ピクセルの 1% を超える場"
+"合は、シグマ値の調整を推奨します。"
 
 #: src/gui/uifiles/siril.ui:5099 src/gui/uifiles/siril.ui:5111
 msgid "0 px"
@@ -9172,22 +9280,33 @@ msgid ""
 "i>.\n"
 "* The line <i>L y 0 type</i> will fix the bad line at coordinates <i>y</i>."
 msgstr ""
+"Bad Pixel Map のファイル名を入力するか、参照ボタンから選択します。この"
+"ファイルは通常、ダークフレーム（またはマスターダーク）に <i> find_hot </i> を"
+"実行して生成されます。bpm ファイルは次の形式で記述されています：\n"
+"\n"
+"* <i>P x y type </i> 座標 (x, y) のピクセルを補正します。type（ <i> C </i> ま"
+"たは <i>H</i> ）は、そのピクセルがコールド／ホットのどちらかを示す任意指定で"
+"す。\n"
+"* <i>C x 0 type </i> 指定した<i>x</i> 座標の不良カラム（縦方向の全ピクセル）"
+"を全て補正します。\n"
+"* <i>L y 0 type </i> 指定した<i>y</i> 座標の不良ライン（横方向の全ピクセル）"
+"を全て補正します。"
 
 #: src/gui/uifiles/siril.ui:5187
 msgid ""
 "Load the bad pixel map file. This file must be ended by the <i>*.lst</i> "
 "extension."
 msgstr ""
+"bpmファイルを読み込みます。ファイルは必ず <i>*.lst</i> 形式である必要がありま"
+"す。"
 
 #: src/gui/uifiles/siril.ui:5214
-#, fuzzy
 msgid "Bad Pixel Map"
-msgstr "Linear Match"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:5223
-#, fuzzy
 msgid "Using Bad Pixel Map"
-msgstr "Linear Match"
+msgstr "Bad Pixel Mapを使う"
 
 #: src/gui/uifiles/siril.ui:5240
 #, fuzzy
@@ -9195,14 +9314,12 @@ msgid "Cosmetic correction"
 msgstr "Cosmetic Correction"
 
 #: src/gui/uifiles/siril.ui:5283
-#, fuzzy
 msgid "Prefix of the image names resulting from the calibration."
-msgstr "整列の結果得られた画像のファイル名プレフィックス."
+msgstr "キャリブレーションによって生成される画像名の接頭辞です。"
 
 #: src/gui/uifiles/siril.ui:5295
-#, fuzzy
 msgid "Start calibration"
-msgstr "画像整列"
+msgstr "キャリブレーション開始"
 
 #: src/gui/uifiles/siril.ui:5300
 msgid ""
@@ -9213,24 +9330,23 @@ msgid ""
 "The next action for DSLR images would be to debayer the preprocessed images, "
 "go to the Conversion tab."
 msgstr ""
+"上記のマスターファイルを使ってシーケンスを前処理します。\n"
+"出力シーケンスは pp_<seq.name>、または指定した接頭辞で保存されます。\n"
+"処理が完了すると、前処理済みシーケンスが自動的に現在のシーケンスとして読み込"
+"まれます。"
 
 #: src/gui/uifiles/siril.ui:5316
 msgid "Debayer before saving"
 msgstr "保存する前にディベイヤーする"
 
 #: src/gui/uifiles/siril.ui:5320
-#, fuzzy
 msgid ""
 "Check this option if you want to apply a demosaicing algorithm to your FITS "
 "images right after they were preprocessed. By doing this, you skip one "
 "manual step which can take some time."
 msgstr ""
-"前処理を施した直後のFITS "
-"画像にデモザイキング処理を施したければ,このオプションを選択してください. "
-"これにより, 時間が掛かり得る手動ステップの一つを省略します. \n"
-"\n"
-"警告: SER シーケンスは別の作業をしながらデモザイク出来るので, "
-"このオプションは FITS 画像にのみ適用できます."
+"このオプションを有効にすると、前処理後すぐにディベイヤー処理を自動で行います"
+"。手動でディベイヤーする手間を省けるため、処理時間を短縮できます。"
 
 #: src/gui/uifiles/siril.ui:5334
 msgid ""
@@ -9253,15 +9369,18 @@ msgstr ""
 #: src/gui/uifiles/siril.ui:5357
 msgid "Force calibration of all frames even if marked as excluded."
 msgstr ""
+"除外マークのあるフレームも含め、すべてのフレームを強制的にキャリブレーション"
+"します。"
 
 #: src/gui/uifiles/siril.ui:5371
 msgid "Output sequence"
 msgstr "出力シーケンス"
 
 #: src/gui/uifiles/siril.ui:5397
-#, fuzzy
 msgid "Calibration is an optional step to apply to a sequence of images."
-msgstr "前処理は画像シーケンスに適用する為のオプションです."
+msgstr ""
+"キャリブレーションは、必要に応じて画像シーケンスに適用できる任意の処理"
+"ステップです。"
 
 #: src/gui/uifiles/siril.ui:5399
 msgid "Calibration"
@@ -9280,6 +9399,12 @@ msgid ""
 "When processing images, registration data is taken from the default layer if "
 "available (for RGB images: Green, else fallback to Blue then Red)."
 msgstr ""
+"位置合わせを行うレイヤーを指定します。位置合わせは 1 度に 1 つのレイヤーでし"
+"か実行できないため、モノクロ画像で処理されます。\n"
+"レイヤー名の後に (*) が付いている場合、そのレイヤーには既に位置合わせデータが"
+"保存されています。\n"
+"画像処理時には、位置合わせデータが存在する場合、デフォルトレイヤーのデータが"
+"使用されます（RGB 画像では Green → Blue → Red の順で参照）。"
 
 #: src/gui/uifiles/siril.ui:5526
 msgid "Match stars in selection"
@@ -9310,6 +9435,8 @@ msgid ""
 "reference frame. If a given light frame has less star pairs, it will not be "
 "registered."
 msgstr ""
+"参照フレームと一致する星のペアが、フレームに最低限いくつ必要かを指定します。"
+"この数を下回るフレームは、位置合わせの対象になりません。"
 
 #: src/gui/uifiles/siril.ui:5582
 msgid "Maximum Stars Fitted:"
@@ -9321,6 +9448,9 @@ msgid ""
 "The larger this value, the more stars will potentially be detected, "
 "resulting in a longer detection but more accurate registration."
 msgstr ""
+"各フレームで検出する星の最大数を指定します（デフォルト 2000）。値を大きくする"
+"と検出される星が増え、処理時間は長くなりますが、位置合わせの精度が向上します"
+"。"
 
 #: src/gui/uifiles/siril.ui:5598
 msgid "500"
@@ -9353,6 +9483,22 @@ msgid ""
 "for <b>Shift</b>, <b>Similarity</b> and <b>Affine</b> and of 4 for "
 "<b>Homography</b>."
 msgstr ""
+"<b>Shift</b> x/y 方向の平行移動のみを行う 2 自由度の変換です。歪み・拡大縮小"
+"・回転がない画像に適しています。変換には最低 1 組の星ペアが必要です。\n"
+"\n"
+"<b>Similarity</b> スケール 1、回転 1、x/y シフトの計 4 自由度を持つ変換です。"
+"歪みのない画像向けで、ホモグラフィよりも制約が強いモデルです。最低 2 組の星"
+"ペアが必要です。\n"
+"\n"
+"<b>Affine</b> 2 つのスケール、シアー、回転、x/y シフトの計 6 自由度を持つ変換"
+"です。軽度の歪みがある画像に適しています。最低 3 組の星ペアが必要です。\n"
+"\n"
+"<b>Homography</b> 8 自由度の変換で画像を参照フレームにワープします。一般的な"
+"用途に最適で、特に広視野画像では推奨されます。最低 4 組の星ペアが必要です。\n"
+"\n"
+"<b>WARNING</b>: 星の初期マッチングには三角形類似性アルゴリズムを使用するため"
+"、<b>Shift</b> / <b>Similarity</b> / <b>Affine</b> は 最低 3 組、 <b>"
+"Homography</b> は 最低 4 組 の星ペアが必要です。"
 
 #: src/gui/uifiles/siril.ui:5623
 msgid "Shift"
@@ -9371,9 +9517,8 @@ msgid "Homography"
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:5640
-#, fuzzy
 msgid "Transformation:"
-msgstr "Arcsinh 変換"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:5652
 msgid "Hit this button for star detection settings"
@@ -9394,11 +9539,17 @@ msgid ""
 "When this box is unchecked, the global star registration will be calculated "
 "and immediately applied using the output registration options selected below."
 msgstr ""
+"このボックスがチェックされている場合、位置合わせ後の画像はすぐには保存されず"
+"、変換行列だけがシーケンスファイルに保存されます。その後、位置合わせデータを"
+"確認して不要なフレームを外し、「Apply Existing Registration」 を使って必要な"
+"画像だけに適用できます。\n"
+"\n"
+"このボックスがチェックされていない場合、global star registrationが計算され、"
+"下の出力オプションに従って即座に適用されます。"
 
 #: src/gui/uifiles/siril.ui:5698
-#, fuzzy
 msgid "Undistortion:"
-msgstr "ファイル: %s を開けない\n"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:5709
 msgid ""
@@ -9407,21 +9558,22 @@ msgid ""
 "- distortion solution from an existing WCS file\n"
 "- distortion solution from distortions masters"
 msgstr ""
+"画像の歪みを補正する方法として、次のいずれかを選択できます：\n"
+"- 現在のプレートソルブ結果から取得した歪み補正データを使用する\n"
+"- 既存の WCS ファイルに含まれる歪み補正データを使用する\n"
+"- あらかじめ作成した歪みマスター（distortion masters）を使用する"
 
 #: src/gui/uifiles/siril.ui:5716
-#, fuzzy
 msgid "From image"
-msgstr "サポートされているファイルのタイプ:"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:5717
-#, fuzzy
 msgid "From FITS/WCS file"
-msgstr "サポートされているファイルのタイプ:"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:5718
-#, fuzzy
 msgid "From distortion masters"
-msgstr "ファイル: %s を開けない\n"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:5735
 msgid ""
@@ -9429,6 +9581,9 @@ msgid ""
 "- a FITS file which has been platesolved with distortion.\n"
 "- a wcs file which was written by a previous registration with distortions."
 msgstr ""
+"歪み情報を読み込むためのファイルを選択します：\n"
+"- 歪み情報を含むプレートソルブ済みの FITS ファイル。\n"
+"- 過去の歪み付き登録処理によって書き出された WCS ファイル。"
 
 #: src/gui/uifiles/siril.ui:5844 src/gui/uifiles/siril.ui:5858
 #: src/gui/uifiles/siril.ui:5992
@@ -9522,7 +9677,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:6211
 msgid "Follow star movement"
-msgstr "星の動きに従います"
+msgstr "星の動きに従う"
 
 #: src/gui/uifiles/siril.ui:6215
 msgid ""
@@ -9533,6 +9688,12 @@ msgid ""
 "WARNING: enabling this option requires the registration to not be "
 "parallelized, it will run on one CPU core only."
 msgstr ""
+"このオプションを有効にすると、前フレームで検出した星の位置を、次フレームの"
+"レジストレーション中心として利用します。これにより、必要な探索範囲を小さくで"
+"き、処理が高速になり、ドリフトがあるシーケンスや星が非常に多い画像でも安定し"
+"て位置合わせできます。\n"
+"注意：この機能を有効にすると、レジストレーション処理は 並列化されず、1 コアの"
+"みで実行 されます。"
 
 #: src/gui/uifiles/siril.ui:6229
 msgid "Shift only"
@@ -9544,6 +9705,9 @@ msgid ""
 "one star is selected. When only one star is selected, this is activated by "
 "default."
 msgstr ""
+"複数の星を使っても、回転を含めず「シフト（平行移動）」だけで位置合わせを行う"
+"モードです。星が 1 つだけ選択されている場合は、この動作が自動的に適用されます"
+"。"
 
 #: src/gui/uifiles/siril.ui:6286
 msgid ""
@@ -9556,10 +9720,18 @@ msgid ""
 "Higher values give more tolerance in alignment and smaller numbers lead to "
 "faster computations."
 msgstr ""
+"位置合わせパターンを探索する範囲を、画像サイズに対する割合（%）で指定します"
+"。\n"
+"\n"
+"デフォルトでは、参照フレームでパターンが見つかった位置の周囲 25% の範囲だけを"
+"探索します。\n"
+"\n"
+"値を大きくすると位置合わせの許容範囲が広がり、値を小さくすると計算が速くなり"
+"ます。"
 
 #: src/gui/uifiles/siril.ui:6308
 msgid "Size of alignment region(%):"
-msgstr ""
+msgstr "位置合わせ探索範囲（%）:"
 
 #: src/gui/uifiles/siril.ui:6352
 msgid "Registration method:"
@@ -9574,9 +9746,8 @@ msgid "Register selected images only"
 msgstr "選択された画像のみ位置合わせをする"
 
 #: src/gui/uifiles/siril.ui:6407
-#, fuzzy
 msgid "Registering 0 images of the 0 of the sequence"
-msgstr "シリーズ内のすべての画像を整列"
+msgstr "シーケンス内の 0 枚の画像に対して、0 枚を登録しています"
 
 #: src/gui/uifiles/siril.ui:6425
 msgid ""
@@ -9605,6 +9776,29 @@ msgid ""
 "<b>quality</b>: images with best quality (planetary DFT or Kombat "
 "registrations)"
 msgstr ""
+"位置合わせに使用する画像セットを選択します：\n"
+"\n"
+"<b>all</b>：シーケンス内のすべての画像を使用します\n"
+"\n"
+"<b>selected</b>：シーケンス内で未選択になっていない画像のみを使用します\n"
+"\n"
+"<b>FWHM</b>：計算された FWHM が小さい画像を優先して使用します（星ベースの"
+"レジストレーションのみ）\n"
+"\n"
+"<b>weighted FWHM</b>：FWHM に加えて「検出星数」も評価し、不良フレームをより確"
+"実に除外します。（星ベースのレジストレーションのみ）\n"
+"\n"
+"<b>roundness</b>：星の丸さが良い画像を優先します（星ベースの"
+"レジストレーションのみ）\n"
+"\n"
+"<b>background</b>：背景レベルが低い画像を優先します（星ベースの"
+"レジストレーションのみ）\n"
+"\n"
+"<b>nb stars</b>：検出された星の数が多い画像を優先します（星ベースの"
+"レジストレーションのみ）\n"
+"\n"
+"<b>quality</b>：品質が最も良い画像を使用します（惑星 DFT または Kombat "
+"レジストレーション）"
 
 #: src/gui/uifiles/siril.ui:6444 src/gui/uifiles/siril.ui:6573
 #: src/gui/uifiles/siril.ui:6713 src/gui/uifiles/siril.ui:8703
@@ -9616,7 +9810,7 @@ msgstr "すべて"
 #: src/gui/uifiles/siril.ui:6714 src/gui/uifiles/siril.ui:8704
 #: src/gui/uifiles/siril.ui:8833 src/gui/uifiles/siril.ui:8973
 msgid "selected"
-msgstr "選択"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:6446 src/gui/uifiles/siril.ui:6575
 #: src/gui/uifiles/siril.ui:6715 src/gui/uifiles/siril.ui:7814
@@ -9632,40 +9826,38 @@ msgstr "FWHM"
 #: src/gui/uifiles/siril.ui:6716 src/gui/uifiles/siril.ui:8706
 #: src/gui/uifiles/siril.ui:8835 src/gui/uifiles/siril.ui:8975
 msgid "weighted FWHM"
-msgstr "重み付き FWHM"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:6448 src/gui/uifiles/siril.ui:6577
 #: src/gui/uifiles/siril.ui:6717 src/gui/uifiles/siril.ui:8707
 #: src/gui/uifiles/siril.ui:8836 src/gui/uifiles/siril.ui:8976
 msgid "roundness"
-msgstr "丸み"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:6449 src/gui/uifiles/siril.ui:6578
 #: src/gui/uifiles/siril.ui:6718 src/gui/uifiles/siril.ui:8708
 #: src/gui/uifiles/siril.ui:8837 src/gui/uifiles/siril.ui:8977
-#, fuzzy
 msgid "background"
-msgstr "背景"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:6450 src/gui/uifiles/siril.ui:6579
 #: src/gui/uifiles/siril.ui:6719 src/gui/uifiles/siril.ui:8709
 #: src/gui/uifiles/siril.ui:8838 src/gui/uifiles/siril.ui:8978
-#, fuzzy
 msgid "nb stars"
-msgstr "層の数: "
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:6451 src/gui/uifiles/siril.ui:6580
 #: src/gui/uifiles/siril.ui:6720 src/gui/uifiles/siril.ui:8710
 #: src/gui/uifiles/siril.ui:8839 src/gui/uifiles/siril.ui:8979
 msgid "quality"
-msgstr "品質"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:6465 src/gui/uifiles/siril.ui:6593
 #: src/gui/uifiles/siril.ui:6733 src/gui/uifiles/siril.ui:8724
 #: src/gui/uifiles/siril.ui:8852 src/gui/uifiles/siril.ui:8992
 #: src/gui/registration.c:96 src/gui/stacking.c:47
 msgid "Percents of the images of the sequence."
-msgstr ""
+msgstr "シーケンス内の画像のうち、上位何％を使用するかを指定します."
 
 #: src/gui/uifiles/siril.ui:6493 src/gui/uifiles/siril.ui:6621
 #: src/gui/uifiles/siril.ui:6761 src/gui/uifiles/siril.ui:8752
@@ -9674,6 +9866,10 @@ msgid ""
 "Choose between % and k-σ to keep given percentage of images or to compute "
 "the allowable threshold using k-σ clipping."
 msgstr ""
+"画像を選別する方法として、次のどちらかを選びます：\n"
+"%（パーセント）： シーケンス内の画像を「上位何％」という割合で選びます。\n"
+"k‑σ（k シグマ） ： 統計的な k‑σ クリッピングを使って、自動的に「許容できる画"
+"像のしきい値」を計算します。"
 
 #: src/gui/uifiles/siril.ui:6524 src/gui/uifiles/siril.ui:6651
 #: src/gui/uifiles/siril.ui:8783 src/gui/uifiles/siril.ui:8910
@@ -9709,6 +9905,29 @@ msgid ""
 "<b>quality</b>: images with best quality (planetary DFT or Kombat "
 "registrations)"
 msgstr ""
+"スタックに使用する画像セットを選択します：\n"
+"\n"
+"<b>all</b>：シーケンス内のすべての画像を使用します\n"
+"\n"
+"<b>selected</b>：シーケンス内で未選択になっていない画像のみを使用します\n"
+"\n"
+"<b>FWHM</b>：計算された FWHM が小さい画像を優先して使用します（星ベースの"
+"レジストレーションのみ）\n"
+"\n"
+"<b>weighted FWHM</b>：FWHM に加えて「検出星数」も評価し、不良フレームをより確"
+"実に除外します。（星ベースのレジストレーションのみ）\n"
+"\n"
+"<b>roundness</b>：星の丸さが良い画像を優先します（星ベースの"
+"レジストレーションのみ）\n"
+"\n"
+"<b>background</b>：背景レベルが低い画像を優先します（星ベースの"
+"レジストレーションのみ）\n"
+"\n"
+"<b>nb stars</b>：検出された星の数が多い画像を優先します（星ベースの"
+"レジストレーションのみ）\n"
+"\n"
+"<b>quality</b>：品質が最も良い画像を使用します（惑星 DFT または Kombat "
+"レジストレーション）"
 
 #: src/gui/uifiles/siril.ui:6667 src/gui/uifiles/siril.ui:6794
 #: src/gui/uifiles/siril.ui:8926 src/gui/uifiles/siril.ui:9053
@@ -9716,9 +9935,8 @@ msgid "Remove this filter"
 msgstr "このフィルターを除去"
 
 #: src/gui/uifiles/siril.ui:6826
-#, fuzzy
 msgid "Image selection:"
-msgstr "画像整列"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:6879
 msgid ""
@@ -9731,11 +9949,17 @@ msgid ""
 "- \"center of gravity\" determines the best framing position as the center "
 "of gravity (cog) of all the images"
 msgstr ""
+"最終スタック画像のフレーミング方法を選択します：\n"
+"- \"current\" 参照画像のフレーミングをそのまま使用します\n"
+"- \"maximum\" どの画像も欠けないように、必要に応じて黒枠を追加して最大範囲を"
+"確保します\n"
+"- \"minimum\" シーケンス内のすべての画像に共通する部分だけを切り出します\n"
+"- \"center of gravity\" 全画像の重心（cog）を基準に、最もバランスの良い"
+"フレーミング位置を自動決定します"
 
 #: src/gui/uifiles/siril.ui:6888
-#, fuzzy
 msgid "current"
-msgstr "この赤色データーのファイル"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:6889
 msgid "maximum"
@@ -9750,13 +9974,12 @@ msgid "center of gravity"
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:6906
-#, fuzzy
 msgid "Framing method"
-msgstr "整列方法:"
+msgstr "フレーミング方法:"
 
 #: src/gui/uifiles/siril.ui:6919
 msgid "Estimates the final size and space used by the stacked image."
-msgstr ""
+msgstr "スタック後に生成される最終画像のサイズと、必要なディスク容量を見積もります。"
 
 #: src/gui/uifiles/siril.ui:6963
 msgid "Scaling:"
@@ -9767,21 +9990,24 @@ msgid ""
 "Scaling of the output images. Use Estimate button to determine the final "
 "image size."
 msgstr ""
+"出力画像のスケーリングを指定します。最終的な画像サイズは Estimate ボタンで計"
+"算できます。"
 
 #: src/gui/uifiles/siril.ui:7013
 msgid ""
 "Choose whether to use an interpolation algorithm or Drizzle to apply "
 "registration"
 msgstr ""
+"レジストレーションを適用する方法として、補間(interpolation)アルゴリズムを使う"
+"か、Drizzle を使うかを選択します"
 
 #: src/gui/uifiles/siril.ui:7041
 msgid "Algorithm: "
 msgstr "アルゴリズム: "
 
 #: src/gui/uifiles/siril.ui:7052
-#, fuzzy
 msgid "Set the interpolation algorithm"
-msgstr "Plate solving アルゴリズムを開始."
+msgstr "補間アルゴリズムを選びます"
 
 #: src/gui/uifiles/siril.ui:7077
 msgid ""
@@ -9796,15 +10022,22 @@ msgid ""
 "In current Siril implementations, we have included a clamping mechanism that "
 "prevents negative interpolated values and ringing artifacts for most images."
 msgstr ""
+"Bicubic および Lanczos4 補間アルゴリズムのクランプ処理を有効にします。\n"
+"\n"
+"Bicubic や Lanczos 系の補間では、補間関数の負のローブが高コントラスト部分（星"
+"などの明るい点）にかかることで、暗い縁取り（リング状の偽波紋）が生じることが"
+"あります。これは主に 線形データで発生します。\n"
+"\n"
+"Siril の現在の実装では、負の補間値を発生させないようにクランプ処理を行うこと"
+"で、ほとんどの画像でリングアーティファクトを防止できます。"
 
 #: src/gui/uifiles/siril.ui:7096
-#, fuzzy
 msgid "Use interpolation"
-msgstr "ディベイヤー 補間: "
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:7109
 msgid "Include master flat in initial pixel weighting"
-msgstr ""
+msgstr "初期ピクセルの重み付けにマスターフラットの情報を反映させる"
 
 #: src/gui/uifiles/siril.ui:7113
 msgid ""
@@ -9815,26 +10048,31 @@ msgid ""
 "\n"
 "The master flat must be set in the Calibration tab."
 msgstr ""
+"これをチェックすると、初期ピクセル重み付けにマスターフラットを含めます。同じ"
+"出力ピクセルに対応する場合、周辺減光の少ない領域のピクセルが、周辺減光の大き"
+"い領域よりも高く評価されます。ただし、効果はごく小さい場合がほとんどです。\n"
+"\n"
+"マスターフラットは Calibration タブで設定しておく必要があります。"
 
 #: src/gui/uifiles/siril.ui:7129
 msgid "Droplet Model"
-msgstr ""
+msgstr "ドロップレットモデル"
 
 #: src/gui/uifiles/siril.ui:7141
-#, fuzzy
 msgid "Pixel Fraction"
-msgstr "Pixel Area Relation"
+msgstr "ピクセルフラクション"
 
 #: src/gui/uifiles/siril.ui:7152
 msgid ""
 "Select the droplet model. See the documentation for details of when to use "
 "each model."
 msgstr ""
+"使用するドロップレットモデルを選択します。各モデルを使用すべき状況については"
+"、ドキュメントを参照してください。"
 
 #: src/gui/uifiles/siril.ui:7155
-#, fuzzy
 msgid "Square"
-msgstr "平方"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:7157
 msgid "Point"
@@ -9845,25 +10083,24 @@ msgid "Turbo"
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:7159
-#, fuzzy
 msgid "Lanczos2"
-msgstr "Lanczos4"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:7160
-#, fuzzy
 msgid "Lanczos3"
-msgstr "Lanczos4"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:7172
 msgid ""
 "Sets the droplet size as a fraction of the input pixel size. Typically a "
 "good value for this is the reciprocal of the drizzle scale."
 msgstr ""
+"ドロップレットの大きさを入力ピクセルサイズに対する割合で指定します。一般的に"
+"は、ドリズル倍率（drizzle scale）の逆数を設定すると良い値になります。"
 
 #: src/gui/uifiles/siril.ui:7192
-#, fuzzy
 msgid "Use drizzle"
-msgstr "Dark を使用"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:7212
 msgid "Prefix:"
@@ -9874,9 +10111,8 @@ msgid "Prefix of the image names resulting from the registration."
 msgstr "整列の結果得られた画像のファイル名プレフィックス."
 
 #: src/gui/uifiles/siril.ui:7256
-#, fuzzy
 msgid "Output registration:"
-msgstr "マニュアル整列"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:7271
 msgid "Go register"
@@ -9905,7 +10141,6 @@ msgid "Display reference image"
 msgstr "リファレンス画像を表示"
 
 #: src/gui/uifiles/siril.ui:7352
-#, fuzzy
 msgid ""
 "Display the reference image over the current image using a 50% "
 "transparency.\n"
@@ -9913,7 +10148,8 @@ msgid ""
 "displayed once on the selected registration layer."
 msgstr ""
 "50% の透明度で, この画像の上にリファレンス画像を表示します.\n"
-"これを可能にする為にはリファレンス画像"
+"これを可能にする為にはリファレンス画像が設定され、選択した"
+"レジストレーションレイヤーで一度表示されている必要があります。"
 
 #: src/gui/uifiles/siril.ui:7367
 msgid "Set reference image first"
@@ -9950,6 +10186,8 @@ msgid ""
 "Allows a preview area to be displayed just below. After clicking on this "
 "button, click on the image to position the preview area's centre"
 msgstr ""
+"下部にプレビュー領域を表示します。このボタンをクリックした後、画像上を"
+"クリックすると、その位置がプレビュー領域の中心になります"
 
 #: src/gui/uifiles/siril.ui:7534
 msgid "Set second preview"
@@ -9964,15 +10202,16 @@ msgid ""
 "Registration is basically aligning the images from a sequence to be able to "
 "process them afterwards."
 msgstr ""
+"レジストレーションとは、この後のスタック処理を行うために、シーケンス内の画像"
+"同士を正確に位置合わせする処理です。"
 
 #: src/gui/uifiles/siril.ui:7670
 msgid "Modify x-axis units, or y-axis units if available."
-msgstr ""
+msgstr "x 軸の単位を変更します（利用可能な場合は y 軸の単位も変更できます）。"
 
 #: src/gui/uifiles/siril.ui:7682
-#, fuzzy
 msgid "Display"
-msgstr "画像処理"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:7717
 msgid ""
@@ -9981,15 +10220,19 @@ msgid ""
 "Circle marker: the value for the reference frame.\n"
 "Cross marker: the value for the currently loaded frame."
 msgstr ""
+"紫の曲線： X・Y セレクタで選択した内容に基づく、実際のプロット値。\n"
+"緑の曲線： 品質の高い順に並べ替えた値。\n"
+"丸印： 参照フレームの値。\n"
+"十字印： 現在読み込まれているフレームの値。"
 
 #: src/gui/uifiles/siril.ui:7721
 msgid "Hovering for the legend"
-msgstr ""
+msgstr "凡例の説明"
 
 #: src/gui/uifiles/siril.ui:7740
 msgid ""
 "This button opens a CSV export of the data, or a screenshot of the plot."
-msgstr ""
+msgstr "データの CSV 出力、またはプロットのスクリーンショットを開きます。"
 
 #: src/gui/uifiles/siril.ui:7800
 #, fuzzy
@@ -10000,24 +10243,23 @@ msgstr "X"
 #: src/gui/plot.c:116 src/gui/plot.c:127 src/gui/sequence_list.c:510
 #: src/gui/sequence_list.c:532
 msgid "Roundness"
-msgstr "丸み"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:7816 src/gui/uifiles/siril.ui:7853
 #: src/gui/plot.c:128 src/gui/sequence_list.c:507
-#, fuzzy
 msgid "wFWHM"
-msgstr "FWHM"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:7817 src/gui/uifiles/siril.ui:7854
 #: src/gui/plot.c:119 src/gui/plot.c:129 src/gui/sequence_list.c:516
 #: src/gui/sequence_list.c:544
 msgid "Background"
-msgstr "背景"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:7818 src/gui/uifiles/siril.ui:7855
 #: src/gui/plot.c:130
 msgid "# Stars"
-msgstr ""
+msgstr "nb Stars"
 
 #: src/gui/uifiles/siril.ui:7819 src/gui/uifiles/siril.ui:7857
 #: src/gui/plot.c:120 src/gui/plot.c:131 src/gui/sequence_list.c:547
@@ -10032,9 +10274,8 @@ msgid "Y Position"
 msgstr "Y 座標"
 
 #: src/gui/uifiles/siril.ui:7822 src/gui/plot.c:134
-#, fuzzy
 msgid "Frame"
-msgstr "Frame rate"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:7836
 #, fuzzy
@@ -10050,30 +10291,26 @@ msgid "Select the source of graph information."
 msgstr "グラフ情報のソースを選択."
 
 #: src/gui/uifiles/siril.ui:7888
-#, fuzzy
 msgid "Registration data"
-msgstr "整列方法:"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:7889
-#, fuzzy
 msgid "Photometry data"
-msgstr "測光"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:7904
 msgid "Deletes photometric plots displayed in the graphics area."
-msgstr ""
+msgstr "グラフィック領域に表示されている測光プロットを削除します。"
 
 #: src/gui/uifiles/siril.ui:7916
-#, fuzzy
 msgid "Clear plots"
-msgstr "最新の曲線を消去"
+msgstr "プロットを消去"
 
 #: src/gui/uifiles/siril.ui:7967
 msgid "Show all relevant graphs using registration and / or photometry data."
-msgstr "整列 and/or 測光データも用いて関係するすべてのグラフを表示."
+msgstr "レジストレーションデータや測光データを使って、関連グラフを表示します。"
 
 #: src/gui/uifiles/siril.ui:8021
-#, fuzzy
 msgid ""
 "<b>Sum</b>: This is the simplest method.\n"
 "Pixel values are added in an image normalized to 32-bit values.\n"
@@ -10105,36 +10342,33 @@ msgid ""
 "Pixels of the image are replaced by pixels at the same coordinates if "
 "intensity is lower."
 msgstr ""
-"<b>Sum</b>: This is the simplest method.\n"
-"Pixel values are added in an image normalized to 32-bit values.\n"
-"It increases signal/noise ratio (SNR) as square root of number of images.\n"
+"<b>Sum</b>: 最も単純なスタック方法です。\n"
+"ピクセル値を 32-bit 正規化画像として加算します。\n"
+"SNR（信号対雑音比）は、使用した画像枚数の平方根に比例して向上します。\n"
 "\n"
-"<b>Average with rejection</b>: This method is used to reject deviant pixels "
-"iteratively.\n"
-"Five methods have been implemented:\n"
-"- Percentile Clipping\n"
-"- Sigma Clipping\n"
-"- Median Sigma Clipping\n"
-"- Winsorized Sigma Clipping\n"
-"- Linear Fit Clipping\n"
-"After pixel rejection, the mean of the stack is computed.\n"
+"<b>Average with rejection</b>: 外れ値ピクセルを反復的に除去しながら平均を計算"
+"する方法です。\n"
+"以下の 7 種類の外れ値除去アルゴリズムが利用できます：\n"
+"- Percentile Clipping（パーセンタイルクリッピング）\n"
+"- Sigma Clipping（シグマクリッピング）\n"
+"- MAD Clipping（MAD クリッピング）\n"
+"- Median Sigma Clipping（メジアンシグマクリッピング）\n"
+"- Winsorized Sigma Clipping（ウィンザー化シグマクリッピング）\n"
+"- Linear Fit Clipping（線形フィットクリッピング）\n"
+"- Generalized Extreme Studentized Deviate Test（一般化 ESD 検定）\n"
+"外れ値除去後、スタックの平均値が計算されます。\n"
 "\n"
-"<b>Median</b>: This method was mostly used for dark/flat/offset stacking "
-"although now we recommend the use of average with rejection stacking.\n"
-"The median value of the pixels in the stack is computed for each pixel.\n"
-"As this method should only be used for dark/flat/offset stacking, it does "
-"not take\n"
-"into account shifts computed during registration.\n"
+"<b>Median</b>: 主にダーク／フラット／オフセットのスタックに使われてきた方法で"
+"すが、現在は Average with rejection の使用が推奨されています。\n"
+"各ピクセル位置で、スタック内の中央値を計算します。\n"
 "\n"
-"<b>Pixel maximum</b>: This case is mainly used to construct long exposure "
-"star-trails images.\n"
-"Pixels of the image are replaced by pixels at the same coordinates if "
-"intensity is greater.\n"
+"<b>Pixel maximum</b>: 主に 長時間露光の星景・星軌跡（star trails）画像 を作成"
+"するために使用されます。\n"
+"各ピクセルは、同じ座標で最も明るい値に置き換えられます。\n"
 "\n"
-"<b>Pixel minimum</b>: This case could be useful to select the area to be "
-"cropped after the stack operation.\n"
-"Pixels of the image are replaced by pixels at the same coordinates if "
-"intensity is lower."
+"<b>Pixel minimum</b>: スタック後に クロップ領域を決める際の参考 として有用な"
+"場合があります。\n"
+"各ピクセルは、同じ座標で最も暗い値に置き換えられます。"
 
 #: src/gui/uifiles/siril.ui:8046 src/stacking/sum.c:372
 msgid "Sum stacking"
@@ -10145,9 +10379,8 @@ msgid "Average stacking with rejection"
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:8048
-#, fuzzy
 msgid "Median stacking"
-msgstr "重ね合わせ開始"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:8049
 msgid "Pixel maximum stacking"
@@ -10162,7 +10395,6 @@ msgid "Method:"
 msgstr "方法:"
 
 #: src/gui/uifiles/siril.ui:8096
-#, fuzzy
 msgid ""
 "If one of these items is selected, a normalisation process will be applied "
 "to all input images before stacking.\n"
@@ -10181,8 +10413,20 @@ msgid ""
 "However, multiplicative normalisation must be used with flat-field frames.</"
 "b>"
 msgstr ""
-"これらのアイテムが選ばれると, 重ね合わせをする前に\n"
-"正規化プロセスが全ての入力画像に適用されます."
+"これらのオプションのいずれかを選ぶと、スタック処理の前にすべての入力画像へ正"
+"規化が適用されます。\n"
+"\n"
+"- 正規化（Normalisation） は、まず各画像の背景平均値を揃えてから、乗算（"
+"multiplicative） または 加算（additive） のいずれかで補正を行います。どちらも"
+"多くの場合は似た結果になりますが、フラット補正のように乗算・除算に使う画像に"
+"は乗算正規化が推奨されます。\n"
+"\n"
+"- スケール（Scale） は、画像の分散を揃えるために重み付けを行う処理です。これ"
+"により SNR が向上するため、Siril では 加算正規化(additive)と組み合わせて標準"
+"設定として使用されています。\n"
+"\n"
+"<b>オフセットやダークのマスターには正規化を適用してはいけません。一方、"
+"フラットには必ず乗算正規化を使用する必要があります。</b>"
 
 #: src/gui/uifiles/siril.ui:8105
 msgid "No normalisation"
@@ -10215,9 +10459,8 @@ msgstr ""
 "に強制的に再計算させることが可能です."
 
 #: src/gui/uifiles/siril.ui:8138
-#, fuzzy
 msgid "Faster normalisation"
-msgstr "正規化なし"
+msgstr "高速な正規化処理"
 
 #: src/gui/uifiles/siril.ui:8142
 msgid ""
@@ -10228,6 +10471,12 @@ msgid ""
 "each image, they can still give a satisfactory result when compared to no "
 "normalization at all."
 msgstr ""
+"デフォルトでは、Siril は正規化係数を計算するために、位置とスケールの IKSS 推"
+"定量を使用します。長いシーケンスでは、これらの推定量の計算は かなり重くなるこ"
+"とがあります。そのような場合、より高速な推定方法（中央値および中央値絶対偏差"
+"に基づく）を選択できます。これらは各フレーム内の外れ値に対して IKSS ほど強く"
+"はありませんが、正規化を全く行わない場合と比べれば十分に良い結果が得られるこ"
+"とが多いです。"
 
 #: src/gui/uifiles/siril.ui:8161
 #, fuzzy
@@ -10243,7 +10492,6 @@ msgid "Sigma high: "
 msgstr "標準偏差 高: "
 
 #: src/gui/uifiles/siril.ui:8297
-#, fuzzy
 msgid ""
 "Seven rejection algorithms are available:\n"
 "\n"
@@ -10282,64 +10530,66 @@ msgid ""
 "[3] Rosner, Bernard (May 1983), Percentage Points for a Generalized ESD Many-"
 "Outlier Procedure, Technometrics, 25(2), pp. 165-172"
 msgstr ""
-"5つの rejection algorithm が使用可能.\n"
-"- <b>Percentile Clipping</b> は 1 ステップ rejection algorithm "
-"で少数のデータ (6画像まで) の取り扱いに適しています.\n"
-"- <b>Sigma Clipping</b> is an iterative algorithm which will reject pixels "
-"whose distance from\n"
-"median will be farthest than two given values in sigma units.\n"
-"- <b>Median Sigma Clipping</b> is the same algorithm except than the "
-"rejected pixels are\n"
-"replaced by the median value.\n"
-"- <b>Winsorized Sigma Clipping</b> is very similar to Sigma Clipping method "
-"but it uses an\n"
-"algorithm based on Huber’s work [1] [2].\n"
-"- <b>Linear Fit Clipping</b> is an algorithm developed by Juan Conejero, "
-"main developer of\n"
-"PixInsight [2]. It fits the best straight line (y=ax+b) of the pixel stack "
-"and rejects\n"
-"outliers. This algorithm performs very well with large stack and images "
-"containing sky\n"
-"gradients with differing spatial distributions and orientations.\n"
+"7 種類の外れ値除去アルゴリズム が利用できます.\n"
+"\n"
+"- <b>Percentile Clipping</b> は 1 回の処理で外れ値を除去するシンプルな方法。"
+"画像が 6 枚程度までの小規模スタックに最適です。.\n"
+"\n"
+"- <b>Sigma Clipping</b> は反復アルゴリズムで、中央値からの距離が、指定された "
+"2 つのシグマ値より大きいピクセルを除外します。\n"
+"\n"
+"- <b>MAD Clipping</b> Sigma Clipping と同様の反復処理ですが、推定量として "
+"Median Absolute Deviation（MAD）を使用します。ノイズの多い 赤外線画像 でよく"
+"使われます。\n"
+"\n"
+"- <b>Median Sigma Clipping</b> Sigma Clipping と同じ手法ですが、除外された"
+"ピクセルを中央値で置き換える点が異なります。\n"
+"\n"
+"- <b>Winsorized Sigma Clipping</b> Sigma Clipping に非常に似ていますが、"
+"Huber の研究 [1][2] に基づくアルゴリズムを使用します。\n"
+"\n"
+"- <b>Linear Fit Clipping</b> PixInsight の主要開発者である Juan Conejero によ"
+"って開発されたアルゴリズムです [2]。ピクセルスタックに最も適合する直線（"
+"y=ax+b）をフィットし、外れ値を除外します。このアルゴリズムは、大きなスタック"
+"や空の勾配が異なる空間分布や方向を持つ画像で非常に良好に動作します。\n"
+"\n"
+"- <b>Generalized Extreme Studentized Deviate Test</b> [3] Grubbs 検定を一般化"
+"した外れ値検出法で、ほぼ正規分布に従うデータから複数の外れ値を検出できます。"
+"50 枚以上の大規模データセットで非常に高い性能を発揮します。\n"
 "\n"
 "[1] Peter J. Huber and E. Ronchetti (2009), Robust Statistics, 2nd Ed., "
 "Wiley\n"
-"[2] Juan Conejero, ImageIntegration, Pixinsight Tutorial"
+"[2] Juan Conejero, ImageIntegration, Pixinsight Tutorial\n"
+"[3] Rosner, Bernard (May 1983), Percentage Points for a Generalized ESD Many-"
+"Outlier Procedure, Technometrics, 25(2), pp. 165-172"
 
 #: src/gui/uifiles/siril.ui:8318
-#, fuzzy
 msgid "No rejection"
-msgstr "No rejection"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:8319
-#, fuzzy
 msgid "Percentile Clipping"
-msgstr "Percentile Clipping"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:8320
-#, fuzzy
 msgid "Sigma Clipping"
-msgstr "Sigma Clipping"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:8321 src/stacking/stacking.c:197
-#, fuzzy
 msgid "MAD clipping"
-msgstr "Sigma Clipping"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:8322
-#, fuzzy
 msgid "Median Sigma Clipping"
-msgstr "Median Sigma Clipping"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:8323
-#, fuzzy
 msgid "Winsorized Sigma Clipping"
-msgstr "Winsorized Sigma Clipping"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:8324
-#, fuzzy
 msgid "Linear Fit Clipping"
-msgstr "Linear Fit Clipping"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:8325
 msgid "Generalized Extreme Studentized Deviate Test"
@@ -10360,33 +10610,44 @@ msgid ""
 "<b>Number of images</b> weights individual frames based on their integration "
 "time."
 msgstr ""
+"次の 4 種類の重み付け方法 を利用できます：\n"
+"\n"
+"<b>Number of stars</b> レジストレーション時に検出された 星の数 を基準に重みを"
+"決定します。星が多く写っていると良いフレームとして扱われます。\n"
+"\n"
+"<b>Weighted FWHM</b> レジストレーションで計算された wFWHM（星のシャープさの指"
+"標） を基準に重み付けします。星がシャープであるほど良いフレームとして扱われま"
+"す。\n"
+"\n"
+"<b>Noise</b> 各フレームの 背景ノイズレベル を基準に重み付けします。ノイズが少"
+"ないと良いフレームとして扱われます。\n"
+"\n"
+"<b>Number of images</b> 各フレームの 露光時間 に応じて重みを付けます。長時間"
+"露光のフレームがより強く反映されます。"
 
 #: src/gui/uifiles/siril.ui:8351 src/gui/plot.c:1672 src/gui/plot.c:1700
 msgid "Number of stars"
-msgstr "星の数"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:8352
-#, fuzzy
 msgid "Weighted FWHM"
-msgstr "重み付き FWHM"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:8353
 msgid "Noise"
-msgstr "ノイズ"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:8354
 msgid "Number of images"
-msgstr "画像の数"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:8368
-#, fuzzy
 msgid "Weighting:"
-msgstr "重み付き FWHM"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:8383
-#, fuzzy
 msgid "Create rejection maps"
-msgstr "No rejection"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:8387
 msgid ""
@@ -10394,6 +10655,8 @@ msgid ""
 "how many images were rejected for each pixel of the result image, divided by "
 "the number of stacked images."
 msgstr ""
+"スタック処理の際に rejection map を計算・生成します。このマップは、最終画像の"
+"各ピクセルに対して、スタック中に除外されたフレームの割合を示す画像です。"
 
 #: src/gui/uifiles/siril.ui:8399
 msgid "Merge L+H"
@@ -10402,63 +10665,54 @@ msgstr ""
 #: src/gui/uifiles/siril.ui:8404
 msgid ""
 "Create only one rejection map that will be the sum of the low and high maps"
-msgstr ""
+msgstr "低値と高値のマップを合算し、1 枚の rejection map のみを生成します"
 
 #: src/gui/uifiles/siril.ui:8435
-#, fuzzy
 msgid "Pixel rejection:"
-msgstr "Pixel Area Relation"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:8564
 msgid "Borders feathering [pix]:"
-msgstr ""
+msgstr "境界をぼかす幅［pix］："
 
 #: src/gui/uifiles/siril.ui:8575
 msgid ""
 "Select here the number of pixels that will be faded out on the borders of "
 "each image."
-msgstr ""
+msgstr "各画像の 端をどれだけの幅でぼかすか を、ピクセル数で指定します。"
 
 #: src/gui/uifiles/siril.ui:8607
-#, fuzzy
 msgid "Normalization on overlaps"
-msgstr "エラー: 統計計算失敗\n"
+msgstr "画像の重なり部分に対して正規化を行う"
 
 #: src/gui/uifiles/siril.ui:8611
-#, fuzzy
 msgid ""
 "By default, Siril computes the normalisation coefficients from each image. "
 "Ticking this box computes them on overlapping regions instead."
 msgstr ""
-"デフォルトで, 既に計算されているならば Siril は seq "
-"ファイルから正規化係数を取ります. しかし、重ね合わせをする前に、Siril "
-"に強制的に再計算させることが可能です."
+"デフォルトでは、各フレーム全体から正規化係数を計算します。このオプションを有"
+"効にすると、画像同士の重なり部分だけを使って正規化係数を計算するようになりま"
+"す。"
 
 #: src/gui/uifiles/siril.ui:8630
-#, fuzzy
 msgid "Stack stitching:"
-msgstr "重ね合わせ"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:8666
-#, fuzzy
 msgid "Stacking 0 images of the 0 of the sequence"
-msgstr "シリーズ内のすべての画像を整列"
+msgstr "シーケンスの 0 枚のうちの 0 枚をスタックしています"
 
 #: src/gui/uifiles/siril.ui:9080
-#, fuzzy
 msgid "Image rejection:"
-msgstr "No rejection"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:9099
 msgid "Sequence stacking"
 msgstr "シーケンスの重ね合わせ"
 
 #: src/gui/uifiles/siril.ui:9133
-#, fuzzy
 msgid "Output Normalisation"
-msgstr ""
-"出力\n"
-"正規化"
+msgstr "出力画像の正規化"
 
 #: src/gui/uifiles/siril.ui:9136
 msgid ""
@@ -10469,11 +10723,16 @@ msgid ""
 "\n"
 "WARNING: This option should not be checked for master stacking."
 msgstr ""
+"このボタンをチェックすると、最終画像は、32-bit 形式の精度で作業している場合"
+"は [0, 1] の範囲に正規化され、そうでない場合は [0, 65535] にクリップされます"
+"。これは、クリッピングを避けるために Force 32b output もチェックしておくと最"
+"も良く機能します。\n"
+"\n"
+"警告：このオプションはマスタースタッキングではチェックすべきではありません。"
 
 #: src/gui/uifiles/siril.ui:9149
-#, fuzzy
 msgid "RGB equalization"
-msgstr "Background Extraction…"
+msgstr "RGB チャンネルの明るさを揃える"
 
 #: src/gui/uifiles/siril.ui:9152
 msgid ""
@@ -10482,21 +10741,27 @@ msgid ""
 "\n"
 "WARNING: This option should not be checked for master stacking."
 msgstr ""
+"このオプションを有効にすると、最終的なカラー画像の RGB 各チャンネルが均一化さ"
+"れます。\n"
+"\n"
+"警告：このオプションはマスター画像のスタックではチェックすべきではありません"
+"。"
 
 #: src/gui/uifiles/siril.ui:9165
 msgid "Maximize framing"
-msgstr ""
+msgstr "フレーミングを最大化"
 
 #: src/gui/uifiles/siril.ui:9168
 msgid ""
 "If you check this button, the final image size will be enlarged to fit all "
 "the selected frames of the sequence."
 msgstr ""
+"このオプションを有効にすると、選択したすべてのフレームが収まるように、最終的"
+"なスタック画像のサイズが拡大されます。"
 
 #: src/gui/uifiles/siril.ui:9180
-#, fuzzy
 msgid "Interpolation upscaling x2"
-msgstr "補間: "
+msgstr "補間による 2 倍アップスケーリング"
 
 #: src/gui/uifiles/siril.ui:9183
 msgid ""
@@ -10504,16 +10769,21 @@ msgid ""
 "of 2. This can be faster than real drizzle images obtained during "
 "registration but will not produced images as sharp."
 msgstr ""
+"このオプションを有効にすると、最終的な出力画像が補間によって 2 倍に拡大されま"
+"す。Drizzleによるアップサンプリングより高速ですが、Drizzleほどのシャープさは"
+"得られません。"
 
 #: src/gui/uifiles/siril.ui:9194
 msgid "Force 32b output"
-msgstr ""
+msgstr "32bit 出力を強制"
 
 #: src/gui/uifiles/siril.ui:9198
 msgid ""
 "If you check this button, the final image bitdepth will be forced to 32b "
 "even if the input images are in 16b."
 msgstr ""
+"このオプションを有効にすると、入力が 16bit 画像であっても、最終的な出力画像は"
+"必ず 32bitで生成されます。"
 
 #. Must be short
 #: src/gui/uifiles/siril.ui:9227
@@ -10525,9 +10795,8 @@ msgid "Overwrite"
 msgstr "上書き"
 
 #: src/gui/uifiles/siril.ui:9255
-#, fuzzy
 msgid "Overwrite file without notice if it already exists."
-msgstr "précaution … just overwrite."
+msgstr "既存のファイルがある場合、通知なしで上書きします。"
 
 #: src/gui/uifiles/siril.ui:9275
 msgid "Start stacking"
@@ -10542,15 +10811,16 @@ msgstr ""
 "開始します."
 
 #: src/gui/uifiles/siril.ui:9300
-#, fuzzy
 msgid "Stacking result"
-msgstr "重ね合わせ"
+msgstr "重ね合わせ結果"
 
 #: src/gui/uifiles/siril.ui:9326
 msgid ""
 "Stacking of images, either summing, median, mean with rejection or pixel "
 "minimum/maximum."
 msgstr ""
+"画像をスタックする処理で、加算（Sum）・中央値（Median）・除外付き平均（"
+"Average with rejection）、比較明・比較暗といった方式のいずれかで合成します。"
 
 #: src/gui/uifiles/siril.ui:9364
 msgid ""
@@ -10584,11 +10854,11 @@ msgstr "コマンドを入力. ``help’’ "
 
 #: src/gui/uifiles/siril.ui:9519
 msgid "Type \"help\" for the list of supported commands"
-msgstr "サポートされているコマンドの一覧を見るには ``help’’ とタイプして下さい"
+msgstr "サポートされているコマンドの一覧を見るには \"help\" とタイプして下さい"
 
 #: src/gui/uifiles/siril.ui:9534
 msgid "Displays manual of the command written in the console."
-msgstr "コンソールに書かれているコマンドのマニュアルを表示."
+msgstr "コンソールに入力したコマンドの説明を表示."
 
 #: src/gui/uifiles/siril.ui:9546
 msgid "Stop"
@@ -10612,26 +10882,23 @@ msgstr "コントロールパネルを非表示にして、画像パネルのみ
 
 #: src/gui/uifiles/siril.ui:9671
 msgid "Click to Set the name of the item to clipboard (green-ed label)"
-msgstr ""
+msgstr "クリックすると、この項目名（緑色のラベル）がクリップボードにコピーされます"
 
 #: src/gui/uifiles/siril.ui:9672
 msgid "Sequence:"
 msgstr "シーケンス:"
 
 #: src/gui/uifiles/siril.ui:9726
-#, fuzzy
 msgid "Image validation tools"
-msgstr "画像整列"
+msgstr "画像検証ツール"
 
 #: src/gui/uifiles/siril.ui:9800
-#, fuzzy
 msgid "High value"
-msgstr "自動値"
+msgstr "最大値"
 
 #: src/gui/uifiles/siril.ui:9859
-#, fuzzy
 msgid "Low value"
-msgstr "自動値"
+msgstr "最小値"
 
 #: src/gui/uifiles/siril.ui:9909
 msgid "Min/Max"
@@ -10654,42 +10921,58 @@ msgid ""
 "to display your data. Stretch your histogram before to work on an external "
 "tool.</b>"
 msgstr ""
+"表示モード：ここには、Siril で利用できるすべての表示方式が一覧で示されます"
+"。\n"
+"\n"
+"<b>警告：線形（Linear）モードだけが、（可視化スライダーが最小・最大位置にある"
+"とき）実際のピクセル値を表示します。他のモードはデータを見やすくするための"
+"ストレッチ表示にすぎません。外部ツールで作業する前にヒストグラムをストレッチ"
+"してください。</b>"
 
 #: src/gui/uifiles/siril.ui:10037
 msgid ""
 "Link/unlink channels in autostretch viewer mode.\n"
 "Current state: linked."
 msgstr ""
+"オートストレッチ表示モードで、チャンネルをリンク／リンク解除に切り替えます"
+"。\n"
+"現在の状態：リンク"
 
 #: src/gui/uifiles/siril.ui:10063
 msgid "Switch to normal and negative view"
-msgstr ""
+msgstr "通常表示／ネガ表示を切り替える"
 
 #: src/gui/uifiles/siril.ui:10080
 msgid "Switch to normal and rainbow colormap (false color rendering)"
-msgstr ""
+msgstr "通常表示／レインボー疑似カラー表示を切り替える"
 
 #: src/gui/uifiles/siril.ui:10106
 msgid ""
 "Left-click to show object names if WCS information is available. Right-click "
 "to display a list of astro catalogs to choose from."
 msgstr ""
+"左クリック：WCS 情報がある場合、天体名を表示します。\n"
+"右クリック：使用する天文カタログの一覧を表示します。"
 
 #: src/gui/uifiles/siril.ui:10121
 msgid "Show celestial grid if WCS information is available"
-msgstr ""
+msgstr "WCS 情報がある場合、天球グリッドを表示します"
 
 #: src/gui/uifiles/siril.ui:10135
 msgid ""
 "Switch to PSF/photometry mode. If a sequence is loaded, a right click on the "
 "displayed image applies the PSF/Photometry on the whole sequence."
 msgstr ""
+"PSF／測光モードに切り替えます。シーケンスを読み込んでいる場合は、表示画像を右"
+"クリックすると、その PSF／測光処理をシーケンス全体に適用します。"
 
 #: src/gui/uifiles/siril.ui:10149
 msgid ""
 "Make an intensity profile cut, showing a graph of the pixel value along a "
 "line between two points"
 msgstr ""
+"2 点を結ぶ線上のピクセル値を取得し、その強度プロファイル（断面グラフ）を表示"
+"します"
 
 #: src/gui/uifiles/siril.ui:10173
 msgid "Shrink the image"
@@ -10709,11 +10992,11 @@ msgstr "画像を正規のサイズで表示"
 
 #: src/gui/uifiles/siril.ui:10279
 msgid "Horizontal mirror"
-msgstr "水平方向の鏡映"
+msgstr "水平方向に反転"
 
 #: src/gui/uifiles/siril.ui:10296
 msgid "Vertical mirror"
-msgstr "鉛直方向の鏡映"
+msgstr "鉛直方向に反転"
 
 #: src/gui/uifiles/siril.ui:10365 src/gui/single_image.c:75
 msgid "Open"
@@ -10732,9 +11015,8 @@ msgid "Change current working directory"
 msgstr "作業ディレクトリを変更"
 
 #: src/gui/uifiles/siril.ui:10434
-#, fuzzy
 msgid "Start livestacking session"
-msgstr "重ね合わせ開始"
+msgstr "ライブスタッキングを開始"
 
 #: src/gui/uifiles/siril.ui:10510
 msgid ""
@@ -10760,8 +11042,8 @@ msgid ""
 "Menu of the script files. This menu appears only when the script paths "
 "defined in the preferences are set to the existing script folders."
 msgstr ""
-"スクリプトファイルのメニュー. このメニューは環境設定の中で定義されているスク"
-"リプトパスが存在するスクリプトフォルダーを設定している場合にのみ現れます."
+"スクリプトファイルのメニュー. このメニューは環境設定で指定した"
+"スクリプトフォルダが正しく存在している場合にのみ現れます."
 
 #: src/gui/uifiles/siril.ui:10673
 msgid "Bit-depth select button"
@@ -10812,21 +11094,19 @@ msgstr ""
 msgid ""
 "Plot the data (QE, transmittance or relative photon count) as a function of "
 "wavelength"
-msgstr ""
+msgstr "波長に対するデータ（QE、透過率、または相対光子数）をプロットします"
 
 #: src/gui/uifiles/spcc_details.ui:154
-#, fuzzy
 msgid "Data Source"
-msgstr "ソース ファイル"
+msgstr ""
 
 #: src/gui/uifiles/spcc_details.ui:167
 msgid "Datafile version"
 msgstr ""
 
 #: src/gui/uifiles/spcc_details.ui:195
-#, fuzzy
 msgid "Number of samples"
-msgstr "層の数: "
+msgstr ""
 
 #: src/gui/uifiles/split_cfa_dialog.ui:35 src/algos/extraction.c:1130
 msgid "Split CFA"
@@ -10837,9 +11117,8 @@ msgid "Apply Split CFA"
 msgstr "CFAの分割を適用"
 
 #: src/gui/uifiles/split_cfa_dialog.ui:101
-#, fuzzy
 msgid "Prefix of the image names resulting from the split cfa process."
-msgstr "前処理により得られた画像ファイル名プレフィックス."
+msgstr "CFA 分離処理で作成される画像ファイル名の先頭に付ける接頭辞です"
 
 #: src/gui/uifiles/split_cfa_dialog.ui:145
 msgid "Method: "
@@ -10862,13 +11141,12 @@ msgid "Extract Ha/OIII"
 msgstr "Ha/OIIIの抽出"
 
 #: src/gui/uifiles/split_cfa_dialog.ui:162 src/algos/extraction.c:198
-#, fuzzy
 msgid "Extract Green"
-msgstr "Extraction"
+msgstr "Greenを抽出"
 
 #: src/gui/uifiles/split_cfa_dialog.ui:177
 msgid "Ha/OIII Resampling"
-msgstr ""
+msgstr "Ha/OIII リサンプリング"
 
 #: src/gui/uifiles/split_cfa_dialog.ui:189
 msgid ""
@@ -10877,6 +11155,10 @@ msgid ""
 "the Ha image by a factor of 2 to match the OIII image; downsample OIII "
 "downsamples the OIII image by a factor of 2 to match the Ha image."
 msgstr ""
+"Ha/OIII 抽出の出力画像をどのように扱うかを指定します。\n"
+"No resampling： OIII は 元のフル解像度、Ha は 半分の解像度 で出力されます。\n"
+"Upsample Ha：Ha 画像を 2 倍に拡大し、OIII の解像度に合わせます。\n"
+"Downsample OIII： OIII 画像を 2 分の 1 に縮小し、Ha の解像度に合わせます。"
 
 #: src/gui/uifiles/split_cfa_dialog.ui:192
 msgid "No resampling"
@@ -10887,13 +11169,12 @@ msgid "Upsample Ha"
 msgstr ""
 
 #: src/gui/uifiles/split_cfa_dialog.ui:194
-#, fuzzy
 msgid "Downsample OIII"
-msgstr "画像を正規化"
+msgstr ""
 
 #: src/gui/uifiles/starnet_dialog.ui:43
 msgid "StarNet Star Removal"
-msgstr ""
+msgstr "StarNet による星除去"
 
 #: src/gui/uifiles/starnet_dialog.ui:80
 msgid "Apply StarNet"
@@ -10901,7 +11182,7 @@ msgstr "StarNetを適用"
 
 #: src/gui/uifiles/starnet_dialog.ui:111
 msgid "Pre-stretch linear image"
-msgstr ""
+msgstr "リニア画像をプレストレッチする"
 
 #: src/gui/uifiles/starnet_dialog.ui:116
 msgid ""
@@ -10910,11 +11191,14 @@ msgid ""
 "completion. This is necessary for using StarNet at the linear stage of "
 "processing."
 msgstr ""
+"このオプションを有効にすると、StarNet 実行前に最適化された MTF（Midtone "
+"Transfer Function）ストレッチを画像へ適用し、処理完了後にそのストレッチを元に"
+"戻します。これは、線形状態の画像で StarNet を正しく動作させるために必要な処理"
+"です。"
 
 #: src/gui/uifiles/starnet_dialog.ui:130
-#, fuzzy
 msgid "Generate star mask"
-msgstr "生成"
+msgstr "星マスク生成"
 
 #: src/gui/uifiles/starnet_dialog.ui:135
 msgid ""
@@ -10922,6 +11206,9 @@ msgid ""
 "directory. The star mask is calculated as the difference between the "
 "original image and the starless image. The default is to produce a star mask."
 msgstr ""
+"このオプションを有効にすると、星マスクが生成され、作業ディレクトリに保存され"
+"ます。 星マスクは、元画像と星なし画像（Starless）の差分から作成されます。 "
+"デフォルトでは、この星マスクの生成が有効になっています。"
 
 #: src/gui/uifiles/starnet_dialog.ui:150
 msgid "Use custom stride"
@@ -10933,6 +11220,9 @@ msgid ""
 "parameter. The default value is 256 and the StarNet developer recommends not "
 "to change this."
 msgstr ""
+"このオプションを有効にすると、StarNet の stride パラメータに任意の値を入力で"
+"きます。 デフォルトの stride は 256 で、StarNet の開発者は基本的にこの値を変"
+"更しないことを推奨しています。"
 
 #: src/gui/uifiles/starnet_dialog.ui:175
 msgid "Stride"
@@ -10945,11 +11235,14 @@ msgid ""
 "stride setting quadruples the processing time. If altered, stride must be an "
 "even integer between 2-256."
 msgstr ""
+"StarNet のニューラルネットワークに渡されるタイルのサイズを設定します。"
+"デフォルト設定のままにしておくことが強く推奨されます。stride 設定を半分にする"
+"と、処理時間は 4 倍になります。変更する場合、stride は 2〜256 の範囲で、偶数"
+"である必要があります。"
 
 #: src/gui/uifiles/starnet_dialog.ui:210
-#, fuzzy
 msgid "Recompose stars on completion"
-msgstr "選択されたゾーン内の星をマッチさせる"
+msgstr "完了時に星を再合成する"
 
 #: src/gui/uifiles/starnet_dialog.ui:215
 msgid ""
@@ -10959,10 +11252,14 @@ msgid ""
 "removal, is desired.\n"
 "This option has no effect if processing a sequence."
 msgstr ""
+"このオプションを有効にすると、StarNet の処理完了後に「星の再合成」ツールが自"
+"動的に開きます。 ここでは、背景と星を別々にストレッチしたり、ブレンド量を調整"
+"したりして、星を消すのではなく“星を減らす”処理を行いたい場合に役立ちます。\n"
+"なお、シーケンス処理時にはこのオプションは無効で、何も起こりません。"
 
 #: src/gui/uifiles/starnet_dialog.ui:230
 msgid "Upsample x2"
-msgstr ""
+msgstr "２倍アップサンプル"
 
 #: src/gui/uifiles/starnet_dialog.ui:235
 msgid ""
@@ -10971,36 +11268,38 @@ msgid ""
 "processing time and may impair performance on very large stars. The image is "
 "rescaled to the original size on completion."
 msgstr ""
+"このオプションを有効にすると、StarNet 実行前に画像を 2 倍にアップサンプルしま"
+"す。 これにより、非常に小さな星に対する StarNet の精度が向上しますが、処理時"
+"間を 4 倍にし、非常に大きな星に対しては性能を低下させる可能性があります。処理"
+"完了後、画像は元のサイズに再スケールされます。"
 
 #: src/gui/uifiles/starnet_dialog.ui:252
 msgid ""
 "Apply StarNet to all images in the current sequence. Starless and, if "
 "selected, star mask, sequences will be generated."
 msgstr ""
+"現在のシーケンス内のすべての画像に StarNet を適用します。星なし画像の"
+"シーケンスと、選択されていれば星マスクのシーケンスが生成されます。"
 
 #: src/gui/uifiles/starnet_dialog.ui:273
-#, fuzzy
 msgid "Sequence to open on completion"
-msgstr "画像シーケンスの選択"
+msgstr "処理完了後に開くシーケンスを指定"
 
 #: src/gui/uifiles/starnet_dialog.ui:287
-#, fuzzy
 msgid "Starless"
-msgstr "重ね合わせ"
+msgstr ""
 
 #: src/gui/uifiles/starnet_dialog.ui:288
-#, fuzzy
 msgid "Star mask"
-msgstr "重ね合わせ開始"
+msgstr ""
 
 #: src/gui/uifiles/starnet_dialog.ui:289
 msgid "Original"
 msgstr ""
 
 #: src/gui/uifiles/stars_list_window.ui:84
-#, fuzzy
 msgid "Export list of stars to a file"
-msgstr "グラフ表示をCSV形式のファイルにエクスポート."
+msgstr "星のリストをファイルにエクスポート."
 
 #: src/gui/uifiles/stars_list_window.ui:90
 #: src/gui/uifiles/stars_list_window.ui:906
@@ -11011,7 +11310,7 @@ msgstr "読込中の(シーケンス画像ではない)画像の星を検出し�
 #: src/gui/uifiles/stars_list_window.ui:96
 #: src/gui/uifiles/stars_list_window.ui:920
 msgid "Average PSF parameters for selected stars"
-msgstr "選択した星に関する PSF パラメーターの平均"
+msgstr "選択した星に関するPSFパラメータの平均"
 
 #: src/gui/uifiles/stars_list_window.ui:137
 msgid "Dynamic PSF"
@@ -11170,7 +11469,7 @@ msgstr ""
 
 #: src/gui/uifiles/stars_list_window.ui:944
 msgid "Export PSF parameters in an ASCII file"
-msgstr "点像分布関数 パラメーターをASCIIファイルにエクスポート"
+msgstr "点像分布関数パラメータをASCIIファイルにエクスポート"
 
 #: src/gui/uifiles/stars_list_window.ui:968
 #, fuzzy
@@ -12164,9 +12463,8 @@ msgid "Color Conversion Matrices can only be applied to 3-channel images.\n"
 msgstr "このコマンドはスクリプト: %s では使用不可能\n"
 
 #: src/algos/colors.c:1329
-#, fuzzy
 msgid "Color Conversion Matrices"
-msgstr "整列完了."
+msgstr "色変換行列(CCM)"
 
 #: src/algos/comparison_stars.c:133
 #, fuzzy, c-format
@@ -12565,7 +12863,7 @@ msgstr ""
 #: src/algos/geometry.c:359 src/algos/geometry.c:410
 #, c-format
 msgid "Rotation (%s interpolation, angle=%g): processing...\n"
-msgstr "回転 (%s interpolation, angle=%g): 処理中...\n"
+msgstr "回転 (%s interpolation, 角度=%g): 処理中...\n"
 
 #: src/algos/geometry.c:360 src/algos/geometry.c:389
 msgid "No"
@@ -13725,22 +14023,24 @@ msgstr ""
 
 #: src/core/arithm.c:187
 msgid "Cannot divide by zero, aborting."
-msgstr ""
+msgstr "ゼロで割ることができないため、処理を中止します。"
 
 #: src/core/arithm.c:529
 msgid ""
 "Image operations can only be kept 16 bits if first input images are 16 bits. "
 "Aborting.\n"
 msgstr ""
+"入力画像が 16 ビットである場合にのみ 16 ビットのまま保持できます。処理を中止"
+"します。\n"
 
 #: src/core/arithm.c:554
 msgid "Images must have same data type.\n"
-msgstr ""
+msgstr "画像のデータ型が一致していません。\n"
 
 #: src/core/command.c:136
-#, fuzzy, c-format
+#, c-format
 msgid "This command is deprecated: %s should be used instead.\n"
-msgstr "このコマンドはスクリプト: %s では使用不可能\n"
+msgstr "このコマンドは非推奨です。代わりに %s を使用してください\n"
 
 #: src/core/command.c:137
 #, c-format
@@ -13753,6 +14053,9 @@ msgid ""
 "function not intended for this kind of image. This is likely to give poor "
 "results: check your intended workflow.\n"
 msgstr ""
+"警告：このシーケンスにはディベイヤーされていない CFA 画像が含まれています。本"
+"来この種の画像には適さない処理を実行しています。結果が悪化する可能性が高いた"
+"め、ワークフローを確認してください。\n"
 
 #: src/core/command.c:173
 msgid ""
@@ -13760,14 +14063,17 @@ msgid ""
 "intended for this kind of image. This is likely to give poor results: check "
 "your intended workflow.\n"
 msgstr ""
+"警告：デベイヤーされていない CFA 画像が読み込まれています。本来この種の画像に"
+"は適さない処理を実行しています。結果が悪化する可能性が高いため、ワークフロー"
+"を確認してください。\n"
 
 #: src/core/command.c:215
 msgid "Currently loaded image has no FITS header\n"
-msgstr ""
+msgstr "読み込まれている画像に FITS ヘッダーがありません\n"
 
 #: src/core/command.c:217
 msgid "=FITS header for currently loaded image=\n"
-msgstr ""
+msgstr "＝現在の画像の FITS ヘッダー＝\n"
 
 #: src/core/command.c:249 src/core/command.c:648 src/core/command.c:740
 #: src/core/command.c:885 src/core/command.c:1447 src/core/command.c:1503
@@ -13800,20 +14106,19 @@ msgid "Invalid argument %s, aborting.\n"
 msgstr "無効な引数 %s。中止しています。\n"
 
 #: src/core/command.c:289
-#, fuzzy
 msgid "Background factor must be positive\n"
-msgstr "背景"
+msgstr "バックグラウンド係数は正の値である必要があります\n"
 
 #: src/core/command.c:298
 msgid "Hue range must be [0, 6]\n"
-msgstr ""
+msgstr "色相の範囲は 0〜6 の値で指定する必要があります\n"
 
 #: src/core/command.c:308
 #, c-format
 msgid ""
 "Applying saturation enhancement of %d%%, from level %g times (median + "
 "sigma).\n"
-msgstr ""
+msgstr "彩度を %d%% 強調します（基準レベル：median＋sigma の %g 倍）\n"
 
 #: src/core/command.c:412 src/core/command.c:414
 #, c-format
@@ -13848,73 +14153,77 @@ msgstr ""
 #: src/core/command.c:447
 #, c-format
 msgid "Error, this can't happen!"
-msgstr ""
+msgstr "エラー：本来起こり得ない状態が発生しました！"
 
 #: src/core/command.c:457
 msgid "Colour artefact suppression active.\n"
-msgstr ""
+msgstr "カラーアーティファクト抑制が有効です\n"
 
 #: src/core/command.c:460
 msgid "Starting NL-Bayes denoising..."
-msgstr ""
+msgstr "NL-Bayes デノイズを開始しました..."
 
 #: src/core/command.c:507
-#, fuzzy
 msgid "NL-Bayes execution time"
-msgstr "実行時間"
+msgstr "NL-Bayes 処理時間"
 
 #: src/core/command.c:547
 msgid "Error: modulation must be > 0.0 and <= 1.0.\n"
-msgstr ""
+msgstr "エラー：modulation の値は 0.0 より大きく、1.0 以下である必要があります。\n"
 
 #: src/core/command.c:557
-#, fuzzy
 msgid "Error in rho parameter: must be strictly > 0 and < 1, aborting.\n"
-msgstr "切り抜き: 横サイズと縦サイズは正の値でなければならない.\n"
+msgstr ""
+"エラー：rho の値は 0 より大きく 1 未満である必要があります。処理を中止します"
+"。\n"
 
 #: src/core/command.c:570
 msgid "Error: SOS iterations must be >= 1. Defaulting to 1.\n"
 msgstr ""
+"エラー：SOS の反復回数は 1 以上である必要があります。値を 1 にリセットします"
+"。\n"
 
 #: src/core/command.c:573
 msgid ""
 "Note: high number of SOS iterations. Processing time may be lengthy...\n"
-msgstr ""
+msgstr "注意：SOS の反復回数が多いため、処理に時間がかかる可能性があります…\n"
 
 #: src/core/command.c:580
 msgid ""
 "Error: will not carry out DA3D or SOS iterations with Anscombe transform VST "
 "selected. aborting.\n"
 msgstr ""
+"エラー：Anscombe 変換（VST）を使用中のため、DA3D や SOS の反復処理は実行でき"
+"ません。処理を中止します。\n"
 
 #: src/core/command.c:585
 msgid "Will apply generalised Anscombe variance stabilising transform.\n"
-msgstr ""
+msgstr "一般化 Anscombe 分散安定化変換を適用します\n"
 
 #: src/core/command.c:587
 msgid "Will carry out final stage DA3D denoising.\n"
-msgstr ""
+msgstr "最終ステージの DA3D ノイズ除去を実行します\n"
 
 #: src/core/command.c:589
 msgid "Will not carry out both DA3D and SOS. SOS iterations set to 1.\n"
-msgstr ""
+msgstr "DA3D と SOS の同時実行は出来ません。SOS の反復回数を 1 に設定しました。\n"
 
 #: src/core/command.c:605 src/core/command.c:675
-#, fuzzy
 msgid "Error: no StarNet executable set.\n"
-msgstr "最初の画像の「核」の X-座標."
+msgstr "エラー：StarNet の実行ファイルが指定されていません\n"
 
 #: src/core/command.c:609 src/core/command.c:679
 #, c-format
 msgid "Error: StarNet executable (%s) is not valid.\n"
-msgstr ""
+msgstr "エラー：StarNet の実行ファイル（%s）は有効ではありません。\n"
 
 #: src/core/command.c:638 src/core/command.c:728
-#, fuzzy
 msgid ""
 "Error in stride parameter: must be a positive even integer, max 512, "
 "aborting.\n"
-msgstr "切り抜き: 横サイズと縦サイズは正の値でなければならない.\n"
+msgstr ""
+"エラー：stride の値は正の偶数で、最大 512 までに制限されています。処理を中止"
+"します。\n"
 
 #: src/core/command.c:653 src/core/command.c:747 src/core/command.c:3765
 #: src/core/command.c:3832
@@ -13925,6 +14234,8 @@ msgstr "引数の解析中にエラーが発生しました。中止していま
 msgid ""
 "starnet command unavailable as Siril has not been compiled with libtiff.\n"
 msgstr ""
+"Siril が libtiff を有効にしてコンパイルされていないため、starnet コマンドは利"
+"用できません。\n"
 
 #: src/core/command.c:704 src/core/command.c:1305 src/core/command.c:2419
 msgid "Error: cannot open sequence\n"
@@ -13932,59 +14243,55 @@ msgstr "エラー: シーケンスを開けません\n"
 
 #: src/core/command.c:817
 msgid "Error: quality must be >= 0.0 and <= 100.0.\n"
-msgstr ""
+msgstr "エラー：quality の値は 0.0〜100.0 の範囲で指定する必要があります。\n"
 
 #: src/core/command.c:825
-#, fuzzy
 msgid "Error: effort must be an integer between 1 and 9.\n"
-msgstr "切り抜き: 横サイズと縦サイズは正の値でなければならない.\n"
+msgstr "エラー：effort の値は 1〜9 の整数で指定する必要があります。\n"
 
 #: src/core/command.c:942
 msgid "Error, requires at least 4 arguments to specify the 4 files!\n"
-msgstr ""
+msgstr "エラー：4 つのファイルを指定するには、最低 4 個の引数が必要です！\n"
 
 #: src/core/command.c:948
 msgid "Reconstructing RGGB Bayer matrix.\n"
-msgstr ""
+msgstr "RGGBベイヤー配列を再構築しています。\n"
 
 #: src/core/command.c:951
 msgid "Reconstructing BGGR Bayer matrix.\n"
-msgstr ""
+msgstr "BGGRベイヤー配列を再構築しています。\n"
 
 #: src/core/command.c:954
 msgid "Reconstructing GBRG Bayer matrix.\n"
-msgstr ""
+msgstr "GBRGベイヤー配列を再構築しています。\n"
 
 #: src/core/command.c:957
 msgid "Reconstructing GRBG Bayer matrix.\n"
-msgstr ""
+msgstr "GRBGベイヤー配列を再構築しています。\n"
 
 #: src/core/command.c:959 src/core/command.c:6764
 msgid "Invalid Bayer matrix specified!\n"
-msgstr ""
+msgstr "無効なベイヤー配列が指定されました！\n"
 
 #: src/core/command.c:969
-#, fuzzy
 msgid "Error loading files!\n"
-msgstr "%d: ‘%s’ 行目にエラー.\n"
+msgstr "エラー：ファイルを読み込めませんでした！\n"
 
 #: src/core/command.c:988 src/gui/merge_cfa.c:383
-#, fuzzy
 msgid "Unsaved Bayer pattern merge"
-msgstr "使用カメラのバイヤーパターンを選択."
+msgstr ""
 
 #: src/core/command.c:989 src/gui/merge_cfa.c:384
-#, fuzzy
 msgid "Bayer pattern merge"
-msgstr "ベイヤー/モザイク パターン: "
+msgstr ""
 
 #: src/core/command.c:1018
 msgid "Could not understand the requested operator\n"
-msgstr ""
+msgstr "指定された演算子を解釈できません\n"
 
 #: src/core/command.c:1064
 msgid "Multiplying by a coefficient less than or equal to 0 is not possible.\n"
-msgstr ""
+msgstr "係数が 0 以下の場合、乗算は実行できません。\n"
 
 #: src/core/command.c:1092
 #, c-format
@@ -13993,48 +14300,51 @@ msgstr "エントロピー: %.3f\n"
 
 #: src/core/command.c:1191
 msgid "Warning: d > approx. 25 may result in lengthy execution times.\n"
-msgstr ""
+msgstr "警告：d の値が約 25 を超えると、処理時間が大幅に長くなる可能性があります。\n"
 
 #: src/core/command.c:1222
 msgid "-si= value must be > 0.0 and <= 65535\n"
-msgstr ""
+msgstr "-si= の値は 0.0 より大きく、最大 65535 までに制限されています。\n"
 
 #: src/core/command.c:1227
 msgid "-d= value must be > 0.0 and <= 20.0\n"
-msgstr ""
+msgstr "-d= の値は 0.0 より大きく、最大 20.0 までに制限されています。\n"
 
 #: src/core/command.c:1232
 msgid "-ss= value must be > 0.0 and <= 32.0\n"
-msgstr ""
+msgstr "-ss= の値は 0.0 より大きく、最大 32.0 までに制限されています。\n"
 
 #: src/core/command.c:1237
 msgid ""
 "Warning: spatial sigma > approx. 20 with auto diameter may result in lengthy "
 "execution times.\n"
 msgstr ""
+"警告：auto diameter 使用時に spatial sigma が約 20 を超えると、実行時間が長く"
+"なる可能性があります。\n"
 
 #: src/core/command.c:1240
 msgid "-mod= value must be > 0.0 and <= 1.0\n"
-msgstr ""
+msgstr "-mod= の値は 0.0 より大きく、最大 1.0 までに制限されています。\n"
 
 #: src/core/command.c:1250
-#, fuzzy
 msgid "Error: guide image could not be loaded\n"
-msgstr "エラー: 統計計算失敗\n"
+msgstr "エラー：ガイド画像を読み込めませんでした。\n"
 
 #: src/core/command.c:1262
 msgid "Error: guide image dimensions do not match\n"
-msgstr ""
+msgstr "エラー：ガイド画像のサイズが一致していません。\n"
 
 #: src/core/command.c:1271
 msgid ""
 "Warning: d = 0.0 cannot be used to specify automatic diameter when using a "
 "guided filter. Setting d to default value of 5.\n"
 msgstr ""
+"警告：guided filter 使用時に d = 0.0 を自動直径として使うことはできません。d "
+"をデフォルト値の 5 に設定します。\n"
 
 #: src/core/command.c:1311
 msgid "Reference image is undefined, the following would be used:\n"
-msgstr ""
+msgstr "参照画像が設定されていません。以下の画像が使用されます：\n"
 
 #: src/core/command.c:1319
 #, c-format
@@ -14049,21 +14359,19 @@ msgstr "画像 %d\n"
 #: src/core/command.c:1324
 msgid ""
 "Warning: this image is excluded from the sequence main processing list\n"
-msgstr ""
+msgstr "警告：この画像はシーケンスの主要処理リストから除外されています\n"
 
 #: src/core/command.c:1348
 msgid "Error: will not clear the PSF while a sequence is running.\n"
-msgstr ""
+msgstr "エラー：シーケンス処理の実行中は PSF を消去できません。\n"
 
 #: src/core/command.c:1353
-#, fuzzy
 msgid "Deconvolution kernel cleared.\n"
-msgstr "逆畳み込み..."
+msgstr "デコンボリューション用カーネルをクリアしました\n"
 
 #: src/core/command.c:1357
-#, fuzzy
 msgid "Save PSF to file:\n"
-msgstr "ファイルを保存"
+msgstr "PSF をファイルに保存：\n"
 
 #: src/core/command.c:1362 src/core/command.c:1440 src/core/command.c:1496
 #: src/core/command.c:1651
@@ -14071,6 +14379,8 @@ msgid ""
 "Error: filename must have the extension \".fit\", \".fits\", \".fts\" or "
 "\".tif\"\n"
 msgstr ""
+"エラー：ファイル名の拡張子は \".fit\"、\".fits\"、\".fts\" 、 \".tif\" のいず"
+"れかである必要があります。\n"
 
 #: src/core/command.c:1374 src/core/command.c:1462
 #, c-format
@@ -14078,6 +14388,8 @@ msgid ""
 "Error: image or sequence must be loaded to carry out %s PSF estimation, "
 "aborting...\n"
 msgstr ""
+"エラー：%s の PSF 推定を行うには、画像またはシーケンスを読み込んでおく必要が"
+"あります。処理を中断します。\n"
 
 #: src/core/command.c:1379
 msgid "Blind kernel estimation:\n"
@@ -14105,11 +14417,12 @@ msgid "Error in %s parameter: must be in %s, aborting.\n"
 msgstr "切り抜き: 横サイズと縦サイズは正の値でなければならない.\n"
 
 #: src/core/command.c:1424 src/core/command.c:1480 src/core/command.c:1635
-#, fuzzy
 msgid ""
 "Error in ks parameter: must be odd and between 3 and minimum of (image "
 "height, image width), aborting.\n"
-msgstr "切り抜き: 横サイズと縦サイズは正の値でなければならない.\n"
+msgstr ""
+"エラー：ks パラメータに誤りがあります。奇数であり、3 以上かつ画像の高さと幅の"
+"うち小さい方以下でなければなりません。処理を中断します。\n"
 
 #: src/core/command.c:1436 src/core/command.c:1492 src/core/command.c:1647
 msgid "Error: no filename specified, aborting.\n"
@@ -15712,11 +16025,11 @@ msgstr "前処理中…\n"
 
 #: src/core/command.c:9454
 msgid "16-bit per channel in processed images mode is active\n"
-msgstr ""
+msgstr "処理済み画像モードで、チャンネルあたり16ビットが有効です\n"
 
 #: src/core/command.c:9455
 msgid "32-bit per channel in processed images mode is active\n"
-msgstr ""
+msgstr "処理済み画像モードで、チャンネルあたり32ビットが有効です\n"
 
 #. hcompress with mode 2 is not working in cfitsio
 #. see https://gitlab.com/free-astro/siril/-/issues/696#note_932398268
@@ -15831,7 +16144,7 @@ msgstr ""
 
 #: src/core/command.c:9734
 msgid "OK! This script is compatible with this version of Siril.\n"
-msgstr ""
+msgstr "OK! このスクリプトは、このバージョンのSirilに対応しています。\n"
 
 #: src/core/command.c:9742 src/core/command.c:9793
 #, c-format
@@ -16297,14 +16610,12 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:11
-#, fuzzy
 msgid "Returns the background level of the loaded image"
-msgstr "画像を選ぶ"
+msgstr "読み込まれている画像の背景レベルを返します"
 
 #: src/core/command_def.h:12
-#, fuzzy
 msgid "Returns the background noise level of the loaded image"
-msgstr "画像を選ぶ"
+msgstr "読み込まれた画像の背景ノイズレベルを返す"
 
 #: src/core/command_def.h:13
 msgid ""
@@ -16453,6 +16764,9 @@ msgid ""
 "same condition are used to compute it, and it is computed only if there are "
 "at least 50 of them"
 msgstr ""
+"画像の重心座標を返します。最大 ADU の 15.7% を超える値を持ち、かつ同じ条件を"
+"満たす 4 つの隣接ピクセルを持つピクセルのみが計算に使用されます。また、そのよ"
+"うなピクセルが少なくとも 50 個ある場合にのみ計算が行われます"
 
 #: src/core/command_def.h:23
 msgid ""
@@ -16466,15 +16780,15 @@ msgstr ""
 
 #: src/core/command_def.h:24
 msgid "Clears the graphical output logs"
-msgstr ""
+msgstr "グラフィカル出力ログを消去します"
 
 #: src/core/command_def.h:25
 msgid "Clears all the stars saved in memory and displayed on the screen"
-msgstr ""
+msgstr "メモリに保存されているすべての星と、画面に表示されている星を消去します"
 
 #: src/core/command_def.h:26
 msgid "Properly closes the opened image and the opened sequence, if any"
-msgstr ""
+msgstr "開いている画像とシーケンスがあれば、適切に閉じます"
 
 #: src/core/command_def.h:27
 msgid ""
@@ -16864,6 +17178,10 @@ msgid ""
 "\n"
 "See also SET to update values"
 msgstr ""
+"名前を指定して設定から値を取得するか、<b>-a</b>（名前と値の一覧）または<b>-"
+"A</b>（詳細な一覧）を使用してすべてを一覧表示します。\n"
+"\n"
+"値の更新については、SETも参照してください"
 
 #: src/core/command_def.h:64
 msgid ""
@@ -16955,7 +17273,7 @@ msgstr ""
 
 #: src/core/command_def.h:74
 msgid "Removes the ICC profile from the current image, if it has one"
-msgstr ""
+msgstr "現在の画像にICCプロファイルが設定されている場合、それを削除"
 
 #: src/core/command_def.h:75
 msgid ""
@@ -17293,6 +17611,9 @@ msgid ""
 "catalogue lookups, update of git repositories etc. are unavailable. Cached "
 "data is still accessible"
 msgstr ""
+"Sirilをオフラインモードに設定します。このモードでは、リモートカタログの検索や"
+"Gitリポジトリの更新などのネットワーク機能は利用できません。ただし、キャッシュ"
+"されたデータには引き続きアクセス可能です"
 
 #: src/core/command_def.h:109
 msgid ""
@@ -17667,12 +17988,12 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:131
-#, fuzzy
 msgid ""
 "Rotates the loaded image of an angle of 180° around its center. This is "
 "equivalent to the command \"ROTATE 180\" or \"ROTATE -180\""
-msgstr "画像をその中心の周りに 180°回転. これはコマンド ``ROTATE 180’’ 又は "
-"``ROTATE-180’’ と同等."
+msgstr ""
+"読み込まれた画像を、その中心を軸として180°回転させる。これは、"
+"コマンド\"ROTATE 180\"または\"ROTATE -180\"と同じです"
 
 #: src/core/command_def.h:133
 msgid ""
@@ -18248,6 +18569,9 @@ msgid ""
 "set of values using an existing ini file with <b>-import=</b> option.\n"
 "See GET to get values or the list of variables"
 msgstr ""
+"設定値を、その変数名を使用して指定された値に、または<b>-import=</b>オプション"
+"を指定して既存のiniファイルから読み込んだ一連の値で更新。\n"
+"値や変数の一覧を取得するには、GETを参照してください"
 
 #: src/core/command_def.h:182
 msgid ""
@@ -18799,9 +19123,8 @@ msgid "command cannot be used in a script"
 msgstr "コマンドがスクリプト内で使用できない"
 
 #: src/core/command_line_processor.c:60
-#, fuzzy
 msgid "invalid number of arguments"
-msgstr "層の数: "
+msgstr "不正な数の引数"
 
 #: src/core/command_line_processor.c:62
 msgid "invalid arguments"
@@ -18897,7 +19220,7 @@ msgstr "不明なコマンド: '%s' もしくは未実装\n"
 #: src/core/command_line_processor.c:153
 #, c-format
 msgid "Usage: %s\n"
-msgstr ""
+msgstr "使用方法: %s\n"
 
 #: src/core/command_line_processor.c:160
 #, c-format
@@ -18927,13 +19250,13 @@ msgid "This command cannot be run while live stacking is active, ignoring.\n"
 msgstr "このコマンドはスクリプト: %s では使用不可能\n"
 
 #: src/core/command_line_processor.c:378
-#, fuzzy, c-format
+#, c-format
 msgid "Error in line %d ('%s'): %s.\n"
-msgstr "%d: ‘%s’ 行目にエラー.\n"
+msgstr "%d 行目 ('%s') でエラーが発生しました: %s。\n"
 
 #: src/core/command_line_processor.c:379
 msgid "Exiting batch processing.\n"
-msgstr ""
+msgstr "バッチ処理を終了します。\n"
 
 #: src/core/command_line_processor.c:406
 msgid "Script execution finished successfully.\n"
@@ -18945,7 +19268,7 @@ msgstr ""
 
 #: src/core/command_line_processor.c:410
 msgid "Script execution failed.\n"
-msgstr ""
+msgstr "スクリプトの実行に失敗しました。\n"
 
 #: src/core/command_line_processor.c:431
 msgid "Please enter an existing command before hitting this button"
@@ -18953,7 +19276,7 @@ msgstr "このボタンを押す前に既存のコマンドを入力してくだ
 
 #: src/core/command_line_processor.c:460
 msgid "Can be used in a script: "
-msgstr ""
+msgstr "スクリプト内で使用可能か: "
 
 #: src/core/command_line_processor.c:479
 msgid "No help for this command"
@@ -18969,7 +19292,7 @@ msgstr ""
 #: src/core/command_line_processor.c:601 src/gui/script_menu.c:187
 #, c-format
 msgid "Starting script %s\n"
-msgstr ""
+msgstr "スクリプト %s を開始します\n"
 
 #: src/core/command_line_processor.c:617
 #, c-format
@@ -19203,7 +19526,7 @@ msgstr ""
 
 #: src/core/icc_profile.c:1429
 msgid "Updating working profiles.\n"
-msgstr ""
+msgstr "作業プロファイルを更新しています。\n"
 
 #: src/core/icc_profile.c:1516
 msgid "This ICC profile is not RGB. Unable to plot the colorspace.\n"
@@ -19515,7 +19838,7 @@ msgstr ""
 
 #: src/core/processing.c:127
 msgid "Preparing sequence processing failed.\n"
-msgstr ""
+msgstr "シーケンス処理の準備に失敗しました。\n"
 
 #: src/core/processing.c:154 src/core/processing.c:1313
 #, c-format
@@ -19546,7 +19869,7 @@ msgstr ""
 
 #: src/core/processing.c:366 src/core/processing.c:398
 msgid "Finalizing sequence processing failed.\n"
-msgstr ""
+msgstr "シーケンス処理の完了に失敗しました。\n"
 
 #: src/core/processing.c:370
 msgid "Sequence processing failed. Check the log."
@@ -20752,14 +21075,12 @@ msgid ""
 msgstr ""
 
 #: src/core/siril_networking.c:456
-#, fuzzy
 msgid "Siril is in online mode.\n"
-msgstr "Siril は最新版です\n"
+msgstr "Sirilはオンラインモードです。\n"
 
 #: src/core/siril_networking.c:456
-#, fuzzy
 msgid "Siril is in offline mode.\n"
-msgstr "Siril は最新版です\n"
+msgstr "Sirilはオフラインモードです。\n"
 
 #: src/core/siril_update.c:417
 msgid "No update check: cannot fetch version file\n"
@@ -20777,7 +21098,7 @@ msgstr ""
 
 #: src/core/siril_update.c:456
 msgid "Siril is up to date\n"
-msgstr "Siril は最新版です\n"
+msgstr "Sirilは最新版です\n"
 
 #: src/core/siril_update.c:487
 #, fuzzy
@@ -20786,7 +21107,7 @@ msgstr "ファイル: %s を開けない\n"
 
 #: src/core/siril_update.c:493
 msgid "Software Update"
-msgstr "ソフトウェアアップデート"
+msgstr "ソフトウェア更新"
 
 #: src/core/siril_update.c:528
 #, fuzzy
@@ -20831,7 +21152,7 @@ msgstr ""
 
 #: src/core/siril_update.c:683
 msgid "Error: Siril is in offline mode, cannot check updates.\n"
-msgstr ""
+msgstr "エラー: Sirilはオフラインモードのため、更新を確認できません。\n"
 
 #: src/core/siril_update.c:692
 msgid "Looking for updates..."
@@ -20951,7 +21272,7 @@ msgstr ""
 #: src/core/utils.c:752
 #, c-format
 msgid "'%s' No such file or directory\n"
-msgstr ""
+msgstr "'%s' そのようなファイルまたはディレクトリはありません\n"
 
 #: src/core/utils.c:755
 #, c-format
@@ -21649,40 +21970,36 @@ msgid "Replace"
 msgstr "ファイルを保存"
 
 #: src/gui/annotations_pref.c:32
-#, fuzzy
 msgid "Messier Catalogue (M)"
-msgstr "測光"
+msgstr "メシエカタログ(M)"
 
 #: src/gui/annotations_pref.c:33
 msgid "New General Catalogue (NGC)"
-msgstr ""
+msgstr "ニュージェネラルカタログ(NGC)"
 
 #: src/gui/annotations_pref.c:34
-#, fuzzy
 msgid "Index Catalogue (IC)"
-msgstr "画像整列"
+msgstr "インデックスカタログ(IC)"
 
 #: src/gui/annotations_pref.c:35
 msgid "Lynds Catalogue of Dark Nebulae (LdN)"
-msgstr ""
+msgstr "リンズ暗黒星雲カタログ(LdN)"
 
 #: src/gui/annotations_pref.c:36
-#, fuzzy
 msgid "Sharpless Catalogue (Sh2)"
-msgstr "測光"
+msgstr "シャープレスカタログ(Sh2)"
 
 #: src/gui/annotations_pref.c:37
-#, fuzzy
 msgid "Star Catalogue"
-msgstr "測光"
+msgstr "星表"
 
 #: src/gui/annotations_pref.c:38
 msgid "IAU Constellations Catalogue"
-msgstr ""
+msgstr "IAUの星座カタログ"
 
 #: src/gui/annotations_pref.c:39
 msgid "IAU Constellations Names"
-msgstr ""
+msgstr "IAUの星座名"
 
 #: src/gui/annotations_pref.c:40
 #, fuzzy
@@ -21961,6 +22278,8 @@ msgid ""
 "Siril started in offline mode. Will not attempt to update siril-scripts or "
 "siril-spcc-database...\n"
 msgstr ""
+"Sirilはオフラインモードで起動しました。siril-scriptsやsiril-spcc-databaseの更"
+"新は行ないません...\n"
 
 #: src/gui/callbacks.c:1786
 #, c-format
@@ -24540,6 +24859,8 @@ msgid ""
 "<b>EXPERIMENTAL</b>: python scripts are currently an experimental feature. "
 "Please read the documentation for details..."
 msgstr ""
+"<b>実験的機能</b>: Pythonスクリプトは現在、実験的な機能です。詳細については"
+"ドキュメントをお読みください..."
 
 #: src/gui/script_menu.c:343
 msgid "Script Editor..."
@@ -24570,9 +24891,9 @@ msgid ""
 msgstr ""
 
 #: src/gui/script_menu.c:496
-#, fuzzy, c-format
+#, c-format
 msgid "Loading script from repository: %s\n"
-msgstr "%d: ‘%s’ 行目にエラー.\n"
+msgstr "リポジトリからスクリプトを読み込み中: %s\n"
 
 #: src/gui/script_menu.c:546
 #, c-format
@@ -24790,7 +25111,7 @@ msgstr "スナップショットはクリップボードに保存されました
 
 #: src/gui/siril_plot.c:172
 msgid "Could not copy the snapshot into the clipboard.\n"
-msgstr ""
+msgstr "スナップショットをクリップボードにコピーできませんでした。\n"
 
 #: src/gui/siril_plot.c:443
 msgid "PNG files (*.png)"
@@ -27969,12 +28290,15 @@ msgid ""
 msgstr ""
 
 #: src/io/siril_pythonmodule.c:2650
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "ERROR: Python validation failed.\n"
 "\n"
 "%s\n"
-msgstr "エラー: 統計計算失敗\n"
+msgstr ""
+"エラー: Pythonの検証に失敗しました。\n"
+"\n"
+"%s\n"
 
 #: src/io/siril_pythonmodule.c:2678
 #, fuzzy, c-format
@@ -27998,9 +28322,9 @@ msgid ""
 msgstr "Pythonスクリプト"
 
 #: src/io/siril_pythonmodule.c:2741
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to initialize Python virtual environment: %s\n"
-msgstr "最初の画像の「核」の X-座標."
+msgstr "Pythonの仮想環境の初期化に失敗しました: %s\n"
 
 #: src/io/siril_pythonmodule.c:2753
 #, fuzzy, c-format
@@ -28387,7 +28711,7 @@ msgstr "Log ファイルをエクスポート"
 #: src/main-cli.c:172
 #, c-format
 msgid "Welcome to %s - CLI\n"
-msgstr "%sへようこそ - CLI\n"
+msgstr "%s へようこそ - CLI\n"
 
 #: src/main-cli.c:183 src/main.c:354
 #, c-format
@@ -28432,7 +28756,7 @@ msgstr ""
 #: src/main.c:343
 #, c-format
 msgid "Welcome to %s - GUI\n"
-msgstr "%sへようこそ - GUI\n"
+msgstr "%s へようこそ - GUI\n"
 
 #: src/opencv/opencv.cpp:111
 #, c-format
@@ -28882,9 +29206,8 @@ msgid ""
 msgstr ""
 
 #: src/registration/3stars.c:368
-#, fuzzy
 msgid "Saving the transformation matrices\n"
-msgstr "カラー反転"
+msgstr "変換行列を保存しています\n"
 
 #: src/registration/3stars.c:431 src/registration/3stars.c:454
 #: src/registration/3stars.c:480 src/registration/3stars.c:491
@@ -28942,9 +29265,8 @@ msgid "Could not init distortion mapping\n"
 msgstr "FITS ファイル %s を開けない\n"
 
 #: src/registration/applyreg.c:366 src/registration/global.c:179
-#, fuzzy
 msgid "Could not init drizzle\n"
-msgstr "FITS ファイル %s を開けない\n"
+msgstr "ドリズル処理を初期化できませんでした\n"
 
 #: src/registration/applyreg.c:395 src/registration/global.c:321
 #, c-format
@@ -28972,9 +29294,8 @@ msgid "No image was registered to the reference\n"
 msgstr ""
 
 #: src/registration/applyreg.c:734 src/registration/comet.c:239
-#, fuzzy
 msgid "Applying registration completed.\n"
-msgstr "整列完了."
+msgstr "位置合わせが完了しました。\n"
 
 #: src/registration/applyreg.c:738
 #, fuzzy, c-format
@@ -29223,9 +29544,8 @@ msgid "Moving object registration"
 msgstr ""
 
 #: src/registration/distorsion.c:349
-#, fuzzy
 msgid "Could not parse the distortion master, aborting\n"
-msgstr "FITS ファイル %s を開けない\n"
+msgstr "ディストーション補正用マスターを解析できなかったため、処理を中止します\n"
 
 #: src/registration/distorsion.c:375 src/registration/distorsion.c:404
 #, fuzzy
@@ -29249,14 +29569,15 @@ msgid ""
 msgstr ""
 
 #: src/registration/distorsion.c:435
-#, fuzzy, c-format
+#, c-format
 msgid "Could not load image# %d, aborting\n"
-msgstr "リファレンス画像の読み込み失敗\n"
+msgstr "画像 #%d を読み込めなかったため、処理を中止します\n"
 
 #: src/registration/distorsion.c:445
-#, fuzzy
 msgid "Could not parse master file name for distortion, aborting\n"
-msgstr "FITS ファイル %s を開けない\n"
+msgstr ""
+"ディストーション補正用のマスターファイル名を解析できなかったため、処理を中止"
+"します\n"
 
 #: src/registration/distorsion.c:451
 #, fuzzy
@@ -29269,9 +29590,8 @@ msgid "Could not copy WCS information for distortion, aborting\n"
 msgstr "FITS ファイル %s を開けない\n"
 
 #: src/registration/distorsion.c:487
-#, fuzzy
 msgid "Selected file has no distortion information\n"
-msgstr "グラフ情報のソースを選択."
+msgstr "選択したファイルには歪曲（ディストーション）情報が含まれていません\n"
 
 #: src/registration/distorsion.c:529
 #, fuzzy
@@ -29285,9 +29605,8 @@ msgid ""
 msgstr ""
 
 #: src/registration/distorsion.c:540
-#, fuzzy
 msgid "Platesolve current image"
-msgstr "この FITS 画像を保存"
+msgstr "現在の画像をプレートソルブする"
 
 #: src/registration/distorsion.c:546
 #, fuzzy
@@ -29305,9 +29624,8 @@ msgid "Load a FITS/WCS file for distortion"
 msgstr ""
 
 #: src/registration/distorsion.c:559 src/registration/distorsion.c:561
-#, fuzzy
 msgid "Could not load FITS image for distortion"
-msgstr "リファレンス画像の読み込み失敗\n"
+msgstr "ディストーション補正に使用する FITS 画像を読み込めませんでした"
 
 #: src/registration/distorsion.c:566
 msgid ""
@@ -29316,9 +29634,8 @@ msgid ""
 msgstr ""
 
 #: src/registration/distorsion.c:568
-#, fuzzy
 msgid "Selected file has no WCS information"
-msgstr "グラフ情報のソースを選択."
+msgstr "選択したファイルにはWCS情報が含まれていません"
 
 #: src/registration/distorsion.c:573
 msgid ""
@@ -29327,14 +29644,12 @@ msgid ""
 msgstr ""
 
 #: src/registration/distorsion.c:575
-#, fuzzy
 msgid "Selected file has no distortion information"
-msgstr "グラフ情報のソースを選択."
+msgstr "選択したファイルには歪曲（ディストーション）情報が含まれていません"
 
 #: src/registration/distorsion.c:582 src/registration/distorsion.c:584
-#, fuzzy
 msgid "Selected file has no dimensions information"
-msgstr "グラフ情報のソースを選択."
+msgstr "選択したファイルには画像サイズの情報がありません"
 
 #: src/registration/distorsion.c:589 src/registration/distorsion.c:591
 msgid "Selected file and current sequence do not have the same size"
@@ -29783,9 +30098,8 @@ msgid "Median stacking failed. Check the log."
 msgstr ""
 
 #: src/stacking/median_and_mean.c:1783
-#, fuzzy
 msgid "Stacking operation was cancelled.\n"
-msgstr "Background Extraction…"
+msgstr "スタッキング処理が中止されました。\n"
 
 #: src/stacking/median_and_mean.c:1784 src/stacking/stackminmax.c:299
 msgid "Stacking failed.\n"
@@ -29810,9 +30124,8 @@ msgid "Median stacking complete. %d images have been stacked.\n"
 msgstr ""
 
 #: src/stacking/normalization.c:77
-#, fuzzy
 msgid "Normalization computation time"
-msgstr "エラー: 統計計算失敗\n"
+msgstr "正規化の処理時間"
 
 #: src/stacking/normalization.c:206
 #, c-format
@@ -29948,25 +30261,17 @@ msgid " (overlaps)"
 msgstr ""
 
 #: src/stacking/stacking.c:174
-#, fuzzy, c-format
+#, c-format
 msgid "Input normalization ....... %s%s%s\n"
-msgstr ""
-"出力\n"
-"正規化"
+msgstr "入力の正規化 …… %s%s%s\n"
 
 #: src/stacking/stacking.c:177
-#, fuzzy
 msgid "Output normalization ...... enabled\n"
-msgstr ""
-"出力\n"
-"正規化"
+msgstr "出力の正規化 …… 有効\n"
 
 #: src/stacking/stacking.c:178
-#, fuzzy
 msgid "Output normalization ...... disabled\n"
-msgstr ""
-"出力\n"
-"正規化"
+msgstr "出力の正規化 …… 無効\n"
 
 #: src/stacking/stacking.c:182
 msgid "Pixel rejection ........... none\n"
@@ -30055,14 +30360,12 @@ msgid "Feathering ................ over %4d pixels\n"
 msgstr ""
 
 #: src/stacking/stacking.c:246
-#, fuzzy
 msgid "RGB equalization .......... enabled\n"
-msgstr "Background Extraction…"
+msgstr "RGB イコライゼーション …… 有効\n"
 
 #: src/stacking/stacking.c:247
-#, fuzzy
 msgid "RGB equalization .......... disabled\n"
-msgstr "Background Extraction…"
+msgstr "RGB イコライゼーション …… 無効\n"
 
 #: src/stacking/stacking.c:417
 msgid "Stacking result image"
