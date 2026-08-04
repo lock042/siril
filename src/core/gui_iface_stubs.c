@@ -208,7 +208,6 @@ static void stub_activate_annotation_display(void) {}
 
 /* U – ICC status */
 static void stub_update_icc_status_icon(gpointer fit, gboolean active) { (void)fit; (void)active; }
-static gboolean stub_get_gamut_check_active(void) { return FALSE; }
 
 /* V – Registration panel status */
 static void stub_update_registration_status(const gchar *msg) { (void)msg; }
@@ -418,7 +417,6 @@ SirilGuiInterface gui_iface = {
 	.update_pixel_math_status    = stub_update_pixel_math_status,
 	.activate_annotation_display = stub_activate_annotation_display,
 	.update_icc_status_icon      = stub_update_icc_status_icon,
-	.get_gamut_check_active      = stub_get_gamut_check_active,
 	.update_registration_status  = stub_update_registration_status,
 	.update_single_image_display = stub_update_single_image_display,
 	.seq_redisplay_frame         = stub_seq_redisplay_frame,
