@@ -435,18 +435,18 @@ out:
 /* Cached accessor for the above. Returns NULL if it could not be built, which
  * the caller must treat as "use the full transform instead".
  *
- * Reached from the tile workers, so the build is serialised: the unlocked test
- * is a benign race that costs at most one redundant lock. No caller holds the
- * display transform mutex at this point. */
+ * The caller MUST hold the display transform mutex, and must keep holding it
+ * for as long as it uses the returned handle: clear_proofing_transforms()
+ * deletes the cached transforms under the same mutex, so both the lazy build
+ * here and every use of the handle have to sit inside one locked region.
+ * (This used to self-lock with an unlocked fast-path test, but that could
+ * return a handle whose deletion was already in flight, and the fast path
+ * itself raced clear_proofing_transforms() resetting gamut_transform_tried.) */
 cmsHTRANSFORM get_gamut_transform() {
-	if (com.gui_icc.gamut_transform || com.gui_icc.gamut_transform_tried)
-		return com.gui_icc.gamut_transform;
-	lock_display_transform();
 	if (!com.gui_icc.gamut_transform_tried) {
 		com.gui_icc.gamut_transform = build_gamut_transform();
 		com.gui_icc.gamut_transform_tried = TRUE;
 	}
-	unlock_display_transform();
 	return com.gui_icc.gamut_transform;
 }
 
