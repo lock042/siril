@@ -822,7 +822,7 @@ static gboolean materialise_tile_rgb(struct image_view *view,
                                       const BYTE * const idx[3],
                                       gboolean hd_mode,
                                       gboolean inverted,
-                                      gboolean do_icc) {
+                                      cmsHTRANSFORM icc_tf) {
 	int x0, y0, tw, th, tex_w, tex_h;
 	tile_dims_padded(view, tx, ty, &x0, &y0, &tw, &th, &tex_w, &tex_h);
 	if (tex_w <= 0 || tex_h <= 0) return TRUE;
@@ -909,8 +909,8 @@ static gboolean materialise_tile_rgb(struct image_view *view,
 			}
 		}
 
-		if (do_icc)
-			cmsDoTransformLineStride(com.gui_icc.proofing_transform,
+		if (icc_tf)
+			cmsDoTransformLineStride(icc_tf,
 				lb, lb, out_w, 1, out_w * 3, out_w * 3, out_w, out_w);
 
 		for (int ox = 0; ox < out_w; ox++) {
@@ -939,6 +939,63 @@ static gboolean materialise_tile_rgb(struct image_view *view,
 	return TRUE;
 }
 
+/* Which gui.remap_index[] slot holds channel c's LUT.
+ *
+ * Most modes build one shared curve in slot 0 and all three channels read it.
+ * The exceptions are the modes whose curve is derived per channel: unlinked STF
+ * (a separate midtones balance per channel) and HISTEQ (each channel equalised
+ * against its own histogram).  Those must read the slot matching the channel.
+ *
+ * HISTEQ used to be missing from this test while remap() wrote each channel's
+ * curve into slot 0 in turn, so the composite read whichever channel happened
+ * to be written last.  Keep this as the single definition of the rule. */
+static inline int lut_slot_for_channel(int c) {
+	return ((gui.rendering_mode == HISTEQ_DISPLAY)
+			|| (gui.rendering_mode == STF_DISPLAY && gui.unlink_channels)) ? c : 0;
+}
+
+/* The transform the per-pixel RGB display path should apply, or NULL for none.
+ *
+ * Which half of the display transform is meaningful depends on what the display
+ * stretch has done to the data:
+ *
+ *  - LINEAR and the fixed stretches (log/sqrt/squared/asinh) leave the output
+ *    linear-referred - they are defined on linear light and the monitor applies
+ *    its own EOTF afterwards - so the encoding curve still applies and they take
+ *    the full transform.
+ *  - Linked STF replaces the encoding curve, so the TRC half is meaningless, but
+ *    one identical curve across all three channels preserves neutrality and
+ *    leaves chromaticity readable. It takes the primaries-only transform.
+ *  - Unlinked STF and HISTEQ derive a curve per channel, which decouples them:
+ *    a grey pixel no longer maps to a grey triple and there is no chromaticity
+ *    left to map. They take nothing.
+ *
+ * Callers must still have established that the primaries differ; when they match
+ * the transform is either composed into the LUT or an identity.
+ *
+ * Callers must hold the display transform mutex, and keep holding it until the
+ * last use of the returned handle: clear_proofing_transforms() (reachable from
+ * refresh_icc_transforms() on non-GTK threads) deletes the cached transforms
+ * under that mutex, so an unlocked lookup or use races a use-after-free.  The
+ * lock also covers get_gamut_transform()'s lazy build.  Lock order everywhere
+ * is gui.cairo_mutex first (when held at all), display transform second, and
+ * no path acquires cairo_mutex while holding the display transform lock. */
+static cmsHTRANSFORM display_pixel_transform(void) {
+	switch (gui.rendering_mode) {
+		case HISTEQ_DISPLAY:
+			return NULL;
+		case STF_DISPLAY:
+			if (gui.unlink_channels)
+				return NULL;
+			/* Fall back to the full transform if the profiles cannot support a
+			 * primaries-only one: wrong tone beats wrong colour. */
+			cmsHTRANSFORM gamut = get_gamut_transform();
+			return gamut ? gamut : com.gui_icc.proofing_transform;
+		default:
+			return com.gui_icc.proofing_transform;
+	}
+}
+
 /* Dispatch to the right per-vport implementation.  Materialises the tile
  * if it's dirty, has no data, or its current mip differs from the one the
  * caller is asking for; no-op otherwise.  `mip` is the downsample level
@@ -954,8 +1011,7 @@ static gboolean materialise_tile(struct image_view *view, int vport,
 		return TRUE;
 	}
 
-	const int target_index = (gui.rendering_mode == STF_DISPLAY && gui.unlink_channels)
-		? vport : 0;
+	const int target_index = lut_slot_for_channel(vport);
 	const gboolean hd_mode = (gui.rendering_mode == STF_DISPLAY
 		&& gui.use_hd_remap && gfit->type == DATA_FLOAT);
 
@@ -984,15 +1040,27 @@ static gboolean materialise_tile(struct image_view *view, int vport,
 		 * data for non-unlinked modes. */
 		const BYTE *idx[3];
 		for (int c = 0; c < 3; c++) {
-			const int slot = (gui.rendering_mode == STF_DISPLAY
-			                  && gui.unlink_channels) ? c : 0;
+			const int slot = lut_slot_for_channel(c);
 			idx[c] = hd_mode ? gui.hd_remap_index[slot]
 			                 : gui.remap_index[slot];
 		}
-		const gboolean do_icc = (current_image_color_managed()
-			&& com.gui_icc.proofing_transform && !identical
-			&& !com.gui_icc.same_primaries);
-		return materialise_tile_rgb(view, tx, ty, mip, idx, hd_mode, neg, do_icc);
+		/* The display transform lock must span both the lookup and the fill
+		 * that uses the handle (see display_pixel_transform); cairo_mutex is
+		 * already held here, matching the cairo → display-transform order
+		 * remap_all_vports() and remaprgb() use.  materialise_tile_rgb takes
+		 * no locks of its own, so nothing nests inside. */
+		cmsHTRANSFORM icc_tf = NULL;
+		gboolean tf_locked = FALSE;
+		if (current_image_color_managed() && !identical
+				&& !com.gui_icc.same_primaries) {
+			lock_display_transform();
+			tf_locked = TRUE;
+			icc_tf = display_pixel_transform();
+		}
+		gboolean ok = materialise_tile_rgb(view, tx, ty, mip, idx, hd_mode, neg, icc_tf);
+		if (tf_locked)
+			unlock_display_transform();
+		return ok;
 	}
 
 	if (vport >= 0 && vport <= 2) {
@@ -1050,7 +1118,7 @@ static void fill_proxy_gray(struct image_view *view, int vport,
 }
 
 static void fill_proxy_rgb(struct image_view *view, const BYTE * const idx[3],
-                           gboolean hd_mode, gboolean inverted, gboolean do_icc,
+                           gboolean hd_mode, gboolean inverted, cmsHTRANSFORM icc_tf,
                            guchar *data, int out_w, int out_h, int step) {
 	const int img_w = view->buf_stride / 4;
 	const int img_h = view->buf_height;
@@ -1084,8 +1152,8 @@ static void fill_proxy_rgb(struct image_view *view, const BYTE * const idx[3],
 			}
 			lb_r[ox] = v[0]; lb_g[ox] = v[1]; lb_b[ox] = v[2];
 		}
-		if (do_icc)
-			cmsDoTransformLineStride(com.gui_icc.proofing_transform,
+		if (icc_tf)
+			cmsDoTransformLineStride(icc_tf,
 				lb, lb, out_w, 1, out_w * 3, out_w * 3, out_w, out_w);
 		for (int ox = 0; ox < out_w; ox++)
 			row_out[ox] = ((guint32)lb_r[ox] << 16)
@@ -1134,17 +1202,24 @@ static void ensure_proxy(struct image_view *view, int vport) {
 	if (vport == RGB_VPORT) {
 		const BYTE *idx[3];
 		for (int c = 0; c < 3; c++) {
-			const int slot = (gui.rendering_mode == STF_DISPLAY
-			                  && gui.unlink_channels) ? c : 0;
+			const int slot = lut_slot_for_channel(c);
 			idx[c] = hd_mode ? gui.hd_remap_index[slot] : gui.remap_index[slot];
 		}
-		const gboolean do_icc = (current_image_color_managed()
-			&& com.gui_icc.proofing_transform && !identical
-			&& !com.gui_icc.same_primaries);
-		fill_proxy_rgb(view, idx, hd_mode, neg, do_icc, data, pw, ph, step);
+		/* Lock spans lookup + use, cairo_mutex already held — see
+		 * materialise_tile for the ordering argument. */
+		cmsHTRANSFORM icc_tf = NULL;
+		gboolean tf_locked = FALSE;
+		if (current_image_color_managed() && !identical
+				&& !com.gui_icc.same_primaries) {
+			lock_display_transform();
+			tf_locked = TRUE;
+			icc_tf = display_pixel_transform();
+		}
+		fill_proxy_rgb(view, idx, hd_mode, neg, icc_tf, data, pw, ph, step);
+		if (tf_locked)
+			unlock_display_transform();
 	} else if (vport >= 0 && vport <= 2) {
-		const int target_index = (gui.rendering_mode == STF_DISPLAY
-			&& gui.unlink_channels) ? vport : 0;
+		const int target_index = lut_slot_for_channel(vport);
 		const BYTE *lut = hd_mode ? gui.hd_remap_index[target_index]
 		                          : gui.remap_index[target_index];
 		fill_proxy_gray(view, vport, lut, hd_mode, neg, data, pw, ph, step);
@@ -1265,26 +1340,37 @@ static GThreadPool *materialise_pool = NULL;
 
 /* Select the LUT pointer(s) for a viewport, mirroring the materialise_tile
  * dispatcher's slot logic exactly.  idx[0..2] for the RGB composite; idx[0]
- * only for a gray channel.  Returns hd_mode and sets *out_do_icc.  Reads gui.*
- * / gfit->* and so must be called with gui.cairo_mutex held. */
+ * only for a gray channel.  Returns hd_mode and sets *out_icc_tf.  Reads gui.*
+ * / gfit->* and so must be called with gui.cairo_mutex held.
+ *
+ * When *out_icc_tf is set non-NULL this returns with the display transform
+ * lock HELD, and the caller must call unlock_display_transform() after the
+ * last use of the handle (see display_pixel_transform: the lock keeps
+ * clear_proofing_transforms() from deleting it mid-fill).  Taking it here,
+ * under cairo_mutex, follows the cairo → display-transform order; the caller
+ * must release it before re-acquiring cairo_mutex. */
 static gboolean pick_render_luts(int vport, const BYTE *idx[3],
-                                 gboolean *out_do_icc) {
+                                 cmsHTRANSFORM *out_icc_tf) {
 	const gboolean hd_mode = (gui.rendering_mode == STF_DISPLAY
 		&& gui.use_hd_remap && gfit->type == DATA_FLOAT);
 	idx[0] = idx[1] = idx[2] = NULL;
 	if (vport == RGB_VPORT) {
 		for (int c = 0; c < 3; c++) {
-			const int slot = (gui.rendering_mode == STF_DISPLAY
-			                  && gui.unlink_channels) ? c : 0;
+			const int slot = lut_slot_for_channel(c);
 			idx[c] = hd_mode ? gui.hd_remap_index[slot] : gui.remap_index[slot];
 		}
-		*out_do_icc = (current_image_color_managed() && com.gui_icc.proofing_transform
-			&& !identical && !com.gui_icc.same_primaries);
+		*out_icc_tf = NULL;
+		if (current_image_color_managed() && !identical
+				&& !com.gui_icc.same_primaries) {
+			lock_display_transform();
+			*out_icc_tf = display_pixel_transform();
+			if (!*out_icc_tf)
+				unlock_display_transform();
+		}
 	} else {
-		const int ti = (gui.rendering_mode == STF_DISPLAY
-		                && gui.unlink_channels) ? vport : 0;
+		const int ti = lut_slot_for_channel(vport);
 		idx[0] = hd_mode ? gui.hd_remap_index[ti] : gui.remap_index[ti];
-		*out_do_icc = FALSE;
+		*out_icc_tf = NULL;
 	}
 	return hd_mode;
 }
@@ -1358,7 +1444,7 @@ static void wk_fill_rgb(int gfit_type, const WORD *const psrc[3],
                         const float *const fpsrc[3], int img_w, int img_h,
                         int x0, int y0, int tex_w, int tex_h, int mip,
                         const BYTE *const idx[3], guint hd_max, gboolean hd_mode,
-                        gboolean inverted, gboolean do_icc,
+                        gboolean inverted, cmsHTRANSFORM icc_tf,
                         guchar *data, int out_w, int out_h) {
 	const int step = 1 << mip;
 	BYTE *lb = malloc((size_t)out_w * 3);
@@ -1406,8 +1492,8 @@ static void wk_fill_rgb(int gfit_type, const WORD *const psrc[3],
 				lb_r[ox] = lb_g[ox] = lb_b[ox] = 0;
 			}
 		}
-		if (do_icc)
-			cmsDoTransformLineStride(com.gui_icc.proofing_transform,
+		if (icc_tf)
+			cmsDoTransformLineStride(icc_tf,
 				lb, lb, out_w, 1, out_w * 3, out_w * 3, out_w, out_w);
 		for (int ox = 0; ox < out_w; ox++)
 			row_out[ox] = ((guint32)lb_r[ox] << 16)
@@ -1569,16 +1655,21 @@ static void materialise_worker(gpointer data, gpointer user) {
 		const int gtype = gfit->type;
 		const guint hd_max = gui.hd_remap_max;
 		const BYTE *idx[3];
-		gboolean do_icc = FALSE;
-		const gboolean hd_mode = pick_render_luts(vport, idx, &do_icc);
+		cmsHTRANSFORM icc_tf = NULL;
+		const gboolean hd_mode = pick_render_luts(vport, idx, &icc_tf);
 		const WORD *psrc[3] = { gfit->pdata[0], gfit->pdata[1], gfit->pdata[2] };
 		const float *fpsrc[3] = { gfit->fpdata[0], gfit->fpdata[1], gfit->fpdata[2] };
 
 		g_mutex_unlock(&gui.cairo_mutex);   /* keep the reader lock for the fill */
 
-		/* Phase 2 — heavy fill, NO cairo_mutex held. */
+		/* Phase 2 — heavy fill, NO cairo_mutex held.  If pick_render_luts
+		 * returned a transform it also returned holding the display transform
+		 * lock, which we keep across the fill (the handle must stay alive) and
+		 * release before re-acquiring cairo_mutex — never the reverse order. */
 		guchar *buf = malloc(tile_bytes);
 		if (!buf) {
+			if (icc_tf)
+				unlock_display_transform();
 			g_rw_lock_reader_unlock(&gfit->rwlock);
 			g_mutex_lock(&gui.cairo_mutex);
 			if (view->generation == gen && view->tiles
@@ -1590,12 +1681,14 @@ static void materialise_worker(gpointer data, gpointer user) {
 		}
 		if (vport == RGB_VPORT)
 			wk_fill_rgb(gtype, psrc, fpsrc, img_w, img_h, gx0, gy0,
-				gtex_w, gtex_h, jmip, idx, hd_max, hd_mode, neg, do_icc,
+				gtex_w, gtex_h, jmip, idx, hd_max, hd_mode, neg, icc_tf,
 				buf, out_w, out_h);
 		else
 			wk_fill_gray(gtype, psrc[vport], fpsrc[vport], img_w, img_h,
 				gx0, gy0, gtex_w, gtex_h, jmip, idx[0], hd_max, hd_mode, neg,
 				buf, out_w, out_h);
+		if (icc_tf)
+			unlock_display_transform();   /* last use of the handle was the fill */
 
 		GBytes *bytes = g_bytes_new_with_free_func(buf, tile_bytes, free, buf);
 		GdkTexture *tex = gdk_memory_texture_new(out_w, out_h,
@@ -1731,12 +1824,78 @@ static void remaprgb(void) {
 	dst = (guint32*) rgbview->buf;	// index is j
 	nbdata = (rgbview->buf_stride / 4) * rgbview->buf_height;
 
+	/* remap_all_vports() transforms its own buffers, so only the STF/HISTEQ
+	 * path has anything left to do here: it is rendered by remap(), one gray
+	 * vport at a time, and a colour transform needs all three channels at once
+	 * - this composite is the first point at which they exist together.
+	 * display_pixel_transform() then yields the primaries-only transform for
+	 * linked STF, and nothing for unlinked STF or HISTEQ. */
+	cmsHTRANSFORM icc_tf = NULL;
+	gboolean tf_locked = FALSE;
+	if ((gui.rendering_mode == STF_DISPLAY || gui.rendering_mode == HISTEQ_DISPLAY)
+			&& current_image_color_managed() && !identical && !com.gui_icc.same_primaries) {
+		/* cairo_mutex is already held; taking the display transform lock second
+		 * matches the order remap_all_vports() uses.  It is taken BEFORE the
+		 * lookup and held until after the last use: display_pixel_transform()
+		 * requires it, and it keeps clear_proofing_transforms() from deleting
+		 * the handle between lookup and use. */
+		lock_display_transform();
+		tf_locked = TRUE;
+		icc_tf = display_pixel_transform();
+	}
+
+	BYTE *scratch = NULL;
+	const int chunk = 4096;
+	int nthreads = 1;
+	if (icc_tf) {
+#ifdef _OPENMP
+		nthreads = com.max_thread > 0 ? com.max_thread : 1;
+#endif
+		scratch = malloc((size_t) nthreads * 3 * chunk);
+		if (!scratch) {
+			PRINT_ALLOC_ERR;
+			icc_tf = NULL;	/* composite uncorrected rather than not at all */
+		}
+	}
+	if (!icc_tf && tf_locked) {
+		unlock_display_transform();
+		tf_locked = FALSE;
+	}
+
+	if (icc_tf) {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(nthreads) schedule(static)
+#endif
+		for (int base = 0; base < nbdata; base += chunk) {
+			const int n = min(chunk, nbdata - base);
+#ifdef _OPENMP
+			BYTE *plane = scratch + (size_t) omp_get_thread_num() * 3 * chunk;
+#else
+			BYTE *plane = scratch;
+#endif
+			for (int k = 0; k < n; k++) {
+				plane[k]             = (bufr[base + k] >> 16) & 0xFF;
+				plane[chunk + k]     = (bufg[base + k] >> 8) & 0xFF;
+				plane[2 * chunk + k] =  bufb[base + k] & 0xFF;
+			}
+			cmsDoTransformLineStride(icc_tf, plane, plane, n, 1,
+					chunk * 3, chunk * 3, chunk, chunk);
+			for (int k = 0; k < n; k++)
+				dst[base + k] = (guint32) plane[k] << 16
+				              | (guint32) plane[chunk + k] << 8
+				              | (guint32) plane[2 * chunk + k];
+		}
+		unlock_display_transform();
+		tf_locked = FALSE;
+	} else {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
-	for (i = 0; i < nbdata; ++i) {
-		dst[i] = (bufr[i] & 0xFF0000) | (bufg[i] & 0xFF00) | (bufb[i] & 0xFF);
+		for (i = 0; i < nbdata; ++i) {
+			dst[i] = (bufr[i] & 0xFF0000) | (bufg[i] & 0xFF00) | (bufb[i] & 0xFF);
+		}
 	}
+	free(scratch);
 
 	view_refresh_tile_textures(rgbview);
 	g_mutex_unlock(&gui.cairo_mutex);
@@ -1771,7 +1930,14 @@ void hd_remap_indices_cleanup() {
 	}
 }
 
-static int make_index_for_current_display(int vport);
+/* Return values from make_index_for_current_display() */
+enum {
+	INDEX_BUILT = 0,	/* recomputed; the display transform still needs composing in */
+	INDEX_UNSUPPORTED,	/* the rendering mode has no LUT of this kind */
+	INDEX_REUSED		/* the previous LUT is still valid, transform already composed */
+};
+
+static int make_index_for_current_display(int vport, float *fidx);
 
 static int make_hd_index_for_current_display(int vport);
 
@@ -1955,8 +2121,9 @@ static void remap(int vport) {
 		}
 		hist_nb_bins = gsl_histogram_bins(histo);
 		nb_pixels = (double)(gfit->rx * gfit->ry);
-		// build the remap_index
-		index = gui.remap_index[0];
+		// build the remap_index; HISTEQ derives a curve per channel, so it
+		// belongs in this channel's slot (see lut_slot_for_channel)
+		index = gui.remap_index[vport];
 		index[0] = 0;
 		hist_sum = gsl_histogram_get(histo, 0);
 		for (i = 1; i < hist_nb_bins; i++) {
@@ -1979,7 +2146,7 @@ static void remap(int vport) {
 			make_hd_index_for_current_display(vport);
 		}
 		else
-			make_index_for_current_display(vport);
+			make_index_for_current_display(vport, NULL);
 		siril_add_idle(viewer_mode_sensitive_idle,
 		               GINT_TO_POINTER(gui.rendering_mode != STF_DISPLAY));
 	}
@@ -2009,7 +2176,7 @@ static void remap(int vport) {
 
 	if (color == RAINBOW_COLOR)
 		make_index_for_rainbow(rainbow_index);
-	int target_index = gui.rendering_mode == STF_DISPLAY && gui.unlink_channels ? vport : 0;
+	int target_index = lut_slot_for_channel(vport);
 
 	gboolean hd_mode = (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit->type == DATA_FLOAT);
 	if (hd_mode) {
@@ -2203,14 +2370,43 @@ static void remap_all_vports() {
 		}
 	}
 
-	make_index_for_current_display(0);
+	/* The display transform is composed into the LUTs rather than applied per
+	 * pixel whenever the primaries match, so that it costs one 65536-entry
+	 * transform per rebuild instead of one per pixel.
+	 *
+	 * Compose from the unquantised stretch output where the encoding curve is
+	 * steep enough for the 8-bit values to posterise, which in practice means a
+	 * linear source TRC: there it is free, as linear profiles already carry
+	 * cmsFLAGS_NOOPTIMIZE and so run the same unoptimised float pipeline
+	 * whichever input format they are given. For anything else lcms has an
+	 * optimised 8-bit path that is ~25x faster and the posterisation costs at
+	 * most 3 code values, so the 8-bit composition is kept. If the scratch
+	 * cannot be allocated, fall back to it as well - posterised beats
+	 * uncolour-managed. */
+	const gboolean compose = (managed && com.gui_icc.same_primaries &&
+			com.gui_icc.proofing_transform && gui.rendering_mode != STF_DISPLAY);
+	float *fidx = NULL;
+	if (compose && icc_profile_is_linear(current_icc_profile())) {
+		fidx = malloc((USHRT_MAX + 1) * sizeof(float));
+		if (!fidx)
+			PRINT_ALLOC_ERR;
+	}
+
+	int status = make_index_for_current_display(0, fidx);
 	index[0] = gui.remap_index[0];
 	if (managed) {
 		for (int i = 1 ; i < 3 ; i++) {
-			make_index_for_current_display(i);
+			make_index_for_current_display(i, NULL);
 			index[i] = gui.remap_index[i];
 		}
 	}
+	/* One transform for all three channels: they are built from identical
+	 * inputs here, as per-channel LUTs differ only in unlinked STF, which is
+	 * excluded above. Skipped when the LUTs were reused, as they then already
+	 * have the transform composed in from the rebuild that built them. */
+	if (compose && status == INDEX_BUILT)
+		display_index_transform(fidx, index);
+	free(fidx);
 	unlock_display_transform();
 
 	com.gui_icc.profile_changed = FALSE;
@@ -2262,11 +2458,26 @@ static void remap_all_vports() {
 	gboolean alloc_error = FALSE;
 
 	{
-		siril_log_debug((com.gui_icc.proofing_transform && !identical && (!com.gui_icc.same_primaries || com.gui_icc.profile_changed)) ? "Non-identical primaries: doing expensive color transform\n" : "");
-		const gboolean do_transform = (com.gui_icc.proofing_transform && !identical && (!com.gui_icc.same_primaries || com.gui_icc.profile_changed));
-
-		if (do_transform)
+		/* Only reached for the linear-referred modes, so display_pixel_transform()
+		 * yields the full transform here; routed through it anyway to keep one
+		 * definition of the rule. (The old condition also tested profile_changed,
+		 * which is cleared above before this point and so was always FALSE.)
+		 *
+		 * The display transform lock is taken BEFORE the lookup and held across
+		 * the whole transform loop: display_pixel_transform() requires it, and
+		 * looking the handle up outside the lock left a window in which
+		 * clear_proofing_transforms() (another thread) could delete it before
+		 * the loop dereferenced it.  cairo_mutex is already held, so this
+		 * follows the cairo → display-transform order used everywhere. */
+		cmsHTRANSFORM icc_tf = NULL;
+		if (!identical && !com.gui_icc.same_primaries) {
 			lock_display_transform();
+			icc_tf = display_pixel_transform();
+			if (!icc_tf)
+				unlock_display_transform();
+		}
+		siril_log_debug(icc_tf ? "Non-identical primaries: doing expensive color transform\n" : "");
+		const gboolean do_transform = (icc_tf != NULL);
 
 #ifdef _OPENMP
 #pragma omp parallel num_threads(com.max_thread) shared(alloc_error)
@@ -2369,7 +2580,7 @@ static void remap_all_vports() {
 				}
 			}
 			if (do_transform) {
-				cmsDoTransformLineStride(com.gui_icc.proofing_transform, pixelbuf_byte, pixelbuf_byte, width, 1, width * 3, width * 3, width, width);
+				cmsDoTransformLineStride(icc_tf, pixelbuf_byte, pixelbuf_byte, width, 1, width * 3, width * 3, width, width);
 			}
 
 			const guint dst_row_start = (height - 1 - sy) * (guint)width * 4;
@@ -2520,7 +2731,16 @@ static int make_hd_index_for_current_display(int vport) {
 	return 0;
 }
 
-static int make_index_for_current_display(int vport) {
+/* Builds gui.remap_index[vport] for the current display mode and levels.
+ *
+ * This does NOT compose the display transform into the result: the caller owns
+ * that, because all three channels are composed together in a single transform
+ * (see remap_all_vports()). Only remap_all_vports() ever needs it - remap() is
+ * dispatched for STF and HISTEQ alone, neither of which is composed.
+ *
+ * If fidx is non-NULL it receives the stretch output before quantisation,
+ * normalised to [0, 1], for the caller to compose from. */
+static int make_index_for_current_display(int vport, float *fidx) {
 	g_mutex_lock(&com.mutex);
 	WORD lo = gui.lo;
 	WORD hi = gui.hi;
@@ -2550,7 +2770,7 @@ static int make_index_for_current_display(int vport) {
 			slope = UCHAR_MAX_SINGLE;
 			break;
 		default:
-			return 1;
+			return INDEX_UNSUPPORTED;
 	}
 	if(!(slope == last_pente && gui.rendering_mode == last_mode))
 		com.gui_icc.profile_changed = TRUE;
@@ -2558,47 +2778,52 @@ static int make_index_for_current_display(int vport) {
 	if ((gui.rendering_mode != HISTEQ_DISPLAY && gui.rendering_mode != STF_DISPLAY) &&
 			slope == last_pente && gui.rendering_mode == last_mode && !com.gui_icc.profile_changed) {
 		siril_log_debug("Re-using previous gui.remap_index\n");
-		return 0;
+		return INDEX_REUSED;
 	}
 
 	/************* Building the remap_index **************/
 	siril_log_debug("Rebuilding gui.remap_index %d\n", vport);
-	// target_index only used for STF mode
+	/* Indexes stf[], not the LUT slots — unlinked STF has a midtones balance
+	 * per channel.  Deliberately not lut_slot_for_channel(), which answers a
+	 * different question and also fires for HISTEQ (which never reaches here). */
 	int target_index = gui.rendering_mode == STF_DISPLAY && gui.unlink_channels ? vport : 0;
 	index = gui.remap_index[vport];
+
 	for (i = 0; i <= USHRT_MAX; i++) {
+		float val;
 		switch (gui.rendering_mode) {
 			case LOG_DISPLAY:
 				// ln(5.56*10^110) = 255
-				if (i < 10)
-					index[i] = 0; /* avoid null and negative values */
-				else
-					index[i] = roundf_to_BYTE(logf((float) i / 10.f) * slope); //10.f is arbitrary: good matching with ds9
+				/* i < 10 avoids null and negative values */
+				val = i < 10 ? 0.f : logf((float) i / 10.f) * slope; //10.f is arbitrary: good matching with ds9
 				break;
 			case SQRT_DISPLAY:
 				// sqrt(2^16) = 2^8
-				index[i] = roundf_to_BYTE(sqrtf((float) i) * slope);
+				val = sqrtf((float) i) * slope;
 				break;
 			case SQUARED_DISPLAY:
 				// pow(2^4,2) = 2^8
-				index[i] = roundf_to_BYTE(SQR((float)i) * slope);
+				val = SQR((float)i) * slope;
 				break;
 			case ASINH_DISPLAY:
 				// asinh(2.78*10^110) = 255
-				index[i] = roundf_to_BYTE(asinhf((float) i / 1000.f) * slope); //1000.f is arbitrary: good matching with ds9, could be asinhf(a*Q*i)/Q
+				val = asinhf((float) i / 1000.f) * slope; //1000.f is arbitrary: good matching with ds9, could be asinhf(a*Q*i)/Q
 				break;
 			case LINEAR_DISPLAY:
-				index[i] = roundf_to_BYTE((float) i * slope);
+				val = (float) i * slope;
 				break;
 			case STF_DISPLAY:
 				pxl = (gfit->orig_bitpix == BYTE_IMG ?
 						(float) i / UCHAR_MAX_SINGLE :
 						(float) i / USHRT_MAX_SINGLE);
-				index[i] = roundf_to_BYTE((MTFp(pxl, stf[target_index])) * slope);
+				val = (MTFp(pxl, stf[target_index])) * slope;
 				break;
 			default:
-				return 1;
+				return INDEX_UNSUPPORTED;
 		}
+		index[i] = roundf_to_BYTE(val);
+		if (fidx)
+			fidx[i] = set_float_in_interval(val * (1.f / UCHAR_MAX_SINGLE), 0.f, 1.f);
 		// check for maximum overflow, given that df/di > 0. Should not happen with round_to_BYTE
 		if (index[i] == UCHAR_MAX)
 			break;
@@ -2607,19 +2832,23 @@ static int make_index_for_current_display(int vport) {
 		/* no more computation needed, just fill with max value */
 		for (++i; i <= USHRT_MAX; i++) {
 			index[i] = UCHAR_MAX;
+			if (fidx)
+				fidx[i] = 1.f;
 		}
 	}
-	if (current_image_color_managed() && com.gui_icc.same_primaries && com.gui_icc.proofing_transform && gui.rendering_mode != STF_DISPLAY)
-		display_index_transform(index, vport);
+	/* The display transform is no longer composed in here: it is applied by
+	 * the caller to the float LUT (fidx), once for all three channels, so
+	 * that it is not quantised to 8 bits first. See remap_all_vports(). */
 
 	/* The FLIS GPU compose tiles bake this LUT into their pixels; a
 	 * rebuilt LUT with unchanged lo/hi (mode switch, ICC change) would
 	 * otherwise leave stale tiles on screen. */
 	flis_gpu_compose_bump_lut_stamp();
 
+
 	last_pente = slope;
 	last_mode = gui.rendering_mode;
-	return 0;
+	return INDEX_BUILT;
 }
 
 static int make_index_for_rainbow(BYTE index[][3]) {
@@ -3029,7 +3258,13 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 		if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap
 		    && gfit->type == DATA_FLOAT)
 			gpu_display_state_ok = FALSE;
-		if (com.gui_icc.proofing_transform && !identical
+		/* Mirror the tile path's per-pixel ICC gate (see materialise_tile):
+		 * whenever the tile path may apply a display transform, the GPU bake
+		 * — which cannot express it — must not be used.  Testing the managed
+		 * flag rather than com.gui_icc.proofing_transform also covers the
+		 * gamut-only (linked STF) case where the full transform may be absent,
+		 * and avoids reading a cms handle without the display transform lock. */
+		if (current_image_color_managed() && !identical
 		    && !com.gui_icc.same_primaries)
 			gpu_display_state_ok = FALSE;
 		if (gpu_display_state_ok && imgdisp_app_win) {

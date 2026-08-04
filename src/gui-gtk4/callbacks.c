@@ -3189,8 +3189,7 @@ void on_checkcut_toggled(GtkCheckButton *togglebutton, gpointer user_data) {
 void on_gamutcheck_toggled(GtkCheckButton *togglebutton, gpointer user_data) {
 	if (current_image_color_managed()) {
 		lock_display_transform();
-		if (com.gui_icc.proofing_transform)
-			cmsDeleteTransform(com.gui_icc.proofing_transform);
+		clear_proofing_transforms();
 		com.gui_icc.proofing_transform = initialize_proofing_transform();
 		unlock_display_transform();
 	}
