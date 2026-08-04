@@ -799,7 +799,15 @@ static inline int lut_slot_for_channel(int c) {
  *    left to map. They take nothing.
  *
  * Callers must still have established that the primaries differ; when they match
- * the transform is either composed into the LUT or an identity. */
+ * the transform is either composed into the LUT or an identity.
+ *
+ * Callers must hold the display transform mutex, and keep holding it until the
+ * last use of the returned handle: clear_proofing_transforms() (reachable from
+ * refresh_icc_transforms() on non-GTK threads) deletes the cached transforms
+ * under that mutex, so an unlocked lookup or use races a use-after-free.  The
+ * lock also covers get_gamut_transform()'s lazy build.  Lock order everywhere
+ * is gui.cairo_mutex first (when held at all), display transform second, and
+ * no path acquires cairo_mutex while holding the display transform lock. */
 static cmsHTRANSFORM display_pixel_transform(void) {
 	switch (gui.rendering_mode) {
 		case HISTEQ_DISPLAY:
@@ -864,9 +872,23 @@ static gboolean materialise_tile(struct image_view *view, int vport,
 			idx[c] = hd_mode ? gui.hd_remap_index[slot]
 			                 : gui.remap_index[slot];
 		}
-		cmsHTRANSFORM icc_tf = (gfit->color_managed && !identical
-			&& !com.gui_icc.same_primaries) ? display_pixel_transform() : NULL;
-		return materialise_tile_rgb(view, tx, ty, mip, idx, hd_mode, neg, icc_tf);
+		/* The display transform lock must span both the lookup and the fill
+		 * that uses the handle (see display_pixel_transform); cairo_mutex is
+		 * already held here, matching the cairo → display-transform order
+		 * remap_all_vports() and remaprgb() use.  materialise_tile_rgb takes
+		 * no locks of its own, so nothing nests inside. */
+		cmsHTRANSFORM icc_tf = NULL;
+		gboolean tf_locked = FALSE;
+		if (gfit->color_managed && !identical
+				&& !com.gui_icc.same_primaries) {
+			lock_display_transform();
+			tf_locked = TRUE;
+			icc_tf = display_pixel_transform();
+		}
+		gboolean ok = materialise_tile_rgb(view, tx, ty, mip, idx, hd_mode, neg, icc_tf);
+		if (tf_locked)
+			unlock_display_transform();
+		return ok;
 	}
 
 	if (vport >= 0 && vport <= 2) {
@@ -1011,9 +1033,19 @@ static void ensure_proxy(struct image_view *view, int vport) {
 			const int slot = lut_slot_for_channel(c);
 			idx[c] = hd_mode ? gui.hd_remap_index[slot] : gui.remap_index[slot];
 		}
-		cmsHTRANSFORM icc_tf = (gfit->color_managed && !identical
-			&& !com.gui_icc.same_primaries) ? display_pixel_transform() : NULL;
+		/* Lock spans lookup + use, cairo_mutex already held — see
+		 * materialise_tile for the ordering argument. */
+		cmsHTRANSFORM icc_tf = NULL;
+		gboolean tf_locked = FALSE;
+		if (gfit->color_managed && !identical
+				&& !com.gui_icc.same_primaries) {
+			lock_display_transform();
+			tf_locked = TRUE;
+			icc_tf = display_pixel_transform();
+		}
 		fill_proxy_rgb(view, idx, hd_mode, neg, icc_tf, data, pw, ph, step);
+		if (tf_locked)
+			unlock_display_transform();
 	} else if (vport >= 0 && vport <= 2) {
 		const int target_index = lut_slot_for_channel(vport);
 		const BYTE *lut = hd_mode ? gui.hd_remap_index[target_index]
@@ -1137,7 +1169,14 @@ static GThreadPool *materialise_pool = NULL;
 /* Select the LUT pointer(s) for a viewport, mirroring the materialise_tile
  * dispatcher's slot logic exactly.  idx[0..2] for the RGB composite; idx[0]
  * only for a gray channel.  Returns hd_mode and sets *out_icc_tf.  Reads gui.*
- * / gfit->* and so must be called with gui.cairo_mutex held. */
+ * / gfit->* and so must be called with gui.cairo_mutex held.
+ *
+ * When *out_icc_tf is set non-NULL this returns with the display transform
+ * lock HELD, and the caller must call unlock_display_transform() after the
+ * last use of the handle (see display_pixel_transform: the lock keeps
+ * clear_proofing_transforms() from deleting it mid-fill).  Taking it here,
+ * under cairo_mutex, follows the cairo → display-transform order; the caller
+ * must release it before re-acquiring cairo_mutex. */
 static gboolean pick_render_luts(int vport, const BYTE *idx[3],
                                  cmsHTRANSFORM *out_icc_tf) {
 	const gboolean hd_mode = (gui.rendering_mode == STF_DISPLAY
@@ -1148,8 +1187,14 @@ static gboolean pick_render_luts(int vport, const BYTE *idx[3],
 			const int slot = lut_slot_for_channel(c);
 			idx[c] = hd_mode ? gui.hd_remap_index[slot] : gui.remap_index[slot];
 		}
-		*out_icc_tf = (gfit->color_managed && !identical
-			&& !com.gui_icc.same_primaries) ? display_pixel_transform() : NULL;
+		*out_icc_tf = NULL;
+		if (gfit->color_managed && !identical
+				&& !com.gui_icc.same_primaries) {
+			lock_display_transform();
+			*out_icc_tf = display_pixel_transform();
+			if (!*out_icc_tf)
+				unlock_display_transform();
+		}
 	} else {
 		const int ti = lut_slot_for_channel(vport);
 		idx[0] = hd_mode ? gui.hd_remap_index[ti] : gui.remap_index[ti];
@@ -1445,9 +1490,14 @@ static void materialise_worker(gpointer data, gpointer user) {
 
 		g_mutex_unlock(&gui.cairo_mutex);   /* keep the reader lock for the fill */
 
-		/* Phase 2 — heavy fill, NO cairo_mutex held. */
+		/* Phase 2 — heavy fill, NO cairo_mutex held.  If pick_render_luts
+		 * returned a transform it also returned holding the display transform
+		 * lock, which we keep across the fill (the handle must stay alive) and
+		 * release before re-acquiring cairo_mutex — never the reverse order. */
 		guchar *buf = malloc(tile_bytes);
 		if (!buf) {
+			if (icc_tf)
+				unlock_display_transform();
 			g_rw_lock_reader_unlock(&gfit->rwlock);
 			g_mutex_lock(&gui.cairo_mutex);
 			if (view->generation == gen && view->tiles
@@ -1465,6 +1515,8 @@ static void materialise_worker(gpointer data, gpointer user) {
 			wk_fill_gray(gtype, psrc[vport], fpsrc[vport], img_w, img_h,
 				gx0, gy0, gtex_w, gtex_h, jmip, idx[0], hd_max, hd_mode, neg,
 				buf, out_w, out_h);
+		if (icc_tf)
+			unlock_display_transform();   /* last use of the handle was the fill */
 
 		GBytes *bytes = g_bytes_new_with_free_func(buf, tile_bytes, free, buf);
 		GdkTexture *tex = gdk_memory_texture_new(out_w, out_h,
@@ -1604,9 +1656,18 @@ static void remaprgb(void) {
 	 * display_pixel_transform() then yields the primaries-only transform for
 	 * linked STF, and nothing for unlinked STF or HISTEQ. */
 	cmsHTRANSFORM icc_tf = NULL;
+	gboolean tf_locked = FALSE;
 	if ((gui.rendering_mode == STF_DISPLAY || gui.rendering_mode == HISTEQ_DISPLAY)
-			&& gfit->color_managed && !identical && !com.gui_icc.same_primaries)
+			&& gfit->color_managed && !identical && !com.gui_icc.same_primaries) {
+		/* cairo_mutex is already held; taking the display transform lock second
+		 * matches the order remap_all_vports() uses.  It is taken BEFORE the
+		 * lookup and held until after the last use: display_pixel_transform()
+		 * requires it, and it keeps clear_proofing_transforms() from deleting
+		 * the handle between lookup and use. */
+		lock_display_transform();
+		tf_locked = TRUE;
 		icc_tf = display_pixel_transform();
+	}
 
 	BYTE *scratch = NULL;
 	const int chunk = 4096;
@@ -1621,11 +1682,12 @@ static void remaprgb(void) {
 			icc_tf = NULL;	/* composite uncorrected rather than not at all */
 		}
 	}
+	if (!icc_tf && tf_locked) {
+		unlock_display_transform();
+		tf_locked = FALSE;
+	}
 
 	if (icc_tf) {
-		/* cairo_mutex is already held; taking the display transform lock second
-		 * matches the order remap_all_vports() uses. */
-		lock_display_transform();
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(nthreads) schedule(static)
 #endif
@@ -1649,6 +1711,7 @@ static void remaprgb(void) {
 				              | (guint32) plane[2 * chunk + k];
 		}
 		unlock_display_transform();
+		tf_locked = FALSE;
 	} else {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
@@ -2214,14 +2277,23 @@ static void remap_all_vports() {
 		/* Only reached for the linear-referred modes, so display_pixel_transform()
 		 * yields the full transform here; routed through it anyway to keep one
 		 * definition of the rule. (The old condition also tested profile_changed,
-		 * which is cleared above before this point and so was always FALSE.) */
-		cmsHTRANSFORM icc_tf = (!identical && !com.gui_icc.same_primaries)
-			? display_pixel_transform() : NULL;
+		 * which is cleared above before this point and so was always FALSE.)
+		 *
+		 * The display transform lock is taken BEFORE the lookup and held across
+		 * the whole transform loop: display_pixel_transform() requires it, and
+		 * looking the handle up outside the lock left a window in which
+		 * clear_proofing_transforms() (another thread) could delete it before
+		 * the loop dereferenced it.  cairo_mutex is already held, so this
+		 * follows the cairo → display-transform order used everywhere. */
+		cmsHTRANSFORM icc_tf = NULL;
+		if (!identical && !com.gui_icc.same_primaries) {
+			lock_display_transform();
+			icc_tf = display_pixel_transform();
+			if (!icc_tf)
+				unlock_display_transform();
+		}
 		siril_log_debug(icc_tf ? "Non-identical primaries: doing expensive color transform\n" : "");
 		const gboolean do_transform = (icc_tf != NULL);
-
-		if (do_transform)
-			lock_display_transform();
 
 #ifdef _OPENMP
 #pragma omp parallel num_threads(com.max_thread) shared(alloc_error)
