@@ -1128,11 +1128,6 @@ static void impl_update_icc_status_icon(gpointer p, gboolean active) {
 	}
 }
 
-static gboolean impl_get_gamut_check_active(void) {
-	GtkCheckButton *checkgamut = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "checkgamut"));
-	return siril_toggle_get_active(GTK_WIDGET(checkgamut));
-}
-
 /* ── V: Registration panel status ────────────────────────────────────────── */
 
 static gboolean update_registration_status_idle(gpointer p) {
@@ -1673,7 +1668,6 @@ void siril_register_gui_iface(void) {
 	gui_iface.update_pixel_math_status    = impl_update_pixel_math_status;
 	gui_iface.activate_annotation_display = impl_activate_annotation_display;
 	gui_iface.update_icc_status_icon      = impl_update_icc_status_icon;
-	gui_iface.get_gamut_check_active      = impl_get_gamut_check_active;
 	gui_iface.update_registration_status  = impl_update_registration_status;
 	gui_iface.update_single_image_display = impl_update_single_image_display;
 	gui_iface.seq_redisplay_frame         = impl_seq_redisplay_frame;

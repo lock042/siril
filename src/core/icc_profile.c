@@ -653,8 +653,7 @@ static cmsHTRANSFORM build_proofing_transform(gboolean float_input) {
 	cmsUInt32Number flags = com.gui_icc.proofing_flags;
 	if (icc_profile_is_linear(src_profile))
 		flags |= cmsFLAGS_NOOPTIMIZE;
-	gboolean gamutcheck = gui_iface.get_gamut_check_active();
-	if (gamutcheck) {
+	if (com.gui_icc.gamut_check) {
 		flags |= cmsFLAGS_GAMUTCHECK;
 	}
 	/* For FLIS the displayed composite is always RGB regardless of
@@ -757,7 +756,7 @@ static cmsHTRANSFORM build_gamut_transform() {
 	 * on a steep encoding curve, and this transform has no encoding curve left
 	 * to be steep - the two cancel. */
 	cmsUInt32Number flags = com.gui_icc.proofing_flags;
-	if (gui_iface.get_gamut_check_active())
+	if (com.gui_icc.gamut_check)
 		flags |= cmsFLAGS_GAMUTCHECK;
 	transform = cmsCreateProofingTransformTHR(com.icc.context_single,
 			synthetic, TYPE_RGB_8_PLANAR,
