@@ -390,8 +390,9 @@ typedef struct {
 	 * fit is cast to fits* in the implementation; use gpointer to keep the
 	 * header GTK/siril.h-free. */
 	void     (*update_icc_status_icon)(gpointer fit, gboolean active);
-	/* Return TRUE if the gamut check toggle in the ICC dialog is active. */
-	gboolean (*get_gamut_check_active)(void);
+	/* No gamut-check accessor here on purpose: the transform builders that
+	 * need it run on worker threads, so the toggle is cached into
+	 * com.gui_icc.gamut_check by on_gamutcheck_toggled() instead. */
 
 	/* V – Registration panel status ----------------------------------------- */
 	/* Set the info label text in the 3-star registration panel. */
