@@ -297,6 +297,17 @@ static void mask_pin_clear(fits *scratch) {
  * (usually none), freed with it.
  *
  * Caller holds @target's writer lock, as it did for the bare swap. */
+/* Tail refresh for every history edit that changed pixels: notify rebuilds
+ * the remap/tile buffers, but queues NO paint — without the explicit redraw
+ * the screen keeps the pre-edit frame until the next mouseover (the same
+ * trap end_generic_layer documents).  Unconditional notify: on a FLIS the
+ * displayed COMPOSITE reflects non-active layers too, so gating it on
+ * target == gfit left non-active-layer edits invisible. */
+static void edit_refresh_display(void) {
+	notify_gfit_data_modified();
+	gui_iface.redraw_image(REDRAW_ALL);
+}
+
 static void commit_pixels(fits *target, fits *result) {
 	mask_t *m = target->mask;
 	target->mask = result->mask;
@@ -1478,7 +1489,7 @@ static gboolean delete_retained_mask(gint64 record_id, gint mask_item, gchar **e
 	gui_iface.invalidate_histogram();
 	if (is_current_image_flis())
 		gui_iface.flis_invalidate_composite();
-	notify_gfit_data_modified();
+	edit_refresh_display();
 	gui_iface.set_progress(PROGRESS_DONE, _("Edit history updated"));
 	return TRUE;
 }
@@ -1837,8 +1848,21 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 		                             : nde_history_delete(record_id, err);
 		if (!log_ok)
 			return FALSE;
-		if (!nde_compositing_recompute(item_id, err))
+		if (item_id >= 0 && !flis_layer_get_by_id(item_id)
+		    && nde_item_is_retained_input(item_id)) {
+			/* The layer was consumed by a composite (flatten / merge), so
+			 * there is nothing live to re-fold onto — but its recorded
+			 * compositing state lives on inside the consuming composite's
+			 * params, which is what the re-render reads.  Patch that from
+			 * the amended log, then recompute every consumer: the edit
+			 * flows through the composite boundary instead of failing
+			 * with "the target layer no longer exists". */
+			if (!nde_composite_refresh_input_state(item_id, err))
+				return FALSE;
+			cascade_composite_consumers(item_id);
+		} else if (!nde_compositing_recompute(item_id, err)) {
 			return FALSE;
+		}
 		undo_flush();
 		gui_iface.set_progress(PROGRESS_DONE, _("Edit history updated"));
 		return TRUE;
@@ -2017,7 +2041,7 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 		gui_iface.invalidate_histogram();
 		if (is_current_image_flis())
 			gui_iface.flis_invalidate_composite();
-		notify_gfit_data_modified();
+		edit_refresh_display();
 		gui_iface.set_progress(PROGRESS_DONE, _("Edit history updated"));
 		return TRUE;
 	}
@@ -2085,7 +2109,9 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 		cascade_composite_consumers(item_id);
 		undo_flush();
 		gui_iface.invalidate_histogram();
-		notify_gfit_data_modified();
+		if (is_current_image_flis())
+			gui_iface.flis_invalidate_composite();
+		edit_refresh_display();
 		gui_iface.set_progress(PROGRESS_DONE, _("Edit history updated"));
 		return TRUE;
 	}
@@ -2135,8 +2161,7 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 	gui_iface.invalidate_histogram();
 	if (is_current_image_flis())
 		gui_iface.flis_invalidate_composite();
-	if (target == gfit)
-		notify_gfit_data_modified();
+	edit_refresh_display();
 	gui_iface.set_progress(PROGRESS_DONE, _("Edit history updated"));
 	return TRUE;
 }
@@ -2394,6 +2419,12 @@ gboolean nde_composite_undo_execute(gint64 record_id, gchar **err) {
 		lay->position_x  = in->position_x;
 		lay->position_y  = in->position_y;
 		lay->visible     = in->visible;
+		/* The tint was recorded with the rest of the input state but never
+		 * restored — an undone flatten/merge came back untinted. */
+		lay->has_tint    = in->has_tint;
+		lay->layer_tint.r = in->tint_r;
+		lay->layer_tint.g = in->tint_g;
+		lay->layer_tint.b = in->tint_b;
 		/* Back into its recorded stacking slot, not on top of layers the
 		 * composite never consumed — a merge-down undo in a 3+ layer document
 		 * would otherwise reorder the stack and change the render.  0 = an
@@ -2696,8 +2727,7 @@ gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after,
 	gui_iface.invalidate_histogram();
 	if (is_current_image_flis())
 		gui_iface.flis_invalidate_composite();
-	if (target == gfit)
-		notify_gfit_data_modified();
+	edit_refresh_display();
 	gui_iface.set_progress(PROGRESS_DONE, _("Edit history updated"));
 	return TRUE;
 }
@@ -2779,6 +2809,17 @@ struct nde_edit_job {
 
 static gboolean nde_edit_done_idle(gpointer p) {
 	(void)p;
+	/* The notify calls made DURING the edit ran on the conductor with the
+	 * job slot held, and notify_gfit_data_modified skips its remap in
+	 * that state (single_image.c's mid-job guard) — so the view buffers
+	 * still hold the pre-edit pixels.  Remap here, on the main thread
+	 * with the pixel work finished, or the recomputed result stays
+	 * invisible until the next incidental remap (the "recompute runs but
+	 * nothing changes on screen" report). */
+	gui_iface.invalidate_histogram();
+	if (is_current_image_flis())
+		gui_iface.flis_invalidate_composite();
+	gui_iface.remap_all_vports();
 	gui_iface.redraw_image(REDRAW_ALL);
 	gui_iface.flis_gui_update();
 	/* The edit flushed the undo stacks (no meta-undo) — refresh the
@@ -3036,6 +3077,7 @@ static void apv_swap_into_target(fits *target, fits *incoming) {
 		gui_iface.flis_invalidate_composite();
 	if (is_display)
 		notify_gfit_data_modified();
+	gui_iface.redraw_image(REDRAW_ALL);
 }
 
 static void apv_clear_state_locked(void) {
@@ -3467,8 +3509,7 @@ gboolean nde_edit_at_end_execute(gboolean apply, gchar **err) {
 	gui_iface.invalidate_histogram();
 	if (is_current_image_flis())
 		gui_iface.flis_invalidate_composite();
-	if (target == gfit)
-		notify_gfit_data_modified();
+	edit_refresh_display();
 	gui_iface.set_progress(PROGRESS_DONE, _("Edit history updated"));
 	return TRUE;
 }

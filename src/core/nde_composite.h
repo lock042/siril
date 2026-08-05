@@ -147,6 +147,11 @@ typedef struct {
 
 void nde_composite_state_free(nde_composite_state *st);
 
+/* Patch a retained input's recorded blend/opacity/visibility (folded from
+ * the item's amended history) into every live replayable composite record
+ * that pins it.  See the definition for the model. */
+gboolean nde_composite_refresh_input_state(gint item_id, gchar **err);
+
 /** TRUE for the op ids that ARE composite nodes. */
 gboolean nde_composite_is_op(const char *op_id);
 

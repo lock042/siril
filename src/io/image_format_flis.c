@@ -4147,6 +4147,8 @@ int flis_addgroup_hook(struct generic_layer_args *args) {
 void flis_setgroup_args_free(gpointer p) {
     struct flis_setgroup_args *a = p;
     if (!a) return;
+    if (a->extra_ids)
+        g_array_unref(a->extra_ids);
     g_free(a);
 }
 
@@ -4166,7 +4168,24 @@ int flis_setgroup_hook(struct generic_layer_args *args) {
             return 1;
         }
     }
-    return flis_layer_set_group(lay, a->group_id);
+    int rc = flis_layer_set_group(lay, a->group_id);
+    /* Multi-select: move the remaining layers in the same worker op (a
+     * dispatch per layer would trip start_in_new_thread's busy guard).
+     * Best-effort per layer — a locked or vanished member is reported
+     * and skipped rather than failing the batch halfway. */
+    if (a->extra_ids) {
+        for (guint i = 0; i < a->extra_ids->len; i++) {
+            gint id = g_array_index(a->extra_ids, gint, i);
+            flis_layer_t *l2 = flis_layer_get_by_id(id);
+            if (!l2) {
+                siril_log_warning(_("flis_setgroup: no layer with id %d — skipped\n"), id);
+                continue;
+            }
+            if (flis_layer_set_group(l2, a->group_id))
+                rc = 1;
+        }
+    }
+    return rc;
 }
 
 /* -----------------------------------------------------------------------

@@ -282,6 +282,9 @@ typedef struct {
 	 * misleading when the user intends it to affect the whole group.
 	 * Headless stub returns FALSE (no panel). */
 	gboolean (*flis_group_is_selected)(void);
+	/* TRUE when the layers panel has MORE THAN ONE row selected — GUI
+	 * image ops refuse then, like the group-selected guard above. */
+	gboolean (*flis_multi_is_selected)(void);
 	/* Idempotent show: present the FLIS layers panel iff a FLIS is
 	 * currently loaded.  No-op for plain FITS / sequences / no image,
 	 * no-op when the panel is already visible.  Called from

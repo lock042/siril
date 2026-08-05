@@ -82,6 +82,15 @@ extern gboolean is_current_image_flis(void);
 
 #define FLIS_ROW_KIND_LAYER  0
 #define FLIS_ROW_KIND_GROUP  1
+/* Not a row kind: g_panel->selected_kind marker for "more than one row
+ * selected" (GtkMultiSelection).  Single-target flows treat it like no
+ * selection; the multi-aware ones (Move to group) read the id list. */
+#define FLIS_SEL_MULTI      (-2)
+
+/* Set by the panel's Add-Layer / Duplicate handlers; consumed by the next
+ * refresh_panel(), which then selects the freshly-added (= active) layer's
+ * row instead of restoring the previous selection. */
+static gboolean pending_select_new_layer = FALSE;
 /* A plain FITS shown as the single layer it would become.  There is no
  * flis_layer_t behind it — the panel reads gfit directly — so row_layer()
  * and row_group() both return NULL for it, and everything that asks "which
@@ -199,7 +208,7 @@ struct flis_panel {
 
 	/* List */
 	GListStore *list_store;         /* of FlisRowItem* */
-	GtkSingleSelection *list_sel;
+	GtkMultiSelection *list_sel;
 	GtkWidget *list_view;
 	GtkWidget *edge_drop_top;       /* drop zone above the list — "to top of stack" */
 	GtkWidget *edge_drop_bottom;    /* drop zone below the list — "to bottom of stack" */
@@ -984,9 +993,11 @@ static GtkWidget *make_edge_drop_zone(const gchar *label_text, gboolean to_top) 
 
 static void build_list(GtkWidget *box) {
 	g_panel->list_store = g_list_store_new(FLIS_TYPE_ROW_ITEM);
-	g_panel->list_sel   = gtk_single_selection_new(G_LIST_MODEL(g_panel->list_store));
-	gtk_single_selection_set_autoselect(g_panel->list_sel, FALSE);
-	gtk_single_selection_set_can_unselect(g_panel->list_sel, TRUE);
+	/* Multi-selection: plain click selects one row, Ctrl/Shift-click
+	 * extends — GtkListView handles the gestures.  Single-target flows
+	 * see NULL/0 from the sole-row accessors when several rows are
+	 * selected; multi-aware flows (Move to group) read the whole set. */
+	g_panel->list_sel   = gtk_multi_selection_new(G_LIST_MODEL(g_panel->list_store));
 
 	GtkListItemFactory *factory = gtk_signal_list_item_factory_new();
 	g_signal_connect(factory, "setup", G_CALLBACK(on_row_setup), NULL);
@@ -1547,7 +1558,13 @@ static gboolean hist_params_valid(gint64 record_id, const gchar *blob) {
 		if (r->record_id == record_id) { rec = r; break; }
 	}
 	gboolean ok = FALSE;
-	if (rec) {
+	if (rec && nde_compositing_is_op(rec->op_id)) {
+		/* Compositing records have no op descriptor; their validator is
+		 * the deserializer stand-in (nde_compositing.h). */
+		gchar *why = NULL;
+		ok = nde_compositing_validate(rec->op_id, blob, &why);
+		g_free(why);
+	} else if (rec) {
 		const op_descriptor *op = op_descriptor_by_id(rec->op_id);
 		if (op && op->deserialize) {
 			gpointer user = op->deserialize(blob, rec->op_version);
@@ -1906,7 +1923,7 @@ static gboolean open_composite_edit_dialog(NdeHistRowItem *r) {
 	return TRUE;
 }
 
-/* ---- editing a compositing-state step (opacity / blend / visible) -------
+/* ---- editing a compositing-state step (opacity/blend/visible/tint) ------
  * One property each, and each has a natural control.  The generic kv grid
  * offered them as free text, which for a blend mode meant typing the enum
  * value — 512 for Lighten.                                              */
@@ -1941,6 +1958,18 @@ static void on_prop_edit_apply(GtkButton *b, gpointer u) {
 	} else if (!g_strcmp0(ctx->op_id, "layer.set_blend")) {
 		guint sel = gtk_drop_down_get_selected(GTK_DROP_DOWN(ctx->control));
 		nde_kv_add_int(kv, "blend", (gint64)comp_blend_at(FALSE, sel));
+	} else if (!g_strcmp0(ctx->op_id, "layer.set_tint")) {
+		GtkWidget *chk = g_object_get_data(G_OBJECT(ctx->control), "tint-check");
+		GtkWidget *btn = g_object_get_data(G_OBJECT(ctx->control), "tint-color");
+		gboolean tinted = gtk_check_button_get_active(GTK_CHECK_BUTTON(chk));
+		nde_kv_add_bool(kv, "tinted", tinted);
+		if (tinted) {
+			const GdkRGBA *rgba = gtk_color_dialog_button_get_rgba(
+					GTK_COLOR_DIALOG_BUTTON(btn));
+			nde_kv_add_double(kv, "r", rgba ? rgba->red   : 1.0);
+			nde_kv_add_double(kv, "g", rgba ? rgba->green : 1.0);
+			nde_kv_add_double(kv, "b", rgba ? rgba->blue  : 1.0);
+		}
 	} else {
 		nde_kv_add_bool(kv, "visible",
 		                gtk_check_button_get_active(GTK_CHECK_BUTTON(ctx->control)));
@@ -1983,6 +2012,25 @@ static gboolean open_compositing_edit_dialog(NdeHistRowItem *r) {
 		nde_kv_get_bool(kv, "visible", &v);
 		control = gtk_check_button_new_with_label(_("Visible"));
 		gtk_check_button_set_active(GTK_CHECK_BUTTON(control), v);
+	} else if (!g_strcmp0(r->op_id, "layer.set_tint")) {
+		gboolean tinted = FALSE;
+		double tr = 1.0, tg = 1.0, tb = 1.0;
+		nde_kv_get_bool(kv, "tinted", &tinted);
+		nde_kv_get_double(kv, "r", &tr);
+		nde_kv_get_double(kv, "g", &tg);
+		nde_kv_get_double(kv, "b", &tb);
+		control = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+		GtkWidget *chk = gtk_check_button_new_with_label(_("Tinted"));
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(chk), tinted);
+		GtkColorDialog *cd = gtk_color_dialog_new();
+		GtkWidget *btn = gtk_color_dialog_button_new(cd);
+		GdkRGBA rgba = { (float)tr, (float)tg, (float)tb, 1.0f };
+		gtk_color_dialog_button_set_rgba(GTK_COLOR_DIALOG_BUTTON(btn), &rgba);
+		gtk_box_append(GTK_BOX(control), chk);
+		gtk_box_append(GTK_BOX(control), btn);
+		g_object_set_data(G_OBJECT(control), "tint-check", chk);
+		g_object_set_data(G_OBJECT(control), "tint-color", btn);
+		label = _("Tint");
 	}
 	g_hash_table_unref(kv);
 	if (!control)
@@ -3136,9 +3184,53 @@ static void register_panel_actions(void) {
  * to the currently-selected layer.
  * ========================================================================= */
 
+/* Position of the SOLE selected row, or GTK_INVALID_LIST_POSITION when
+ * zero or several rows are selected.  Single-target flows key off this so
+ * a multi-selection reads as "no (single) selection" to them. */
+static guint panel_sole_selected_pos(void) {
+	if (!g_panel || !g_panel->list_sel) return GTK_INVALID_LIST_POSITION;
+	GtkBitset *bs = gtk_selection_model_get_selection(
+			GTK_SELECTION_MODEL(g_panel->list_sel));
+	guint pos = GTK_INVALID_LIST_POSITION;
+	if (gtk_bitset_get_size(bs) == 1)
+		pos = gtk_bitset_get_nth(bs, 0);
+	gtk_bitset_unref(bs);
+	return pos;
+}
+
+/* Number of selected rows (of any kind). */
+static guint panel_selected_count(void) {
+	if (!g_panel || !g_panel->list_sel) return 0;
+	GtkBitset *bs = gtk_selection_model_get_selection(
+			GTK_SELECTION_MODEL(g_panel->list_sel));
+	guint n = (guint)gtk_bitset_get_size(bs);
+	gtk_bitset_unref(bs);
+	return n;
+}
+
+/* item_ids of every selected LAYER row, in list (top-down) order.
+ * Caller owns the returned GArray (may be empty, never NULL). */
+static GArray *panel_selected_layer_ids(void) {
+	GArray *ids = g_array_new(FALSE, FALSE, sizeof(gint));
+	if (!g_panel || !g_panel->list_sel) return ids;
+	GtkBitset *bs = gtk_selection_model_get_selection(
+			GTK_SELECTION_MODEL(g_panel->list_sel));
+	guint64 n = gtk_bitset_get_size(bs);
+	for (guint64 k = 0; k < n; k++) {
+		guint pos = gtk_bitset_get_nth(bs, (guint)k);
+		GObject *obj = g_list_model_get_item(G_LIST_MODEL(g_panel->list_store), pos);
+		if (!obj) continue;
+		FlisRowItem *ri = (FlisRowItem *)obj;
+		if (ri->kind == FLIS_ROW_KIND_LAYER)
+			g_array_append_val(ids, ri->item_id);
+		g_object_unref(obj);
+	}
+	gtk_bitset_unref(bs);
+	return ids;
+}
+
 static flis_layer_t *current_selected_layer(void) {
-	if (!g_panel || !g_panel->list_sel) return NULL;
-	guint pos = gtk_single_selection_get_selected(g_panel->list_sel);
+	guint pos = panel_sole_selected_pos();
 	if (pos == GTK_INVALID_LIST_POSITION) return NULL;
 	GObject *obj = g_list_model_get_item(G_LIST_MODEL(g_panel->list_store), pos);
 	if (!obj) return NULL;
@@ -3184,8 +3276,7 @@ static void update_toolbar_sensitivity(void) {
 }
 
 static flis_group_t *current_selected_group(void) {
-	if (!g_panel || !g_panel->list_sel) return NULL;
-	guint pos = gtk_single_selection_get_selected(g_panel->list_sel);
+	guint pos = panel_sole_selected_pos();
 	if (pos == GTK_INVALID_LIST_POSITION) return NULL;
 	GObject *obj = g_list_model_get_item(G_LIST_MODEL(g_panel->list_store), pos);
 	if (!obj) return NULL;
@@ -3193,6 +3284,14 @@ static flis_group_t *current_selected_group(void) {
 	flis_group_t *grp = row_group(ri);
 	g_object_unref(obj);
 	return grp;
+}
+
+/* TRUE when more than one panel row is selected — GUI-initiated image ops
+ * refuse then, exactly like the group-selected guard (the op would apply
+ * to the active layer only, which is misleading with several selected).
+ * Reads the cached selection kind so it is safe from worker threads. */
+gboolean flis_panel_multi_is_selected(void) {
+	return g_panel && g_panel->selected_kind == FLIS_SEL_MULTI;
 }
 
 gboolean flis_panel_group_is_selected(void) {
@@ -3239,22 +3338,26 @@ static void refresh_panel(void) {
 		gtk_label_set_text(GTK_LABEL(g_panel->mode_label), "FLIS");
 	}
 
-	/* Remember which row was selected so we can restore it after the
+	/* Remember which rows were selected so we can restore them after the
 	 * rebuild — otherwise every refresh (triggered by any mutation)
-	 * silently drops the user's selection. */
-	gint prev_kind = -1;
-	gint prev_id   = 0;
+	 * silently drops the user's selection.  With multi-selection the
+	 * whole set is snapshotted as (kind, item_id) pairs. */
+	GArray *prev_sel = g_array_new(FALSE, FALSE, sizeof(gint) * 2);
 	{
-		guint psel = gtk_single_selection_get_selected(g_panel->list_sel);
-		if (psel != GTK_INVALID_LIST_POSITION) {
+		GtkBitset *bs = gtk_selection_model_get_selection(
+				GTK_SELECTION_MODEL(g_panel->list_sel));
+		guint64 nsel = gtk_bitset_get_size(bs);
+		for (guint64 k = 0; k < nsel; k++) {
+			guint psel = gtk_bitset_get_nth(bs, (guint)k);
 			GObject *po = g_list_model_get_item(G_LIST_MODEL(g_panel->list_store), psel);
 			if (po) {
 				FlisRowItem *pri = (FlisRowItem *)po;
-				prev_kind = pri->kind;
-				prev_id   = pri->item_id;
+				gint pair[2] = { pri->kind, pri->item_id };
+				g_array_append_val(prev_sel, pair);
 				g_object_unref(po);
 			}
 		}
+		gtk_bitset_unref(bs);
 	}
 
 	/* Rebuild the row model.  Cheap (2-8 layers typical).
@@ -3319,23 +3422,54 @@ static void refresh_panel(void) {
 		g_free(arr);
 	}
 
-	/* Restore the previously-selected row by item_id (matches across
+	/* Restore the previously-selected rows by item_id (matches across
 	 * the rebuild — the same layer/group keeps its identity even if
 	 * its index in the store moved due to other layers being added /
-	 * removed / reordered). */
-	if (prev_id != 0) {
+	 * removed / reordered).
+	 *
+	 * A pending "select the newly added layer" request overrides the
+	 * restore: the add/duplicate hooks make the new layer ACTIVE, so
+	 * selecting the active layer's row lands on it. */
+	if (pending_select_new_layer) {
+		pending_select_new_layer = FALSE;
+		flis_layer_t *act = flis_active_layer();
+		if (act) {
+			const guint nstore = g_list_model_get_n_items(G_LIST_MODEL(g_panel->list_store));
+			for (guint i = 0; i < nstore; i++) {
+				GObject *o = g_list_model_get_item(G_LIST_MODEL(g_panel->list_store), i);
+				FlisRowItem *ri = (FlisRowItem *)o;
+				gboolean match = (ri->kind == FLIS_ROW_KIND_LAYER
+				                  && ri->item_id == act->item_id);
+				g_object_unref(o);
+				if (match) {
+					gtk_selection_model_select_item(
+							GTK_SELECTION_MODEL(g_panel->list_sel), i, TRUE);
+					/* The refreshing gate suppresses on_selection_changed;
+					 * mirror what it would have recorded. */
+					g_panel->selected_kind    = FLIS_ROW_KIND_LAYER;
+					g_panel->selected_item_id = act->item_id;
+					break;
+				}
+			}
+		}
+	} else if (prev_sel->len > 0) {
+		gtk_selection_model_unselect_all(GTK_SELECTION_MODEL(g_panel->list_sel));
 		const guint nstore = g_list_model_get_n_items(G_LIST_MODEL(g_panel->list_store));
 		for (guint i = 0; i < nstore; i++) {
 			GObject *o = g_list_model_get_item(G_LIST_MODEL(g_panel->list_store), i);
 			FlisRowItem *ri = (FlisRowItem *)o;
-			gboolean match = (ri->kind == prev_kind && ri->item_id == prev_id);
-			g_object_unref(o);
-			if (match) {
-				gtk_single_selection_set_selected(g_panel->list_sel, i);
-				break;
+			gboolean match = FALSE;
+			for (guint k = 0; k < prev_sel->len && !match; k++) {
+				gint *pair = &g_array_index(prev_sel, gint, k * 2);
+				match = (ri->kind == pair[0] && ri->item_id == pair[1]);
 			}
+			g_object_unref(o);
+			if (match)
+				gtk_selection_model_select_item(
+						GTK_SELECTION_MODEL(g_panel->list_sel), i, FALSE);
 		}
 	}
+	g_array_unref(prev_sel);
 
 	/* Sync property widgets to selection. */
 	sync_property_widgets(current_selected_layer());
@@ -3462,8 +3596,34 @@ static void sync_property_widgets_for_group(flis_group_t *grp) {
 	gtk_widget_set_visible(g_panel->mask_view_row, FALSE);
 }
 
-/* Sync the property panel to current selection (layer, group, or none).
- * Guards against the cascade of widget "changed" signals firing
+/* Multi-selection: blend / opacity / tint edits apply to every selected
+ * layer, so those widgets stay live.  Name and mask are single-layer
+ * concepts.  Values shown are the FIRST selected layer's, as a reference. */
+static void sync_property_widgets_for_multi(void) {
+	gtk_widget_set_sensitive(g_panel->prop_frame, TRUE);
+	gtk_widget_set_sensitive(g_panel->mask_frame, FALSE);
+	gtk_widget_set_sensitive(g_panel->tint_frame, TRUE);
+
+	GArray *ids = panel_selected_layer_ids();
+	flis_layer_t *first = ids->len ?
+			flis_layer_get_by_id(g_array_index(ids, gint, 0)) : NULL;
+	g_array_unref(ids);
+	gtk_editable_set_text(GTK_EDITABLE(g_panel->name_entry),
+	                      _("(multiple layers)"));
+	if (first) {
+		gtk_drop_down_set_selected(GTK_DROP_DOWN(g_panel->blend_dropdown),
+		                            index_for_blend_mode(first->blend_mode));
+		gtk_adjustment_set_value(g_panel->opacity_adj,
+		                          (double)(first->opacity * 100.0f));
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(g_panel->tint_check),
+		                             first->has_tint);
+	}
+	gtk_button_set_label(GTK_BUTTON(g_panel->mask_status_btn), _("(no mask)"));
+	gtk_widget_set_visible(g_panel->mask_view_row, FALSE);
+}
+
+/* Sync the property panel to current selection (layer, group, multi, or
+ * none).  Guards against the cascade of widget "changed" signals firing
  * dispatch_op while we're updating display state. */
 static void sync_property_widgets(flis_layer_t *lay) {
 	const gboolean was_refreshing = g_panel->refreshing;
@@ -3471,6 +3631,8 @@ static void sync_property_widgets(flis_layer_t *lay) {
 
 	if (lay) {
 		sync_property_widgets_for_layer(lay);
+	} else if (g_panel->selected_kind == FLIS_SEL_MULTI) {
+		sync_property_widgets_for_multi();
 	} else {
 		flis_group_t *grp = current_selected_group();
 		if (grp) sync_property_widgets_for_group(grp);
@@ -3513,13 +3675,74 @@ struct op_payload {
 	gfloat        float_v;
 	double        r, g, b;
 	gint          dup_item_id;   /* out: new layer id set by OP_LAYER_DUPLICATE */
+	GArray       *extra_ids;     /* multi-select: further layer item_ids the
+	                              * same PROPERTY op applies to (owned, may be
+	                              * NULL).  Only the property kinds honour it. */
 };
 
 static void op_payload_free(gpointer p) {
 	struct op_payload *op = p;
 	if (!op) return;
+	if (op->extra_ids)
+		g_array_unref(op->extra_ids);
 	g_free(op->str_v);
 	g_free(op);
+}
+
+/* Apply a PROPERTY op to one layer.  Shared by the primary target and the
+ * multi-select extras.  Returns non-zero on failure. */
+static int apply_layer_prop(struct op_payload *op, flis_layer_t *lay) {
+	if (!lay) return 1;
+	switch (op->kind) {
+		case OP_SET_VISIBLE: return flis_layer_set_visible(lay, op->bool_v);
+		case OP_SET_LOCKED:  return flis_layer_set_locked(lay, op->bool_v);
+		case OP_SET_BLEND:   return flis_layer_set_blend_mode(lay, op->blend_v);
+		case OP_SET_OPACITY: return flis_layer_set_opacity(lay, op->float_v);
+		case OP_SET_TINT:    return flis_layer_set_tint(lay, op->r, op->g, op->b);
+		case OP_CLEAR_TINT:  return flis_layer_clear_tint(lay);
+		default:             return 1;
+	}
+}
+
+/* NDE record for a PROPERTY op on @item_id — the compositing kinds only
+ * (sketch §13.2 records visibility/blend/opacity; lock/tint are display
+ * attributes not recorded in phase 1).  Returns the record id, 0 when the
+ * kind captures nothing. */
+static gint64 capture_layer_prop(struct op_payload *op, gint item_id) {
+	GString *kv;
+	switch (op->kind) {
+		case OP_SET_OPACITY:
+			kv = nde_kv_start();
+			nde_kv_add_float(kv, "opacity", op->float_v);
+			return nde_capture_structural("layer.set_opacity", NDE_SCOPE_LAYER,
+			                              item_id, nde_kv_end(kv), _("Set opacity"));
+		case OP_SET_BLEND:
+			/* blend value is the frozen flis_blend_mode_t enum (int). */
+			kv = nde_kv_start();
+			nde_kv_add_int(kv, "blend", op->blend_v);
+			return nde_capture_structural("layer.set_blend", NDE_SCOPE_LAYER,
+			                              item_id, nde_kv_end(kv), _("Set blend mode"));
+		case OP_SET_VISIBLE:
+			kv = nde_kv_start();
+			nde_kv_add_bool(kv, "visible", op->bool_v);
+			return nde_capture_structural("layer.set_visible", NDE_SCOPE_LAYER,
+			                              item_id, nde_kv_end(kv), _("Set visibility"));
+		case OP_SET_TINT:
+			kv = nde_kv_start();
+			nde_kv_add_bool(kv, "tinted", TRUE);
+			nde_kv_add_double(kv, "r", op->r);
+			nde_kv_add_double(kv, "g", op->g);
+			nde_kv_add_double(kv, "b", op->b);
+			return nde_capture_structural("layer.set_tint", NDE_SCOPE_LAYER,
+			                              item_id, nde_kv_end(kv), _("Set tint"));
+		case OP_CLEAR_TINT:
+			kv = nde_kv_start();
+			nde_kv_add_bool(kv, "tinted", FALSE);
+			return nde_capture_structural("layer.set_tint", NDE_SCOPE_LAYER,
+			                              item_id, nde_kv_end(kv), _("Clear tint"));
+		default:
+			return 0;
+	}
 }
 
 static int op_hook(struct generic_layer_args *args) {
@@ -3596,10 +3819,11 @@ static int op_hook(struct generic_layer_args *args) {
 	 * reached only from user intent, whereas the low-level flis_layer_set_*
 	 * setters are ALSO called by load and by test fixtures, so capture must
 	 * NOT live in them.  Capture here, after the mutation succeeded.
-	 * move_up/move_down/set_name/set_locked/set_tint/lmask-active/ungroup and
-	 * the group ops are deliberately excluded here: move_up/down self-record
-	 * in the backend; the rest are display attributes not recorded in phase 1
-	 * (sketch §13.2 records visibility but not lock/tint/rename/position).
+	 * move_up/move_down/set_name/set_locked/lmask-active/ungroup and the
+	 * group ops are deliberately excluded here: move_up/down self-record
+	 * in the backend; the rest are display attributes not recorded
+	 * (tint joined the recorded compositing set alongside
+	 * visibility/blend/opacity — sketch §13.2 as extended).
 	 *
 	 * Undo coupling for the three property commits: dispatch_op saved a
 	 * props-only undo entry BEFORE the worker ran (gated on !com.script), so
@@ -3609,29 +3833,40 @@ static int op_hook(struct generic_layer_args *args) {
 	 * generic_image_worker's post-hook tagging from the worker thread. */
 	if (rc == 0) {
 		switch (op->kind) {
-			case OP_SET_OPACITY: {
-				GString *kv = nde_kv_start();
-				nde_kv_add_float(kv, "opacity", op->float_v);
-				gint64 rid = nde_capture_structural("layer.set_opacity", NDE_SCOPE_LAYER,
-				                       op->target_id, nde_kv_end(kv), _("Set opacity"));
-				if (!com.script) undo_tag_top_nde_record(rid);
-				break;
-			}
-			case OP_SET_BLEND: {
-				/* blend value is the frozen flis_blend_mode_t enum (int). */
-				GString *kv = nde_kv_start();
-				nde_kv_add_int(kv, "blend", op->blend_v);
-				gint64 rid = nde_capture_structural("layer.set_blend", NDE_SCOPE_LAYER,
-				                       op->target_id, nde_kv_end(kv), _("Set blend mode"));
-				if (!com.script) undo_tag_top_nde_record(rid);
-				break;
-			}
-			case OP_SET_VISIBLE: {
-				GString *kv = nde_kv_start();
-				nde_kv_add_bool(kv, "visible", op->bool_v);
-				gint64 rid = nde_capture_structural("layer.set_visible", NDE_SCOPE_LAYER,
-				                       op->target_id, nde_kv_end(kv), _("Set visibility"));
-				if (!com.script) undo_tag_top_nde_record(rid);
+			case OP_SET_OPACITY:
+			case OP_SET_BLEND:
+			case OP_SET_VISIBLE:
+			case OP_SET_LOCKED:
+			case OP_SET_TINT:
+			case OP_CLEAR_TINT: {
+				/* Property kinds: capture the primary, then apply + capture
+				 * the multi-select extras in this same worker op.  One
+				 * compound undo entry (saved by dispatch_op) covers the
+				 * whole selection — couple it to the full record range. */
+				gint64 first_rid = capture_layer_prop(op, op->target_id);
+				gint64 last_rid  = first_rid;
+				if (op->extra_ids) {
+					for (guint i = 0; i < op->extra_ids->len; i++) {
+						gint id = g_array_index(op->extra_ids, gint, i);
+						flis_layer_t *l2 = flis_layer_get_by_id(id);
+						if (!l2) {
+							siril_log_warning(_("FLIS: layer id %d vanished — property not applied\n"), id);
+							continue;
+						}
+						if (apply_layer_prop(op, l2)) {
+							rc = 1;
+							continue;
+						}
+						gint64 rid = capture_layer_prop(op, id);
+						if (rid > 0) {
+							if (!first_rid)
+								first_rid = rid;
+							last_rid = rid;
+						}
+					}
+				}
+				if (!com.script && first_rid)
+					undo_tag_top_nde_record_range(first_rid, last_rid);
 				break;
 			}
 			case OP_LAYER_DUPLICATE: {
@@ -3675,8 +3910,21 @@ static void dispatch_op(struct op_payload *op, const char *desc,
 		case OP_CLEAR_TINT:
 		case OP_SET_LMASK_ACTIVE: {
 			flis_layer_t *lay = flis_layer_get_by_id(op->target_id);
-			if (lay) undo_save_flis_layer_props(lay,
-			                                    desc ? desc : "Layer op");
+			if (lay && op->extra_ids && op->extra_ids->len > 0) {
+				/* Multi-select: one compound props entry covering the
+				 * whole selection, so a single Ctrl-Z reverts it. */
+				GSList *targets = g_slist_append(NULL, lay);
+				for (guint i = 0; i < op->extra_ids->len; i++) {
+					flis_layer_t *l2 = flis_layer_get_by_id(
+							g_array_index(op->extra_ids, gint, i));
+					if (l2) targets = g_slist_append(targets, l2);
+				}
+				undo_save_flis_multi_layer_props(targets, "%s",
+				                                 desc ? desc : "Layer op");
+				g_slist_free(targets);
+			} else if (lay) {
+				undo_save_flis_layer_props(lay, desc ? desc : "Layer op");
+			}
 			break;
 		}
 		case OP_GROUP_SET_VISIBLE:
@@ -3703,6 +3951,35 @@ static void dispatch_op(struct op_payload *op, const char *desc,
 	args->invalidate_item_id = op->target_id;
 	if (!start_in_new_thread(generic_layer_worker, args))
 		free_generic_layer_args(args);   /* busy refusal: nothing ran */
+}
+
+/* Fill op->target_id (and extra_ids for a multi-selection) with the LAYER
+ * targets of a property edit.  Returns FALSE when no layer is selected. */
+static gboolean op_fill_layer_targets(struct op_payload *op) {
+	if (g_panel->selected_kind == FLIS_SEL_MULTI) {
+		GArray *ids = panel_selected_layer_ids();
+		if (ids->len == 0) {
+			g_array_unref(ids);
+			return FALSE;
+		}
+		op->target_id = g_array_index(ids, gint, 0);
+		if (ids->len > 1) {
+			op->extra_ids = g_array_sized_new(FALSE, FALSE, sizeof(gint),
+			                                  ids->len - 1);
+			for (guint i = 1; i < ids->len; i++) {
+				gint id = g_array_index(ids, gint, i);
+				g_array_append_val(op->extra_ids, id);
+			}
+		}
+		g_array_unref(ids);
+		return TRUE;
+	}
+	if (g_panel->selected_kind == FLIS_ROW_KIND_LAYER
+	    && g_panel->selected_item_id != 0) {
+		op->target_id = g_panel->selected_item_id;
+		return TRUE;
+	}
+	return FALSE;
 }
 
 /* Ungroup helper usable from code that sits above the op_payload
@@ -3768,9 +4045,16 @@ static void on_selection_changed(GtkSelectionModel *sel, guint pos, guint nitems
 	/* An un-applied opacity preview does not survive a selection
 	 * change — put the outgoing item's opacity back. */
 	opacity_edit_revert();
+	/* Several rows selected: single-target state reads as "nothing",
+	 * multi-aware flows read the whole set via panel_selected_layer_ids.
+	 * The sole-row accessors below return NULL in this case already; the
+	 * explicit kind marker is what the worker guard and Move-to-group
+	 * check. */
+	const gboolean multi = panel_selected_count() > 1;
 	flis_layer_t *lay = current_selected_layer();
 	flis_group_t *grp = current_selected_group();
-	if (lay)      { g_panel->selected_kind = FLIS_ROW_KIND_LAYER; g_panel->selected_item_id = lay->item_id; }
+	if (multi)    { g_panel->selected_kind = FLIS_SEL_MULTI;      g_panel->selected_item_id = 0; }
+	else if (lay) { g_panel->selected_kind = FLIS_ROW_KIND_LAYER; g_panel->selected_item_id = lay->item_id; }
 	else if (grp) { g_panel->selected_kind = FLIS_ROW_KIND_GROUP; g_panel->selected_item_id = grp->item_id; }
 	else          { g_panel->selected_kind = -1;                  g_panel->selected_item_id = 0; }
 	sync_property_widgets(lay);
@@ -3845,18 +4129,22 @@ static void on_name_activate(GtkEntry *e, gpointer u) {
 static void on_blend_changed(GtkDropDown *dd, GParamSpec *p, gpointer u) {
 	(void)p; (void)u;
 	if (g_panel && g_panel->refreshing) return;
-	if (g_panel->selected_item_id == 0) return;
 	int idx = (int)gtk_drop_down_get_selected(dd);
 	if (idx < 0 || idx >= N_BLENDS) return;
 	struct op_payload *op = g_new0(struct op_payload, 1);
 	op->destroy_fn = op_payload_free;
-	op->target_id = g_panel->selected_item_id;
-	op->kind = (g_panel->selected_kind == FLIS_ROW_KIND_GROUP)
-	             ? OP_GROUP_SET_BLEND : OP_SET_BLEND;
 	op->blend_v = blend_mode_for_index_table[idx];
-	dispatch_op(op,
-		(g_panel->selected_kind == FLIS_ROW_KIND_GROUP) ? _("Group blend mode") : _("Layer blend mode"),
-		FLIS_INV_LAYER_PROPS);
+	if (g_panel->selected_kind == FLIS_ROW_KIND_GROUP) {
+		if (g_panel->selected_item_id == 0) { op_payload_free(op); return; }
+		op->target_id = g_panel->selected_item_id;
+		op->kind = OP_GROUP_SET_BLEND;
+		dispatch_op(op, _("Group blend mode"), FLIS_INV_LAYER_PROPS);
+		return;
+	}
+	op->kind = OP_SET_BLEND;
+	if (!op_fill_layer_targets(op)) { op_payload_free(op); return; }
+	dispatch_op(op, op->extra_ids ? _("Layer blend modes") : _("Layer blend mode"),
+	            FLIS_INV_LAYER_PROPS);
 }
 
 /* Coalesced display refresh for per-motion drag ticks (opacity slider,
@@ -3971,6 +4259,18 @@ DONE:
 
 static void on_opacity_apply_clicked(GtkButton *btn, gpointer u) {
 	(void)btn; (void)u;
+	/* Multi-selection: no live preview ticks ran (on_opacity_changed
+	 * skips them), so Apply commits the spin value to every selected
+	 * layer directly. */
+	if (g_panel && g_panel->selected_kind == FLIS_SEL_MULTI) {
+		struct op_payload *op = g_new0(struct op_payload, 1);
+		op->destroy_fn = op_payload_free;
+		op->kind = OP_SET_OPACITY;
+		op->float_v = (gfloat)(gtk_adjustment_get_value(g_panel->opacity_adj) / 100.0);
+		if (!op_fill_layer_targets(op)) { op_payload_free(op); return; }
+		dispatch_op(op, _("Layer opacities"), FLIS_INV_LAYER_PROPS);
+		return;
+	}
 	if (opacity_edit.id == 0) return;
 	gfloat final_v;
 	if (opacity_edit.is_group) {
@@ -4001,6 +4301,12 @@ static void on_opacity_apply_clicked(GtkButton *btn, gpointer u) {
 static void on_opacity_changed(GtkAdjustment *adj, gpointer u) {
 	(void)u;
 	if (!g_panel || g_panel->refreshing) return;
+	if (g_panel->selected_kind == FLIS_SEL_MULTI) {
+		/* No live preview across a multi-selection — just arm Apply,
+		 * which commits the spin value to every selected layer. */
+		gtk_widget_set_sensitive(g_panel->opacity_apply, TRUE);
+		return;
+	}
 	if (g_panel->selected_item_id == 0) return;
 	const gboolean is_group = (g_panel->selected_kind == FLIS_ROW_KIND_GROUP);
 	const gint id = g_panel->selected_item_id;
@@ -4035,12 +4341,9 @@ static void on_opacity_changed(GtkAdjustment *adj, gpointer u) {
 static void on_tint_check_toggled(GtkCheckButton *btn, gpointer u) {
 	(void)u;
 	if (g_panel && g_panel->refreshing) return;
-	flis_layer_t *lay = current_selected_layer();
-	if (!lay) return;
 	gboolean want = gtk_check_button_get_active(btn);
 	struct op_payload *op = g_new0(struct op_payload, 1);
 	op->destroy_fn = op_payload_free;
-	op->target_id = lay->item_id;
 	if (want) {
 		op->kind = OP_SET_TINT;
 		/* Apply the colour the swatch is showing — enabling with the
@@ -4060,21 +4363,20 @@ static void on_tint_check_toggled(GtkCheckButton *btn, gpointer u) {
 	} else {
 		op->kind = OP_CLEAR_TINT;
 	}
+	if (!op_fill_layer_targets(op)) { op_payload_free(op); return; }
 	dispatch_op(op, _("Layer tint"), FLIS_INV_LAYER_PIXELS);
 }
 
 static void on_tint_color_chosen(GtkColorDialogButton *btn, GParamSpec *p, gpointer u) {
 	(void)p; (void)u;
 	if (g_panel && g_panel->refreshing) return;
-	flis_layer_t *lay = current_selected_layer();
-	if (!lay) return;
 	const GdkRGBA *rgba = gtk_color_dialog_button_get_rgba(btn);
 	if (!rgba) return;
 	struct op_payload *op = g_new0(struct op_payload, 1);
 	op->destroy_fn = op_payload_free;
-	op->target_id = lay->item_id;
 	op->kind = OP_SET_TINT;
 	op->r = rgba->red; op->g = rgba->green; op->b = rgba->blue;
+	if (!op_fill_layer_targets(op)) { op_payload_free(op); return; }
 	dispatch_op(op, _("Layer tint color"), FLIS_INV_LAYER_PIXELS);
 }
 
@@ -4098,8 +4400,13 @@ static void flis_add_layer_from_path(gchar *path) {
 	args->description        = g_strdup(_("Add layer"));
 	args->invalidate_flags   = FLIS_INV_ALL;
 	args->invalidate_item_id = 0;
-	if (!start_in_new_thread(generic_layer_worker, args))
+	if (start_in_new_thread(generic_layer_worker, args)) {
+		/* The hook makes the new layer active; the panel refresh that
+		 * follows selects it (natural UX for a just-added layer). */
+		pending_select_new_layer = TRUE;
+	} else {
 		free_generic_layer_args(args);   /* busy refusal: nothing ran */
+	}
 }
 
 static void on_add_clicked(GtkButton *b, gpointer u) {
@@ -4174,6 +4481,8 @@ static void on_duplicate_clicked(GtkButton *b, gpointer u) {
 	op->target_id = lay ? lay->item_id : 0;
 	op->kind = OP_LAYER_DUPLICATE;
 	dispatch_op(op, _("Duplicate layer"), FLIS_INV_ALL);
+	/* Select the copy (the hook activates it) on the follow-up refresh. */
+	pending_select_new_layer = TRUE;
 }
 static void on_group_clicked(GtkButton *b, gpointer u) {
 	(void)b; (void)u;
@@ -4574,8 +4883,13 @@ static void on_ctx_merge_down(GSimpleAction *a, GVariant *v, gpointer u) {
 		args->description = g_strdup(_("Merge group"));
 		args->invalidate_flags   = FLIS_INV_ALL;
 		args->invalidate_item_id = grp->item_id;
-		if (!start_in_new_thread(generic_layer_worker, args))
-		free_generic_layer_args(args);   /* busy refusal: nothing ran */
+		if (start_in_new_thread(generic_layer_worker, args)) {
+			/* The group row is about to disappear; select the merge
+			 * RESULT (left active by the hook) instead. */
+			pending_select_new_layer = TRUE;
+		} else {
+			free_generic_layer_args(args);   /* busy refusal: nothing ran */
+		}
 		return;
 	}
 
@@ -4597,8 +4911,13 @@ static void on_ctx_merge_down(GSimpleAction *a, GVariant *v, gpointer u) {
 	args->description = g_strdup(_("Merge Down"));
 	args->invalidate_flags   = FLIS_INV_ALL;
 	args->invalidate_item_id = lay->item_id;
-	if (!start_in_new_thread(generic_layer_worker, args))
+	if (start_in_new_thread(generic_layer_worker, args)) {
+		/* The merged-away row disappears; select the surviving layer
+		 * (left active by the hook). */
+		pending_select_new_layer = TRUE;
+	} else {
 		free_generic_layer_args(args);   /* busy refusal: nothing ran */
+	}
 }
 
 /* ---- Delete group dialog ---------------------------------------------
@@ -4762,17 +5081,24 @@ static void on_ctx_flatten(GSimpleAction *a, GVariant *v, gpointer u) {
 	args->layer_hook = flis_flatten_hook;
 	args->description = g_strdup(_("Flatten Image"));
 	args->invalidate_flags = FLIS_INV_ALL;
-	if (!start_in_new_thread(generic_layer_worker, args))
+	if (start_in_new_thread(generic_layer_worker, args)) {
+		/* The flatten leaves its RESULT layer active; select its row on
+		 * the follow-up refresh (the previously selected rows are gone). */
+		pending_select_new_layer = TRUE;
+	} else {
 		free_generic_layer_args(args);   /* busy refusal: nothing ran */
+	}
 }
 
 /* Move-to-group dialog — a tiny modal window with a dropdown of
  * existing groups (plus "(none — remove from group)") and OK/Cancel.
- * On OK we dispatch flis_setgroup_hook with the chosen group_id. */
+ * On OK we dispatch flis_setgroup_hook with the chosen group_id.
+ * With several layer rows selected (multi-selection) all of them are
+ * moved in ONE worker op. */
 struct move_to_group_ctx {
 	GtkWidget *dialog;
 	GtkWidget *dropdown;
-	gint       layer_id;
+	GArray    *layer_ids;  /* item_ids of the layers to move (≥ 1) */
 	GArray    *group_ids;  /* parallel to dropdown items: [0] = 0 (none), [n] = item_id */
 };
 
@@ -4787,17 +5113,32 @@ static void on_move_to_group_ok(GtkButton *btn, gpointer ud) {
 	struct flis_setgroup_args *payload = calloc(1, sizeof(*payload));
 	payload->destroy_fn = flis_setgroup_args_free;
 	payload->group_id   = chosen_id;
+	/* First layer rides in invalidate_item_id (the hook's primary
+	 * target); the rest travel in the payload so the whole selection
+	 * moves in one worker op (a dispatch per layer would trip the
+	 * busy guard). */
+	if (ctx->layer_ids->len > 1) {
+		payload->extra_ids = g_array_sized_new(FALSE, FALSE, sizeof(gint),
+		                                       ctx->layer_ids->len - 1);
+		for (guint i = 1; i < ctx->layer_ids->len; i++) {
+			gint id = g_array_index(ctx->layer_ids, gint, i);
+			g_array_append_val(payload->extra_ids, id);
+		}
+	}
 	struct generic_layer_args *args = calloc(1, sizeof(*args));
 	args->layer_hook         = flis_setgroup_hook;
 	args->user               = payload;
-	args->description        = g_strdup(_("Move layer to group"));
+	args->description        = g_strdup(ctx->layer_ids->len > 1
+	                                    ? _("Move layers to group")
+	                                    : _("Move layer to group"));
 	args->invalidate_flags   = FLIS_INV_STACK;
-	args->invalidate_item_id = ctx->layer_id;
+	args->invalidate_item_id = g_array_index(ctx->layer_ids, gint, 0);
 	if (!start_in_new_thread(generic_layer_worker, args))
 		free_generic_layer_args(args);   /* busy refusal: nothing ran */
 
 	gtk_window_destroy(GTK_WINDOW(ctx->dialog));
 	g_array_unref(ctx->group_ids);
+	g_array_unref(ctx->layer_ids);
 	g_free(ctx);
 }
 
@@ -4806,19 +5147,29 @@ static void on_move_to_group_cancel(GtkButton *btn, gpointer ud) {
 	struct move_to_group_ctx *ctx = ud;
 	gtk_window_destroy(GTK_WINDOW(ctx->dialog));
 	g_array_unref(ctx->group_ids);
+	g_array_unref(ctx->layer_ids);
 	g_free(ctx);
 }
 
 static void on_ctx_move_to_group(GSimpleAction *a, GVariant *v, gpointer u) {
 	(void)a; (void)v; (void)u;
-	flis_layer_t *lay = current_selected_layer();
-	if (!lay) {
+	/* Single selection OR multi-selection of layer rows — every selected
+	 * layer moves together.  Group rows in a mixed selection are ignored. */
+	GArray *layer_ids = panel_selected_layer_ids();
+	if (layer_ids->len == 0) {
 		siril_log_message(_("FLIS: Move to group — no layer selected\n"));
+		g_array_unref(layer_ids);
+		return;
+	}
+	flis_layer_t *lay = flis_layer_get_by_id(g_array_index(layer_ids, gint, 0));
+	if (!lay) {
+		g_array_unref(layer_ids);
 		return;
 	}
 
 	GtkWidget *dialog = gtk_window_new();
-	gtk_window_set_title(GTK_WINDOW(dialog), _("Move layer to group"));
+	gtk_window_set_title(GTK_WINDOW(dialog), layer_ids->len > 1
+	                     ? _("Move layers to group") : _("Move layer to group"));
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 	gtk_window_set_transient_for(GTK_WINDOW(dialog),
 	                              g_panel ? GTK_WINDOW(g_panel->window) : NULL);
@@ -4831,8 +5182,10 @@ static void on_ctx_move_to_group(GSimpleAction *a, GVariant *v, gpointer u) {
 	gtk_widget_set_margin_bottom(box, 12);
 	gtk_window_set_child(GTK_WINDOW(dialog), box);
 
-	gchar *prompt = g_strdup_printf(_("Move layer '%s' to:"),
-		lay->layer_name ? lay->layer_name : "");
+	gchar *prompt = layer_ids->len > 1
+		? g_strdup_printf(_("Move %u layers to:"), layer_ids->len)
+		: g_strdup_printf(_("Move layer '%s' to:"),
+			lay->layer_name ? lay->layer_name : "");
 	GtkWidget *label = gtk_label_new(prompt);
 	g_free(prompt);
 	gtk_label_set_xalign(GTK_LABEL(label), 0.0f);
@@ -4871,7 +5224,7 @@ static void on_ctx_move_to_group(GSimpleAction *a, GVariant *v, gpointer u) {
 	struct move_to_group_ctx *ctx = g_new0(struct move_to_group_ctx, 1);
 	ctx->dialog    = dialog;
 	ctx->dropdown  = dd;
-	ctx->layer_id  = lay->item_id;
+	ctx->layer_ids = layer_ids;   /* ownership transferred */
 	ctx->group_ids = group_ids;
 	g_signal_connect(ok,     "clicked", G_CALLBACK(on_move_to_group_ok),     ctx);
 	g_signal_connect(cancel, "clicked", G_CALLBACK(on_move_to_group_cancel), ctx);

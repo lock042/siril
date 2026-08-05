@@ -94,6 +94,18 @@ gboolean nde_compositing_blend_valid(gint64 v);
  */
 gboolean nde_compositing_recompute(gint item_id, gchar **err);
 
+/* The bare fold: derive the compositing state the live history describes for
+ * @item_id (creation defaults + every compositing record).  Works for items
+ * with no live layer (retained composite inputs). */
+void nde_compositing_fold(gint item_id, gfloat *out_opacity,
+                          gint *out_blend /* flis_blend_mode_t */,
+                          gboolean *out_visible,
+                          gboolean *out_tinted, double *out_tint /* [3] */);
+
+/* TRUE when @item_id's live history contains a tint record (gates tint
+ * folding for documents recorded before tint capture existed). */
+gboolean nde_compositing_has_tint_record(gint item_id);
+
 #ifdef __cplusplus
 }
 #endif

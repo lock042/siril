@@ -18222,8 +18222,16 @@ int process_flis_settint(int nb) {
 		 * modified stamp all apply — mirrors flis_layer_set_tint below. */
 		flis_layer_props_t pre_clear;
 		flis_layer_capture_props(target, &pre_clear);
-		return flis_prop_cmd_finish(target,
+		int rc_clear = flis_prop_cmd_finish(target,
 				flis_layer_clear_tint(target), &pre_clear, "flis_settint");
+		if (rc_clear == CMD_OK) {
+			/* NDE provenance — tint is a recorded compositing property. */
+			GString *kv = nde_kv_start();
+			nde_kv_add_bool(kv, "tinted", FALSE);
+			nde_capture_structural("layer.set_tint", NDE_SCOPE_LAYER,
+			                       target->item_id, nde_kv_end(kv), _("Clear tint"));
+		}
+		return rc_clear;
 	}
 	if (nb < 5) {
 		siril_log_error(_("flis_settint: need three colour components (r g b) or -clear\n"));
@@ -18240,8 +18248,19 @@ int process_flis_settint(int nb) {
 	}
 	flis_layer_props_t pre;
 	flis_layer_capture_props(target, &pre);
-	return flis_prop_cmd_finish(target,
+	int rc = flis_prop_cmd_finish(target,
 			flis_layer_set_tint(target, r, g, b), &pre, "flis_settint");
+	if (rc == CMD_OK) {
+		/* NDE provenance — tint is a recorded compositing property. */
+		GString *kv = nde_kv_start();
+		nde_kv_add_bool(kv, "tinted", TRUE);
+		nde_kv_add_double(kv, "r", r);
+		nde_kv_add_double(kv, "g", g);
+		nde_kv_add_double(kv, "b", b);
+		nde_capture_structural("layer.set_tint", NDE_SCOPE_LAYER,
+		                       target->item_id, nde_kv_end(kv), _("Set tint"));
+	}
+	return rc;
 }
 
 int process_flis_group_info(int nb) {

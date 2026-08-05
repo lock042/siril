@@ -81,4 +81,7 @@ gint flis_panel_selected_group_id(void);
 /* TRUE when the selected group plausibly composites to colour. */
 gboolean flis_panel_selected_colour_group(void);
 
+/* TRUE when more than one panel row is selected (GtkMultiSelection). */
+gboolean flis_panel_multi_is_selected(void);
+
 #endif /* FLIS_GUI_H */

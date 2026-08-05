@@ -137,6 +137,7 @@ static void stub_flis_composite_free(void) {}
 static void stub_flis_gui_update(void) {}
 static void stub_on_active_layer_changed(void) {}
 static gboolean stub_flis_group_is_selected(void) { return FALSE; }
+static gboolean stub_flis_multi_is_selected(void) { return FALSE; }
 static void stub_flis_gui_present_if_flis(void) {}
 static void stub_nde_history_changed(void) {}
 
@@ -386,6 +387,7 @@ SirilGuiInterface gui_iface = {
 	.flis_gui_update             = stub_flis_gui_update,
 	.on_active_layer_changed     = stub_on_active_layer_changed,
 	.flis_group_is_selected      = stub_flis_group_is_selected,
+	.flis_multi_is_selected      = stub_flis_multi_is_selected,
 	.flis_gui_present_if_flis    = stub_flis_gui_present_if_flis,
 	.nde_history_changed         = stub_nde_history_changed,
 	.on_channel_count_changed    = stub_on_channel_count_changed,

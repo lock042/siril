@@ -999,6 +999,7 @@ static void impl_on_active_layer_changed(void) {
 	g_idle_add(active_layer_reconcile_idle, NULL);
 }
 extern gboolean flis_panel_group_is_selected(void);  /* flis_gui.h */
+extern gboolean flis_panel_multi_is_selected(void);  /* flis_gui.h */
 extern void flis_gui_present_if_flis(void);
 extern void flis_gui_history_update_from_idle(void);
 
@@ -1676,6 +1677,7 @@ void siril_register_gui_iface(void) {
 	gui_iface.flis_gui_update             = impl_flis_gui_update;
 	gui_iface.on_active_layer_changed     = impl_on_active_layer_changed;
 	gui_iface.flis_group_is_selected      = flis_panel_group_is_selected;
+	gui_iface.flis_multi_is_selected      = flis_panel_multi_is_selected;
 	gui_iface.flis_gui_present_if_flis    = impl_flis_gui_present_if_flis;
 	gui_iface.nde_history_changed         = impl_nde_history_changed;
 	gui_iface.on_channel_count_changed    = impl_on_channel_count_changed;

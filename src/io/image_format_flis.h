@@ -1043,6 +1043,9 @@ int  flis_addgroup_hook(struct generic_layer_args *args);
 struct flis_setgroup_args {
 	destructor destroy_fn;
 	gint       group_id;      /* 0 → remove layer from any group */
+	GArray    *extra_ids;     /* optional: additional layer item_ids to move
+	                           * in the same operation (panel multi-select);
+	                           * owned, may be NULL */
 };
 void flis_setgroup_args_free(gpointer p);
 int  flis_setgroup_hook(struct generic_layer_args *args);

@@ -415,6 +415,75 @@ gchar *nde_composite_params_drop_mask(const char *params, gint mask_item_id) {
 	return out;
 }
 
+/* Re-derive a RETAINED input's recorded compositing state (blend / opacity /
+ * visibility) from the item's amended history and patch it into every live
+ * replayable composite record that pins the item.  This is what makes a
+ * compositing amend on a flattened/merged-away layer effective: the layer no
+ * longer exists to re-fold onto, but the composite's recorded copy of its
+ * state is what the re-render reads — so the log stays authoritative through
+ * the composite boundary.  Tint is left as captured (tint edits are pixel-
+ * adjacent, not compositing records).  Returns FALSE with @err when no
+ * consuming record could be found. */
+gboolean nde_composite_refresh_input_state(gint item_id, gchar **err) {
+	g_return_val_if_fail(err != NULL, FALSE);
+	*err = NULL;
+	gfloat   opacity;
+	gint     blend;
+	gboolean visible;
+	gboolean tinted;
+	double   tint[3];
+	nde_compositing_fold(item_id, &opacity, &blend, &visible, &tinted, tint);
+	const gboolean fold_tint = nde_compositing_has_tint_record(item_id);
+
+	gboolean patched = FALSE;
+	GPtrArray *live = nde_history_snapshot(NULL);
+	for (guint i = 0; live && i < live->len; i++) {
+		const nde_record *rec = g_ptr_array_index(live, i);
+		if (!nde_composite_record_replayable(rec))
+			continue;
+		if (rec->target_item_id == item_id ||
+		    !nde_record_input_by_item(rec, item_id))
+			continue;
+		nde_composite_state *st = nde_composite_state_parse(rec->params);
+		if (!st)
+			continue;
+		for (guint j = 0; j < st->inputs->len; j++) {
+			nde_composite_input *in = &g_array_index(st->inputs, nde_composite_input, j);
+			if (in->item_id != item_id)
+				continue;
+			in->blend_mode = blend;
+			in->opacity    = (gdouble)opacity;
+			in->visible    = visible;
+			/* Same late-arrival gate as the live recompute: only let the
+			 * fold drive the tint when the history says something about
+			 * it, so older records keep their captured tint. */
+			if (fold_tint) {
+				in->has_tint = tinted;
+				in->tint_r = tint[0];
+				in->tint_g = tint[1];
+				in->tint_b = tint[2];
+			}
+		}
+		gchar *blob = state_encode(st);
+		nde_composite_state_free(st);
+		gchar *aerr = NULL;
+		if (!nde_history_amend(rec->record_id, blob, &aerr)) {
+			g_free(blob);
+			*err = aerr ? aerr : g_strdup(_("could not update the composite record"));
+			if (live)
+				g_ptr_array_unref(live);
+			return FALSE;
+		}
+		g_free(blob);
+		patched = TRUE;
+	}
+	if (live)
+		g_ptr_array_unref(live);
+	if (!patched)
+		*err = g_strdup(_("no composite consumes this layer"));
+	return patched;
+}
+
 gboolean nde_composite_record_replayable(const nde_record *rec) {
 	if (!rec || !nde_composite_is_op(rec->op_id))
 		return FALSE;

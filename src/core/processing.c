@@ -1701,12 +1701,19 @@ gpointer generic_image_worker(gpointer p) {
 	 * held yet, so finish through the same idle the normal path uses (it
 	 * owns and frees args). */
 	if (!args->command && !args->nde_replay && is_current_image_flis()
-	    && gui_iface.flis_group_is_selected()) {
-		siril_log_error(_("%s: cannot apply to a layer group — select an individual layer.\n"),
+	    && (gui_iface.flis_group_is_selected()
+	        || gui_iface.flis_multi_is_selected())) {
+		const gboolean multi = gui_iface.flis_multi_is_selected();
+		siril_log_error(multi
+		    ? _("%s: cannot apply with multiple layers selected — select a single layer.\n")
+		    : _("%s: cannot apply to a layer group — select an individual layer.\n"),
 		                desc ? desc : "Operation");
-		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Layer Group Selected"),
-		    _("This operation cannot be applied to a layer group.\n"
-		      "Please select an individual layer."));
+		gui_iface.message_dialog(SIRIL_MSG_ERROR,
+		    multi ? _("Multiple Layers Selected") : _("Layer Group Selected"),
+		    multi ? _("This operation cannot be applied to a multiple selection.\n"
+		              "Please select a single layer.")
+		          : _("This operation cannot be applied to a layer group.\n"
+		              "Please select an individual layer."));
 		args->retval = 1;
 		if (!com.script && !com.python_command && use_swap)
 			gui_iface.set_suppress_redraws(FALSE);
@@ -2314,14 +2321,22 @@ gpointer generic_mask_worker(gpointer p) {
 	g_rw_lock_reader_lock(&com.pref_rwlock);
 
 	/* See the matching guard in generic_image_worker: mask ops are also
-	 * per-layer and must not run while a group row is selected. */
+	 * per-layer and must not run while a group row — or several rows —
+	 * are selected. */
 	if (!args->command && is_current_image_flis()
-	    && gui_iface.flis_group_is_selected()) {
-		siril_log_error(_("%s: cannot apply to a layer group — select an individual layer.\n"),
+	    && (gui_iface.flis_group_is_selected()
+	        || gui_iface.flis_multi_is_selected())) {
+		const gboolean multi = gui_iface.flis_multi_is_selected();
+		siril_log_error(multi
+		    ? _("%s: cannot apply with multiple layers selected — select a single layer.\n")
+		    : _("%s: cannot apply to a layer group — select an individual layer.\n"),
 		                args->description ? args->description : "Mask operation");
-		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Layer Group Selected"),
-		    _("This operation cannot be applied to a layer group.\n"
-		      "Please select an individual layer."));
+		gui_iface.message_dialog(SIRIL_MSG_ERROR,
+		    multi ? _("Multiple Layers Selected") : _("Layer Group Selected"),
+		    multi ? _("This operation cannot be applied to a multiple selection.\n"
+		              "Please select a single layer.")
+		          : _("This operation cannot be applied to a layer group.\n"
+		              "Please select an individual layer."));
 		args->retval = 1;
 		goto the_end;
 	}
