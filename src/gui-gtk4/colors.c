@@ -49,6 +49,7 @@
 #include "gui-gtk4/utils.h"
 #include "gui-gtk4/colors.h"
 #include "gui-gtk4/siril_preview.h"
+#include "gui-gtk4/flis_gui.h"
 #include "core/nde_replay.h"
 
 /* Amend mode (convergence C5b): the CCM dialog edits a color.ccm history
@@ -300,6 +301,60 @@ void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) 
 	if ((!white_selection.w || !white_selection.h) && !is_manual) {
 		siril_message_dialog( GTK_MESSAGE_WARNING, _("There is no selection"),
 				_("Make a selection of the white reference area"));
+		return;
+	}
+
+	/* Group path: a selected layer group that composites to colour gets the
+	 * calibration applied to its composite and distributed into per-layer
+	 * factors (flis_group_calibration_hook), instead of the generic worker
+	 * refusing the group selection. */
+	gint gid = is_current_image_flis() ? flis_panel_selected_group_id() : 0;
+	if (gid) {
+		struct color_calib_data widget_vals = { 0 };
+		widget_vals.is_manual = is_manual;
+		fill_calib_params_from_widgets(&widget_vals);
+
+		flis_group_t *grp = flis_group_get_by_id(gid);
+		GSList *members = grp ? flis_group_get_layers(grp) : NULL;
+		if (!members) {
+			siril_log_error(_("Colour calibration: the selected group has no layers\n"));
+			return;
+		}
+		if (undo_save_flis_multi_layer(members, _("Colour calibration (group)")))
+			siril_log_warning(_("Colour calibration: could not save undo state\n"));
+		g_slist_free(members);
+
+		struct flis_group_calib_args *p = new_flis_group_calib_args();
+		if (!p) {
+			PRINT_ALLOC_ERR;
+			return;
+		}
+		p->kind = FLIS_GROUP_CALIB_CC;
+		p->group_id = gid;
+		p->manual = is_manual;
+		p->manual_kw[0] = widget_vals.kw[0];
+		p->manual_kw[1] = widget_vals.kw[1];
+		p->manual_kw[2] = widget_vals.kw[2];
+		p->white_sel = white_selection;
+		p->black_sel = black_selection;
+		p->low = widget_vals.low;
+		p->high = widget_vals.high;
+
+		struct generic_layer_args *gargs = calloc(1, sizeof(*gargs));
+		if (!gargs) {
+			free_flis_group_calib_args(p);
+			PRINT_ALLOC_ERR;
+			return;
+		}
+		gargs->layer = NULL;	/* multi-layer op */
+		gargs->layer_hook = flis_group_calibration_hook;
+		gargs->user = p;
+		gargs->description = g_strdup(_("Colour calibration (group)"));
+		gargs->invalidate_flags = FLIS_INV_ALL;
+		set_cursor_waiting(TRUE);
+		if (!start_in_new_thread(generic_layer_worker, gargs))
+			free_generic_layer_args(gargs);
+		set_cursor_waiting(FALSE);
 		return;
 	}
 

@@ -50,6 +50,7 @@ OP_DESC(op_desc_rgradient)               /* filters.rgradient */
 OP_DESC(op_desc_scnr)                    /* filters.scnr */
 OP_DESC(op_desc_unpurple)                /* filters.unpurple */
 OP_DESC(op_desc_unsharp)                 /* filters.unsharp */
+OP_DESC(op_desc_flis_layer_scale)        /* flis.layer_scale */
 OP_DESC(op_desc_binning)                 /* geometry.binning */
 OP_DESC(op_desc_crop)                    /* geometry.crop */
 OP_DESC(op_desc_mirrorx)                 /* geometry.mirrorx */

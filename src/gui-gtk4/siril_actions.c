@@ -641,9 +641,16 @@ void annotate_dialog_activate(GSimpleAction *action, GVariant *parameter, gpoint
 
 void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	if (g_variant_get_boolean(state)) {
-		if (has_wcs(gfit)) {
-			com.found_object = find_objects_in_field(gfit);
+		if (!has_wcs(gfit)) {
+			/* Refuse the toggle rather than latching a button that can
+			 * show nothing — the enabled-state can be stale (e.g. after
+			 * a FLIS active-layer switch). */
+			siril_log_message(_("Cannot show objects: the current image is not plate solved\n"));
+			return;
 		}
+		com.found_object = find_objects_in_field(gfit);
+		if (!com.found_object)
+			siril_log_message(_("No objects from the enabled annotation catalogues are in this field\n"));
 	} else {
 		clear_user_polygons();
 		g_slist_free(com.found_object);

@@ -1245,6 +1245,23 @@ gint64 nde_capture_from_descriptor(const op_descriptor *op,
 	return capture_finish(rec, summary, post);
 }
 
+gint64 nde_capture_from_descriptor_for_item(const op_descriptor *op,
+                                            gconstpointer params,
+                                            const char *summary,
+                                            const fits *post, gint item_id) {
+	g_return_val_if_fail(op != NULL, 0);
+	nde_record *rec = nde_record_new();
+	gboolean tier_a = op->serialize != NULL;
+	rec->op_id      = g_strdup(op->id);
+	rec->op_version = op->version;
+	rec->tier       = tier_a ? NDE_TIER_A : NDE_TIER_B;
+	rec->params     = tier_a ? op->serialize(params) : NULL;
+	rec->scope      = NDE_SCOPE_LAYER;
+	rec->target_item_id = item_id;
+	rec->mask_active = FALSE;
+	return capture_finish(rec, summary, post);
+}
+
 gchar *nde_iso8601_now(void) {
 	GDateTime *now = g_date_time_new_now_utc();
 	gchar *s = g_date_time_format_iso8601(now);

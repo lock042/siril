@@ -30,6 +30,8 @@
  * whole processing-thread surface for files that only need FLIS data
  * structures. */
 struct generic_layer_args;
+struct generic_img_args;
+struct op_descriptor;
 
 /* -----------------------------------------------------------------------
  * FLIS specification version written/expected by this implementation.
@@ -876,6 +878,72 @@ void flis_group_touch_modified(flis_group_t *group);
  * @layer_subset (a GSList of flis_layer_t*). NULL means all layers.
  */
 int flis_background_neutralise_layers(GSList *layer_subset);
+
+/* -----------------------------------------------------------------------
+ * Per-layer affine record (op "flis.layer_scale")
+ *
+ * The NDE-facing factorisation of the multi-layer colour operations
+ * (layers match, and group colour calibration): each affected layer gets
+ * one Tier-A LAYER-scope record applying x' = scale*x + offset to its
+ * pixels.  The joint solve only determines the factors; the application
+ * is independent per layer, so the per-layer records replay, amend and
+ * delete through the ordinary chain machinery.
+ * ----------------------------------------------------------------------- */
+struct flis_layer_scale_data {
+	destructor destroy_fn;
+	double     scale;
+	double     offset;   /* in [0,1] normalised units; 0 for layers match */
+};
+
+struct flis_layer_scale_data *new_flis_layer_scale_data(void);
+void free_flis_layer_scale_data(void *p);
+int flis_layer_scale_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
+extern const struct op_descriptor op_desc_flis_layer_scale;
+
+/* -----------------------------------------------------------------------
+ * Group colour calibration (CC / PCC / SPCC applied to a layer group)
+ *
+ * The analysis runs on the group's rendered colour composite; the
+ * resulting per-channel affine calibration is distributed into per-layer
+ * scale+offset factors (see flis_group_apply_channel_calibration in
+ * image_format_flis.c for the math and the tint-diversity caveat).
+ * ----------------------------------------------------------------------- */
+typedef enum {
+	FLIS_GROUP_CALIB_CC   = 0,
+	FLIS_GROUP_CALIB_PCC  = 1,
+	FLIS_GROUP_CALIB_SPCC = 2,
+} flis_group_calib_kind;
+
+struct photometric_cc_data;
+
+struct flis_group_calib_args {
+	destructor destroy_fn;
+	flis_group_calib_kind kind;
+	gint group_id;
+	/* CC */
+	gboolean  manual;
+	double    manual_kw[3];
+	rectangle white_sel, black_sel;
+	double    low, high;
+	/* PCC / SPCC parameters (owned; fit member is set/cleared by the hook) */
+	struct photometric_cc_data *pcc;
+};
+
+struct flis_group_calib_args *new_flis_group_calib_args(void);
+void free_flis_group_calib_args(void *p);
+
+/* generic_layer_worker hook running the whole group calibration. */
+int flis_group_calibration_hook(struct generic_layer_args *args);
+
+/* Distribution+apply step (exposed for tests): per-channel affine (K,O)
+ * of the composite -> per-layer records.  0 on success; on failure no
+ * layer was mutated. */
+int flis_group_apply_channel_calibration(GSList *members, const double K[3],
+                                         const double O[3], const char *label);
+
+/* Sensitivity predicates for the calibration menu items. */
+gboolean flis_group_composites_to_colour(const flis_group_t *grp);
+gboolean flis_document_has_wcs_donor(void);
 
 /**
  * is_current_image_flis:

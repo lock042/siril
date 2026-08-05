@@ -3199,6 +3199,23 @@ gboolean flis_panel_group_is_selected(void) {
 	return g_panel && g_panel->selected_kind == FLIS_ROW_KIND_GROUP;
 }
 
+/* item_id of the selected group row, 0 when the selection is not a group.
+ * Used by the colour-calibration dialogs to route to the group path. */
+gint flis_panel_selected_group_id(void) {
+	if (!flis_panel_group_is_selected())
+		return 0;
+	flis_group_t *grp = current_selected_group();
+	return grp ? grp->item_id : 0;
+}
+
+/* TRUE when the panel selection is a group that plausibly composites to a
+ * colour image — drives the colour-calibration menu sensitivity. */
+gboolean flis_panel_selected_colour_group(void) {
+	if (!flis_panel_group_is_selected())
+		return FALSE;
+	return flis_group_composites_to_colour(current_selected_group());
+}
+
 static void refresh_panel(void) {
 	if (!g_panel) return;
 	/* M-F12: the rebuild walks com.uniq->layers/groups and reads layer
@@ -3758,6 +3775,10 @@ static void on_selection_changed(GtkSelectionModel *sel, guint pos, guint nitems
 	else          { g_panel->selected_kind = -1;                  g_panel->selected_item_id = 0; }
 	sync_property_widgets(lay);
 	update_toolbar_sensitivity();   /* re-enable Remove/Duplicate/etc. */
+	/* The colour-calibration menu items follow the panel selection (a
+	 * colour group widens their sensitivity); a group selection changes
+	 * no active layer, so refresh the action state explicitly. */
+	update_MenuItem(NULL);
 
 	/* §4.5 checkoff: selecting a layer rebinds gfit (and uniq->fit,
 	 * uniq->chans, uniq->active_layer) so tools that operate on gfit

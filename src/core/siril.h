@@ -974,6 +974,11 @@ struct historic_struct {
 	 * nde_history_on_undo()/on_redo(); counterpart entries pushed to the
 	 * opposite stack inherit the id so undo↔redo round-trips stay coupled. */
 	gint64 nde_record_id;
+	/* Last record id when one undo entry covers a RANGE of consecutive
+	 * records (multi-layer ops: layers match, group colour calibration).
+	 * 0 = single record.  Undo rewinds live_count to before nde_record_id;
+	 * redo advances it to include nde_record_id_last. */
+	gint64 nde_record_id_last;
 };
 
 /* struct layer, struct image_view, draw_data_t, and struct guiinf have been

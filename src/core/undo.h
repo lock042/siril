@@ -63,6 +63,15 @@ gboolean redo_in_thread(gpointer user_data);
  */
 void undo_tag_top_nde_record(gint64 record_id);
 
+/**
+ * undo_tag_top_nde_record_range:
+ * Range variant for multi-layer operations that capture one consecutive NDE
+ * record per affected layer under a single compound undo entry (layers
+ * match, group colour calibration).  Undoing the entry rewinds live_count
+ * to before @first_id; redoing advances it to include @last_id.
+ */
+void undo_tag_top_nde_record_range(gint64 first_id, gint64 last_id);
+
 /* ----------------------------------------------------------------------- */
 /* FLIS undo API — added at stage 1.4.  All functions below save undo      */
 /* state for FLIS layer mutations.  They are no-ops when running headless  */

@@ -1679,6 +1679,7 @@ gpointer generic_image_worker(gpointer p) {
 	 * the_end (never read on those paths — retval gates it — but the
 	 * compiler cannot see that). */
 	gboolean using_mask = FALSE;
+	gboolean nonswap_quiesced = FALSE;
 
 	/* Suppress viewport redraws for any op that writes gfit, so partial
 	 * remap_index updates from background threads don't make it to the
@@ -1766,7 +1767,17 @@ gpointer generic_image_worker(gpointer p) {
 		/* Non-swap path: writer-lock args->fit for the hook's
 		 * duration (legacy in-place pattern).  Allocate orig as a
 		 * pre-hook backup only when mask blending needs it — undo
-		 * doesn't apply here (undo_state requires argfit == gfit). */
+		 * doesn't apply here (undo_state requires argfit == gfit).
+		 *
+		 * When args->fit IS the displayed image (previews, ROI), quiesce
+		 * the lazy-tile materialise pool first: GRWLock has no writer
+		 * preference, so this writer otherwise starves behind the pool's
+		 * back-to-back reader-locked tile fills on a large image.
+		 * Counting suppression — nests safely inside the swap-path
+		 * suppression above.  Released at the non-swap unlock below. */
+		nonswap_quiesced = (argfit == gfit);
+		if (nonswap_quiesced)
+			gui_iface.set_suppress_redraws(TRUE);
 		g_rw_lock_writer_lock(&argfit->rwlock);
 		gboolean preview_using_mask = args->mask_aware && argfit->mask && argfit->mask_active;
 		if (preview_using_mask) {
@@ -1925,6 +1936,12 @@ the_end:;
 			 * about to stop being current.  A discarded result is the
 			 * right outcome either way: the job ran against a layer the
 			 * user is leaving. */
+			/* Quiesce around the micro swap window too: the swap-path
+			 * suppression above is skipped for script/python-driven jobs,
+			 * whose GUI can still have the pool churning.  Counting —
+			 * a redundant bracket under the existing suppression is
+			 * harmless. */
+			gui_iface.set_suppress_redraws(TRUE);
 			g_rw_lock_writer_lock(&argfit->rwlock);
 			gboolean retargeted = (gfit != argfit) || flis_gfit_retarget_in_progress();
 			/* Swap into argfit, not gfit: the check just proved them equal,
@@ -1933,6 +1950,7 @@ the_end:;
 			if (!retargeted)
 				fits_swap_all_except_rwlock(argfit, orig);
 			g_rw_lock_writer_unlock(&argfit->rwlock);
+			gui_iface.set_suppress_redraws(FALSE);
 			if (retargeted) {
 				siril_log_message(_("%s: the active layer changed during processing, discarding the result.\n"),
 						desc ? desc : _("Operation"));
@@ -1942,6 +1960,8 @@ the_end:;
 		}
 	} else {
 		g_rw_lock_writer_unlock(&argfit->rwlock);
+		if (nonswap_quiesced)
+			gui_iface.set_suppress_redraws(FALSE);
 	}
 	g_rw_lock_reader_unlock(&com.pref_rwlock);
 
@@ -2092,8 +2112,11 @@ the_end:;
 	}
 
 	/* Cairo buffers are up to date; re-enable full viewport redraws so the
-	 * completion idle paints the updated image. */
-	gui_iface.set_suppress_redraws(FALSE);
+	 * completion idle paints the updated image.  Same gate as the matching
+	 * suppress at worker entry — suppression is COUNTING now, so an
+	 * unpaired release would steal an enclosing section's suppression. */
+	if (!com.script && !com.python_command && use_swap)
+		gui_iface.set_suppress_redraws(FALSE);
 
 	// Cleanup / idles
 	if (args->command) {
@@ -2253,6 +2276,7 @@ gpointer generic_mask_worker(gpointer p) {
 	gboolean verbose = args->verbose;
 	gchar *history = NULL;
 	gboolean rwlocked = FALSE;
+	gboolean mask_nonswap_quiesced = FALSE;
 
 	/* Swap-path state (mirrors generic_image_worker): when the job targets
 	 * gfit, the hook runs on a private snapshot (`orig`) with no lock held,
@@ -2418,7 +2442,12 @@ gpointer generic_mask_worker(gpointer p) {
 	} else {
 		/* Non-swap path: legacy in-place pattern — writer-lock args->fit
 		 * for the hook's duration.  No undo here: the undo gate requires
-		 * the job to target gfit, which is exactly use_swap. */
+		 * the job to target gfit, which is exactly use_swap.
+		 * Quiesce the materialise pool first when this IS the displayed
+		 * fits (writer-starvation protocol, see generic_image_worker). */
+		mask_nonswap_quiesced = (argfit == gfit);
+		if (mask_nonswap_quiesced)
+			gui_iface.set_suppress_redraws(TRUE);
 		g_rw_lock_writer_lock(&argfit->rwlock);
 		rwlocked = TRUE;
 	}
@@ -2469,6 +2498,8 @@ the_end:
 	gint routed_to_layer = 0;   /* layer whose lmask received the mask, if any */
 	if (use_swap) {
 		if (!retval) {
+			/* Quiesced micro swap window (writer-starvation protocol). */
+			gui_iface.set_suppress_redraws(TRUE);
 			g_rw_lock_writer_lock(&argfit->rwlock);
 			gboolean retargeted = (gfit != argfit) || flis_gfit_retarget_in_progress();
 			if (!retargeted) {
@@ -2476,6 +2507,7 @@ the_end:
 				routed_to_layer = mask_route_and_activate(args, argfit);
 			}
 			g_rw_lock_writer_unlock(&argfit->rwlock);
+			gui_iface.set_suppress_redraws(FALSE);
 			if (retargeted) {
 				siril_log_message(_("%s: the active layer changed during processing, discarding the result.\n"),
 						args->description ? args->description : _("Mask operation"));
@@ -2487,6 +2519,8 @@ the_end:
 		if (!retval)
 			routed_to_layer = mask_route_and_activate(args, argfit);
 		g_rw_lock_writer_unlock(&argfit->rwlock);
+		if (mask_nonswap_quiesced)
+			gui_iface.set_suppress_redraws(FALSE);
 	}
 	g_rw_lock_reader_unlock(&com.pref_rwlock);
 

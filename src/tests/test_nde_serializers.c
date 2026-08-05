@@ -623,6 +623,9 @@ static const char *phase1_ids[] = {
 	/* Convention 2 applied to a PSF: the kernel the deconvolution actually
 	 * used is stashed and replayed, never re-estimated. */
 	"filters.deconvolve",
+	/* Per-layer factorisation of the multi-layer colour operations (layers
+	 * match, group colour calibration): one record per affected layer. */
+	"flis.layer_scale",
 };
 
 Test(nde_serializers, serializer_set_is_phase1) {

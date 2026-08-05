@@ -274,6 +274,9 @@ gpointer apply_pixel_math_operation(gpointer p) {
 	 * overwrite gfit->rwlock while it is held. */
 	gboolean rwlocked = FALSE;
 	if (!com.headless) {
+		/* Quiesce the lazy-tile materialise pool before gfit's writer
+		 * lock (writer-starvation protocol, gui_iface_impl.c). */
+		gui_iface.set_suppress_redraws(TRUE);
 		g_rw_lock_writer_lock(&gfit->rwlock);
 		rwlocked = TRUE;
 	}
@@ -506,8 +509,10 @@ failure:
 		} else {
 			clearfits(args->fit);
 		}
-		if (rwlocked)
+		if (rwlocked) {
 			g_rw_lock_writer_unlock(&gfit->rwlock);
+			gui_iface.set_suppress_redraws(FALSE);
+		}
 		gui_iface.execute_idle_sync(end_pixel_math_operation, args);
 	}
 	return GINT_TO_POINTER((gint)failed);

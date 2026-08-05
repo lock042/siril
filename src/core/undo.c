@@ -1023,6 +1023,14 @@ void undo_tag_top_nde_record(gint64 record_id) {
 		nde_snap_set_tag(h->snap, h->flis_layer_id, record_id, FALSE);
 }
 
+void undo_tag_top_nde_record_range(gint64 first_id, gint64 last_id) {
+	if (!first_id || !com.undo_stack)
+		return;
+	undo_tag_top_nde_record(first_id);
+	historic *h = com.undo_stack->data;
+	h->nde_record_id_last = (last_id != first_id) ? last_id : 0;
+}
+
 int undo_save_state(fits *fit, const char *message, ...) {
 	if (!single_image_is_loaded())
 		return 0;
@@ -1129,7 +1137,17 @@ int undo_display_data(int dir) {
 			gui_iface.clear_roi();
 
 			/* Writer lock: undo_push_to (reads pixels) and undo_restore
-			 * (writes pixels) must be atomic against the Python thread. */
+			 * (writes pixels) must be atomic against the Python thread.
+			 *
+			 * Quiesce the lazy-tile materialise pool first (same protocol
+			 * as generic_image_worker / copy_backup_to_gfit): GRWLock has
+			 * no writer preference, so on a large image whose tiles were
+			 * all just dirtied the pool's back-to-back reader-locked tile
+			 * fills starve this writer indefinitely — a hard freeze on
+			 * Ctrl-Z.  The workers honour the suppress flag at the top of
+			 * their loop, so in-flight fills drain and the writer gets in
+			 * within bounded time. */
+			gui_iface.set_suppress_redraws(TRUE);
 			g_rw_lock_writer_lock(&gfit->rwlock);
 
 			/* save current state to redo stack before restoring — the
@@ -1137,6 +1155,7 @@ int undo_display_data(int dir) {
 			 * would restore the wrong aspect / the wrong layers */
 			if (undo_push_counterpart_to(&com.redo_stack, gfit, top)) {
 				g_rw_lock_writer_unlock(&gfit->rwlock);
+				gui_iface.set_suppress_redraws(FALSE);
 				return 1;
 			}
 			/* the counterpart inherits the provenance coupling so a later
@@ -1146,14 +1165,18 @@ int undo_display_data(int dir) {
 			{
 				historic *cp = com.redo_stack->data;
 				cp->nde_record_id = top->nde_record_id;
+				cp->nde_record_id_last = top->nde_record_id_last;
 				if (cp->snap && cp->nde_record_id)
 					nde_snap_set_tag(cp->snap, cp->flis_layer_id,
+					                 cp->nde_record_id_last ?
+					                 cp->nde_record_id_last :
 					                 cp->nde_record_id, TRUE);
 			}
 
 			siril_log_message(_("Undo: %s\n"), top->history);
 
-			/* pop and restore */
+			/* pop and restore.  A range-tagged entry (multi-layer op)
+			 * rewinds live_count to before its FIRST record. */
 			gint64 nde_id = top->nde_record_id;
 			com.undo_stack = g_list_remove_link(com.undo_stack, com.undo_stack);
 			undo_restore(gfit, top);
@@ -1163,6 +1186,7 @@ int undo_display_data(int dir) {
 			gui_iface.invalidate_histogram();
 			invalidate_stats_from_fit(gfit);
 			g_rw_lock_writer_unlock(&gfit->rwlock); // Finished with writer lock
+			gui_iface.set_suppress_redraws(FALSE);
 			g_rw_lock_reader_lock(&gfit->rwlock);   // But still need reader lock
 			gui_iface.update_histogram();
 			gui_iface.on_channel_count_changed(); // These 2 lines account for possible change from mono to RGB
@@ -1223,13 +1247,16 @@ int undo_display_data(int dir) {
 			gui_iface.hide_preview();
 
 			/* Writer lock: undo_push_to (reads pixels) and undo_restore
-			 * (writes pixels) must be atomic against the Python thread. */
+			 * (writes pixels) must be atomic against the Python thread.
+			 * Quiesce the materialise pool first — see the UNDO case. */
+			gui_iface.set_suppress_redraws(TRUE);
 			g_rw_lock_writer_lock(&gfit->rwlock);
 
 			/* save current state to undo stack before restoring — must
 			 * match the popped entry's flavour (see UNDO case) */
 			if (undo_push_counterpart_to(&com.undo_stack, gfit, top)) {
 				g_rw_lock_writer_unlock(&gfit->rwlock);
+				gui_iface.set_suppress_redraws(FALSE);
 				return 1;
 			}
 			/* see UNDO case: keep the provenance coupling round-trippable.
@@ -1238,6 +1265,7 @@ int undo_display_data(int dir) {
 			{
 				historic *cp = com.undo_stack->data;
 				cp->nde_record_id = top->nde_record_id;
+				cp->nde_record_id_last = top->nde_record_id_last;
 				if (cp->snap && cp->nde_record_id)
 					nde_snap_set_tag(cp->snap, cp->flis_layer_id,
 					                 cp->nde_record_id, FALSE);
@@ -1245,8 +1273,10 @@ int undo_display_data(int dir) {
 
 			siril_log_message(_("Redo: %s\n"), top->history);
 
-			/* pop and restore */
-			gint64 nde_id = top->nde_record_id;
+			/* pop and restore.  A range-tagged entry (multi-layer op)
+			 * advances live_count to include its LAST record. */
+			gint64 nde_id = top->nde_record_id_last ?
+			                top->nde_record_id_last : top->nde_record_id;
 			com.redo_stack = g_list_remove_link(com.redo_stack, com.redo_stack);
 			undo_restore(gfit, top);
 			undo_free_item(top);
@@ -1254,6 +1284,7 @@ int undo_display_data(int dir) {
 
 			gui_iface.invalidate_histogram();
 			g_rw_lock_writer_unlock(&gfit->rwlock); // Finished with writer lock
+			gui_iface.set_suppress_redraws(FALSE);
 			g_rw_lock_reader_lock(&gfit->rwlock);   // But still need reader lock
 			gui_iface.update_histogram();
 			g_rw_lock_reader_unlock(&gfit->rwlock);

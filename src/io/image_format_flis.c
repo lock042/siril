@@ -65,11 +65,15 @@
 #include "core/masks.h"
 #include "core/nde_history.h"
 #include "core/nde_replay.h"
+#include "core/nde_script_scope.h"
+#include "core/op_descriptor.h"
 #include "core/nde_checkpoint.h"
 #include "core/nde_composite.h"
 #include "core/nde_snapstore.h"
 #include "core/undo.h"
 #include "algos/statistics.h"
+#include "algos/colors.h"
+#include "algos/photometric_cc.h"
 #include "core/gui_iface.h"
 #include "image_format_fits.h"
 
@@ -5294,6 +5298,126 @@ static void scale_layer_pixels(fits *fit, double scale) {
     }
 }
 
+/* Apply x' = clamp(scale*x + offset) to every pixel of a layer fits.
+ * @offset is in [0,1] normalised units for both storage types. */
+static void affine_layer_pixels(fits *fit, double scale, double offset) {
+    size_t n = fit->rx * fit->ry * fit->naxes[2];
+    if (fit->type == DATA_FLOAT && fit->fdata) {
+        float s = (float)scale, o = (float)offset;
+        float *p = fit->fdata;
+        for (size_t i = 0; i < n; i++)
+            p[i] = CLAMP(p[i] * s + o, 0.0f, 1.0f);
+    } else if (fit->type == DATA_USHORT && fit->data) {
+        double o = offset * USHRT_MAX_DOUBLE;
+        WORD *p = fit->data;
+        for (size_t i = 0; i < n; i++) {
+            double v = p[i] * scale + o;
+            p[i] = (WORD)(v >= USHRT_MAX ? USHRT_MAX : (v < 0.0 ? 0 : (WORD)v));
+        }
+    }
+}
+
+/* ---- op "flis.layer_scale": params + hooks + NDE serializers ------------
+ *
+ * The NDE-facing factorisation of the multi-layer colour operations.  The
+ * joint solves (layers match, group colour calibration) only determine
+ * per-layer factors; the application is an independent per-layer affine
+ * x' = scale*x + offset, so each affected layer gets one Tier-A record of
+ * this op and the ordinary per-layer chain machinery can replay, amend and
+ * delete it. */
+
+void free_flis_layer_scale_data(void *p) {
+    free(p);
+}
+
+struct flis_layer_scale_data *new_flis_layer_scale_data(void) {
+    struct flis_layer_scale_data *p = calloc(1, sizeof(*p));
+    if (p) {
+        p->destroy_fn = free_flis_layer_scale_data;
+        p->scale = 1.0;
+    }
+    return p;
+}
+
+int flis_layer_scale_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+    (void)nb_threads;
+    const struct flis_layer_scale_data *p = args->user;
+    if (!p || p->scale < 0.0)
+        return 1;
+    affine_layer_pixels(fit, p->scale, p->offset);
+    invalidate_stats_from_fit(fit);
+    return 0;
+}
+
+static gchar *flis_layer_scale_log_hook(gpointer user, log_hook_detail detail) {
+    const struct flis_layer_scale_data *p = user;
+    (void)detail;
+    if (!p)
+        return g_strdup(_("Per-layer scale"));
+    if (p->offset != 0.0)
+        return g_strdup_printf(_("Per-layer scale (x%.4f %+.5f)"), p->scale, p->offset);
+    return g_strdup_printf(_("Per-layer scale (x%.4f)"), p->scale);
+}
+
+static gchar *flis_layer_scale_serialize(gconstpointer user) {
+    const struct flis_layer_scale_data *p = user;
+    GString *kv = nde_kv_start();
+    nde_kv_add_double(kv, "scale", p->scale);
+    if (p->offset != 0.0)
+        nde_kv_add_double(kv, "offset", p->offset);
+    return nde_kv_end(kv);
+}
+
+static gpointer flis_layer_scale_deserialize(const gchar *blob, int version) {
+    if (version > op_desc_flis_layer_scale.version)
+        return NULL;
+    GHashTable *kv = nde_kv_parse(blob);
+    double scale = 0.0, offset = 0.0;
+    if (!nde_kv_get_double(kv, "scale", &scale) || scale < 0.0) {
+        g_hash_table_unref(kv);
+        return NULL;
+    }
+    nde_kv_get_double(kv, "offset", &offset);
+    g_hash_table_unref(kv);
+    struct flis_layer_scale_data *p = new_flis_layer_scale_data();
+    if (p) {
+        p->scale = scale;
+        p->offset = offset;
+    }
+    return p;
+}
+
+const op_descriptor op_desc_flis_layer_scale = {
+    .id = "flis.layer_scale", .version = 1,
+    .image_hook = flis_layer_scale_image_hook,
+    .log_hook = flis_layer_scale_log_hook,
+    .description = N_("Per-layer scale"),
+    .mem_ratio = 1.0f,
+    .flags = 0,
+    .serialize = flis_layer_scale_serialize,
+    .deserialize = flis_layer_scale_deserialize,
+};
+
+/* Capture one Tier-A "flis.layer_scale" NDE record for @lay, applying
+ * factors (@scale, @offset), labelled @label.  Returns the record id (0
+ * when capture is suppressed).  Shared by layers match and the group
+ * colour-calibration path. */
+static gint64 capture_layer_scale_record(flis_layer_t *lay, double scale,
+                                         double offset, const char *label) {
+    struct flis_layer_scale_data p = {
+        .destroy_fn = NULL, .scale = scale, .offset = offset,
+    };
+    gchar *summary;
+    if (offset != 0.0)
+        summary = g_strdup_printf("%s (x%.4f %+.5f)", label, scale, offset);
+    else
+        summary = g_strdup_printf("%s (x%.4f)", label, scale);
+    gint64 rid = nde_capture_from_descriptor_for_item(&op_desc_flis_layer_scale,
+            &p, summary, lay->fit, lay->item_id);
+    g_free(summary);
+    return rid;
+}
+
 /*
  * flis_background_neutralise — scale each mono layer so that the screen-blend
  * composite has a neutral (equal-RGB) background.
@@ -5416,6 +5540,13 @@ int flis_background_neutralise_layers(GSList *layer_subset) {
 
     siril_log_info(_("FLIS: background neutralise scale factors:\n"));
     double new_bg[3] = { 0.0, 0.0, 0.0 };
+    /* NDE provenance: one Tier-A "flis.layer_scale" record per scaled layer
+     * (sketch §13.2 factorisation).  Suppressed during replay (records are
+     * being re-run, not created) and coalesced into the script scope for
+     * python-driven runs. */
+    gboolean replaying = processing_is_reserved_for_replay();
+    gboolean script_scope = nde_script_scope_active();
+    gint64 first_rec = 0, last_rec = 0;
     for (int i = 0; i < N; i++) {
         const char *name = layers_arr[i]->layer_name ? layers_arr[i]->layer_name : "?";
         double s;
@@ -5426,17 +5557,439 @@ int flis_background_neutralise_layers(GSList *layer_subset) {
             s = (old_bg * a[i]) / medians[i];
             siril_log_info("  %-24s  x%.4f  (median %.5f -> %.5f)\n",
                 name, s, medians[i], medians[i] * s);
+            /* Snapshot pre-op pixels so the record's chain has a starting
+             * point (phase 2: baseline at every capture site). */
+            if (!replaying)
+                nde_checkpoint_baseline_ensure(layers_arr[i]->fit,
+                                               layers_arr[i]->item_id);
             scale_layer_pixels(layers_arr[i]->fit, s);
             invalidate_stats_from_fit(layers_arr[i]->fit);
+            if (replaying) {
+                /* no capture */
+            } else if (script_scope) {
+                nde_script_scope_mark_pixels_dirty();
+            } else {
+                gint64 rid = capture_layer_scale_record(layers_arr[i], s, 0.0,
+                                                        _("Layers match"));
+                if (rid > 0) {
+                    if (!first_rec)
+                        first_rec = rid;
+                    last_rec = rid;
+                }
+            }
         }
         for (int c = 0; c < 3; c++)
             new_bg[c] += s * medians[i] * T[c * N + i];
     }
+    /* Couple the caller's compound undo entry to the record range so one
+     * Ctrl-Z moves live_count across all of them (same com.script gate the
+     * undo save used). */
+    if (first_rec && !com.script)
+        undo_tag_top_nde_record_range(first_rec, last_rec);
     siril_log_info(
         _("FLIS: predicted composite background  R:%.5f  G:%.5f  B:%.5f  (target %.5f each)\n"), new_bg[0], new_bg[1], new_bg[2], old_bg);
 
     free(layers_arr); free(medians); free(T); free(a);
     gui_iface.flis_invalidate_composite();
     return 0;
+}
+
+/* =======================================================================
+ * Group colour calibration (CC / PCC / SPCC on a layer group)
+ *
+ * The three calibration algorithms all reduce to a per-channel affine
+ * transform of the RGB image they run on:  C_c' = K_c*C_c + O_c.  For a
+ * layer group whose tinted mono layers composite to colour (screen-linear
+ * approximation, as layers match), that transform is distributed into
+ * per-layer affine factors  x_i' = a_i*x_i + b_i  such that
+ *   - the signal scaling is matched per layer in the tint-weighted
+ *     least-squares sense (exact for pure tints):
+ *       a_i = sum_c K_c*(T_i^c)^2 / sum_c (T_i^c)^2
+ *   - the composite BACKGROUND transforms exactly per channel:
+ *       sum_i T_i^c * b_i = K_c*B_c + O_c - sum_i T_i^c*a_i*m_i
+ *     solved via the same SVD pseudoinverse layers match uses; the tint
+ *     matrix must span RGB (the "sufficient colour diversity" caveat).
+ *
+ * Each affected layer then gets one Tier-A "flis.layer_scale" NDE record
+ * so the operation appears in the history per layer, replayable,
+ * amendable and deletable, with one compound undo entry coupled to the
+ * whole record range.
+ * ======================================================================= */
+
+/*
+ * flis_group_composites_to_colour — cheap sensitivity predicate: does the
+ * group plausibly composite to a COLOUR image the calibration tools can
+ * work on?  TRUE when it has at least two calibratable mono members and at
+ * least one carries a non-neutral tint.  The strict tint-diversity check
+ * (rank of the tint matrix) happens at apply time with a clear error;
+ * this only drives menu sensitivity.
+ */
+gboolean flis_group_composites_to_colour(const flis_group_t *grp) {
+    if (!grp || !com.uniq)
+        return FALSE;
+    int n_mono = 0;
+    gboolean tinted = FALSE;
+    for (GSList *l = com.uniq->layers; l; l = l->next) {
+        flis_layer_t *lay = l->data;
+        if (!lay || lay->group_id != grp->item_id || !lay->fit)
+            continue;
+        if (lay->fit->naxes[2] != 1)
+            continue;
+        if (!lay->fit->fdata && !lay->fit->data)
+            continue;
+        n_mono++;
+        if (lay->has_tint && (lay->layer_tint.r != lay->layer_tint.g ||
+                              lay->layer_tint.g != lay->layer_tint.b))
+            tinted = TRUE;
+    }
+    return n_mono >= 2 && tinted;
+}
+
+/*
+ * flis_document_has_wcs_donor — TRUE when some layer can donate a plate
+ * solve to the group composite (canvas geometry, canvas origin, solved).
+ * Drives PCC/SPCC sensitivity for the group-calibration path; mirrors the
+ * donor search in flis_group_render_calib_composite.
+ */
+gboolean flis_document_has_wcs_donor(void) {
+    if (!com.uniq)
+        return FALSE;
+    for (GSList *l = com.uniq->layers; l; l = l->next) {
+        flis_layer_t *lay = l->data;
+        if (lay && lay->fit && lay->fit->keywords.wcslib &&
+                lay->fit->rx == com.uniq->canvas_w &&
+                lay->fit->ry == com.uniq->canvas_h &&
+                lay->position_x == 0 && lay->position_y == 0)
+            return TRUE;
+    }
+    return FALSE;
+}
+
+/* Filter @members down to the calibratable set (mono layers with pixel
+ * data), warning about anything skipped.  Returns a new GSList. */
+static GSList *group_calib_eligible(GSList *members) {
+    GSList *out = NULL;
+    for (GSList *l = members; l; l = l->next) {
+        flis_layer_t *lay = l->data;
+        if (!lay || !lay->fit)
+            continue;
+        if (lay->fit->naxes[2] != 1) {
+            siril_log_warning(_("Group calibration: skipping RGB layer '%s' "
+                    "(only tinted mono layers are calibrated)\n"),
+                    lay->layer_name ? lay->layer_name : "?");
+            continue;
+        }
+        if (!lay->fit->fdata && !lay->fit->data)
+            continue;
+        out = g_slist_append(out, lay);
+    }
+    return out;
+}
+
+/* Render the colour composite of @members (group sub-composite: screen
+ * stack over black, no canvas background) and transplant WCS metadata
+ * from the first plate-solved layer whose geometry matches, so PCC/SPCC
+ * can run photometry on it.  Caller owns the returned fits. */
+static fits *flis_group_render_calib_composite(GSList *members, gchar **err) {
+    flis_render_ctx ctx = { 0 };
+    ctx.canvas_w = com.uniq->canvas_w;
+    ctx.canvas_h = com.uniq->canvas_h;
+    ctx.groups   = com.uniq->groups;
+    fits *composite = flis_render_layers_ctx(members, &ctx, TRUE, FALSE);
+    if (!composite) {
+        if (err) *err = g_strdup(_("could not render the group composite"));
+        return NULL;
+    }
+    if (composite->naxes[2] != 3) {
+        if (err) *err = g_strdup(_("the group does not composite to a colour image"));
+        clearfits(composite);
+        free(composite);
+        return NULL;
+    }
+    /* WCS donor: a solved member first, then any solved document layer at
+     * the canvas origin with matching geometry. */
+    flis_layer_t *donor = NULL;
+    for (GSList *l = members; l && !donor; l = l->next) {
+        flis_layer_t *lay = l->data;
+        if (lay && lay->fit && lay->fit->keywords.wcslib &&
+                lay->fit->rx == composite->rx && lay->fit->ry == composite->ry &&
+                lay->position_x == 0 && lay->position_y == 0)
+            donor = lay;
+    }
+    for (GSList *l = com.uniq->layers; l && !donor; l = l->next) {
+        flis_layer_t *lay = l->data;
+        if (lay && lay->fit && lay->fit->keywords.wcslib &&
+                lay->fit->rx == composite->rx && lay->fit->ry == composite->ry &&
+                lay->position_x == 0 && lay->position_y == 0)
+            donor = lay;
+    }
+    if (donor)
+        copy_fits_metadata(donor->fit, composite);
+    return composite;
+}
+
+/*
+ * Distribute the per-channel affine calibration (@K, @O) of the group
+ * composite into per-layer factors and apply them to @members, capturing
+ * NDE provenance.  Called under the FLIS stack writer lock (layer-worker
+ * hook context).  Returns 0 on success; on failure nothing was mutated.
+ */
+int flis_group_apply_channel_calibration(GSList *members, const double K[3],
+                                         const double O[3], const char *label) {
+    GSList *eligible = group_calib_eligible(members);
+    int N = g_slist_length(eligible);
+    if (N == 0) {
+        siril_log_error(_("Group calibration: no eligible mono layers in the group\n"));
+        g_slist_free(eligible);
+        return 1;
+    }
+
+    flis_layer_t **layers_arr = calloc(N, sizeof(flis_layer_t *));
+    double *medians = calloc(N, sizeof(double));
+    double *T = calloc(3 * N, sizeof(double));
+    double *a = calloc(N, sizeof(double));
+    double *b = calloc(N, sizeof(double));
+    if (!layers_arr || !medians || !T || !a || !b) {
+        PRINT_ALLOC_ERR;
+        goto fail;
+    }
+
+    int i = 0;
+    for (GSList *l = eligible; l; l = l->next, i++) {
+        flis_layer_t *lay = l->data;
+        layers_arr[i] = lay;
+        T[0 * N + i] = lay->has_tint ? lay->layer_tint.r : 1.0;
+        T[1 * N + i] = lay->has_tint ? lay->layer_tint.g : 1.0;
+        T[2 * N + i] = lay->has_tint ? lay->layer_tint.b : 1.0;
+        imstats *st = statistics(NULL, -1, lay->fit, 0, NULL, STATS_BASIC,
+                                 SINGLE_THREADED);
+        if (!st)
+            goto fail;
+        double med = st->median;
+        free_stats(st);
+        if (lay->fit->type == DATA_USHORT)
+            med /= USHRT_MAX_DOUBLE;
+        medians[i] = med;
+    }
+
+    /* Per-layer signal scaling: tint-weighted least squares over channels. */
+    for (i = 0; i < N; i++) {
+        double num = 0.0, den = 0.0;
+        for (int c = 0; c < 3; c++) {
+            double t = T[c * N + i];
+            num += K[c] * t * t;
+            den += t * t;
+        }
+        if (den <= 0.0) {
+            /* A zero-tint layer contributes nothing to the composite;
+             * leave it untouched. */
+            a[i] = 1.0;
+            siril_log_warning(_("Group calibration: layer '%s' has a zero "
+                    "tint — left unscaled\n"),
+                    layers_arr[i]->layer_name ? layers_arr[i]->layer_name : "?");
+        } else {
+            a[i] = num / den;
+        }
+    }
+
+    /* Exact background transform: solve T*b = r with
+     * r_c = K_c*B_c + O_c - sum_i T_i^c*a_i*m_i. */
+    double r[3];
+    for (int c = 0; c < 3; c++) {
+        double B_c = 0.0, scaled_c = 0.0;
+        for (i = 0; i < N; i++) {
+            B_c      += T[c * N + i] * medians[i];
+            scaled_c += T[c * N + i] * a[i] * medians[i];
+        }
+        r[c] = K[c] * B_c + O[c] - scaled_c;
+    }
+    if (pseudoinverse_solve(T, N, r, b)) {
+        siril_log_error(_("Group calibration: tint matrix is degenerate\n"));
+        goto fail;
+    }
+    /* The pseudoinverse returns a least-squares answer even for a
+     * rank-deficient tint matrix; verify the background system actually
+     * closed, or the calibration silently misses a channel. */
+    for (int c = 0; c < 3; c++) {
+        double got = 0.0;
+        for (i = 0; i < N; i++)
+            got += T[c * N + i] * b[i];
+        if (fabs(got - r[c]) > 1e-6) {
+            siril_log_error(_("Group calibration: the layer tints do not span "
+                    "enough colours to carry the calibration (channel %c "
+                    "unreachable). Diversify the assigned tints.\n"), "RGB"[c]);
+            goto fail;
+        }
+    }
+    for (i = 0; i < N; i++) {
+        if (a[i] < 0.0) {
+            siril_log_error(_("Group calibration: layer '%s' would need a "
+                    "negative scale — aborting\n"),
+                    layers_arr[i]->layer_name ? layers_arr[i]->layer_name : "?");
+            goto fail;
+        }
+    }
+
+    /* Apply + provenance, mirroring flis_background_neutralise_layers. */
+    gboolean replaying = processing_is_reserved_for_replay();
+    gboolean script_scope = nde_script_scope_active();
+    gint64 first_rec = 0, last_rec = 0;
+    siril_log_info(_("Group calibration per-layer factors:\n"));
+    for (i = 0; i < N; i++) {
+        const char *name = layers_arr[i]->layer_name ? layers_arr[i]->layer_name : "?";
+        siril_log_info("  %-24s  x%.4f %+.5f\n", name, a[i], b[i]);
+        if (a[i] == 1.0 && b[i] == 0.0)
+            continue;
+        if (!replaying)
+            nde_checkpoint_baseline_ensure(layers_arr[i]->fit,
+                                           layers_arr[i]->item_id);
+        affine_layer_pixels(layers_arr[i]->fit, a[i], b[i]);
+        invalidate_stats_from_fit(layers_arr[i]->fit);
+        if (replaying) {
+            /* no capture */
+        } else if (script_scope) {
+            nde_script_scope_mark_pixels_dirty();
+        } else {
+            gint64 rid = capture_layer_scale_record(layers_arr[i], a[i], b[i],
+                                                    label);
+            if (rid > 0) {
+                if (!first_rec)
+                    first_rec = rid;
+                last_rec = rid;
+            }
+        }
+    }
+    if (first_rec && !com.script)
+        undo_tag_top_nde_record_range(first_rec, last_rec);
+
+    free(layers_arr); free(medians); free(T); free(a); free(b);
+    g_slist_free(eligible);
+    gui_iface.flis_invalidate_composite();
+    return 0;
+
+fail:
+    free(layers_arr); free(medians); free(T); free(a); free(b);
+    g_slist_free(eligible);
+    return 1;
+}
+
+void free_flis_group_calib_args(void *p) {
+    struct flis_group_calib_args *args = p;
+    if (!args)
+        return;
+    if (args->pcc) {
+        if (args->pcc->destroy_fn)
+            args->pcc->destroy_fn(args->pcc);
+        else
+            free(args->pcc);
+    }
+    free(args);
+}
+
+struct flis_group_calib_args *new_flis_group_calib_args(void) {
+    struct flis_group_calib_args *p = calloc(1, sizeof(*p));
+    if (p)
+        p->destroy_fn = free_flis_group_calib_args;
+    return p;
+}
+
+/*
+ * generic_layer_worker hook: run one of the colour-calibration algorithms
+ * against the composite of a layer group and distribute the result into
+ * the group's layers.  args->user is a struct flis_group_calib_args.
+ */
+int flis_group_calibration_hook(struct generic_layer_args *args) {
+    struct flis_group_calib_args *p = args->user;
+    if (!p)
+        return 1;
+    flis_group_t *grp = flis_group_get_by_id(p->group_id);
+    if (!grp) {
+        siril_log_error(_("Group calibration: group no longer exists\n"));
+        return 1;
+    }
+    GSList *members = flis_group_get_layers(grp);
+    if (!members) {
+        siril_log_error(_("Group calibration: the group has no layers\n"));
+        return 1;
+    }
+
+    double K[3], O[3];
+    int rv = 1;
+
+    if (p->kind == FLIS_GROUP_CALIB_CC && p->manual) {
+        /* Manual white balance: per-channel multipliers, no offset. */
+        for (int c = 0; c < 3; c++) {
+            K[c] = p->manual_kw[c];
+            O[c] = 0.0;
+        }
+        rv = 0;
+    } else {
+        gchar *err = NULL;
+        fits *composite = flis_group_render_calib_composite(members, &err);
+        if (!composite) {
+            siril_log_error(_("Group calibration: %s\n"), err ? err : "?");
+            g_free(err);
+            g_slist_free(members);
+            return 1;
+        }
+        if (p->kind == FLIS_GROUP_CALIB_CC) {
+            double kw[3] = { 0 }, bg[3] = { 0 };
+            get_coeff_for_wb(composite, p->white_sel, p->black_sel, kw, bg,
+                             get_normalized_value(composite), p->low, p->high);
+            if (kw[0] > 0.0 && kw[1] > 0.0 && kw[2] > 0.0) {
+                /* calibrate(): C' = (C - bg)*kw + bg  ==  kw*C + bg*(1-kw) */
+                for (int c = 0; c < 3; c++) {
+                    K[c] = kw[c];
+                    O[c] = bg[c] * (1.0 - kw[c]);
+                }
+                rv = 0;
+            } else {
+                siril_log_error(_("Group calibration: could not compute white "
+                        "balance from the selections\n"));
+            }
+        } else {
+            /* PCC / SPCC need a plate solve on the composite (transplanted
+             * from a solved layer by the renderer). */
+            if (!composite->keywords.wcslib) {
+                siril_log_error(_("Group calibration: no plate-solved layer "
+                        "with canvas geometry to take the WCS from — solve a "
+                        "layer first\n"));
+            } else {
+                /* Run the FULL single-image pipeline via the descriptor's
+                 * image hook — it measures the FWHM, fetches and projects
+                 * the star catalogue into pcc->ref_stars, and only then
+                 * calls photometric_cc().  Calling photometric_cc()
+                 * directly crashes on the NULL ref_stars. */
+                struct generic_img_args ia = { 0 };
+                ia.user = p->pcc;
+                rv = photometric_cc_image_hook(&ia, composite, com.max_thread);
+                p->pcc->fit = NULL;
+                if (!rv && p->pcc->have_effective) {
+                    /* apply_photometric_color_correction():
+                     * C' = kw*C + (bg_mean - bg*kw) */
+                    double bg_mean = (p->pcc->eff_bg[0] + p->pcc->eff_bg[1] +
+                                      p->pcc->eff_bg[2]) / 3.0;
+                    for (int c = 0; c < 3; c++) {
+                        K[c] = p->pcc->eff_kw[c];
+                        O[c] = bg_mean - p->pcc->eff_bg[c] * K[c];
+                    }
+                } else {
+                    rv = 1;
+                }
+            }
+        }
+        clearfits(composite);
+        free(composite);
+    }
+
+    if (!rv) {
+        const char *label =
+            p->kind == FLIS_GROUP_CALIB_CC  ? _("Colour calibration (group)") :
+            p->kind == FLIS_GROUP_CALIB_PCC ? _("Photometric CC (group)") :
+                                              _("Spectrophotometric CC (group)");
+        rv = flis_group_apply_channel_calibration(members, K, O, label);
+    }
+    g_slist_free(members);
+    return rv;
 }
 

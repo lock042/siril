@@ -59,6 +59,7 @@
 #include "gui-gtk4/user_polygons.h"
 #include "io/annotation_catalogues.h"
 #include "io/sequence.h"
+#include "algos/siril_wcs.h"
 #include "livestacking/gui.h"
 #include "gui-gtk4/registration.h"
 #include "gui-gtk4/mpp_shift_viewer.h"
@@ -226,6 +227,8 @@ static void impl_queue_redraw_mask(gboolean remap_tints) {
 
 /* ── Groups E, F: no-op placeholders (filled in by 6.1/6.2 impls below) ── */
 
+static void impl_set_suppress_redraws(gboolean suppress);   /* defined below */
+
 /* Called after stacking completes successfully on the GTK main thread.
  * Consolidates all display-state update calls that were previously scattered
  * through end_stacking() in stacking.c. */
@@ -237,7 +240,11 @@ static void impl_on_stack_complete(void) {
 	 * reads gfit->type/orig_bitpix) and also writes it (the hi/lo assignment).
 	 * The lock must be acquired and released as a writer on both counts -
 	 * mixing reader_lock with writer_unlock corrupts the lock on platforms
-	 * where the two unlock primitives differ (e.g. Windows SRWLOCK). */
+	 * where the two unlock primitives differ (e.g. Windows SRWLOCK).
+	 * Quiesce the materialise pool first — the freshly stacked result may
+	 * already have the pool churning reader-locked tile fills, which would
+	 * starve this writer (writer-starvation protocol, counting suppression). */
+	impl_set_suppress_redraws(TRUE);
 	g_rw_lock_writer_lock(&gfit->rwlock);
 	display_filename();
 	gui_function(set_precision_switch, NULL);
@@ -254,6 +261,7 @@ static void impl_on_stack_complete(void) {
 	gfit->keywords.hi = gui.hi;
 	gfit->keywords.lo = gui.lo;
 	g_rw_lock_writer_unlock(&gfit->rwlock);
+	impl_set_suppress_redraws(FALSE);
 	gfit_modified_update_gui();
 	set_display_mode();
 	gui_function(update_MenuItem, NULL);
@@ -318,18 +326,41 @@ static gboolean set_display_mode_menu_sensitive_idle(gpointer p) {
 	return FALSE;
 }
 
+/* Suppression is COUNTING: several independent sections bracket
+ * gfit-writer-lock acquisitions with suppress(TRUE)/suppress(FALSE) to
+ * quiesce the lazy-tile materialise pool (GRWLock has no writer
+ * preference, so an unquiesced writer starves behind the pool's
+ * back-to-back reader-locked tile fills on a large image).  Those
+ * sections nest — e.g. a preview hook inside the generic worker's
+ * swap-path suppression — so a plain boolean would be cleared by the
+ * inner section's exit.  The visible flag the pool workers poll
+ * (gui.suppress_drawarea_redraw) flips only on 0↔1 transitions. */
+static gint suppress_redraw_count = 0;
+
 static void impl_set_suppress_redraws(gboolean suppress) {
 	if (suppress) {
-		g_atomic_int_set(&gui.suppress_drawarea_redraw, 1);
-		siril_add_idle(set_display_mode_menu_sensitive_idle, GINT_TO_POINTER(FALSE));
+		if (g_atomic_int_add(&suppress_redraw_count, 1) == 0) {
+			g_atomic_int_set(&gui.suppress_drawarea_redraw, 1);
+			siril_add_idle(set_display_mode_menu_sensitive_idle, GINT_TO_POINTER(FALSE));
+		}
 	} else {
-		g_atomic_int_set(&gui.suppress_drawarea_redraw, 0);
-		/* Symmetrically re-enable the display-mode menu: the matching
-		 * re-enable in end_gfit_operation() does not run for every op
-		 * that suppressed redraws (e.g. a command with argfit == gfit but
-		 * command_updates_gfit == FALSE completes via end_generic_image()),
-		 * which would otherwise leave the menu permanently insensitive. */
-		siril_add_idle(set_display_mode_menu_sensitive_idle, GINT_TO_POINTER(TRUE));
+		gint prev = g_atomic_int_add(&suppress_redraw_count, -1);
+		if (prev <= 0) {
+			/* Unbalanced release — repair and complain rather than
+			 * leaving the count negative (which would make the next
+			 * suppress(TRUE) a no-op and re-expose the starvation). */
+			g_atomic_int_set(&suppress_redraw_count, 0);
+			siril_log_debug("unbalanced set_suppress_redraws(FALSE)\n");
+		}
+		if (prev == 1) {
+			g_atomic_int_set(&gui.suppress_drawarea_redraw, 0);
+			/* Symmetrically re-enable the display-mode menu: the matching
+			 * re-enable in end_gfit_operation() does not run for every op
+			 * that suppressed redraws (e.g. a command with argfit == gfit but
+			 * command_updates_gfit == FALSE completes via end_generic_image()),
+			 * which would otherwise leave the menu permanently insensitive. */
+			siril_add_idle(set_display_mode_menu_sensitive_idle, GINT_TO_POINTER(TRUE));
+		}
 	}
 }
 
@@ -942,6 +973,22 @@ static gboolean active_layer_reconcile_idle(gpointer p) {
 	wavelets_active_layer_changed();
 	show_or_hide_mask_tab();
 	flis_gui_update_from_idle();
+	/* Action sensitivity is keyed to gfit (has_wcs & co) and would
+	 * otherwise go stale when the active layer changes; this also
+	 * untoggles the WCS overlays if the new layer carries no solve. */
+	update_MenuItem(NULL);
+	/* The found-objects overlay was computed from the outgoing layer's
+	 * WCS; recompute it against the incoming one while the annotate
+	 * toggle stays on (update_MenuItem has already cleared it if the
+	 * new layer has no solve). */
+	GActionMap *map = G_ACTION_MAP(gtk_builder_get_object(gui.builder, "control_window"));
+	GAction *annotate = g_action_map_lookup_action(map, "annotate-object");
+	if (annotate) {
+		GVariant *st = g_action_get_state(annotate);
+		if (g_variant_get_boolean(st) && has_wcs(gfit))
+			refresh_found_objects();
+		g_variant_unref(st);
+	}
 	redraw(REDRAW_OVERLAY);
 	return G_SOURCE_REMOVE;
 }

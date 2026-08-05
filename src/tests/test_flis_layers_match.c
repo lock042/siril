@@ -28,6 +28,8 @@
 #include "core/command.h"
 #include "core/command_line_processor.h"
 #include "core/processing.h"
+#include "core/nde_history.h"
+#include "core/op_descriptor.h"
 
 cominfo com;
 fits *gfit;
@@ -109,4 +111,149 @@ Test(flis_layers_match, rejects_unknown_option) {
 	word[1] = "-bogus=1";
 	word[2] = NULL;
 	cr_assert_eq(process_flis_layers_match(2), CMD_ARG_ERROR);
+}
+
+/* ---- NDE provenance (per-layer "flis.layer_scale" records) --------------- */
+
+Test(flis_layers_match, captures_per_layer_nde_records) {
+	make_tinted_triple(0.2, 0.3, 0.4);
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+	word[0] = "flis_layers_match";
+	word[1] = NULL;
+	cr_assert_eq(process_flis_layers_match(1), CMD_OK);
+
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	cr_assert_not_null(snap, "no NDE history after layers match");
+	guint n_scale = 0;
+	gint seen_targets[3] = { 0, 0, 0 };
+	for (guint i = 0; i < snap->len; i++) {
+		nde_record *rec = g_ptr_array_index(snap, i);
+		if (g_strcmp0(rec->op_id, "flis.layer_scale"))
+			continue;
+		cr_assert_eq(rec->tier, NDE_TIER_A, "record %u not Tier A", i);
+		cr_assert_eq(rec->scope, NDE_SCOPE_LAYER);
+		cr_assert_not_null(rec->params);
+		cr_assert(strstr(rec->params, "scale=") != NULL,
+		          "params '%s' missing scale", rec->params);
+		cr_assert(rec->target_item_id >= 1 && rec->target_item_id <= 3,
+		          "unexpected target %d", rec->target_item_id);
+		seen_targets[rec->target_item_id - 1]++;
+		n_scale++;
+	}
+	cr_assert_eq(n_scale, 3, "expected 3 per-layer records, got %u", n_scale);
+	for (int i = 0; i < 3; i++)
+		cr_assert_eq(seen_targets[i], 1, "layer %d captured %d times",
+		             i + 1, seen_targets[i]);
+	g_ptr_array_unref(snap);
+}
+
+Test(flis_layers_match, layer_scale_serializer_roundtrip) {
+	const op_descriptor *op = op_descriptor_by_id("flis.layer_scale");
+	cr_assert_not_null(op, "flis.layer_scale not registered");
+	cr_assert_not_null(op->serialize);
+	cr_assert_not_null(op->deserialize);
+
+	struct flis_layer_scale_data in = { .destroy_fn = NULL,
+	                                    .scale = 0.73215, .offset = 0.0125 };
+	gchar *blob = op->serialize(&in);
+	cr_assert_not_null(blob);
+	struct flis_layer_scale_data *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out, "deserialize failed on '%s'", blob);
+	cr_assert_float_eq(out->scale, in.scale, 1e-12);
+	cr_assert_float_eq(out->offset, in.offset, 1e-12);
+	free_flis_layer_scale_data(out);
+	g_free(blob);
+
+	/* offset omitted from the blob → defaults to 0 */
+	struct flis_layer_scale_data in2 = { .destroy_fn = NULL,
+	                                     .scale = 1.5, .offset = 0.0 };
+	blob = op->serialize(&in2);
+	cr_assert(strstr(blob, "offset") == NULL);
+	out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out);
+	cr_assert_float_eq(out->scale, 1.5, 1e-12);
+	cr_assert_float_eq(out->offset, 0.0, 1e-12);
+	free_flis_layer_scale_data(out);
+	g_free(blob);
+
+	/* negative scale refused */
+	out = op->deserialize("scale=-1", op->version);
+	cr_assert_null(out);
+}
+
+/* ---- group colour calibration distribution ------------------------------ */
+
+/* Pure-tint RGB triple: the tint matrix is the identity, so the per-layer
+ * factors must equal the composite's per-channel calibration exactly:
+ * a_i = K_i and b_i = O_i. */
+Test(flis_layers_match, group_calibration_pure_tints_exact) {
+	make_tinted_triple(0.2, 0.3, 0.4);
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+
+	GSList *members = g_slist_copy(com.uniq->layers);
+	const double K[3] = { 2.0, 1.0, 0.5 };
+	const double O[3] = { 0.01, 0.0, -0.01 };
+	cr_assert_eq(flis_group_apply_channel_calibration(members, K, O, "Test calib"), 0);
+	g_slist_free(members);
+
+	flis_layer_t *lr = g_slist_nth_data(com.uniq->layers, 0);
+	flis_layer_t *lg = g_slist_nth_data(com.uniq->layers, 1);
+	flis_layer_t *lb = g_slist_nth_data(com.uniq->layers, 2);
+	cr_assert_float_eq(lr->fit->fdata[0], 2.0f * 0.2f + 0.01f, 1e-5);
+	cr_assert_float_eq(lg->fit->fdata[0], 0.3f, 1e-5);
+	cr_assert_float_eq(lb->fit->fdata[0], 0.5f * 0.4f - 0.01f, 1e-5);
+
+	/* One Tier-A record per MUTATED layer: G's factors are exactly identity
+	 * (K=1, O=0), so it is skipped and gets no record. */
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	cr_assert_not_null(snap);
+	guint n = 0;
+	for (guint i = 0; i < snap->len; i++) {
+		nde_record *rec = g_ptr_array_index(snap, i);
+		if (g_strcmp0(rec->op_id, "flis.layer_scale"))
+			continue;
+		cr_assert_eq(rec->tier, NDE_TIER_A);
+		cr_assert_neq(rec->target_item_id, 2, "identity layer G should have no record");
+		n++;
+	}
+	cr_assert_eq(n, 2, "expected 2 records, got %u", n);
+	g_ptr_array_unref(snap);
+}
+
+/* Two layers sharing one tint cannot carry a full-colour calibration: the
+ * background system is rank-deficient in the unreachable channels, and the
+ * operation must fail WITHOUT mutating any layer. */
+Test(flis_layers_match, group_calibration_insufficient_diversity_fails) {
+	flis_layer_t *l1 = flis_test_add_layer(
+	    flis_test_make_mono_fits(16, 16, 0.2f), "A");
+	flis_layer_set_tint(l1, 1.0, 0.0, 0.0);
+	flis_layer_t *l2 = flis_test_add_layer(
+	    flis_test_make_mono_fits(16, 16, 0.3f), "B");
+	flis_layer_set_tint(l2, 1.0, 0.0, 0.0);
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+
+	GSList *members = g_slist_copy(com.uniq->layers);
+	const double K[3] = { 1.2, 0.9, 1.1 };
+	const double O[3] = { 0.01, 0.02, 0.03 };
+	cr_assert_neq(flis_group_apply_channel_calibration(members, K, O, "Test calib"), 0);
+	g_slist_free(members);
+
+	cr_assert_float_eq(l1->fit->fdata[0], 0.2f, 1e-6, "layer mutated on failure");
+	cr_assert_float_eq(l2->fit->fdata[0], 0.3f, 1e-6, "layer mutated on failure");
+}
+
+Test(flis_layers_match, layer_scale_hook_applies_affine) {
+	fits *f = flis_test_make_mono_fits(8, 8, 0.4f);
+	struct flis_layer_scale_data p = { .destroy_fn = NULL,
+	                                   .scale = 0.5, .offset = 0.05 };
+	struct generic_img_args args = { 0 };
+	args.user = &p;
+	cr_assert_eq(flis_layer_scale_image_hook(&args, f, 1), 0);
+	cr_assert_float_eq(f->fdata[0], 0.25f, 1e-6);
+	cr_assert_float_eq(f->fdata[8 * 8 - 1], 0.25f, 1e-6);
+	clearfits(f);
+	free(f);
 }

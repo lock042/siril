@@ -599,15 +599,20 @@ gboolean set_seq(gpointer user_data){
 	}
 	if (retval == 0) {
 		int image_to_load = sequence_find_refimage(seq);
+		/* Quiesce the materialise pool before the writer lock
+		 * (writer-starvation protocol, gui_iface_impl.c). */
+		gui_iface.set_suppress_redraws(TRUE);
 		g_rw_lock_writer_lock(&gfit->rwlock);
 		if (seq_read_frame(seq, image_to_load, gfit, FALSE, -1)) {
 			g_rw_lock_writer_unlock(&gfit->rwlock);
+			gui_iface.set_suppress_redraws(FALSE);
 			siril_log_error(_("could not load reference image from sequence\n"));
 			free_sequence(seq, TRUE);
 			return TRUE;
 		}
 		seq->current = image_to_load;
 		g_rw_lock_writer_unlock(&gfit->rwlock);
+		gui_iface.set_suppress_redraws(FALSE);
 	}
 	if (seq->type == SEQ_SER)
 		ser_display_info(seq->ser_file);
@@ -693,6 +698,10 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 		free(com.uniq);
 		com.uniq = NULL;
 	}
+	/* Quiesce the materialise pool before the writer lock: with a large
+	 * frame on display its reader-locked tile fills would starve this
+	 * writer (writer-starvation protocol, gui_iface_impl.c). */
+	gui_iface.set_suppress_redraws(TRUE);
 	g_rw_lock_writer_lock(&gfit->rwlock);
 	clearfits(gfit);
 	if (seq->current == SCALED_IMAGE) {
@@ -705,10 +714,12 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 		gui_iface.set_busy(TRUE);
 		if (seq_read_frame(seq, index, gfit, FALSE, -1)) {
 			g_rw_lock_writer_unlock(&gfit->rwlock);
+			gui_iface.set_suppress_redraws(FALSE);
 			gui_iface.set_busy(FALSE);
 			return 1;
 		}
 		g_rw_lock_writer_unlock(&gfit->rwlock);
+		gui_iface.set_suppress_redraws(FALSE);
 		set_fwhm_star_as_star_list(seq);// display the fwhm star if possible
 
 		sliders_mode seq_sliders = (sliders_mode)gui_iface.get_sliders_mode();
@@ -755,6 +766,7 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	} else {
 		/* clearfits was done above; if we're not loading, release the lock now */
 		g_rw_lock_writer_unlock(&gfit->rwlock);
+		gui_iface.set_suppress_redraws(FALSE);
 	}
 
 	gui_iface.update_menu_item();		// initialize menu gui

@@ -1202,6 +1202,16 @@ gboolean update_MenuItem(gpointer user_data) {
 	siril_window_enable_rgb_proc_actions(app_win, is_a_singleRGB_image_loaded);
 	/* single RGB image with wcs information is needed */
 	siril_window_enable_rgb_wcs_proc_actions(app_win, is_a_singleRGB_image_loaded && has_wcs(gfit));
+	/* FLIS group-calibration override: with an effectively-colour layer
+	 * group selected, the colour-calibration tools run on the group's
+	 * composite, so they must be sensitive even though the active layer
+	 * (gfit) is mono.  PCC/SPCC additionally need a solved layer that can
+	 * donate its WCS to the composite. */
+	if (is_a_single_image_loaded && is_current_image_flis()
+			&& flis_panel_selected_colour_group()) {
+		siril_window_enable_group_calib_actions(app_win, TRUE,
+				flis_document_has_wcs_donor());
+	}
 	/* single or sequence RGB is needed */
 	siril_window_enable_any_rgb_proc_actions(app_win, is_a_singleRGB_image_loaded|| sequence_is_loaded());
 	/* any image is needed */

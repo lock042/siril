@@ -75,4 +75,10 @@ void flis_gui_present_if_flis(void);
  * to call from worker threads via gui_iface.flis_group_is_selected. */
 gboolean flis_panel_group_is_selected(void);
 
+/* item_id of the selected group row, 0 when the selection is not a group. */
+gint flis_panel_selected_group_id(void);
+
+/* TRUE when the selected group plausibly composites to colour. */
+gboolean flis_panel_selected_colour_group(void);
+
 #endif /* FLIS_GUI_H */

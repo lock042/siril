@@ -234,8 +234,9 @@ int copy_backup_to_gfit() {
 	 * Deadlock-free: no caller holds gfit->rwlock or gui.cairo_mutex here, and
 	 * none of the helpers below re-acquire gfit->rwlock, so this non-recursive
 	 * lock is taken exactly once on the path. */
-	const gint prev_suppress = g_atomic_int_get(&gui.suppress_drawarea_redraw);
-	g_atomic_int_set(&gui.suppress_drawarea_redraw, 1);
+	/* Counting suppression (gui_iface_impl.c): safe to bracket even when an
+	 * outer section (generic worker swap path) already suppressed. */
+	gui_iface.set_suppress_redraws(TRUE);
 	g_rw_lock_writer_lock(&gfit->rwlock);
 	if (!gfit->data && !gfit->fdata)
 		retval = 1;
@@ -272,7 +273,7 @@ int copy_backup_to_gfit() {
 		}
 	}
 	g_rw_lock_writer_unlock(&gfit->rwlock);
-	g_atomic_int_set(&gui.suppress_drawarea_redraw, prev_suppress);
+	gui_iface.set_suppress_redraws(FALSE);
 	return retval;
 }
 

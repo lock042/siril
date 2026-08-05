@@ -1341,9 +1341,13 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
+				/* Quiesce the materialise pool before gfit's writer lock
+				 * (writer-starvation protocol, gui_iface_impl.c). */
+				gui_iface.set_suppress_redraws(TRUE);
 				g_rw_lock_writer_lock(&gfit->rwlock);
 				success = handle_set_pixeldata_request(conn, gfit, payload, payload_length);
 				g_rw_lock_writer_unlock(&gfit->rwlock);
+				gui_iface.set_suppress_redraws(FALSE);
 				// Writer lock must be released before dispatching the idle:
 				// update_single_image_from_gfit acquires the reader lock, which
 				// would deadlock if we still held the writer lock here.
@@ -2692,9 +2696,11 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
 				info->shm_name[sizeof(info->shm_name) - 1] = '\0';
 				info->size = GUINT64_FROM_BE(info->size);
+				gui_iface.set_suppress_redraws(TRUE);
 				g_rw_lock_writer_lock(&gfit->rwlock);
 				success = handle_set_image_header_request(conn, info);
 				g_rw_lock_writer_unlock(&gfit->rwlock);
+				gui_iface.set_suppress_redraws(FALSE);
 			}
 			break;
 		}
@@ -3212,9 +3218,11 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
 				info->shm_name[sizeof(info->shm_name) - 1] = '\0';
 				info->size = GUINT64_FROM_BE(info->size);
+				gui_iface.set_suppress_redraws(TRUE);
 				g_rw_lock_writer_lock(&gfit->rwlock);
 				success = handle_set_iccprofile_request(conn, info);
 				g_rw_lock_writer_unlock(&gfit->rwlock);
+				gui_iface.set_suppress_redraws(FALSE);
 			}
 			break;
 		}
@@ -3582,9 +3590,11 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
 				info->shm_name[sizeof(info->shm_name) - 1] = '\0';
 				info->size = GUINT64_FROM_BE(info->size);
+				gui_iface.set_suppress_redraws(TRUE);
 				g_rw_lock_writer_lock(&gfit->rwlock);
 				success = handle_set_image_mask_request(conn, gfit, info);
 				g_rw_lock_writer_unlock(&gfit->rwlock);
+				gui_iface.set_suppress_redraws(FALSE);
 				gui_iface.show_or_hide_mask_tab();
 				if (!com.script) {
 					gui_iface.redraw_mask_idle(TRUE); // mask data changed: tints are stale
@@ -3594,6 +3604,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_SET_IMAGE_MASK_STATE: {
+			gui_iface.set_suppress_redraws(TRUE);
 			g_rw_lock_writer_lock(&gfit->rwlock);
 			if (single_image_is_loaded() && gfit->mask && gfit->mask->data) {
 				if (payload_length == 1) {
@@ -3601,9 +3612,11 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					gboolean state = (statebyte);
 					set_mask_active(gfit, state);
 					g_rw_lock_writer_unlock(&gfit->rwlock);
+					gui_iface.set_suppress_redraws(FALSE);
 					success = send_response(conn, STATUS_OK, NULL, 0);
 				} else {
 					g_rw_lock_writer_unlock(&gfit->rwlock);
+					gui_iface.set_suppress_redraws(FALSE);
 					const char* error_msg = _("Failed to set mask state - invalid payload length");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					if (!success)
@@ -3611,6 +3624,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				}
 			} else {
 				g_rw_lock_writer_unlock(&gfit->rwlock);
+				gui_iface.set_suppress_redraws(FALSE);
 				const char* error_msg = _("Failed to set mask state - no image loaded or image has no mask");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			}

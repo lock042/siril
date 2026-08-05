@@ -64,6 +64,10 @@ static void destroy_user(gpointer user) {
  * preview machinery at the end of this file. */
 static gboolean amend_preview_installed(void);
 
+/* Quiesced commit-window locking (defined with commit_pixels below). */
+static gboolean commit_lock(fits *fit);
+static void commit_unlock(fits *fit, gboolean quiesced);
+
 static void add_reason(nde_chain *chain, const char *fmt, ...) G_GNUC_PRINTF(2, 3);
 static void add_reason(nde_chain *chain, const char *fmt, ...) {
 	va_list ap;
@@ -180,9 +184,9 @@ static int tier_c_rerun(fits *scratch, const nde_record *rec, gchar **err) {
 	siril_log_message(_("Replaying script step: %s\n"),
 	                  rec->summary ? rec->summary : script);
 
-	g_rw_lock_writer_lock(&gfit->rwlock);
+	gboolean quiesced = commit_lock(gfit);
 	fits_swap_all_except_rwlock(gfit, scratch);
-	g_rw_lock_writer_unlock(&gfit->rwlock);
+	commit_unlock(gfit, quiesced);
 
 	int rc = execute_python_script(g_strdup(script),
 	                               TRUE,   /* from_file */
@@ -193,9 +197,9 @@ static int tier_c_rerun(fits *scratch, const nde_record *rec, gchar **err) {
 	                               FALSE,  /* debug_mode */
 	                               TRUE);  /* for_replay */
 
-	g_rw_lock_writer_lock(&gfit->rwlock);
+	quiesced = commit_lock(gfit);
 	fits_swap_all_except_rwlock(gfit, scratch);
-	g_rw_lock_writer_unlock(&gfit->rwlock);
+	commit_unlock(gfit, quiesced);
 
 	g_strfreev(argv);
 	g_hash_table_unref(kv);
@@ -301,6 +305,27 @@ static void commit_pixels(fits *target, fits *result) {
 	target->mask_active = result->mask_active;
 	result->mask_active = active;
 	fits_swap_all_except_rwlock(target, result);
+}
+
+/* Writer-lock @fit for a short commit window, quiescing the lazy-tile
+ * materialise pool first when @fit IS the displayed image: GRWLock has no
+ * writer preference, so an unquiesced writer starves behind the pool's
+ * back-to-back reader-locked tile fills on a large image.  Counting
+ * suppression (gui_iface_impl.c), so nesting under an outer suppression
+ * is safe.  Returns whether the pool was quiesced; pass it back to
+ * commit_unlock(). */
+static gboolean commit_lock(fits *fit) {
+	gboolean quiesce = (fit == gfit);
+	if (quiesce)
+		gui_iface.set_suppress_redraws(TRUE);
+	g_rw_lock_writer_lock(&fit->rwlock);
+	return quiesce;
+}
+
+static void commit_unlock(fits *fit, gboolean quiesced) {
+	g_rw_lock_writer_unlock(&fit->rwlock);
+	if (quiesced)
+		gui_iface.set_suppress_redraws(FALSE);
 }
 
 /* TRUE when the record's params pin an external image file (Convention 1) —
@@ -1309,9 +1334,9 @@ static gboolean recompute_item(gint item_id, gchar **err) {
 		free(result);
 		return FALSE;
 	}
-	g_rw_lock_writer_lock(&target->rwlock);
+	gboolean quiesced = commit_lock(target);
 	commit_pixels(target, result);
-	g_rw_lock_writer_unlock(&target->rwlock);
+	commit_unlock(target, quiesced);
 	commit_restore_metadata(target, result);
 	clearfits(result);
 	free(result);
@@ -1710,7 +1735,7 @@ static void cascade_derived_masks(gint item_id, gint64 unchanged_upto) {
  * @old is the pre-edit fits the swap left holding the rich metadata; it is
  * about to be cleared, so ownership moves are plain pointer swaps. */
 static void commit_restore_metadata(fits *target, fits *old) {
-	g_rw_lock_writer_lock(&target->rwlock);
+	gboolean quiesced = commit_lock(target);
 	/* Move the replayed WCS aside, swap the keyword structs wholesale, then
 	 * put the replayed WCS back.  The pre-edit wcslib travels to @old inside
 	 * its keywords struct, so clearfits(@old) frees it properly. */
@@ -1734,7 +1759,7 @@ static void commit_restore_metadata(fits *target, fits *old) {
 	GSList *hist = target->history;
 	target->history = old->history;
 	old->history = hist;
-	g_rw_lock_writer_unlock(&target->rwlock);
+	commit_unlock(target, quiesced);
 }
 
 /* Why a history edit is refused right now.  Both modes install a synthesized
@@ -2074,18 +2099,18 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 
 	/* Atomic commit: swap pixels, then the log.  `result` holds the OLD
 	 * pixels after the swap, so a log-commit failure can restore them. */
-	g_rw_lock_writer_lock(&target->rwlock);
+	gboolean quiesced = commit_lock(target);
 	commit_pixels(target, result);
-	g_rw_lock_writer_unlock(&target->rwlock);
+	commit_unlock(target, quiesced);
 
 	gboolean log_ok = new_params ? nde_history_amend(record_id, new_params, err)
 	                             : nde_history_delete(record_id, err);
 	if (!log_ok) {
 		/* Should be unreachable (everything was validated, we own the
 		 * slot); restore the old pixels so nothing is half-committed. */
-		g_rw_lock_writer_lock(&target->rwlock);
+		quiesced = commit_lock(target);
 		commit_pixels(target, result);
-		g_rw_lock_writer_unlock(&target->rwlock);
+		commit_unlock(target, quiesced);
 		clearfits(result);
 		free(result);
 		gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
@@ -2642,15 +2667,15 @@ gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after,
 		gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
 		return FALSE;
 	}
-	g_rw_lock_writer_lock(&target->rwlock);
+	gboolean quiesced = commit_lock(target);
 	commit_pixels(target, result);
-	g_rw_lock_writer_unlock(&target->rwlock);
+	commit_unlock(target, quiesced);
 
 	gboolean log_ok = nde_history_reorder(record_id, log_before_id, err);
 	if (!log_ok) {
-		g_rw_lock_writer_lock(&target->rwlock);
+		quiesced = commit_lock(target);
 		commit_pixels(target, result);
-		g_rw_lock_writer_unlock(&target->rwlock);
+		commit_unlock(target, quiesced);
 		clearfits(result);
 		free(result);
 		gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
@@ -3426,9 +3451,9 @@ gboolean nde_edit_at_end_execute(gboolean apply, gchar **err) {
 	}
 	g_array_unref(inserted);
 
-	g_rw_lock_writer_lock(&target->rwlock);
+	gboolean quiesced = commit_lock(target);
 	commit_pixels(target, result);
-	g_rw_lock_writer_unlock(&target->rwlock);
+	commit_unlock(target, quiesced);
 	commit_restore_metadata(target, result);
 	clearfits(result);
 	free(result);

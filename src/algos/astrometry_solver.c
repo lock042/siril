@@ -889,6 +889,11 @@ gpointer plate_solver(gpointer p) {
 
 	gboolean rwlocked = FALSE;
 	if (!args->for_sequence) {
+		/* args->fit is the displayed image here: quiesce the lazy-tile
+		 * materialise pool before the writer lock or this starves behind
+		 * its reader-locked tile fills on a large image (counting
+		 * suppression, gui_iface_impl.c). */
+		gui_iface.set_suppress_redraws(TRUE);
 		g_rw_lock_writer_lock(&args->fit->rwlock);
 		rwlocked = TRUE;
 	}
@@ -1107,8 +1112,10 @@ gpointer plate_solver(gpointer p) {
 	}
 
 clearup:
-	if (rwlocked)
+	if (rwlocked) {
 		g_rw_lock_writer_unlock(&args->fit->rwlock);
+		gui_iface.set_suppress_redraws(FALSE);
+	}
 	if (stars) {
 		for (int i = 0; i < nb_stars; i++)
 			free_psf(stars[i]);

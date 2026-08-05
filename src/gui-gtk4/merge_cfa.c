@@ -409,6 +409,9 @@ static gpointer merge_cfa_img_worker(gpointer p) {
 		return GINT_TO_POINTER(1);
 	}
 	siril_log_message("Bayer pattern produced: 1 layer, %dx%d pixels\n", out->rx, out->ry);
+	/* Quiesce the lazy-tile materialise pool before gfit's writer lock
+	 * (writer-starvation protocol, gui_iface_impl.c). */
+	gui_iface.set_suppress_redraws(TRUE);
 	g_rw_lock_writer_lock(&gfit->rwlock);
 	close_single_image();
 	copyfits(out, gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
@@ -418,6 +421,7 @@ static gpointer merge_cfa_img_worker(gpointer p) {
 	free_wcs(gfit);
 	update_fits_header(gfit);
 	g_rw_lock_writer_unlock(&gfit->rwlock);
+	gui_iface.set_suppress_redraws(FALSE);
 	clearfits(out);
 	free(out);
 	clear_stars_list(TRUE);

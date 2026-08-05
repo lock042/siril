@@ -518,6 +518,20 @@ gint64 nde_capture_from_descriptor(const struct op_descriptor *op,
                                    gconstpointer params, const char *summary,
                                    const fits *post, gboolean mask_aware);
 
+/**
+ * nde_capture_from_descriptor_for_item:
+ *
+ * Like nde_capture_from_descriptor() but records against an EXPLICIT layer
+ * item (LAYER scope, no mask pinning).  For multi-layer operations that
+ * factor into independent per-layer records — layers match and group colour
+ * calibration capture one record per affected layer, each targeting that
+ * layer's item_id rather than the active layer.
+ */
+gint64 nde_capture_from_descriptor_for_item(const struct op_descriptor *op,
+                                            gconstpointer params,
+                                            const char *summary,
+                                            const fits *post, gint item_id);
+
 /** Heap ISO 8601 UTC timestamp, matching FLIS layer CREATED/MODIFIED style. */
 gchar *nde_iso8601_now(void);
 

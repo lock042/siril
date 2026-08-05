@@ -195,12 +195,23 @@ static annotations_catalogue_t *load_catalog(siril_cat_index cat_index, const gc
 static void load_all_catalogues() {
 	siril_log_debug("reloading annotation catalogues\n");
 	int cat_size = G_N_ELEMENTS(cat);
+	int system_missing = 0;
 	for (int i = 0; i < cat_size; i++) {
-		annotations_catalogue_t *newcat = load_catalog(i + CAT_AN_INDEX_OFFSET, NULL);
+		siril_cat_index cat_index = i + CAT_AN_INDEX_OFFSET;
+		annotations_catalogue_t *newcat = load_catalog(cat_index, NULL);
 		if (newcat)
 			siril_annot_catalogue_list = g_slist_prepend(siril_annot_catalogue_list, newcat);
+		else if (cat_index < CAT_AN_USER_DSO)
+			system_missing++;	// user catalogues are legitimately absent
 	}
 	siril_annot_catalogue_list = g_slist_reverse(siril_annot_catalogue_list);
+	if (system_missing > 0) {
+		gchar *catdir = g_build_filename(siril_get_system_data_dir(), "catalogue", NULL);
+		siril_log_error(_("%d annotation catalogue(s) could not be loaded from %s. "
+				"Object annotations will be missing or incomplete; check your installation.\n"),
+				system_missing, catdir);
+		g_free(catdir);
+	}
 }
 
 static GSList *find_catalogue_by_index(siril_cat_index cat_index) {

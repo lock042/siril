@@ -1796,10 +1796,14 @@ static void paint_mpp_ref_frame_into_gfit(const int32_t *src, int rows, int cols
 	ref_fits.orig_bitpix = USHORT_IMG;
 	ref_fits.type = DATA_USHORT;
 
+	/* Quiesce the materialise pool before the writer lock
+	 * (writer-starvation protocol, gui_iface_impl.c). */
+	gui_iface.set_suppress_redraws(TRUE);
 	g_rw_lock_writer_lock(&gfit->rwlock);
 	clearfits(gfit);
 	memcpy(gfit, &ref_fits, offsetof(fits, rwlock));
 	g_rw_lock_writer_unlock(&gfit->rwlock);
+	gui_iface.set_suppress_redraws(FALSE);
 
 	/* A selection drawn on the previous (possibly RGB) frame must not
 	 * survive onto the ref frame: selection-update/FWHM feedback would run

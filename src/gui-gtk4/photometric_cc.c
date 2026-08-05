@@ -40,6 +40,9 @@
 #include "io/local_catalogues.h"
 #include "io/healpix/healpix_cat.h"
 #include "io/healpix/fluxcache_cat.h"
+#include "io/image_format_flis.h"
+#include "gui-gtk4/flis_gui.h"
+#include "core/undo.h"
 #include "photometric_cc.h"
 
 #define MIN_PLOT 336.0
@@ -211,7 +214,12 @@ void check_gaia_archive_status() {
 static void start_photometric_cc(gboolean spcc) {
 	GtkCheckButton *auto_bkg = GTK_CHECK_BUTTON(lookup_widget("button_cc_bkg_auto"));
 
-	if (!has_wcs(gfit)) {
+	/* Group path: with a layer group selected the calibration runs on the
+	 * group's colour composite (WCS transplanted from a solved layer by the
+	 * hook), so gfit itself need not be solved. */
+	gint gid = is_current_image_flis() ? flis_panel_selected_group_id() : 0;
+
+	if (!gid && !has_wcs(gfit)) {
 		siril_log_error(_("There is no valid WCS information in the header. Please platesolve first.\n"));
 		return;
 	}
@@ -242,6 +250,52 @@ static void start_photometric_cc(gboolean spcc) {
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
 	pcc_args->destroy_fn = free_photometric_cc_data;
+
+	if (gid) {
+		const char *label = spcc ? _("Spectrophotometric CC (group)")
+		                         : _("Photometric CC (group)");
+		flis_group_t *grp = flis_group_get_by_id(gid);
+		GSList *members = grp ? flis_group_get_layers(grp) : NULL;
+		if (!members) {
+			siril_log_error(_("%s: the selected group has no layers\n"), label);
+			free_photometric_cc_data(pcc_args);
+			set_cursor_waiting(FALSE);
+			return;
+		}
+		if (undo_save_flis_multi_layer(members, "%s", label))
+			siril_log_warning(_("%s: could not save undo state\n"), label);
+		g_slist_free(members);
+
+		pcc_args->fit = NULL;	/* the hook renders and owns the composite */
+		struct flis_group_calib_args *p = new_flis_group_calib_args();
+		if (!p) {
+			free_photometric_cc_data(pcc_args);
+			set_cursor_waiting(FALSE);
+			PRINT_ALLOC_ERR;
+			return;
+		}
+		p->kind = spcc ? FLIS_GROUP_CALIB_SPCC : FLIS_GROUP_CALIB_PCC;
+		p->group_id = gid;
+		p->pcc = pcc_args;	/* ownership transferred */
+
+		struct generic_layer_args *gargs = calloc(1, sizeof(*gargs));
+		if (!gargs) {
+			free_flis_group_calib_args(p);
+			set_cursor_waiting(FALSE);
+			PRINT_ALLOC_ERR;
+			return;
+		}
+		gargs->layer = NULL;	/* multi-layer op */
+		gargs->layer_hook = flis_group_calibration_hook;
+		gargs->user = p;
+		gargs->description = g_strdup(label);
+		gargs->invalidate_flags = FLIS_INV_ALL;
+		if (!start_in_new_thread(generic_layer_worker, gargs)) {
+			free_generic_layer_args(gargs);
+			set_cursor_waiting(FALSE);
+		}
+		return;
+	}
 
 	struct generic_img_args *img_args = calloc(1, sizeof(struct generic_img_args));
 	img_args->fit = gfit;

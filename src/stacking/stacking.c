@@ -138,6 +138,11 @@ gpointer stack_function_handler(gpointer p) {
 	 * tasks.  Use offsetof(fits, rwlock) in the memcpy to avoid overwriting
 	 * the lock itself. */
 	if (args->retval == ST_OK) {
+		/* Quiesce the lazy-tile materialise pool before the writer lock:
+		 * GRWLock has no writer preference, so with a large image on
+		 * display the pool's back-to-back reader-locked tile fills starve
+		 * this writer indefinitely (counting suppression, gui_iface_impl). */
+		gui_iface.set_suppress_redraws(TRUE);
 		g_rw_lock_writer_lock(&gfit->rwlock);
 		clearfits(gfit);
 		memcpy(gfit, &args->result, offsetof(fits, rwlock));
@@ -254,6 +259,7 @@ gpointer stack_function_handler(gpointer p) {
 			}
 		}
 		g_rw_lock_writer_unlock(&gfit->rwlock);
+		gui_iface.set_suppress_redraws(FALSE);
 		/* notify_gfit_data_modified must run with the writer lock released:
 		 * it reaches copy_roi_into_gfit() which itself acquires the writer
 		 * lock, triggering pthread EDEADLK on glibc and silent self-deadlock

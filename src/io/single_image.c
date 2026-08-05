@@ -674,6 +674,24 @@ void notify_gfit_data_modified() {
 	if (is_current_image_flis()) {
 		gui_iface.flis_invalidate_composite();
 		gui_iface.flis_gui_update();   /* layers panel sees new stack */
+		/* A colour-managed document promoted from a mono image keeps its
+		 * Gray profile even after tinted layers turn the composite
+		 * chromatic; the display then pushes the colour composite through
+		 * a Gray→monitor transform, which preserves luminance and
+		 * discards chroma — a perfectly mono on-screen rendition of a
+		 * colour image (the "mono LRGB" bug).  Upgrade to the RGB working
+		 * profile, the same channel decision icc_auto_assign() makes
+		 * against flis_composite_naxes2().  One-shot: after the upgrade
+		 * the colorspace test no longer matches. */
+		if (com.uniq->color_managed && com.uniq->icc_profile
+		    && cmsGetColorSpace(com.uniq->icc_profile) == cmsSigGrayData
+		    && flis_composite_is_chromatic()) {
+			siril_log_message(_("FLIS: the composite is now colour — replacing the "
+					"mono document ICC profile with the RGB working profile\n"));
+			current_image_set_icc_profile(copyICCProfile(com.icc.working_standard));
+			refresh_icc_transforms();
+			gui_iface.check_icc_identical_to_monitor();
+		}
 		/* The stack may have just changed colour — tinting a mono layer is
 		 * enough — and the viewport set was decided once, at open time.
 		 * Ask again here, where every edit to the document arrives, rather

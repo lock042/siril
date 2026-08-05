@@ -26,6 +26,7 @@
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "core/processing.h"
+#include "core/gui_iface.h"
 #include "core/icc_profile.h"
 #include "algos/astrometry_solver.h"
 #include "algos/colors.h"
@@ -5213,6 +5214,9 @@ void copy_roi_into_gfit() {
 		siril_log_debug("copy_roi_into_gfit: ROI cache stale, skipping\n");
 		return;
 	}
+	/* Quiesce the materialise pool before the writer lock (writer-starvation
+	 * protocol, counting suppression — safe under an outer suppression). */
+	gui_iface.set_suppress_redraws(TRUE);
 	g_rw_lock_writer_lock(&gfit->rwlock);
 	size_t npixels_gfit = gfit->rx * gfit->ry;
 	/* Plane stride of the ROI cache: its own dims, NOT the selection's —
@@ -5272,6 +5276,7 @@ void copy_roi_into_gfit() {
 		}
 	}
 	g_rw_lock_writer_unlock(&gfit->rwlock);
+	gui_iface.set_suppress_redraws(FALSE);
 }
 
 /* Drop the cached autostretch parameters so the next STF remap recomputes the
