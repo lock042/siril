@@ -2326,7 +2326,7 @@ Current state: linked.</property>
           </object>
         </child>
         <child type="end">
-          <object class="GtkMenuButton" id="nde_history_button">
+          <object class="GtkToggleButton" id="nde_history_button">
             <property name="focusable">1</property>
             <property name="sensitive">0</property>
             <property name="icon-name">document-open-recent-symbolic</property>

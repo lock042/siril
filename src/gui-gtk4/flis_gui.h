@@ -42,15 +42,16 @@
 void flis_gui_toggle_visible(void);
 void flis_gui_update_from_idle(void);
 
-/* Nondestructive History popover, anchored below the header-bar clock button
- * (nde_history_button).  _init builds and attaches it at startup
+/* Nondestructive History window, shown from the header-bar clock button
+ * (nde_history_button).  _init builds it and wires the button at startup
  * (initialize_all_GUI); _toggle_visible is the programmatic toggle behind
- * win.show-nde-history.  Main thread only. */
+ * win.show-nde-history.  Either route ends at the window's visibility, and
+ * the button follows it, so the two cannot drift apart.  Main thread only. */
 void flis_gui_history_popover_init(void);
 void flis_gui_history_toggle_visible(void);
 
-/* Dismiss the pinned history popover when no single image is loaded any
- * more; fed from update_MenuItem.  Main thread only. */
+/* Hide the history window when no single image is loaded any more; fed from
+ * update_MenuItem.  Main thread only. */
 void flis_gui_history_notify_image_state(gboolean single_image_loaded);
 
 /* Coalesced refresh of the History window only (NDE provenance mirror).

@@ -329,10 +329,10 @@ void flis_gui_present_if_flis(void) {
 
 static void canvas_dialog_refresh_external(void);
 
-/* Startup hook (initialize_all_GUI): build the history popover and attach it
- * to the header-bar clock button (nde_history_button), which then opens and
- * closes it natively.  Builds the panel structures too; the layers window
- * itself stays hidden. */
+/* Startup hook (initialize_all_GUI): build the history window and wire it to
+ * the header-bar clock button (nde_history_button), which shows and hides it
+ * and tracks its visibility.  Builds the panel structures too; the layers
+ * window itself stays hidden. */
 void flis_gui_history_popover_init(void) {
 	if (!g_panel) build_panel();
 	if (!g_panel) return;
@@ -3018,6 +3018,38 @@ static gboolean on_hist_win_close_request(GtkWindow *w, gpointer u) {
 	return TRUE;
 }
 
+/* ---- Keeping the clock button and the window in step ----------------
+ *
+ * The window's visibility is the single source of truth, and every route
+ * that changes it — the button, the win.show-nde-history action, the "X"
+ * decoration, the image going away — passes through notify::visible.  The
+ * button merely mirrors it.
+ *
+ * It has to be that way round.  The button used to be a GtkMenuButton with
+ * no popover attached, kept only for its create-popup hook; GTK lit its
+ * toggle on click and, with no popover to pop down, nothing ever cleared it
+ * again.  Closing the window from its own decoration left the button stuck
+ * active. */
+static gboolean hist_button_syncing = FALSE;
+
+static void hist_button_set_active(gboolean on) {
+	GtkWidget *btn = lookup_widget("nde_history_button");
+	if (!btn || !GTK_IS_TOGGLE_BUTTON(btn))
+		return;
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(btn)) == on)
+		return;
+	/* Guard the write-back: without it the button's own "toggled" handler
+	 * would fire and re-present the window we are reacting to hiding. */
+	hist_button_syncing = TRUE;
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(btn), on);
+	hist_button_syncing = FALSE;
+}
+
+static void on_hist_win_notify_visible(GObject *w, GParamSpec *ps, gpointer u) {
+	(void)ps; (void)u;
+	hist_button_set_active(gtk_widget_get_visible(GTK_WIDGET(w)));
+}
+
 static GtkWidget *hist_window_get(void) {
 	if (g_panel->hist_win)
 		return g_panel->hist_win;
@@ -3031,16 +3063,20 @@ static GtkWidget *hist_window_get(void) {
 	g_signal_connect(w, "close-request",
 	                 G_CALLBACK(on_hist_win_close_request), NULL);
 	g_signal_connect(w, "show", G_CALLBACK(on_hist_pop_show), NULL);
+	g_signal_connect(w, "notify::visible",
+	                 G_CALLBACK(on_hist_win_notify_visible), NULL);
 	return w;
 }
 
-/* The clock button is a GtkMenuButton with no popover attached, so activating
- * it lands here.  This was already the path that raised the torn-off window;
- * it is now the only one. */
-static void hist_button_create_popup(GtkMenuButton *btn, gpointer u) {
-	(void)btn; (void)u;
-	if (g_panel)
+/* The clock button drives the window; notify::visible drives it back. */
+static void on_hist_button_toggled(GtkToggleButton *btn, gpointer u) {
+	(void)u;
+	if (hist_button_syncing || !g_panel)
+		return;
+	if (gtk_toggle_button_get_active(btn))
 		gtk_window_present(GTK_WINDOW(hist_window_get()));
+	else if (g_panel->hist_win)
+		gtk_widget_set_visible(g_panel->hist_win, FALSE);
 }
 
 /* The Nondestructive History: its own window, raised from the header-bar
@@ -3135,13 +3171,10 @@ static void build_history_popover(void) {
 	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), g_panel->hist_container);
 	gtk_box_append(GTK_BOX(vbox), sw);
 
-	/* No popover is attached, so activating the button lands in the
-	 * create-popup func, which raises the window. */
 	GtkWidget *btn = lookup_widget("nde_history_button");
-	if (btn && GTK_IS_MENU_BUTTON(btn))
-		gtk_menu_button_set_create_popup_func(GTK_MENU_BUTTON(btn),
-		                                      hist_button_create_popup,
-		                                      NULL, NULL);
+	if (btn && GTK_IS_TOGGLE_BUTTON(btn))
+		g_signal_connect(btn, "toggled",
+		                 G_CALLBACK(on_hist_button_toggled), NULL);
 }
 
 /* ---- Context menu -------------------------------------------------- */
