@@ -45,46 +45,61 @@ typedef gboolean (*nde_editor_open_fn)(gint64 record_id);
 static const struct {
 	const char *op_id;
 	nde_editor_open_fn open;
+	/* TRUE when the editor amends with a LIVE PREVIEW, which needs the
+	 * record's image on screen.  A layer that has been merged or flattened
+	 * away cannot be made active, so those editors have nothing to preview
+	 * against and the kv grid is the honest fallback.  The apply-on-OK
+	 * editors below only read the record's parameters and commit, so they
+	 * stay available for the whole life of the document. */
+	gboolean preview;
 } editors[] = {
-	{ "stretch.asinh",        asinh_open_amend },
-	{ "stretch.curves",       curves_open_amend },
-	{ "stretch.mtf",          histogram_mtf_open_amend },
-	{ "stretch.ghs",          histogram_ghs_open_amend },
-	{ "filters.scnr",         scnr_open_amend },
-	{ "filters.median",       median_open_amend },
-	{ "color.saturation",     satu_open_amend },
-	{ "bkg.remove_gradient",  bge_open_amend },
-	{ "filters.epf",          epf_open_amend },
-	{ "filters.clahe",        clahe_open_amend },
-	{ "filters.denoise",      denoise_open_amend },
-	{ "filters.banding",      banding_open_amend },
-	{ "color.ccm",            ccm_open_amend },
-	{ "filters.cosmetic",     cosmetic_open_amend },
-	{ "filters.rgradient",    rgradient_open_amend },
+	{ "stretch.asinh",        asinh_open_amend,          TRUE },
+	{ "stretch.curves",       curves_open_amend,         TRUE },
+	{ "stretch.mtf",          histogram_mtf_open_amend,  TRUE },
+	{ "stretch.ghs",          histogram_ghs_open_amend,  TRUE },
+	{ "filters.scnr",         scnr_open_amend,           TRUE },
+	{ "filters.median",       median_open_amend,         TRUE },
+	{ "color.saturation",     satu_open_amend,           TRUE },
+	{ "bkg.remove_gradient",  bge_open_amend,            TRUE },
+	{ "filters.epf",          epf_open_amend,            TRUE },
+	{ "filters.clahe",        clahe_open_amend,          TRUE },
+	{ "filters.denoise",      denoise_open_amend,        TRUE },
+	{ "filters.banding",      banding_open_amend,        TRUE },
+	{ "color.ccm",            ccm_open_amend,            TRUE },
+	{ "filters.cosmetic",     cosmetic_open_amend,       TRUE },
+	{ "filters.rgradient",    rgradient_open_amend,      TRUE },
 	/* Photometric CC / SPCC re-open their real dialog pre-filled; the amend
 	 * commits without a live preview — the pipeline runs at commit, against
 	 * the record's embedded star catalogue. */
-	{ "color.photometric_cc",    pcc_open_amend },
+	{ "color.photometric_cc",    pcc_open_amend,         FALSE },
 	/* JOINT multi-layer records (nde_joint.h): group PCC/SPCC route to the
 	 * same real dialog (nde_joint_open_amend dispatches); layers match has
 	 * no parameters of its own and CC keeps the compact selections window.
 	 * Apply-on-OK throughout — the amend-preview machinery synthesizes ONE
-	 * target's state and a joint record writes to many. */
-	{ "flis.layers_match",       nde_joint_open_amend },
-	{ "flis.group_calibration",  nde_joint_open_amend },
+	 * target's state and a joint record writes to many.
+	 *
+	 * These MUST survive a flatten: it turns every participant into a
+	 * retained input, the anchor included, and gating them on that sent a
+	 * flattened document's SPCC step to the raw kv grid (spcc-edit.png). */
+	{ "flis.layers_match",       nde_joint_open_amend,   FALSE },
+	{ "flis.group_calibration",  nde_joint_open_amend,   FALSE },
 	/* Registration is joint too, but its params are half machine-derived
 	 * state (transforms, framing, signatures), so it gets a window that shows
 	 * only the settings — the kv-grid fallback would have offered the nine
 	 * homography coefficients per layer as editable text. */
-	{ "flis.register",           nde_register_open_amend },
+	{ "flis.register",           nde_register_open_amend, FALSE },
 };
 
-gboolean nde_editor_open(const gchar *op_id, gint64 record_id) {
+gboolean nde_editor_open(const gchar *op_id, gint64 record_id,
+                         gboolean target_is_retained_input) {
 	if (!op_id)
 		return FALSE;
 	for (guint i = 0; i < G_N_ELEMENTS(editors); i++) {
-		if (!g_strcmp0(editors[i].op_id, op_id))
-			return editors[i].open(record_id);
+		if (g_strcmp0(editors[i].op_id, op_id))
+			continue;
+		if (target_is_retained_input && editors[i].preview)
+			return FALSE;   /* nothing on screen to preview against */
+		return editors[i].open(record_id);
 	}
 	return FALSE;
 }

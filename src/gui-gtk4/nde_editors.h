@@ -42,7 +42,17 @@
  *  reason); FALSE when the caller should fall back to the kv grid: no
  *  editor is registered for the op, or the editor vetoed this particular
  *  record (e.g. an unlinked MTF stretch the histogram sliders cannot
- *  represent). */
-gboolean nde_editor_open(const gchar *op_id, gint64 record_id);
+ *  represent).
+ *
+ *  @target_is_retained_input says the record's item has been merged or
+ *  flattened away and survives only as a composite's input.  That rules out
+ *  the LIVE-PREVIEW editors — there is no on-screen image to preview against
+ *  — but not the apply-on-OK ones, which read the record's parameters and
+ *  commit.  Deciding it here rather than at the call site is what keeps the
+ *  distinction next to the table that knows which editor is which: gating
+ *  the whole registry on it sent a flattened document's SPCC step to the raw
+ *  kv grid. */
+gboolean nde_editor_open(const gchar *op_id, gint64 record_id,
+                         gboolean target_is_retained_input);
 
 #endif /* SRC_GUI_NDE_EDITORS_H_ */

@@ -2112,13 +2112,15 @@ static void on_hist_edit_clicked(GtkButton *b, gpointer u) {
 	 * rather than the enum value the kv grid would put in an entry box. */
 	if (nde_compositing_is_op(r->op_id) && open_compositing_edit_dialog(r))
 		return;
-	/* Native editor next (amend mode with live preview) — but only for a step
-	 * whose image is on screen.  A layer merged or flattened away cannot be
-	 * made active and has nothing left to preview against, so its steps take
-	 * the plain parameter dialog and commit without one; the result appears in
-	 * the image that consumed the layer. */
-	if (!nde_item_is_retained_input(r->target_item_id) &&
-	    nde_editor_open(r->op_id, r->record_id))
+	/* Native editor next.  A layer merged or flattened away cannot be made
+	 * active, so the LIVE-PREVIEW editors have nothing to preview against and
+	 * their steps take the plain parameter dialog, committing without one; the
+	 * result appears in the image that consumed the layer.  The registry
+	 * applies that rule PER EDITOR rather than to all of them, because the
+	 * apply-on-OK editors (photometric CC, the joint records) never wanted a
+	 * preview and must keep their real dialog after a flatten. */
+	if (nde_editor_open(r->op_id, r->record_id,
+	                    nde_item_is_retained_input(r->target_item_id)))
 		return;
 	open_hist_edit_dialog(r);
 }

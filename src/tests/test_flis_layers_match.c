@@ -942,3 +942,37 @@ Test(flis_layers_match, layer_scale_hook_applies_affine) {
 	clearfits(f);
 	free(f);
 }
+
+/* spcc-edit.png: after a FLATTEN, clicking "edit parameters" on the group
+ * calibration step opened the raw key/value grid instead of the real SPCC
+ * dialog.  The record is fine — the panel never asks for its editor:
+ * on_hist_edit_clicked gates the native editor on
+ * !nde_item_is_retained_input(target), and a flatten turns every participant
+ * into a retained input, the anchor included.  That gate exists for the
+ * LIVE-PREVIEW editors, which have nothing to preview against once the layer
+ * is gone; the joint and photometric editors are apply-on-OK and do not care.
+ * This pins the precondition down so the gate's fix cannot silently regress. */
+Test(flis_layers_match, a_flatten_makes_the_joint_anchor_a_retained_input) {
+	make_recorded_triple();
+	cr_assert_eq(run_layers_match(), CMD_OK);
+	gint64 jid = find_joint_record();
+	cr_assert(jid > 0);
+
+	gint anchor = 0;
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	for (guint i = 0; snap && i < snap->len; i++) {
+		const nde_record *rec = g_ptr_array_index(snap, i);
+		if (rec->record_id == jid)
+			anchor = rec->target_item_id;
+	}
+	if (snap) g_ptr_array_unref(snap);
+	cr_assert_eq(anchor, 1, "the anchor is the first participant");
+	cr_assert(!nde_item_is_retained_input(anchor),
+	          "before the flatten the anchor is an ordinary layer");
+
+	cr_assert_eq(flis_flatten_all(), 0);
+
+	cr_assert(nde_item_is_retained_input(anchor),
+	          "after the flatten the anchor IS a retained input — this is the "
+	          "condition that sent the SPCC step to the kv grid");
+}
