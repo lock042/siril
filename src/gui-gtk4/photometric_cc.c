@@ -611,26 +611,38 @@ void on_button_spcc_ok_clicked(GtkButton *button, gpointer user_data) {
 static struct photometric_cc_data *record_pcc_params(gint64 record_id,
                                                      gboolean *is_joint) {
 	gchar *op_id = NULL, *params = NULL;
+	int op_version = 0;
 	GPtrArray *snap = nde_history_snapshot(NULL);
 	for (guint i = 0; snap && i < snap->len; i++) {
 		const nde_record *rec = g_ptr_array_index(snap, i);
 		if (rec->record_id == record_id) {
 			op_id = g_strdup(rec->op_id);
 			params = g_strdup(rec->params);
+			op_version = rec->op_version;
 			break;
 		}
 	}
 	if (snap)
 		g_ptr_array_unref(snap);
 	struct photometric_cc_data *d = NULL;
+	/* The RECORD's version for the record's own blob: this deserializer
+	 * branches on it (a v1 record is exact, a v2 one recomputes), so passing
+	 * the descriptor's current version would silently re-interpret every
+	 * older record.
+	 *
+	 * The NESTED blob is a different version namespace — it was written by
+	 * the photometric_cc serializer, not the group one, and the wrapper does
+	 * not record which version that was.  The descriptor's current version is
+	 * therefore the only available answer, and it is right for anything this
+	 * build captured.  If flis.group_calibration ever gains a v2, store the
+	 * nested blob's version alongside it rather than reusing the wrapper's. */
 	if (op_id && params && !g_strcmp0(op_id, "color.photometric_cc")) {
 		*is_joint = FALSE;
-		d = op_desc_photometric_cc.deserialize(params, op_desc_photometric_cc.version);
+		d = op_desc_photometric_cc.deserialize(params, op_version);
 	} else if (op_id && params && !g_strcmp0(op_id, "flis.group_calibration")) {
 		*is_joint = TRUE;
 		struct nde_joint_group_calib_data *gd =
-				op_desc_flis_group_calibration.deserialize(params,
-						op_desc_flis_group_calibration.version);
+				op_desc_flis_group_calibration.deserialize(params, op_version);
 		if (gd && gd->pcc_blob)
 			d = op_desc_photometric_cc.deserialize(gd->pcc_blob,
 					op_desc_photometric_cc.version);

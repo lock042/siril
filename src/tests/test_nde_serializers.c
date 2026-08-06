@@ -2365,3 +2365,55 @@ Test(nde_serializers, the_colour_tools_refuse_a_mono_image) {
 	clearfits(f);
 	free(f);
 }
+
+/* The group-calibration record's nested PCC blob is what the history panel
+ * needs to reopen the REAL photometric dialog: pcc_open_amend refuses without
+ * it, and nde_editor_open then drops the user into the raw key/value grid
+ * instead of the SPCC dialog.  So the nesting has to survive the codec — the
+ * inner blob is itself semicolon/equals separated, so it is escaped on the way
+ * in and must come back byte-identical. */
+Test(nde_serializers, group_calibration_keeps_its_nested_pcc_blob) {
+	const op_descriptor *op = op_descriptor_by_id("flis.group_calibration");
+	cr_assert_not_null(op);
+	cr_assert_not_null(op->serialize);
+	cr_assert_not_null(op->deserialize);
+
+	/* A realistic inner blob: the PCC serializer's own output shape, with the
+	 * separators the outer codec has to escape. */
+	const gchar *inner = "bg_tol_lo=2;bg_tol_hi=2.8;spcc=1;"
+	                     "mono_sensor=Sony IMX571;filter=Baader R=610nm";
+
+	struct nde_joint_group_calib_data *in = nde_joint_group_calib_data_new(3);
+	cr_assert_not_null(in);
+	in->kind = 2;                       /* SPCC */
+	in->group_id = 5;
+	in->pcc_blob = g_strdup(inner);
+	for (guint k = 0; k < 3; k++) {
+		in->parts[k].item_id = (gint)k + 1;
+		in->parts[k].name = g_strdup_printf("L%u", k + 1);
+		in->parts[k].tinted = TRUE;
+		in->parts[k].tint[0] = k == 0 ? 1.0 : 0.0;
+		in->parts[k].tint[1] = k == 1 ? 1.0 : 0.0;
+		in->parts[k].tint[2] = k == 2 ? 1.0 : 0.0;
+		in->parts[k].diag_scale = 1.0;
+	}
+	for (int c = 0; c < 3; c++) {
+		in->diag_K[c] = 1.0;
+		in->diag_O[c] = 0.0;
+	}
+
+	gchar *blob = op->serialize(in);
+	cr_assert_not_null(blob);
+
+	struct nde_joint_group_calib_data *out = op->deserialize(blob, op->version);
+	cr_assert_not_null(out, "group calibration blob did not deserialize: %s", blob);
+	cr_assert_eq(out->kind, 2, "the SPCC kind must survive — the panel routes on it");
+	cr_assert_not_null(out->pcc_blob,
+	                   "the nested PCC params were lost, so the SPCC dialog "
+	                   "cannot be reopened and the raw kv grid shows instead");
+	cr_assert_str_eq(out->pcc_blob, inner);
+
+	nde_joint_group_calib_data_free(out);
+	g_free(blob);
+	nde_joint_group_calib_data_free(in);
+}

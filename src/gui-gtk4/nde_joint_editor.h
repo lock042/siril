@@ -32,4 +32,15 @@
  * machinery synthesizes one target's state, so changes apply on OK. */
 gboolean nde_joint_open_amend(gint64 record_id);
 
+/* The editor for flis.register, the GEOMETRIC joint record.  Its params carry
+ * two very different halves — the settings the user chose and the transforms
+ * those settings solved for — and only the settings belong in a dialog: the
+ * homographies, framing sizes, canvas positions and geometry signatures are
+ * machine-derived state that hand-editing corrupts.  So this window exposes
+ * method, transformation, interpolation, clamp and reference layer, and
+ * re-serializes everything else verbatim.  Changing a setting invalidates the
+ * stored solve, which the amend records by poisoning the participants'
+ * signatures so replay solves the alignment again. */
+gboolean nde_register_open_amend(gint64 record_id);
+
 #endif /* _NDE_JOINT_EDITOR_H_ */

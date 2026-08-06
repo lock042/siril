@@ -792,6 +792,59 @@ const op_descriptor op_desc_flis_register = {
 	.deserialize = register_deserialize,
 };
 
+gboolean nde_joint_register_apply_settings(struct nde_joint_register_data *p,
+                                           gint method, gint tx_type,
+                                           gint interpolation, gboolean clamp,
+                                           gint ref_item) {
+	if (!p)
+		return FALSE;
+	/* The reference has to stay inside the participant list for the same
+	 * reason the deserializer insists on it: the re-solve builds its internal
+	 * sequence around the reference, and one outside the list has no pixels to
+	 * align to.  Refusing here keeps a rejected amend from writing a blob its
+	 * own deserializer would then throw away. */
+	gboolean ref_ok = FALSE;
+	for (guint k = 0; k < p->n; k++)
+		ref_ok = ref_ok || p->parts[k].item_id == ref_item;
+	if (!ref_ok)
+		return FALSE;
+
+	const gboolean changed = p->method        != method ||
+	                         p->tx_type       != tx_type ||
+	                         p->interpolation != interpolation ||
+	                         (!p->clamp)      != (!clamp) ||
+	                         p->ref_item      != ref_item;
+	p->method        = method;
+	p->tx_type       = tx_type;
+	p->interpolation = interpolation;
+	p->clamp         = clamp;
+	p->ref_item      = ref_item;
+	if (!changed)
+		return FALSE;   /* byte-identical re-serialization: OK is a no-op */
+
+	/* The stored transforms ARE the old settings' answer, so once the settings
+	 * move they are stale by definition — no upstream geometry had to change
+	 * for that to be true.  Replay picks L1 vs L2 by comparing each
+	 * participant's geom_sig against a freshly computed signature
+	 * (register_geometry_unchanged), so poisoning the signatures is how this
+	 * layer of the code says "do not reuse these": the comparison cannot
+	 * match, replay takes L2, and the registration is honestly re-solved with
+	 * what the user just chose.  The H values are left in place as the L3
+	 * fallback for when the re-solve itself cannot run.
+	 *
+	 * The marker is deliberately NOT the empty string.  "" is a REAL signature
+	 * — the one a layer with no geometry upstream of the record computes — and
+	 * that is the common case for a first registration, so clearing to ""
+	 * would compare equal and take L1, the exact opposite of the intent.  Any
+	 * value a signature cannot take will do; nde_joint_geometry_signature
+	 * returns "" or SHA256 hex, so a non-hex token is safe forever. */
+	for (guint k = 0; k < p->n; k++) {
+		g_free(p->parts[k].geom_sig);
+		p->parts[k].geom_sig = g_strdup(NDE_JOINT_GEOM_SIG_STALE);
+	}
+	return TRUE;
+}
+
 /* ======================================================================= */
 /* flis.register replay                                                    */
 /* ======================================================================= */

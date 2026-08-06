@@ -659,3 +659,166 @@ Test(flis_register_nde, one_solve_per_edit) {
 		          "3 participants replayed but the registration solved %u times",
 		          delta);
 }
+
+/* ---- 6. the amend dialog's params rewrite ------------------------------- */
+
+/* A two-participant record with known settings and non-trivial stored state,
+ * round-tripped through the descriptor so the tests below exercise the same
+ * blob the editor sees.  @sig is what both participants' geom_sig start as. */
+static struct nde_joint_register_data *make_settings_record(const char *sig) {
+	const op_descriptor *op = op_descriptor_by_id("flis.register");
+	struct nde_joint_register_data *in = nde_joint_register_data_new(2);
+	in->method = FLIS_REG_GLOBAL;
+	in->tx_type = HOMOGRAPHY_TRANSFORMATION;
+	in->interpolation = OPENCV_LANCZOS4;
+	in->clamp = TRUE;
+	in->ref_item = 1;
+	in->selection = (rectangle){ 7, 8, 9, 10 };
+	in->canvas_w = 512;
+	in->canvas_h = 384;
+	for (guint k = 0; k < 2; k++) {
+		in->parts[k].item_id = (gint)k + 1;
+		in->parts[k].name = g_strdup(k ? "green" : "red");
+		for (int c = 0; c < 9; c++)
+			in->parts[k].H[c] = 0.25 * (c + 1) - k;
+		in->parts[k].pos_x = 11 * (gint)k;
+		in->parts[k].pos_y = -7 * (gint)k;
+		in->parts[k].out_rx = 520;
+		in->parts[k].out_ry = 390;
+		g_free(in->parts[k].geom_sig);
+		in->parts[k].geom_sig = g_strdup(sig);
+	}
+	gchar *blob = op->serialize(in);
+	nde_joint_register_data_free(in);
+	struct nde_joint_register_data *out = op->deserialize(blob, op->version);
+	g_free(blob);
+	cr_assert_not_null(out);
+	return out;
+}
+
+/* Changing a SETTING makes the stored transforms the answer to a question no
+ * longer being asked, so the amend must stop replay reusing them.  It says so
+ * by poisoning every participant's geometry signature: replay's L1 test then
+ * cannot match and the alignment is solved again with the new settings.
+ * Everything else in the blob must survive verbatim — the transforms stay as
+ * the L3 fallback, and the framing, positions, selection and canvas size are
+ * not the dialog's to touch. */
+Test(flis_register_nde, amend_settings_change_invalidates_stored_solve) {
+	const op_descriptor *op = op_descriptor_by_id("flis.register");
+	struct nde_joint_register_data *before = make_settings_record("deadbeef");
+	struct nde_joint_register_data *p = make_settings_record("deadbeef");
+
+	cr_assert(nde_joint_register_apply_settings(p, FLIS_REG_2PASS,
+	                                            SHIFT_TRANSFORMATION,
+	                                            OPENCV_LINEAR, FALSE, 2),
+	          "a changed setting must report the solve as invalidated");
+
+	/* Round-trip: the editor amends with serialize(), so the invalidation has
+	 * to survive the blob, not merely the in-memory struct. */
+	gchar *blob = op->serialize(p);
+	struct nde_joint_register_data *out = op->deserialize(blob, op->version);
+	g_free(blob);
+	cr_assert_not_null(out, "the rewritten blob must still deserialize");
+
+	cr_assert_eq(out->method, FLIS_REG_2PASS);
+	cr_assert_eq(out->tx_type, SHIFT_TRANSFORMATION);
+	cr_assert_eq(out->interpolation, OPENCV_LINEAR);
+	cr_assert_eq(out->clamp, FALSE);
+	cr_assert_eq(out->ref_item, 2);
+
+	cr_assert_eq(out->n, before->n);
+	cr_assert_eq(out->selection.x, before->selection.x);
+	cr_assert_eq(out->selection.w, before->selection.w);
+	cr_assert_eq(out->canvas_w, before->canvas_w);
+	cr_assert_eq(out->canvas_h, before->canvas_h);
+	for (guint k = 0; k < out->n; k++) {
+		cr_assert_str_neq(out->parts[k].geom_sig, before->parts[k].geom_sig,
+		                  "participant %u kept a signature that would send "
+		                  "replay down L1 with a stale transform", k);
+		/* The machine-derived state is preserved verbatim. */
+		cr_assert_eq(out->parts[k].item_id, before->parts[k].item_id);
+		cr_assert_str_eq(out->parts[k].name, before->parts[k].name);
+		for (int c = 0; c < 9; c++)
+			cr_assert_float_eq(out->parts[k].H[c], before->parts[k].H[c], 1e-12);
+		cr_assert_eq(out->parts[k].pos_x, before->parts[k].pos_x);
+		cr_assert_eq(out->parts[k].pos_y, before->parts[k].pos_y);
+		cr_assert_eq(out->parts[k].out_rx, before->parts[k].out_rx);
+		cr_assert_eq(out->parts[k].out_ry, before->parts[k].out_ry);
+	}
+	nde_joint_register_data_free(out);
+	nde_joint_register_data_free(p);
+	nde_joint_register_data_free(before);
+}
+
+/* The signature a layer with NO geometry upstream of the record computes is
+ * the EMPTY STRING, and that is the ordinary case for a first registration.
+ * So "clear the signature" cannot mean "set it to empty": an empty stored
+ * signature compares EQUAL to a freshly computed empty one, replay takes L1,
+ * and the stale transform is applied — the precise failure the invalidation
+ * exists to prevent.  The marker must be something no signature can be. */
+Test(flis_register_nde, invalidation_marker_cannot_be_a_real_signature) {
+	struct nde_joint_register_data *p = make_settings_record("");
+	cr_assert(nde_joint_register_apply_settings(p, FLIS_REG_DFT,
+	                                            SHIFT_TRANSFORMATION,
+	                                            OPENCV_NEAREST, FALSE, 1));
+	for (guint k = 0; k < p->n; k++) {
+		cr_assert_str_neq(p->parts[k].geom_sig, "",
+		                  "an empty marker IS a valid signature and would "
+		                  "compare equal for an ungeometried layer");
+		/* A real signature is empty or SHA256 hex; the marker must be neither. */
+		gboolean hexish = strlen(p->parts[k].geom_sig) == 64;
+		cr_assert(!hexish, "the marker must not look like a real digest");
+	}
+	nde_joint_register_data_free(p);
+
+	/* And it really does drive replay to L2: a layer with no upstream geometry
+	 * signs as "", which the poisoned value must not match. */
+	gchar *live = nde_joint_geometry_signature(1, 0);
+	cr_assert_str_eq(live, "", "no geometry upstream should sign as empty");
+	cr_assert_str_neq(live, NDE_JOINT_GEOM_SIG_STALE);
+	g_free(live);
+}
+
+/* The other half of the contract: an accidental OK must be a no-op.  When
+ * every setting comes back unchanged the struct is left alone, so the
+ * re-serialized blob is byte-identical and the amend is the plain "re-run"
+ * verb rather than a silent forced re-solve. */
+Test(flis_register_nde, amend_without_changes_preserves_the_blob) {
+	const op_descriptor *op = op_descriptor_by_id("flis.register");
+	struct nde_joint_register_data *p = make_settings_record("deadbeef");
+	gchar *original = op->serialize(p);
+
+	cr_assert_not(nde_joint_register_apply_settings(p, FLIS_REG_GLOBAL,
+	                                                HOMOGRAPHY_TRANSFORMATION,
+	                                                OPENCV_LANCZOS4, TRUE, 1),
+	              "re-applying the recorded settings is not a change");
+
+	gchar *after = op->serialize(p);
+	cr_assert_str_eq(after, original,
+	                 "an unchanged amend must re-serialize byte-identically");
+	for (guint k = 0; k < p->n; k++)
+		cr_assert_str_eq(p->parts[k].geom_sig, "deadbeef",
+		                 "an unchanged amend must keep the signatures so "
+		                 "replay can still reuse the stored solve");
+	g_free(after);
+	g_free(original);
+	nde_joint_register_data_free(p);
+}
+
+/* The reference must name one of the participants — the re-solve builds its
+ * sequence around it, and the deserializer rejects a blob whose reference is
+ * outside the list.  A refused rewrite must leave the struct untouched rather
+ * than half-applied. */
+Test(flis_register_nde, amend_rejects_a_reference_outside_the_participants) {
+	struct nde_joint_register_data *p = make_settings_record("deadbeef");
+	cr_assert_not(nde_joint_register_apply_settings(p, FLIS_REG_2PASS,
+	                                                SHIFT_TRANSFORMATION,
+	                                                OPENCV_LINEAR, FALSE, 99));
+	cr_assert_eq(p->method, FLIS_REG_GLOBAL, "a refused amend changed method");
+	cr_assert_eq(p->ref_item, 1, "a refused amend changed the reference");
+	cr_assert_eq(p->clamp, TRUE, "a refused amend changed clamp");
+	for (guint k = 0; k < p->n; k++)
+		cr_assert_str_eq(p->parts[k].geom_sig, "deadbeef",
+		                 "a refused amend poisoned the signatures");
+	nde_joint_register_data_free(p);
+}

@@ -161,6 +161,35 @@ struct nde_joint_register_data {
 struct nde_joint_register_data *nde_joint_register_data_new(guint n);
 void nde_joint_register_data_free(void *p);
 
+/* The geom_sig value that means "the stored transforms are not this record's
+ * answer any more".  A signature is otherwise "" or SHA256 hex, so this can
+ * never be mistaken for one — which is the point: "" is a REAL signature (the
+ * no-geometry-upstream case) and would compare EQUAL, sending replay down L1. */
+#define NDE_JOINT_GEOM_SIG_STALE "stale"
+
+/**
+ * Replace the SETTINGS half of a flis.register params struct in place — the
+ * amend dialog's whole job, factored out of the GUI so it can be tested.
+ *
+ * The record stores both halves (see the struct comment): the solved
+ * transforms and the settings that produced them.  Changing a setting makes
+ * the transforms the answer to a question no longer being asked, so on any
+ * change every participant's @geom_sig is poisoned with
+ * NDE_JOINT_GEOM_SIG_STALE; replay's L1/L2 test then fails and the
+ * registration is re-solved with the new settings.  When nothing changed the
+ * struct is left byte-identical, so re-serializing an untouched dialog is a
+ * genuine no-op rather than a silent forced re-solve.
+ *
+ * @ref_item must name one of the participants — the re-solve builds its
+ * sequence around it.  Returns TRUE when the settings changed (and so the
+ * signatures were poisoned), FALSE when they did not or when @ref_item is not
+ * a participant, in which case NOTHING is modified.
+ */
+gboolean nde_joint_register_apply_settings(struct nde_joint_register_data *p,
+                                           gint method, gint tx_type,
+                                           gint interpolation, gboolean clamp,
+                                           gint ref_item);
+
 extern const struct op_descriptor op_desc_flis_register;
 
 /** TRUE for the joint multi-layer op ids ("flis.layers_match",

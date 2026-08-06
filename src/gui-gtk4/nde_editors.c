@@ -72,6 +72,11 @@ static const struct {
 	 * target's state and a joint record writes to many. */
 	{ "flis.layers_match",       nde_joint_open_amend },
 	{ "flis.group_calibration",  nde_joint_open_amend },
+	/* Registration is joint too, but its params are half machine-derived
+	 * state (transforms, framing, signatures), so it gets a window that shows
+	 * only the settings — the kv-grid fallback would have offered the nine
+	 * homography coefficients per layer as editable text. */
+	{ "flis.register",           nde_register_open_amend },
 };
 
 gboolean nde_editor_open(const gchar *op_id, gint64 record_id) {
