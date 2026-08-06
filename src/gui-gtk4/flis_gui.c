@@ -2714,8 +2714,15 @@ static hist_node_ui *hist_node_get(gint item_id, const nde_graph_node *gn,
 		                             gn->span_items, gn->n_span_items,
 		                             n->frame);
 	} else {
-		nde_graph_view_add_node(NDE_GRAPH_VIEW(g_panel->hist_container), item_id,
-		                        gn ? gn->level : 0, n->frame);
+		/* A SEGMENT — an item's steps continuing below a joint band — has a
+		 * pseudo item_id, so the layout needs telling which real item's column
+		 * it belongs in; otherwise it is left-aligned in its own band and
+		 * reads as a step of whichever layer is leftmost (badorder.png). */
+		const gint align = (gn && gn->real_item != gn->item_id)
+				? gn->real_item : 0;
+		nde_graph_view_add_segment_node(NDE_GRAPH_VIEW(g_panel->hist_container),
+		                                item_id, gn ? gn->level : 0, align,
+		                                n->frame);
 	}
 
 	g_ptr_array_add(g_panel->hist_nodes, n);

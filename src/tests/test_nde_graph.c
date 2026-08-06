@@ -687,3 +687,97 @@ Test(nde_graph, the_mask_feedback_edge_is_identified_as_one) {
 	nde_graph_free(g);
 	done(f);
 }
+
+/* ===================================================================== */
+/* A segment stays in its item's column                                  */
+/*                                                                       */
+/* badorder.png: an SPCC over layers 2 and 3, then a median filter on    */
+/* layer 2.  The median is a SEGMENT — layer 2's history continued below */
+/* the joint band — and it was drawn under layer 1, because bands are    */
+/* left-aligned in isolation and it was the only node in its own band.   */
+/* A step of layer 2 must sit in layer 2's column, or the history reads  */
+/* as belonging to whichever layer happens to be leftmost.               */
+/* ===================================================================== */
+
+static void add_segment(GArray *a, gint item, gint level, gint w, gint h,
+                        gint align_item) {
+	nde_graph_box b = { .item_id = item, .level = level, .w = w, .h = h,
+	                    .align_item = align_item };
+	g_array_append_val(a, b);
+}
+
+Test(nde_graph, a_segment_sits_in_its_own_items_column) {
+	const gint participants[] = { 2, 3 };
+	GArray *b = boxes_new();
+	add_box(b, 1, 0, 200, 100);                       /* Background */
+	add_box(b, 2, 0, 200, 100);                       /* r_layers_00002 */
+	add_box(b, 3, 0, 200, 100);                       /* r_layers_00003 */
+	add_span(b, -1, 1, 200, 30, participants, 2);     /* the SPCC band */
+	add_segment(b, -2, 2, 200, 40, 2);                /* #5 Median on layer 2 */
+	GArray *p = nde_graph_layout(b, 20, 6, NULL, NULL);
+
+	cr_assert_eq(place_for(p, 2)->x, 220, "layer 2 is the middle column");
+	cr_assert_eq(place_for(p, -2)->x, place_for(p, 2)->x,
+	             "the median filter belongs to layer 2, so it must sit in "
+	             "layer 2's column — not under layer 1 at x=0");
+	cr_assert_gt(place_for(p, -2)->y, place_for(p, -1)->y,
+	             "and still below the joint band that split it off");
+	g_array_unref(p);
+	g_array_unref(b);
+}
+
+/* Two participants both continuing below the band each keep their own
+ * column, rather than being packed left to right in list order. */
+Test(nde_graph, sibling_segments_keep_their_separate_columns) {
+	const gint participants[] = { 2, 3 };
+	GArray *b = boxes_new();
+	add_box(b, 1, 0, 200, 100);
+	add_box(b, 2, 0, 200, 100);
+	add_box(b, 3, 0, 200, 100);
+	add_span(b, -1, 1, 200, 30, participants, 2);
+	add_segment(b, -2, 2, 200, 40, 2);
+	add_segment(b, -3, 2, 200, 40, 3);
+	GArray *p = nde_graph_layout(b, 20, 6, NULL, NULL);
+
+	cr_assert_eq(place_for(p, -2)->x, place_for(p, 2)->x);
+	cr_assert_eq(place_for(p, -3)->x, place_for(p, 3)->x);
+	cr_assert_neq(place_for(p, -2)->x, place_for(p, -3)->x,
+	              "two segments must not be stacked into one column");
+	g_array_unref(p);
+	g_array_unref(b);
+}
+
+/* An item whose history STARTS after the joint band has no column to
+ * inherit, so it flows as an ordinary node — but it must not land on top of
+ * a segment that has already claimed a column in that band. */
+Test(nde_graph, a_new_item_below_a_band_does_not_collide_with_a_segment) {
+	const gint participants[] = { 1, 2 };
+	GArray *b = boxes_new();
+	add_box(b, 1, 0, 200, 100);
+	add_box(b, 2, 0, 200, 100);
+	add_span(b, -1, 1, 200, 30, participants, 2);
+	add_segment(b, -2, 2, 200, 40, 1);   /* claims column 0 */
+	add_box(b, 4, 2, 200, 40);           /* a layer added after the SPCC */
+	GArray *p = nde_graph_layout(b, 20, 6, NULL, NULL);
+
+	cr_assert_eq(place_for(p, -2)->x, 0, "the segment keeps layer 1's column");
+	cr_assert_geq(place_for(p, 4)->x, 220,
+	              "a new node must start beyond the segment, not under it");
+	g_array_unref(p);
+	g_array_unref(b);
+}
+
+/* A segment whose anchor is missing (its item's first node filtered out of
+ * the view) must still be placed: visible in the wrong column beats
+ * unplaced. */
+Test(nde_graph, a_segment_without_its_anchor_falls_back_to_the_flow) {
+	GArray *b = boxes_new();
+	add_box(b, 1, 0, 200, 100);
+	add_segment(b, -2, 1, 200, 40, 77);   /* no box for item 77 */
+	GArray *p = nde_graph_layout(b, 20, 6, NULL, NULL);
+
+	cr_assert_not_null(place_for(p, -2));
+	cr_assert_eq(place_for(p, -2)->x, 0, "falls back to ordinary placement");
+	g_array_unref(p);
+	g_array_unref(b);
+}

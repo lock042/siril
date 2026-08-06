@@ -60,6 +60,7 @@ typedef struct {
 	gint       item_id;
 	gint       level;
 	gboolean   spanning;   /* a joint band: spans its participants' columns */
+	gint       align_item; /* a segment: the item whose column it belongs in */
 	gint      *span_items; /* owned; the participants a spanning band covers */
 	guint      n_span_items;
 	GtkWidget *child;    /* borrowed; we hold the parent ref */
@@ -134,6 +135,7 @@ static GArray *layout_now(NdeGraphView *self, gint *w, gint *h) {
 			continue;
 		nde_graph_box b = { .item_id = n->item_id, .level = n->level,
 		                    .spanning = n->spanning,
+		                    .align_item = n->align_item,
 		                    .span_items = n->span_items,
 		                    .n_span_items = n->n_span_items };
 		measure_child(n->child, &b.w, &b.h);
@@ -653,9 +655,16 @@ void nde_graph_view_reset(NdeGraphView *self) {
 
 void nde_graph_view_add_node(NdeGraphView *self, gint item_id, gint level,
                              GtkWidget *child) {
+	nde_graph_view_add_segment_node(self, item_id, level, 0, child);
+}
+
+void nde_graph_view_add_segment_node(NdeGraphView *self, gint item_id,
+                                     gint level, gint align_item,
+                                     GtkWidget *child) {
 	g_return_if_fail(NDE_IS_GRAPH_VIEW(self));
 	g_return_if_fail(GTK_IS_WIDGET(child));
-	view_node n = { .item_id = item_id, .level = level, .child = child };
+	view_node n = { .item_id = item_id, .level = level,
+	                .align_item = align_item, .child = child };
 	g_array_append_val(self->nodes, n);
 	gtk_widget_set_parent(child, GTK_WIDGET(self));
 	gtk_widget_queue_resize(GTK_WIDGET(self));

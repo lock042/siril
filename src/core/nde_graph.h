@@ -203,6 +203,21 @@ typedef struct {
 	 * an ordinary node at its own level rather than going unplaced.
 	 */
 	gint host_item;
+	/**
+	 * 0 for a box that owns its column.  Otherwise the item whose COLUMN this
+	 * box belongs in: a SEGMENT — the continuation of that item's history in a
+	 * band below a joint one — carries a pseudo item_id of its own, so without
+	 * this the layout cannot know the two are one column of the document.
+	 * Bands are laid out in isolation, so a lone segment was left-aligned to
+	 * x=0 and read as a step of whichever item happened to be leftmost
+	 * (badorder.png).
+	 *
+	 * The anchor must sit in an EARLIER band, which a segment's always does —
+	 * it is a later chronological stage by construction.  An anchor that is
+	 * absent, spanning, or not above, leaves the box to flow as an ordinary
+	 * node: wrong-looking but visible, the same bargain @host_item strikes.
+	 */
+	gint align_item;
 	gint w, h;
 	/**
 	 * TRUE for a joint node's box: laid out alone in its band, stretched

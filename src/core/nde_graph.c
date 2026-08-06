@@ -633,23 +633,67 @@ GArray *nde_graph_layout(const GArray *boxes, gint col_gap, gint row_gap,
 		y += band_h[r] + last_gap;
 	}
 
+	/* Resolve each segment to the box whose column it continues.  The anchor
+	 * has to be an ordinary box in an EARLIER band — a segment is a later
+	 * chronological stage than the node it continues, so that always holds for
+	 * a real one, and demanding it keeps a malformed input from making the
+	 * placement order circular.  Unresolved boxes flow normally. */
+	gint *anchor_of = g_new0(gint, n);
+	for (guint i = 0; i < n; i++) {
+		anchor_of[i] = -1;
+		if (!BOX(i)->align_item || host_of[i] >= 0 || BOX(i)->spanning)
+			continue;
+		for (guint j = 0; j < n; j++) {
+			if (j == i || host_of[j] >= 0 || BOX(j)->spanning ||
+			    BOX(j)->align_item)
+				continue;
+			if (BOX(j)->item_id == BOX(i)->align_item &&
+			    level_of[j] < level_of[i]) {
+				anchor_of[i] = (gint)j;
+				break;
+			}
+		}
+	}
+
 	/* Place hosts left to right, each followed by its own column, so that the
 	 * band's next node starts beyond the satellites rather than before them.
 	 * A spanning box takes no x slot: its width is the whole layout's, set
-	 * once that width is known below. */
+	 * once that width is known below.
+	 *
+	 * Band by band, because a segment takes its x from a box in an earlier
+	 * band and so cannot be placed until that one has been.  Within a band the
+	 * segments go FIRST: they have no choice of column, so the ordinary nodes
+	 * — which do — are the ones that must give way, and they start beyond
+	 * whatever the segments claimed rather than underneath it. */
 	gint *band_x = g_new0(gint, (gsize)n_bands);
 	gint *px = g_new0(gint, n);
-	for (guint i = 0; i < n; i++) {
-		if (host_of[i] >= 0 || BOX(i)->spanning)
-			continue;
-		const gint lvl = level_of[i];
-		px[i] = band_x[lvl];
-		band_x[lvl] += BOX(i)->w + col_gap;
-		if (col_w[i]) {
-			for (guint j = 0; j < n; j++)
-				if (host_of[j] == (gint)i)
-					px[j] = band_x[lvl];
-			band_x[lvl] += col_w[i] + col_gap;
+	for (gint r = 0; r < n_bands; r++) {
+		for (guint i = 0; i < n; i++) {
+			if (level_of[i] != r || anchor_of[i] < 0)
+				continue;
+			px[i] = px[anchor_of[i]];
+			gint end = px[i] + BOX(i)->w + col_gap;
+			if (col_w[i]) {
+				for (guint j = 0; j < n; j++)
+					if (host_of[j] == (gint)i)
+						px[j] = end;
+				end += col_w[i] + col_gap;
+			}
+			if (end > band_x[r])
+				band_x[r] = end;
+		}
+		for (guint i = 0; i < n; i++) {
+			if (level_of[i] != r || host_of[i] >= 0 || BOX(i)->spanning ||
+			    anchor_of[i] >= 0)
+				continue;
+			px[i] = band_x[r];
+			band_x[r] += BOX(i)->w + col_gap;
+			if (col_w[i]) {
+				for (guint j = 0; j < n; j++)
+					if (host_of[j] == (gint)i)
+						px[j] = band_x[r];
+				band_x[r] += col_w[i] + col_gap;
+			}
 		}
 	}
 
@@ -710,6 +754,7 @@ GArray *nde_graph_layout(const GArray *boxes, gint col_gap, gint row_gap,
 	if (total_w) *total_w = used_w;
 	if (total_h) *total_h = y > 0 ? y - last_gap : 0;
 	g_free(host_of);
+	g_free(anchor_of);
 	g_free(level_of);
 	g_free(col_w);
 	g_free(col_h);
