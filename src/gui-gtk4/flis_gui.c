@@ -1412,19 +1412,44 @@ static void on_hist_drop_leave(GtkDropTarget *t, gpointer row) {
 }
 
 /* Shared confirm for drag-reorder drops (same wording + remembered pref as
- * the Move buttons). */
-static gboolean hist_reorder_confirm(void) {
+ * the Move buttons).  @summary is passed in rather than read from
+ * hist_drag_item: the confirm happens after the drag has ended (see
+ * hist_drop_confirm_idle), by which point drag-end has dropped that ref. */
+static gboolean hist_reorder_confirm(const gchar *summary) {
 	if (com.pref.gui.silent_hist_move)
 		return TRUE;
-	const gchar *summary = hist_drag_item && hist_drag_item->summary ?
-	                       hist_drag_item->summary : "";
-	gchar *msg = g_strdup_printf("%s\n\n%s", summary, HIST_EDIT_CONSEQUENCE);
+	gchar *msg = g_strdup_printf("%s\n\n%s", summary ? summary : "",
+	                             HIST_EDIT_CONSEQUENCE);
 	gboolean confirmed = siril_confirm_dialog_and_remember(_("Move this step?"),
 			msg, _("_Move"), &com.pref.gui.silent_hist_move);
 	g_free(msg);
 	if (com.pref.gui.silent_hist_move)
 		writeinitfile();
 	return confirmed;
+}
+
+/* Deferred tail of a drag-reorder drop.
+ *
+ * A GtkDropTarget::drop handler must RETURN for GTK to finish the drop, and
+ * siril_confirm_dialog_and_remember() runs a nested main loop: asking from
+ * inside the handler keeps the drop "active" while that loop dispatches the
+ * next drag the user starts, and gtk_drop_begin_event() aborts the process
+ * on `assertion failed: (self->active == FALSE)`.  So capture the move and
+ * ask from an idle, once the DnD sequence is over. */
+struct hist_drop_req {
+	gint64   dragged;
+	gint64   anchor_id;
+	gboolean after;
+	gchar   *summary;
+};
+
+static gboolean hist_drop_confirm_idle(gpointer p) {
+	struct hist_drop_req *req = (struct hist_drop_req *)p;
+	if (hist_reorder_confirm(req->summary))
+		nde_reorder_start(req->dragged, req->anchor_id, req->after);
+	g_free(req->summary);
+	g_free(req);
+	return G_SOURCE_REMOVE;
 }
 
 static gboolean on_hist_drop(GtkDropTarget *t, const GValue *value,
@@ -1438,10 +1463,15 @@ static gboolean on_hist_drop(GtkDropTarget *t, const GValue *value,
 		return FALSE;
 	/* Upper half: insert before the target member; lower half: after. */
 	gboolean after = y > gtk_widget_get_height(GTK_WIDGET(row)) / 2.0;
-	gint64 anchor_id = anchor->record_id;
 	hist_clear_drop_line();
-	if (hist_reorder_confirm())
-		nde_reorder_start(dragged, anchor_id, after);
+
+	struct hist_drop_req *req = g_new0(struct hist_drop_req, 1);
+	req->dragged   = dragged;
+	req->anchor_id = anchor->record_id;
+	req->after     = after;
+	req->summary   = g_strdup(hist_drag_item && hist_drag_item->summary ?
+	                          hist_drag_item->summary : "");
+	g_idle_add(hist_drop_confirm_idle, req);
 	return TRUE;
 }
 

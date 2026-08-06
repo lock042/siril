@@ -76,6 +76,20 @@ static void process_dropped_filename(gchar *filename) {
 	}
 }
 
+/* Both drop paths hand the work to this idle instead of doing it inline.
+ * A drop handler must RETURN for GTK to finish the drop, and
+ * process_dropped_filename() can run a nested main loop (the confirm-on-
+ * replace prompt): asking from inside the handler leaves the drop active
+ * while that loop dispatches the next drag the user starts, and
+ * gtk_drop_begin_event() then aborts the process on `assertion failed:
+ * (self->active == FALSE)`.  Takes ownership of @p. */
+static gboolean dropped_filename_idle(gpointer p) {
+	gchar *filename = (gchar *)p;
+	process_dropped_filename(filename);
+	g_free(filename);
+	return G_SOURCE_REMOVE;
+}
+
 /* Wayland / portable path: GtkDropTarget delivers a GdkFileList GValue. */
 static gboolean on_drawingarea_drop(GtkDropTarget *target, const GValue *value,
 		double x, double y, gpointer user_data) {
@@ -89,8 +103,7 @@ static gboolean on_drawingarea_drop(GtkDropTarget *target, const GValue *value,
 	gchar *filename = g_file_get_path(files->data);
 	if (!filename)
 		return FALSE;
-	process_dropped_filename(filename);
-	g_free(filename);
+	g_idle_add(dropped_filename_idle, filename);   /* takes ownership */
 	return TRUE;
 }
 
@@ -175,10 +188,8 @@ static gboolean on_x11_drop_start(GtkEventControllerLegacy *controller,
 	gchar **uris = x11_fetch_uri_list(widget, gdk_event_get_time(event));
 	if (uris && uris[0]) {
 		gchar *filename = g_filename_from_uri(uris[0], NULL, NULL);
-		if (filename) {
-			process_dropped_filename(filename);
-			g_free(filename);
-		}
+		if (filename)
+			g_idle_add(dropped_filename_idle, filename);   /* takes ownership */
 		gdk_drop_finish(drop, GDK_ACTION_COPY);
 	} else {
 		gdk_drop_finish(drop, 0);
