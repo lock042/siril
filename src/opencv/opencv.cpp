@@ -391,6 +391,16 @@ void cvTransfH(Homography *Href, Homography *Himg, Homography *Hres) {
 
 	convert_H_to_MatH(Href, H0);
 	convert_H_to_MatH(Himg, H1);
+	// cv::Mat::inv() returns an all-zero matrix for a singular input rather
+	// than failing, and an all-zero homography does not warp an image, it
+	// destroys it: every destination pixel resolves to the same source pixel,
+	// so the result is a flat constant. Match cvTransfPoint(), which already
+	// refuses to invert a singular H and leaves its point where it was.
+	if (cv::determinant(H1) == 0) {
+		siril_log_debug("cvTransfH: singular reference matrix, using identity\n");
+		cvGetEye(Hres);
+		return;
+	}
 	H2 = H1.inv() * H0;
 	convert_MatH_to_H(std::move(H2), Hres);
 }

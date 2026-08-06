@@ -373,20 +373,104 @@ int flis_register_layers(flis_layer_t *ref_lay,
 	}
 	free(regargs.imgparam); regargs.imgparam = NULL;
 
+	/* The alignment method owns the reference, and it does not tell us in the
+	 * field we set: register_multi_step_global scores the frames and writes
+	 * its own pick to seq->reference_image (global.c), leaving
+	 * regargs.reference_image on the slot WE asked for.  That field is the one
+	 * compute_framing() reads to build the framing homography (applyreg.c), so
+	 * when the two diverge the apply pass can be handed the H of a slot the
+	 * method EXCLUDED — an all-zero matrix.  cvTransfH() inverts it to zeros,
+	 * every layer is then warped by a null homography, and since a null
+	 * homography maps every destination pixel onto the same source pixel each
+	 * layer comes out a flat constant (the reference layer, skipped by the
+	 * apply, is the only one left intact).  Re-sync before applying. */
+	flis_layer_t *ref_used = ref;
+	if (seq->reference_image >= 0 && seq->reference_image < n_layers &&
+	    seq->reference_image != regargs.reference_image) {
+		for (int k = 0; k < n_parts; k++)
+			if (parts[k].seq_idx == seq->reference_image)
+				ref_used = parts[k].lay;
+		siril_log_message(_("flis_register_layers: the alignment method chose "
+		                    "'%s' as its reference instead of '%s'\n"),
+		                  ref_used->layer_name ? ref_used->layer_name : "?",
+		                  ref->layer_name ? ref->layer_name : "?");
+		regargs.reference_image = seq->reference_image;
+	}
+
+	/* Layers the alignment could not match are dropped from the apply pass —
+	 * their pixels are left alone, which is fine, but they also get NO entry
+	 * in regargs.regparam.  That array is indexed by position in the FILTERED
+	 * output sequence (applyreg.c, apply_reg_finalize_hook), not by input
+	 * slot, so every layer after a dropped one shifts down by one and reading
+	 * it at its slot index returns another layer's offset — or runs off the
+	 * end of the allocation.  Build the slot → output-index map here, while
+	 * the sequence still describes what the apply is about to do. */
+	int *out_of_slot = g_new(int, n_layers);
+	int n_registered = 0;
+	GString *unaligned = NULL;
+	for (int s = 0; s < n_layers; s++) {
+		gboolean ok = seq->imgparam[s].incl &&
+		              guess_transform_from_H(seq->regparam[0][s].H) != NULL_TRANSFORMATION;
+		out_of_slot[s] = ok ? n_registered++ : -1;
+		if (ok) continue;
+		for (int k = 0; k < n_parts; k++) {
+			if (parts[k].seq_idx != s) continue;
+			const gchar *nm = parts[k].lay->layer_name ? parts[k].lay->layer_name : "?";
+			if (!unaligned) unaligned = g_string_new(nm);
+			else g_string_append_printf(unaligned, ", %s", nm);
+		}
+	}
+	if (n_registered < 2) {
+		siril_log_error(_("flis_register_layers: only %d layer(s) could be "
+		                  "aligned — nothing to do.  Try another reference "
+		                  "layer or alignment method\n"), n_registered);
+		if (unaligned) g_string_free(unaligned, TRUE);
+		g_free(out_of_slot);
+		free(regargs.regparam); regargs.regparam = NULL;
+		free_sequence(seq, TRUE);
+		g_free(parts);
+		if (reserved) unreserve_thread();
+		return 1;
+	}
+	if (unaligned) {
+		siril_log_warning(_("flis_register_layers: could not align %s — "
+		                    "left untouched, in place\n"), unaligned->str);
+		g_string_free(unaligned, TRUE);
+	}
+
 	/* Apply transforms — resamples layer pixel data + records bounding-box
 	 * offsets in regparam[i].H.h02 / h12. */
 	regargs.framing = FRAMING_MAX;
 	ret = register_apply_reg(&regargs);
 	if (!ret && regargs.regparam) {
+		/* Anchor: one layer stays put and every other layer's new offset is
+		 * expressed against it.  Normally that is the canvas (base) layer,
+		 * pinned back to the origin.  When the canvas layer is one of the
+		 * unaligned ones its pixels were never warped, so it keeps its place
+		 * and the alignment's own reference layer anchors instead. */
+		const int canvas_out = (canvas_seq_idx >= 0) ? out_of_slot[canvas_seq_idx] : -1;
 		double cx, cy;
-		if (canvas_seq_idx >= 0) {
-			cx = regargs.regparam[canvas_seq_idx].H.h02;
-			cy = regargs.regparam[canvas_seq_idx].H.h12;
+		if (canvas_out >= 0) {
+			cx = regargs.regparam[canvas_out].H.h02;
+			cy = regargs.regparam[canvas_out].H.h12;
 			canvas_lay->position_x = 0;
 			canvas_lay->position_y = 0;
 		} else {
-			cx = regargs.regparam[0].H.h02 - ref_orig_x;
-			cy = regargs.regparam[0].H.h12 - ref_orig_y;
+			/* The anchor is the layer the alignment referenced; it is aligned
+			 * by construction, and holding it at the offset it already had is
+			 * what keeps the rest of the document from jumping. */
+			int anchor_slot = (out_of_slot[regargs.reference_image] >= 0)
+			                ? regargs.reference_image : 0;
+			while (anchor_slot < n_layers && out_of_slot[anchor_slot] < 0)
+				anchor_slot++;
+			const flis_layer_t *anchor = ref;
+			for (int k = 0; k < n_parts; k++)
+				if (parts[k].seq_idx == anchor_slot)
+					anchor = parts[k].lay;
+			cx = regargs.regparam[out_of_slot[anchor_slot]].H.h02 -
+			     (anchor == ref ? ref_orig_x : anchor->position_x);
+			cy = regargs.regparam[out_of_slot[anchor_slot]].H.h12 -
+			     (anchor == ref ? ref_orig_y : anchor->position_y);
 		}
 
 		int k = 1;
@@ -398,8 +482,11 @@ int flis_register_layers(flis_layer_t *ref_lay,
 				continue;
 			}
 			int seq_idx = (lay == ref) ? 0 : k++;
-			double dx = regargs.regparam[seq_idx].H.h02 - cx;
-			double dy = regargs.regparam[seq_idx].H.h12 - cy;
+			int out_idx = out_of_slot[seq_idx];
+			if (out_idx < 0)
+				continue;   /* unaligned: pixels untouched, so is the offset */
+			double dx = regargs.regparam[out_idx].H.h02 - cx;
+			double dy = regargs.regparam[out_idx].H.h12 - cy;
 			lay->position_x = (gint)round(dx);
 			lay->position_y = (gint)round(dy);
 		}
@@ -428,7 +515,20 @@ int flis_register_layers(flis_layer_t *ref_lay,
 		 * both lie about the operation and make undo N steps.  Same guard as
 		 * the other joint captures (flis_group_apply_channel_calibration_full):
 		 * a replay must not re-record what it is reproducing, and under a
-		 * python provenance scope the scope's own record subsumes this one. */
+		 * python provenance scope the scope's own record subsumes this one.
+		 *
+		 * Only the layers that were actually warped are participants: an
+		 * unaligned one has a null H, so reconstructing its framed transform
+		 * would store nonsense, and a replay would then move a layer the live
+		 * run left exactly where it was. */
+		int n_kept = 0;
+		for (int k = 0; k < n_parts; k++) {
+			if (out_of_slot[parts[k].seq_idx] < 0) continue;
+			if (n_kept != k) parts[n_kept] = parts[k];
+			n_kept++;
+		}
+		n_parts = n_kept;
+
 		if (nde_replaying) {
 			/* no capture */
 		} else if (nde_script_scope_active()) {
@@ -442,7 +542,7 @@ int flis_register_layers(flis_layer_t *ref_lay,
 			p->tx_type       = (gint)tx_type;
 			p->interpolation = (gint)interpolation;
 			p->clamp         = clamp;
-			p->ref_item      = ref->item_id;
+			p->ref_item      = ref_used->item_id;
 			p->selection     = regargs.selection;
 			p->canvas_w      = (gint)com.uniq->canvas_w;
 			p->canvas_h      = (gint)com.uniq->canvas_h;
@@ -479,7 +579,7 @@ int flis_register_layers(flis_layer_t *ref_lay,
 			gchar *summary = g_strdup_printf("%s (%d %s)", _("Register layers"),
 			                                 n_parts, _("layers"));
 			gint64 rid = nde_capture_from_descriptor_pinned(&op_desc_flis_register,
-					p, summary, NULL, ref->item_id, pins, (guint)n_parts);
+					p, summary, NULL, ref_used->item_id, pins, (guint)n_parts);
 			for (int k = 0; k < n_parts; k++)
 				g_free(roles[k]);
 			g_free(roles);
@@ -496,6 +596,7 @@ int flis_register_layers(flis_layer_t *ref_lay,
 	free(regargs.imgparam); regargs.imgparam = NULL;
 	free(regargs.regparam); regargs.regparam = NULL;
 	free_sequence(seq, TRUE);
+	g_free(out_of_slot);
 	g_free(parts);
 	if (reserved) unreserve_thread();
 	return ret;
@@ -609,6 +710,27 @@ int flis_register_solve(fits **fits_in, int n, int ref_index,
 		goto out_free;
 	}
 	free(regargs.imgparam); regargs.imgparam = NULL;
+
+	/* Same two traps as the live path (see flis_register_layers): the method
+	 * may have picked its own reference without updating the field
+	 * compute_framing() reads, and any frame it could not match is dropped
+	 * from the apply — which both shifts regargs.regparam's indexing off the
+	 * input slots and leaves a null matrix behind.  A solve that cannot cover
+	 * every input is no solve at all here: returning failure hands the replay
+	 * back to its L3 fallback, which reproduces the recorded transforms. */
+	if (seq->reference_image >= 0 && seq->reference_image < n)
+		regargs.reference_image = seq->reference_image;
+	for (int k = 0; k < n; k++) {
+		if (seq->imgparam[slot_of[k]].incl &&
+		    guess_transform_from_H(seq->regparam[0][slot_of[k]].H) != NULL_TRANSFORMATION)
+			continue;
+		siril_log_error(_("Register layers: cannot solve the alignment — "
+		                  "layer %d could not be matched to the reference\n"), k + 1);
+		free(regargs.regparam); regargs.regparam = NULL;
+		g_free(slot_of); g_free(src_rx); g_free(src_ry);
+		goto out_free;
+	}
+
 	regargs.framing = FRAMING_MAX;
 	int ret = register_apply_reg(&regargs);
 	if (!ret && regargs.regparam) {

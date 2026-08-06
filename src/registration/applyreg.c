@@ -107,6 +107,18 @@ static gboolean compute_framing(struct registration_args *regargs) {
 	// Homography Href = regargs->seq->regparam[regargs->layer][regargs->reference_image].H;
 	Homography Href = regargs->framingd.Htransf;
 	// cvGetEye(&Href);
+	// check_before_applyreg() validates seq->reference_image, but the matrix we
+	// are about to frame against came from regargs->reference_image, which is a
+	// different field and can name a frame that was never registered. A null
+	// Href does not fail loudly further down: cvTransfPoint() refuses to invert
+	// it and leaves the corners alone (so the output size looks plausible),
+	// while cvTransfH() inverts it to zeros and every image is then warped by a
+	// null homography into a flat constant. Refuse here instead.
+	if (guess_transform_from_H(Href) == NULL_TRANSFORMATION) {
+		siril_log_error(_("The image used to frame the output has a null "
+				"registration matrix, aborting\n"));
+		return FALSE;
+	}
 	Homography Hshift = { 0 };
 	cvGetEye(&Hshift);
 	int rx = regargs->use_external_ref ? regargs->external_ref_rx :

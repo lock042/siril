@@ -22,6 +22,7 @@
 #include <criterion/criterion.h>
 #include <math.h>
 #include "flis_test_helpers.h"
+#include "core/gui_iface.h"
 
 cominfo com;
 fits *gfit;
@@ -225,4 +226,65 @@ Test(flis_flatten, merge_down_bottom_params_not_baked) {
 	cr_assert_eq(merged->position_x, 0);
 	cr_assert_eq(merged->position_y, 0);
 	cr_assert(!merged->has_tint, "tint is baked into the merged RGB pixels");
+}
+
+/* =====================================================================
+ * A mono document that flattens to colour must say so.
+ *
+ * Action sensitivity is keyed to gfit: isrgb(gfit) gates Saturation,
+ * Remove Green Noise and the colour-calibration tools, and it is
+ * recomputed by the reconciler uniq_set_active_layer() fires.  That fired
+ * on a change of the gfit POINTER only — but flatten and merge-down
+ * install their RGB result into the surviving layer's existing fits, so a
+ * document goes mono -> colour with gfit standing still.  The menu then
+ * kept describing the mono image and those tools stayed greyed out on a
+ * colour result.  Reported as "after composing and flattening, saturation
+ * is unavailable where it should be available (also Remove Green Noise)".
+ * ===================================================================== */
+
+static int reconcile_calls;
+static void count_reconcile(void) { reconcile_calls++; }
+
+/* Install the counting stub for the duration of one op. */
+#define WITH_RECONCILE_COUNTER(body) do {                                      \
+	void (*saved)(void) = gui_iface.on_active_layer_changed;                   \
+	gui_iface.on_active_layer_changed = count_reconcile;                       \
+	reconcile_calls = 0;                                                       \
+	body                                                                       \
+	gui_iface.on_active_layer_changed = saved;                                 \
+} while (0)
+
+/* Mono base + tinted mono top, the LRGB-document shape. */
+static void two_mono_layers(void) {
+	flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.2f), "Background");
+	flis_layer_t *ha = flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "Ha");
+	cr_assert_eq(flis_layer_set_blend_mode(ha, FLIS_BLEND_SCREEN), 0);
+	cr_assert_eq(flis_layer_set_tint(ha, 1.0, 0.0, 0.0), 0);
+	uniq_set_active_layer(com.uniq, 0);
+	cr_assert_eq(gfit->naxis, 2, "fixture should start mono");
+}
+
+Test(flis_flatten, flatten_to_colour_reconciles_gfit_state) {
+	two_mono_layers();
+	WITH_RECONCILE_COUNTER({
+		cr_assert_eq(flis_flatten_all(), 0);
+	});
+	cr_assert_eq(gfit->naxis, 3, "flatten should produce a colour image");
+	cr_assert_eq(com.uniq->chans, 3);
+	cr_assert(reconcile_calls > 0,
+	          "mono -> colour flatten did not fire the active-layer "
+	          "reconciler, so isrgb-gated actions stay greyed out");
+}
+
+Test(flis_flatten, merge_down_to_colour_reconciles_gfit_state) {
+	two_mono_layers();
+	flis_layer_t *top = (flis_layer_t *)g_slist_nth_data(com.uniq->layers, 1);
+	WITH_RECONCILE_COUNTER({
+		cr_assert_eq(flis_merge_down_layer(top), 0);
+	});
+	cr_assert_eq(gfit->naxis, 3, "merge down should produce a colour image");
+	cr_assert_eq(com.uniq->chans, 3);
+	cr_assert(reconcile_calls > 0,
+	          "mono -> colour merge down did not fire the active-layer "
+	          "reconciler, so isrgb-gated actions stay greyed out");
 }

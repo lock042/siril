@@ -1408,6 +1408,7 @@ void flis_free_layers(single *uniq) {
 void uniq_set_active_layer(single *uniq, gint index) {
     flis_layer_t *layer = (flis_layer_t *)g_slist_nth_data(uniq->layers, index);
     g_return_if_fail(layer != NULL && layer->fit != NULL);
+    const int old_chans = uniq->chans;
     gboolean changed = (gfit != layer->fit);
     uniq->active_layer = index;
     uniq->fit   = layer->fit;
@@ -1416,8 +1417,17 @@ void uniq_set_active_layer(single *uniq, gint index) {
     /* Single layer-change chokepoint: every GUI state keyed to the
      * active layer is reconciled by ONE asynchronous callback, whatever
      * path performed the switch (user, load, worker hook).  Async by
-     * contract — callers may hold the FLIS stack writer lock. */
-    if (changed)
+     * contract — callers may hold the FLIS stack writer lock.
+     *
+     * The pointer test alone is not the whole of "which image is gfit":
+     * flatten and merge-down composite mono layers into an RGB result
+     * IN PLACE (flis_layer_install_render keeps pointer identity), so a
+     * document can go mono -> colour without gfit ever moving.  Nothing
+     * then re-ran the reconciler, and action sensitivity — which asks
+     * isrgb(gfit) — went on describing the mono image: Saturation,
+     * Remove Green Noise and the colour-calibration tools stayed greyed
+     * out on a colour result until some unrelated event refreshed them. */
+    if (changed || uniq->chans != old_chans)
         gui_iface.on_active_layer_changed();
 }
 

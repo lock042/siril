@@ -212,6 +212,117 @@ Test(flis_register_layers, dft_aligns_content_shifted_layer) {
 }
 
 /* =====================================================================
+ * A layer that cannot be aligned must not take the others down with it.
+ *
+ * register_multi_step_global picks its own reference (global.c) and
+ * excludes the frames it cannot star-match, leaving their H all zeros.
+ * flis_register_layers used to hand register_apply_reg a stale
+ * regargs.reference_image pointing at such a frame, so compute_framing
+ * framed everything against a null matrix: cvTransfH inverted it to
+ * zeros, and a null homography maps every destination pixel onto the
+ * same source pixel — each layer came out a FLAT CONSTANT, with only
+ * the excluded layer (skipped by the apply) left intact.  Reported as
+ * "register all layers → uniform yellow tinge, every LRGB layer a
+ * constant small value".
+ *
+ * It also read regargs.regparam at the input slot index, but that array
+ * is indexed by position in the FILTERED output sequence, so one
+ * dropped layer shifted every later offset by one entry and ran off the
+ * end of the allocation.
+ * ===================================================================== */
+
+/* Star field with an unrelated random pattern: findstar sees plenty of
+ * stars, star_match_and_checks cannot pair them with make_star_field's. */
+static fits *make_unmatchable_field(int w, int h) {
+	fits *f = flis_test_make_mono_fits(w, h, 0.02f);
+	if (!f) return NULL;
+	guint32 lcg = 987654321u;
+	for (int s = 0; s < 60; s++) {
+		lcg = lcg * 1103515245u + 12345u;
+		double cx = 20.0 + (lcg >> 8) % (w - 40);
+		lcg = lcg * 1103515245u + 12345u;
+		double cy = 20.0 + (lcg >> 8) % (h - 40);
+		lcg = lcg * 1103515245u + 12345u;
+		double amp = 0.3 + 0.6 * ((lcg >> 8) % 1000) / 1000.0;
+		for (int y = (int)cy - 6; y <= (int)cy + 6; y++) {
+			if (y < 0 || y >= h) continue;
+			for (int x = (int)cx - 6; x <= (int)cx + 6; x++) {
+				if (x < 0 || x >= w) continue;
+				double d2 = (x - cx) * (x - cx) + (y - cy) * (y - cy);
+				float v = f->fdata[(size_t)y * w + x]
+				          + (float)(amp * exp(-d2 / (2.0 * 2.0 * 2.0)));
+				f->fdata[(size_t)y * w + x] = v > 1.f ? 1.f : v;
+			}
+		}
+	}
+	return f;
+}
+
+static gboolean layer_is_flat(const flis_layer_t *lay) {
+	if (!lay || !lay->fit || !lay->fit->fdata) return TRUE;
+	size_t n = (size_t)lay->fit->rx * lay->fit->ry;
+	for (size_t i = 1; i < n; i++)
+		if (lay->fit->fdata[i] != lay->fit->fdata[0])
+			return FALSE;
+	return TRUE;
+}
+
+Test(flis_register_layers, unmatchable_reference_does_not_flatten_others) {
+	const int W = 400, H = 300;
+	/* Base layer doubles as the requested reference — the reported case. */
+	flis_layer_t *base = flis_test_add_layer(make_unmatchable_field(W, H), "Background");
+	flis_layer_t *L    = flis_test_add_layer(make_star_field(W, H, 4, -3), "L");
+	flis_layer_t *R    = flis_test_add_layer(make_star_field(W, H, -6, 2), "R");
+	flis_layer_t *G    = flis_test_add_layer(make_star_field(W, H, 3, 5), "G");
+	cr_assert(base && L && R && G);
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+
+	com.pref.mem_mode = RATIO;
+	com.pref.memory_ratio = 0.9;
+	com.pref.starfinder_conf.radius = 10;
+	com.pref.starfinder_conf.sigma = 1.0;
+	com.pref.starfinder_conf.roundness = 0.5;
+	com.pref.starfinder_conf.convergence = 1;
+	com.pref.starfinder_conf.profile = PSF_GAUSSIAN;
+	com.pref.starfinder_conf.min_beta = 1.5;
+	com.pref.starfinder_conf.max_r = 1.0;
+	com.max_thread = 2;
+	/* 2-pass global writes its star lists next to the sequence. */
+	if (!com.wd) com.wd = g_strdup(g_get_tmp_dir());
+
+	selection_type sel;
+	transformation_type tx;
+	registration_function method =
+	    flis_register_resolve_method(FLIS_REG_GLOBAL, &sel, &tx);
+	int rv = flis_register_layers(base, NULL, method, sel, tx,
+	                              OPENCV_LANCZOS4, TRUE, FLIS_REG_GLOBAL);
+	cr_assert_eq(rv, 0, "flis_register_layers failed (%d)", rv);
+
+	/* The three matchable layers keep their content: a flat layer here is
+	 * the null-homography warp the fix exists to prevent. */
+	cr_assert(!layer_is_flat(L), "layer 'L' was flattened to a constant");
+	cr_assert(!layer_is_flat(R), "layer 'R' was flattened to a constant");
+	cr_assert(!layer_is_flat(G), "layer 'G' was flattened to a constant");
+
+	/* Content shifts are (4,-3), (-6,2), (3,5); the alignment references L,
+	 * so the others sit at the difference, in the position convention
+	 * documented by dft_aligns_content_shifted_layer. */
+	cr_assert_eq(L->position_x, 0, "L position_x = %d", L->position_x);
+	cr_assert_eq(L->position_y, 0, "L position_y = %d", L->position_y);
+	cr_assert_eq(R->position_x, 10, "R position_x = %d", R->position_x);
+	cr_assert_eq(R->position_y, 5,  "R position_y = %d", R->position_y);
+	cr_assert_eq(G->position_x, 1, "G position_x = %d", G->position_x);
+	cr_assert_eq(G->position_y, 8, "G position_y = %d", G->position_y);
+
+	/* The layer that could not be aligned is left exactly as it was. */
+	cr_assert_eq(base->fit->rx, (unsigned)W);
+	cr_assert_eq(base->fit->ry, (unsigned)H);
+	cr_assert_eq(base->position_x, 0);
+	cr_assert_eq(base->position_y, 0);
+}
+
+/* =====================================================================
  * Registering layers must not un-solve the document.
  *
  * apply-existing-registration frees each frame's plate solve and puts
