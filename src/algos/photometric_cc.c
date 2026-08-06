@@ -47,14 +47,19 @@
 #include "photometric_cc.h"
 #include "core/op_descriptors.h"
 #include "core/nde_history.h"
+#include "core/nde_cat.h"
+#include "core/nde_replay.h"
 
-/* NDE serializers (phase 4.5 Convention 3 — effective white balance).
- * Maintainer contract: replay applies the COMPUTED kw[3] coefficients and
- * bg[3] background factors — the catalog/network/FWHM pipeline never re-runs.
- * The serializer emits kw0..2/bg0..2 (the replayable payload) plus the POD
- * identity keys (catalog, spcc flag, t0/t1) which are informational for the
- * panel.  A record captured before this batch has no kw keys, so the
- * deserializer returns NULL — keeping old records honestly non-replayable. */
+/* NDE serializers.
+ * v1 (phase 4.5 Convention 3): the record carried only the COMPUTED kw/bg
+ * and replay applied them verbatim.
+ * v2 (joint-calibration lineage, nde_joint.h): the record carries the full
+ * ANALYSIS INPUTS and the pipeline re-runs at replay against the replayed
+ * upstream pixels — the star data it needs travels inside the .flis as the
+ * record's embedded catalogue (nde_cat.h), so no network is involved.  The
+ * computed kw/bg stay recorded as diagnostics and as the fallback the hook
+ * applies (with a warning) when the recompute cannot run.  v1 records keep
+ * their exact contract: no auto_replay key → have_effective stays TRUE. */
 static gchar *photometric_cc_serialize(gconstpointer user) {
 	const struct photometric_cc_data *d = user;
 	GString *kv = nde_kv_start();
@@ -63,8 +68,47 @@ static gchar *photometric_cc_serialize(gconstpointer user) {
 	nde_kv_add_bool(kv, "spcc", d->spcc);
 	nde_kv_add_double(kv, "t0", d->t0);
 	nde_kv_add_double(kv, "t1", d->t1);
-	/* effective (computed) values — the replayable payload */
-	if (d->have_effective) {
+	/* v2: the analysis inputs — the intent. */
+	nde_kv_add_bool(kv, "auto_replay", TRUE);
+	nde_kv_add_bool(kv, "bg_auto", d->bg_auto);
+	if (!d->bg_auto) {
+		nde_kv_add_int(kv, "bax", d->bg_area.x);
+		nde_kv_add_int(kv, "bay", d->bg_area.y);
+		nde_kv_add_int(kv, "baw", d->bg_area.w);
+		nde_kv_add_int(kv, "bah", d->bg_area.h);
+	}
+	nde_kv_add_int(kv, "mag_mode", d->mag_mode);
+	nde_kv_add_double(kv, "mag_arg", d->magnitude_arg);
+	nde_kv_add_bool(kv, "atmos", d->atmos_corr);
+	if (d->atmos_corr) {
+		nde_kv_add_double(kv, "atm_h", d->atmos_obs_height);
+		nde_kv_add_double(kv, "atm_p", d->atmos_pressure);
+		nde_kv_add_bool(kv, "atm_slp", d->atmos_pressure_is_slp);
+	}
+	if (d->spcc) {
+		nde_kv_add_bool(kv, "sp_mono", d->spcc_mono_sensor);
+		nde_kv_add_bool(kv, "sp_dslr", d->is_dslr);
+		nde_kv_add_int(kv, "sp_osc", d->selected_sensor_osc);
+		nde_kv_add_int(kv, "sp_m", d->selected_sensor_m);
+		nde_kv_add_int(kv, "sp_fosc", d->selected_filter_osc);
+		nde_kv_add_int(kv, "sp_fr", d->selected_filter_r);
+		nde_kv_add_int(kv, "sp_fg", d->selected_filter_g);
+		nde_kv_add_int(kv, "sp_fb", d->selected_filter_b);
+		nde_kv_add_int(kv, "sp_lpf", d->selected_filter_lpf);
+		nde_kv_add_int(kv, "sp_wref", d->selected_white_ref);
+		nde_kv_add_bool(kv, "sp_nb", d->nb_mode);
+		if (d->nb_mode) {
+			for (int c = 0; c < 3; c++) {
+				gchar key[8];
+				g_snprintf(key, sizeof(key), "nb_c%d", c);
+				nde_kv_add_double(kv, key, d->nb_center[c]);
+				g_snprintf(key, sizeof(key), "nb_b%d", c);
+				nde_kv_add_double(kv, key, d->nb_bandwidth[c]);
+			}
+		}
+	}
+	/* effective (computed) values — diagnostics + offline fallback */
+	if (d->have_effective || d->have_fallback) {
 		nde_kv_add_float(kv, "kw0", d->eff_kw[0]);
 		nde_kv_add_float(kv, "kw1", d->eff_kw[1]);
 		nde_kv_add_float(kv, "kw2", d->eff_kw[2]);
@@ -79,35 +123,72 @@ static gpointer photometric_cc_deserialize(const gchar *blob, int version) {
 	if (version > op_desc_photometric_cc.version)
 		return NULL;
 	GHashTable *kv = nde_kv_parse(blob);
+	gboolean auto_replay = FALSE;
+	nde_kv_get_bool(kv, "auto_replay", &auto_replay);
 	float kw[3], bg[3];
-	/* The kw/bg keys are required: a record without them predates this batch
-	 * and is not replayable (no computed matrix to reapply). */
-	if (!nde_kv_get_float(kv, "kw0", &kw[0]) ||
-	    !nde_kv_get_float(kv, "kw1", &kw[1]) ||
-	    !nde_kv_get_float(kv, "kw2", &kw[2]) ||
-	    !nde_kv_get_float(kv, "bg0", &bg[0]) ||
-	    !nde_kv_get_float(kv, "bg1", &bg[1]) ||
-	    !nde_kv_get_float(kv, "bg2", &bg[2])) {
+	gboolean have_eff =
+	    nde_kv_get_float(kv, "kw0", &kw[0]) &&
+	    nde_kv_get_float(kv, "kw1", &kw[1]) &&
+	    nde_kv_get_float(kv, "kw2", &kw[2]) &&
+	    nde_kv_get_float(kv, "bg0", &bg[0]) &&
+	    nde_kv_get_float(kv, "bg1", &bg[1]) &&
+	    nde_kv_get_float(kv, "bg2", &bg[2]);
+	/* A v1 record without kw/bg predates Convention 3 and has nothing to
+	 * replay; a v2 record replays from its analysis inputs regardless. */
+	if (!auto_replay && !have_eff) {
 		g_hash_table_unref(kv);
 		return NULL;
 	}
 	struct photometric_cc_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destroy_fn = free_photometric_cc_data;
-		gint64 catalog = 0;
-		nde_kv_get_int(kv, "catalog", &catalog);
-		d->catalog = (siril_cat_index)catalog;
+		gint64 iv = 0;
+		double dv = 0;
+		nde_kv_get_int(kv, "catalog", &iv);
+		d->catalog = (siril_cat_index)iv;
 		nde_kv_get_bool(kv, "spcc", &d->spcc);
-		double t0 = 0, t1 = 0;
-		nde_kv_get_double(kv, "t0", &t0);
-		nde_kv_get_double(kv, "t1", &t1);
-		d->t0 = (float)t0;
-		d->t1 = (float)t1;
-		for (int c = 0; c < 3; c++) {
-			d->eff_kw[c] = kw[c];
-			d->eff_bg[c] = bg[c];
+		if (nde_kv_get_double(kv, "t0", &dv)) d->t0 = (float)dv;
+		if (nde_kv_get_double(kv, "t1", &dv)) d->t1 = (float)dv;
+		if (have_eff) {
+			for (int c = 0; c < 3; c++) {
+				d->eff_kw[c] = kw[c];
+				d->eff_bg[c] = bg[c];
+			}
 		}
-		d->have_effective = TRUE;
+		d->have_effective = !auto_replay;
+		d->have_fallback  = auto_replay && have_eff;
+		if (auto_replay) {
+			d->bg_auto = TRUE;
+			nde_kv_get_bool(kv, "bg_auto", &d->bg_auto);
+			if (nde_kv_get_int(kv, "bax", &iv)) d->bg_area.x = (int)iv;
+			if (nde_kv_get_int(kv, "bay", &iv)) d->bg_area.y = (int)iv;
+			if (nde_kv_get_int(kv, "baw", &iv)) d->bg_area.w = (int)iv;
+			if (nde_kv_get_int(kv, "bah", &iv)) d->bg_area.h = (int)iv;
+			if (nde_kv_get_int(kv, "mag_mode", &iv)) d->mag_mode = (limit_mag_mode)iv;
+			nde_kv_get_double(kv, "mag_arg", &d->magnitude_arg);
+			nde_kv_get_bool(kv, "atmos", &d->atmos_corr);
+			nde_kv_get_double(kv, "atm_h", &d->atmos_obs_height);
+			nde_kv_get_double(kv, "atm_p", &d->atmos_pressure);
+			nde_kv_get_bool(kv, "atm_slp", &d->atmos_pressure_is_slp);
+			nde_kv_get_bool(kv, "sp_mono", &d->spcc_mono_sensor);
+			nde_kv_get_bool(kv, "sp_dslr", &d->is_dslr);
+			if (nde_kv_get_int(kv, "sp_osc", &iv))  d->selected_sensor_osc = (int)iv;
+			if (nde_kv_get_int(kv, "sp_m", &iv))    d->selected_sensor_m = (int)iv;
+			if (nde_kv_get_int(kv, "sp_fosc", &iv)) d->selected_filter_osc = (int)iv;
+			if (nde_kv_get_int(kv, "sp_fr", &iv))   d->selected_filter_r = (int)iv;
+			if (nde_kv_get_int(kv, "sp_fg", &iv))   d->selected_filter_g = (int)iv;
+			if (nde_kv_get_int(kv, "sp_fb", &iv))   d->selected_filter_b = (int)iv;
+			if (nde_kv_get_int(kv, "sp_lpf", &iv))  d->selected_filter_lpf = (int)iv;
+			if (nde_kv_get_int(kv, "sp_wref", &iv)) d->selected_white_ref = (int)iv;
+			nde_kv_get_bool(kv, "sp_nb", &d->nb_mode);
+			for (int c = 0; c < 3; c++) {
+				gchar key[8];
+				g_snprintf(key, sizeof(key), "nb_c%d", c);
+				nde_kv_get_double(kv, key, &d->nb_center[c]);
+				g_snprintf(key, sizeof(key), "nb_b%d", c);
+				nde_kv_get_double(kv, key, &d->nb_bandwidth[c]);
+			}
+		}
 	}
 	g_hash_table_unref(kv);
 	return d;
@@ -116,7 +197,7 @@ static gpointer photometric_cc_deserialize(const gchar *blob, int version) {
 /* Op descriptor — PCC and SPCC are the same logical op; sites keep the
  * spectro?"SPCC":"PCC" ternary as a per-site description override. */
 const op_descriptor op_desc_photometric_cc = {
-	.id = "color.photometric_cc", .version = 1,
+	.id = "color.photometric_cc", .version = 2,
 	.image_hook = photometric_cc_image_hook,
 	.log_hook = photometric_cc_log_hook,
 	.description = N_("PCC"),
@@ -999,11 +1080,119 @@ void free_photometric_cc_data(void *p) {
  * on success (when the hook returns 0), so a catalog failure never produces a
  * spurious undo entry and no manual history write is needed here.
  */
+/* The full analysis: catalogue (embedded, else queried), projection,
+ * photometry, apply.  Factored out of the hook so the v2 replay can fall
+ * back to the recorded coefficients when this fails. */
+static int photometric_cc_analyse(struct generic_img_args *img_args, fits *fit, int threads) {
+	struct photometric_cc_data *args = (struct photometric_cc_data *)img_args->user;
+	(void)threads;
+	if (!has_wcs(fit)) {
+		siril_log_error(_("Cannot run the standalone photometric color calibration on this image because it has no WCS data or it is not supported\n"));
+		return 1;
+	}
+
+	/* run peaker to measure FWHM of the image to adjust photometry settings */
+	args->fwhm = measure_image_FWHM(fit, -1, NULL);
+	if (args->fwhm <= 0.0f) {
+		siril_log_error(_("Error computing FWHM for photometry settings adjustment\n"));
+		return 1;
+	}
+
+	int retval = 0;
+	siril_catalogue *siril_cat = NULL;
+	/* At replay the star data the ORIGINAL analysis used travels with the
+	 * record (nde_cat.h): recompute from it — deterministic, offline, and
+	 * immune to catalogue drift.  Positions are re-projected against the
+	 * replayed WCS below, like any fresh query's. */
+	const gint64 replay_rid = nde_replay_current_record_id();
+	if (replay_rid)
+		siril_cat = nde_cat_get_copy(replay_rid);
+	if (siril_cat) {
+		siril_log_message(_("Using the star catalogue embedded with this step (%d stars)\n"),
+		                  siril_cat->nbitems);
+	} else {
+		/* get stars from a photometric catalog */
+		double ra, dec;
+		center2wcs(fit, &ra, &dec);
+		double resolution = get_wcs_image_resolution(fit);
+		if ((ra == -1.0 && dec == -1.0) || resolution <= 0.0) {
+			siril_log_error(_("Cannot run the standalone photometric color calibration on this image because it has no WCS data or it is not supported\n"));
+			return 1;
+		}
+
+		uint64_t sqr_radius = ((uint64_t) fit->rx * (uint64_t) fit->rx + (uint64_t) fit->ry * (uint64_t) fit->ry) / 4;
+		double radius = resolution * sqrt((double)sqr_radius);	// in degrees
+		double mag = args->mag_mode == LIMIT_MAG_ABSOLUTE ?
+			args->magnitude_arg : compute_mag_limit_from_position_and_fov(ra, dec, radius * 2.0, BRIGHTEST_STARS * 2);
+		if (args->mag_mode == LIMIT_MAG_AUTO_WITH_OFFSET)
+			mag += args->magnitude_arg;
+
+		if (args->catalog == CAT_LOCAL_KSTARS || args->catalog == CAT_LOCAL_GAIA_ASTRO || args->catalog == CAT_LOCAL_GAIA_XPSAMP) {
+			siril_log_message(_("Getting stars from local catalogue %s for %s, with a radius of %.2f degrees and limit magnitude %.2f\n"), catalog_to_str(args->catalog), args->spcc ? _("SPCC") : _("PCC"), radius * 2.0, mag);
+		} else {
+			switch (args->catalog) {
+				case CAT_GAIADR3:
+					mag = min(mag, 18.0);
+					break;
+				case CAT_GAIADR3_DIRECT:
+				case CAT_REMOTE_GAIA_XPSAMP:
+				case CAT_REMOTE_GAIA_XPCTS:
+					mag = min(mag, 17.6);
+					break;
+				case CAT_APASS:
+					mag = min(mag, 17.0);
+					break;
+				case CAT_NOMAD:
+					mag = min(mag, 18.0);
+					break;
+				default:
+					siril_log_error(_("No valid catalog found.\n"));
+					return 1;
+			}
+			siril_log_message(_("Getting stars from online catalogue %s for PCC, with a radius of %.2f degrees and limit magnitude %.2f\n"), catalog_to_str(args->catalog), radius * 2.0, mag);
+		}
+
+		// preparing the catalogue query
+		siril_cat = siril_catalog_fill_from_fit(fit, args->catalog, mag);
+		// don't set phot if we are using GAIADR3, we use this catalog in a different way
+		siril_cat->phot = !(siril_cat->cat_index == CAT_GAIADR3_DIRECT);
+
+		/* Fetching the catalog */
+		if (siril_catalog_conesearch(siril_cat) <= 0) {
+			retval = 1;
+		}
+	}
+	int nb_stars = siril_cat->nbitems;
+
+	/* project using WCS */
+	siril_catalog_project_with_WCS(siril_cat, fit, TRUE, FALSE);
+	retval |= nb_stars == 0;
+
+	if (!retval) {
+		args->ref_stars = siril_cat;
+		args->nb_stars = nb_stars;
+		retval = photometric_cc(args);
+		/* photometric_cc no longer frees args; it is owned by generic_img_args->user */
+		/* A fresh, successful run is about to be captured: stash the very
+		 * star data it used so the record can recompute offline forever
+		 * (adopted by the capture, persisted as FLIS_NDE_CAT). */
+		if (!retval && !img_args->nde_replay && !replay_rid)
+			nde_cat_stash_pending(siril_cat);
+	} else {
+		siril_log_error(_("Catalog error, no stars identified!\n"));
+	}
+	siril_catalog_free(siril_cat);
+
+	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
+
+	return retval;
+}
+
 int photometric_cc_image_hook(struct generic_img_args *img_args, fits *fit, int threads) {
 	struct photometric_cc_data *args = (struct photometric_cc_data *)img_args->user;
 	args->fit = fit;  /* use the hook's fit, not gfit directly */
 
-	/* NDE replay fast path (Convention 3): a deserialized record carries the
+	/* v1 replay fast path (Convention 3): the record carries only the
 	 * COMPUTED white-balance coefficients + background factors — apply them
 	 * directly, skipping catalog/network/FWHM/detection entirely.  This runs
 	 * headlessly on a scratch fits (fit != gfit, no GUI), which is exactly what
@@ -1017,88 +1206,14 @@ int photometric_cc_image_hook(struct generic_img_args *img_args, fits *fit, int 
 		return apply_photometric_color_correction(fit, args->eff_kw, args->eff_bg);
 	}
 
-	if (!has_wcs(fit)) {
-		siril_log_error(_("Cannot run the standalone photometric color calibration on this image because it has no WCS data or it is not supported\n"));
-		return 1;
+	int retval = photometric_cc_analyse(img_args, fit, threads);
+	/* v2 replay net: the recompute could not run (typically a file whose
+	 * embedded catalogue is absent, with no network) — the recorded
+	 * coefficients keep the pixels reproducible, and say so. */
+	if (retval && args->have_fallback && isrgb(fit)) {
+		siril_log_message(_("The photometric analysis could not be re-run — applying the recorded calibration instead\n"));
+		retval = apply_photometric_color_correction(fit, args->eff_kw, args->eff_bg);
 	}
-
-	/* run peaker to measure FWHM of the image to adjust photometry settings */
-	args->fwhm = measure_image_FWHM(fit, -1, NULL);
-	if (args->fwhm <= 0.0f) {
-		siril_log_error(_("Error computing FWHM for photometry settings adjustment\n"));
-		return 1;
-	}
-
-	/* get stars from a photometric catalog */
-	double ra, dec;
-	center2wcs(fit, &ra, &dec);
-	double resolution = get_wcs_image_resolution(fit);
-	if ((ra == -1.0 && dec == -1.0) || resolution <= 0.0) {
-		siril_log_error(_("Cannot run the standalone photometric color calibration on this image because it has no WCS data or it is not supported\n"));
-		return 1;
-	}
-
-	int nb_stars = 0;
-	uint64_t sqr_radius = ((uint64_t) fit->rx * (uint64_t) fit->rx + (uint64_t) fit->ry * (uint64_t) fit->ry) / 4;
-	double radius = resolution * sqrt((double)sqr_radius);	// in degrees
-	double mag = args->mag_mode == LIMIT_MAG_ABSOLUTE ?
-		args->magnitude_arg : compute_mag_limit_from_position_and_fov(ra, dec, radius * 2.0, BRIGHTEST_STARS * 2);
-	if (args->mag_mode == LIMIT_MAG_AUTO_WITH_OFFSET)
-		mag += args->magnitude_arg;
-
-	int retval = 0;
-	if (args->catalog == CAT_LOCAL_KSTARS || args->catalog == CAT_LOCAL_GAIA_ASTRO || args->catalog == CAT_LOCAL_GAIA_XPSAMP) {
-		siril_log_message(_("Getting stars from local catalogue %s for %s, with a radius of %.2f degrees and limit magnitude %.2f\n"), catalog_to_str(args->catalog), args->spcc ? _("SPCC") : _("PCC"), radius * 2.0, mag);
-	} else {
-		switch (args->catalog) {
-			case CAT_GAIADR3:
-				mag = min(mag, 18.0);
-				break;
-			case CAT_GAIADR3_DIRECT:
-			case CAT_REMOTE_GAIA_XPSAMP:
-			case CAT_REMOTE_GAIA_XPCTS:
-				mag = min(mag, 17.6);
-				break;
-			case CAT_APASS:
-				mag = min(mag, 17.0);
-				break;
-			case CAT_NOMAD:
-				mag = min(mag, 18.0);
-				break;
-			default:
-				siril_log_error(_("No valid catalog found.\n"));
-				return 1;
-		}
-		siril_log_message(_("Getting stars from online catalogue %s for PCC, with a radius of %.2f degrees and limit magnitude %.2f\n"), catalog_to_str(args->catalog), radius * 2.0, mag);
-	}
-
-	// preparing the catalogue query
-	siril_catalogue *siril_cat = siril_catalog_fill_from_fit(fit, args->catalog, mag);
-	// don't set phot if we are using GAIADR3, we use this catalog in a different way
-	siril_cat->phot = !(siril_cat->cat_index == CAT_GAIADR3_DIRECT);
-
-	/* Fetching the catalog */
-	if (siril_catalog_conesearch(siril_cat) <= 0) {
-		retval = 1;
-	}
-	nb_stars = siril_cat->nbitems;
-
-	/* project using WCS */
-	siril_catalog_project_with_WCS(siril_cat, fit, TRUE, FALSE);
-	retval |= nb_stars == 0;
-
-	if (!retval) {
-		args->ref_stars = siril_cat;
-		args->nb_stars = nb_stars;
-		retval = photometric_cc(args);
-		/* photometric_cc no longer frees args; it is owned by generic_img_args->user */
-	} else {
-		siril_log_error(_("Catalog error, no stars identified!\n"));
-	}
-	siril_catalog_free(siril_cat);
-
-	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
-
 	return retval;
 }
 

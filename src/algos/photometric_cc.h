@@ -62,6 +62,11 @@ struct photometric_cc_data {
 	gboolean have_effective;
 	float eff_kw[3];
 	float eff_bg[3];
+	/* v2 replay: eff_kw/eff_bg were present in the record and may be applied
+	 * as a FALLBACK when the recompute cannot run (no embedded catalogue, no
+	 * network).  Distinct from have_effective, which short-circuits the whole
+	 * pipeline — a v2 record wants the pipeline, with these as the net. */
+	gboolean have_fallback;
 };
 
 int apply_photometric_color_correction(fits *fit, const float *kw, const float *bg);

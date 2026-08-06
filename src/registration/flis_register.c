@@ -48,7 +48,13 @@
 
 #include "core/siril.h"
 #include "core/siril_log.h"
+#include "core/processing.h"
 #include "core/processing_thread.h"
+#include "core/undo.h"
+#include "core/nde_history.h"
+#include "core/nde_checkpoint.h"
+#include "core/nde_joint.h"
+#include "core/nde_script_scope.h"
 #include "io/sequence.h"
 #include "io/image_format_flis.h"
 #include "registration/registration.h"
@@ -125,13 +131,63 @@ static gboolean check_selection_requirement(selection_type sel_req) {
 	return TRUE;
 }
 
+/* The transform register_apply_reg ACTUALLY hands to cvTransformImage under
+ * FRAMING_MAX, reconstructed for the NDE record.
+ *
+ * apply_reg_image_hook composes the per-frame transform @Himg with the
+ * framing reference @Href and then post-multiplies the bounding-box origin
+ * back out, so the warp lands at (0,0) of its own box.  It keeps NEITHER
+ * result: regparam[i].H is overwritten with the residual SHIFT (which is all
+ * flis_register_layers needs for the canvas offsets) and the composed matrix
+ * dies with the frame.  A replay needs the composed matrix and the box size,
+ * so we recompute both from data that DOES survive the call —
+ * seq->regparam (the input transforms, untouched by apply) and
+ * regargs->framingd.Htransf (the framing reference the apply computed).
+ *
+ * This mirrors compute_Hmax() in applyreg.c, which is static; @scale is
+ * fixed at 1 here because flis_register_layers never sets output_scale.
+ * If that function's framing arithmetic ever changes, the L1 oracle test in
+ * test_flis_register_nde.c is what will catch the drift. */
+static void flis_reg_compute_framed_transform(const Homography *Himg,
+                                              const Homography *Href,
+                                              int src_rx, int src_ry,
+                                              Homography *H_out,
+                                              int *dst_rx, int *dst_ry) {
+	double xs[4] = { 0., (double)src_rx - 1., (double)src_rx - 1., 0. };
+	double ys[4] = { 0., 0., (double)src_ry - 1., (double)src_ry - 1. };
+	double xmin = DBL_MAX, xmax = -DBL_MAX, ymin = DBL_MAX, ymax = -DBL_MAX;
+	for (int j = 0; j < 4; j++) {
+		cvTransfPoint(&xs[j], &ys[j], *Himg, *Href, 1.);
+		if (xmin > xs[j]) xmin = xs[j];
+		if (xmax < xs[j]) xmax = xs[j];
+		if (ymin > ys[j]) ymin = ys[j];
+		if (ymax < ys[j]) ymax = ys[j];
+	}
+	*dst_rx = (int)xmax - (int)xmin + 1;
+	*dst_ry = (int)ymax - (int)ymin + 1;
+	Homography H = { 0 }, Hcorr = { 0 };
+	cvTransfH((Homography *)Himg, (Homography *)Href, &H);
+	cvGetEye(&Hcorr);
+	Hcorr.h02 = -round(xmin);
+	Hcorr.h12 = -round(ymin);
+	cvMultH(Hcorr, H, H_out);
+}
+
+/* Flatten a Homography into the row-major nine the record stores. */
+static void flis_reg_H_to_array(const Homography *H, double out[9]) {
+	out[0] = H->h00; out[1] = H->h01; out[2] = H->h02;
+	out[3] = H->h10; out[4] = H->h11; out[5] = H->h12;
+	out[6] = H->h20; out[7] = H->h21; out[8] = H->h22;
+}
+
 int flis_register_layers(flis_layer_t *ref_lay,
                          GSList       *target_layers,
                          registration_function method,
                          selection_type        sel_req,
                          transformation_type   tx_type,
                          opencv_interpolation interpolation,
-                         gboolean       clamp) {
+                         gboolean       clamp,
+                         flis_reg_method_id method_id) {
 	if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) {
 		siril_log_error(_("flis_register_layers: no FLIS image loaded\n"));
 		return 1;
@@ -205,9 +261,22 @@ int flis_register_layers(flis_layer_t *ref_lay,
 	const int ref_seq_idx = 0;
 	int canvas_seq_idx = (ref == canvas_lay) ? 0 : -1;
 
+	/* The NDE record needs, per participant, the sequence slot its transform
+	 * lands in and the dimensions it went IN with — register_apply_reg
+	 * replaces the layer's pixels, so its input size is gone by the time we
+	 * would want it (see flis_reg_compute_framed_transform). */
+	struct flis_reg_part {
+		flis_layer_t *lay;
+		int   seq_idx;
+		int   src_rx, src_ry;
+	} *parts = g_new0(struct flis_reg_part, n_layers);
+	int n_parts = 0;
+
 	internal_sequence_set(seq, 0, ref->fit);
 	seq->imgparam[0].rx = ref->fit->rx;
 	seq->imgparam[0].ry = ref->fit->ry;
+	parts[n_parts++] = (struct flis_reg_part){ ref, 0,
+	                                           (int)ref->fit->rx, (int)ref->fit->ry };
 
 	int i = 1;
 	gboolean is_variable = FALSE;
@@ -220,10 +289,28 @@ int flis_register_layers(flis_layer_t *ref_lay,
 			is_variable = TRUE;
 		seq->imgparam[i].rx = lay->fit->rx;
 		seq->imgparam[i].ry = lay->fit->ry;
+		parts[n_parts++] = (struct flis_reg_part){ lay, i,
+		                                           (int)lay->fit->rx, (int)lay->fit->ry };
 		internal_sequence_set(seq, i++, lay->fit);
 	}
 	seq->reference_image = ref_seq_idx;
 	seq->is_variable     = is_variable;
+
+	/* Every participant needs a replay starting point BEFORE its pixels are
+	 * resampled — pixels and position both, because registration moves the
+	 * layer as well as warping it and a replay has nothing to anchor the
+	 * move to without the starting offset (nde_checkpoint.h).  Recorded even
+	 * when we go on to skip capture: a replay run may itself be the thing
+	 * that first needs the baseline, and ensure() is a no-op if it exists. */
+	const gboolean nde_replaying = processing_is_reserved_for_replay();
+	if (!nde_replaying) {
+		for (int k = 0; k < n_parts; k++) {
+			nde_checkpoint_baseline_ensure(parts[k].lay->fit, parts[k].lay->item_id);
+			nde_checkpoint_baseline_set_offset(parts[k].lay->item_id,
+			                                   parts[k].lay->position_x,
+			                                   parts[k].lay->position_y);
+		}
+	}
 
 	/* Registration arguments. */
 	struct registration_args regargs = { 0 };
@@ -261,6 +348,7 @@ int flis_register_layers(flis_layer_t *ref_lay,
 		free(regargs.imgparam); regargs.imgparam = NULL;
 		free(regargs.regparam); regargs.regparam = NULL;
 		free_sequence(seq, TRUE);
+		g_free(parts);
 		if (reserved) unreserve_thread();
 		return 1;
 	}
@@ -313,11 +401,218 @@ int flis_register_layers(flis_layer_t *ref_lay,
 			                  canvas_lay->fit->rx, canvas_lay->fit->ry);
 			flis_canvas_resize(canvas_lay->fit->rx, canvas_lay->fit->ry, 0, 0);
 		}
+
+		/* Provenance: ONE joint record for the whole registration
+		 * (nde_joint.h).  Registration's meaning is multi-layer by
+		 * construction — every participant's transform is defined against
+		 * the same reference — so recording it as N independent steps would
+		 * both lie about the operation and make undo N steps.  Same guard as
+		 * the other joint captures (flis_group_apply_channel_calibration_full):
+		 * a replay must not re-record what it is reproducing, and under a
+		 * python provenance scope the scope's own record subsumes this one. */
+		if (nde_replaying) {
+			/* no capture */
+		} else if (nde_script_scope_active()) {
+			nde_script_scope_mark_pixels_dirty();
+		} else {
+			struct nde_joint_register_data *p =
+					nde_joint_register_data_new((guint)n_parts);
+			nde_pin_spec *pins = g_new0(nde_pin_spec, n_parts);
+			gchar **roles = g_new0(gchar *, n_parts);
+			p->method        = (gint)method_id;
+			p->tx_type       = (gint)tx_type;
+			p->interpolation = (gint)interpolation;
+			p->clamp         = clamp;
+			p->ref_item      = ref->item_id;
+			p->selection     = regargs.selection;
+			p->canvas_w      = (gint)com.uniq->canvas_w;
+			p->canvas_h      = (gint)com.uniq->canvas_h;
+			for (int k = 0; k < n_parts; k++) {
+				flis_layer_t *lay = parts[k].lay;
+				Homography H = { 0 };
+				int drx = 0, dry = 0;
+				flis_reg_compute_framed_transform(
+						&seq->regparam[0][parts[k].seq_idx].H,
+						&regargs.framingd.Htransf,
+						parts[k].src_rx, parts[k].src_ry, &H, &drx, &dry);
+				flis_reg_H_to_array(&H, p->parts[k].H);
+				p->parts[k].item_id = lay->item_id;
+				p->parts[k].name = g_strdup(lay->layer_name ? lay->layer_name : "");
+				p->parts[k].pos_x = lay->position_x;
+				p->parts[k].pos_y = lay->position_y;
+				/* Trust the pixels over the arithmetic: the warp has already
+				 * run, so the layer's own dimensions ARE the framed output
+				 * size.  The reconstruction above should agree; when it does
+				 * not, storing what the warp produced keeps L1 exact. */
+				p->parts[k].out_rx = lay->fit ? (gint)lay->fit->rx : drx;
+				p->parts[k].out_ry = lay->fit ? (gint)lay->fit->ry : dry;
+				g_free(p->parts[k].geom_sig);
+				/* 0 = "everything in the log so far": the record is not
+				 * appended yet, so capture time IS the end of the log. */
+				p->parts[k].geom_sig =
+						nde_joint_geometry_signature(lay->item_id, 0);
+				roles[k] = g_strdup_printf("in%d", k);
+				pins[k].role = roles[k];
+				pins[k].src_item_id = lay->item_id;
+				pins[k].src_record_id =
+						nde_history_last_record_for_item(lay->item_id);
+			}
+			gchar *summary = g_strdup_printf("%s (%d %s)", _("Register layers"),
+			                                 n_parts, _("layers"));
+			gint64 rid = nde_capture_from_descriptor_pinned(&op_desc_flis_register,
+					p, summary, NULL, ref->item_id, pins, (guint)n_parts);
+			for (int k = 0; k < n_parts; k++)
+				g_free(roles[k]);
+			g_free(roles);
+			g_free(pins);
+			g_free(summary);
+			nde_joint_register_data_free(p);
+			/* Couple the undo entry the caller pushed ("Register layers") to
+			 * the record, so undo and history stay one step. */
+			if (rid > 0 && !com.script)
+				undo_tag_top_nde_record(rid);
+		}
 	}
 
 	free(regargs.imgparam); regargs.imgparam = NULL;
 	free(regargs.regparam); regargs.regparam = NULL;
 	free_sequence(seq, TRUE);
+	g_free(parts);
 	if (reserved) unreserve_thread();
 	return ret;
+}
+
+/* ======================================================================= */
+/* Offline re-solve (the L2 half of the flis.register NDE replay)          */
+/* ======================================================================= */
+
+int flis_register_solve(fits **fits_in, int n, int ref_index,
+                        registration_function method,
+                        selection_type sel_req,
+                        transformation_type tx_type,
+                        rectangle selection,
+                        int canvas_index,
+                        int ref_pos_x, int ref_pos_y,
+                        flis_reg_solution *out) {
+	if (!fits_in || !out || n < 2 || ref_index < 0 || ref_index >= n || !method)
+		return 1;
+	for (int k = 0; k < n; k++)
+		if (!fits_in[k])
+			return 1;
+
+	/* register_apply_reg resamples IN PLACE, and the pixels it would be
+	 * resampling are the caller's replay scratch — which the caller still
+	 * has to warp itself, with the transform this solve is here to produce.
+	 * So the sequence runs over copies and the originals are never touched. */
+	fits **copies = g_new0(fits *, n);
+	sequence *seq = create_internal_sequence(n);
+	int retval = 1;
+	if (!seq)
+		goto out_free;
+
+	/* Slot 0 is the reference, exactly as the live path builds it: the
+	 * registration methods take the reference from seq->reference_image but
+	 * the framing arithmetic is written around slot ordering, and matching
+	 * the live layout is the only way the two paths can agree. */
+	int *slot_of = g_new0(int, n);
+	int slot = 1;
+	for (int k = 0; k < n; k++)
+		slot_of[k] = (k == ref_index) ? 0 : slot++;
+
+	gboolean is_variable = FALSE;
+	for (int k = 0; k < n; k++) {
+		copies[k] = calloc(1, sizeof(fits));
+		if (!copies[k] || copyfits(fits_in[k], copies[k], CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
+			g_free(slot_of);
+			goto out_free;
+		}
+		seq->imgparam[slot_of[k]].rx = copies[k]->rx;
+		seq->imgparam[slot_of[k]].ry = copies[k]->ry;
+		if (copies[k]->rx != fits_in[ref_index]->rx ||
+		    copies[k]->ry != fits_in[ref_index]->ry)
+			is_variable = TRUE;
+		internal_sequence_set(seq, slot_of[k], copies[k]);
+	}
+	seq->bitpix          = fits_in[ref_index]->bitpix;
+	seq->rx              = fits_in[ref_index]->rx;
+	seq->ry              = fits_in[ref_index]->ry;
+	seq->reference_image = 0;
+	seq->is_variable     = is_variable;
+
+	struct registration_args regargs = { 0 };
+	regargs.seq                  = seq;
+	regargs.layer                = 0;
+	regargs.reference_image      = 0;
+	regargs.run_in_thread        = FALSE;
+	regargs.interpolation        = OPENCV_LANCZOS4;
+	regargs.output_scale         = 1.f;
+	regargs.clamp                = TRUE;
+	regargs.framing              = FRAMING_MAX;
+	regargs.type                 = tx_type;
+	regargs.max_stars_candidates = MAX_STARS_FITTED;
+	regargs.two_pass             = (method == register_multi_step_global);
+	regargs.percent_moved        = 0.50f;
+	regargs.prefix               = "flis_";
+	if (sel_req != REQUIRES_NO_SELECTION)
+		regargs.selection = selection;
+
+	/* The input dimensions each transform was solved against; the apply pass
+	 * below replaces the copies' pixels and with them their sizes. */
+	int *src_rx = g_new0(int, n), *src_ry = g_new0(int, n);
+	for (int k = 0; k < n; k++) {
+		src_rx[k] = (int)copies[k]->rx;
+		src_ry[k] = (int)copies[k]->ry;
+	}
+
+	if (method(&regargs)) {
+		free(regargs.imgparam); regargs.imgparam = NULL;
+		free(regargs.regparam); regargs.regparam = NULL;
+		g_free(slot_of); g_free(src_rx); g_free(src_ry);
+		goto out_free;
+	}
+	free(regargs.imgparam); regargs.imgparam = NULL;
+	regargs.framing = FRAMING_MAX;
+	int ret = register_apply_reg(&regargs);
+	if (!ret && regargs.regparam) {
+		double cx, cy;
+		if (canvas_index >= 0) {
+			cx = regargs.regparam[slot_of[canvas_index]].H.h02;
+			cy = regargs.regparam[slot_of[canvas_index]].H.h12;
+		} else {
+			cx = regargs.regparam[0].H.h02 - ref_pos_x;
+			cy = regargs.regparam[0].H.h12 - ref_pos_y;
+		}
+		for (int k = 0; k < n; k++) {
+			Homography H = { 0 };
+			int drx = 0, dry = 0;
+			flis_reg_compute_framed_transform(&seq->regparam[0][slot_of[k]].H,
+			                                  &regargs.framingd.Htransf,
+			                                  src_rx[k], src_ry[k],
+			                                  &H, &drx, &dry);
+			flis_reg_H_to_array(&H, out[k].H);
+			out[k].out_rx = copies[k] ? (int)copies[k]->rx : drx;
+			out[k].out_ry = copies[k] ? (int)copies[k]->ry : dry;
+			if (k == canvas_index) {
+				out[k].pos_x = 0;
+				out[k].pos_y = 0;
+			} else {
+				out[k].pos_x = (int)round(regargs.regparam[slot_of[k]].H.h02 - cx);
+				out[k].pos_y = (int)round(regargs.regparam[slot_of[k]].H.h12 - cy);
+			}
+		}
+		retval = 0;
+	}
+	free(regargs.imgparam); regargs.imgparam = NULL;
+	free(regargs.regparam); regargs.regparam = NULL;
+	g_free(slot_of); g_free(src_rx); g_free(src_ry);
+
+out_free:
+	/* free_sequence() deliberately leaves internal_fits CONTENTS alone (the
+	 * live path hands it live LAYER pixels), so the copies are ours. */
+	if (seq)
+		free_sequence(seq, TRUE);
+	for (int k = 0; k < n; k++)
+		if (copies[k]) { clearfits(copies[k]); free(copies[k]); }
+	g_free(copies);
+	return retval;
 }

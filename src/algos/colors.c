@@ -1397,7 +1397,16 @@ static gchar *color_calib_serialize(gconstpointer user) {
 		g_snprintf(key, sizeof key, "bg%d", i);
 		nde_kv_add_double(kv, key, p->bg[i]);
 	}
-	/* How they were arrived at: shown by the panel, not acted on by replay. */
+	/* How they were arrived at.  Since v2 the AUTOMATIC mode's replay
+	 * contract is the selections, not the coefficients: auto_replay tells
+	 * the deserializer to leave have_effective unset so the hook re-runs
+	 * get_coeff_for_wb against the replayed upstream pixels — the intent
+	 * ("balance white on this area") survives upstream edits where the
+	 * frozen coefficients would not.  kw/bg stay recorded above as
+	 * diagnostics and as the exact contract for v1 records.  Manual mode
+	 * keeps the coefficients: the sliders ARE the parameters. */
+	if (!p->is_manual)
+		nde_kv_add_bool(kv, "auto_replay", TRUE);
 	nde_kv_add_bool(kv, "manual", p->is_manual);
 	nde_kv_add_int(kv, "white_x", p->white_selection.x);
 	nde_kv_add_int(kv, "white_y", p->white_selection.y);
@@ -1434,9 +1443,13 @@ static gpointer color_calib_deserialize(const gchar *blob, int version) {
 	if (p) {
 		memcpy(p->kw, kw, sizeof kw);
 		memcpy(p->bg, bg, sizeof bg);
-		p->have_effective = TRUE;
 		gint64 v;
 		nde_kv_get_bool(kv, "manual", &p->is_manual);
+		/* v2 automatic records recompute from the selections at replay;
+		 * manual and legacy (no auto_replay key) reuse the stored kw/bg. */
+		gboolean auto_replay = FALSE;
+		nde_kv_get_bool(kv, "auto_replay", &auto_replay);
+		p->have_effective = p->is_manual || !auto_replay;
 		if (nde_kv_get_int(kv, "white_x", &v)) p->white_selection.x = (int)v;
 		if (nde_kv_get_int(kv, "white_y", &v)) p->white_selection.y = (int)v;
 		if (nde_kv_get_int(kv, "white_w", &v)) p->white_selection.w = (int)v;
@@ -1453,7 +1466,7 @@ static gpointer color_calib_deserialize(const gchar *blob, int version) {
 }
 
 const op_descriptor op_desc_color_calib = {
-	.id = "color.calibration", .version = 1,
+	.id = "color.calibration", .version = 2,
 	.image_hook = color_calib_image_hook,
 	.log_hook = color_calib_log_hook,
 	.description = N_("Color Calibration"),

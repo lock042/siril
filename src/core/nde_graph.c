@@ -24,6 +24,7 @@
 #include "core/nde_history.h"
 #include "core/nde_graph.h"
 #include "core/nde_composite.h"
+#include "core/nde_joint.h"
 #include "io/image_format_flis.h"
 
 static void node_free(gpointer p) {
@@ -31,6 +32,7 @@ static void node_free(gpointer p) {
 	if (!n)
 		return;
 	g_free(n->label);
+	g_free(n->span_items);
 	if (n->record_ids)
 		g_ptr_array_unref(n->record_ids);
 	g_free(n);
@@ -110,19 +112,58 @@ static void describe_item(gint item_id, nde_node_kind *kind, gchar **label,
 	*orphan = TRUE;
 }
 
-static nde_graph_node *node_ensure(nde_graph *g, GHashTable *by_id, gint item_id) {
-	nde_graph_node *n = g_hash_table_lookup(by_id, GINT_TO_POINTER(item_id));
-	if (n)
-		return n;
-	n = g_new0(nde_graph_node, 1);
-	n->item_id = item_id;
+/* A node for @item_id's steps in chronological @stage.  The item's FIRST
+ * node keeps the real item id (edges, satellites and by-id lookups find it);
+ * a later SEGMENT — its steps below a joint band — takes a fresh pseudo id
+ * and inherits the first node's identity for labelling. */
+static nde_graph_node *node_new_for_item(nde_graph *g, GHashTable *by_id,
+                                         GHashTable *first_of, gint item_id,
+                                         gint stage, gint *next_seg) {
+	nde_graph_node *first = g_hash_table_lookup(first_of, GINT_TO_POINTER(item_id));
+	nde_graph_node *n = g_new0(nde_graph_node, 1);
+	n->real_item = item_id;
+	n->stage = stage;
 	n->record_ids = g_ptr_array_new_with_free_func(g_free);
-	describe_item(item_id, &n->kind, &n->label, &n->orphan, &n->owner_item);
+	if (!first) {
+		n->item_id = item_id;
+		describe_item(item_id, &n->kind, &n->label, &n->orphan, &n->owner_item);
+		g_hash_table_insert(first_of, GINT_TO_POINTER(item_id), n);
+	} else {
+		n->item_id = (*next_seg)--;
+		n->kind = first->kind;
+		n->label = g_strdup(first->label);
+		n->orphan = first->orphan;
+		n->owner_item = first->owner_item;
+	}
 	/* Appended in first-record order, which is what keeps node order stable
 	 * as the history grows. */
 	g_ptr_array_add(g->nodes, n);
-	g_hash_table_insert(by_id, GINT_TO_POINTER(item_id), n);
+	g_hash_table_insert(by_id, GINT_TO_POINTER(n->item_id), n);
 	return n;
+}
+
+/* An edge as the scan found it, before its endpoints are bound to nodes:
+ * with segments an item may have several, and the edge belongs to the one
+ * holding the referenced record. */
+typedef struct {
+	gint    src_item;
+	gint64  src_rec;
+	gint    dst_node;    /* already a node id — the consuming node existed */
+	gint64  dst_rec;
+	gchar  *role;
+} raw_edge;
+
+static nde_graph_node *node_holding_record(nde_graph *g, gint item_id,
+                                           gint64 record_id) {
+	for (guint i = 0; i < g->nodes->len; i++) {
+		nde_graph_node *n = g_ptr_array_index(g->nodes, i);
+		if (n->real_item != item_id || n->spanning)
+			continue;
+		for (guint r = 0; r < n->record_ids->len; r++)
+			if (*(gint64 *)g_ptr_array_index(n->record_ids, r) == record_id)
+				return n;
+	}
+	return NULL;
 }
 
 /* AT ITEM GRANULARITY THE GRAPH HAS CYCLES, and a layout has to survive that.
@@ -177,6 +218,41 @@ static void assign_levels(nde_graph *g, GHashTable *by_id) {
 		}
 	}
 	g_hash_table_destroy(rank);
+
+	/* Joint records are chronological boundaries (nde_graph.h): the final
+	 * level orders by STAGE first, edge level second, densified so empty
+	 * ranks cost nothing.  With no joint records every node has stage 0 and
+	 * the levels are the pure edge levels, unchanged. */
+	GArray *pairs = g_array_new(FALSE, FALSE, sizeof(gint64));
+	for (guint i = 0; i < g->nodes->len; i++) {
+		const nde_graph_node *n = g_ptr_array_index(g->nodes, i);
+		gint64 key = ((gint64)n->stage << 32) | (guint32)n->level;
+		gboolean seen = FALSE;
+		for (guint j = 0; j < pairs->len && !seen; j++)
+			seen = g_array_index(pairs, gint64, j) == key;
+		if (!seen)
+			g_array_append_val(pairs, key);
+	}
+	for (guint i = 1; i < pairs->len; i++) {   /* insertion sort: pairs are few */
+		gint64 k = g_array_index(pairs, gint64, i);
+		gint j = (gint)i - 1;
+		while (j >= 0 && g_array_index(pairs, gint64, j) > k) {
+			g_array_index(pairs, gint64, j + 1) = g_array_index(pairs, gint64, j);
+			j--;
+		}
+		g_array_index(pairs, gint64, j + 1) = k;
+	}
+	for (guint i = 0; i < g->nodes->len; i++) {
+		nde_graph_node *n = g_ptr_array_index(g->nodes, i);
+		gint64 key = ((gint64)n->stage << 32) | (guint32)n->level;
+		for (guint j = 0; j < pairs->len; j++)
+			if (g_array_index(pairs, gint64, j) == key) {
+				n->level = (gint)j;
+				break;
+			}
+	}
+	g_array_unref(pairs);
+
 	g->depth = 1;
 	for (guint i = 0; i < g->nodes->len; i++) {
 		const nde_graph_node *n = g_ptr_array_index(g->nodes, i);
@@ -196,10 +272,52 @@ nde_graph *nde_graph_build(void) {
 		return g;
 
 	GHashTable *by_id = g_hash_table_new(g_direct_hash, g_direct_equal);
+	GHashTable *first_of = g_hash_table_new(g_direct_hash, g_direct_equal);
+	/* item -> its node in the CURRENT chronological stage; cleared at every
+	 * joint boundary so the next record of the item opens a segment below. */
+	GHashTable *cur_of = g_hash_table_new(g_direct_hash, g_direct_equal);
+	GArray *raw = g_array_new(FALSE, TRUE, sizeof(raw_edge));
+	gint stage = 0;
+	gint next_seg = NDE_GRAPH_SEG_ITEM_BASE;
 
 	for (guint i = 0; i < snap->len; i++) {
 		const nde_record *rec = g_ptr_array_index(snap, i);
-		nde_graph_node *n = node_ensure(g, by_id, rec->target_item_id);
+		/* A JOINT record (nde_joint.h) is one operation across several
+		 * layers, and it is drawn like one: a single band SPANNING the
+		 * graph, no edges — the layers above it are what it read, the
+		 * segments below are what follows it.  It is a chronological
+		 * boundary: every record after it, on any item, draws below. */
+		if (nde_joint_is_op(rec->op_id)) {
+			nde_graph_node *jn = g_new0(nde_graph_node, 1);
+			jn->item_id = nde_graph_joint_pseudo_item(rec->record_id);
+			jn->kind = NDE_NODE_JOINT;
+			jn->spanning = TRUE;
+			/* The band spans its PARTICIPANTS' columns, not the whole
+			 * graph — a layer the operation never read stays visually
+			 * outside it. */
+			jn->span_items = nde_joint_record_participants(rec, &jn->n_span_items);
+			jn->real_item = rec->target_item_id;
+			jn->stage = ++stage;
+			jn->label = g_strdup(rec->summary && *rec->summary ?
+			                     rec->summary : _("Joint calibration"));
+			jn->record_ids = g_ptr_array_new_with_free_func(g_free);
+			jn->orphan = TRUE;   /* the Layers panel lists no such item */
+			gint64 *jrid = g_new(gint64, 1);
+			*jrid = rec->record_id;
+			g_ptr_array_add(jn->record_ids, jrid);
+			g_ptr_array_add(g->nodes, jn);
+			g_hash_table_insert(by_id, GINT_TO_POINTER(jn->item_id), jn);
+			stage++;
+			g_hash_table_remove_all(cur_of);
+			continue;
+		}
+		nde_graph_node *n = g_hash_table_lookup(cur_of,
+				GINT_TO_POINTER(rec->target_item_id));
+		if (!n) {
+			n = node_new_for_item(g, by_id, first_of, rec->target_item_id,
+			                      stage, &next_seg);
+			g_hash_table_insert(cur_of, GINT_TO_POINTER(rec->target_item_id), n);
+		}
 		gint64 *rid = g_new(gint64, 1);
 		*rid = rec->record_id;
 		g_ptr_array_add(n->record_ids, rid);
@@ -213,16 +331,64 @@ nde_graph *nde_graph_build(void) {
 			 * self-loop on every mask-creation step. */
 			if (pin->src_item_id == rec->target_item_id)
 				continue;
-			node_ensure(g, by_id, pin->src_item_id);
-			nde_graph_edge *e = g_new0(nde_graph_edge, 1);
-			e->src_item_id   = pin->src_item_id;
-			e->src_record_id = pin->src_record_id;
-			e->dst_item_id   = rec->target_item_id;
-			e->dst_record_id = rec->record_id;
-			e->role          = g_strdup(pin->role ? pin->role : "");
-			g_ptr_array_add(g->edges, e);
+			raw_edge re = {
+				.src_item = pin->src_item_id,
+				.src_rec  = pin->src_record_id,
+				.dst_node = n->item_id,
+				.dst_rec  = rec->record_id,
+				.role     = g_strdup(pin->role ? pin->role : ""),
+			};
+			g_array_append_val(raw, re);
 		}
 	}
+
+	/* Bind the collected edges to nodes: the source is the segment holding
+	 * the pinned record (a pin into an earlier segment must not point at the
+	 * continuation), falling back to the item's first node — created here
+	 * when the item has no records at all (an input-only source; rank -1 in
+	 * assign_levels puts it above everything that derives from it).
+	 *
+	 * A pin naming a JOINT record (a composite consuming a participant's
+	 * calibrated state — nde_history_last_record_for_item points there now)
+	 * binds to the BAND, aligned on the participant's column: the edge
+	 * leaves the band's bottom under that channel. */
+	for (guint i = 0; i < raw->len; i++) {
+		raw_edge *re = &g_array_index(raw, raw_edge, i);
+		gint align = 0;
+		nde_graph_node *src = NULL;
+		if (re->src_rec) {
+			for (guint j = 0; j < g->nodes->len && !src; j++) {
+				nde_graph_node *n = g_ptr_array_index(g->nodes, j);
+				if (!n->spanning)
+					continue;
+				for (guint r = 0; r < n->record_ids->len && !src; r++) {
+					if (*(gint64 *)g_ptr_array_index(n->record_ids, r)
+					    == re->src_rec) {
+						src = n;
+						align = re->src_item;
+					}
+				}
+			}
+			if (!src)
+				src = node_holding_record(g, re->src_item, re->src_rec);
+		}
+		if (!src)
+			src = g_hash_table_lookup(first_of, GINT_TO_POINTER(re->src_item));
+		if (!src)
+			src = node_new_for_item(g, by_id, first_of, re->src_item, 0,
+			                        &next_seg);
+		nde_graph_edge *e = g_new0(nde_graph_edge, 1);
+		e->src_item_id    = src->item_id;
+		e->src_record_id  = re->src_rec;
+		e->dst_item_id    = re->dst_node;
+		e->dst_record_id  = re->dst_rec;
+		e->src_align_item = align;
+		e->role           = re->role;   /* ownership moves */
+		g_ptr_array_add(g->edges, e);
+	}
+	g_array_unref(raw);
+	g_hash_table_destroy(cur_of);
+	g_hash_table_destroy(first_of);
 
 	/* An item the document no longer claims was usually consumed by a merge
 	 * or flatten — and that operation recorded its NAME on the way past.  Use
@@ -251,7 +417,7 @@ nde_graph *nde_graph_build(void) {
 				 * one of those going unnamed is worse than an unnamed layer:
 				 * "Layer 3, no longer in the document" describes a layer the
 				 * user never had. */
-				if (in->mask_item_id == n->item_id) {
+				if (in->mask_item_id == n->real_item) {
 					g_free(n->label);
 					n->label = g_strdup_printf(_("Layer mask of %s, no longer in the document"),
 					                           in->name);
@@ -262,7 +428,7 @@ nde_graph *nde_graph_build(void) {
 					named = TRUE;
 					break;
 				}
-				if (in->item_id != n->item_id)
+				if (in->item_id != n->real_item)
 					continue;
 				g_free(n->label);
 				n->label = g_strdup_printf(st->raw_first ? _("%s, merged away")
@@ -300,7 +466,7 @@ nde_graph *nde_graph_build(void) {
 			was_mask = TRUE;
 			for (guint r = 0; r < snap->len && was_mask; r++) {
 				const nde_record *rec = g_ptr_array_index(snap, r);
-				if (rec->target_item_id == n->item_id &&
+				if (rec->target_item_id == n->real_item &&
 				    !g_str_has_prefix(rec->op_id, "mask."))
 					was_mask = FALSE;
 			}
@@ -330,6 +496,18 @@ const nde_graph_node *nde_graph_node_for(const nde_graph *g, gint item_id) {
 			return n;
 	}
 	return NULL;
+}
+
+gint nde_graph_route_for_record(const nde_graph *g, gint64 record_id) {
+	if (!g)
+		return 0;
+	for (guint i = 0; i < g->nodes->len; i++) {
+		const nde_graph_node *n = g_ptr_array_index(g->nodes, i);
+		for (guint r = 0; r < n->record_ids->len; r++)
+			if (*(gint64 *)g_ptr_array_index(n->record_ids, r) == record_id)
+				return n->item_id;
+	}
+	return 0;
 }
 
 static GPtrArray *edges_matching(const nde_graph *g, gint item_id, gboolean as_source) {
@@ -431,26 +609,38 @@ GArray *nde_graph_layout(const GArray *boxes, gint col_gap, gint row_gap,
 	/* A level with no node in it still costs a band: the gap says the
 	 * derivation skipped a rank rather than that two nodes are siblings. */
 	gint *band_h = g_new0(gint, (gsize)n_bands);
+	gboolean *band_span = g_new0(gboolean, (gsize)n_bands);
 	for (guint i = 0; i < n; i++) {
 		if (host_of[i] >= 0)
 			continue;   /* counted through its host's column below */
 		const gint own = MAX(BOX(i)->h, col_h[i]);
 		if (own > band_h[level_of[i]])
 			band_h[level_of[i]] = own;
+		if (BOX(i)->spanning)
+			band_span[level_of[i]] = TRUE;
 	}
+	/* A spanning band keeps the COLUMN gap as its vertical whitespace —
+	 * enough to read as its own stage without opening a chasm.  Ordinary
+	 * band boundaries keep the row gap. */
 	gint *band_y = g_new0(gint, (gsize)n_bands);
 	gint y = 0;
+	gint last_gap = 0;
 	for (gint r = 0; r < n_bands; r++) {
 		band_y[r] = y;
-		y += band_h[r] + row_gap;
+		const gboolean at_span = band_span[r] ||
+				(r + 1 < n_bands && band_span[r + 1]);
+		last_gap = at_span ? col_gap : row_gap;
+		y += band_h[r] + last_gap;
 	}
 
 	/* Place hosts left to right, each followed by its own column, so that the
-	 * band's next node starts beyond the satellites rather than before them. */
+	 * band's next node starts beyond the satellites rather than before them.
+	 * A spanning box takes no x slot: its width is the whole layout's, set
+	 * once that width is known below. */
 	gint *band_x = g_new0(gint, (gsize)n_bands);
 	gint *px = g_new0(gint, n);
 	for (guint i = 0; i < n; i++) {
-		if (host_of[i] >= 0)
+		if (host_of[i] >= 0 || BOX(i)->spanning)
 			continue;
 		const gint lvl = level_of[i];
 		px[i] = band_x[lvl];
@@ -471,10 +661,37 @@ GArray *nde_graph_layout(const GArray *boxes, gint col_gap, gint row_gap,
 	for (guint i = 0; i < n; i++) {
 		const nde_graph_box *b = BOX(i);
 		const gint top = band_y[level_of[i]];
+		gint bx = px[i], bw = b->w;
+		if (b->spanning) {
+			/* Stretch over the participants' columns — the layers the
+			 * operation actually read.  When none of them is present
+			 * (or no list was given), fall back to the full width. */
+			gint sx0 = G_MAXINT, sx1 = G_MININT;
+			for (guint j = 0; j < n; j++) {
+				if (j == i || host_of[j] >= 0 || BOX(j)->spanning)
+					continue;
+				gboolean member = FALSE;
+				for (guint k = 0; k < b->n_span_items && !member; k++)
+					member = b->span_items[k] == BOX(j)->item_id;
+				if (!member)
+					continue;
+				if (px[j] < sx0)
+					sx0 = px[j];
+				if (px[j] + BOX(j)->w > sx1)
+					sx1 = px[j] + BOX(j)->w;
+			}
+			if (sx1 > sx0) {
+				bx = sx0;
+				bw = sx1 - sx0;
+			} else {
+				bx = 0;
+				bw = MAX(used_w, b->w);
+			}
+		}
 		nde_graph_place p = {
 			.item_id   = b->item_id,
-			.x         = px[i],
-			.w         = b->w,
+			.x         = bx,
+			.w         = bw,
 			.content_h = b->h,
 		};
 		if (host_of[i] >= 0) {
@@ -491,7 +708,7 @@ GArray *nde_graph_layout(const GArray *boxes, gint col_gap, gint row_gap,
 	}
 
 	if (total_w) *total_w = used_w;
-	if (total_h) *total_h = y > 0 ? y - row_gap : 0;
+	if (total_h) *total_h = y > 0 ? y - last_gap : 0;
 	g_free(host_of);
 	g_free(level_of);
 	g_free(col_w);
@@ -499,6 +716,7 @@ GArray *nde_graph_layout(const GArray *boxes, gint col_gap, gint row_gap,
 	g_free(sat_y);
 	g_free(sat_tail);
 	g_free(band_h);
+	g_free(band_span);
 	g_free(band_x);
 	g_free(band_y);
 	g_free(px);

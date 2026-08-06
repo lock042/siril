@@ -814,8 +814,16 @@ static gboolean prefetch_idle_cb(gpointer user_data) {
 	(void)user_data;
 	/* M-F12: the walk below reads the live layer list and bakes from
 	 * layer pixel buffers.  Lock order: stack (reader) BEFORE
-	 * g_cache_mutex — never the other way around. */
-	flis_stack_reader_lock();
+	 * g_cache_mutex — never the other way around.
+	 *
+	 * TRYLOCK: this runs on the main loop, so blocking on the writer lock a
+	 * long layer operation holds would freeze the UI.  Prefetch is a pure
+	 * cache warm-up — reschedule and try again once the writer releases. */
+	if (!flis_stack_reader_trylock()) {
+		g_prefetch_idle_id = g_idle_add_full(G_PRIORITY_LOW,
+		                                     prefetch_idle_cb, NULL, NULL);
+		return G_SOURCE_REMOVE;
+	}
 	g_mutex_lock(&g_cache_mutex);
 	g_prefetch_idle_id = 0;
 	if (!g_prefetch.valid) goto out;

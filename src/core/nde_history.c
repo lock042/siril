@@ -32,6 +32,8 @@
 #include "core/nde_compositing.h"
 #include "core/nde_composite.h"
 #include "core/nde_snapstore.h"
+#include "core/nde_cat.h"
+#include "core/nde_joint.h"
 #include "core/nde_replay.h"    /* nde_item_is_retained_input() */
 #include "core/processing_thread.h"   /* processing_is_reserved_for_replay() */
 #include "io/image_format_flis.h"
@@ -40,6 +42,14 @@
  * the fields inside it).  Nothing else is ever acquired while this is held —
  * keep it that way (sketch §6a). */
 static GMutex nde_mutex;
+
+/* Log generation: bumped under the mutex by every mutating entry point, and
+ * conservatively — a failed edit bumps too, costing at most a spurious cache
+ * miss.  Consumers (the joint-record factor cache, nde_joint.c) treat equal
+ * generations as "the log has not changed since I computed this".  Never
+ * reset: a new document keeps counting, so a cache entry can never collide
+ * with a value from a previous document. */
+static guint64 nde_generation = 1;
 
 /* ======================================================================= */
 /* Record lifecycle                                                        */
@@ -308,6 +318,7 @@ gint64 nde_history_append(nde_record *rec) {
 	}
 	GArray *dropped = g_array_new(FALSE, FALSE, sizeof(gint64));
 	g_mutex_lock(&nde_mutex);
+	nde_generation++;
 	if (!com.uniq->nde_history)
 		com.uniq->nde_history = nde_history_new();
 	nde_history *h = com.uniq->nde_history;
@@ -412,6 +423,7 @@ void nde_history_on_undo(gint64 record_id) {
 	if (!record_id || !com.uniq)
 		return;
 	g_mutex_lock(&nde_mutex);
+	nde_generation++;
 	nde_history *h = com.uniq->nde_history;
 	if (h && !insert_on_undo_locked(h, record_id)) {
 		gint idx = find_index_locked(h, record_id);
@@ -432,6 +444,7 @@ void nde_history_rebind_item(gint from_item, gint to_item) {
 	if (!com.uniq)
 		return;
 	g_mutex_lock(&nde_mutex);
+	nde_generation++;
 	nde_history *h = com.uniq->nde_history;
 	if (h) {
 		for (guint i = 0; i < h->records->len; i++) {
@@ -448,6 +461,7 @@ void nde_history_on_redo(gint64 record_id) {
 	if (!record_id || !com.uniq)
 		return;
 	g_mutex_lock(&nde_mutex);
+	nde_generation++;
 	nde_history *h = com.uniq->nde_history;
 	if (h && !insert_on_redo_locked(h, record_id)) {
 		gint idx = find_index_locked(h, record_id);
@@ -524,6 +538,7 @@ guint nde_history_forget_item(gint item_id) {
 		return 0;
 	GArray *dropped = g_array_new(FALSE, FALSE, sizeof(gint64));
 	g_mutex_lock(&nde_mutex);
+	nde_generation++;
 	nde_history *h = com.uniq->nde_history;
 	guint removed = 0;
 	for (guint i = h ? h->records->len : 0; i-- > 0; ) {
@@ -580,18 +595,34 @@ void nde_history_mask_pin_coords(GHashTable *record_ids, GHashTable *baseline_it
 }
 
 gint64 nde_history_last_record_for_item(gint item_id) {
-	if (!com.uniq)
-		return 0;
 	gint64 id = 0;
-	g_mutex_lock(&nde_mutex);
-	nde_history *h = com.uniq->nde_history;
-	for (guint i = 0; h && i < h->live_count; i++) {
-		const nde_record *rec = g_ptr_array_index(h->records, i);
-		if (rec->target_item_id == item_id)
+	/* Over a snapshot, not under the leaf mutex: the joint-participation
+	 * test below parses the record's params (allocates), which §6a forbids
+	 * while the mutex is held. */
+	GPtrArray *live = nde_history_snapshot(NULL);
+	for (guint i = 0; live && i < live->len; i++) {
+		const nde_record *rec = g_ptr_array_index(live, i);
+		/* A JOINT record (nde_joint.h) targets its anchor but rescales
+		 * every participant: it is the participant's latest state too.
+		 * Without this, a composite or mask captured after a joint
+		 * calibration pinned each non-anchor input BEFORE the joint
+		 * record, and the positional replay of that pin resolved the
+		 * input without the rescale. */
+		if (rec->target_item_id == item_id ||
+		    (nde_joint_is_op(rec->op_id) &&
+		     nde_joint_record_names_item(rec, item_id)))
 			id = rec->record_id;   /* last one wins: records are in order */
 	}
-	g_mutex_unlock(&nde_mutex);
+	if (live)
+		g_ptr_array_unref(live);
 	return id;
+}
+
+guint64 nde_history_generation(void) {
+	g_mutex_lock(&nde_mutex);
+	guint64 gen = nde_generation;
+	g_mutex_unlock(&nde_mutex);
+	return gen;
 }
 
 guint nde_history_live_count(void) {
@@ -628,12 +659,14 @@ void nde_history_attach(nde_history *h) {
 	 * locks, outside the nde history mutex. */
 	nde_checkpoint_purge();
 	nde_snapstore_pool_purge();
+	nde_cat_purge();
 	if (!com.uniq) {
 		nde_history_free(h);
 		return;
 	}
 	nde_history *old;
 	g_mutex_lock(&nde_mutex);
+	nde_generation++;
 	old = com.uniq->nde_history;
 	com.uniq->nde_history = h;
 	g_mutex_unlock(&nde_mutex);
@@ -698,6 +731,7 @@ guint nde_history_drop_mask_input(gint64 record_id, gint mask_item_id) {
 
 	guint changed = 0;
 	g_mutex_lock(&nde_mutex);
+	nde_generation++;
 	{
 		nde_history *h = com.uniq->nde_history;
 		for (guint i = 0; i < h->live_count; i++) {
@@ -726,8 +760,12 @@ guint nde_history_drop_mask_input(gint64 record_id, gint mask_item_id) {
 }
 
 static gboolean amend_commit(gint64 record_id, const gchar *new_params,
-                             gchar *new_summary, gchar **err) {
-	/* Strings prepared before locking (§6a discipline). */
+                             gchar *new_summary, GPtrArray *new_pins,
+                             gchar **err) {
+	/* Strings prepared before locking (§6a discipline).  @new_pins (owned by
+	 * this function, may be NULL = keep) replaces the record's input pins —
+	 * the JOINT subset amend re-derives them alongside the params so the
+	 * graph edges and provenance track the new participant list. */
 	gchar *params_copy = g_strdup(new_params);
 	gchar *ts = nde_iso8601_now();
 	gchar *impl = nde_impl_string();
@@ -735,6 +773,7 @@ static gboolean amend_commit(gint64 record_id, const gchar *new_params,
 	gboolean ok = FALSE;
 	GArray *dropped = g_array_new(FALSE, FALSE, sizeof(gint64));
 	g_mutex_lock(&nde_mutex);
+	nde_generation++;
 	{
 		nde_history *h = com.uniq->nde_history;
 		gint idx = find_mutable_locked(h, record_id, TRUE, err);
@@ -751,12 +790,20 @@ static gboolean amend_commit(gint64 record_id, const gchar *new_params,
 				rec->summary = new_summary;   /* ownership transferred */
 				new_summary = NULL;
 			}
+			if (new_pins) {
+				if (rec->inputs)
+					g_ptr_array_unref(rec->inputs);
+				rec->inputs = new_pins;   /* ownership transferred */
+				new_pins = NULL;
+			}
 			truncate_dead_locked(h, dropped);
 			ok = TRUE;
 		}
 	}
 	g_mutex_unlock(&nde_mutex);
 	drop_output_checkpoints(dropped);
+	if (new_pins)
+		g_ptr_array_unref(new_pins);
 	if (!ok) {
 		g_free(params_copy);
 		g_free(ts);
@@ -803,9 +850,8 @@ gboolean nde_history_amend(gint64 record_id, const gchar *new_params, gchar **er
 		gboolean ok = nde_composite_validate(old_params, new_params, err);
 		g_free(op_id);
 		g_free(old_params);
-		return ok ? amend_commit(record_id, new_params, NULL, err) : FALSE;
+		return ok ? amend_commit(record_id, new_params, NULL, NULL, err) : FALSE;
 	}
-	g_free(old_params);
 
 	/* Compositing-state records have no op descriptor: their params are
 	 * validated by range/enum instead, and their summary ("Set opacity", …)
@@ -813,23 +859,65 @@ gboolean nde_history_amend(gint64 record_id, const gchar *new_params, gchar **er
 	if (nde_compositing_is_op(op_id)) {
 		gboolean ok = nde_compositing_validate(op_id, new_params, err);
 		g_free(op_id);
+		g_free(old_params);
 		if (!ok)
 			return FALSE;
-		return amend_commit(record_id, new_params, NULL, err);
+		return amend_commit(record_id, new_params, NULL, NULL, err);
 	}
 
 	const op_descriptor *op = op_descriptor_by_id(op_id);
 	if (!op || !op->deserialize) {
 		*err = g_strdup_printf(_("operation '%s' cannot be edited by this build"), op_id);
 		g_free(op_id);
+		g_free(old_params);
 		return FALSE;
 	}
 	gpointer trial = op->deserialize(new_params, op_version);
 	if (!trial) {
 		*err = g_strdup_printf(_("the new parameters for '%s' failed to parse"), op_id);
 		g_free(op_id);
+		g_free(old_params);
 		return FALSE;
 	}
+
+	/* A JOINT amend that changes the participant list re-derives the input
+	 * pins alongside the params (nde_joint.h): each new participant pinned
+	 * at its last record BEFORE the joint record's log position, the same
+	 * coordinate the original capture used.  NULL for every other amend. */
+	GPtrArray *new_pins = NULL;
+	if (nde_joint_is_op(op_id) &&
+	    !nde_joint_params_same_participants(old_params, new_params)) {
+		guint jn = 0;
+		gint *jitems = nde_joint_params_participants(new_params, &jn);
+		if (jitems) {
+			GPtrArray *snap = nde_history_snapshot(NULL);
+			gint jpos = -1;
+			for (guint i = 0; snap && i < snap->len; i++) {
+				const nde_record *r = g_ptr_array_index(snap, i);
+				if (r->record_id == record_id) {
+					jpos = (gint)i;
+					break;
+				}
+			}
+			new_pins = pins_new();
+			for (guint k = 0; k < jn; k++) {
+				gint64 src = 0;
+				for (gint i = 0; snap && i < jpos; i++) {
+					const nde_record *r = g_ptr_array_index(snap, i);
+					if (r->target_item_id == jitems[k])
+						src = r->record_id;
+				}
+				gchar role[16];
+				g_snprintf(role, sizeof(role), "in%u", k);
+				g_ptr_array_add(new_pins,
+				                nde_input_pin_new(role, jitems[k], src));
+			}
+			if (snap)
+				g_ptr_array_unref(snap);
+			g_free(jitems);
+		}
+	}
+	g_free(old_params);
 	/* Regenerate the human summary from the NEW params while the deserialized
 	 * struct is still alive, so the panel row and log stop showing the
 	 * pre-amend values (params and pixels are already updated by the amend —
@@ -846,7 +934,7 @@ gboolean nde_history_amend(gint64 record_id, const gchar *new_params, gchar **er
 		free(trial);
 	g_free(op_id);
 
-	return amend_commit(record_id, new_params, new_summary, err);
+	return amend_commit(record_id, new_params, new_summary, new_pins, err);
 }
 
 gboolean nde_history_delete(gint64 record_id, gchar **err) {
@@ -859,6 +947,7 @@ gboolean nde_history_delete(gint64 record_id, gchar **err) {
 	gboolean ok = FALSE;
 	GArray *dropped = g_array_new(FALSE, FALSE, sizeof(gint64));
 	g_mutex_lock(&nde_mutex);
+	nde_generation++;
 	{
 		nde_history *h = com.uniq->nde_history;
 		gint idx = find_mutable_locked(h, record_id, FALSE, err);
@@ -887,6 +976,7 @@ gboolean nde_history_reorder(gint64 record_id, gint64 before_id, gchar **err) {
 	gboolean ok = FALSE;
 	GArray *dropped = g_array_new(FALSE, FALSE, sizeof(gint64));
 	g_mutex_lock(&nde_mutex);
+	nde_generation++;
 	{
 		nde_history *h = com.uniq->nde_history;
 		gint idx = find_mutable_locked(h, record_id, FALSE, err);
@@ -934,6 +1024,7 @@ gboolean nde_history_insert_point_set(gint64 before_id, gint item_id, gchar **er
 	GArray *dropped = g_array_new(FALSE, FALSE, sizeof(gint64));
 	gboolean ok = FALSE;
 	g_mutex_lock(&nde_mutex);
+	nde_generation++;
 	{
 		nde_history *h = com.uniq->nde_history;
 		if (!h->ins_ids)
@@ -997,6 +1088,7 @@ GArray *nde_history_insert_point_clear(void) {
 		return out;
 	GArray *dropped = g_array_new(FALSE, FALSE, sizeof(gint64));
 	g_mutex_lock(&nde_mutex);
+	nde_generation++;
 	{
 		nde_history *h = com.uniq->nde_history;
 		if (h) {
@@ -1031,6 +1123,7 @@ void nde_history_drop_records(GArray *ids) {
 	GArray *dropped = g_array_new(FALSE, FALSE, sizeof(gint64));
 	gboolean any = FALSE;
 	g_mutex_lock(&nde_mutex);
+	nde_generation++;
 	{
 		nde_history *h = com.uniq->nde_history;
 		for (guint i = 0; h && i < ids->len; i++) {
@@ -1055,6 +1148,7 @@ void nde_history_truncate_dead(void) {
 		return;
 	GArray *dropped = g_array_new(FALSE, FALSE, sizeof(gint64));
 	g_mutex_lock(&nde_mutex);
+	nde_generation++;
 	if (com.uniq->nde_history)
 		truncate_dead_locked(com.uniq->nde_history, dropped);
 	g_mutex_unlock(&nde_mutex);
@@ -1120,9 +1214,14 @@ static gint64 capture_finish(nde_record *rec, const char *summary,
 	rec->impl      = nde_impl_string();
 	gboolean barrier   = record_is_barrier(rec);
 	gint     target_id = rec->target_item_id;
+	gchar   *op_copy   = g_strdup(rec->op_id);
 	gint64 id = nde_history_append(rec);   /* takes ownership */
 	if (id > 0 && barrier && post)
 		nde_checkpoint_output_store(post, id, target_id);
+	/* Claim (or discard as stale) any star catalogue the photometric
+	 * pipeline stashed for this capture (nde_cat.h). */
+	nde_cat_adopt_pending(id, op_copy);
+	g_free(op_copy);
 	nde_history_notify_panel();
 	return id;
 }
@@ -1249,6 +1348,16 @@ gint64 nde_capture_from_descriptor_for_item(const op_descriptor *op,
                                             gconstpointer params,
                                             const char *summary,
                                             const fits *post, gint item_id) {
+	return nde_capture_from_descriptor_pinned(op, params, summary, post,
+	                                          item_id, NULL, 0);
+}
+
+gint64 nde_capture_from_descriptor_pinned(const op_descriptor *op,
+                                          gconstpointer params,
+                                          const char *summary,
+                                          const fits *post, gint item_id,
+                                          const nde_pin_spec *pins,
+                                          guint n_pins) {
 	g_return_val_if_fail(op != NULL, 0);
 	nde_record *rec = nde_record_new();
 	gboolean tier_a = op->serialize != NULL;
@@ -1259,6 +1368,9 @@ gint64 nde_capture_from_descriptor_for_item(const op_descriptor *op,
 	rec->scope      = NDE_SCOPE_LAYER;
 	rec->target_item_id = item_id;
 	rec->mask_active = FALSE;
+	for (guint i = 0; i < n_pins; i++)
+		nde_record_add_input(rec, pins[i].role, pins[i].src_item_id,
+		                     pins[i].src_record_id);
 	return capture_finish(rec, summary, post);
 }
 

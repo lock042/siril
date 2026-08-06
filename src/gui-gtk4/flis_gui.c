@@ -51,6 +51,7 @@
 #include "core/nde_history.h"
 #include "core/nde_replay.h"   /* nde_record_amendable/deletable, amend/delete_start */
 #include "core/nde_graph.h"    /* nodes + edges behind the per-item step lists */
+#include "core/nde_joint.h"    /* joint records route to their own graph node */
 #include "gui-gtk4/nde_graph_view.h"   /* the container that places them (#61) */
 #include "core/nde_compositing.h"  /* nde_compositing_is_op */
 #include "core/nde_composite.h"    /* the composite node's own editor */
@@ -2702,6 +2703,14 @@ static hist_node_ui *hist_node_get(gint item_id, const nde_graph_node *gn,
 					NDE_GRAPH_VIEW(g_panel->hist_container),
 					item_id, s->first_rec, s->last_rec);
 		}
+	} else if (gn && gn->spanning) {
+		/* A joint record (nde_joint.h): one operation across the layers it
+		 * read, drawn as a band spanning their columns rather than as a
+		 * node with edges. */
+		nde_graph_view_add_span_node(NDE_GRAPH_VIEW(g_panel->hist_container),
+		                             item_id, gn->level,
+		                             gn->span_items, gn->n_span_items,
+		                             n->frame);
 	} else {
 		nde_graph_view_add_node(NDE_GRAPH_VIEW(g_panel->hist_container), item_id,
 		                        gn ? gn->level : 0, n->frame);
@@ -2839,9 +2848,10 @@ static void refresh_history(void) {
 		if ((ss && ss->host == e->dst_item_id) ||
 		    (ds && ds->host == e->src_item_id))
 			continue;
-		nde_graph_view_add_edge(NDE_GRAPH_VIEW(g_panel->hist_container),
-		                        e->src_item_id, e->dst_item_id,
-		                        nde_graph_edge_is_feedback(graph, e));
+		nde_graph_view_add_edge_aligned(NDE_GRAPH_VIEW(g_panel->hist_container),
+		                                e->src_item_id, e->dst_item_id,
+		                                nde_graph_edge_is_feedback(graph, e),
+		                                e->src_align_item);
 	}
 
 	/* Build the freeze-verdict map once per DISTINCT target item present in
@@ -2873,6 +2883,15 @@ static void refresh_history(void) {
 	if (snap) {
 		for (guint i = 0; i < snap->len; i++) {
 			const nde_record *rec = g_ptr_array_index(snap, i);
+			/* The graph says which node shows this row: an item split into
+			 * SEGMENTS by a joint band routes its later steps to the segment
+			 * below it, and the joint record itself to its spanning band.
+			 * Dead-tail rows are not in the live graph — they land in
+			 * whatever node their target names.  Step numbers count per
+			 * ITEM, so a column's sequence reads on across the bands. */
+			gint route_item = nde_graph_route_for_record(graph, rec->record_id);
+			if (!route_item)
+				route_item = rec->target_item_id;
 			gpointer key = GINT_TO_POINTER(rec->target_item_id);
 			guint pos = GPOINTER_TO_UINT(g_hash_table_lookup(seq, key)) + 1;
 			g_hash_table_insert(seq, key, GUINT_TO_POINTER(pos));
@@ -2927,8 +2946,8 @@ static void refresh_history(void) {
 			}
 			/* A dead-tail record may name an item the LIVE graph no longer
 			 * has a node for; give it one so undone steps stay visible. */
-			hist_node_ui *node = hist_node_get(rec->target_item_id,
-			                                   nde_graph_node_for(graph, rec->target_item_id),
+			hist_node_ui *node = hist_node_get(route_item,
+			                                   nde_graph_node_for(graph, route_item),
 			                                   graph);
 			g_list_store_append(node->store, item);
 			g_object_unref(item);
@@ -3315,13 +3334,28 @@ gboolean flis_panel_selected_colour_group(void) {
 	return flis_group_composites_to_colour(current_selected_group());
 }
 
+static gboolean refresh_panel_retry(gpointer u) {
+	(void)u;
+	refresh_panel();
+	return G_SOURCE_REMOVE;
+}
+
 static void refresh_panel(void) {
 	if (!g_panel) return;
 	/* M-F12: the rebuild walks com.uniq->layers/groups and reads layer
 	 * fields; hold the stack reader lock so a worker hook can't free a
 	 * layer mid-walk.  Main thread only; no fits/cairo locks and no
-	 * blocking calls are made inside (GTK widget setters only). */
-	flis_stack_reader_lock();
+	 * blocking calls are made inside (GTK widget setters only).
+	 *
+	 * TRYLOCK (see flis_composite_ensure_built): a long layer operation
+	 * holds the writer lock throughout, and blocking here would freeze the
+	 * panel — and, through it, the main loop — for the whole operation.
+	 * Reschedule instead; the op's own completion refreshes too, and the
+	 * retry catches any path that does not. */
+	if (!flis_stack_reader_trylock()) {
+		g_idle_add(refresh_panel_retry, NULL);
+		return;
+	}
 	g_panel->refreshing = TRUE;
 
 	const gboolean is_flis = is_current_image_flis();
@@ -5407,7 +5441,7 @@ static int op_register_layers_hook(struct generic_layer_args *args) {
 	}
 
 	int rv = flis_register_layers(ref, targets, method, sel, tx,
-	                              p->interp, p->clamp);
+	                              p->interp, p->clamp, p->method_id);
 	if (owned) g_slist_free(targets);
 	return rv;
 }

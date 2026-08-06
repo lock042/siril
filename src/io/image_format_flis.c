@@ -63,7 +63,9 @@
 
 #include "core/icc_profile.h"
 #include "core/masks.h"
+#include "core/nde_cat.h"
 #include "core/nde_history.h"
+#include "core/nde_joint.h"
 #include "core/nde_replay.h"
 #include "core/nde_script_scope.h"
 #include "core/op_descriptor.h"
@@ -107,6 +109,16 @@
  *      and commands can never re-enter the lock.
  *   4. GRWLock is not recursive — do not nest reader sections either
  *      (a queued writer between two reader acquisitions deadlocks).
+ *   5. MAIN-THREAD RENDER/PANEL readers use flis_stack_reader_trylock(),
+ *      never the blocking acquire.  A long layer operation (registration,
+ *      group calibration, ICC convert) holds the WRITER lock for its whole
+ *      duration; a blocking reader on the main loop would freeze every
+ *      redraw and panel refresh until it finished — indistinguishable from
+ *      a hang, and the shape of the registration deadlock report.  On
+ *      contention these sites show the last composite / reschedule; the
+ *      operation ends by invalidating and redrawing, which acquires cleanly
+ *      once the writer has released.  Worker-thread and save-path readers
+ *      may still block (they are not the main loop).
  *
  * Documented-benign UNLOCKED accesses (everything else must lock):
  *   a. Interactive-drag scalar writes from the main thread: a layer's
@@ -138,6 +150,16 @@ void flis_stack_reader_lock(void)   { g_rw_lock_reader_lock(&flis_stack_rwlock);
 void flis_stack_reader_unlock(void) { g_rw_lock_reader_unlock(&flis_stack_rwlock); }
 void flis_stack_writer_lock(void)   { g_rw_lock_writer_lock(&flis_stack_rwlock); }
 void flis_stack_writer_unlock(void) { g_rw_lock_writer_unlock(&flis_stack_rwlock); }
+
+/* Non-blocking reader acquisition — TRUE on success (caller must unlock).
+ * The MAIN-THREAD render and panel-refresh sites use this: a worker hook
+ * holds the writer lock for the whole of a long layer operation (registration,
+ * group calibration, ICC convert), and blocking on it there freezes the UI
+ * for the entire operation — which reads as a hang.  A dropped frame or a
+ * one-cycle-stale panel is the right trade: the operation ends with
+ * flis_invalidate_composite() + a redraw, which acquires cleanly once the
+ * writer has released, so nothing stays stale. */
+gboolean flis_stack_reader_trylock(void) { return g_rw_lock_reader_trylock(&flis_stack_rwlock); }
 
 /* Free an lmask on the GTK main thread.  redraw_mask_idle (main thread)
  * reads the active layer's lmask under gfit's rwlock but cannot take the
@@ -1857,6 +1879,295 @@ static void write_nde_ckpt_hdus(fitsfile *fptr, GPtrArray *records) {
         nde_base_restore_compression(fptr);
 }
 
+/* ---- FLIS_NDE_CAT: embedded star catalogues (nde_cat.h) -----------------
+ * One binary-table HDU per photometric calibration record whose analysis
+ * catalogue is registered, so the .flis is self-contained: replay re-runs
+ * PCC/SPCC offline from the very star data (B/V magnitudes, Teff, sampled
+ * flux spectra) the original run used.  Located by EXTNAME scan like
+ * FLIS_HIST; the owning record is named by the NDECATID keyword.  The FLIS
+ * spec does not forbid extra binary tables — documented in the NDE annex. */
+
+static int write_flis_nde_cat_hdu(fitsfile *fptr, gint64 record_id,
+                                  const siril_catalogue *cat) {
+    int status = 0;
+    const long n = cat->nbitems > 0 ? cat->nbitems : 0;
+    gboolean has_xp = FALSE;
+    long w_name = 1;
+    for (long i = 0; i < n; i++) {
+        if (cat->cat_items[i].xp_sampled)
+            has_xp = TRUE;
+        if (cat->cat_items[i].name)
+            w_name = MAX(w_name, (long)strlen(cat->cat_items[i].name));
+    }
+    char f_name[24], f_xp[24];
+    g_snprintf(f_name, sizeof(f_name), "%ldA", w_name);
+    g_snprintf(f_xp, sizeof(f_xp), "%dD", XPSAMPLED_LEN);
+    const char *names[12] = { "RA", "DEC", "PMRA", "PMDEC", "MAG", "BMAG",
+                              "EMAG", "EBMAG", "TEFF", "GAIAID", "NAME", "XPSAMP" };
+    const char *fmts[12]  = { "1D", "1D", "1D", "1D", "1E", "1E",
+                              "1E", "1E", "1E", "1K", f_name, f_xp };
+    const int ncols = has_xp ? 12 : 11;
+    if (fits_create_tbl(fptr, BINARY_TBL, n, ncols, (char **)names,
+                        (char **)fmts, NULL, "FLIS_NDE_CAT", &status)) {
+        report_fits_error(status);
+        return 1;
+    }
+    int ver = 1;
+    LONGLONG rid = record_id;
+    int catix = (int)cat->cat_index;
+    long colmask = (long)cat->columns;
+    int phot = cat->phot ? 1 : 0;
+    double kd;
+    fits_write_key(fptr, TINT, "NDECATV", &ver, "FLIS_NDE_CAT format version", &status);
+    fits_write_key(fptr, TLONGLONG, "NDECATID", &rid, "owning NDE record id", &status);
+    fits_write_key(fptr, TINT, "NDECATIX", &catix, "siril_cat_index of the query", &status);
+    fits_write_key(fptr, TLONG, "NDECATCO", &colmask, "parsed-columns bitmask", &status);
+    fits_write_key(fptr, TLOGICAL, "NDECATPH", &phot, "photometric query", &status);
+    kd = cat->center_ra;
+    fits_write_key(fptr, TDOUBLE, "NDECATRA", &kd, "cone centre RA (deg)", &status);
+    kd = cat->center_dec;
+    fits_write_key(fptr, TDOUBLE, "NDECATDE", &kd, "cone centre Dec (deg)", &status);
+    kd = cat->radius;
+    fits_write_key(fptr, TDOUBLE, "NDECATRD", &kd, "cone radius (arcmin)", &status);
+    kd = cat->limitmag;
+    fits_write_key(fptr, TDOUBLE, "NDECATMG", &kd, "limit magnitude", &status);
+    if (status) {
+        report_fits_error(status);
+        return 1;
+    }
+    if (!n)
+        return 0;
+
+    double *dcol = malloc(n * sizeof(double));
+    float *fcol = malloc(n * sizeof(float));
+    LONGLONG *lcol = malloc(n * sizeof(LONGLONG));
+    char **scol = malloc(n * sizeof(char *));
+    double *xcol = has_xp ? calloc(n * XPSAMPLED_LEN, sizeof(double)) : NULL;
+    if (!dcol || !fcol || !lcol || !scol || (has_xp && !xcol)) {
+        PRINT_ALLOC_ERR;
+        free(dcol); free(fcol); free(lcol); free(scol); free(xcol);
+        return 1;
+    }
+    const cat_item *it = cat->cat_items;
+#define CAT_WRITE_D(colidx, field) do { \
+        for (long i = 0; i < n; i++) dcol[i] = it[i].field; \
+        fits_write_col(fptr, TDOUBLE, colidx, 1, 1, n, dcol, &status); \
+    } while (0)
+#define CAT_WRITE_E(colidx, field) do { \
+        for (long i = 0; i < n; i++) fcol[i] = it[i].field; \
+        fits_write_col(fptr, TFLOAT, colidx, 1, 1, n, fcol, &status); \
+    } while (0)
+    CAT_WRITE_D(1, ra);
+    CAT_WRITE_D(2, dec);
+    CAT_WRITE_D(3, pmra);
+    CAT_WRITE_D(4, pmdec);
+    CAT_WRITE_E(5, mag);
+    CAT_WRITE_E(6, bmag);
+    CAT_WRITE_E(7, e_mag);
+    CAT_WRITE_E(8, e_bmag);
+    CAT_WRITE_E(9, teff);
+#undef CAT_WRITE_D
+#undef CAT_WRITE_E
+    for (long i = 0; i < n; i++)
+        lcol[i] = (LONGLONG)it[i].gaiasourceid;
+    fits_write_col(fptr, TLONGLONG, 10, 1, 1, n, lcol, &status);
+    for (long i = 0; i < n; i++)
+        scol[i] = it[i].name ? it[i].name : (char *)"";
+    fits_write_col(fptr, TSTRING, 11, 1, 1, n, scol, &status);
+    if (has_xp) {
+        for (long i = 0; i < n; i++)
+            if (it[i].xp_sampled)
+                memcpy(xcol + i * XPSAMPLED_LEN, it[i].xp_sampled,
+                       XPSAMPLED_LEN * sizeof(double));
+        fits_write_col(fptr, TDOUBLE, 12, 1, 1, n * XPSAMPLED_LEN, xcol, &status);
+    }
+    free(dcol); free(fcol); free(lcol); free(scol); free(xcol);
+    if (status) {
+        report_fits_error(status);
+        return 1;
+    }
+    return 0;
+}
+
+static void write_flis_nde_cat_hdus(fitsfile *fptr, GPtrArray *records) {
+    for (guint i = 0; i < records->len; i++) {
+        nde_record *rec = g_ptr_array_index(records, i);
+        siril_catalogue *cat = nde_cat_peek(rec->record_id);
+        if (!cat)
+            continue;
+        if (write_flis_nde_cat_hdu(fptr, rec->record_id, cat))
+            siril_log_warning(_("FLIS: failed to write the star catalogue for record %" G_GINT64_FORMAT "\n"),
+                              rec->record_id);
+    }
+}
+
+typedef struct {
+    gint64 record_id;
+    siril_catalogue *cat;
+} nde_cat_load_t;
+
+static void nde_cat_load_free(gpointer p) {
+    nde_cat_load_t *c = p;
+    if (!c)
+        return;
+    if (c->cat)
+        siril_catalog_free(c->cat);
+    g_free(c);
+}
+
+static GPtrArray *read_flis_nde_cat_hdus(fitsfile *fptr, int nhdus,
+                                         nde_history *hist) {
+    if (!hist || !hist->records || hist->records->len == 0)
+        return NULL;
+    GHashTable *rec_ids = g_hash_table_new_full(g_int64_hash, g_int64_equal,
+                                                g_free, NULL);
+    for (guint i = 0; i < hist->records->len; i++) {
+        nde_record *rec = g_ptr_array_index(hist->records, i);
+        gint64 *k = g_new(gint64, 1);
+        *k = rec->record_id;
+        g_hash_table_add(rec_ids, k);
+    }
+
+    GPtrArray *out = NULL;
+    for (int h = 2; h <= nhdus; h++) {
+        int status = 0;
+        char extname[FLEN_VALUE] = { 0 };
+        if (fits_movabs_hdu(fptr, h, NULL, &status)) { status = 0; continue; }
+        fits_read_key(fptr, TSTRING, "EXTNAME", extname, NULL, &status); status = 0;
+        if (g_ascii_strcasecmp(extname, "FLIS_NDE_CAT"))
+            continue;
+        int ver = 0;
+        LONGLONG rid_ll = 0;
+        fits_read_key(fptr, TINT, "NDECATV", &ver, NULL, &status); status = 0;
+        fits_read_key(fptr, TLONGLONG, "NDECATID", &rid_ll, NULL, &status); status = 0;
+        gint64 rid = (gint64)rid_ll;
+        if (ver > 1) {
+            siril_log_warning(_("FLIS: star catalogue for record %" G_GINT64_FORMAT
+                                " uses a newer format (v%d) — skipped\n"), rid, ver);
+            continue;
+        }
+        if (!g_hash_table_contains(rec_ids, &rid))
+            continue;   /* catalogue for a record not in the loaded history */
+        int catix = 0, phot = 0;
+        long colmask = 0, nrows = 0;
+        double cra = 0, cdec = 0, crad = 0, cmag = 0;
+        fits_read_key(fptr, TINT, "NDECATIX", &catix, NULL, &status); status = 0;
+        fits_read_key(fptr, TLONG, "NDECATCO", &colmask, NULL, &status); status = 0;
+        fits_read_key(fptr, TLOGICAL, "NDECATPH", &phot, NULL, &status); status = 0;
+        fits_read_key(fptr, TDOUBLE, "NDECATRA", &cra, NULL, &status); status = 0;
+        fits_read_key(fptr, TDOUBLE, "NDECATDE", &cdec, NULL, &status); status = 0;
+        fits_read_key(fptr, TDOUBLE, "NDECATRD", &crad, NULL, &status); status = 0;
+        fits_read_key(fptr, TDOUBLE, "NDECATMG", &cmag, NULL, &status); status = 0;
+        fits_get_num_rows(fptr, &nrows, &status); status = 0;
+        int xp_col = 0;
+        fits_get_colnum(fptr, CASEINSEN, "XPSAMP", &xp_col, &status); status = 0;
+
+        siril_catalogue *cat = siril_catalog_new((siril_cat_index)catix);
+        cat->center_ra = cra;
+        cat->center_dec = cdec;
+        cat->radius = crad;
+        cat->limitmag = cmag;
+        cat->phot = phot != 0;
+        cat->columns = (uint32_t)colmask;
+        cat->nbitems = (int)nrows;
+        gboolean ok = TRUE;
+        if (nrows > 0) {
+            cat->cat_items = calloc(nrows, sizeof(cat_item));
+            double *dcol = malloc(nrows * sizeof(double));
+            float *fcol = malloc(nrows * sizeof(float));
+            LONGLONG *lcol = malloc(nrows * sizeof(LONGLONG));
+            double *xcol = xp_col ? malloc(nrows * XPSAMPLED_LEN * sizeof(double)) : NULL;
+            if (!cat->cat_items || !dcol || !fcol || !lcol || (xp_col && !xcol)) {
+                PRINT_ALLOC_ERR;
+                ok = FALSE;
+            }
+            int anynul = 0;
+#define CAT_READ_D(colidx, field) do { \
+            if (ok && !fits_read_col(fptr, TDOUBLE, colidx, 1, 1, nrows, NULL, \
+                                     dcol, &anynul, &status)) \
+                for (long i = 0; i < nrows; i++) cat->cat_items[i].field = dcol[i]; \
+            status = 0; \
+        } while (0)
+#define CAT_READ_E(colidx, field) do { \
+            if (ok && !fits_read_col(fptr, TFLOAT, colidx, 1, 1, nrows, NULL, \
+                                     fcol, &anynul, &status)) \
+                for (long i = 0; i < nrows; i++) cat->cat_items[i].field = fcol[i]; \
+            status = 0; \
+        } while (0)
+            CAT_READ_D(1, ra);
+            CAT_READ_D(2, dec);
+            CAT_READ_D(3, pmra);
+            CAT_READ_D(4, pmdec);
+            CAT_READ_E(5, mag);
+            CAT_READ_E(6, bmag);
+            CAT_READ_E(7, e_mag);
+            CAT_READ_E(8, e_bmag);
+            CAT_READ_E(9, teff);
+#undef CAT_READ_D
+#undef CAT_READ_E
+            if (ok && !fits_read_col(fptr, TLONGLONG, 10, 1, 1, nrows, NULL,
+                                     lcol, &anynul, &status))
+                for (long i = 0; i < nrows; i++)
+                    cat->cat_items[i].gaiasourceid = (uint64_t)lcol[i];
+            status = 0;
+            if (ok) {
+                int ntype = 0;
+                long nwidth = 0;
+                fits_get_coltype(fptr, 11, &ntype, &nwidth, NULL, &status);
+                status = 0;
+                for (long i = 0; ok && nwidth > 0 && i < nrows; i++) {
+                    gchar *buf = g_malloc0(nwidth + 1);
+                    char *ptr = buf;
+                    if (!fits_read_col(fptr, TSTRING, 11, i + 1, 1, 1,
+                                       (char *)"", &ptr, &anynul, &status)) {
+                        g_strchomp(buf);
+                        cat->cat_items[i].name = buf[0] ? buf : (g_free(buf), NULL);
+                    } else {
+                        g_free(buf);
+                        status = 0;
+                    }
+                }
+            }
+            if (ok && xp_col &&
+                !fits_read_col(fptr, TDOUBLE, xp_col, 1, 1,
+                               nrows * XPSAMPLED_LEN, NULL, xcol, &anynul, &status)) {
+                for (long i = 0; i < nrows; i++) {
+                    const double *row = xcol + i * XPSAMPLED_LEN;
+                    /* A star recorded without a spectrum wrote zeros into its
+                     * slot; an all-zero spectrum is physically meaningless, so
+                     * absence is what it means. */
+                    gboolean any = FALSE;
+                    for (int k = 0; k < XPSAMPLED_LEN && !any; k++)
+                        any = row[k] != 0.0;
+                    if (!any)
+                        continue;
+                    cat->cat_items[i].xp_sampled =
+                            malloc(XPSAMPLED_LEN * sizeof(double));
+                    memcpy(cat->cat_items[i].xp_sampled, row,
+                           XPSAMPLED_LEN * sizeof(double));
+                }
+            }
+            status = 0;
+            for (long i = 0; ok && i < nrows; i++)
+                cat->cat_items[i].included = TRUE;
+            free(dcol); free(fcol); free(lcol); free(xcol);
+        }
+        if (!ok) {
+            siril_catalog_free(cat);
+            siril_log_warning(_("FLIS: failed to read the star catalogue for record %" G_GINT64_FORMAT "\n"), rid);
+            continue;
+        }
+        if (!out)
+            out = g_ptr_array_new_with_free_func(nde_cat_load_free);
+        nde_cat_load_t *c = g_new0(nde_cat_load_t, 1);
+        c->record_id = rid;
+        c->cat = cat;
+        g_ptr_array_add(out, c);
+    }
+    g_hash_table_destroy(rec_ids);
+    return out;
+}
+
 /* Read one cell of a fixed-width ASCII column as a heap string; NULL for an
  * empty cell (which is how NULL record fields were written).  Trailing
  * blanks are trimmed — fixed-width A columns are space-padded on disk, so
@@ -2382,6 +2693,10 @@ int save_flis(const gchar *filename) {
         /* NDE output checkpoints ride after NDE_BASE (plan P4.3), one lossless
          * image HDU per live barrier record that has an in-session checkpoint. */
         write_nde_ckpt_hdus(fptr, nde_records);
+        /* Embedded star catalogues (nde_cat.h), one binary table per live
+         * photometric record that registered one — the file replays PCC/SPCC
+         * offline, on any machine. */
+        write_flis_nde_cat_hdus(fptr, nde_records);
     }
     if (nde_records)
         g_ptr_array_unref(nde_records);
@@ -2581,6 +2896,9 @@ int load_flis(const gchar *filename) {
      * store AFTER nde_history_attach() (attach purges the store).  Pre-phase-4
      * files simply have no NDE_CKPT HDUs → barriers stay full blockers. */
     GPtrArray *nde_ckpts = read_nde_ckpt_hdus(fptr, nhdus, nde_hist);
+    /* Embedded star catalogues, registered AFTER nde_history_attach() (the
+     * attach purges the registry along with the other NDE stores). */
+    GPtrArray *nde_cats = read_flis_nde_cat_hdus(fptr, nhdus, nde_hist);
     guint nde_hash_scope = 0, nde_hash_present = 0;
     gboolean nde_hash_mismatch = FALSE;
 
@@ -2776,6 +3094,7 @@ int load_flis(const gchar *filename) {
         nde_history_free(nde_hist);
         if (nde_baselines) g_ptr_array_unref(nde_baselines);
         if (nde_ckpts) g_ptr_array_unref(nde_ckpts);
+        if (nde_cats) g_ptr_array_unref(nde_cats);
         return 1;
     }
 
@@ -2884,6 +3203,17 @@ int load_flis(const gchar *filename) {
                 nde_checkpoint_output_set_offset(c->record_id, c->pos_x, c->pos_y);
         }
         g_ptr_array_unref(nde_ckpts);
+    }
+
+    /* Register the embedded star catalogues — after attach for the same
+     * reason (attach purges the registry). */
+    if (nde_cats) {
+        for (guint i = 0; i < nde_cats->len; i++) {
+            nde_cat_load_t *c = g_ptr_array_index(nde_cats, i);
+            nde_cat_register(c->record_id, c->cat);
+            c->cat = NULL;   /* ownership moved to the registry */
+        }
+        g_ptr_array_unref(nde_cats);
     }
 
     siril_log_message(_("FLIS: loaded %d layer(s) from %s (%dx%d canvas)\n"),
@@ -5336,6 +5666,10 @@ static void affine_layer_pixels(fits *fit, double scale, double offset) {
     }
 }
 
+void flis_affine_layer_pixels(fits *fit, double scale, double offset) {
+    affine_layer_pixels(fit, scale, offset);
+}
+
 /* ---- op "flis.layer_scale": params + hooks + NDE serializers ------------
  *
  * The NDE-facing factorisation of the multi-layer colour operations.  The
@@ -5417,25 +5751,10 @@ const op_descriptor op_desc_flis_layer_scale = {
     .deserialize = flis_layer_scale_deserialize,
 };
 
-/* Capture one Tier-A "flis.layer_scale" NDE record for @lay, applying
- * factors (@scale, @offset), labelled @label.  Returns the record id (0
- * when capture is suppressed).  Shared by layers match and the group
- * colour-calibration path. */
-static gint64 capture_layer_scale_record(flis_layer_t *lay, double scale,
-                                         double offset, const char *label) {
-    struct flis_layer_scale_data p = {
-        .destroy_fn = NULL, .scale = scale, .offset = offset,
-    };
-    gchar *summary;
-    if (offset != 0.0)
-        summary = g_strdup_printf("%s (x%.4f %+.5f)", label, scale, offset);
-    else
-        summary = g_strdup_printf("%s (x%.4f)", label, scale);
-    gint64 rid = nde_capture_from_descriptor_for_item(&op_desc_flis_layer_scale,
-            &p, summary, lay->fit, lay->item_id);
-    g_free(summary);
-    return rid;
-}
+/* NB: op_desc_flis_layer_scale itself stays registered even though nothing
+ * captures one any more — documents recorded before the joint records
+ * (nde_joint.h) still carry per-layer "flis.layer_scale" steps, and those
+ * must go on deserializing and replaying. */
 
 /*
  * flis_background_neutralise — scale each mono layer so that the screen-blend
@@ -5457,6 +5776,57 @@ int flis_background_neutralise(void) {
     return flis_background_neutralise_layers(NULL);
 }
 
+/* Solve T · a = (1,1,1)^T for ALL eligible layers simultaneously.
+ * a_i = s_i · m_i is the target composite contribution of layer i;
+ * the actual scale factor is then s_i = old_bg · a_i / m_i.
+ *
+ * Key insight: even when a layer requires a_i < 0 (infeasible with
+ * positive scaling), the OTHER layers' coefficients from this global
+ * solve still correctly balance the channels where the infeasible
+ * layer has zero tint.  Re-solving after removing the infeasible
+ * layer destroys that balance, so the coefficients from the single
+ * global solve are always applied and any infeasible layer is merely
+ * left unscaled (s = 1). */
+int flis_layers_match_solve(const double *tints, const double *medians, int N,
+                            double *s_out, guint8 *infeasible_out) {
+    if (N <= 0 || !tints || !medians || !s_out)
+        return 2;
+    double *T = calloc(3 * N, sizeof(double));
+    double *a = calloc(N, sizeof(double));
+    if (!T || !a) {
+        PRINT_ALLOC_ERR;
+        free(T); free(a);
+        return 2;
+    }
+    for (int c = 0; c < 3; c++)
+        for (int i = 0; i < N; i++)
+            T[c * N + i] = tints[i * 3 + c];
+
+    double old_bg = 0.0;
+    for (int i = 0; i < N; i++)
+        old_bg += medians[i] * (T[0*N+i] + T[1*N+i] + T[2*N+i]);
+    old_bg /= 3.0;
+    if (old_bg <= 0.0) {
+        free(T); free(a);
+        return 1;
+    }
+
+    const double b_unit[3] = { 1.0, 1.0, 1.0 };
+    if (pseudoinverse_solve(T, N, b_unit, a)) {
+        free(T); free(a);
+        return 2;
+    }
+
+    for (int i = 0; i < N; i++) {
+        gboolean infeasible = a[i] <= 0.0 || medians[i] <= 0.0;
+        if (infeasible_out)
+            infeasible_out[i] = infeasible ? 1 : 0;
+        s_out[i] = infeasible ? 1.0 : (old_bg * a[i]) / medians[i];
+    }
+    free(T); free(a);
+    return 0;
+}
+
 /*
  * flis_background_neutralise_layers — same as flis_background_neutralise but
  * operates only on the specified layer subset (a GSList of flis_layer_t*).
@@ -5466,25 +5836,13 @@ int flis_background_neutralise_layers(GSList *layer_subset) {
     if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return 1;
     GSList *target = layer_subset ? layer_subset : com.uniq->layers;
 
-    /* Solve T · a = (1,1,1)^T for ALL eligible layers simultaneously.
-     * a_i = s_i · m_i is the target composite contribution of layer i;
-     * the actual scale factor is then s_i = old_bg · a_i / m_i.
-     *
-     * Key insight: even when a layer requires a_i < 0 (infeasible with
-     * positive scaling), the OTHER layers' coefficients from this global
-     * solve still correctly balance the channels where the infeasible
-     * layer has zero tint.  Re-solving after removing the infeasible
-     * layer destroys that balance, so the coefficients from the single
-     * global solve are always applied and any infeasible layer is merely
-     * left unscaled. */
-
     int total = g_slist_length(target);
     flis_layer_t **layers_arr = calloc(total, sizeof(flis_layer_t *));
     double *medians = calloc(total, sizeof(double));
-    double *T_data  = calloc(3 * total, sizeof(double));
-    if (!layers_arr || !medians || !T_data) {
+    double *tints   = calloc(3 * total, sizeof(double));
+    if (!layers_arr || !medians || !tints) {
         PRINT_ALLOC_ERR;
-        free(layers_arr); free(medians); free(T_data);
+        free(layers_arr); free(medians); free(tints);
         return 1;
     }
 
@@ -5495,12 +5853,12 @@ int flis_background_neutralise_layers(GSList *layer_subset) {
         if (lay->fit->naxes[2] != 1) continue;
         if (!lay->fit->fdata && !lay->fit->data) continue;
 
-        T_data[0 * total + N] = lay->has_tint ? lay->layer_tint.r : 1.0;
-        T_data[1 * total + N] = lay->has_tint ? lay->layer_tint.g : 1.0;
-        T_data[2 * total + N] = lay->has_tint ? lay->layer_tint.b : 1.0;
+        tints[N * 3 + 0] = lay->has_tint ? lay->layer_tint.r : 1.0;
+        tints[N * 3 + 1] = lay->has_tint ? lay->layer_tint.g : 1.0;
+        tints[N * 3 + 2] = lay->has_tint ? lay->layer_tint.b : 1.0;
 
         imstats *st = statistics(NULL, -1, lay->fit, 0, NULL, STATS_BASIC, SINGLE_THREADED);
-        if (!st) { free(layers_arr); free(medians); free(T_data); return 1; }
+        if (!st) { free(layers_arr); free(medians); free(tints); return 1; }
         double med = st->median;
         free_stats(st);
         if (lay->fit->type == DATA_USHORT)
@@ -5512,103 +5870,116 @@ int flis_background_neutralise_layers(GSList *layer_subset) {
 
     if (N == 0) {
         siril_log_warning(_("FLIS: background neutralise — no eligible mono layers found\n"));
-        free(layers_arr); free(medians); free(T_data);
+        free(layers_arr); free(medians); free(tints);
         return 1;
     }
 
-    double *T = calloc(3 * N, sizeof(double));
-    if (!T) { PRINT_ALLOC_ERR; free(layers_arr); free(medians); free(T_data); return 1; }
-    for (int c = 0; c < 3; c++)
-        for (int i = 0; i < N; i++)
-            T[c * N + i] = T_data[c * total + i];
-    free(T_data);
+    double *s = calloc(N, sizeof(double));
+    guint8 *infeasible = calloc(N, sizeof(guint8));
+    if (!s || !infeasible) {
+        PRINT_ALLOC_ERR;
+        free(layers_arr); free(medians); free(tints); free(s); free(infeasible);
+        return 1;
+    }
+    int rc = flis_layers_match_solve(tints, medians, N, s, infeasible);
+    if (rc) {
+        siril_log_warning(rc == 1 ?
+            _("FLIS: background neutralise — background level is zero\n") :
+            _("FLIS: background neutralise — tint matrix rank-deficient\n"));
+        free(layers_arr); free(medians); free(tints); free(s); free(infeasible);
+        return 1;
+    }
 
     double old_bg = 0.0;
     for (int i = 0; i < N; i++)
-        old_bg += medians[i] * (T[0*N+i] + T[1*N+i] + T[2*N+i]);
+        old_bg += medians[i] * (tints[i*3] + tints[i*3+1] + tints[i*3+2]);
     old_bg /= 3.0;
-
-    if (old_bg <= 0.0) {
-        siril_log_warning(_("FLIS: background neutralise — background level is zero\n"));
-        free(layers_arr); free(medians); free(T);
-        return 1;
-    }
-
-    double *a = calloc(N, sizeof(double));
-    if (!a) { PRINT_ALLOC_ERR; free(layers_arr); free(medians); free(T); return 1; }
-
-    const double b_unit[3] = { 1.0, 1.0, 1.0 };
-    if (pseudoinverse_solve(T, N, b_unit, a)) {
-        siril_log_warning(_("FLIS: background neutralise — tint matrix rank-deficient\n"));
-        free(layers_arr); free(medians); free(T); free(a);
-        return 1;
-    }
-
-    for (int i = 0; i < N; i++) {
-        if (a[i] <= 0.0 || medians[i] <= 0.0) {
-            const char *name = layers_arr[i]->layer_name ? layers_arr[i]->layer_name : "?";
-            double tr = T[0*N+i], tg = T[1*N+i], tb = T[2*N+i];
-            const char *dom = (tr >= tg && tr >= tb) ? "R" : (tg >= tr && tg >= tb) ? "G" : "B";
-            const char *low = (tr <= tg && tr <= tb) ? "R" : (tg <= tr && tg <= tb) ? "G" : "B";
-            siril_log_warning(
-                _("FLIS: background neutralise — layer '%s' incompatible "
-                  "(coeff %.4f < 0; %s-dominant tint, increase %s component)\n"), name, a[i], dom, low);
-            a[i] = -1.0;
-        }
-    }
 
     siril_log_info(_("FLIS: background neutralise scale factors:\n"));
     double new_bg[3] = { 0.0, 0.0, 0.0 };
-    /* NDE provenance: one Tier-A "flis.layer_scale" record per scaled layer
-     * (sketch §13.2 factorisation).  Suppressed during replay (records are
-     * being re-run, not created) and coalesced into the script scope for
-     * python-driven runs. */
+    /* NDE provenance: ONE Tier-A "flis.layers_match" JOINT record for the
+     * whole operation (nde_joint.h) — a member of every participant's chain,
+     * recomputing this very analysis at replay so it adapts to upstream
+     * changes (a re-assigned tint) instead of replaying frozen factors.
+     * Suppressed during replay (a Tier-C script re-run must not grow the log
+     * it is reproducing) and coalesced into the script scope for python-
+     * driven runs. */
     gboolean replaying = processing_is_reserved_for_replay();
     gboolean script_scope = nde_script_scope_active();
-    gint64 first_rec = 0, last_rec = 0;
     for (int i = 0; i < N; i++) {
         const char *name = layers_arr[i]->layer_name ? layers_arr[i]->layer_name : "?";
-        double s;
-        if (a[i] < 0.0) {
-            s = 1.0;
-            siril_log_warning("  %-24s  x1.0000  (left unscaled — tint infeasible)\n", name);
+        /* Every participant's chain gains the joint record, so every
+         * participant needs a replay starting point — the infeasible ones
+         * included (their factor recomputes at replay and may become
+         * feasible after a tint edit). */
+        if (!replaying)
+            nde_checkpoint_baseline_ensure(layers_arr[i]->fit,
+                                           layers_arr[i]->item_id);
+        if (infeasible[i]) {
+            double tr = tints[i*3], tg = tints[i*3+1], tb = tints[i*3+2];
+            const char *dom = (tr >= tg && tr >= tb) ? "R" : (tg >= tr && tg >= tb) ? "G" : "B";
+            const char *low = (tr <= tg && tr <= tb) ? "R" : (tg <= tr && tg <= tb) ? "G" : "B";
+            siril_log_warning(
+                _("  %-24s  x1.0000  (left unscaled — %s-dominant tint infeasible, increase %s component)\n"),
+                name, dom, low);
         } else {
-            s = (old_bg * a[i]) / medians[i];
             siril_log_info("  %-24s  x%.4f  (median %.5f -> %.5f)\n",
-                name, s, medians[i], medians[i] * s);
-            /* Snapshot pre-op pixels so the record's chain has a starting
-             * point (phase 2: baseline at every capture site). */
-            if (!replaying)
-                nde_checkpoint_baseline_ensure(layers_arr[i]->fit,
-                                               layers_arr[i]->item_id);
-            scale_layer_pixels(layers_arr[i]->fit, s);
+                name, s[i], medians[i], medians[i] * s[i]);
+            scale_layer_pixels(layers_arr[i]->fit, s[i]);
             invalidate_stats_from_fit(layers_arr[i]->fit);
-            if (replaying) {
-                /* no capture */
-            } else if (script_scope) {
-                nde_script_scope_mark_pixels_dirty();
-            } else {
-                gint64 rid = capture_layer_scale_record(layers_arr[i], s, 0.0,
-                                                        _("Layers match"));
-                if (rid > 0) {
-                    if (!first_rec)
-                        first_rec = rid;
-                    last_rec = rid;
-                }
-            }
         }
         for (int c = 0; c < 3; c++)
-            new_bg[c] += s * medians[i] * T[c * N + i];
+            new_bg[c] += s[i] * medians[i] * tints[i * 3 + c];
     }
-    /* Couple the caller's compound undo entry to the record range so one
-     * Ctrl-Z moves live_count across all of them (same com.script gate the
-     * undo save used). */
-    if (first_rec && !com.script)
-        undo_tag_top_nde_record_range(first_rec, last_rec);
+    if (replaying) {
+        /* no capture */
+    } else if (script_scope) {
+        nde_script_scope_mark_pixels_dirty();
+    } else {
+        struct nde_joint_layers_match_data *p = nde_joint_layers_match_data_new(N);
+        nde_pin_spec *pins = g_new0(nde_pin_spec, N);
+        gchar **roles = g_new0(gchar *, N);
+        GString *summary = g_string_new(_("Layers match"));
+        const char *sep = " — ";
+        for (int i = 0; i < N; i++) {
+            flis_layer_t *lay = layers_arr[i];
+            p->parts[i].item_id = lay->item_id;
+            p->parts[i].name = g_strdup(lay->layer_name ? lay->layer_name : "");
+            p->parts[i].tinted = lay->has_tint;
+            p->parts[i].tint[0] = lay->has_tint ? lay->layer_tint.r : 1.0;
+            p->parts[i].tint[1] = lay->has_tint ? lay->layer_tint.g : 1.0;
+            p->parts[i].tint[2] = lay->has_tint ? lay->layer_tint.b : 1.0;
+            p->parts[i].diag_scale = s[i];
+            p->parts[i].diag_offset = 0.0;
+            roles[i] = g_strdup_printf("in%d", i);
+            pins[i].role = roles[i];
+            pins[i].src_item_id = lay->item_id;
+            pins[i].src_record_id = nde_history_last_record_for_item(lay->item_id);
+            if (lay->layer_name && *lay->layer_name) {
+                g_string_append(summary, sep);
+                g_string_append(summary, lay->layer_name);
+                sep = ", ";
+            }
+        }
+        gint64 rid = nde_capture_from_descriptor_pinned(&op_desc_flis_layers_match,
+                p, summary->str, NULL, layers_arr[0]->item_id, pins, N);
+        for (int i = 0; i < N; i++)
+            g_free(roles[i]);
+        g_free(roles);
+        g_free(pins);
+        g_string_free(summary, TRUE);
+        nde_joint_layers_match_data_free(p);
+        /* Couple the caller's compound undo entry to the record so one
+         * Ctrl-Z moves live_count across it — which reverts ALL the layers,
+         * the record being a member of each of their chains (same com.script
+         * gate the undo save used). */
+        if (rid > 0 && !com.script)
+            undo_tag_top_nde_record(rid);
+    }
     siril_log_info(
         _("FLIS: predicted composite background  R:%.5f  G:%.5f  B:%.5f  (target %.5f each)\n"), new_bg[0], new_bg[1], new_bg[2], old_bg);
 
-    free(layers_arr); free(medians); free(T); free(a);
+    free(layers_arr); free(medians); free(tints); free(s); free(infeasible);
     gui_iface.flis_invalidate_composite();
     return 0;
 }
@@ -5747,14 +6118,96 @@ static fits *flis_group_render_calib_composite(GSList *members, gchar **err) {
     return composite;
 }
 
+/* The PURE distribution, shared by the live apply and the joint-record
+ * replay (nde_joint.c): map the composite-level per-channel affine (@K, @O)
+ * onto per-layer factors given @N layers' tints (@tints, N RGB triples) and
+ * background medians.  Returns 0 with @a_out/@b_out filled; non-zero with a
+ * heap reason in @why on a degenerate/unreachable/negative solution (nothing
+ * partial is usable then).  No logging, no layer access. */
+int flis_group_distribute(const double *tints, const double *medians, int N,
+                          const double K[3], const double O[3],
+                          double *a_out, double *b_out, gchar **why) {
+    if (why)
+        *why = NULL;
+    double *T = calloc(3 * N, sizeof(double));
+    if (!T) {
+        PRINT_ALLOC_ERR;
+        return 1;
+    }
+    for (int c = 0; c < 3; c++)
+        for (int i = 0; i < N; i++)
+            T[c * N + i] = tints[i * 3 + c];
+
+    /* Per-layer signal scaling: tint-weighted least squares over channels.
+     * A zero-tint layer contributes nothing to the composite: untouched. */
+    for (int i = 0; i < N; i++) {
+        double num = 0.0, den = 0.0;
+        for (int c = 0; c < 3; c++) {
+            double t = T[c * N + i];
+            num += K[c] * t * t;
+            den += t * t;
+        }
+        a_out[i] = den <= 0.0 ? 1.0 : num / den;
+    }
+
+    /* Exact background transform: solve T*b = r with
+     * r_c = K_c*B_c + O_c - sum_i T_i^c*a_i*m_i. */
+    double r[3];
+    for (int c = 0; c < 3; c++) {
+        double B_c = 0.0, scaled_c = 0.0;
+        for (int i = 0; i < N; i++) {
+            B_c      += T[c * N + i] * medians[i];
+            scaled_c += T[c * N + i] * a_out[i] * medians[i];
+        }
+        r[c] = K[c] * B_c + O[c] - scaled_c;
+    }
+    if (pseudoinverse_solve(T, N, r, b_out)) {
+        if (why)
+            *why = g_strdup(_("the tint matrix is degenerate"));
+        free(T);
+        return 1;
+    }
+    /* The pseudoinverse returns a least-squares answer even for a
+     * rank-deficient tint matrix; verify the background system actually
+     * closed, or the calibration silently misses a channel. */
+    for (int c = 0; c < 3; c++) {
+        double got = 0.0;
+        for (int i = 0; i < N; i++)
+            got += T[c * N + i] * b_out[i];
+        if (fabs(got - r[c]) > 1e-6) {
+            if (why)
+                *why = g_strdup_printf(_("the layer tints do not span enough "
+                        "colours to carry the calibration (channel %c "
+                        "unreachable) — diversify the assigned tints"), "RGB"[c]);
+            free(T);
+            return 1;
+        }
+    }
+    for (int i = 0; i < N; i++) {
+        if (a_out[i] < 0.0) {
+            if (why)
+                *why = g_strdup_printf(_("layer %d would need a negative scale"), i);
+            free(T);
+            return 1;
+        }
+    }
+    free(T);
+    return 0;
+}
+
 /*
  * Distribute the per-channel affine calibration (@K, @O) of the group
  * composite into per-layer factors and apply them to @members, capturing
- * NDE provenance.  Called under the FLIS stack writer lock (layer-worker
- * hook context).  Returns 0 on success; on failure nothing was mutated.
+ * NDE provenance: ONE Tier-A "flis.group_calibration" JOINT record
+ * (nde_joint.h) whose params carry the operation's own inputs — @calib when
+ * the caller has them (the group-calibration hook), or just the direct
+ * K/O affine (kind NDE_JOINT_GROUP_DIRECT) when it does not.  Called under
+ * the FLIS stack writer lock (layer-worker hook context).  Returns 0 on
+ * success; on failure nothing was mutated.
  */
-int flis_group_apply_channel_calibration(GSList *members, const double K[3],
-                                         const double O[3], const char *label) {
+int flis_group_apply_channel_calibration_full(GSList *members, const double K[3],
+                                              const double O[3], const char *label,
+                                              const struct flis_group_calib_args *calib) {
     GSList *eligible = group_calib_eligible(members);
     int N = g_slist_length(eligible);
     if (N == 0) {
@@ -5765,10 +6218,10 @@ int flis_group_apply_channel_calibration(GSList *members, const double K[3],
 
     flis_layer_t **layers_arr = calloc(N, sizeof(flis_layer_t *));
     double *medians = calloc(N, sizeof(double));
-    double *T = calloc(3 * N, sizeof(double));
+    double *tints = calloc(3 * N, sizeof(double));
     double *a = calloc(N, sizeof(double));
     double *b = calloc(N, sizeof(double));
-    if (!layers_arr || !medians || !T || !a || !b) {
+    if (!layers_arr || !medians || !tints || !a || !b) {
         PRINT_ALLOC_ERR;
         goto fail;
     }
@@ -5777,9 +6230,16 @@ int flis_group_apply_channel_calibration(GSList *members, const double K[3],
     for (GSList *l = eligible; l; l = l->next, i++) {
         flis_layer_t *lay = l->data;
         layers_arr[i] = lay;
-        T[0 * N + i] = lay->has_tint ? lay->layer_tint.r : 1.0;
-        T[1 * N + i] = lay->has_tint ? lay->layer_tint.g : 1.0;
-        T[2 * N + i] = lay->has_tint ? lay->layer_tint.b : 1.0;
+        tints[i * 3 + 0] = lay->has_tint ? lay->layer_tint.r : 1.0;
+        tints[i * 3 + 1] = lay->has_tint ? lay->layer_tint.g : 1.0;
+        tints[i * 3 + 2] = lay->has_tint ? lay->layer_tint.b : 1.0;
+        if (!lay->has_tint ||
+            (lay->layer_tint.r <= 0 && lay->layer_tint.g <= 0 && lay->layer_tint.b <= 0)) {
+            if (lay->has_tint)
+                siril_log_warning(_("Group calibration: layer '%s' has a zero "
+                        "tint — left unscaled\n"),
+                        lay->layer_name ? lay->layer_name : "?");
+        }
         imstats *st = statistics(NULL, -1, lay->fit, 0, NULL, STATS_BASIC,
                                  SINGLE_THREADED);
         if (!st)
@@ -5791,105 +6251,101 @@ int flis_group_apply_channel_calibration(GSList *members, const double K[3],
         medians[i] = med;
     }
 
-    /* Per-layer signal scaling: tint-weighted least squares over channels. */
-    for (i = 0; i < N; i++) {
-        double num = 0.0, den = 0.0;
-        for (int c = 0; c < 3; c++) {
-            double t = T[c * N + i];
-            num += K[c] * t * t;
-            den += t * t;
-        }
-        if (den <= 0.0) {
-            /* A zero-tint layer contributes nothing to the composite;
-             * leave it untouched. */
-            a[i] = 1.0;
-            siril_log_warning(_("Group calibration: layer '%s' has a zero "
-                    "tint — left unscaled\n"),
-                    layers_arr[i]->layer_name ? layers_arr[i]->layer_name : "?");
-        } else {
-            a[i] = num / den;
-        }
-    }
-
-    /* Exact background transform: solve T*b = r with
-     * r_c = K_c*B_c + O_c - sum_i T_i^c*a_i*m_i. */
-    double r[3];
-    for (int c = 0; c < 3; c++) {
-        double B_c = 0.0, scaled_c = 0.0;
-        for (i = 0; i < N; i++) {
-            B_c      += T[c * N + i] * medians[i];
-            scaled_c += T[c * N + i] * a[i] * medians[i];
-        }
-        r[c] = K[c] * B_c + O[c] - scaled_c;
-    }
-    if (pseudoinverse_solve(T, N, r, b)) {
-        siril_log_error(_("Group calibration: tint matrix is degenerate\n"));
+    gchar *why = NULL;
+    if (flis_group_distribute(tints, medians, N, K, O, a, b, &why)) {
+        siril_log_error(_("Group calibration: %s\n"), why ? why : "?");
+        g_free(why);
         goto fail;
-    }
-    /* The pseudoinverse returns a least-squares answer even for a
-     * rank-deficient tint matrix; verify the background system actually
-     * closed, or the calibration silently misses a channel. */
-    for (int c = 0; c < 3; c++) {
-        double got = 0.0;
-        for (i = 0; i < N; i++)
-            got += T[c * N + i] * b[i];
-        if (fabs(got - r[c]) > 1e-6) {
-            siril_log_error(_("Group calibration: the layer tints do not span "
-                    "enough colours to carry the calibration (channel %c "
-                    "unreachable). Diversify the assigned tints.\n"), "RGB"[c]);
-            goto fail;
-        }
-    }
-    for (i = 0; i < N; i++) {
-        if (a[i] < 0.0) {
-            siril_log_error(_("Group calibration: layer '%s' would need a "
-                    "negative scale — aborting\n"),
-                    layers_arr[i]->layer_name ? layers_arr[i]->layer_name : "?");
-            goto fail;
-        }
     }
 
     /* Apply + provenance, mirroring flis_background_neutralise_layers. */
     gboolean replaying = processing_is_reserved_for_replay();
     gboolean script_scope = nde_script_scope_active();
-    gint64 first_rec = 0, last_rec = 0;
     siril_log_info(_("Group calibration per-layer factors:\n"));
     for (i = 0; i < N; i++) {
         const char *name = layers_arr[i]->layer_name ? layers_arr[i]->layer_name : "?";
         siril_log_info("  %-24s  x%.4f %+.5f\n", name, a[i], b[i]);
-        if (a[i] == 1.0 && b[i] == 0.0)
-            continue;
+        /* Every participant needs a replay starting point, factors of 1
+         * included — the recompute may derive something else for it. */
         if (!replaying)
             nde_checkpoint_baseline_ensure(layers_arr[i]->fit,
                                            layers_arr[i]->item_id);
+        if (a[i] == 1.0 && b[i] == 0.0)
+            continue;
         affine_layer_pixels(layers_arr[i]->fit, a[i], b[i]);
         invalidate_stats_from_fit(layers_arr[i]->fit);
-        if (replaying) {
-            /* no capture */
-        } else if (script_scope) {
-            nde_script_scope_mark_pixels_dirty();
-        } else {
-            gint64 rid = capture_layer_scale_record(layers_arr[i], a[i], b[i],
-                                                    label);
-            if (rid > 0) {
-                if (!first_rec)
-                    first_rec = rid;
-                last_rec = rid;
-            }
-        }
     }
-    if (first_rec && !com.script)
-        undo_tag_top_nde_record_range(first_rec, last_rec);
+    if (replaying) {
+        /* no capture */
+    } else if (script_scope) {
+        nde_script_scope_mark_pixels_dirty();
+    } else {
+        struct nde_joint_group_calib_data *p = nde_joint_group_calib_data_new(N);
+        nde_pin_spec *pins = g_new0(nde_pin_spec, N);
+        gchar **roles = g_new0(gchar *, N);
+        for (i = 0; i < N; i++) {
+            flis_layer_t *lay = layers_arr[i];
+            p->parts[i].item_id = lay->item_id;
+            p->parts[i].name = g_strdup(lay->layer_name ? lay->layer_name : "");
+            p->parts[i].tinted = lay->has_tint;
+            p->parts[i].tint[0] = lay->has_tint ? lay->layer_tint.r : 1.0;
+            p->parts[i].tint[1] = lay->has_tint ? lay->layer_tint.g : 1.0;
+            p->parts[i].tint[2] = lay->has_tint ? lay->layer_tint.b : 1.0;
+            p->parts[i].diag_scale = a[i];
+            p->parts[i].diag_offset = b[i];
+            roles[i] = g_strdup_printf("in%d", i);
+            pins[i].role = roles[i];
+            pins[i].src_item_id = lay->item_id;
+            pins[i].src_record_id = nde_history_last_record_for_item(lay->item_id);
+        }
+        for (int c = 0; c < 3; c++) {
+            p->diag_K[c] = K[c];
+            p->diag_O[c] = O[c];
+        }
+        if (calib) {
+            p->kind = (gint)calib->kind;
+            p->group_id = calib->group_id;
+            p->manual = calib->manual;
+            memcpy(p->manual_kw, calib->manual_kw, sizeof(p->manual_kw));
+            p->white_sel = calib->white_sel;
+            p->black_sel = calib->black_sel;
+            p->low = calib->low;
+            p->high = calib->high;
+            if (calib->pcc) {
+                const op_descriptor *pop = op_descriptor_by_id("color.photometric_cc");
+                if (pop && pop->serialize)
+                    p->pcc_blob = pop->serialize(calib->pcc);
+            }
+        } else {
+            p->kind = NDE_JOINT_GROUP_DIRECT;
+        }
+        gchar *summary = g_strdup_printf("%s (%d %s)", label, N, _("layers"));
+        gint64 rid = nde_capture_from_descriptor_pinned(&op_desc_flis_group_calibration,
+                p, summary, NULL, layers_arr[0]->item_id, pins, N);
+        for (i = 0; i < N; i++)
+            g_free(roles[i]);
+        g_free(roles);
+        g_free(pins);
+        g_free(summary);
+        nde_joint_group_calib_data_free(p);
+        if (rid > 0 && !com.script)
+            undo_tag_top_nde_record(rid);
+    }
 
-    free(layers_arr); free(medians); free(T); free(a); free(b);
+    free(layers_arr); free(medians); free(tints); free(a); free(b);
     g_slist_free(eligible);
     gui_iface.flis_invalidate_composite();
     return 0;
 
 fail:
-    free(layers_arr); free(medians); free(T); free(a); free(b);
+    free(layers_arr); free(medians); free(tints); free(a); free(b);
     g_slist_free(eligible);
     return 1;
+}
+
+int flis_group_apply_channel_calibration(GSList *members, const double K[3],
+                                         const double O[3], const char *label) {
+    return flis_group_apply_channel_calibration_full(members, K, O, label, NULL);
 }
 
 void free_flis_group_calib_args(void *p) {
@@ -6006,7 +6462,7 @@ int flis_group_calibration_hook(struct generic_layer_args *args) {
             p->kind == FLIS_GROUP_CALIB_CC  ? _("Colour calibration (group)") :
             p->kind == FLIS_GROUP_CALIB_PCC ? _("Photometric CC (group)") :
                                               _("Spectrophotometric CC (group)");
-        rv = flis_group_apply_channel_calibration(members, K, O, label);
+        rv = flis_group_apply_channel_calibration_full(members, K, O, label, p);
     }
     g_slist_free(members);
     return rv;

@@ -34,6 +34,7 @@
 #include "core/op_descriptor.h"
 #include "core/op_descriptors.h"
 #include "core/nde_history.h"
+#include "core/nde_joint.h"
 
 #include "algos/geometry.h"
 #include "filters/mtf.h"
@@ -626,6 +627,16 @@ static const char *phase1_ids[] = {
 	/* Per-layer factorisation of the multi-layer colour operations (layers
 	 * match, group colour calibration): one record per affected layer. */
 	"flis.layer_scale",
+	/* JOINT records (nde_joint.h): ONE record per multi-layer operation,
+	 * member of every participant's chain, recomputing its analysis at
+	 * replay.  Supersedes the per-layer flis.layer_scale factorisation for
+	 * new captures; layer_scale stays for legacy files and manual scaling. */
+	"flis.layers_match", "flis.group_calibration",
+	/* The GEOMETRIC joint record: multi-layer registration.  It stores the
+	 * solved transforms AND the settings that produced them and picks between
+	 * them at replay (nde_joint.h), which is why it is the one joint op that
+	 * is also OP_GEOMETRY_CHANGING. */
+	"flis.register",
 };
 
 Test(nde_serializers, serializer_set_is_phase1) {
@@ -643,6 +654,69 @@ Test(nde_serializers, serializer_set_is_phase1) {
 		cr_assert(found, "descriptor '%s' has a serializer but is not in the "
 		                 "expected phase-1 set", op->id);
 	}
+}
+
+Test(nde_serializers, layers_match_roundtrip) {
+	struct nde_joint_layers_match_data *in = nde_joint_layers_match_data_new(3);
+	int items[3] = { 4, 7, 11 };
+	const char *names[3] = { "Ha", "OIII", "SII" };
+	for (guint i = 0; i < 3; i++) {
+		in->parts[i].item_id = items[i];
+		in->parts[i].name = g_strdup(names[i]);
+		in->parts[i].tinted = i != 1;
+		in->parts[i].tint[0] = 0.83 + i * 0.01;
+		in->parts[i].tint[1] = 0.25;
+		in->parts[i].tint[2] = 0.0625;
+		in->parts[i].diag_scale = 1.0 / 3.0 + i;
+		in->parts[i].diag_offset = i == 2 ? -0.0043 : 0.0;
+	}
+	gchar *blob = op_desc_flis_layers_match.serialize(in);
+	cr_assert_not_null(blob);
+	struct nde_joint_layers_match_data *out =
+		op_desc_flis_layers_match.deserialize(blob, op_desc_flis_layers_match.version);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->n, 3);
+	for (guint i = 0; i < 3; i++) {
+		cr_assert_eq(out->parts[i].item_id, items[i]);
+		cr_assert_str_eq(out->parts[i].name, names[i]);
+		cr_assert_eq(out->parts[i].tinted, in->parts[i].tinted);
+		if (out->parts[i].tinted) {
+			cr_assert(memcmp(out->parts[i].tint, in->parts[i].tint,
+			                 3 * sizeof(double)) == 0);
+		}
+		cr_assert(memcmp(&out->parts[i].diag_scale, &in->parts[i].diag_scale,
+		                 sizeof(double)) == 0);
+		cr_assert(memcmp(&out->parts[i].diag_offset, &in->parts[i].diag_offset,
+		                 sizeof(double)) == 0);
+	}
+	cr_assert_not_null(out->destroy_fn);
+	out->destroy_fn(out);
+
+	/* Newer-version blobs must refuse. */
+	cr_assert_null(op_desc_flis_layers_match.deserialize(blob,
+	               op_desc_flis_layers_match.version + 1));
+	g_free(blob);
+	nde_joint_layers_match_data_free(in);
+}
+
+Test(nde_serializers, layers_match_rejects_bad_blobs) {
+	const op_descriptor *op = &op_desc_flis_layers_match;
+	/* One participant is not a joint operation. */
+	cr_assert_null(op->deserialize("n=1;i0_item=3;i0_name=x;i0_tint=0;i0_s=1", op->version));
+	/* A layer listed twice would be scaled twice. */
+	cr_assert_null(op->deserialize(
+		"n=2;i0_item=3;i0_name=a;i0_tint=0;i0_s=1;"
+		"i1_item=3;i1_name=b;i1_tint=0;i1_s=1", op->version));
+	/* Tinted without colour components. */
+	cr_assert_null(op->deserialize(
+		"n=2;i0_item=3;i0_name=a;i0_tint=1;i0_s=1;"
+		"i1_item=4;i1_name=b;i1_tint=0;i1_s=1", op->version));
+	/* Negative diagnostic scale. */
+	cr_assert_null(op->deserialize(
+		"n=2;i0_item=3;i0_name=a;i0_tint=0;i0_s=-2;"
+		"i1_item=4;i1_name=b;i1_tint=0;i1_s=1", op->version));
+	/* Missing participant entry. */
+	cr_assert_null(op->deserialize("n=2;i0_item=3;i0_name=a;i0_tint=0;i0_s=1", op->version));
 }
 
 Test(nde_serializers, saturation_roundtrip) {
@@ -1533,7 +1607,7 @@ Test(nde_serializers, unpurple_roundtrip_delegated) {
 	g_free(blob);
 }
 
-/* ---- Convention 3: PCC/SPCC effective white balance ---- */
+/* ---- PCC/SPCC: v2 recompute-from-inputs, v1 effective white balance ---- */
 
 Test(nde_serializers, photometric_cc_roundtrip) {
 	const op_descriptor *op = op_descriptor_by_id("color.photometric_cc");
@@ -1546,12 +1620,29 @@ Test(nde_serializers, photometric_cc_roundtrip) {
 	in.have_effective = TRUE;
 	in.eff_kw[0] = 1.0f;    in.eff_kw[1] = 0.75f;   in.eff_kw[2] = 0.5f;
 	in.eff_bg[0] = 0.125f;  in.eff_bg[1] = 0.0625f; in.eff_bg[2] = 0.25f;
+	in.bg_auto = FALSE;
+	in.bg_area = (rectangle){ 5, 6, 70, 80 };
+	in.mag_mode = LIMIT_MAG_ABSOLUTE;
+	in.magnitude_arg = 15.5;
+	in.atmos_corr = TRUE;
+	in.atmos_obs_height = 1250.0;
+	in.atmos_pressure = 1013.25;
+	in.spcc_mono_sensor = TRUE;
+	in.selected_sensor_m = 7;
+	in.selected_filter_r = 3;
+	in.selected_white_ref = 2;
+	in.nb_mode = TRUE;
+	in.nb_center[0] = 656.28; in.nb_center[1] = 500.7; in.nb_center[2] = 672.4;
+	in.nb_bandwidth[0] = 3.0; in.nb_bandwidth[1] = 3.5; in.nb_bandwidth[2] = 4.0;
 
 	gchar *blob = op->serialize(&in);
 	cr_assert_not_null(blob);
 	struct photometric_cc_data *out = op->deserialize(blob, op->version);
 	cr_assert_not_null(out);
-	cr_assert(out->have_effective);
+	/* v2 contract: the ANALYSIS re-runs at replay; the coefficients survive
+	 * as the offline fallback. */
+	cr_assert(!out->have_effective, "a v2 record must recompute at replay");
+	cr_assert(out->have_fallback, "the recorded coefficients must survive as fallback");
 	cr_assert_eq(out->spcc, TRUE);
 	for (int c = 0; c < 3; c++) {
 		cr_assert(memcmp(&out->eff_kw[c], &in.eff_kw[c], sizeof(float)) == 0,
@@ -1559,9 +1650,34 @@ Test(nde_serializers, photometric_cc_roundtrip) {
 		cr_assert(memcmp(&out->eff_bg[c], &in.eff_bg[c], sizeof(float)) == 0,
 		          "bg%d not bit-exact", c);
 	}
+	/* The analysis inputs round-trip. */
+	cr_assert_eq(out->bg_auto, FALSE);
+	cr_assert_eq(out->bg_area.x, 5);
+	cr_assert_eq(out->bg_area.h, 80);
+	cr_assert_eq(out->mag_mode, LIMIT_MAG_ABSOLUTE);
+	cr_assert(memcmp(&out->magnitude_arg, &in.magnitude_arg, sizeof(double)) == 0);
+	cr_assert_eq(out->atmos_corr, TRUE);
+	cr_assert(memcmp(&out->atmos_obs_height, &in.atmos_obs_height, sizeof(double)) == 0);
+	cr_assert_eq(out->spcc_mono_sensor, TRUE);
+	cr_assert_eq(out->selected_sensor_m, 7);
+	cr_assert_eq(out->selected_filter_r, 3);
+	cr_assert_eq(out->selected_white_ref, 2);
+	cr_assert_eq(out->nb_mode, TRUE);
+	cr_assert(memcmp(out->nb_center, in.nb_center, sizeof(in.nb_center)) == 0);
+	cr_assert(memcmp(out->nb_bandwidth, in.nb_bandwidth, sizeof(in.nb_bandwidth)) == 0);
 	FREE_VIA_DESTRUCTOR(out);
 	CHECK_MALFORMED(op, blob);
-	/* a record without the kw keys (pre-batch) must be non-replayable */
+
+	/* LEGACY v1 blob (no auto_replay): applies its coefficients verbatim. */
+	struct photometric_cc_data *lout = op->deserialize(
+		"catalog=1;spcc=0;t0=-2;t1=2;kw0=1.5;kw1=1;kw2=0.5;"
+		"bg0=0.1;bg1=0.1;bg2=0.1", 1);
+	cr_assert_not_null(lout);
+	cr_assert(lout->have_effective, "a v1 record must replay its stored coefficients");
+	FREE_VIA_DESTRUCTOR(lout);
+
+	/* a record without inputs OR coefficients (pre-batch) stays honestly
+	 * non-replayable */
 	cr_assert_null(op->deserialize("catalog=1;spcc=0;t0=-2;t1=2", op->version),
 	               "PCC record without kw keys must yield NULL");
 	g_free(blob);
@@ -2016,8 +2132,11 @@ Test(nde_serializers, bkg_neutral_roundtrip) {
 	g_free(blob);
 }
 
-/* Convention 3: the record carries the coefficients that were applied, so a
- * replay never re-samples rectangles over pixels that have since changed. */
+/* Since v2 the automatic mode's contract is INTENT (nde_joint.h lineage):
+ * the record carries the selections and re-samples them over the replayed
+ * upstream pixels, so an upstream edit re-derives the calibration instead
+ * of replaying frozen coefficients.  The coefficients stay recorded as
+ * diagnostics — and as the exact contract for manual and legacy records. */
 Test(nde_serializers, color_calibration_records_the_computed_coefficients) {
 	const op_descriptor *op = op_descriptor_by_id("color.calibration");
 	cr_assert_not_null(op);
@@ -2039,13 +2158,32 @@ Test(nde_serializers, color_calibration_records_the_computed_coefficients) {
 		cr_assert(memcmp(&out->kw[i], &in->kw[i], sizeof(double)) == 0);
 		cr_assert(memcmp(&out->bg[i], &in->bg[i], sizeof(double)) == 0);
 	}
-	/* The whole point: the hook must take the stored values, not recompute. */
-	cr_assert(out->have_effective, "a replayed calibration must not re-sample");
+	/* The whole point: an automatic v2 record re-runs the analysis at
+	 * replay (the hook's !have_effective branch). */
+	cr_assert(!out->have_effective, "an automatic calibration must recompute at replay");
 	cr_assert_eq(out->is_manual, FALSE);
 	cr_assert_eq(out->white_selection.w, 30);
 	cr_assert_eq(out->black_selection.h, 80);
 	FREE_VIA_DESTRUCTOR(out);
 	CHECK_MALFORMED(op, blob);
+
+	/* MANUAL records keep the stored coefficients: sliders ARE the params. */
+	in->is_manual = TRUE;
+	gchar *mblob = op->serialize(in);
+	struct color_calib_data *mout = op->deserialize(mblob, op->version);
+	cr_assert_not_null(mout);
+	cr_assert(mout->have_effective, "a manual calibration must not re-sample");
+	FREE_VIA_DESTRUCTOR(mout);
+	g_free(mblob);
+
+	/* LEGACY v1 blobs (no auto_replay key) keep the exact contract too. */
+	struct color_calib_data *lout = op->deserialize(
+		"kw0=1.5;bg0=0.1;kw1=1;bg1=0.1;kw2=0.5;bg2=0.1;manual=0;"
+		"white_x=1;white_y=2;white_w=3;white_h=4", 1);
+	cr_assert_not_null(lout);
+	cr_assert(lout->have_effective, "a legacy record must replay its stored coefficients");
+	FREE_VIA_DESTRUCTOR(lout);
+
 	FREE_VIA_DESTRUCTOR(in);
 	g_free(blob);
 }

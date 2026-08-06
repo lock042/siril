@@ -53,11 +53,29 @@ void nde_graph_view_reset(NdeGraphView *self);
 void nde_graph_view_add_node(NdeGraphView *self, gint item_id, gint level,
                              GtkWidget *child);
 
+/** As above, but SPANNING: laid out alone in its band, stretched over the
+ *  columns of @items (its participants; the full width when none of them
+ *  are placed), with the column gap as its vertical whitespace.  For a
+ *  joint record (nde_joint.h) — one operation affecting the layers it
+ *  crosses, drawn as a normal step rather than as a node with edges.
+ *  @items is copied. */
+void nde_graph_view_add_span_node(NdeGraphView *self, gint item_id, gint level,
+                                  const gint *items, guint n_items,
+                                  GtkWidget *child);
+
 /** Draw an edge from @src_item to @dst_item.  Duplicates are dropped: several
  *  records may consume the same item, and one line says it once.  @feedback
  *  edges are the ones that run against the levels (nde_graph.h). */
 void nde_graph_view_add_edge(NdeGraphView *self, gint src_item, gint dst_item,
                              gboolean feedback);
+
+/** As above with a COLUMN ALIGNMENT: when @src_item is a joint band, the
+ *  edge leaves the band's bottom under @align_item's column (0 = none).
+ *  The alignment is part of the edge's identity — one band feeds a merge
+ *  once per channel, not once. */
+void nde_graph_view_add_edge_aligned(NdeGraphView *self, gint src_item,
+                                     gint dst_item, gboolean feedback,
+                                     gint align_item);
 
 /**
  * Add @child as a SATELLITE node: a mask belonging to @host_item.  It is laid

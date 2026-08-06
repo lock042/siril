@@ -160,7 +160,8 @@ GPtrArray *nde_pins_parse(const char *blob);
 gchar *nde_pins_to_string(GPtrArray *pins);
 
 /**
- * Record id of the last LIVE record targeting @item_id, or 0 when the item
+ * Record id of the last LIVE record AFFECTING @item_id — one targeting it,
+ * or a joint record it participates in (nde_joint.h) — or 0 when the item
  * has no history yet.  This is the "as it stood now" end of a fresh pin.
  */
 gint64 nde_history_last_record_for_item(gint item_id);
@@ -257,6 +258,16 @@ GPtrArray *nde_history_snapshot_all(guint *live_count_out);
 
 /** Live-record count of the current document's log (0 if none). */
 guint nde_history_live_count(void);
+
+/**
+ * Monotonic log generation: bumped by every mutating entry point (append,
+ * amend, delete, reorder, undo/redo, attach, drops, truncation), never reset.
+ * Two equal values mean "the log has not changed in between" — the joint-
+ * record factor cache (nde_joint.c) keys on this so one edit + its cascades
+ * cost a single analysis.  Bumps are conservative: a failed edit may bump,
+ * which only costs a spurious cache miss.
+ */
+guint64 nde_history_generation(void);
 
 /**
  * Install @h as the current document's history, freeing any existing one.
@@ -531,6 +542,19 @@ gint64 nde_capture_from_descriptor_for_item(const struct op_descriptor *op,
                                             gconstpointer params,
                                             const char *summary,
                                             const fits *post, gint item_id);
+
+/**
+ * nde_capture_from_descriptor_for_item with input pins — for the JOINT
+ * multi-layer records (nde_joint.h), whose pins name every participating
+ * layer the same way a composite's pins name its inputs.  @pins is copied;
+ * n_pins may be 0, in which case this is exactly the _for_item variant.
+ */
+gint64 nde_capture_from_descriptor_pinned(const struct op_descriptor *op,
+                                          gconstpointer params,
+                                          const char *summary,
+                                          const fits *post, gint item_id,
+                                          const nde_pin_spec *pins,
+                                          guint n_pins);
 
 /** Heap ISO 8601 UTC timestamp, matching FLIS layer CREATED/MODIFIED style. */
 gchar *nde_iso8601_now(void);

@@ -428,6 +428,14 @@ static void add_sat(GArray *a, gint item, gint host, gint w, gint h) {
 	g_array_append_val(a, b);
 }
 
+static void add_span(GArray *a, gint item, gint level, gint w, gint h,
+                     const gint *items, guint n_items) {
+	nde_graph_box b = { .item_id = item, .level = level, .w = w, .h = h,
+	                    .spanning = TRUE, .span_items = items,
+	                    .n_span_items = n_items };
+	g_array_append_val(a, b);
+}
+
 static const nde_graph_place *place_for(GArray *places, gint item) {
 	for (guint i = 0; i < places->len; i++) {
 		const nde_graph_place *p = &g_array_index(places, nde_graph_place, i);
@@ -488,6 +496,51 @@ Test(nde_graph, bands_fill_independently) {
 	cr_assert_eq(place_for(p, 2)->x, 0);
 	cr_assert_eq(place_for(p, 3)->x, 45);
 	cr_assert_eq(w, 300, "the widest band sets the width");
+	g_array_unref(p);
+	g_array_unref(b);
+}
+
+/* A SPANNING band (a joint record, nde_joint.h) stretches over exactly its
+ * participants' columns — a layer the operation never read stays outside it
+ * — and its vertical whitespace is the COLUMN gap, not the band gap. */
+Test(nde_graph, a_spanning_band_covers_its_participants_columns) {
+	GArray *b = boxes_new();
+	/* Band 0: luminance (1) then R/G/B (2,3,4), each 100 wide, gap 20. */
+	add_box(b, 1, 0, 100, 50);   /* x 0   */
+	add_box(b, 2, 0, 100, 50);   /* x 120 */
+	add_box(b, 3, 0, 100, 50);   /* x 240 */
+	add_box(b, 4, 0, 100, 50);   /* x 360 */
+	const gint parts[3] = { 2, 3, 4 };
+	add_span(b, -1001, 1, 80, 30, parts, 3);
+	add_box(b, 5, 2, 100, 40);   /* something after the band */
+	gint w = 0, h = 0;
+	GArray *p = nde_graph_layout(b, 20, 36, &w, &h);
+
+	const nde_graph_place *band = place_for(p, -1001);
+	cr_assert_eq(band->x, 120, "the band starts at its first participant");
+	cr_assert_eq(band->w, 340, "and ends at its last participant's right edge");
+	/* Whitespace: 50-tall band 0, then the COLUMN gap (20), not the row
+	 * gap (36) — on both sides of the spanning band. */
+	cr_assert_eq(band->y, 70);
+	cr_assert_eq(place_for(p, 5)->y, 70 + 30 + 20);
+	cr_assert_eq(h, 70 + 30 + 20 + 40);
+	g_array_unref(p);
+	g_array_unref(b);
+}
+
+/* With no participant columns placed (all merged away, or no list at all)
+ * the band degrades to the full layout width. */
+Test(nde_graph, a_spanning_band_without_participants_spans_everything) {
+	GArray *b = boxes_new();
+	add_box(b, 1, 0, 100, 50);
+	add_box(b, 2, 0, 100, 50);
+	const gint gone[1] = { 99 };
+	add_span(b, -1001, 1, 80, 30, gone, 1);
+	gint w = 0;
+	GArray *p = nde_graph_layout(b, 20, 36, &w, NULL);
+
+	cr_assert_eq(place_for(p, -1001)->x, 0);
+	cr_assert_eq(place_for(p, -1001)->w, w);
 	g_array_unref(p);
 	g_array_unref(b);
 }

@@ -52,7 +52,29 @@ typedef enum {
 	NDE_NODE_MASK,        /* an operation mask (fit->mask) */
 	NDE_NODE_LAYERMASK,   /* a layer mask (layer->lmask) */
 	NDE_NODE_UNKNOWN,     /* an item id nothing in the document claims */
+	NDE_NODE_JOINT,       /* a JOINT multi-layer record (nde_joint.h): one
+	                       * record shown as a SPANNING band across the whole
+	                       * graph — a normal operation that happens to affect
+	                       * every layer above it, so it draws no edges */
 } nde_node_kind;
+
+/* Joint records are not items, so their nodes carry PSEUDO item ids derived
+ * from the record id, well below the real sentinels (-1 image, -2 its mask).
+ * SEGMENT nodes (an item's steps AFTER a joint record — the joint is a
+ * chronological boundary, so what follows it is drawn below it) draw their
+ * pseudo ids sequentially from a second, deeper range. */
+#define NDE_GRAPH_JOINT_ITEM_BASE (-1000)
+#define NDE_GRAPH_SEG_ITEM_BASE   (-1000000)
+
+static inline gint nde_graph_joint_pseudo_item(gint64 record_id) {
+	return NDE_GRAPH_JOINT_ITEM_BASE - (gint)record_id;
+}
+static inline gboolean nde_graph_item_is_joint_node(gint item_id) {
+	return item_id <= NDE_GRAPH_JOINT_ITEM_BASE && item_id > NDE_GRAPH_SEG_ITEM_BASE;
+}
+static inline gint64 nde_graph_joint_node_record(gint item_id) {
+	return (gint64)(NDE_GRAPH_JOINT_ITEM_BASE - item_id);
+}
 
 typedef struct {
 	gint            item_id;
@@ -81,6 +103,28 @@ typedef struct {
 	 * "deleted layer", which for a live, editable item is simply false.
 	 */
 	gboolean        orphan;
+	/**
+	 * The DOCUMENT item this node's steps belong to.  == item_id for an
+	 * ordinary node; a SEGMENT (a continuation of an item's history below a
+	 * joint band) carries a pseudo item_id and names its item here, and a
+	 * joint node names its anchor.
+	 */
+	gint            real_item;
+	/**
+	 * Chronological stage: joint records are band boundaries — everything
+	 * recorded after one draws below it, whatever the derivation edges say
+	 * — and this is which inter-joint interval the node's steps fall in.
+	 * The final @level is (stage, edge level) densified; with no joint
+	 * records every node has stage 0 and levels are pure edge levels.
+	 */
+	gint            stage;
+	/** TRUE for a joint node: laid out alone in its band, spanning its
+	 *  participants' columns, with its own whitespace above and below. */
+	gboolean        spanning;
+	/** The participants a joint node spans (owned; NULL otherwise).  The
+	 *  layout stretches the band over exactly these items' columns. */
+	gint           *span_items;
+	guint           n_span_items;
 } nde_graph_node;
 
 typedef struct {
@@ -89,6 +133,14 @@ typedef struct {
 	gint    dst_item_id;
 	gint64  dst_record_id;   /* the consuming record */
 	gchar  *role;            /* owned; "mask", later "base", "overlay"… */
+	/**
+	 * When the source is a JOINT band, the participant whose state this
+	 * edge carries (0 otherwise).  The view draws the edge leaving the
+	 * band's bottom at that participant's column, so a flatten consuming
+	 * three calibrated channels shows three departures, each under its
+	 * channel, instead of one line from the band's middle.
+	 */
+	gint    src_align_item;
 } nde_graph_edge;
 
 typedef struct {
@@ -111,6 +163,11 @@ void nde_graph_free(nde_graph *g);
 
 /** The node for @item_id, or NULL. */
 const nde_graph_node *nde_graph_node_for(const nde_graph *g, gint item_id);
+
+/** The node whose steps include LIVE record @record_id — how the History
+ *  panel routes a row when segments split an item across bands.  0 when no
+ *  node lists it (a dead-tail record: route to its target item). */
+gint nde_graph_route_for_record(const nde_graph *g, gint64 record_id);
 
 /** Edges INTO @item_id (what it consumes).  Caller g_ptr_array_unref()s the
  *  array; the edges themselves stay owned by @g. */
@@ -147,6 +204,15 @@ typedef struct {
 	 */
 	gint host_item;
 	gint w, h;
+	/**
+	 * TRUE for a joint node's box: laid out alone in its band, stretched
+	 * over its participants' columns (@span_items; the whole layout when
+	 * none of them are present), with the COLUMN gap as its vertical
+	 * whitespace — a normal operation that spans the channels it read.
+	 */
+	gboolean spanning;
+	const gint *span_items;   /* borrowed for the duration of the call */
+	guint       n_span_items;
 } nde_graph_box;
 
 /** Where that node goes.  Origin is the top-left of the whole layout. */

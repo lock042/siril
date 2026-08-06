@@ -59,6 +59,9 @@
 typedef struct {
 	gint       item_id;
 	gint       level;
+	gboolean   spanning;   /* a joint band: spans its participants' columns */
+	gint      *span_items; /* owned; the participants a spanning band covers */
+	guint      n_span_items;
 	GtkWidget *child;    /* borrowed; we hold the parent ref */
 } view_node;
 
@@ -66,6 +69,10 @@ typedef struct {
 	gint     src;
 	gint     dst;
 	gboolean feedback;
+	/* When the source is a joint band: the participant column the edge
+	 * leaves under (0 = plain source).  Part of the dedup identity — one
+	 * band feeds a merge once PER CHANNEL. */
+	gint     src_align;
 } view_edge;
 
 /* One bracket: the host rows it opens above and closes below. */
@@ -125,7 +132,10 @@ static GArray *layout_now(NdeGraphView *self, gint *w, gint *h) {
 		const view_node *n = &g_array_index(self->nodes, view_node, i);
 		if (!gtk_widget_should_layout(n->child))
 			continue;
-		nde_graph_box b = { .item_id = n->item_id, .level = n->level };
+		nde_graph_box b = { .item_id = n->item_id, .level = n->level,
+		                    .spanning = n->spanning,
+		                    .span_items = n->span_items,
+		                    .n_span_items = n->n_span_items };
 		measure_child(n->child, &b.w, &b.h);
 		g_array_append_val(boxes, b);
 	}
@@ -417,6 +427,27 @@ static void draw_join(cairo_t *cr, const nde_graph_place **srcs, guint n,
 	arrowhead(cr, drop_x, d->y, drop_x, bar_y);
 }
 
+/* The place an edge LEAVES from.  Ordinarily the source node's own place; an
+ * edge out of a joint band aligned on a participant (view_edge.src_align)
+ * synthesizes one from the band's y/height and the participant column's
+ * x/width — clamped inside the band — so the departure sits under the
+ * channel whose state the edge carries.  @storage backs the synthetic case
+ * and must outlive the returned pointer's use. */
+static const nde_graph_place *edge_src_place(const NdeGraphView *self,
+                                             const view_edge *e,
+                                             nde_graph_place *storage) {
+	const nde_graph_place *s = place_of(self->places, e->src);
+	if (!s || !e->src_align)
+		return s;
+	const nde_graph_place *a = place_of(self->places, e->src_align);
+	if (!a)
+		return s;
+	*storage = *s;
+	storage->w = MIN(a->w, s->w);
+	storage->x = CLAMP(a->x, s->x, s->x + s->w - storage->w);
+	return storage;
+}
+
 static void nde_graph_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) {
 	NdeGraphView *self = NDE_GRAPH_VIEW(widget);
 	const int w = gtk_widget_get_width(widget);
@@ -443,12 +474,14 @@ static void nde_graph_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) {
 			if (!d)
 				continue;
 			const nde_graph_place *srcs[64];
+			nde_graph_place srcs_store[64];
 			guint n = 0;
 			for (guint j = 0; j < self->edges->len && n < G_N_ELEMENTS(srcs); j++) {
 				const view_edge *f = &g_array_index(self->edges, view_edge, j);
 				if (f->feedback || f->dst != e->dst)
 					continue;
-				const nde_graph_place *s = place_of(self->places, f->src);
+				const nde_graph_place *s = edge_src_place(self, f,
+						&srcs_store[n]);
 				if (s)
 					srcs[n++] = s;
 			}
@@ -466,7 +499,8 @@ static void nde_graph_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) {
 			const view_edge *e = &g_array_index(self->edges, view_edge, i);
 			if (!e->feedback)
 				continue;
-			const nde_graph_place *s = place_of(self->places, e->src);
+			nde_graph_place fb_store;
+			const nde_graph_place *s = edge_src_place(self, e, &fb_store);
 			const nde_graph_place *d = place_of(self->places, e->dst);
 			if (!s || !d)
 				continue;
@@ -603,6 +637,7 @@ void nde_graph_view_reset(NdeGraphView *self) {
 	g_return_if_fail(NDE_IS_GRAPH_VIEW(self));
 	for (guint i = 0; i < self->nodes->len; i++) {
 		view_node *n = &g_array_index(self->nodes, view_node, i);
+		g_clear_pointer(&n->span_items, g_free);
 		gtk_widget_unparent(n->child);
 	}
 	for (guint i = 0; i < self->sats->len; i++) {
@@ -626,17 +661,42 @@ void nde_graph_view_add_node(NdeGraphView *self, gint item_id, gint level,
 	gtk_widget_queue_resize(GTK_WIDGET(self));
 }
 
+void nde_graph_view_add_span_node(NdeGraphView *self, gint item_id, gint level,
+                                  const gint *items, guint n_items,
+                                  GtkWidget *child) {
+	g_return_if_fail(NDE_IS_GRAPH_VIEW(self));
+	g_return_if_fail(GTK_IS_WIDGET(child));
+	view_node n = { .item_id = item_id, .level = level, .spanning = TRUE,
+	                .child = child };
+	if (items && n_items) {
+		n.span_items = g_new(gint, n_items);
+		memcpy(n.span_items, items, n_items * sizeof(gint));
+		n.n_span_items = n_items;
+	}
+	g_array_append_val(self->nodes, n);
+	gtk_widget_set_parent(child, GTK_WIDGET(self));
+	gtk_widget_queue_resize(GTK_WIDGET(self));
+}
+
 void nde_graph_view_add_edge(NdeGraphView *self, gint src_item, gint dst_item,
                              gboolean feedback) {
+	nde_graph_view_add_edge_aligned(self, src_item, dst_item, feedback, 0);
+}
+
+void nde_graph_view_add_edge_aligned(NdeGraphView *self, gint src_item,
+                                     gint dst_item, gboolean feedback,
+                                     gint align_item) {
 	g_return_if_fail(NDE_IS_GRAPH_VIEW(self));
 	if (src_item == dst_item)
 		return;
 	for (guint i = 0; i < self->edges->len; i++) {
 		const view_edge *e = &g_array_index(self->edges, view_edge, i);
-		if (e->src == src_item && e->dst == dst_item)
+		if (e->src == src_item && e->dst == dst_item &&
+		    e->src_align == align_item)
 			return;
 	}
-	view_edge e = { .src = src_item, .dst = dst_item, .feedback = feedback };
+	view_edge e = { .src = src_item, .dst = dst_item, .feedback = feedback,
+	                .src_align = align_item };
 	g_array_append_val(self->edges, e);
 	gtk_widget_queue_draw(GTK_WIDGET(self));
 }

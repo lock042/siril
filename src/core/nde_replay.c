@@ -38,6 +38,7 @@
 #include "core/masks.h"
 #include "core/nde_compositing.h"
 #include "core/nde_composite.h"
+#include "core/nde_joint.h"
 #include "core/nde_snapstore.h"
 #include "core/nde_replay.h"
 #include "io/image_format_fits.h"
@@ -435,15 +436,52 @@ static nde_chain *chain_build_excluding(gint item_id, gint64 exclude_record_id) 
 	for (guint i = 0; chain->snapshot && i < chain->snapshot->len; i++) {
 		nde_record *rec = g_ptr_array_index(chain->snapshot, i);
 		gboolean member = FALSE;
-		if (exclude_record_id && rec->record_id == exclude_record_id)
+		if (exclude_record_id && rec->record_id == exclude_record_id) {
+			/* A DELETED geometry step still has to be undone on the canvas,
+			 * not merely skipped: the layer is currently sitting where that
+			 * step put it, and dropping it must return the layer to the
+			 * position the surviving members produce.  So the chain keeps
+			 * carrying geometry even though the step itself is gone —
+			 * without this the pixels revert and the offset does not, and
+			 * the layer ends up correct-but-misplaced. */
+			const op_descriptor *dop = op_descriptor_by_id(rec->op_id);
+			gboolean geometric = (dop && (dop->flags & OP_GEOMETRY_CHANGING)) ||
+			                     nde_joint_is_geometric_op(rec->op_id);
+			gboolean mine = rec->target_item_id == item_id ||
+			                (nde_joint_is_op(rec->op_id) &&
+			                 nde_joint_record_names_item(rec, item_id));
+			if (geometric && mine && is_flis &&
+			    nde_checkpoint_baseline_get_offset(item_id, NULL, NULL))
+				chain->has_geometry = TRUE;
 			continue;
+		}
 		/* Compositing-state records are inputs to the compositor, not pixel
 		 * operations: neither chain members nor blockers (nde_compositing.h). */
 		if (nde_compositing_is_op(rec->op_id))
 			continue;
 		switch (rec->scope) {
 		case NDE_SCOPE_LAYER:
-			member = (rec->target_item_id == item_id);
+			/* A JOINT record (nde_joint.h) targets its anchor participant
+			 * but scales every participant, so it is a member of each of
+			 * their chains — one record at one log position, shared. */
+			member = (rec->target_item_id == item_id) ||
+			         (nde_joint_is_op(rec->op_id) &&
+			          nde_joint_record_names_item(rec, item_id));
+			/* Registration is a joint op that MOVES its participants as well
+			 * as warping them.  It is scope LAYER (its target is an anchor
+			 * participant, not the canvas), so the NDE_SCOPE_CANVAS branch
+			 * below never sees it — but the replay still has to thread the
+			 * layer position through it, and that needs a recorded starting
+			 * position exactly as an ordinary geometry step does. */
+			if (member && nde_joint_is_geometric_op(rec->op_id) && is_flis) {
+				if (nde_checkpoint_baseline_get_offset(item_id, NULL, NULL)) {
+					chain->has_geometry = TRUE;
+				} else {
+					member = FALSE;
+					add_reason(chain, _("record %" G_GINT64_FORMAT " (%s) moves this layer on the canvas, but no starting position was recorded — not replayable"),
+					           rec->record_id, rec->op_id ? rec->op_id : "?");
+				}
+			}
 			break;
 		case NDE_SCOPE_CANVAS:
 			if (!is_flis) {
@@ -601,10 +639,21 @@ void nde_chain_free(nde_chain *chain) {
  * else is that record's output checkpoint.  FALSE when the chain carries no
  * geometry member (a plain image, or a layer nothing ever moved), in which
  * case the hooks are handed NULL and move nothing. */
+/* Set while an edit to a GEOMETRIC joint record (flis.register) cascades to
+ * its participants.  Those layers are sitting where the record's warp put
+ * them, so the recompute has to re-anchor them from the baseline even when
+ * the chain it replays now has no geometry member left to move them — which
+ * is exactly what deleting the registration produces.  Deliberately NOT the
+ * general rule: a layer the user dragged carries a position no record
+ * describes, and forcing the baseline on every recompute would undo it. */
+static gboolean joint_geometry_reanchor = FALSE;
+
 static gboolean replay_start_offset(const nde_chain *chain, gint64 restart_id,
                                     gint *pos_x, gint *pos_y) {
-	if (!chain->has_geometry)
+	if (!chain->has_geometry && !joint_geometry_reanchor)
 		return FALSE;
+	if (joint_geometry_reanchor && !chain->has_geometry)
+		return nde_checkpoint_baseline_get_offset(chain->item_id, pos_x, pos_y);
 	if (restart_id > 0 &&
 	    nde_checkpoint_output_get_offset(restart_id, pos_x, pos_y))
 		return TRUE;
@@ -629,6 +678,13 @@ static fits *resolve_item_state(gint item_id, gint64 upto_record_id, gchar **err
 static fits *resolve_item_state_pos(gint item_id, gint64 upto_record_id,
                                     gint *pos_x, gint *pos_y,
                                     gboolean *pos_valid, gchar **err);
+static fits *resolve_item_state_pos_bound(gint item_id, gint64 upto_record_id,
+                                          gboolean exclusive,
+                                          gint *pos_x, gint *pos_y,
+                                          gboolean *pos_valid, gchar **err);
+static GArray *joint_cascade_targets(gint item_id, gint64 from_record_id,
+                                     gboolean include_self);
+static void cascade_joint_targets(GArray *targets);
 
 /* Run one composite member (graph step 7, nde_composite.h) — merge-down with
  * two inputs, flatten with all of them.
@@ -738,11 +794,26 @@ static fits *composite_apply(fits *base, const nde_record *rec, gint item_id,
  * move is relative to the previous position, so the driver threads the
  * position through the run and hands it to the hooks.  NULL for a plain
  * image, which has no position, and for chains with no geometry member. */
+/* The record currently being applied by the replay driver, for hooks whose
+ * recompute needs record-scoped side data — the photometric pipeline reads
+ * its embedded star catalogue (nde_cat.h) under this id.  0 outside a
+ * replayed record.  Single conductor thread; a plain static suffices. */
+static gint64 replay_current_record;
+
+gint64 nde_replay_current_record_id(void) {
+	return replay_current_record;
+}
+
+void nde_replay_set_current_record(gint64 record_id) {
+	replay_current_record = record_id;
+}
+
 static fits *replay_apply_records(fits *scratch, const nde_chain *chain,
                                   guint from, guint upto,
                                   gint *pos_x, gint *pos_y, gchar **err) {
 	for (guint i = from; i < upto; i++) {
 		const nde_record *rec = g_ptr_array_index(chain->records, i);
+		replay_current_record = rec->record_id;
 		if (!processing_should_continue()) {
 			*err = g_strdup(_("cancelled"));
 			goto fail;
@@ -774,6 +845,34 @@ static fits *replay_apply_records(fits *scratch, const nde_chain *chain,
 			 * of them cleared the conductor's.  Take it back: there may be
 			 * many records still to replay after this one. */
 			gui_iface.set_busy(TRUE);
+			nde_snapstore_deposit(scratch, chain->item_id, rec->record_id);
+			continue;
+		}
+		if (nde_joint_is_op(rec->op_id)) {
+			/* A joint record (nde_joint.h): recompute the multi-layer
+			 * analysis — siblings resolved positionally, this chain's state
+			 * supplied by the accumulated scratch — and apply only this
+			 * participant's share.  The result is generation-cached, so the
+			 * N participant replays of one edit share one analysis.
+			 *
+			 * Dispatch on the op: the SCALAR joint ops derive a per-layer
+			 * affine, but registration derives a WARP and a new frame size,
+			 * which the affine path cannot express — handing it to
+			 * nde_joint_factor_for_item would multiply the layer by a
+			 * meaningless number and leave it the wrong size. */
+			if (nde_joint_is_geometric_op(rec->op_id)) {
+				if (!nde_joint_register_apply(rec, scratch, chain->item_id,
+				                              pos_x, pos_y, err))
+					goto fail;
+				nde_snapstore_deposit(scratch, chain->item_id, rec->record_id);
+				continue;
+			}
+			double s = 1.0, o = 0.0;
+			if (!nde_joint_factor_for_item(rec, scratch, chain->item_id,
+			                               &s, &o, err))
+				goto fail;
+			flis_affine_layer_pixels(scratch, s, o);
+			invalidate_stats_from_fit(scratch);
 			nde_snapstore_deposit(scratch, chain->item_id, rec->record_id);
 			continue;
 		}
@@ -845,9 +944,11 @@ static fits *replay_apply_records(fits *scratch, const nde_chain *chain,
 		 * the budget pref is 0 or the write fails. */
 		nde_snapstore_deposit(scratch, chain->item_id, rec->record_id);
 	}
+	replay_current_record = 0;
 	return scratch;
 
 fail:
+	replay_current_record = 0;
 	clearfits(scratch);
 	free(scratch);
 	return NULL;
@@ -868,6 +969,19 @@ static void commit_restore_metadata(fits *target, fits *old);
 static fits *resolve_item_state_pos(gint item_id, gint64 upto_record_id,
                                     gint *pos_x, gint *pos_y,
                                     gboolean *pos_valid, gchar **err) {
+	return resolve_item_state_pos_bound(item_id, upto_record_id, FALSE,
+	                                    pos_x, pos_y, pos_valid, err);
+}
+
+/* The bound-aware core.  @exclusive says which side of the anchor the prefix
+ * ends on: FALSE replays up to AND INCLUDING the anchor's log position (a
+ * pin's "state after this record"), TRUE stops JUST BEFORE it (a joint
+ * record resolving a sibling's pre-record state, nde_joint.h — inclusive
+ * would replay the joint record itself and recurse forever). */
+static fits *resolve_item_state_pos_bound(gint item_id, gint64 upto_record_id,
+                                          gboolean exclusive,
+                                          gint *pos_x, gint *pos_y,
+                                          gboolean *pos_valid, gchar **err) {
 	nde_chain *c = nde_chain_build(item_id);
 	/* A pin's src_record_id of 0 means the item's BASELINE, not "all of it"
 	 * (nde_history.h) — the state before anything was recorded against it.
@@ -903,7 +1017,8 @@ static fits *resolve_item_state_pos(gint item_id, gint64 upto_record_id,
 			if (anchor_pos < 0) {
 				/* The pin names a record the log no longer holds; with no
 				 * position to compare against, fall back to the id. */
-				if (m->record_id > upto_record_id)
+				if (m->record_id > upto_record_id ||
+				    (exclusive && m->record_id == upto_record_id))
 					break;
 			} else {
 				gint member_pos = -1;
@@ -913,7 +1028,8 @@ static fits *resolve_item_state_pos(gint item_id, gint64 upto_record_id,
 						break;
 					}
 				}
-				if (member_pos > anchor_pos)
+				if (member_pos > anchor_pos ||
+				    (exclusive && member_pos == anchor_pos))
 					break;
 			}
 			upto = i + 1;
@@ -1033,6 +1149,12 @@ static fits *resolve_item_state_pos(gint item_id, gint64 upto_record_id,
 
 static fits *resolve_item_state(gint item_id, gint64 upto_record_id, gchar **err) {
 	return resolve_item_state_pos(item_id, upto_record_id, NULL, NULL, NULL, err);
+}
+
+fits *nde_replay_resolve_before(gint item_id, gint64 before_record_id, gchar **err) {
+	g_return_val_if_fail(before_record_id != 0, NULL);
+	return resolve_item_state_pos_bound(item_id, before_record_id, TRUE,
+	                                    NULL, NULL, NULL, err);
 }
 
 /* Replay members [0..upto) of a MASK chain.  The result is a fits carrying
@@ -1594,6 +1716,11 @@ static void cascade_mask_consumers(gint mask_item, guint from_pos) {
 		}
 		if (recompute_item(item, &err)) {
 			redone++;
+			/* The host's pixels changed, so a joint record it participates
+			 * in derives new factors for its siblings (nde_joint.h). */
+			GArray *jt = joint_cascade_targets(item, 0, FALSE);
+			cascade_joint_targets(jt);
+			g_array_unref(jt);
 		} else {
 			stale++;
 			siril_log_warning(_("Item %d used this mask but could not be recomputed, so it still shows the old result: %s\n"),
@@ -1734,6 +1861,137 @@ static void cascade_derived_masks(gint item_id, gint64 unchanged_upto) {
 		               rebuilt);
 }
 
+/* ---- joint-record cascade (nde_joint.h) ---------------------------------
+ * A joint record scales EVERY participant from one shared analysis, so a
+ * change to any participant — its pixels upstream of the record, or its tint
+ * — changes what the record derives for all the OTHERS.  The cascade
+ * recomputes them from their (unchanged) logs: the factors come from the
+ * generation cache, so however many layers replay, the analysis runs once.
+ *
+ * Collection happens BEFORE the log commit (the edited record's position is
+ * still measurable, and a deleted joint record's participants are still
+ * readable), execution AFTER it (the recomputes must read the amended log).*/
+
+/* Every OTHER participant of every live joint record naming @item_id at or
+ * after @from_record_id's log position, closed transitively over joint edges
+ * (a rescaled sibling may itself feed a later joint record).  A
+ * @from_record_id of 0 — or one the log no longer holds — means "anywhere".
+ * @include_self additionally lists @item_id itself when a qualifying record
+ * names it: for the compositing-state (tint) edits, whose cheap path never
+ * replays the item's own chain, though the joint member on it now derives a
+ * different factor.  Caller g_array_unref()s. */
+static GArray *joint_cascade_targets(gint item_id, gint64 from_record_id,
+                                     gboolean include_self) {
+	GArray *out = g_array_new(FALSE, FALSE, sizeof(gint));
+	GPtrArray *live = nde_history_snapshot(NULL);
+	if (!live)
+		return out;
+	gint from_pos = -1;
+	if (from_record_id) {
+		for (guint i = 0; i < live->len; i++) {
+			const nde_record *r = g_ptr_array_index(live, i);
+			if (r->record_id == from_record_id) {
+				from_pos = (gint)i;
+				break;
+			}
+		}
+	}
+	GHashTable *seen = g_hash_table_new(g_direct_hash, g_direct_equal);
+	GQueue *frontier = g_queue_new();
+	g_hash_table_add(seen, GINT_TO_POINTER(item_id));
+	g_queue_push_tail(frontier, GINT_TO_POINTER(item_id));
+	gboolean self_named = FALSE;
+	while (!g_queue_is_empty(frontier)) {
+		gint src = GPOINTER_TO_INT(g_queue_pop_head(frontier));
+		for (guint i = 0; i < live->len; i++) {
+			const nde_record *rec = g_ptr_array_index(live, i);
+			if (!nde_joint_is_op(rec->op_id))
+				continue;
+			/* The positional filter applies only to the edited item: a joint
+			 * record BEFORE the edit read a prefix the edit does not touch.
+			 * Propagated items carry no position — their whole value moved. */
+			if (src == item_id && from_pos >= 0 && (gint)i < from_pos)
+				continue;
+			if (!nde_joint_record_names_item(rec, src))
+				continue;
+			if (src == item_id)
+				self_named = TRUE;
+			guint n = 0;
+			gint *parts = nde_joint_record_participants(rec, &n);
+			for (guint k = 0; parts && k < n; k++) {
+				if (parts[k] == src)
+					continue;
+				if (!g_hash_table_add(seen, GINT_TO_POINTER(parts[k])))
+					continue;
+				g_array_append_val(out, parts[k]);
+				g_queue_push_tail(frontier, GINT_TO_POINTER(parts[k]));
+			}
+			g_free(parts);
+		}
+	}
+	if (include_self && self_named)
+		g_array_append_val(out, item_id);
+	g_queue_free(frontier);
+	g_hash_table_destroy(seen);
+	g_ptr_array_unref(live);
+	return out;
+}
+
+/* A subset amend ADDS participants the pre-commit collection could not see
+ * (they were not named by any live record then): merge a post-commit
+ * collection into @targets, deduplicated. */
+static void joint_merge_post_commit_targets(GArray *targets, gint item_id,
+                                            gint64 record_id) {
+	GArray *fresh = joint_cascade_targets(item_id, record_id, FALSE);
+	for (guint i = 0; i < fresh->len; i++) {
+		gint p = g_array_index(fresh, gint, i);
+		gboolean seen = FALSE;
+		for (guint j = 0; j < targets->len && !seen; j++)
+			seen = g_array_index(targets, gint, j) == p;
+		if (!seen)
+			g_array_append_val(targets, p);
+	}
+	g_array_unref(fresh);
+}
+
+/* Guard against mutual recursion: a recomputed participant's derived-mask
+ * and composite cascades can wind back into another joint cascade, and the
+ * generation cache already guarantees a nested pass would derive the same
+ * factors — so a nested cascade recomputes nothing new and is skipped. */
+static gboolean joint_cascading = FALSE;
+
+static void cascade_joint_targets(GArray *targets) {
+	if (!targets || !targets->len || joint_cascading)
+		return;
+	joint_cascading = TRUE;
+	guint redone = 0;
+	for (guint i = 0; i < targets->len; i++) {
+		gint p = g_array_index(targets, gint, i);
+		/* Everything cached for the participant may embody the old factor. */
+		nde_snapstore_invalidate_from(p, 0);
+		if (nde_item_is_retained_input(p)) {
+			cascade_composite_consumers(p);
+			redone++;
+			continue;
+		}
+		gchar *cerr = NULL;
+		if (recompute_item(p, &cerr)) {
+			redone++;
+			cascade_derived_masks(p, 0);
+			cascade_composite_consumers(p);
+		} else {
+			siril_log_warning(_("A jointly calibrated layer could not be recomputed, so it still shows the old scaling: %s\n"),
+			                  cerr ? cerr : "?");
+		}
+		g_free(cerr);
+	}
+	joint_cascading = FALSE;
+	if (redone) {
+		gui_iface.flis_invalidate_composite();
+		siril_log_info(_("Change applied to %u jointly calibrated layer(s)\n"), redone);
+	}
+}
+
 /* Shared core of amend (new_params != NULL) and delete (new_params == NULL).
  * Conductor context: the caller holds SLOT_REPLAY, so capture, undo and
  * python cannot interleave with the replay or the commit. */
@@ -1795,7 +2053,8 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 	 * user-facing errors before any heavy work.  (nde_history_amend/delete
 	 * re-validate under the mutex at commit time.) */
 	gint item_id = 0;
-	gboolean found = FALSE, is_compositing = FALSE;
+	gboolean found = FALSE, is_compositing = FALSE, is_joint = FALSE;
+	gboolean is_joint_geometry = FALSE;
 	GPtrArray *live = nde_history_snapshot(NULL);
 	for (guint i = 0; live && i < live->len; i++) {
 		const nde_record *rec = g_ptr_array_index(live, i);
@@ -1803,6 +2062,8 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 			found = TRUE;
 			item_id = rec->target_item_id;
 			is_compositing = nde_compositing_is_op(rec->op_id);
+			is_joint = nde_joint_is_op(rec->op_id);
+			is_joint_geometry = nde_joint_is_geometric_op(rec->op_id);
 			if (new_params && is_compositing) {
 				/* Validated here rather than by an op descriptor — these
 				 * records have none (nde_compositing.h). */
@@ -1844,10 +2105,17 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 	 * invalidation.  Undo is still flushed: the coupled props-only entries
 	 * would redo the pre-edit value (nde_compositing.h). */
 	if (is_compositing) {
+		/* Collected while the edited record's position is still measurable:
+		 * a tint edit changes what every joint record downstream of it
+		 * derives, for ALL participants including this layer itself (whose
+		 * own chain this cheap path never replays). */
+		GArray *jt = joint_cascade_targets(item_id, record_id, TRUE);
 		gboolean log_ok = new_params ? nde_history_amend(record_id, new_params, err)
 		                             : nde_history_delete(record_id, err);
-		if (!log_ok)
+		if (!log_ok) {
+			g_array_unref(jt);
 			return FALSE;
+		}
 		if (item_id >= 0 && !flis_layer_get_by_id(item_id)
 		    && nde_item_is_retained_input(item_id)) {
 			/* The layer was consumed by a composite (flatten / merge), so
@@ -1857,12 +2125,17 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 			 * the amended log, then recompute every consumer: the edit
 			 * flows through the composite boundary instead of failing
 			 * with "the target layer no longer exists". */
-			if (!nde_composite_refresh_input_state(item_id, err))
+			if (!nde_composite_refresh_input_state(item_id, err)) {
+				g_array_unref(jt);
 				return FALSE;
+			}
 			cascade_composite_consumers(item_id);
 		} else if (!nde_compositing_recompute(item_id, err)) {
+			g_array_unref(jt);
 			return FALSE;
 		}
+		cascade_joint_targets(jt);
+		g_array_unref(jt);
 		undo_flush();
 		gui_iface.set_progress(PROGRESS_DONE, _("Edit history updated"));
 		return TRUE;
@@ -1920,6 +2193,108 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 		return FALSE;
 	}
 	nde_chain_free(pos);
+
+	/* A JOINT record is a member of EVERY participant's chain (nde_joint.h):
+	 * editing it recomputes them all, so the freeze rule must hold on each —
+	 * a later opaque step on ANY participant locks the record, not just one
+	 * on the anchor's chain. */
+	if (is_joint) {
+		GPtrArray *jsnap = nde_history_snapshot(NULL);
+		guint jn = 0;
+		gint *jparts = NULL;
+		gchar *jold_params = NULL;
+		for (guint i = 0; jsnap && i < jsnap->len; i++) {
+			const nde_record *r = g_ptr_array_index(jsnap, i);
+			if (r->record_id == record_id) {
+				jparts = nde_joint_record_participants(r, &jn);
+				jold_params = g_strdup(r->params);
+				break;
+			}
+		}
+		if (jsnap)
+			g_ptr_array_unref(jsnap);
+		/* A SUBSET amend (participant list changed): the commit re-derives
+		 * the pins (nde_history_amend), removed participants revert through
+		 * the pre-commit cascade collection, added ones through a second
+		 * post-commit pass.  Two rules first: the anchor must stay a
+		 * participant (its chain hosts the record), and a brand-new
+		 * participant needs a replay starting point — while it has no
+		 * records its current pixels ARE its original state, so a baseline
+		 * is taken from them now. */
+		if (new_params && jparts &&
+		    !nde_joint_params_same_participants(jold_params, new_params)) {
+			guint nn = 0;
+			gint *nparts = nde_joint_params_participants(new_params, &nn);
+			gboolean anchor_kept = FALSE;
+			for (guint k = 0; nparts && k < nn; k++)
+				anchor_kept = anchor_kept || nparts[k] == item_id;
+			if (!anchor_kept) {
+				*err = nparts ?
+					g_strdup(_("the layer this step is recorded on must stay a participant — delete the step and re-run the operation instead")) :
+					g_strdup(_("the new parameters name no readable participant list"));
+				g_free(nparts);
+				g_free(jold_params);
+				g_free(jparts);
+				return FALSE;
+			}
+			for (guint k = 0; k < nn && !*err; k++) {
+				gboolean was = FALSE;
+				for (guint j = 0; j < jn; j++)
+					was = was || jparts[j] == nparts[k];
+				if (was)
+					continue;
+				flis_layer_t *lay = flis_layer_get_by_id(nparts[k]);
+				if (!lay || !lay->fit) {
+					*err = g_strdup_printf(_("layer %d cannot join this step — it is not in the document"),
+					                       nparts[k]);
+				} else {
+					/* Pixel-CHAIN membership, not any record: a layer whose
+					 * only history is compositing state (a tint) still shows
+					 * its original pixels, and those are its baseline. */
+					nde_chain *pc = nde_chain_build(nparts[k]);
+					gboolean no_pixel_history = pc->records->len == 0;
+					nde_chain_free(pc);
+					if (no_pixel_history)
+						nde_checkpoint_baseline_ensure(lay->fit, nparts[k]);
+				}
+			}
+			g_free(nparts);
+			if (*err) {
+				g_free(jold_params);
+				g_free(jparts);
+				return FALSE;
+			}
+		}
+		g_free(jold_params);
+		if (!jparts) {
+			*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s): parameters failed to parse"),
+			                       record_id, "flis joint");
+			return FALSE;
+		}
+		for (guint k = 0; k < jn && !*err; k++) {
+			if (jparts[k] == item_id)
+				continue;   /* the anchor chain was checked above */
+			nde_chain *pc = nde_chain_build(jparts[k]);
+			gint pidx = -1;
+			for (guint i = 0; i < pc->records->len; i++) {
+				const nde_record *r = g_ptr_array_index(pc->records, i);
+				if (r->record_id == record_id) {
+					pidx = (gint)i;
+					break;
+				}
+			}
+			if (pidx >= 0 && (guint)pidx < pc->tail_start) {
+				flis_layer_t *play = flis_layer_get_by_id(jparts[k]);
+				*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " is locked by a later opaque step on layer '%s'"),
+				                       record_id,
+				                       play && play->layer_name ? play->layer_name : "?");
+			}
+			nde_chain_free(pc);
+		}
+		g_free(jparts);
+		if (*err)
+			return FALSE;
+	}
 
 	/* For a delete, build the TRIAL chain: the deleted record is excluded
 	 * from membership AND from the blockers, so its own opaqueness/mask
@@ -2053,8 +2428,12 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 	/* Convergence C3 invalidation, BEFORE replay: pool states at-or-after
 	 * the edit describe the OLD chain and must not survive (they are never
 	 * consulted as restarts for THIS edit, but they would be stale for the
-	 * next one).  The replay below re-deposits fresh states as it goes. */
+	 * next one).  The replay below re-deposits fresh states as it goes.
+	 * Joint factors likewise: the trial replays against a log that is not
+	 * yet committed, so factors cached before it must not leak in — and the
+	 * ones the trial caches must not survive a failed commit (below). */
 	nde_snapstore_invalidate_from(item_id, record_id);
+	nde_joint_cache_invalidate();
 	/* Restart from the LATEST cached state at-or-before the edit (undo/redo
 	 * entries, prior deposits, barrier checkpoints) rather than always the
 	 * tail start — the frozen prefix's effect is embodied in the restart
@@ -2076,11 +2455,24 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 	nde_chain_free(chain);
 	if (!result) {
 		/* Deposits made by a failed replay describe an uncommitted chain —
-		 * drop them along with anything else at-or-after the edit. */
+		 * drop them along with anything else at-or-after the edit.  Factors
+		 * the trial cached describe the uncommitted params — same fate. */
 		nde_snapstore_invalidate_from(item_id, record_id);
+		nde_joint_cache_invalidate();
 		gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
 		return FALSE;
 	}
+	/* The trial's factors were computed against the uncommitted log; the
+	 * commit bumps the generation, so post-commit cascades recompute from
+	 * the committed state.  Drop the trial's entries outright — a failed
+	 * log commit below would otherwise leave them poisoning the still-
+	 * current generation. */
+	nde_joint_cache_invalidate();
+	/* Collected while the edited record is still live: an amend or delete
+	 * of anything on this chain changes what every joint record at-or-after
+	 * it derives for its OTHER participants (a deleted joint record's own
+	 * participants included — post-commit its list is gone). */
+	GArray *joint_targets = joint_cascade_targets(item_id, record_id, FALSE);
 
 	/* Resolve the target fits.  gfit for plain images; the layer's fit for
 	 * FLIS (identical pointer when it is the active layer). */
@@ -2102,11 +2494,22 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 		gboolean log_ok = new_params ? nde_history_amend(record_id, new_params, err)
 		                             : nde_history_delete(record_id, err);
 		if (!log_ok) {
+			g_array_unref(joint_targets);
 			gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
 			return FALSE;
 		}
 		cascade_derived_masks(item_id, unchanged_upto);
 		cascade_composite_consumers(item_id);
+		if (is_joint && new_params)
+			joint_merge_post_commit_targets(joint_targets, item_id, record_id);
+		/* Participants of a GEOMETRIC joint record are sitting where its warp
+		 * put them, so their recompute has to re-anchor from the baseline —
+		 * the chain it replays may no longer contain anything that moves
+		 * them (deleting the registration is exactly that case). */
+		joint_geometry_reanchor = is_joint_geometry;
+		cascade_joint_targets(joint_targets);
+		joint_geometry_reanchor = FALSE;
+		g_array_unref(joint_targets);
 		undo_flush();
 		gui_iface.invalidate_histogram();
 		if (is_current_image_flis())
@@ -2119,6 +2522,7 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 		*err = g_strdup(_("the record's target layer no longer exists"));
 		clearfits(result);
 		free(result);
+		g_array_unref(joint_targets);
 		gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
 		return FALSE;
 	}
@@ -2139,6 +2543,7 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 		commit_unlock(target, quiesced);
 		clearfits(result);
 		free(result);
+		g_array_unref(joint_targets);
 		gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
 		return FALSE;
 	}
@@ -2152,6 +2557,17 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 	 * derived from.  After the log commit, so the re-derivation reads the
 	 * amended history. */
 	cascade_derived_masks(item_id, unchanged_upto);
+
+	/* And the joint records: the edit moved this participant's contribution,
+	 * so every sibling's scaling is now derived from stale factors.  A
+	 * subset amend may have ADDED participants the pre-commit collection
+	 * could not see — merge a post-commit pass. */
+	if (is_joint && new_params)
+		joint_merge_post_commit_targets(joint_targets, item_id, record_id);
+	joint_geometry_reanchor = is_joint_geometry;   /* see above */
+	cascade_joint_targets(joint_targets);
+	joint_geometry_reanchor = FALSE;
+	g_array_unref(joint_targets);
 
 	/* No meta-undo (sketch §7): stale undo entries would restore pixels the
 	 * log no longer describes. */
@@ -2528,6 +2944,11 @@ gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after,
 			if (!nde_record_amendable(rec) || !nde_record_deletable(rec))
 				*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) cannot be reordered"),
 				                       record_id, rec->op_id ? rec->op_id : "?");
+			else if (nde_joint_is_op(rec->op_id))
+				/* One log position shared by every participant's chain: a
+				 * sound multi-chain move semantics is not defined (v1). */
+				*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) spans several layers and cannot be reordered"),
+				                       record_id, rec->op_id);
 			break;
 		}
 	}
@@ -2644,6 +3065,7 @@ gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after,
 
 	gui_iface.set_progress(0.f, _("Recomputing edit history..."));
 	nde_snapstore_invalidate_from(item_id, inval_min);
+	nde_joint_cache_invalidate();
 	guint start_idx = 0;
 	fits *start = resolve_edit_restart(chain, min_idx, boundary_pre_id, &start_idx, err);
 	gint pos_x = 0, pos_y = 0;
@@ -2659,9 +3081,16 @@ gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after,
 	nde_chain_free(chain);
 	if (!result) {
 		nde_snapstore_invalidate_from(item_id, inval_min);
+		nde_joint_cache_invalidate();
 		gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
 		return FALSE;
 	}
+	/* Same trial-cache discipline as edit_execute: the factors above were
+	 * derived from the permuted-but-uncommitted order. */
+	nde_joint_cache_invalidate();
+	/* A move across a joint member changes the prefix it reads — collected
+	 * pre-commit, cascaded post-commit like every other joint disturbance. */
+	GArray *joint_targets = joint_cascade_targets(item_id, boundary_pre_id, FALSE);
 
 	/* Atomic commit — mirrors edit_execute's tail, including its retained
 	 * branch: an item a merge consumed has no layer to swap into, and the
@@ -2681,11 +3110,14 @@ gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after,
 		free(result);
 		if (!nde_history_reorder(record_id, log_before_id, err)) {
 			nde_snapstore_invalidate_from(item_id, inval_min);
+			g_array_unref(joint_targets);
 			gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
 			return FALSE;
 		}
 		cascade_derived_masks(item_id, unchanged_upto);
 		cascade_composite_consumers(item_id);
+		cascade_joint_targets(joint_targets);
+		g_array_unref(joint_targets);
 		undo_flush();
 		gui_iface.invalidate_histogram();
 		gui_iface.set_progress(PROGRESS_RESET, _("History step moved"));
@@ -2695,6 +3127,7 @@ gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after,
 		*err = g_strdup(_("the record's target layer no longer exists"));
 		clearfits(result);
 		free(result);
+		g_array_unref(joint_targets);
 		gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
 		return FALSE;
 	}
@@ -2709,6 +3142,7 @@ gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after,
 		commit_unlock(target, quiesced);
 		clearfits(result);
 		free(result);
+		g_array_unref(joint_targets);
 		gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
 		return FALSE;
 	}
@@ -2721,6 +3155,8 @@ gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after,
 	/* Reverse invalidation: a mask built from these pixels read a prefix the
 	 * move may have reordered (cascade_derived_masks). */
 	cascade_derived_masks(item_id, unchanged_upto);
+	cascade_joint_targets(joint_targets);
+	g_array_unref(joint_targets);
 
 	undo_flush();   /* no meta-undo (sketch §7) */
 	invalidate_stats_from_fit(target);
@@ -3458,6 +3894,13 @@ gboolean nde_edit_at_end_execute(gboolean apply, gchar **err) {
 		saved = NULL;
 		cascade_derived_masks(item_id, unchanged_upto);
 		cascade_composite_consumers(item_id);
+		{
+			/* Joint records after the insertion read this item's changed
+			 * prefix — their other participants need recomputing too. */
+			GArray *jt = joint_cascade_targets(item_id, first_inserted, FALSE);
+			cascade_joint_targets(jt);
+			g_array_unref(jt);
+		}
 		g_array_unref(inserted);
 		undo_flush();
 		gui_iface.set_progress(PROGRESS_RESET, _("Insertion applied"));
@@ -3503,6 +3946,14 @@ gboolean nde_edit_at_end_execute(gboolean apply, gchar **err) {
 	/* Reverse invalidation: a mask built from these pixels read a prefix the
 	 * inserted steps now sit inside (cascade_derived_masks). */
 	cascade_derived_masks(item_id, unchanged_upto);
+
+	/* And the joint records after the insertion point: this participant's
+	 * contribution changed, so their siblings' scalings are stale. */
+	{
+		GArray *jt = joint_cascade_targets(item_id, first_inserted, FALSE);
+		cascade_joint_targets(jt);
+		g_array_unref(jt);
+	}
 
 	undo_flush();
 	invalidate_stats_from_fit(target);

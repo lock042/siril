@@ -186,7 +186,7 @@ Test(flis_register_layers, dft_aligns_content_shifted_layer) {
 	cr_assert_not_null(method);
 
 	int rv = flis_register_layers(NULL, NULL, method, sel, tx,
-	                              OPENCV_LANCZOS4, TRUE);
+	                              OPENCV_LANCZOS4, TRUE, FLIS_REG_DFT);
 	cr_assert_eq(rv, 0, "flis_register_layers failed (%d)", rv);
 
 	/* Content-anchored check: the brightest star must land on the same

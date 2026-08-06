@@ -18449,7 +18449,8 @@ int process_flis_register_layers(int nb) {
 	 * discipline as the panel path (whose hook runs under the layer
 	 * worker's stack writer lock). */
 	flis_stack_writer_lock();
-	int ret = flis_register_layers(ref, NULL, method, sel_req, tx, interp, clamp);
+	int ret = flis_register_layers(ref, NULL, method, sel_req, tx, interp, clamp,
+	                               method_id);
 	flis_stack_writer_unlock();
 	if (ret) {
 		siril_log_error(_("flis_register_layers failed\n"));

@@ -161,8 +161,16 @@ static int flis_composite_ensure_built(void) {
 		return 0;
 	/* M-F12: the render walks the layer list and reads every layer's
 	 * pixel buffers; worker hooks mutate both under the stack writer
-	 * lock.  Order: gui.cairo_mutex (held by our callers) → stack. */
-	flis_stack_reader_lock();
+	 * lock.  Order: gui.cairo_mutex (held by our callers) → stack.
+	 *
+	 * TRYLOCK, not a blocking acquire: a long layer operation (registration,
+	 * group calibration) holds the writer lock for its whole duration, and
+	 * blocking here would freeze every redraw until it finishes — a hang from
+	 * the user's side.  When the lock is unavailable, keep showing the last
+	 * composite (if any); the operation ends by invalidating and redrawing,
+	 * which rebuilds cleanly once the writer has released. */
+	if (!flis_stack_reader_trylock())
+		return flis_display_composite ? 0 : 1;
 	fits *fresh = flis_render_layers(com.uniq->layers);
 	flis_stack_reader_unlock();
 	if (!fresh) return 1;
@@ -3279,13 +3287,15 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 			}
 		}
 		if (gpu_display_state_ok && is_current_image_flis()
-		    && flis_layer_count() >= 2) {
+		    && flis_layer_count() >= 2 && flis_stack_reader_trylock()) {
 			/* M-F12: the predicate and the render both walk the layer
 			 * list and read layer pixel buffers — hold the stack reader
 			 * lock across the whole span so a worker hook cannot free a
 			 * layer mid-render.  Order: stack → g_cache_mutex (taken
-			 * inside the render). */
-			flis_stack_reader_lock();
+			 * inside the render).  TRYLOCK (see flis_composite_ensure_built):
+			 * a long layer operation holds the writer lock throughout, and
+			 * blocking here would freeze the display for its whole duration.
+			 * On contention the tile path below draws the last composite. */
 			if ((vport == RGB_VPORT || !flis_composite_is_chromatic())
 			    && flis_gpu_compose_compatible(com.uniq->layers)) {
 				guint canvas_w = flis_canvas_rx();

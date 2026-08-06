@@ -128,12 +128,15 @@ gboolean nde_compositing_validate(const char *op_id, const char *params, gchar *
 
 /* TRUE when the live history contains any tint record for @item_id — the
  * gate that keeps the fold from clearing tints on documents recorded before
- * tint capture existed. */
-gboolean nde_compositing_has_tint_record(gint item_id) {
+ * tint capture existed.  @upto_record_id bounds the search to records
+ * strictly before that log position (0 = the whole live log). */
+gboolean nde_compositing_has_tint_record_upto(gint item_id, gint64 upto_record_id) {
 	gboolean found = FALSE;
 	GPtrArray *live = nde_history_snapshot(NULL);
 	for (guint i = 0; !found && live && i < live->len; i++) {
 		const nde_record *rec = g_ptr_array_index(live, i);
+		if (upto_record_id && rec->record_id == upto_record_id)
+			break;
 		found = rec->target_item_id == item_id &&
 		        !g_strcmp0(rec->op_id, OP_SET_TINT);
 	}
@@ -142,12 +145,21 @@ gboolean nde_compositing_has_tint_record(gint item_id) {
 	return found;
 }
 
-/* The fold itself, shared by the live-layer recompute and the retained-input
- * refresh (nde_composite_refresh_input_state): walk the live log and derive
- * the compositing state the history describes for @item_id. */
-void nde_compositing_fold(gint item_id, gfloat *out_opacity,
-                          gint *out_blend, gboolean *out_visible,
-                          gboolean *out_tinted, double *out_tint /* [3] */) {
+gboolean nde_compositing_has_tint_record(gint item_id) {
+	return nde_compositing_has_tint_record_upto(item_id, 0);
+}
+
+/* The fold itself, shared by the live-layer recompute, the retained-input
+ * refresh (nde_composite_refresh_input_state) and the joint-record replay
+ * (nde_joint.c, which needs the state AS OF a record's log position): walk
+ * the live log and derive the compositing state the history describes for
+ * @item_id.  @upto_record_id stops the fold just BEFORE that record
+ * (exclusive; 0 folds the whole live log) — record ids are stable across
+ * reorder, so the bound survives everything a position would not. */
+void nde_compositing_fold_upto(gint item_id, gint64 upto_record_id,
+                               gfloat *out_opacity,
+                               gint *out_blend, gboolean *out_visible,
+                               gboolean *out_tinted, double *out_tint /* [3] */) {
 	gfloat            opacity = COMP_DEFAULT_OPACITY;
 	flis_blend_mode_t blend   = COMP_DEFAULT_BLEND;
 	gboolean          visible = COMP_DEFAULT_VISIBLE;
@@ -157,6 +169,8 @@ void nde_compositing_fold(gint item_id, gfloat *out_opacity,
 	GPtrArray *live = nde_history_snapshot(NULL);
 	for (guint i = 0; live && i < live->len; i++) {
 		const nde_record *rec = g_ptr_array_index(live, i);
+		if (upto_record_id && rec->record_id == upto_record_id)
+			break;
 		if (rec->target_item_id != item_id)
 			continue;
 
@@ -219,6 +233,13 @@ void nde_compositing_fold(gint item_id, gfloat *out_opacity,
 		out_tint[1] = tint[1];
 		out_tint[2] = tint[2];
 	}
+}
+
+void nde_compositing_fold(gint item_id, gfloat *out_opacity,
+                          gint *out_blend, gboolean *out_visible,
+                          gboolean *out_tinted, double *out_tint /* [3] */) {
+	nde_compositing_fold_upto(item_id, 0, out_opacity, out_blend, out_visible,
+	                          out_tinted, out_tint);
 }
 
 gboolean nde_compositing_recompute(gint item_id, gchar **err) {

@@ -879,6 +879,27 @@ void flis_group_touch_modified(flis_group_t *group);
  */
 int flis_background_neutralise_layers(GSList *layer_subset);
 
+/**
+ * flis_layers_match_solve:
+ * The PURE layers-match analysis, shared by the live apply and the joint-
+ * record replay (nde_joint.c): given @N participating mono layers' tints
+ * (@tints, N triples of normalised RGB — 1/1/1 for an untinted layer) and
+ * background medians (@medians, normalised to [0,1]), solve T·a = (1,1,1)
+ * via SVD pseudoinverse and derive the per-layer scale factors into @s_out.
+ * An infeasible layer (negative coefficient or non-positive median) gets
+ * s = 1.0 — left unscaled, the global solve's other coefficients still
+ * balancing the channels where it has no tint — and is flagged in
+ * @infeasible_out (optional, N bytes) so the caller can name it.
+ * Returns 0 on success, 1 when the composite background level is zero,
+ * 2 when the tint matrix is rank-deficient.  No logging, no layer access.
+ */
+int flis_layers_match_solve(const double *tints, const double *medians, int N,
+                            double *s_out, guint8 *infeasible_out);
+
+/** The per-layer affine x' = scale*x + offset, exported for the joint-record
+ *  replay (the flis.layer_scale hook applies the same transform). */
+void flis_affine_layer_pixels(fits *fit, double scale, double offset);
+
 /* -----------------------------------------------------------------------
  * Per-layer affine record (op "flis.layer_scale")
  *
@@ -938,6 +959,20 @@ int flis_group_calibration_hook(struct generic_layer_args *args);
 /* Distribution+apply step (exposed for tests): per-channel affine (K,O)
  * of the composite -> per-layer records.  0 on success; on failure no
  * layer was mutated. */
+/* As below, additionally serializing @calib (the group-calibration hook's
+ * own inputs — kind, selections, PCC params) into the captured joint record
+ * so replay can re-run the analysis.  @calib NULL records the direct K/O
+ * affine as the operation's parameters (kind NDE_JOINT_GROUP_DIRECT). */
+int flis_group_apply_channel_calibration_full(GSList *members, const double K[3],
+                                              const double O[3], const char *label,
+                                              const struct flis_group_calib_args *calib);
+
+/* The PURE distribution: composite affine (K, O) -> per-layer (a, b) from
+ * tints (N RGB triples) and medians.  Shared with the joint replay. */
+int flis_group_distribute(const double *tints, const double *medians, int N,
+                          const double K[3], const double O[3],
+                          double *a_out, double *b_out, gchar **why);
+
 int flis_group_apply_channel_calibration(GSList *members, const double K[3],
                                          const double O[3], const char *label);
 
@@ -1028,6 +1063,10 @@ void flis_stack_reader_lock(void);
 void flis_stack_reader_unlock(void);
 void flis_stack_writer_lock(void);
 void flis_stack_writer_unlock(void);
+/* Non-blocking reader acquisition (TRUE = acquired, must unlock).  For the
+ * MAIN-THREAD render/panel sites, so the UI stays responsive while a worker
+ * holds the writer lock across a long layer operation. */
+gboolean flis_stack_reader_trylock(void);
 
 /* Slice 3 — create a group / assign a layer to a group (or 0 = ungroup).
  * For addgroup, the @name in payload may be NULL → auto "Group N".

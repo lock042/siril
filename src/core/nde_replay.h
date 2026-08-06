@@ -144,6 +144,32 @@ gboolean nde_item_is_retained_input(gint item_id);
 struct ffit *nde_chain_replay(const nde_chain *chain, gchar **err);
 
 /**
+ * The state of @item_id just BEFORE record @before_record_id's position in
+ * the live log (a positional, EXCLUSIVE prefix of the item's chain).  How a
+ * joint record (nde_joint.h) resolves its siblings: exclusive because the
+ * joint record is itself a member of the sibling's chain — resolving "up to
+ * and including" would replay it and recurse — and positional so steps
+ * inserted between a sibling's last record and the joint record are
+ * honoured.  Caller owns the result.  Job-slot contract as nde_chain_replay.
+ */
+struct ffit *nde_replay_resolve_before(gint item_id, gint64 before_record_id,
+                                       gchar **err);
+
+/**
+ * The id of the record the replay driver is currently applying, or 0 outside
+ * one.  For hooks whose recompute reads record-scoped side data: the
+ * photometric pipeline fetches its embedded star catalogue (nde_cat.h) under
+ * this id instead of re-running the network conesearch.
+ */
+gint64 nde_replay_current_record_id(void);
+
+/** Restore/override the current-record id — for the JOINT recompute
+ *  (nde_joint.c), whose sibling resolutions recurse through the replay
+ *  driver and clear the id before the joint record's own analysis runs.
+ *  Not for general use. */
+void nde_replay_set_current_record(gint64 record_id);
+
+/**
  * Replay only the editable tail, starting from the chain's restart point
  * (the last barrier's output checkpoint, or the baseline when there is no
  * barrier).  Requires chain->tail_replayable.  An empty tail returns the

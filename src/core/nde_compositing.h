@@ -102,9 +102,26 @@ void nde_compositing_fold(gint item_id, gfloat *out_opacity,
                           gboolean *out_visible,
                           gboolean *out_tinted, double *out_tint /* [3] */);
 
+/* The POSITIONAL fold: the state as of the live log just BEFORE record
+ * @upto_record_id (exclusive; 0 = the whole log, i.e. nde_compositing_fold).
+ * The joint-record replay (nde_joint.c) reads participants' tints through
+ * this so a tint recorded AFTER the joint record does not change what the
+ * record recomputes — only amending one recorded before it does. */
+void nde_compositing_fold_upto(gint item_id, gint64 upto_record_id,
+                               gfloat *out_opacity,
+                               gint *out_blend /* flis_blend_mode_t */,
+                               gboolean *out_visible,
+                               gboolean *out_tinted, double *out_tint /* [3] */);
+
 /* TRUE when @item_id's live history contains a tint record (gates tint
  * folding for documents recorded before tint capture existed). */
 gboolean nde_compositing_has_tint_record(gint item_id);
+
+/* As above, bounded to records strictly before @upto_record_id (0 = whole
+ * log).  The joint replay's "does the log say anything about this layer's
+ * tint before me?" question — FALSE means fall back to the tint recorded in
+ * the joint record's own params. */
+gboolean nde_compositing_has_tint_record_upto(gint item_id, gint64 upto_record_id);
 
 #ifdef __cplusplus
 }

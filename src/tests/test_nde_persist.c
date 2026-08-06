@@ -27,6 +27,7 @@
 #include "flis_test_helpers.h"
 #include "core/nde_history.h"
 #include "core/nde_checkpoint.h"
+#include "core/nde_cat.h"
 
 cominfo com;
 fits *gfit;
@@ -119,6 +120,115 @@ Test(nde_persist, history_roundtrip_field_equality) {
 	/* new records continue the sequence — ids are never reused */
 	cr_assert_eq(append_full("a.b", 1, NULL, "x", NDE_TIER_B,
 	                         NDE_SCOPE_LAYER, -1, FALSE), 3);
+}
+
+/* Build a small catalogue the way a PCC/SPCC run leaves one in memory. */
+static siril_catalogue *make_test_catalogue(gboolean with_spectra) {
+	siril_catalogue *cat = siril_catalog_new(CAT_LOCAL_GAIA_XPSAMP);
+	cat->center_ra = 123.456;
+	cat->center_dec = -54.321;
+	cat->radius = 42.5;
+	cat->limitmag = 17.25;
+	cat->phot = TRUE;
+	cat->columns = (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) |
+	               (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG) |
+	               (1 << CAT_FIELD_TEFF);
+	cat->nbitems = 2;
+	cat->cat_items = calloc(2, sizeof(cat_item));
+	for (int i = 0; i < 2; i++) {
+		cat_item *it = &cat->cat_items[i];
+		it->ra = 123.4 + i * 0.01;
+		it->dec = -54.3 - i * 0.01;
+		it->pmra = 1.5 * (i + 1);
+		it->pmdec = -0.75 * (i + 1);
+		it->mag = 12.5f + i;
+		it->bmag = 13.25f + i;
+		it->e_mag = 0.01f;
+		it->e_bmag = 0.02f;
+		it->teff = 5500.0f + 100 * i;
+		it->gaiasourceid = 4000000000000000000ULL + i;
+		it->name = g_strdup_printf("star%d", i);
+		it->included = TRUE;
+	}
+	if (with_spectra) {
+		cat->columns |= 1 << CAT_FIELD_XPSAMP;
+		cat->cat_items[0].xp_sampled = malloc(XPSAMPLED_LEN * sizeof(double));
+		for (int k = 0; k < XPSAMPLED_LEN; k++)
+			cat->cat_items[0].xp_sampled[k] = 0.5 * k + 0.125;
+	}
+	return cat;
+}
+
+/* An SPCC record's embedded star catalogue survives save → load: the file
+ * is self-contained, so the recompute runs offline on any machine. */
+Test(nde_persist, embedded_catalogue_roundtrip) {
+	flis_layer_t *l = flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.25f), "base");
+	gint64 rid = append_full("color.photometric_cc", 2,
+	                         "catalog=102;spcc=1;auto_replay=1", "SPCC",
+	                         NDE_TIER_A, NDE_SCOPE_LAYER, l->item_id, FALSE);
+	cr_assert(rid > 0);
+	nde_cat_register(rid, make_test_catalogue(TRUE));
+	cr_assert(nde_cat_has(rid));
+
+	cr_assert_eq(save_flis(tmppath), 0);
+	flis_free_layers(com.uniq);
+	nde_history_attach(NULL);   /* purges the registry too */
+	cr_assert(!nde_cat_has(rid), "attach must purge the catalogue registry");
+	cr_assert_eq(load_flis(tmppath), 0);
+
+	siril_catalogue *back = nde_cat_get_copy(rid);
+	cr_assert_not_null(back, "the embedded catalogue must reload");
+	cr_assert_eq(back->cat_index, CAT_LOCAL_GAIA_XPSAMP);
+	cr_assert_float_eq(back->center_ra, 123.456, 1e-9);
+	cr_assert_float_eq(back->center_dec, -54.321, 1e-9);
+	cr_assert_float_eq(back->radius, 42.5, 1e-9);
+	cr_assert_float_eq(back->limitmag, 17.25, 1e-9);
+	cr_assert(back->phot);
+	cr_assert(has_field(back, XPSAMP));
+	cr_assert_eq(back->nbitems, 2);
+	const cat_item *it = &back->cat_items[0];
+	cr_assert_float_eq(it->ra, 123.4, 1e-9);
+	cr_assert_float_eq(it->pmdec, -0.75, 1e-9);
+	cr_assert_float_eq(it->mag, 12.5f, 1e-6);
+	cr_assert_float_eq(it->bmag, 13.25f, 1e-6);
+	cr_assert_float_eq(it->teff, 5500.0f, 1e-3);
+	cr_assert_eq(it->gaiasourceid, 4000000000000000000ULL);
+	cr_assert_str_eq(it->name, "star0");
+	cr_assert_not_null(it->xp_sampled, "the flux spectrum must survive the trip");
+	double expect[XPSAMPLED_LEN];
+	for (int k = 0; k < XPSAMPLED_LEN; k++)
+		expect[k] = 0.5 * k + 0.125;
+	cr_assert(memcmp(it->xp_sampled, expect, sizeof(expect)) == 0,
+	          "spectra must round-trip bit-exactly");
+	cr_assert_null(back->cat_items[1].xp_sampled,
+	               "a star without a spectrum must stay without one");
+	siril_catalog_free(back);
+}
+
+/* The stash → adopt handshake: only a photometric capture claims a pending
+ * catalogue; anything else discards it as stale. */
+Test(nde_persist, catalogue_stash_adopt_semantics) {
+	flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "base");
+	siril_catalogue *cat = make_test_catalogue(FALSE);
+
+	nde_cat_stash_pending(cat);
+	gint64 other = nde_capture_structural("layer.set_opacity", NDE_SCOPE_LAYER,
+	                                      1, g_strdup("opacity=0.5"), "opacity");
+	cr_assert(other > 0);
+	cr_assert(!nde_cat_has(other), "a non-photometric capture must not adopt");
+
+	nde_cat_stash_pending(cat);
+	gint64 pcc = nde_capture_structural("color.photometric_cc", NDE_SCOPE_LAYER,
+	                                    1, g_strdup("spcc=0"), "PCC");
+	cr_assert(pcc > 0);
+	cr_assert(!nde_cat_has(other));
+	cr_assert(nde_cat_has(pcc), "the photometric capture must adopt the stash");
+
+	siril_catalogue *back = nde_cat_get_copy(pcc);
+	cr_assert_not_null(back);
+	cr_assert_eq(back->nbitems, 2);
+	siril_catalog_free(back);
+	siril_catalog_free(cat);
 }
 
 Test(nde_persist, only_live_prefix_persists) {

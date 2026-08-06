@@ -32,6 +32,8 @@
 #include "gui-gtk4/colors.h"
 #include "gui-gtk4/cosmetic_correction.h"
 #include "gui-gtk4/rgradient.h"
+#include "gui-gtk4/nde_joint_editor.h"
+#include "gui-gtk4/photometric_cc.h"
 #include "algos/background_extraction.h"
 
 /* Returns TRUE when the editor takes the record (even if entering amend
@@ -59,6 +61,17 @@ static const struct {
 	{ "color.ccm",            ccm_open_amend },
 	{ "filters.cosmetic",     cosmetic_open_amend },
 	{ "filters.rgradient",    rgradient_open_amend },
+	/* Photometric CC / SPCC re-open their real dialog pre-filled; the amend
+	 * commits without a live preview — the pipeline runs at commit, against
+	 * the record's embedded star catalogue. */
+	{ "color.photometric_cc",    pcc_open_amend },
+	/* JOINT multi-layer records (nde_joint.h): group PCC/SPCC route to the
+	 * same real dialog (nde_joint_open_amend dispatches); layers match has
+	 * no parameters of its own and CC keeps the compact selections window.
+	 * Apply-on-OK throughout — the amend-preview machinery synthesizes ONE
+	 * target's state and a joint record writes to many. */
+	{ "flis.layers_match",       nde_joint_open_amend },
+	{ "flis.group_calibration",  nde_joint_open_amend },
 };
 
 gboolean nde_editor_open(const gchar *op_id, gint64 record_id) {
