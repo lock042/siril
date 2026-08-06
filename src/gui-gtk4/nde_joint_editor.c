@@ -404,12 +404,21 @@ static void on_register_apply(GtkButton *btn, gpointer user) {
 
 	/* TRUE means a setting moved, so the stored transforms no longer answer
 	 * the question and the participants' signatures have been poisoned —
-	 * replay will re-solve.  FALSE means nothing moved: the blob is
-	 * byte-identical and the amend is the plain "re-run" verb. */
+	 * replay will re-solve.  FALSE with no error means nothing moved: the blob
+	 * is byte-identical and the amend is the plain "re-run" verb.  FALSE WITH
+	 * an error means the combination was refused — keep the window up so the
+	 * user can fix it (draw a selection, choose another method) instead of
+	 * amending to settings that cannot be solved. */
+	gchar *why = NULL;
 	if (nde_joint_register_apply_settings(ed->reg, method, tx, interp, clamp,
-	                                      ref_item))
+	                                      ref_item, &why)) {
 		siril_log_message(_("Register layers: settings changed — the "
 		                    "alignment will be solved again.\n"));
+	} else if (why) {
+		siril_log_error(_("Register layers: %s\n"), why);
+		g_free(why);
+		return;
+	}
 
 	gchar *blob = op->serialize(ed->reg);
 	nde_amend_start(ed->record_id, blob);

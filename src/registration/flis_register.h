@@ -41,6 +41,28 @@ registration_function flis_register_resolve_method(flis_reg_method_id id,
                                                     transformation_type *out_tx);
 
 /**
+ * flis_register_selection_ok:
+ * @sel_req:  the requirement, from flis_register_resolve_method()
+ * @sel:      the rectangle to judge (may be NULL, treated as empty)
+ * @img_rx:   reference image width, or 0 to skip the bounds check
+ * @img_ry:   reference image height, or 0 to skip the bounds check
+ * @err:      (out) (nullable): translated reason on refusal, free with g_free()
+ *
+ * TRUE when @sel satisfies @sel_req.  The one place that knows what each
+ * method needs of a selection, so that the dialog, the command and the NDE
+ * replay all refuse for the same reasons and in the same words.
+ *
+ * The bounds check is not decoration: KOMBAT cuts its template out of the
+ * reference frame and hands it to cv::matchTemplate, which ASSERTS — and
+ * therefore aborts the process, C++ exception through C frames — if the
+ * template is empty or larger than the image it is matched against.  Nothing
+ * downstream of here can catch that, so it has to be caught here.
+ */
+gboolean flis_register_selection_ok(selection_type sel_req,
+                                    const rectangle *sel,
+                                    int img_rx, int img_ry, gchar **err);
+
+/**
  * flis_register_layers:
  * @ref_lay:        reference layer (NULL → first layer of @target_layers)
  * @target_layers:  layers to register (NULL → every layer in com.uniq->layers)

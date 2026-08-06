@@ -795,7 +795,8 @@ const op_descriptor op_desc_flis_register = {
 gboolean nde_joint_register_apply_settings(struct nde_joint_register_data *p,
                                            gint method, gint tx_type,
                                            gint interpolation, gboolean clamp,
-                                           gint ref_item) {
+                                           gint ref_item, gchar **err) {
+	if (err) *err = NULL;
 	if (!p)
 		return FALSE;
 	/* The reference has to stay inside the participant list for the same
@@ -806,14 +807,51 @@ gboolean nde_joint_register_apply_settings(struct nde_joint_register_data *p,
 	gboolean ref_ok = FALSE;
 	for (guint k = 0; k < p->n; k++)
 		ref_ok = ref_ok || p->parts[k].item_id == ref_item;
-	if (!ref_ok)
+	if (!ref_ok) {
+		if (err)
+			*err = g_strdup(_("the reference layer must be one of the "
+			                  "registered layers"));
 		return FALSE;
+	}
+
+	/* The selection is a SETTING of this record, not live state — replay can
+	 * happen much later, headless, with com.selection empty or somewhere else
+	 * entirely.  So a method change is the moment to capture it.
+	 *
+	 * Which selection to store takes some care.  The record may well not have
+	 * one: a method that requires none (the global star alignments) stores
+	 * {0,0,0,0}, so switching such a record to KOMBAT or DFT MUST pick up the
+	 * selection the user has drawn — otherwise the re-solve runs with an empty
+	 * rectangle, and an empty template is an ASSERT inside cv::matchTemplate,
+	 * i.e. the process aborts.  But re-opening a KOMBAT record merely to
+	 * change the interpolation must not silently drag its selection off to
+	 * wherever the cursor last left one.  Hence: prefer a valid live
+	 * selection, else keep a valid stored one, else refuse. */
+	selection_type sel_req = REQUIRES_NO_SELECTION;
+	rectangle new_sel = p->selection;
+	if (flis_register_resolve_method((flis_reg_method_id)method, &sel_req, NULL)
+	    && sel_req != REQUIRES_NO_SELECTION) {
+		if (flis_register_selection_ok(sel_req, &com.selection, 0, 0, NULL)) {
+			new_sel = com.selection;
+		} else if (!flis_register_selection_ok(sel_req, &p->selection, 0, 0, NULL)) {
+			gchar *why = NULL;
+			flis_register_selection_ok(sel_req, &com.selection, 0, 0, &why);
+			if (err)
+				*err = g_strdup_printf(_("%s — the previous method needed no "
+				                         "selection, so this record has none "
+				                         "stored"), why ? why : "?");
+			g_free(why);
+			return FALSE;
+		}
+	}
 
 	const gboolean changed = p->method        != method ||
 	                         p->tx_type       != tx_type ||
 	                         p->interpolation != interpolation ||
 	                         (!p->clamp)      != (!clamp) ||
-	                         p->ref_item      != ref_item;
+	                         p->ref_item      != ref_item ||
+	                         memcmp(&p->selection, &new_sel, sizeof new_sel) != 0;
+	p->selection     = new_sel;
 	p->method        = method;
 	p->tx_type       = tx_type;
 	p->interpolation = interpolation;

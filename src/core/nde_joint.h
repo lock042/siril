@@ -181,14 +181,25 @@ void nde_joint_register_data_free(void *p);
  * genuine no-op rather than a silent forced re-solve.
  *
  * @ref_item must name one of the participants — the re-solve builds its
- * sequence around it.  Returns TRUE when the settings changed (and so the
- * signatures were poisoned), FALSE when they did not or when @ref_item is not
- * a participant, in which case NOTHING is modified.
+ * sequence around it.
+ *
+ * The SELECTION moves with the method.  A method needing one (KOMBAT, DFT)
+ * takes com.selection when that is valid, keeps the record's own when it is
+ * not, and is REFUSED when neither will serve — which is the case that
+ * matters, because a record written by a global star alignment has no
+ * selection stored and an empty one aborts the process inside
+ * cv::matchTemplate rather than failing politely.
+ *
+ * Returns TRUE when the settings changed (and so the signatures were
+ * poisoned) and FALSE otherwise; NOTHING is modified unless it returns TRUE.
+ * @err (out) (nullable) separates the two FALSE cases: NULL means the
+ * settings simply did not move and OK is a no-op, non-NULL is a translated
+ * refusal the caller should show without amending.
  */
 gboolean nde_joint_register_apply_settings(struct nde_joint_register_data *p,
                                            gint method, gint tx_type,
                                            gint interpolation, gboolean clamp,
-                                           gint ref_item);
+                                           gint ref_item, gchar **err);
 
 extern const struct op_descriptor op_desc_flis_register;
 

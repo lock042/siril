@@ -96,39 +96,58 @@ registration_function flis_register_resolve_method(flis_reg_method_id id,
 	}
 }
 
-/* Centralised selection-requirement check shared between dialog and
- * command paths.  Logs a user-facing message and returns FALSE on
- * failure; TRUE when the selection (if any) satisfies @sel_req. */
-static gboolean check_selection_requirement(selection_type sel_req) {
-	const gboolean has_sel = (com.selection.w > 0 && com.selection.h > 0);
-	switch (sel_req) {
-		case REQUIRES_NO_SELECTION:
-			return TRUE;
-		case REQUIRES_ANY_SELECTION:
-			if (!has_sel) {
-				siril_log_error(_("flis_register_layers: this method requires "
-				                  "an image selection — drag a rectangle on "
-				                  "the image and try again\n"));
-				return FALSE;
-			}
-			return TRUE;
-		case REQUIRES_SQUARED_SELECTION:
-			if (!has_sel) {
-				siril_log_error(_("flis_register_layers: this method requires "
-				                  "a square image selection — drag a square "
-				                  "rectangle on the image and try again\n"));
-				return FALSE;
-			}
-			if (com.selection.w != com.selection.h) {
-				siril_log_error(_("flis_register_layers: this method requires "
-				                  "a SQUARE image selection — current "
-				                  "selection is %dx%d\n"),
-				                com.selection.w, com.selection.h);
-				return FALSE;
-			}
-			return TRUE;
+gboolean flis_register_selection_ok(selection_type sel_req,
+                                    const rectangle *sel,
+                                    int img_rx, int img_ry, gchar **err) {
+	if (err) *err = NULL;
+	if (sel_req == REQUIRES_NO_SELECTION)
+		return TRUE;
+
+	const rectangle empty = { 0 };
+	if (!sel) sel = &empty;
+	if (sel->w <= 0 || sel->h <= 0) {
+		if (err)
+			*err = g_strdup(sel_req == REQUIRES_SQUARED_SELECTION
+					? _("this method needs a square image selection — drag a "
+					    "square on the image and try again")
+					: _("this method needs an image selection — drag a "
+					    "rectangle on the image and try again"));
+		return FALSE;
+	}
+	if (sel_req == REQUIRES_SQUARED_SELECTION && sel->w != sel->h) {
+		if (err)
+			*err = g_strdup_printf(_("this method needs a SQUARE image "
+			                         "selection — this one is %dx%d"),
+			                       sel->w, sel->h);
+		return FALSE;
+	}
+	/* The template is cut from the reference frame, so one that runs off the
+	 * edge is as fatal as one that is empty. */
+	if (img_rx > 0 && img_ry > 0 &&
+	    (sel->x < 0 || sel->y < 0 ||
+	     sel->x + sel->w > img_rx || sel->y + sel->h > img_ry)) {
+		if (err)
+			*err = g_strdup_printf(_("the selection (%d,%d %dx%d) does not fit "
+			                         "inside the %dx%d reference image"),
+			                       sel->x, sel->y, sel->w, sel->h,
+			                       img_rx, img_ry);
+		return FALSE;
 	}
 	return TRUE;
+}
+
+/* Centralised selection-requirement check shared between dialog and
+ * command paths.  Logs a user-facing message and returns FALSE on
+ * failure; TRUE when com.selection satisfies @sel_req.  Bounds are not
+ * checked here: the GUI already confines com.selection to the loaded image,
+ * which is the canvas the layers are cut from. */
+static gboolean check_selection_requirement(selection_type sel_req) {
+	gchar *err = NULL;
+	if (flis_register_selection_ok(sel_req, &com.selection, 0, 0, &err))
+		return TRUE;
+	siril_log_error(_("flis_register_layers: %s\n"), err);
+	g_free(err);
+	return FALSE;
 }
 
 /* The transform register_apply_reg ACTUALLY hands to cvTransformImage under
@@ -499,6 +518,25 @@ int flis_register_solve(fits **fits_in, int n, int ref_index,
 	for (int k = 0; k < n; k++)
 		if (!fits_in[k])
 			return 1;
+
+	/* A record's selection and its method can disagree, and by the time the
+	 * disagreement reaches OpenCV it is an abort, not an error return: the
+	 * amend dialog lets the method be changed, and a record whose original
+	 * method needed no selection stored an empty one, so switching it to
+	 * KOMBAT or DFT hands cv::matchTemplate a 0x0 template.  Refusing here
+	 * turns that into the L3 fallback — the stored transforms are replayed
+	 * and the user is told why. */
+	{
+		gchar *why = NULL;
+		if (!flis_register_selection_ok(sel_req, &selection,
+		                                (int)fits_in[ref_index]->rx,
+		                                (int)fits_in[ref_index]->ry, &why)) {
+			siril_log_error(_("Register layers: cannot solve the alignment — "
+			                  "%s\n"), why);
+			g_free(why);
+			return 1;
+		}
+	}
 
 	/* register_apply_reg resamples IN PLACE, and the pixels it would be
 	 * resampling are the caller's replay scratch — which the caller still

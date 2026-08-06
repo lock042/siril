@@ -710,7 +710,7 @@ Test(flis_register_nde, amend_settings_change_invalidates_stored_solve) {
 
 	cr_assert(nde_joint_register_apply_settings(p, FLIS_REG_2PASS,
 	                                            SHIFT_TRANSFORMATION,
-	                                            OPENCV_LINEAR, FALSE, 2),
+	                                            OPENCV_LINEAR, FALSE, 2, NULL),
 	          "a changed setting must report the solve as invalidated");
 
 	/* Round-trip: the editor amends with serialize(), so the invalidation has
@@ -758,9 +758,12 @@ Test(flis_register_nde, amend_settings_change_invalidates_stored_solve) {
  * exists to prevent.  The marker must be something no signature can be. */
 Test(flis_register_nde, invalidation_marker_cannot_be_a_real_signature) {
 	struct nde_joint_register_data *p = make_settings_record("");
-	cr_assert(nde_joint_register_apply_settings(p, FLIS_REG_DFT,
+	/* KOMBAT rather than DFT: the fixture's selection is 9x10 and DFT wants a
+	 * square one, so DFT would now be refused for a reason this test is not
+	 * about. */
+	cr_assert(nde_joint_register_apply_settings(p, FLIS_REG_KOMBAT,
 	                                            SHIFT_TRANSFORMATION,
-	                                            OPENCV_NEAREST, FALSE, 1));
+	                                            OPENCV_NEAREST, FALSE, 1, NULL));
 	for (guint k = 0; k < p->n; k++) {
 		cr_assert_str_neq(p->parts[k].geom_sig, "",
 		                  "an empty marker IS a valid signature and would "
@@ -788,10 +791,13 @@ Test(flis_register_nde, amend_without_changes_preserves_the_blob) {
 	struct nde_joint_register_data *p = make_settings_record("deadbeef");
 	gchar *original = op->serialize(p);
 
+	gchar *why = NULL;
 	cr_assert_not(nde_joint_register_apply_settings(p, FLIS_REG_GLOBAL,
 	                                                HOMOGRAPHY_TRANSFORMATION,
-	                                                OPENCV_LANCZOS4, TRUE, 1),
+	                                                OPENCV_LANCZOS4, TRUE, 1,
+	                                                &why),
 	              "re-applying the recorded settings is not a change");
+	cr_assert_null(why, "an unchanged amend is not an error: %s", why ? why : "");
 
 	gchar *after = op->serialize(p);
 	cr_assert_str_eq(after, original,
@@ -811,9 +817,13 @@ Test(flis_register_nde, amend_without_changes_preserves_the_blob) {
  * than half-applied. */
 Test(flis_register_nde, amend_rejects_a_reference_outside_the_participants) {
 	struct nde_joint_register_data *p = make_settings_record("deadbeef");
+	gchar *why = NULL;
 	cr_assert_not(nde_joint_register_apply_settings(p, FLIS_REG_2PASS,
 	                                                SHIFT_TRANSFORMATION,
-	                                                OPENCV_LINEAR, FALSE, 99));
+	                                                OPENCV_LINEAR, FALSE, 99,
+	                                                &why));
+	cr_assert_not_null(why, "a refusal must say why, so the dialog can too");
+	g_free(why);
 	cr_assert_eq(p->method, FLIS_REG_GLOBAL, "a refused amend changed method");
 	cr_assert_eq(p->ref_item, 1, "a refused amend changed the reference");
 	cr_assert_eq(p->clamp, TRUE, "a refused amend changed clamp");
@@ -821,4 +831,182 @@ Test(flis_register_nde, amend_rejects_a_reference_outside_the_participants) {
 		cr_assert_str_eq(p->parts[k].geom_sig, "deadbeef",
 		                 "a refused amend poisoned the signatures");
 	nde_joint_register_data_free(p);
+}
+
+/* ===================================================================== */
+/* The selection must travel with the method                             */
+/*                                                                       */
+/* A record written by a global star alignment stores NO selection — that */
+/* method needs none.  Change its method to KOMBAT in the amend dialog    */
+/* and the re-solve inherits {0,0,0,0}, which reaches cv::matchTemplate   */
+/* as a 0x0 template.  That is an ASSERT, not an error return: OpenCV     */
+/* throws, the exception crosses C frames, and the process aborts.        */
+/* Nothing downstream can catch it, so it must never be reachable.        */
+/* ===================================================================== */
+
+/* Nothing to align to, no way to say so politely: refuse the amend. */
+Test(flis_register_nde, amend_to_kombat_without_a_selection_is_refused) {
+	struct nde_joint_register_data *p = make_settings_record("deadbeef");
+	p->selection = (rectangle){ 0, 0, 0, 0 };   /* as a global-stars record has */
+	memset(&com.selection, 0, sizeof com.selection);
+
+	gchar *why = NULL;
+	cr_assert_not(nde_joint_register_apply_settings(p, FLIS_REG_KOMBAT,
+	                                               SHIFT_TRANSFORMATION,
+	                                               OPENCV_LINEAR, FALSE, 1,
+	                                               &why),
+	              "a selectionless KOMBAT amend must be refused, not stored");
+	cr_assert_not_null(why, "the refusal must be explained to the user");
+	cr_assert_eq(p->method, FLIS_REG_GLOBAL,
+	             "a refused amend must leave the method alone");
+	g_free(why);
+	nde_joint_register_data_free(p);
+}
+
+/* The selection the user has drawn is what they expect to be used, and it has
+ * to end up IN THE RECORD: replay can run later, headless, with com.selection
+ * empty or somewhere else entirely. */
+Test(flis_register_nde, amend_to_kombat_captures_the_live_selection) {
+	const op_descriptor *op = op_descriptor_by_id("flis.register");
+	struct nde_joint_register_data *p = make_settings_record("deadbeef");
+	p->selection = (rectangle){ 0, 0, 0, 0 };
+	com.selection = (rectangle){ 40, 50, 64, 48 };
+
+	gchar *why = NULL;
+	cr_assert(nde_joint_register_apply_settings(p, FLIS_REG_KOMBAT,
+	                                            SHIFT_TRANSFORMATION,
+	                                            OPENCV_LINEAR, FALSE, 1, &why),
+	          "a drawn selection makes the method change legal: %s",
+	          why ? why : "?");
+
+	gchar *blob = op->serialize(p);
+	struct nde_joint_register_data *out = op->deserialize(blob, op->version);
+	g_free(blob);
+	cr_assert_not_null(out);
+	cr_assert_eq(out->selection.x, 40, "the live selection must be recorded");
+	cr_assert_eq(out->selection.y, 50);
+	cr_assert_eq(out->selection.w, 64);
+	cr_assert_eq(out->selection.h, 48);
+	nde_joint_register_data_free(out);
+	nde_joint_register_data_free(p);
+	memset(&com.selection, 0, sizeof com.selection);
+}
+
+/* ...but re-opening a KOMBAT record to change something else must not drag its
+ * selection off to wherever the cursor last left one. */
+Test(flis_register_nde, an_unrelated_amend_keeps_the_recorded_selection) {
+	struct nde_joint_register_data *p = make_settings_record("deadbeef");
+	p->method = FLIS_REG_KOMBAT;
+	p->selection = (rectangle){ 7, 8, 9, 10 };
+	memset(&com.selection, 0, sizeof com.selection);
+
+	cr_assert(nde_joint_register_apply_settings(p, FLIS_REG_KOMBAT,
+	                                            SHIFT_TRANSFORMATION,
+	                                            OPENCV_NEAREST, FALSE, 1, NULL),
+	          "the interpolation moved, so this is a change");
+	cr_assert_eq(p->selection.x, 7, "an unrelated amend moved the selection");
+	cr_assert_eq(p->selection.w, 9);
+	cr_assert_eq(p->selection.h, 10);
+	nde_joint_register_data_free(p);
+}
+
+/* DFT is the stricter case: it needs a SQUARE selection, and a rectangular one
+ * is refused rather than quietly squared off. */
+Test(flis_register_nde, amend_to_dft_refuses_a_non_square_selection) {
+	struct nde_joint_register_data *p = make_settings_record("deadbeef");
+	com.selection = (rectangle){ 10, 10, 64, 48 };
+
+	gchar *why = NULL;
+	cr_assert_not(nde_joint_register_apply_settings(p, FLIS_REG_DFT,
+	                                               SHIFT_TRANSFORMATION,
+	                                               OPENCV_LINEAR, FALSE, 1,
+	                                               &why));
+	cr_assert_not_null(why);
+	g_free(why);
+
+	com.selection = (rectangle){ 10, 10, 64, 64 };   /* square: accepted */
+	cr_assert(nde_joint_register_apply_settings(p, FLIS_REG_DFT,
+	                                            SHIFT_TRANSFORMATION,
+	                                            OPENCV_LINEAR, FALSE, 1, &why),
+	          "%s", why ? why : "?");
+	cr_assert_eq(p->selection.w, 64);
+	cr_assert_eq(p->selection.h, 64);
+	nde_joint_register_data_free(p);
+	memset(&com.selection, 0, sizeof com.selection);
+}
+
+/* The validator itself, including the bound the crash needed: a template
+ * larger than the image it is matched against fails the same assertion an
+ * empty one does. */
+Test(flis_register_nde, selection_validator_covers_every_fatal_shape) {
+	rectangle empty = { 0, 0, 0, 0 };
+	rectangle ok    = { 10, 10, 32, 32 };
+	rectangle oblong= { 10, 10, 32, 16 };
+	rectangle over  = { 10, 10, 200, 32 };
+	rectangle neg   = { -5, 10, 32, 32 };
+	gchar *err = NULL;
+
+	cr_assert(flis_register_selection_ok(REQUIRES_NO_SELECTION, &empty, 0, 0, &err),
+	          "a method needing no selection accepts an empty one");
+	cr_assert_null(err);
+
+	cr_assert_not(flis_register_selection_ok(REQUIRES_ANY_SELECTION, &empty, 0, 0, &err));
+	cr_assert_not_null(err, "an empty selection is the crash case; say so");
+	g_free(err); err = NULL;
+
+	cr_assert_not(flis_register_selection_ok(REQUIRES_ANY_SELECTION, NULL, 0, 0, &err),
+	              "a NULL selection is treated as empty, not dereferenced");
+	g_free(err); err = NULL;
+
+	cr_assert(flis_register_selection_ok(REQUIRES_ANY_SELECTION, &oblong, 0, 0, NULL),
+	          "KOMBAT takes any rectangle");
+	cr_assert_not(flis_register_selection_ok(REQUIRES_SQUARED_SELECTION, &oblong, 0, 0, NULL),
+	              "DFT does not");
+	cr_assert(flis_register_selection_ok(REQUIRES_SQUARED_SELECTION, &ok, 0, 0, NULL));
+
+	/* Bounds: only checked when the image size is supplied. */
+	cr_assert(flis_register_selection_ok(REQUIRES_ANY_SELECTION, &over, 0, 0, NULL));
+	cr_assert_not(flis_register_selection_ok(REQUIRES_ANY_SELECTION, &over, 128, 128, &err),
+	              "a template wider than the image trips the same assertion "
+	              "an empty one does");
+	g_free(err); err = NULL;
+	cr_assert_not(flis_register_selection_ok(REQUIRES_ANY_SELECTION, &neg, 128, 128, NULL),
+	              "a selection starting off the left edge is out of bounds too");
+	cr_assert(flis_register_selection_ok(REQUIRES_ANY_SELECTION, &ok, 128, 128, NULL),
+	          "a selection inside the image is fine");
+}
+
+/* The load-bearing one: drive the solve exactly as the replay did when it
+ * aborted — KOMBAT with an empty selection — and require an error return.
+ * Before the guard this call did not fail, it killed the process, so a green
+ * result here IS the regression check. */
+Test(flis_register_nde, an_empty_selection_cannot_reach_matchtemplate) {
+	fits *a = make_star_field(128, 128, 0.0, 0.0);
+	fits *b = make_star_field(128, 128, 3.0, -2.0);
+	cr_assert_not_null(a);
+	cr_assert_not_null(b);
+	fits *in[2] = { a, b };
+	flis_reg_solution sol[2] = { 0 };
+
+	selection_type sel = REQUIRES_NO_SELECTION;
+	transformation_type tx = HOMOGRAPHY_TRANSFORMATION;
+	registration_function kombat =
+			flis_register_resolve_method(FLIS_REG_KOMBAT, &sel, &tx);
+	cr_assert_not_null(kombat);
+	cr_assert_eq(sel, REQUIRES_ANY_SELECTION);
+
+	rectangle none = { 0, 0, 0, 0 };
+	cr_assert_neq(flis_register_solve(in, 2, 0, kombat, sel, tx, none,
+	                                  -1, 0, 0, sol), 0,
+	              "KOMBAT with no selection must return an error — reaching "
+	              "cv::matchTemplate with a 0x0 template aborts the process");
+
+	/* And one that is present but too big for the image is just as fatal. */
+	rectangle huge = { 0, 0, 512, 512 };
+	cr_assert_neq(flis_register_solve(in, 2, 0, kombat, sel, tx, huge,
+	                                  -1, 0, 0, sol), 0,
+	              "a template larger than the image must be refused too");
+
+	clearfits(a); free(a);
+	clearfits(b); free(b);
 }
