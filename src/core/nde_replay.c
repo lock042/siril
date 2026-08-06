@@ -2000,24 +2000,39 @@ static void cascade_joint_targets(GArray *targets) {
  * parameters, not the document's identity: after a commit swap, move the
  * pre-edit metadata (keywords, header text, unknown keys, FITS HISTORY)
  * from the superseded fits back onto the target, keeping the REPLAYED WCS
- * and focal length — the chain may legitimately have changed those.
+ * and focal length WHEN THE REPLAY PRODUCED ONE — the chain may legitimately
+ * have changed those, but a replay carrying no WCS has not un-solved the
+ * image and must not clear the solve it already had.
  * @old is the pre-edit fits the swap left holding the rich metadata; it is
  * about to be cleared, so ownership moves are plain pointer swaps. */
 static void commit_restore_metadata(fits *target, fits *old) {
 	gboolean quiesced = commit_lock(target);
 	/* Move the replayed WCS aside, swap the keyword structs wholesale, then
-	 * put the replayed WCS back.  The pre-edit wcslib travels to @old inside
-	 * its keywords struct, so clearfits(@old) frees it properly. */
+	 * put the replayed WCS back.  The superseded wcslib travels to @old inside
+	 * its keywords struct, so clearfits(@old) frees it properly.
+	 *
+	 * ONLY when the replay actually produced a WCS, though.  A replay that
+	 * carries none did not UN-SOLVE the image: composite results
+	 * (composite_apply) are pixels only, because there is no plate solve to
+	 * derive from a blend.  Keeping the replayed NULL silently dropped the
+	 * merged image's solve on the FIRST amend, and the next edit needing a WCS
+	 * donor — the group-calibration replay hunting for a solved layer to
+	 * donate one to its composite — then failed outright with "no WCS data or
+	 * it is not supported" and fell back to the stored calibration. */
+	const gboolean replay_solved = target->keywords.wcslib != NULL;
 	wcs_info replay_wcsdata      = target->keywords.wcsdata;
 	struct wcsprm *replay_wcslib = target->keywords.wcslib;
 	double replay_flen           = target->keywords.focal_length;
 	fkeywords rich = old->keywords;
 	old->keywords = target->keywords;         /* replay-minimal set... */
-	old->keywords.wcslib = rich.wcslib;       /* ...plus the superseded WCS */
+	/* ...plus whichever WCS is being superseded (none, when we keep @rich's). */
+	old->keywords.wcslib = replay_solved ? rich.wcslib : NULL;
 	target->keywords = rich;
-	target->keywords.wcsdata      = replay_wcsdata;
-	target->keywords.wcslib       = replay_wcslib;
-	target->keywords.focal_length = replay_flen;
+	if (replay_solved) {
+		target->keywords.wcsdata      = replay_wcsdata;
+		target->keywords.wcslib       = replay_wcslib;
+		target->keywords.focal_length = replay_flen;
+	}
 
 	char *h = target->header;
 	target->header = old->header;

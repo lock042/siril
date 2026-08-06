@@ -35,6 +35,7 @@
 #include "core/nde_graph.h"
 #include "core/masks.h"
 #include "filters/asinh.h"
+#include "algos/siril_wcs.h"
 
 cominfo com;
 fits *gfit;
@@ -1814,4 +1815,58 @@ Test(nde_composite, the_merge_itself_cannot_be_moved_off_the_front) {
 	cr_assert(strstr(err, "cannot be reordered") != NULL, "got: %s", err);
 	g_free(err);
 	done();
+}
+
+/* ---- WCS survival across a recompute ------------------------------------ */
+
+/* Give @fit a plausible plate solve, the way a solved image carries one. */
+static void give_wcs(fits *fit) {
+	fit->keywords.wcslib = calloc(1, sizeof(struct wcsprm));
+	cr_assert_not_null(fit->keywords.wcslib);
+	create_wcs(180.0, 45.0, 1.0 / 3600.0, 0.0, fit->rx, fit->ry,
+	           fit->keywords.wcslib);
+	cr_assert_not_null(fit->keywords.wcslib);
+}
+
+/* A merged image's replay is built by composite_apply, which composes pixels
+ * and carries no WCS — there is no plate solve to derive from a blend.  The
+ * commit must therefore KEEP the plate solve the merged image already had:
+ * an amend upstream rewrites pixels, it does not un-solve the image.
+ *
+ * Without this, the first amend silently drops the solve and the NEXT one
+ * fails outright — the group-calibration replay looks for a solved layer to
+ * donate WCS to its composite and finds none, so SPCC falls back to the
+ * stored calibration ("no WCS data or it is not supported"). */
+Test(nde_composite, an_amend_does_not_drop_the_merged_images_plate_solve) {
+	gint bottom_item = 0;
+	flis_layer_t *merged = two_edited_layers_merged(&bottom_item, NULL,
+	                                                FLIS_BLEND_NORMAL, 1.0f);
+	give_wcs(merged->fit);
+	cr_assert_not_null(merged->fit->keywords.wcslib,
+	                   "fixture failed to install a WCS");
+
+	/* Amend the surviving layer's pre-merge step: the merged image is
+	 * recomputed through the composite and committed. */
+	gint64 target = 0;
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	for (guint i = 0; snap && i < snap->len; i++) {
+		const nde_record *rec = g_ptr_array_index(snap, i);
+		if (rec->target_item_id == bottom_item &&
+		    !g_strcmp0(rec->op_id, "stretch.asinh"))
+			target = rec->record_id;
+	}
+	if (snap) g_ptr_array_unref(snap);
+	cr_assert(target > 0, "no pre-merge asinh record to amend");
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_amend_execute(target, "beta=9.000000;offset=0.000000;human=0;clip_mode=0", &err),
+	          "amend failed: %s", err ? err : "?");
+	unreserve_thread();
+	g_free(err);
+
+	flis_layer_t *now = (flis_layer_t *)com.uniq->layers->data;
+	cr_assert_not_null(now->fit->keywords.wcslib,
+	                   "the amend dropped the merged image's plate solve — a "
+	                   "second amend will now fail with 'no WCS data'");
 }
