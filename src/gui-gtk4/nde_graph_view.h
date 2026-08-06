@@ -53,13 +53,22 @@ void nde_graph_view_reset(NdeGraphView *self);
 void nde_graph_view_add_node(NdeGraphView *self, gint item_id, gint level,
                              GtkWidget *child);
 
-/** As above, but a SEGMENT: @item_id is a pseudo id and the node continues
- *  @align_item's history below a joint band, so it is laid out in that item's
- *  COLUMN instead of being left-aligned in a band of its own (badorder.png).
- *  @align_item of 0 is exactly nde_graph_view_add_node(). */
-void nde_graph_view_add_segment_node(NdeGraphView *self, gint item_id,
-                                     gint level, gint align_item,
-                                     GtkWidget *child);
+/** As above, with the two things the layout cannot infer from an item id.
+ *
+ *  @align_item names the item whose COLUMN this node belongs in — for a
+ *  SEGMENT, whose @item_id is a pseudo id, the item whose history it
+ *  continues below a joint band.  Without it the segment is left-aligned in a
+ *  band of its own and reads as a step of the leftmost layer (badorder.png).
+ *  0 means the node owns its column.
+ *
+ *  @retired says the document no longer holds the item: the node is placed to
+ *  the right of every live column, out of the way of the layers still in
+ *  play.  A segment follows its anchor, so it need not be flagged itself.
+ *
+ *  (0, FALSE) is exactly nde_graph_view_add_node(). */
+void nde_graph_view_add_item_node(NdeGraphView *self, gint item_id,
+                                  gint level, gint align_item,
+                                  gboolean retired, GtkWidget *child);
 
 /** As above, but SPANNING: laid out alone in its band, stretched over the
  *  columns of @items (its participants; the full width when none of them

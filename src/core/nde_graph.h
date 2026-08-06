@@ -218,6 +218,14 @@ typedef struct {
 	 * node: wrong-looking but visible, the same bargain @host_item strikes.
 	 */
 	gint align_item;
+	/**
+	 * TRUE when the document no longer holds this item — a layer that has been
+	 * removed.  Its records are real and still listed, so the node stays, but
+	 * it is no longer part of the live story: it is placed to the right of
+	 * every live column, where it neither sits between them nor pushes them
+	 * along.  Retired boxes still take a column each from one another.
+	 */
+	gboolean retired;
 	gint w, h;
 	/**
 	 * TRUE for a joint node's box: laid out alone in its band, stretched

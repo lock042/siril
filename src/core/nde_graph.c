@@ -545,6 +545,38 @@ gboolean nde_graph_edge_is_feedback(const nde_graph *g, const nde_graph_edge *e)
 
 /* ---- layout ------------------------------------------------------------- */
 
+/* One item's hold on a horizontal range, for the whole height of the layout.
+ * @owner is the ITEM, not the box: a segment continues its anchor's column and
+ * so shares the claim, and a host's satellite column is part of the same one. */
+typedef struct { gint x0, x1, owner; } column_claim;
+
+static void claim_add(GArray *cl, gint x0, gint x1, gint owner) {
+	column_claim k = { x0, x1, owner };
+	g_array_append_val(cl, k);
+}
+
+/* The first x at or after @from where a box of width @w belonging to @owner
+ * fits without landing on somebody else's column.  Claims number one or two
+ * per node and this runs once per box, so the repeated scan is not worth a
+ * cleverer structure; it re-scans after each move because stepping past one
+ * claim can land on another. */
+static gint claim_free_x(const GArray *cl, gint from, gint w, gint owner,
+                         gint gap) {
+	gint x = from;
+	gboolean moved = TRUE;
+	while (moved) {
+		moved = FALSE;
+		for (guint c = 0; c < cl->len; c++) {
+			const column_claim *k = &g_array_index(cl, column_claim, c);
+			if (k->owner == owner || x >= k->x1 || x + w <= k->x0)
+				continue;
+			x = k->x1 + gap;
+			moved = TRUE;
+		}
+	}
+	return x;
+}
+
 GArray *nde_graph_layout(const GArray *boxes, gint col_gap, gint row_gap,
                          gint *total_w, gint *total_h) {
 	GArray *out = g_array_new(FALSE, TRUE, sizeof(nde_graph_place));
@@ -655,6 +687,19 @@ GArray *nde_graph_layout(const GArray *boxes, gint col_gap, gint row_gap,
 		}
 	}
 
+	/* A COLUMN BELONGS TO THE ITEM THAT CLAIMED IT, for the whole height of
+	 * the layout.  Bands used to fill independently, which meant an item whose
+	 * history starts lower down was left-aligned into a column another item
+	 * already occupied above — a layer added after a joint band was drawn
+	 * under Background and read as part of its history.  A column is one
+	 * item's story down the page, so a claim is a claim.
+	 *
+	 * Claims are keyed by the item, not the box: a segment continues its
+	 * anchor's column and so shares the claim, while everyone else is kept
+	 * out.  A host's satellite column is part of the same claim — a later node
+	 * walking left to right has to clear the whole group. */
+	GArray *claims = g_array_new(FALSE, FALSE, sizeof(column_claim));
+
 	/* Place hosts left to right, each followed by its own column, so that the
 	 * band's next node starts beyond the satellites rather than before them.
 	 * A spanning box takes no x slot: its width is the whole layout's, set
@@ -663,39 +708,74 @@ GArray *nde_graph_layout(const GArray *boxes, gint col_gap, gint row_gap,
 	 * Band by band, because a segment takes its x from a box in an earlier
 	 * band and so cannot be placed until that one has been.  Within a band the
 	 * segments go FIRST: they have no choice of column, so the ordinary nodes
-	 * — which do — are the ones that must give way, and they start beyond
-	 * whatever the segments claimed rather than underneath it. */
+	 * — which do — are the ones that must give way.
+	 *
+	 * Then the whole thing twice: live boxes, then RETIRED ones.  A removed
+	 * layer's node is real and still listed, but it is no longer part of the
+	 * live story, so it belongs to the right of every live column instead of
+	 * between them.  That cannot be decided band by band — a retired node in
+	 * the top band has to clear a live one three bands down — so it takes a
+	 * second pass, once the live extent is known. */
+	/* A segment shares its anchor's column, so it shares its anchor's PASS
+	 * too: a removed layer's continuation goes right with it rather than
+	 * being placed among the live columns while the anchor is still
+	 * unplaced. */
+	gboolean *retired_of = g_new0(gboolean, n);
+	for (guint i = 0; i < n; i++)
+		retired_of[i] = anchor_of[i] >= 0 ? BOX(anchor_of[i])->retired
+		                                  : BOX(i)->retired;
+
 	gint *band_x = g_new0(gint, (gsize)n_bands);
 	gint *px = g_new0(gint, n);
-	for (gint r = 0; r < n_bands; r++) {
-		for (guint i = 0; i < n; i++) {
-			if (level_of[i] != r || anchor_of[i] < 0)
-				continue;
-			px[i] = px[anchor_of[i]];
-			gint end = px[i] + BOX(i)->w + col_gap;
-			if (col_w[i]) {
-				for (guint j = 0; j < n; j++)
-					if (host_of[j] == (gint)i)
-						px[j] = end;
-				end += col_w[i] + col_gap;
+	gint live_right = 0;
+	for (int pass = 0; pass < 2; pass++) {
+		const gboolean want_retired = (pass == 1);
+		if (want_retired)
+			for (guint c = 0; c < claims->len; c++)
+				live_right = MAX(live_right,
+				                 g_array_index(claims, column_claim, c).x1 + col_gap);
+		for (gint r = 0; r < n_bands; r++) {
+			for (guint i = 0; i < n; i++) {
+				if (level_of[i] != r || anchor_of[i] < 0 ||
+				    (!retired_of[i]) == want_retired)
+					continue;
+				/* No choice of column: it IS the anchor's. */
+				px[i] = px[anchor_of[i]];
+				const gint owner = BOX(anchor_of[i])->item_id;
+				gint end = px[i] + BOX(i)->w;
+				claim_add(claims, px[i], end, owner);
+				end += col_gap;
+				if (col_w[i]) {
+					for (guint j = 0; j < n; j++)
+						if (host_of[j] == (gint)i)
+							px[j] = end;
+					claim_add(claims, end, end + col_w[i], owner);
+					end += col_w[i] + col_gap;
+				}
+				band_x[r] = MAX(band_x[r], end);
 			}
-			if (end > band_x[r])
-				band_x[r] = end;
-		}
-		for (guint i = 0; i < n; i++) {
-			if (level_of[i] != r || host_of[i] >= 0 || BOX(i)->spanning ||
-			    anchor_of[i] >= 0)
-				continue;
-			px[i] = band_x[r];
-			band_x[r] += BOX(i)->w + col_gap;
-			if (col_w[i]) {
-				for (guint j = 0; j < n; j++)
-					if (host_of[j] == (gint)i)
-						px[j] = band_x[r];
-				band_x[r] += col_w[i] + col_gap;
+			for (guint i = 0; i < n; i++) {
+				if (level_of[i] != r || host_of[i] >= 0 || BOX(i)->spanning ||
+				    anchor_of[i] >= 0 || (!retired_of[i]) == want_retired)
+					continue;
+				const gint owner = BOX(i)->item_id;
+				const gint floor_x = MAX(band_x[r], want_retired ? live_right : 0);
+				const gint total = col_w[i] ? BOX(i)->w + col_gap + col_w[i]
+				                            : BOX(i)->w;
+				px[i] = claim_free_x(claims, floor_x, total, owner, col_gap);
+				claim_add(claims, px[i], px[i] + BOX(i)->w, owner);
+				band_x[r] = px[i] + BOX(i)->w + col_gap;
+				if (col_w[i]) {
+					for (guint j = 0; j < n; j++)
+						if (host_of[j] == (gint)i)
+							px[j] = band_x[r];
+					claim_add(claims, band_x[r], band_x[r] + col_w[i], owner);
+					band_x[r] += col_w[i] + col_gap;
+				}
 			}
 		}
 	}
+	g_array_unref(claims);
 
 	gint used_w = 0;
 	for (gint r = 0; r < n_bands; r++)
@@ -755,6 +835,7 @@ GArray *nde_graph_layout(const GArray *boxes, gint col_gap, gint row_gap,
 	if (total_h) *total_h = y > 0 ? y - last_gap : 0;
 	g_free(host_of);
 	g_free(anchor_of);
+	g_free(retired_of);
 	g_free(level_of);
 	g_free(col_w);
 	g_free(col_h);

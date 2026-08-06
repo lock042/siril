@@ -2720,9 +2720,13 @@ static hist_node_ui *hist_node_get(gint item_id, const nde_graph_node *gn,
 		 * reads as a step of whichever layer is leftmost (badorder.png). */
 		const gint align = (gn && gn->real_item != gn->item_id)
 				? gn->real_item : 0;
-		nde_graph_view_add_segment_node(NDE_GRAPH_VIEW(g_panel->hist_container),
-		                                item_id, gn ? gn->level : 0, align,
-		                                n->frame);
+		/* A layer the document no longer holds still has real records to
+		 * show, but it is done with: put it out of the way on the right
+		 * rather than in among the layers still being worked on. */
+		const gboolean retired = gn && gn->kind == NDE_NODE_UNKNOWN;
+		nde_graph_view_add_item_node(NDE_GRAPH_VIEW(g_panel->hist_container),
+		                             item_id, gn ? gn->level : 0, align,
+		                             retired, n->frame);
 	}
 
 	g_ptr_array_add(g_panel->hist_nodes, n);

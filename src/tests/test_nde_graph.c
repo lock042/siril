@@ -483,9 +483,12 @@ Test(nde_graph, a_band_is_as_tall_as_its_tallest_node) {
 	g_array_unref(b);
 }
 
-/* Each band fills independently: a wide node in one band must not push the
- * nodes of another band along to meet it. */
-Test(nde_graph, bands_fill_independently) {
+/* Nodes pack tightly WITHIN a band, but a column belongs to the item that
+ * claimed it, so a band's nodes start beyond any column another item already
+ * holds above them.  (This test used to assert the opposite — bands filled
+ * independently and reused each other's columns — which is what put a
+ * newly-added layer underneath Background's history.) */
+Test(nde_graph, a_band_packs_tightly_but_clears_columns_already_held) {
 	GArray *b = boxes_new();
 	add_box(b, 1, 0, 300, 100);
 	add_box(b, 2, 1, 40, 100);
@@ -493,9 +496,10 @@ Test(nde_graph, bands_fill_independently) {
 	gint w = 0;
 	GArray *p = nde_graph_layout(b, 5, 10, &w, NULL);
 
-	cr_assert_eq(place_for(p, 2)->x, 0);
-	cr_assert_eq(place_for(p, 3)->x, 45);
-	cr_assert_eq(w, 300, "the widest band sets the width");
+	cr_assert_eq(place_for(p, 2)->x, 305,
+	             "past item 1's column, which it does not own");
+	cr_assert_eq(place_for(p, 3)->x, 350, "then tight against its band-mate");
+	cr_assert_eq(w, 390, "the widest band sets the width");
 	g_array_unref(p);
 	g_array_unref(b);
 }
@@ -557,8 +561,11 @@ Test(nde_graph, layout_preserves_the_order_it_was_given) {
 	cr_assert_eq(g_array_index(p, nde_graph_place, 0).item_id, 7);
 	cr_assert_eq(g_array_index(p, nde_graph_place, 1).item_id, 3);
 	cr_assert_eq(g_array_index(p, nde_graph_place, 2).item_id, 5);
-	cr_assert_eq(g_array_index(p, nde_graph_place, 0).x, 0);
-	cr_assert_eq(g_array_index(p, nde_graph_place, 2).x, 14,
+	/* Item 3 is alone in band 0 and takes the first column; the band-1 pair
+	 * clear it and then pack against each other, in list order. */
+	cr_assert_eq(g_array_index(p, nde_graph_place, 1).x, 0);
+	cr_assert_eq(g_array_index(p, nde_graph_place, 0).x, 14);
+	cr_assert_eq(g_array_index(p, nde_graph_place, 2).x, 28,
 	             "second in its band, whatever its position in the list");
 	g_array_unref(p);
 	g_array_unref(b);
@@ -776,8 +783,137 @@ Test(nde_graph, a_segment_without_its_anchor_falls_back_to_the_flow) {
 	add_segment(b, -2, 1, 200, 40, 77);   /* no box for item 77 */
 	GArray *p = nde_graph_layout(b, 20, 6, NULL, NULL);
 
-	cr_assert_not_null(place_for(p, -2));
-	cr_assert_eq(place_for(p, -2)->x, 0, "falls back to ordinary placement");
+	cr_assert_not_null(place_for(p, -2), "an unresolved segment is still placed");
+	cr_assert_eq(place_for(p, -2)->x, 220,
+	             "with no column to inherit it flows as an ordinary node, "
+	             "which means clearing item 1's column rather than landing "
+	             "on top of it");
+	g_array_unref(p);
+	g_array_unref(b);
+}
+
+/* ===================================================================== */
+/* A column belongs to the item that claimed it                          */
+/*                                                                       */
+/* Bands used to fill independently, so an item whose history STARTS      */
+/* below another item's band was left-aligned into that item's column.    */
+/* A layer added after a joint band landed under Background and read as   */
+/* part of its history.  A column is the width of one item's story down   */
+/* the whole page, so once claimed it is not available to anyone else.    */
+/* ===================================================================== */
+
+static void add_retired(GArray *a, gint item, gint level, gint w, gint h) {
+	nde_graph_box b = { .item_id = item, .level = level, .w = w, .h = h,
+	                    .retired = TRUE };
+	g_array_append_val(a, b);
+}
+
+Test(nde_graph, a_new_item_lower_down_does_not_reuse_an_occupied_column) {
+	GArray *b = boxes_new();
+	add_box(b, 1, 0, 200, 100);   /* Background */
+	add_box(b, 2, 0, 200, 100);   /* L2 */
+	add_box(b, 3, 2, 200, 100);   /* L3, added after a joint band */
+	gint w = 0;
+	GArray *p = nde_graph_layout(b, 20, 6, &w, NULL);
+
+	cr_assert_eq(place_for(p, 1)->x, 0);
+	cr_assert_eq(place_for(p, 2)->x, 220);
+	cr_assert_eq(place_for(p, 3)->x, 440,
+	             "L3 starts its own column rather than sitting under "
+	             "Background, whose column is occupied further up");
+	cr_assert_eq(w, 640);
+	g_array_unref(p);
+	g_array_unref(b);
+}
+
+/* The claim is per ITEM, not per band, so a node may reuse the column of the
+ * item it continues — that is what a segment does — while still being kept
+ * out of anyone else's. */
+Test(nde_graph, an_item_may_reoccupy_its_own_column_lower_down) {
+	GArray *b = boxes_new();
+	add_box(b, 1, 0, 200, 100);
+	add_box(b, 2, 0, 200, 100);
+	add_segment(b, -2, 1, 200, 40, 2);   /* layer 2, continued */
+	add_box(b, 3, 1, 200, 100);          /* a genuinely new item */
+	GArray *p = nde_graph_layout(b, 20, 6, NULL, NULL);
+
+	cr_assert_eq(place_for(p, -2)->x, 220, "its own column, reoccupied");
+	cr_assert_eq(place_for(p, 3)->x, 440, "the new item takes a fresh one");
+	g_array_unref(p);
+	g_array_unref(b);
+}
+
+/* A satellite column is claimed too: it is part of its host's column group,
+ * and a later node walking left to right must clear the whole group. */
+Test(nde_graph, a_later_node_clears_a_hosts_satellite_column_too) {
+	GArray *b = boxes_new();
+	add_box(b, 1, 0, 200, 100);
+	add_sat(b, 9, 1, 150, 60);
+	add_box(b, 2, 1, 200, 100);
+	GArray *p = nde_graph_layout(b, 20, 6, NULL, NULL);
+
+	cr_assert_eq(place_for(p, 9)->x, 220, "the mask sits beside its host");
+	cr_assert_eq(place_for(p, 2)->x, 390,
+	             "the next item starts beyond the mask's column, not under it");
+	g_array_unref(p);
+	g_array_unref(b);
+}
+
+/* ===================================================================== */
+/* Removed layers get out of the way                                     */
+/*                                                                       */
+/* A layer the document no longer holds keeps its node — the records are  */
+/* real and still listed — but it is no longer part of the live story, so */
+/* it goes to the far right where it does not push the live columns       */
+/* around or sit between them.                                           */
+/* ===================================================================== */
+
+Test(nde_graph, a_removed_layer_goes_to_the_right_of_every_live_one) {
+	GArray *b = boxes_new();
+	add_retired(b, 9, 0, 200, 100);   /* first in the order, but gone */
+	add_box(b, 1, 0, 200, 100);
+	add_box(b, 2, 1, 200, 100);
+	gint w = 0;
+	GArray *p = nde_graph_layout(b, 20, 6, &w, NULL);
+
+	cr_assert_eq(place_for(p, 1)->x, 0, "the live layer keeps the left edge");
+	cr_assert_eq(place_for(p, 2)->x, 220,
+	             "and the second live one takes the next column");
+	cr_assert_gt(place_for(p, 9)->x, place_for(p, 2)->x,
+	             "the removed layer is out of the way on the right, however "
+	             "early it appears in the order");
+	cr_assert_eq(w, 640);
+	g_array_unref(p);
+	g_array_unref(b);
+}
+
+/* Removed layers do not pile into one column either — they are out of the
+ * way, not merged. */
+Test(nde_graph, removed_layers_keep_separate_columns_from_each_other) {
+	GArray *b = boxes_new();
+	add_box(b, 1, 0, 200, 100);
+	add_retired(b, 8, 0, 200, 100);
+	add_retired(b, 9, 1, 200, 100);
+	GArray *p = nde_graph_layout(b, 20, 6, NULL, NULL);
+
+	cr_assert_eq(place_for(p, 1)->x, 0);
+	cr_assert_gt(place_for(p, 8)->x, 0);
+	cr_assert_neq(place_for(p, 9)->x, place_for(p, 8)->x);
+	g_array_unref(p);
+	g_array_unref(b);
+}
+
+/* A segment of a removed layer follows its anchor to the right, rather than
+ * being placed among the live columns on its own account. */
+Test(nde_graph, a_removed_layers_segment_follows_it_right) {
+	GArray *b = boxes_new();
+	add_box(b, 1, 0, 200, 100);
+	add_retired(b, 8, 0, 200, 100);
+	add_segment(b, -8, 1, 200, 40, 8);
+	GArray *p = nde_graph_layout(b, 20, 6, NULL, NULL);
+
+	cr_assert_eq(place_for(p, -8)->x, place_for(p, 8)->x);
+	cr_assert_gt(place_for(p, -8)->x, place_for(p, 1)->x);
 	g_array_unref(p);
 	g_array_unref(b);
 }
