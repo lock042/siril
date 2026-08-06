@@ -917,3 +917,95 @@ Test(nde_graph, a_removed_layers_segment_follows_it_right) {
 	g_array_unref(p);
 	g_array_unref(b);
 }
+
+/* ===================================================================== */
+/* Consumed is not deleted                                               */
+/*                                                                       */
+/* A layer flattened away and a layer the user deleted both leave the     */
+/* document, so describe_item() calls both NDE_NODE_UNKNOWN.  They are    */
+/* not the same thing to read: the consumed one is where the surviving    */
+/* image CAME FROM and belongs among the live columns with the composite  */
+/* below it, while the deleted one is a dead end kept only so it can be   */
+/* undone.  Telling them apart by "no longer in the document" put the     */
+/* flatten's inputs out on the right and left its result stranded.        */
+/* ===================================================================== */
+
+Test(nde_graph, a_flattened_away_layer_is_not_a_deleted_one) {
+	flis_test_add_layer(flis_test_make_mono_fits(16, 16, 0.3f), "A");
+	flis_test_add_layer(flis_test_make_mono_fits(16, 16, 0.4f), "B");
+	cr_assert_eq(flis_flatten_all(), 0);
+
+	nde_graph *g = nde_graph_build();
+	guint consumed = 0;
+	for (guint i = 0; i < g->nodes->len; i++) {
+		const nde_graph_node *n = g_ptr_array_index(g->nodes, i);
+		if (n->kind != NDE_NODE_UNKNOWN)
+			continue;
+		consumed++;
+		cr_assert_not(n->deleted,
+		              "'%s' was consumed by the flatten, not deleted — it "
+		              "must stay among the live columns", n->label);
+	}
+	cr_assert_gt(consumed, 0, "the flatten should have consumed its inputs");
+	nde_graph_free(g);
+	nde_history_attach(NULL);
+}
+
+/* The flatten's result reads as the place its inputs arrive at, so it sits
+ * under them instead of claiming a column of its own to the right. */
+Test(nde_graph, a_flatten_result_sits_under_the_layers_it_consumed) {
+	flis_test_add_layer(flis_test_make_mono_fits(16, 16, 0.3f), "A");
+	flis_test_add_layer(flis_test_make_mono_fits(16, 16, 0.4f), "B");
+	cr_assert_eq(flis_flatten_all(), 0);
+
+	nde_graph *g = nde_graph_build();
+	const nde_graph_node *result = NULL;
+	for (guint i = 0; i < g->nodes->len; i++) {
+		const nde_graph_node *n = g_ptr_array_index(g->nodes, i);
+		if (n->kind == NDE_NODE_LAYER && n->level > 0)
+			result = n;
+	}
+	cr_assert_not_null(result, "the flatten should leave one live layer below");
+	cr_assert_neq(result->column_item, 0,
+	              "a derived node must name the column it belongs in, or the "
+	              "layout will start it a column to the right of its inputs");
+
+	/* And that column is one it actually consumed, at a lower level. */
+	const nde_graph_node *anchor = nde_graph_node_for(g, result->column_item);
+	cr_assert_not_null(anchor);
+	cr_assert_lt(anchor->level, result->level);
+	gboolean is_input = FALSE;
+	for (guint e = 0; e < g->edges->len && !is_input; e++) {
+		const nde_graph_edge *ed = g_ptr_array_index(g->edges, e);
+		is_input = ed->dst_item_id == result->item_id &&
+		           ed->src_item_id == anchor->item_id;
+	}
+	cr_assert(is_input, "the column it takes must be one of its own inputs");
+	nde_graph_free(g);
+	nde_history_attach(NULL);
+}
+
+/* A deleted layer, by contrast, IS flagged — it keeps its node so the
+ * deletion can be reversed, but it is out of the live story. */
+Test(nde_graph, a_removed_layer_is_flagged_as_deleted) {
+	flis_layer_t *a = flis_test_add_layer(
+	    flis_test_make_mono_fits(16, 16, 0.3f), "A");
+	flis_layer_t *b = flis_test_add_layer(
+	    flis_test_make_mono_fits(16, 16, 0.4f), "B");
+	cr_assert_not_null(a);
+	const gint gone = b->item_id;
+
+	GString *kv = nde_kv_start();
+	nde_kv_add_str(kv, "name", "B");
+	cr_assert_neq(nde_capture_structural("layer.remove", NDE_SCOPE_DOCUMENT,
+	                                     gone, nde_kv_end(kv), "Remove layer"), 0);
+	cr_assert_eq(flis_layer_remove(b), 0);
+
+	nde_graph *g = nde_graph_build();
+	const nde_graph_node *n = nde_graph_node_for(g, gone);
+	cr_assert_not_null(n, "a deleted layer keeps its node so the deletion "
+	                      "can be reversed");
+	cr_assert(n->deleted, "…and is marked as deleted, not merely gone");
+	nde_graph_free(g);
+	nde_history_attach(NULL);
+}

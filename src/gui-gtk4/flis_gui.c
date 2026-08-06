@@ -2718,12 +2718,11 @@ static hist_node_ui *hist_node_get(gint item_id, const nde_graph_node *gn,
 		 * pseudo item_id, so the layout needs telling which real item's column
 		 * it belongs in; otherwise it is left-aligned in its own band and
 		 * reads as a step of whichever layer is leftmost (badorder.png). */
-		const gint align = (gn && gn->real_item != gn->item_id)
-				? gn->real_item : 0;
-		/* A layer the document no longer holds still has real records to
-		 * show, but it is done with: put it out of the way on the right
-		 * rather than in among the layers still being worked on. */
-		const gboolean retired = gn && gn->kind == NDE_NODE_UNKNOWN;
+		const gint align = gn ? gn->column_item : 0;
+		/* Only a DELETED layer steps aside. One consumed by a flatten or
+		 * merge is where the surviving image came from, so it stays among
+		 * the live columns with the composite below it. */
+		const gboolean retired = gn && gn->deleted;
 		nde_graph_view_add_item_node(NDE_GRAPH_VIEW(g_panel->hist_container),
 		                             item_id, gn ? gn->level : 0, align,
 		                             retired, n->frame);

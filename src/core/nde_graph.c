@@ -482,6 +482,70 @@ nde_graph *nde_graph_build(void) {
 	}
 
 	assign_levels(g, by_id);
+
+	/* DELETED, as opposed to merely gone.  Both a deleted layer and one
+	 * consumed by a flatten leave the document, so both describe_item() as
+	 * NDE_NODE_UNKNOWN — but they are not the same thing to a reader.  A
+	 * consumed layer is where the surviving image CAME FROM and belongs among
+	 * the live columns with the composite below it; a deleted one is a dead
+	 * end, kept only so the deletion can be undone.  The record says which:
+	 * layer.remove is written for a deletion and for nothing else. */
+	for (guint i = 0; i < g->nodes->len; i++) {
+		nde_graph_node *n = g_ptr_array_index(g->nodes, i);
+		for (guint r = 0; r < snap->len && !n->deleted; r++) {
+			const nde_record *rec = g_ptr_array_index(snap, r);
+			n->deleted = !g_strcmp0(rec->op_id, "layer.remove") &&
+			             rec->target_item_id == n->real_item;
+		}
+	}
+
+	/* Which item's COLUMN each node belongs in.  Two cases, one field:
+	 *
+	 *  - a SEGMENT continues its own item's history below a joint band, and
+	 *    its pseudo id hides that;
+	 *  - a node DERIVED from others — a flatten or merge result — reads as
+	 *    the place its inputs arrive at, so it belongs under them rather than
+	 *    off in a column of its own.  Its inputs' columns are ordered as the
+	 *    nodes are, so the first input in node order is the leftmost.
+	 *
+	 * Both are "this box does not own a fresh column", which is exactly what
+	 * the layout needs to know; deciding it here keeps the policy next to the
+	 * edges it is derived from, and testable without a widget. */
+	for (guint i = 0; i < g->nodes->len; i++) {
+		nde_graph_node *n = g_ptr_array_index(g->nodes, i);
+		if (n->spanning)
+			continue;
+		if (n->real_item != n->item_id) {
+			n->column_item = n->real_item;
+			continue;
+		}
+		for (guint j = 0; j < g->nodes->len && !n->column_item; j++) {
+			const nde_graph_node *cand = g_ptr_array_index(g->nodes, j);
+			if (cand == n || cand->spanning || cand->level >= n->level)
+				continue;
+			for (guint e = 0; e < g->edges->len; e++) {
+				const nde_graph_edge *ed = g_ptr_array_index(g->edges, e);
+				if (ed->dst_item_id != n->item_id)
+					continue;
+				/* An input reached THROUGH a joint band still arrives from a
+				 * column, and the edge already says which: src_align_item is
+				 * the participant it leaves under.  Without this the base
+				 * layer of a flatten is invisible as an input — its edge
+				 * comes from the band, not from itself — and the result
+				 * anchors to whichever input happens to have a direct edge,
+				 * which is the far right of the group rather than its base. */
+				const nde_graph_node *src =
+						nde_graph_node_for(g, ed->src_item_id);
+				const gint from = (src && src->spanning && ed->src_align_item)
+						? ed->src_align_item : ed->src_item_id;
+				if (from == cand->item_id) {
+					n->column_item = cand->item_id;
+					break;
+				}
+			}
+		}
+	}
+
 	g_hash_table_destroy(by_id);
 	g_ptr_array_unref(snap);
 	return g;

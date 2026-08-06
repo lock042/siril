@@ -118,6 +118,22 @@ typedef struct {
 	 * records every node has stage 0 and levels are pure edge levels.
 	 */
 	gint            stage;
+	/**
+	 * The item whose COLUMN this node belongs in, or 0 when it owns one.
+	 * Set for a segment (its own item, which its pseudo id hides) and for a
+	 * node derived from others — a flatten or merge result sits under the
+	 * inputs it consumed rather than starting a column of its own.
+	 */
+	gint            column_item;
+	/**
+	 * TRUE when this item was DELETED (a layer.remove record targets it), as
+	 * distinct from consumed by a flatten or merge.  Both leave the document
+	 * and so describe as NDE_NODE_UNKNOWN, but a consumed layer is where the
+	 * surviving image came from and stays among the live columns; a deleted
+	 * one is a dead end, kept visible only so the deletion can be reversed,
+	 * and is laid out to the right of everything still in play.
+	 */
+	gboolean        deleted;
 	/** TRUE for a joint node: laid out alone in its band, spanning its
 	 *  participants' columns, with its own whitespace above and below. */
 	gboolean        spanning;
