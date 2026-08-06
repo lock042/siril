@@ -1127,7 +1127,16 @@ int seq_read_frame_metadata(sequence *seq, int index, fits *dest) {
 #endif
 		case SEQ_INTERNAL:
 			assert(seq->internal_fits);
-			copyfits(seq->internal_fits[index], dest, CP_FORMAT, -1);
+			/* CP_FORMAT alone drops the heap-owned metadata (astrometry,
+			 * dates, unknown keys), which is exactly what a metadata read
+			 * is asked for: get_wcs_ref() would then report no solution on
+			 * an internal sequence, and apply-existing-registration frees
+			 * every frame's plate solve before restoring the reference one
+			 * it never got (applyreg.c) — so registering FLIS layers
+			 * un-solved the whole document and PCC/SPCC went insensitive.
+			 * Same flags as the pixel read below. */
+			copyfits(seq->internal_fits[index], dest,
+					CP_FORMAT | CP_WCS | CP_UNKNOWNKEYS | CP_DATES, -1);
 			break;
 	}
 	seq->imgparam[index].rx = dest->rx;

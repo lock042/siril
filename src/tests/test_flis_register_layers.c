@@ -33,6 +33,8 @@
 #include "core/processing.h"
 #include "registration/registration.h"
 #include "registration/flis_register.h"
+#include "algos/siril_wcs.h"
+#include "io/image_format_flis.h"
 
 cominfo com;
 fits *gfit;
@@ -207,4 +209,61 @@ Test(flis_register_layers, dft_aligns_content_shifted_layer) {
 	 * with them and the content check above is what matters. */
 	cr_assert_eq(top->position_x, -15, "position_x = %d", top->position_x);
 	cr_assert_eq(top->position_y, 9, "position_y = %d", top->position_y);
+}
+
+/* =====================================================================
+ * Registering layers must not un-solve the document.
+ *
+ * apply-existing-registration frees each frame's plate solve and puts
+ * back the REFERENCE frame's solution, reframed for the warp it just
+ * applied (applyreg.c).  It gets that reference solution from
+ * get_wcs_ref(), i.e. from a metadata read of the reference frame — and
+ * seq_read_frame_metadata() used to copy internal-sequence frames with
+ * CP_FORMAT alone, which deliberately drops the astrometry.  So every
+ * layer came out unsolved, flis_document_has_wcs_donor() found nobody to
+ * donate a solve to the group composite, and PCC/SPCC were insensitive
+ * with a colour layer group selected.  Reported as "after registering
+ * all 4 layers I cannot select SPCC".
+ * ===================================================================== */
+
+/* Give @fit a plausible plate solve, the way a solved image carries one. */
+static void give_wcs(fits *fit) {
+	fit->keywords.wcslib = calloc(1, sizeof(struct wcsprm));
+	cr_assert_not_null(fit->keywords.wcslib);
+	create_wcs(180.0, 45.0, 1.0 / 3600.0, 0.0, fit->rx, fit->ry,
+	           fit->keywords.wcslib);
+}
+
+Test(flis_register_layers, registration_keeps_the_plate_solve) {
+	const int W = 400, H = 300;
+	flis_layer_t *base = flis_test_add_layer(make_star_field(W, H, 0, 0), "base");
+	flis_layer_t *top  = flis_test_add_layer(make_star_field(W, H, 15, 9), "shifted");
+	cr_assert(base && top);
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+	give_wcs(base->fit);
+	give_wcs(top->fit);
+
+	com.pref.mem_mode = RATIO;
+	com.pref.memory_ratio = 0.9;
+	com.selection = (rectangle){ 100, 50, 128, 128 };
+
+	selection_type sel;
+	transformation_type tx;
+	registration_function method =
+	    flis_register_resolve_method(FLIS_REG_DFT, &sel, &tx);
+	cr_assert_not_null(method);
+	int rv = flis_register_layers(base, NULL, method, sel, tx,
+	                              OPENCV_LANCZOS4, TRUE, FLIS_REG_DFT);
+	cr_assert_eq(rv, 0, "flis_register_layers failed (%d)", rv);
+
+	cr_assert_not_null(base->fit->keywords.wcslib,
+	                   "registration dropped the reference layer's plate solve");
+	cr_assert_not_null(top->fit->keywords.wcslib,
+	                   "registration dropped the aligned layer's plate solve");
+	/* What the menu actually asks: is there a layer that can donate its
+	 * solve to the group composite?  PCC/SPCC sensitivity hangs on it. */
+	cr_assert(flis_document_has_wcs_donor(),
+	          "no layer can donate a WCS to the group composite, so PCC/SPCC "
+	          "stay insensitive after registering");
 }
