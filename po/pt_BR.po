@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-20 14:20+0200\n"
-"PO-Revision-Date: 2026-07-19 06:21+0000\n"
+"PO-Revision-Date: 2026-08-03 13:34+0000\n"
 "Last-Translator: Eduardo Hartmann <eduardohart@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril-1-6/pt_BR/>\n"
@@ -21930,6 +21930,35 @@ msgid ""
 "The argument <b>\"-title=<i>My Title\"</i></b> sets a custom title \"My "
 "Title\""
 msgstr ""
+"Gera um gráfico de perfil de intensidade entre dois pontos na imagem, também "
+"conhecido como <i>corte</i>. Os argumentos podem ser fornecidos em qualquer "
+"ordem. Os argumentos <b>-to=x,y</b> e <b>-from=x,y</b> são obrigatórios.\n"
+"\n"
+"O argumento <b>-layer=<i>{red | green | blue | lum | col}</i></b> especifica "
+"qual canal (ou luminância ou cor) deve ser plotado se a imagem for colorida. "
+"Também pode ser usado com a opção <b>-tri</b>, que gera três perfis "
+"paralelos equiespaçados, cada um separado por <b>-spacing=</b> pixels; "
+"observe, porém, que, para perfis tri, a opção <i><b>col</b></i> será tratada "
+"da mesma forma que <i><b>lum</b></i>.\n"
+"\n"
+"A opção <b>-cfa</b> seleciona o modo CFA, que gera 4 perfis: 1 para cada "
+"canal CFA em uma imagem com padrão Bayer. Essa opção não pode ser usada com "
+"imagens coloridas ou imagens monocromáticas sem padrão Bayer, e não pode ser "
+"usada ao mesmo tempo que a opção <b>-tri</b>.\n"
+"\n"
+"A opção <b>-arcsec</b> faz com que o eixo x exiba a distância em segundos de "
+"arco, caso os metadados necessários estejam disponíveis. Se não for "
+"fornecida ou se os metadados não estiverem disponíveis, a distância será "
+"mostrada em pixels.\n"
+"\n"
+"O argumento <b>-savedat</b> fará com que os arquivos de dados sejam salvos: "
+"o nome do arquivo será registrado no log. Alternativamente, o argumento <b>-"
+"filename=</b> pode ser usado para especificar um nome de arquivo no qual o "
+"arquivo de dados será gravado. (A opção <b>-filename=</b> implica <b>-"
+"savedat</b>.)\n"
+"\n"
+"O argumento <b>“-title=<i>Meu Título”</i></b> define um título personalizado "
+"“Meu Título”"
 
 #: src/core/command_def.h:134
 msgid ""
@@ -36412,7 +36441,7 @@ msgstr ""
 #: src/registration/global.c:1200
 #, c-format
 msgid "Trial #%d: Reference image: #%d - Frames aligned: %d\n"
-msgstr ""
+msgstr "Teste nº %d: Imagem de referência: nº %d – Quadros alinhados: %d\n"
 
 #: src/registration/global.c:1207
 msgid "Could not find an image that aligns more than itself, aborting\n"
@@ -36427,6 +36456,8 @@ msgid ""
 "After sequence analysis, we are choosing image %d as new reference for "
 "registration\n"
 msgstr ""
+"Após a análise da sequência, estamos selecionando a imagem %d como nova "
+"referência para o registro\n"
 
 #: src/registration/global.c:1227
 #, c-format
@@ -36434,11 +36465,15 @@ msgid ""
 "After sequence alignment, image %d is too far from the sequence cog, "
 "recomputing\n"
 msgstr ""
+"Após o alinhamento de sequência, a imagem %d está muito distante do centro "
+"de gravidade da sequência; recalculando\n"
 
 #: src/registration/global.c:1228
 #, c-format
 msgid "Distance to cog is  %2.1fpx while threshold is set at %2.1fpx\n"
 msgstr ""
+"A distância até a engrenagem é de %2.1f px, enquanto o limite está definido "
+"em %2.1f px\n"
 
 #: src/registration/global.c:1245
 #, c-format
@@ -36446,6 +36481,8 @@ msgid ""
 "Could not find a better frame, keeping image %d as the reference for the "
 "sequence\n"
 msgstr ""
+"Não foi possível encontrar um quadro melhor; mantendo a imagem %d como "
+"referência para a sequência\n"
 
 #: src/registration/global.c:1248
 #, c-format
@@ -36453,6 +36490,9 @@ msgid ""
 "After sequence alignment, we find that image %d is %2.1fpx away from "
 "sequence cog, i.e. within allowable bounds\n"
 msgstr ""
+"Após o alinhamento de sequências, constatamos que a imagem %d está a %2.1fpx "
+"de distância do centro de gravidade (COG) da sequência — ou seja, dentro dos "
+"limites permitidos\n"
 
 #: src/registration/mpp.cpp:510
 msgid "cached"
@@ -36692,7 +36732,7 @@ msgstr ""
 
 #: src/registration/mpp.cpp:1899 src/stacking/stacking.c:95
 msgid "Stacking result will be stored as a 32-bit image\n"
-msgstr ""
+msgstr "O resultado do empilhamento será salvo como uma imagem de 32 bits\n"
 
 #: src/registration/mpp.cpp:1910
 #, c-format
@@ -36889,7 +36929,7 @@ msgstr "Registro"
 
 #: src/registration/shift_methods.c:101
 msgid "Register DFT: loading and processing reference frame"
-msgstr ""
+msgstr "Registro DFT: carregamento e processamento do quadro de referência"
 
 #: src/registration/shift_methods.c:109 src/registration/shift_methods.c:398
 #, fuzzy
@@ -36910,31 +36950,34 @@ msgstr "Melhor quadro: #%d.\n"
 #: src/registration/shift_methods.c:388
 msgid "Register using KOMBAT: loading and processing reference frame"
 msgstr ""
+"Registre-se usando o KOMBAT: carregamento e processamento do referencial"
 
 #: src/registration/shift_methods.c:458
 #, c-format
 msgid "Cannot perform KOMBAT alignment for frame %d\n"
-msgstr ""
+msgstr "Não é possível realizar o alinhamento KOMBAT para o quadro %d\n"
 
 #: src/registration/shift_methods.c:478
 #, c-format
 msgid "Register: KOMBAT could not find alignment pattern on image #%d.\n"
 msgstr ""
+"Registro: O KOMBAT não conseguiu encontrar o padrão de alinhamento na imagem "
+"nº %d.\n"
 
 #: src/registration/shift_methods.c:559
 msgid "Registration PSF: failed to compute PSF for reference frame at least\n"
-msgstr ""
+msgstr "Registro de PSF: falha ao calcular a PSF para o quadro de referência\n"
 
 #: src/registration/shift_methods.c:599
 #, c-format
 msgid "Best frame: #%d with fwhm=%.3g.\n"
-msgstr ""
+msgstr "Melhor quadro: #%d com FWHM=%.3g.\n"
 
 #. the mask exists and is more recent than the img, we don't need to read again
 #: src/stacking/blending.c:71
 #, c-format
 msgid "Mask for image %d already exists, skipping\n"
-msgstr ""
+msgstr "A máscara para a imagem %d já existe; ignorando\n"
 
 #: src/stacking/blending.c:183
 #, c-format
@@ -37127,7 +37170,7 @@ msgstr ""
 #: src/stacking/median_and_mean.c:1822
 #, c-format
 msgid "Median stacking complete. %d images have been stacked.\n"
-msgstr ""
+msgstr "Empilhamento mediano finalizado. %d imagens foram empilhadas.\n"
 
 #: src/stacking/normalization.c:77
 #, fuzzy
@@ -37140,6 +37183,8 @@ msgid ""
 "Your system does not have enough memory to normalize images for stacking "
 "operation (%d MB free for %d MB required)\n"
 msgstr ""
+"Seu sistema não possui memória suficiente para normalizar imagens para a "
+"operação de empilhamento (%d MB livres de %d MB necessários)\n"
 
 #: src/stacking/normalization.c:213
 #, c-format
@@ -37147,30 +37192,35 @@ msgid ""
 "With the current memory and thread (%d) limits, up to %d thread(s) can be "
 "used for sequence normalization\n"
 msgstr ""
+"Com os limites atuais de memória e de threads (%d), até %d thread(s) podem "
+"ser utilizadas para a normalização de sequências\n"
 
 #: src/stacking/normalization.c:232
 msgid "Computing normalization...\n"
-msgstr ""
+msgstr "Calculando a normalização...\n"
 
 #: src/stacking/normalization.c:240 src/stacking/normalization.c:693
 msgid ""
 "The reference image is not in the selected set of images. Please choose "
 "another reference image.\n"
 msgstr ""
+"A imagem de referência não está no conjunto de imagens selecionado. Por "
+"favor, escolha outra imagem de referência.\n"
 
 #: src/stacking/normalization.c:245 src/stacking/normalization.c:761
 msgid "Normalization failed."
-msgstr ""
+msgstr "A normalização falhou."
 
 #: src/stacking/normalization.c:277 src/stacking/normalization.c:793
 #, c-format
 msgid "%s Check image %d first.\n"
-msgstr ""
+msgstr "%s Verifique a imagem %d primeiro.\n"
 
 #: src/stacking/normalization.c:542
 #, c-format
 msgid "Could not read overlap data between image %d and %d\n"
 msgstr ""
+"Não foi possível ler os dados de sobreposição entre as imagens %d e %d\n"
 
 #: src/stacking/normalization.c:655
 #, c-format
@@ -37178,6 +37228,9 @@ msgid ""
 "Your system does not have enough memory to normalize images overlaps for "
 "stacking operation (%d MB free for %d MB required)\n"
 msgstr ""
+"Seu sistema não possui memória suficiente para normalizar as sobreposições "
+"de imagens para a operação de empilhamento (%d MB livres de %d MB "
+"necessários)\n"
 
 #: src/stacking/normalization.c:662
 #, c-format
@@ -37185,16 +37238,21 @@ msgid ""
 "With the current memory and thread (%d) limits, up to %d thread(s) can be "
 "used for sequence overlaps normalization\n"
 msgstr ""
+"Com os limites atuais de memória e de threads (%d), até %d thread(s) podem "
+"ser utilizadas para a normalização de sobreposições de sequências\n"
 
 #: src/stacking/normalization.c:757
 msgid "Computing normalization on overlaps...\n"
-msgstr ""
+msgstr "Calculando a normalização sobre as sobreposições...\n"
 
 #: src/stacking/stacking.c:53
 msgid ""
 "Input sequence is in 32-bit format but preferences are set to 16-bit output "
 "format. Please, change your preference settings and retry.\n"
 msgstr ""
+"A sequência de entrada está no formato de 32 bits, mas as preferências estão "
+"definidas para o formato de saída de 16 bits. Por favor, altere as "
+"configurações de preferência e tente novamente.\n"
 
 #: src/stacking/stacking.c:83
 #, c-format
@@ -37204,6 +37262,10 @@ msgid ""
 "Operating System) or to convert your FITS sequence into a SER sequence "
 "before stacking, or to stack with the \"sum\" method.\n"
 msgstr ""
+"Seu sistema não permite abrir mais de %d arquivos simultaneamente. Você pode "
+"considerar aumentar esse limite (o método depende do seu sistema operacional)"
+", converter sua sequência FITS em uma sequência SER antes do empilhamento ou "
+"realizar o empilhamento utilizando o método de \"soma\".\n"
 
 #: src/stacking/stacking.c:139
 msgid "Stacking result image"
@@ -37220,56 +37282,56 @@ msgstr "Integração de %d imagens em %d da sequência:\n"
 
 #: src/stacking/stacking.c:254
 msgid "Pixel combination ......... average\n"
-msgstr ""
+msgstr "Combinação de pixels ......... média\n"
 
 #: src/stacking/stacking.c:256
 msgid "Pixel combination ......... normalized sum\n"
-msgstr ""
+msgstr "Combinação de pixels ......... soma normalizada\n"
 
 #: src/stacking/stacking.c:258
 msgid "Pixel combination ......... median\n"
-msgstr ""
+msgstr "Combinação de pixels ......... mediana\n"
 
 #: src/stacking/stacking.c:260
 msgid "Pixel combination ......... minimum\n"
-msgstr ""
+msgstr "Combinação de pixels ......... mínimo\n"
 
 #: src/stacking/stacking.c:262
 msgid "Pixel combination ......... maximum\n"
-msgstr ""
+msgstr "Combinação de pixels ......... máxima\n"
 
 #: src/stacking/stacking.c:264
 msgid "Pixel combination ......... none\n"
-msgstr ""
+msgstr "Combinação de pixels ......... nenhuma\n"
 
 #: src/stacking/stacking.c:271 src/stacking/stacking.c:276
 #: src/stacking/stacking.c:310
 msgid "none"
-msgstr ""
+msgstr "nenhum"
 
 #: src/stacking/stacking.c:279
 msgid "additive"
-msgstr ""
+msgstr "aditivo"
 
 #: src/stacking/stacking.c:282
 msgid "multiplicative"
-msgstr ""
+msgstr "multiplicativo"
 
 #: src/stacking/stacking.c:285
 msgid "additive + scaling"
-msgstr ""
+msgstr "aditivo + escalonamento"
 
 #: src/stacking/stacking.c:288
 msgid "multiplicative + scaling"
-msgstr ""
+msgstr "multiplicativo + escalonamento"
 
 #: src/stacking/stacking.c:292
 msgid " (fast)"
-msgstr ""
+msgstr " (rápido)"
 
 #: src/stacking/stacking.c:294
 msgid " (overlaps)"
-msgstr ""
+msgstr " (sobrepõe-se)"
 
 #: src/stacking/stacking.c:296
 #, c-format
@@ -37286,11 +37348,11 @@ msgstr "Normalização de saída ...... desabilitada\n"
 
 #: src/stacking/stacking.c:304
 msgid "Pixel rejection ........... none\n"
-msgstr ""
+msgstr "Rejeição de pixels ........... nenhuma\n"
 
 #: src/stacking/stacking.c:313
 msgid "percentile clipping"
-msgstr ""
+msgstr "recorte por percentil"
 
 #: src/stacking/stacking.c:316
 #, fuzzy
@@ -37304,7 +37366,7 @@ msgstr "Corte de altas luzes"
 
 #: src/stacking/stacking.c:325
 msgid "winsorized sigma clipping"
-msgstr ""
+msgstr "corte sigma winsorizado"
 
 #: src/stacking/stacking.c:328
 #, fuzzy
@@ -37319,41 +37381,42 @@ msgstr "Corte de sombras"
 #: src/stacking/stacking.c:334
 #, c-format
 msgid "Pixel rejection ........... %s\n"
-msgstr ""
+msgstr "Rejeição de pixels ........... %s\n"
 
 #: src/stacking/stacking.c:337
 #, c-format
 msgid "Rejection parameters ...... outliers=%.3f significance=%.3f\n"
 msgstr ""
+"Parâmetros de rejeição ...... valores atípicos=%.3f significância=%.3f\n"
 
 #: src/stacking/stacking.c:340
 #, c-format
 msgid "Rejection parameters ...... low=%.3f high=%.3f\n"
-msgstr ""
+msgstr "Parâmetros de rejeição ...... baixo=%.3f alto=%.3f\n"
 
 #: src/stacking/stacking.c:344
 msgid "Creating rejection maps ... no\n"
-msgstr ""
+msgstr "Criando mapas de rejeição... não\n"
 
 #: src/stacking/stacking.c:347
 msgid "Creating rejection maps ... yes (merged)\n"
-msgstr ""
+msgstr "Criando mapas de rejeição... sim (mesclado)\n"
 
 #: src/stacking/stacking.c:348
 msgid "Creating rejection maps ... yes\n"
-msgstr ""
+msgstr "Criando mapas de rejeição... sim\n"
 
 #: src/stacking/stacking.c:354
 msgid "Image weighting ........... from noise\n"
-msgstr ""
+msgstr "Ponderação da imagem ........... a partir do ruído\n"
 
 #: src/stacking/stacking.c:356
 msgid "Image weighting ........... from image count\n"
-msgstr ""
+msgstr "Ponderação da imagem ........... da contagem de imagens\n"
 
 #: src/stacking/stacking.c:358
 msgid "Image weighting ........... from weighted FWHM\n"
-msgstr ""
+msgstr "Ponderação da imagem ........... a partir da FWHM ponderada\n"
 
 #: src/stacking/stacking.c:360
 msgid "Image weighting ........... from star count\n"

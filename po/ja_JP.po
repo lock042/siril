@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-20 14:20+0200\n"
-"PO-Revision-Date: 2026-07-19 06:21+0000\n"
+"PO-Revision-Date: 2026-07-26 12:05+0000\n"
 "Last-Translator: Tomoya Maeda <yumyum.ytm6020@gmail.com>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/ja/>\n"
@@ -34460,11 +34460,11 @@ msgstr ""
 
 #: src/stacking/stacking.c:139
 msgid "Stacking result image"
-msgstr ""
+msgstr "スタック結果の画像"
 
 #: src/stacking/stacking.c:186
 msgid "Unsaved stacking result"
-msgstr ""
+msgstr "スタック結果はまだ保存されていません"
 
 #: src/stacking/stacking.c:250
 #, fuzzy, c-format
@@ -34608,20 +34608,20 @@ msgstr ""
 
 #: src/stacking/stacking.c:358
 msgid "Image weighting ........... from weighted FWHM\n"
-msgstr ""
+msgstr "画像の重み付け ........... weighted FWHM\n"
 
 #: src/stacking/stacking.c:360
 msgid "Image weighting ........... from star count\n"
-msgstr ""
+msgstr "画像の重み付け ........... 星の数\n"
 
 #: src/stacking/stacking.c:361
 msgid "Image weighting ........... disabled\n"
-msgstr ""
+msgstr "画像の重み付け ........... 無効\n"
 
 #: src/stacking/stacking.c:364
 #, c-format
 msgid "Feathering ................ over %4d pixels\n"
-msgstr ""
+msgstr "フェザリング処理中................（%4d ピクセル幅）\n"
 
 #: src/stacking/stacking.c:368
 msgid "RGB equalization .......... enabled\n"
@@ -34653,15 +34653,15 @@ msgstr "重ね合わせ開始"
 msgid ""
 "Reducing the stacking output to a 16-bit image will result in precision "
 "loss\n"
-msgstr ""
+msgstr "スタック結果を 16-bit 画像に縮小すると、精度が低下します。\n"
 
 #: src/stacking/upscaling.c:137
 msgid "Up-scaling sequence for stacking"
-msgstr ""
+msgstr "スタック処理のためにシーケンスをアップスケールします"
 
 #: src/stacking/upscaling.c:148
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
-msgstr ""
+msgstr "スタック処理はアップスケーリングなしで行われます（“drizzle” を無効化）\n"
 
 #, fuzzy
 #~ msgid "Min brightness:"

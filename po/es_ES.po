@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-20 14:20+0200\n"
-"PO-Revision-Date: 2026-03-10 06:59+0000\n"
-"Last-Translator: Miguel Hortelano <imahgin@gmail.com>\n"
+"PO-Revision-Date: 2026-08-01 12:50+0000\n"
+"Last-Translator: Mario Estanislao Cesar Ariet <cesarariet@yahoo.com.ar>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/es/>\n"
 "Language: es_ES\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.8.4\n"
+"X-Generator: Weblate 5.16.2\n"
 "X-Poedit-Bookmarks: -1,-1,459,-1,-1,-1,-1,-1,-1,-1\n"
 
 #: src/gui-gtk4/uifiles/CLAHE_dialog.ui:37
@@ -42,15 +42,14 @@ msgstr "Establece el umbral para el límite de contraste."
 
 #. Try to have 3 lines here.
 #: src/gui-gtk4/uifiles/CLAHE_dialog.ui:93
-#, fuzzy
 msgid ""
 "Please, make sure to remove all black borders or other\n"
 "    stacking residuals by cropping the image. If you don't,\n"
 "    artifacts may appear."
 msgstr ""
-"Por favor, asegúrese de eliminar los bordes negros u otros\n"
-"residuos del apilado recortando la imagen. Si no\n"
-"pueden aparecer artefactos."
+"Por favor, asegúrese de eliminar todos los bordes negros u otros\n"
+"residuos del apilado recortando la imagen. De lo contrario,\n"
+"podrían aparecer artefactos."
 
 #: src/gui-gtk4/uifiles/CLAHE_dialog.ui:104
 #: src/gui-gtk4/uifiles/asinh_dialog.ui:103
@@ -167,15 +166,14 @@ msgid "Iterations"
 msgstr "Iteraciones"
 
 #: src/gui-gtk4/uifiles/Median_dialog.ui:81
-#, fuzzy
 msgid ""
 "Number of iterations of the algorithm.\n"
 "    This is useful when modulation parameter is different to 1 helping the "
 "whole process to converge to better result."
 msgstr ""
 "Número de iteraciones del algoritmo.\n"
-"Muy útil cuando el parámetro de modulación no es 1, ayuda a que todo el "
-"proceso converja a un mejor resultado."
+"Esto resulta útil cuando el parámetro de modulación es distinto de 1, para "
+"ayudar a que todo el proceso converja hacia un mejor resultado."
 
 #: src/gui-gtk4/uifiles/Median_dialog.ui:100
 #: src/gui-gtk4/uifiles/denoise_dialog.ui:212
@@ -185,15 +183,14 @@ msgstr "Modulación"
 
 # parameter is null or 0?
 #: src/gui-gtk4/uifiles/Median_dialog.ui:120
-#, fuzzy
 msgid ""
 "Modulation parameter set in the [0, 1] range.\n"
 "    When this parameter is equal to 1, no modulation is applied.\n"
 "    If the parameters is null, so no filter is apply at all."
 msgstr ""
-"Parámetro de modulación, en el rango entre 0 y 1.\n"
-"Cuanto este parámetro es 1 no se aplica modulación.\n"
-"Si el parámetro es 0 no se aplica filtro alguno."
+"Parámetro de modulación definido en el rango [0, 1].\n"
+"Cuando el parámetro es igual a 1, no se aplica modulación.\n"
+"Si el parámetro es cero, no se aplica ningún filtro a la imagen."
 
 #: src/gui-gtk4/uifiles/Median_dialog.ui:131
 #: src/gui-gtk4/uifiles/composition_dialog.ui:104
@@ -400,12 +397,10 @@ msgid "The filter used for the observation."
 msgstr "El filtro utilizado para la observación."
 
 #: src/gui-gtk4/uifiles/aavso_dialog.ui:120
-#, fuzzy
 msgid "Cname: "
 msgstr "Cname: "
 
 #: src/gui-gtk4/uifiles/aavso_dialog.ui:130
-#, fuzzy
 msgid "Kname: "
 msgstr "Kname: "
 
@@ -461,7 +456,6 @@ msgid "The number of the comparison star."
 msgstr "El número de la estrella de comparación."
 
 #: src/gui-gtk4/uifiles/aavso_dialog.ui:236
-#, fuzzy
 msgid "Cstd: "
 msgstr "Cstd: "
 
@@ -575,7 +569,6 @@ msgid "gaia (GAIA DR3)"
 msgstr "gaia (GAIA DR3)"
 
 #: src/gui-gtk4/uifiles/annotate_dialog.ui:60
-#, fuzzy
 msgid "ppmxl (PPMXL)"
 msgstr "ppmxl (PPMXL)"
 
@@ -584,7 +577,6 @@ msgid "bsc (Bright Stars)"
 msgstr "bsc (Estrellas brillantes)"
 
 #: src/gui-gtk4/uifiles/annotate_dialog.ui:62
-#, fuzzy
 msgid "apass (APASS DR9)"
 msgstr "apass (APASS DR9)"
 
@@ -621,7 +613,6 @@ msgid "solsys (IMCCE Solar System Objects)"
 msgstr "solsys (Objetos del Sistema Solar IMCCE)"
 
 #: src/gui-gtk4/uifiles/annotate_dialog.ui:75
-#, fuzzy
 msgid ""
 "These are the catalogs used for the loaded plate solved image:\n"
 "\n"
@@ -637,8 +628,7 @@ msgid ""
 "    - for solar system objects: solsys (closest IAU observatory code can be "
 "passed in the dedicated text field."
 msgstr ""
-"Estos son los catálogos utilizados para la imagen de resolución de placas "
-"cargada :\n"
+"Estos son los catálogos utilizados para la resolución de imágenes cargada:\n"
 "\n"
 "- Automático: utiliza catálogos locales si están disponibles, de lo "
 "contrario, el valor predeterminado es nomad.\n"
@@ -833,7 +823,6 @@ msgid "Show"
 msgstr "Mostrar"
 
 #: src/gui-gtk4/uifiles/annotate_dialog.ui:456
-#, fuzzy
 msgid ""
 "Enter the object name you want to search in online database, SIMBAD or the "
 "Minor Planet Center database.\n"
@@ -950,7 +939,6 @@ msgstr "Reescalado global"
 
 #: src/gui-gtk4/uifiles/asinh_dialog.ui:128
 #: src/gui-gtk4/uifiles/histogram_dialog.ui:443
-#, fuzzy
 msgid ""
 "Select blend mode.\n"
 "    Clip: clips values to the range 0.0 - 1.0. <b>Default</b>\n"
@@ -1003,7 +991,6 @@ msgid "This button is checked for negative declination (southern hemisphere)."
 msgstr "Marque este botón para una declinación negativa (hemisferio sur)."
 
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:233
-#, fuzzy
 msgid ""
 "Enter the identifier or the name of an object located close to the centre of "
 "the image. This feature requires an Internet connection (asks SIMBAD by "
@@ -1149,9 +1136,8 @@ msgstr ""
 "coordenadas de AR/DEC de la cabecera del fichero, si existen."
 
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:442
-#, fuzzy
 msgid "CDS"
-msgstr "RCD"
+msgstr "CDS"
 
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:443
 msgid "VizieR"
@@ -1763,9 +1749,8 @@ msgid ""
 msgstr ""
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:449
-#, fuzzy
 msgid "    Protection threshold"
-msgstr "Método de protección: "
+msgstr "    Método de protección"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:450
 msgid ""
@@ -1774,9 +1759,8 @@ msgid ""
 msgstr ""
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:472
-#, fuzzy
 msgid "    Protection amount"
-msgstr "Método de protección: "
+msgstr "    Cantidad de protección"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:473
 msgid "How far the protection mask grows around detected structures."
@@ -2523,7 +2507,7 @@ msgstr "Norma de Frobenius de Hesse"
 #: src/gui-gtk4/uifiles/siril_registration.ui:1686
 #: src/gui-gtk4/uifiles/siril_stacking.ui:344
 msgid "None"
-msgstr "Ningungo"
+msgstr "Ninguno"
 
 #: src/gui-gtk4/uifiles/bdeconv_dialog.ui:1501
 #, fuzzy
@@ -2953,14 +2937,12 @@ msgid "Pick Colour"
 msgstr "Color"
 
 #: src/gui-gtk4/uifiles/colorchooserdialog.ui:41
-#, fuzzy
 msgid ""
 "Alternatively, for true colour rendering, select a filter from the list or "
 "enter a visible wavelength in nm."
 msgstr ""
-"Alternativamente, para renderizar en color real,\n"
-"selecciona un filtro de la lista o\n"
-"introduce una longitud de onda visible en nanómetros"
+"Alternativamente, para renderizar en color real, selecciona un filtro de la "
+"lista o introduce una longitud de onda visible en nanómetros"
 
 #: src/gui-gtk4/uifiles/colorchooserdialog.ui:52
 #: src/io/image_format_fits.c:3006
@@ -3168,7 +3150,6 @@ msgid "COG"
 msgstr "COG"
 
 #: src/gui-gtk4/uifiles/composition_dialog.ui:305
-#, fuzzy
 msgid ""
 "Select framing method for deep-sky alignment:\n"
 "    First channel - frame to the first channel (always L in luminance "
@@ -3178,10 +3159,10 @@ msgid ""
 "images."
 msgstr ""
 "Selecciona el método de encuadre para alineación de espacio profundo:\n"
-"Primer canal - Cuadro del primer canal (Siempre L en modo de luminancia);\n"
-"Max - Cuadro de extensión máxima de las imágenes alineadas;\n"
-"Min - Cuadro de mínima superposición de todas las imágenes alineadas;\n"
-"COG - Cuadro del centro de gravedad de los pixeles en el conjunto de "
+"    Primer canal - Cuadro del primer canal (Siempre L en modo de luminancia)"
+";\n"
+"    Min - Cuadro de mínima superposición de todas las imágenes alineadas;\n"
+"    COG - Cuadro del centro de gravedad de los pixeles en el conjunto de "
 "imágenes alineadas."
 
 #: src/gui-gtk4/uifiles/composition_dialog.ui:318
@@ -4204,7 +4185,6 @@ msgstr ""
 #: src/gui-gtk4/uifiles/dialog_star_remix.ui:352
 #: src/gui-gtk4/uifiles/dialog_star_remix.ui:758
 #: src/gui-gtk4/uifiles/histogram_dialog.ui:727
-#, fuzzy
 msgid "Shadow protection point (LP)"
 msgstr "Punto de protección de sombra (LP)"
 
@@ -4493,14 +4473,13 @@ msgid "self guided"
 msgstr "auto guiado"
 
 #: src/gui-gtk4/uifiles/epf_dialog.ui:103
-#, fuzzy
 msgid "Check this to use the current image as the guided filter guide image"
-msgstr "... o guarda la imagen FITS actual con el mismo nombre"
+msgstr ""
+"Marque esta casilla para usar la imagen actual como imagen guía del filtro."
 
 #: src/gui-gtk4/uifiles/epf_dialog.ui:120
-#, fuzzy
 msgid "Diameter"
-msgstr "Diámetro / nm"
+msgstr "Diámetro"
 
 #: src/gui-gtk4/uifiles/epf_dialog.ui:121
 #: src/gui-gtk4/uifiles/epf_dialog.ui:155
@@ -4836,9 +4815,8 @@ msgid "Show transfer curve plus the line y=x"
 msgstr "Muestra la curva de transferencia más la línea y=x"
 
 #: src/gui-gtk4/uifiles/histogram_dialog.ui:246
-#, fuzzy
 msgid "Show pre-stretch histogram"
-msgstr "Histrograma"
+msgstr "Mostrar histograma pre-estirado"
 
 #: src/gui-gtk4/uifiles/histogram_dialog.ui:259
 msgid ""
@@ -4883,14 +4861,12 @@ msgid "Prefix of the image names resulting from the mtf process."
 msgstr "Prefijo de las imágenes resultantes del proceso de mtf."
 
 #: src/gui-gtk4/uifiles/histogram_dialog.ui:427
-#, fuzzy
 msgid "Clip mode:"
-msgstr "Límite del recorte"
+msgstr "Modo de recorte:"
 
 #: src/gui-gtk4/uifiles/histogram_dialog.ui:461
-#, fuzzy
 msgid "Toggle preview on / off"
-msgstr "[ventana de acceso directo]Pantalla completa on / off"
+msgstr "Activar/desactivar previsualización"
 
 #: src/gui-gtk4/uifiles/histogram_dialog.ui:503
 msgid "Linear stretch (BP shift)"
@@ -5022,9 +4998,8 @@ msgid "None selected"
 msgstr "Ninguno seleccionado"
 
 #: src/gui-gtk4/uifiles/icc_dialog.ui:201
-#, fuzzy
 msgid "sRGB (linear TRC)"
-msgstr "sRGB (linear TRC)"
+msgstr "sRGB (TRC lineal)"
 
 #: src/gui-gtk4/uifiles/icc_dialog.ui:202
 msgid "sRGB (standard sRGB TRC)"
@@ -5173,15 +5148,14 @@ msgstr ""
 "mostrar."
 
 #: src/gui-gtk4/uifiles/icc_gamut_dialog.ui:36
-#, fuzzy
 msgid ""
 "By Myndex - Own work, CC BY-SA 4.0, <a href=\"https://commons.wikimedia.org/"
 "w/index.php?curid=116654642\">https://commons.wikimedia.org/w/index.php?"
 "curid=116654642</a>"
 msgstr ""
 "By Myndex - Own work, CC BY-SA 4.0, <a href=\"https://commons.wikimedia.org/"
-"w/index.php?curid=116654642\">https://commons.wikimedia.org/w/index.php?"
-"curid=116654642</a>"
+"w/index.php?curid=116654642\">https://commons.wikimedia.org/w/"
+"index.php?curid=116654642</a>"
 
 #: src/gui-gtk4/uifiles/icc_gamut_dialog.ui:68
 #: src/gui-gtk4/uifiles/settings_window.ui:3200
@@ -5226,7 +5200,7 @@ msgstr "Cabecera FITS"
 
 #: src/gui-gtk4/uifiles/linearmatch_dialog.ui:37
 msgid "Reference: "
-msgstr "Refernecia: "
+msgstr "Referencia: "
 
 #: src/gui-gtk4/uifiles/linearmatch_dialog.ui:44
 msgid "Choose the reference image. This image must have same dimensions."
@@ -5863,15 +5837,13 @@ msgid "Add an extra mouse action"
 msgstr "Añadir acción extra de ratón"
 
 #: src/gui-gtk4/uifiles/mouse_actions.ui:59
-#, fuzzy
 msgid "Remove the selected mouse action"
-msgstr "Eliminar la imagen seleccionada"
+msgstr "Eliminar la acción del ratón seleccionada"
 
 #: src/gui-gtk4/uifiles/mouse_actions.ui:69
 #: src/gui-gtk4/mouse_action_preferences.c:907
-#, fuzzy
 msgid "Mouse button / scroll check"
-msgstr "Botón de ratón / comprobación scroll"
+msgstr "Zona de prueba del ratón"
 
 #: src/gui-gtk4/uifiles/mouse_actions.ui:80
 msgid ""
@@ -5887,14 +5859,12 @@ msgid "Mouse Click Actions"
 msgstr "Acciones de clic del ratón"
 
 #: src/gui-gtk4/uifiles/mouse_actions.ui:126
-#, fuzzy
 msgid "Add a scroll action"
-msgstr "Igualar las estrellas en la selección"
+msgstr "Agregar acción de rueda de desplazamiento"
 
 #: src/gui-gtk4/uifiles/mouse_actions.ui:139
-#, fuzzy
 msgid "Remove a scroll action"
-msgstr "normalización"
+msgstr "Quitar acción de rueda de desplazamiento"
 
 #: src/gui-gtk4/uifiles/mouse_actions.ui:149
 #: src/gui-gtk4/uifiles/settings_window.ui:4004
@@ -5920,9 +5890,8 @@ msgstr ""
 "significa ilimitado."
 
 #: src/gui-gtk4/uifiles/mouse_actions.ui:188
-#, fuzzy
 msgid "Scroll Actions"
-msgstr "Selección"
+msgstr "Acciones de rueda de desplazamiento"
 
 #: src/gui-gtk4/uifiles/mouse_actions.ui:238
 msgid "Mouse Action Preferences"
@@ -5939,7 +5908,6 @@ msgid "Save expression in presets"
 msgstr "Guardar expresión en ajustes preestablecidos"
 
 #: src/gui-gtk4/uifiles/pixelmath.ui:62 src/gui-gtk4/pixelmath.c:1223
-#, fuzzy
 msgid "RGB/K"
 msgstr "RGB/K"
 
@@ -6061,9 +6029,8 @@ msgid "Script type"
 msgstr "Scritps"
 
 #: src/gui-gtk4/uifiles/python_scratchpad.ui:107
-#, fuzzy
 msgid "Arguments:"
-msgstr "Error"
+msgstr "Argumentos:"
 
 #: src/gui-gtk4/uifiles/python_scratchpad.ui:115
 msgid ""
@@ -6090,14 +6057,12 @@ msgid "unsaved"
 msgstr "sin guardar"
 
 #: src/gui-gtk4/uifiles/resample_dialog.ui:56
-#, fuzzy
 msgid "X scale"
-msgstr "Escala X (%): "
+msgstr "Escala X"
 
 #: src/gui-gtk4/uifiles/resample_dialog.ui:66
-#, fuzzy
 msgid "Y scale"
-msgstr "Escala Y (%): "
+msgstr "Escala Y"
 
 #: src/gui-gtk4/uifiles/resample_dialog.ui:78
 msgid "Preserve Aspect Ratio"
@@ -6144,9 +6109,8 @@ msgstr "%"
 #: src/gui-gtk4/uifiles/resample_dialog.ui:192 src/gui-gtk4/file_browser.c:2628
 #: src/gui-gtk4/file_browser.c:2630 src/gui-gtk4/file_browser.c:2674
 #: src/gui-gtk4/file_browser.c:2677
-#, fuzzy
 msgid "pixels"
-msgstr "píxel"
+msgstr "píxeles"
 
 #: src/gui-gtk4/uifiles/resample_dialog.ui:205
 #: src/gui-gtk4/uifiles/rotation_dialog.ui:102
@@ -6243,14 +6207,12 @@ msgstr "Tipo de algoritmo usado en la rotación"
 
 #: src/gui-gtk4/uifiles/rotation_dialog.ui:142
 #: src/gui-gtk4/uifiles/siril.ui:1619
-#, fuzzy
 msgid "Rotate&Crop"
-msgstr "Rotación"
+msgstr "Rotar y cortar"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:127
-#, fuzzy
 msgid "White Point Reference:"
-msgstr "Referencia de blanco:\n"
+msgstr "Punto de referencia de balance de blancos:"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:137
 msgid "Mono Sensor:"
@@ -6261,34 +6223,28 @@ msgid "OSC Sensor:"
 msgstr "Sensor OSC:"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:157
-#, fuzzy
 msgid "Red Filter:"
-msgstr "Filtro mediano"
+msgstr "Filtro Rojo:"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:167
-#, fuzzy
 msgid "Green Filter:"
-msgstr "Filtro mediano"
+msgstr "Filtro verde:"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:177
-#, fuzzy
 msgid "OSC Filter:"
-msgstr "Abrir fichero"
+msgstr "Filtro OSC:"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:187
-#, fuzzy
 msgid "Blue Filter:"
-msgstr "Filtro mediano"
+msgstr "Filtro azul:"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:196
-#, fuzzy
 msgid "Select an OSC sensor"
-msgstr "Seleccione fase"
+msgstr "Seleccione un sensor OSC"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:207
-#, fuzzy
 msgid "Select a mono sensor"
-msgstr "Seleccione fase"
+msgstr "Seleccione un sensor mono"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:218
 msgid "Select an OSC filter (e.g. a broadband light pollution filter)"
@@ -6320,43 +6276,36 @@ msgid "Details"
 msgstr "Detalles"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:265
-#, fuzzy
 msgid "Show details of the selected OSC sensor"
-msgstr "Sin guías en la selección"
+msgstr "Mostrar detalles del sensor OSC seleccionado"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:278
-#, fuzzy
 msgid "Show details of the selected mono sensor"
-msgstr "Sin guías en la selección"
+msgstr "Mostrar detalles del sensor mono seleccionado"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:291
-#, fuzzy
 msgid "Show details of the selected OSC filter"
-msgstr "Eliminar el archivo seleccionado"
+msgstr "Mostrar detalles del filtro OSC seleccionado"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:304
-#, fuzzy
 msgid "Show details of the selected red filter"
-msgstr "Eliminar el archivo seleccionado"
+msgstr "Mostrar detalles del filtro rojo seleccionado"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:317
-#, fuzzy
 msgid "Show details of the selected green filter"
-msgstr "Eliminar el archivo seleccionado"
+msgstr "Mostrar detalles del filtro verde seleccionado"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:330
-#, fuzzy
 msgid "Show details of the selected blue filter"
-msgstr "Eliminar el archivo seleccionado"
+msgstr "Mostrar detalles del filtro azul seleccionado"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:341
 msgid "DSLR Low Pass Filter:"
 msgstr "Filtro de Paso Bajo DSLR:"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:353
-#, fuzzy
 msgid "Show details of the selected LPF"
-msgstr "Eliminar el archivo seleccionado"
+msgstr "Mostrar detalles del filtro pasa bajos (LPF)"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:363
 msgid ""
@@ -6372,28 +6321,25 @@ msgstr ""
 "probablemente el BCF de Baader sea similar)."
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:374
-#, fuzzy
 msgid "Select white balance reference"
-msgstr "Restablecer preferencias"
+msgstr "Seleccione referencia de balance de blancos"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:384
-#, fuzzy
 msgid "Plot all"
-msgstr "Trazar"
+msgstr "Graficar"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:386
-#, fuzzy
 msgid ""
 "Plot the selected sensor QE, filter responses and white reference relative "
 "photon count as a function of wavelength"
 msgstr ""
-"Grafique el QE del sensor seleccionado, respuestas del filtro y recuento "
-"relativo de fotones de referencia blanca como función de longitud de onda"
+"Representa gráficamente la eficiencia cuántica (QE) del sensor, las curvas "
+"del filtro y el número relativo de fotones de la referencia blanca en "
+"función de la longitud de onda"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:399
-#, fuzzy
 msgid "Show details of the selected white reference"
-msgstr "Eliminar el archivo seleccionado"
+msgstr "Mostrar detalles de la referencia blanca seleccionada"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:416
 msgid "Blue:"
@@ -6463,17 +6409,17 @@ msgstr ""
 "azul"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:565
-#, fuzzy
 msgid "Plot fits"
-msgstr "Dibujar Var."
+msgstr "Graficar ajustes"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:566
-#, fuzzy
 msgid ""
 "Plot SPCC linear fits for catalog to image R/G and B/G ratios. In narrowband "
 "mode, plots of degenerate ratios will not be shown."
 msgstr ""
-"Dibujar ajustes lineales SPCC por catálogo para las relaciones R/G y B/G"
+"Graficar los ajustes lineales SPCC para las relaciones R/G y B/G del "
+"catálogo con respecto a la imagen.. En el modo de banda estrecha, no se "
+"mostrarán las gráficas de las relaciones degeneradas."
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:577
 msgid "Sensor Type:"
@@ -6501,13 +6447,12 @@ msgid "Atmospheric corrections"
 msgstr "Correciones atmosféricas"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:623
-#, fuzzy
 msgid ""
 "Apply an atmosphere model to account for wavelength-dependent atmospheric "
 "extinction."
 msgstr ""
-"Aplicar un modelo atmosférico para tener en cuenta la extinción atmosférica "
-"dependiente de la longitud de onda."
+"Aplicar un modelo atmosférico para tener en cuenta la atenuación de la masa "
+"de aire en función de la longitud de onda."
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:642
 msgid "Observer height / m:"
@@ -6536,7 +6481,6 @@ msgid "sea level"
 msgstr "nivel del mar"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:702
-#, fuzzy
 msgid "Airmass:"
 msgstr "Masa de aire:"
 
@@ -6602,9 +6546,8 @@ msgid "Photometric Star Catalogue: "
 msgstr "Catálogo Fotométrico de Estrellas: "
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:840
-#, fuzzy
 msgid "Gaia DR3 (local catalogue)"
-msgstr "Catálogo de Estrellas"
+msgstr "Gaia DR3 (catálogo local)"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:845
 #, fuzzy
@@ -6673,9 +6616,8 @@ msgid "Click to update Gaia archive status check"
 msgstr "Pulse para actualizar la comprobación del estado del archivo de Gaia"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1091
-#, fuzzy
 msgid "Status: "
-msgstr "Radio: "
+msgstr "Estado: "
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1097
 msgid "Checking Gaia archive status..."
@@ -6790,7 +6732,6 @@ msgid "<b>ICC Profile</b>"
 msgstr "<b>Perfil ICC</b>"
 
 #: src/gui-gtk4/uifiles/savepopup.ui:174
-#, fuzzy
 msgid "<b>Embedded Data</b>"
 msgstr "<b>Datos incrustados</b>"
 
@@ -6803,7 +6744,6 @@ msgid "<b>Image Copyright</b>"
 msgstr "<b>Copyright de la imagen</b>"
 
 #: src/gui-gtk4/uifiles/savepopup.ui:262
-#, fuzzy
 msgid "ASTRO-TIFF"
 msgstr "ASTRO-TIFF"
 
@@ -6816,7 +6756,6 @@ msgid "TIFF"
 msgstr "TIFF"
 
 #: src/gui-gtk4/uifiles/savepopup.ui:315 src/gui-gtk4/uifiles/savepopup.ui:507
-#, fuzzy
 msgid "100"
 msgstr "100"
 
@@ -6825,14 +6764,12 @@ msgid "Quality: "
 msgstr "Calidad: "
 
 #: src/gui-gtk4/uifiles/savepopup.ui:336
-#, fuzzy
 msgid "Estimate size"
-msgstr "Estimar"
+msgstr "Tamaño estimado"
 
 #: src/gui-gtk4/uifiles/savepopup.ui:337
-#, fuzzy
 msgid "Computes the size of the compressed file"
-msgstr "Fase de la imagen: "
+msgstr "Calcula el tamaño del archivo comprimido"
 
 #: src/gui-gtk4/uifiles/savepopup.ui:371
 msgid "JPEG"
@@ -6923,9 +6860,8 @@ msgstr ""
 "que se generaran como imágenes de 8 bits)"
 
 #: src/gui-gtk4/uifiles/savepopup.ui:588
-#, fuzzy
 msgid "JPEG XL"
-msgstr "JPEG"
+msgstr "JPEG XL"
 
 #: src/gui-gtk4/uifiles/savepopup.ui:619 src/gui-gtk4/uifiles/siril.ui:2387
 #: src/gui-gtk4/file_browser.c:3716 src/io/sequence.c:2212
@@ -6997,7 +6933,7 @@ msgstr ""
 
 #: src/gui-gtk4/uifiles/seqlist_dialog.ui:130
 msgid "Reference image"
-msgstr "Imagen de refernecia"
+msgstr "Imagen de referencia"
 
 #: src/gui-gtk4/uifiles/seqlist_dialog.ui:131
 msgid ""
@@ -7009,7 +6945,9 @@ msgstr ""
 "Si está seleccionado, la imagen actual hará referencia a la imagen para el "
 "registro.\n"
 "Sólo una imagen puede ser la de referencia en una secuencia, seleccionándola "
-"hará que se deseleccione la anteriormente indicada para referencia."
+"hará que se deseleccione la anteriormente indicada para referencia.\n"
+"Si no se configura manualmente, la primera imagen de la secuencia se tomará "
+"como referencia."
 
 #: src/gui-gtk4/uifiles/seqlist_dialog.ui:143
 msgid "Enter the number of the image you want to reach."
@@ -7194,9 +7132,8 @@ msgid "Y offset of Bayer array."
 msgstr "Offset Y en la matriz Bayer."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:401
-#, fuzzy
 msgid "X-Trans demosaicing quality"
-msgstr "Basado en calidad"
+msgstr "Calidad de demosaico X-Trans"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:402
 #: src/gui-gtk4/uifiles/settings_window.ui:417
@@ -7211,9 +7148,8 @@ msgstr ""
 "más lento."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:430
-#, fuzzy
 msgid "Row-order preference:"
-msgstr "Abrir preferencias"
+msgstr "Preferencia de orden de filas:"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:442
 msgid "Header then Top-Down"
@@ -7309,9 +7245,8 @@ msgid "Default Type:"
 msgstr "Tipo por defecto:"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:568
-#, fuzzy
 msgid "Allow FITS cubes to have images of different sizes"
-msgstr "Intentando añadir una imagen de diferente tamaño en un SER\n"
+msgstr "Permitir que los cubos FITS tengan imágenes de diferentes tamaños."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:569
 msgid ""
@@ -7343,12 +7278,12 @@ msgstr ""
 "Aladin considera un cubo FITS 3D como una imagen RGB (componentes Rojo, Azul "
 "y Verde) si se especifica la palabra clave CTYPE3='RGB' en la cabecera. En "
 "este caso se soporta cualquier valor BITPIX. Sin la palabra clave "
-"CTYPE3='RGB' sólo cubos FITS con 3 frames que compartan la misma dimensión y "
-"con BITPIX=8 se detectarán automáticamente como FITS RGB."
+"CTYPE3='RGB', sólo cubos FITS con 3 frames que compartan la misma dimensión "
+"y con BITPIX=8 se detectarán automáticamente como FITS RGB."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:610
 msgid "Update pixel size of binned image"
-msgstr "Actualizar el tamaño de píxel de la imagen agrupada"
+msgstr "Actualizar el tamaño de píxel de la imagen con binning"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:611
 #, fuzzy
@@ -7365,9 +7300,8 @@ msgstr ""
 "Depende del software de adquisición utilizado para crear los FITS."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:620
-#, fuzzy
 msgid "Embed ICC profiles in saved FITS files"
-msgstr "Incrustar el perfil ICC sRGB en la imagen"
+msgstr "Incrustar perfiles ICC en archivos FITS guardados"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:621
 msgid ""
@@ -7438,7 +7372,6 @@ msgid "GZIP2"
 msgstr "GZIP2"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:711
-#, fuzzy
 msgid ""
 "Select an algorithm method for FITS compression:\n"
 "\n"
@@ -7453,26 +7386,14 @@ msgid ""
 msgstr ""
 "Seleccione un método de algoritmo para la compresión FITS:\n"
 "\n"
-"* <b> Rice </b>: el algoritmo de Rice es simple y muy rápido\n"
-"* <b> GZIP 1 </b>: el algoritmo gzip se utiliza para comprimir y "
+"    * <b> Rice </b>: el algoritmo de Rice es simple y muy rápido\n"
+"    * <b> GZIP 1 </b>: el algoritmo gzip se utiliza para comprimir y "
 "descomprimir los píxeles de la imagen. Gzip es el algoritmo de compresión "
 "utilizado en la utilidad de software GNU gratuita del mismo nombre.\n"
-"* <b> GZIP 2 </b>: los bytes de la matriz de valores de píxeles de la imagen "
-"se mezclan en orden decreciente de importancia antes de comprimirlos con el "
-"algoritmo gzip. Esto suele ser especialmente eficaz al comprimir matrices de "
-"punto flotante.\n"
-"* <b> Hcompress </b>: Resumiento, el método utilizado es:\n"
-"- 1. una transformada wavelet llamada transformada H (una transformada de "
-"Haar generalizada a dos dimensiones), seguida de\n"
-"- 2. cuantificación que descarta el ruido en la imagen mientras retiene la "
-"señal en todas las escalas, seguida de\n"
-"- 3. codificación de cuatro árboles de los coeficientes cuantificados.\n"
-"La técnica proporciona una compresión muy buena para imágenes astronómicas y "
-"es relativamente rápida. Los cálculos se realizan mediante aritmética de "
-"enteros y son totalmente reversibles. En consecuencia, el programa se puede "
-"utilizar para compresión con pérdida o sin pérdida, sin necesidad de un "
-"enfoque especial para el caso sin pérdida (por ejemplo, no es necesario un "
-"archivo de residuos)."
+"    * <b> GZIP 2 </b>: los bytes de la matriz de valores de píxeles de la "
+"imagen se mezclan en orden decreciente de importancia antes de comprimirlos "
+"con el algoritmo gzip. Esto suele ser especialmente eficaz al comprimir "
+"matrices de punto flotante."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:739
 msgid "Quantization level"
@@ -7771,6 +7692,9 @@ msgid ""
 "<b>Local Star Catalogues</b> (<a href=\"https://siril.readthedocs.io/en/"
 "stable/astrometry/platesolving.html#using-local-catalogues\">more info</a>)"
 msgstr ""
+"<b>Catálogos local de estrellas</b> (<a href=\"https://siril.readthedocs.io/"
+"en/stable/astrometry/platesolving.html#using-local-catalogues\">más "
+"información</a>)"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:1218
 msgid "Update default focal length and pixel size from the result"
@@ -8239,9 +8163,8 @@ msgid "Defines the size of the window."
 msgstr "Ajustar la imagen a la ventana"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:2444
-#, fuzzy
 msgid "<b>Aberration Inspector</b>"
-msgstr "Resta realizada ...\n"
+msgstr "<b>Inspector de aberraciones</b>"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:2467
 #: src/gui-gtk4/uifiles/settings_window.ui:3136
@@ -9538,9 +9461,8 @@ msgid "Mask from stars"
 msgstr "PSF desde estrellas"
 
 #: src/gui-gtk4/uifiles/siril.ui:651 src/gui-gtk4/mouse_action_functions.c:174
-#, fuzzy
 msgid "Mask from image file"
-msgstr "No se puede copiar la imagen de entrada, abortando.\n"
+msgstr "Máscara a partir de un archivo de imagen"
 
 #: src/gui-gtk4/uifiles/siril.ui:658 src/gui-gtk4/mouse_action_functions.c:176
 msgid "Add freehand to mask"
@@ -9686,9 +9608,8 @@ msgid "Background Extraction..."
 msgstr "Extracción del fondo..."
 
 #: src/gui-gtk4/uifiles/siril.ui:1047
-#, fuzzy
 msgid "Open the background extraction dialog"
-msgstr "Canal #%d: realizada extracción de fondo.\n"
+msgstr "Abrir el cuadro de diálogo de extracción de fondo"
 
 #: src/gui-gtk4/uifiles/siril.ui:1082
 msgid "Linear Match..."
@@ -9770,12 +9691,15 @@ msgid "Photometric Color Calibration..."
 msgstr "Calibración de color fotométrica..."
 
 #: src/gui-gtk4/uifiles/siril.ui:1242
-#, fuzzy
 msgid ""
 "Open the photometric color calibration dialog.\n"
 "\n"
 "        <b>WARNING: image must be platesolved before.</b>"
-msgstr "Iniciar el algoritmo fotométrico de calibración del color."
+msgstr ""
+"Abrir el cuadro de diálogo de calibración fotométrica del color.\n"
+"\n"
+"             <b>ADVERTENCIA: la imagen debe estar resuelta astrométricamente "
+"previamente.</b>"
 
 #: src/gui-gtk4/uifiles/siril.ui:1250
 #, fuzzy
@@ -9783,12 +9707,15 @@ msgid "Spectrophotometric Color Calibration..."
 msgstr "Calibración de color fotométrica..."
 
 #: src/gui-gtk4/uifiles/siril.ui:1251
-#, fuzzy
 msgid ""
 "Open the spectrophotometric color calibration dialog.\n"
 "\n"
 "        <b>WARNING: image must be platesolved before.</b>"
-msgstr "Iniciar el algoritmo fotométrico de calibración del color."
+msgstr ""
+"Abrir el cuadro de diálogo de calibración fotométrica del color.\n"
+"\n"
+"        <b>ADVERTENCIA: La imagen debe estar resuelta astrométricamente con "
+"anterioridad.</b>"
 
 #: src/gui-gtk4/uifiles/siril.ui:1298
 msgid "RGB Compositing..."
@@ -13825,9 +13752,8 @@ msgid "Up is %+.2lf deg CounterclockWise wrt. N%s\n"
 msgstr ""
 
 #: src/algos/astrometry_solver.c:578
-#, fuzzy
 msgid " (flipped)"
-msgstr "(volteado)"
+msgstr " (volteado)"
 
 #: src/algos/astrometry_solver.c:583
 msgid "Resolution:%*.3lf arcsec/px\n"
@@ -13885,9 +13811,8 @@ msgid ""
 msgstr ""
 
 #: src/algos/astrometry_solver.c:907
-#, fuzzy
 msgid " (uncentered)"
-msgstr "Centrado"
+msgstr " Centrado"
 
 #: src/algos/astrometry_solver.c:923
 #, c-format
@@ -15376,9 +15301,9 @@ msgid " (aka %s)"
 msgstr ""
 
 #: src/algos/search_objects.c:242
-#, fuzzy, c-format
+#, c-format
 msgid " at coordinates: %s, %s\n"
-msgstr "No se puede copia la imagen, cancelando\n"
+msgstr " en las coordenadas: %s, %s\n"
 
 #: src/algos/search_objects.c:269
 #, c-format
@@ -23743,9 +23668,8 @@ msgid "%s: processing%s...\n"
 msgstr ": procesando %s...\n"
 
 #: src/core/processing.c:1668
-#, fuzzy
 msgid " (mask active)"
-msgstr "relativo"
+msgstr " (máscara activa)"
 
 #: src/core/processing.c:1673
 #, fuzzy
@@ -29700,7 +29624,6 @@ msgid "_Open"
 msgstr "_Abrir"
 
 #: src/gui-gtk4/python_gui.c:242
-#, fuzzy
 msgid "_Recent Files"
 msgstr "_Ficheros recientes"
 
@@ -29728,9 +29651,8 @@ msgid "Close _all tabs"
 msgstr ""
 
 #: src/gui-gtk4/python_gui.c:259
-#, fuzzy
 msgid "_File"
-msgstr "Archivo"
+msgstr "_Archivo"
 
 #: src/gui-gtk4/python_gui.c:265
 #, fuzzy
@@ -29895,7 +29817,6 @@ msgid "Siril _Command Reference"
 msgstr "Centro de control de Siril"
 
 #: src/gui-gtk4/python_gui.c:339
-#, fuzzy
 msgid "_Help"
 msgstr "_Ayuda"
 

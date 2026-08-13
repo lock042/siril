@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-20 14:20+0200\n"
-"PO-Revision-Date: 2026-06-29 08:28+0000\n"
+"PO-Revision-Date: 2026-08-13 12:14+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/ru/>\n"
@@ -40,15 +40,14 @@ msgstr "Пороговое значение для ограничения кон
 
 #. Try to have 3 lines here.
 #: src/gui-gtk4/uifiles/CLAHE_dialog.ui:93
-#, fuzzy
 msgid ""
 "Please, make sure to remove all black borders or other\n"
 "    stacking residuals by cropping the image. If you don't,\n"
 "    artifacts may appear."
 msgstr ""
 "Убедитесь что обрезаны все чёрные границы и другие\n"
-"остатки укладки. В противном случае возможно\n"
-"появление артефактов."
+"    остатки укладки. В противном случае возможно\n"
+"    появление артефактов."
 
 #: src/gui-gtk4/uifiles/CLAHE_dialog.ui:104
 #: src/gui-gtk4/uifiles/asinh_dialog.ui:103
@@ -166,15 +165,14 @@ msgid "Iterations"
 msgstr "Кол-во итераций"
 
 #: src/gui-gtk4/uifiles/Median_dialog.ui:81
-#, fuzzy
 msgid ""
 "Number of iterations of the algorithm.\n"
 "    This is useful when modulation parameter is different to 1 helping the "
 "whole process to converge to better result."
 msgstr ""
 "Количество итераций алгоритма.\n"
-"Это полезно, когда параметр модуляции отличен от 1, помогая всему процессу "
-"сойтись к лучшему результату."
+"    Это полезно, когда параметр модуляции отличен от 1, помогая всему "
+"процессу сойтись к лучшему результату."
 
 #: src/gui-gtk4/uifiles/Median_dialog.ui:100
 #: src/gui-gtk4/uifiles/denoise_dialog.ui:212
@@ -183,15 +181,14 @@ msgid "Modulation"
 msgstr "Модуляция"
 
 #: src/gui-gtk4/uifiles/Median_dialog.ui:120
-#, fuzzy
 msgid ""
 "Modulation parameter set in the [0, 1] range.\n"
 "    When this parameter is equal to 1, no modulation is applied.\n"
 "    If the parameters is null, so no filter is apply at all."
 msgstr ""
 "Параметр модуляции устанавливается в диапазоне [0, 1].\n"
-"Когда этот параметр равен 1, модуляция не применяется.\n"
-"Если параметр равен null, тогда фильтр вообще не применяется."
+"    Когда этот параметр равен 1, модуляция не применяется.\n"
+"    Если параметр равен null, тогда фильтр вообще не применяется."
 
 #: src/gui-gtk4/uifiles/Median_dialog.ui:131
 #: src/gui-gtk4/uifiles/composition_dialog.ui:104
@@ -479,7 +476,6 @@ msgid "0"
 msgstr "0"
 
 #: src/gui-gtk4/uifiles/aavso_dialog.ui:248
-#, fuzzy
 msgid ""
 "The standardized magnitude for the variable is given by\n"
 "\n"
@@ -491,9 +487,9 @@ msgid ""
 msgstr ""
 "Стандартизованный блеск переменной в виде\n"
 "\n"
-"Vstd = (Vins - Cins) + Cstd\n"
+"    Vstd = (Vins - Cins) + Cstd\n"
 "\n"
-"где Vins — инструментальный блеск переменной, Cins — инструментальное "
+"    где Vins — инструментальный блеск переменной, Cins — инструментальное "
 "значение звезды сравнения и Cstd — табличное значение звезды сравнения."
 
 #: src/gui-gtk4/uifiles/aavso_dialog.ui:262
@@ -614,7 +610,6 @@ msgid "solsys (IMCCE Solar System Objects)"
 msgstr "solsys (Объекты Солнечной системы IMCCE)"
 
 #: src/gui-gtk4/uifiles/annotate_dialog.ui:75
-#, fuzzy
 msgid ""
 "These are the catalogs used for the loaded plate solved image:\n"
 "\n"
@@ -633,16 +628,16 @@ msgstr ""
 "Список каталогов, используемых для загруженных изображений, имеющих "
 "астрономическое решение:\n"
 "\n"
-"- Автоматически: если доступны, то используются локальные каталоги, в "
+"    - Автоматически: если доступны, то используются локальные каталоги, в "
 "противном случае по умолчанию используется nomad.\n"
 "\n"
 "Вы можете выбрать один из следующих удалённых каталогов:\n"
 "\n"
-"- для звёзд: tycho2, nomad, gaia, ppmxl, bsc, apass, gcvs, vsx, simbad, "
+"    - для звёзд: tycho2, nomad, gaia, ppmxl, bsc, apass, gcvs, vsx, simbad, "
 "aavso_chart\n"
-"- для экзопланет: exo\n"
-"- для глубокого космоса: pgc\n"
-"- для объектов Солнечной системы: solsys (в соответствующем поле можно "
+"    - для экзопланет: exo\n"
+"    - для глубокого космоса: pgc\n"
+"    - для объектов Солнечной системы: solsys (в соответствующем поле можно "
 "указать код МАС для ближайшей обсерватории)."
 
 #: src/gui-gtk4/uifiles/annotate_dialog.ui:96
@@ -742,7 +737,7 @@ msgstr ""
 
 #: src/gui-gtk4/uifiles/annotate_dialog.ui:271
 msgid "Click this button to select a csv file."
-msgstr "Нажмите на эту кнопку, чтобы выбрать файл CSV."
+msgstr "Нажмите на эту кнопку, чтобы выбрать файл csv."
 
 #: src/gui-gtk4/uifiles/annotate_dialog.ui:295
 msgid ""
@@ -822,7 +817,6 @@ msgid "Show"
 msgstr "Показать"
 
 #: src/gui-gtk4/uifiles/annotate_dialog.ui:456
-#, fuzzy
 msgid ""
 "Enter the object name you want to search in online database, SIMBAD or the "
 "Minor Planet Center database.\n"
@@ -835,12 +829,12 @@ msgid ""
 msgstr ""
 "Введите название объекта, который вы хотите найти в удалённой базе данных, "
 "SIMBAD или базе данных Центра малых планет.\n"
-"На объекты Солнечной системы можно ссылаться по их номеру или имени, "
+"    На объекты Солнечной системы можно ссылаться по их номеру или имени, "
 "используя префикс, который зависит от типа объекта, например, 'a:1' или "
 "'a:Ceres', 'p:mars' или 'c:C/2017 T2'.\n"
-"Если объект найден, то он будет добавлен в пользовательский каталог. Объекты "
-"Солнечной системы будут добавлены с датой в их имени, без проверки на "
-"повторы. Очистите пользовательский каталог, чтобы удалить результаты "
+"    Если объект найден, то он будет добавлен в пользовательский каталог. "
+"Объекты Солнечной системы будут добавлены с датой в их имени, без проверки "
+"на повторы. Очистите пользовательский каталог, чтобы удалить результаты "
 "предыдущих поисков."
 
 #: src/gui-gtk4/uifiles/annotate_dialog.ui:469
@@ -937,7 +931,6 @@ msgstr "Общее масштабирование"
 
 #: src/gui-gtk4/uifiles/asinh_dialog.ui:128
 #: src/gui-gtk4/uifiles/histogram_dialog.ui:443
-#, fuzzy
 msgid ""
 "Select blend mode.\n"
 "    Clip: clips values to the range 0.0 - 1.0. <b>Default</b>\n"
@@ -952,16 +945,16 @@ msgid ""
 "stretch if you notice colour artefacts around bright stars."
 msgstr ""
 "Выберите режим смешения.\n"
-"Обрезка: обрезает значения до диапазона 0.0 - 1.0. <b>Значение по умолчанию</"
-"b>\n"
-"Масштабировать: масштабирует значения RGB обрезанных пикселей, чтобы они не "
-"превышали 1.0 на пиксель\n"
-"Смешение RGB: применяет функцию смешения для плавного восстановления "
+"    Обрезка: обрезает значения до диапазона 0.0 - 1.0. <b>Значение по "
+"умолчанию</b>\n"
+"    Масштабировать: масштабирует значения RGB обрезанных пикселей, чтобы они "
+"не превышали 1.0 на пиксель\n"
+"    Смешение RGB: применяет функцию смешения для плавного восстановления "
 "пересвеченных цветов. \n"
-"Общее масштабирование: аналогичен «Масштабировать», но масштабирование "
+"    Общее масштабирование: аналогичен «Масштабировать», но масштабирование "
 "происходит до общего максимального значения компонента\n"
 "\n"
-"Самый быстрый — Обрезка. Установите иной режим, когда вы будете довольны "
+"    Самый быстрый — Обрезка. Установите иной режим, когда вы будете довольны "
 "своим растягиванием, если заметите цветовые эффекты вокруг ярких звёзд."
 
 #: src/gui-gtk4/uifiles/asinh_dialog.ui:184
@@ -990,7 +983,6 @@ msgid "This button is checked for negative declination (southern hemisphere)."
 msgstr "Использовать отрицательное склонение (для южного полушария)."
 
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:233
-#, fuzzy
 msgid ""
 "Enter the identifier or the name of an object located close to the centre of "
 "the image. This feature requires an Internet connection (asks SIMBAD by "
@@ -1001,11 +993,10 @@ msgstr ""
 "Введите идентификатор или название объекта, расположенного вблизи центра "
 "изображения. Это функция требует подключения к интернету (по умолчанию "
 "запрашивается сервер SIMBAD или сервер из списка справа).\n"
-"Если координаты уже внесены нажатием расположенной ниже кнопки «Получить "
+"    Если координаты уже внесены нажатием расположенной ниже кнопки «Получить "
 "метаданные из фото», это, возможно, не потребуется."
 
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:247
-#, fuzzy
 msgid ""
 "Start searching the coordinates of named object. This feature requires an "
 "Internet connection (asks SIMBAD by default or the selected server at the "
@@ -1016,7 +1007,7 @@ msgstr ""
 "Начать поиск координат указанного объекта. Это функция требует подключения к "
 "интернету (по умолчанию запрашивается сервер SIMBAD или выбранный из списка "
 "справа).\n"
-"Если координаты уже внесены нажатием расположенной ниже кнопки «Получить "
+"    Если координаты уже внесены нажатием расположенной ниже кнопки «Получить "
 "метаданные из фото», это, возможно, не потребуется."
 
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:262
@@ -1155,7 +1146,6 @@ msgstr "Сервер:"
 
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:480
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:496
-#, fuzzy
 msgid ""
 "Select the order of the solution:\n"
 "    Linear assumes no distortion is present in the image\n"
@@ -1165,11 +1155,11 @@ msgid ""
 "the solution, using SIP convention"
 msgstr ""
 "Выберите степень решения:\n"
-"Линейная подразумевает отсутствие дисторсии на изображении\n"
-"Вторая, третья, четвёртая и пятая будут включать полиномиальные искажения "
-"второго, третьего, четвертого или пятого порядка.\n"
-"При выборе степени с искажениями, в решение будут добавлены дополнительные "
-"переменные, использую соглашение SIP"
+"    Линейная подразумевает отсутствие дисторсии на изображении\n"
+"    Вторая, третья, четвёртая и пятая будут включать полиномиальные "
+"искажения второго, третьего, четвёртого или пятого порядка.\n"
+"    При выборе степени с искажениями, в решение будут добавлены "
+"дополнительные переменные, использую соглашение SIP"
 
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:495
 msgid "Solution order: "
@@ -1239,7 +1229,6 @@ msgid "Save distortion"
 msgstr "Сохранить данные о дисторсии"
 
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:598
-#, fuzzy
 msgid ""
 "Saves the solution as a distortion file, to be used to undistort images "
 "during registration.\n"
@@ -1249,8 +1238,8 @@ msgid ""
 msgstr ""
 "Сохраняет решение как файл с данными о дисторсии для последующего "
 "исправления дисторсии изображений во время регистрации.\n"
-"Эту опцию можно активировать только если степень решения более 1.\n"
-"При поиске астрономического решения последовательности, файл с данными о "
+"    Эту опцию можно активировать только если степень решения более 1.\n"
+"    При поиске астрономического решения последовательности, файл с данными о "
 "дисторсии сохраняется по опорному изображению."
 
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:612
@@ -1303,7 +1292,6 @@ msgid "Star Catalogue: "
 msgstr "Каталог звёзд: "
 
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:723
-#, fuzzy
 msgid ""
 "Choose the online catalogue against one want to compare the image.\n"
 "    * TYCHO-2 catalogue contains positions, proper motions, and two-color "
@@ -1332,31 +1320,31 @@ msgid ""
 "magnitude to about 17th magnitude for over 37 million stars."
 msgstr ""
 "Выберете удалённый каталог, с которым будет сравниваться изображение:\n"
-"* каталог TYCHO-2 содержит положения, собственные движения и двухцветные "
+"    * каталог TYCHO-2 содержит положения, собственные движения и двухцветные "
 "данные фотометрии для 2 539 913 наиболее ярких звёзд Млечного пути.\n"
-"* каталог NOMAD включает данные астрометрии и оптической фотометрии из "
+"    * каталог NOMAD включает данные астрометрии и оптической фотометрии из "
 "каталогов Hipparcos, Tycho-2, UCAC2, Yellow-Blue 6 и USNO-B, дополненные "
 "данными ближнего инфракрасного диапазона из каталога 2MASS. Практически 100 "
 "Гб набор данных содержит информацию об астрометрии и фотометрии около 1.1 "
 "миллиарда звёзд.\n"
-"* Третий выпуск данных телескопа Гея (Gaia Data Release 3) был представлен "
-"13 июня 2022 г. Он содержит пятипараметрическое астрономическое решение, "
-"данные о положении на небе (α, δ), параллаксе и собственном движении более "
-"чем 1.46 миллиарда источников, ограниченные звёздной величиной G = 21. "
-"Доступная автономная выборка, обеспечивающая достаточный охват для "
-"астрономического решения всех звёздных полей, исключая самые глубокие. Gaia "
-"DR3 представляет передовой уровень астрометрических и фотометрических "
-"каталогов.\n"
-"* Каталог PPMXL содержит положения, собственные движения, данные ближней "
+"    * Третий выпуск данных телескопа Гея (Gaia Data Release 3) был "
+"представлен 13 июня 2022 г. Он содержит пятипараметрическое астрономическое "
+"решение, данные о положении на небе (α, δ), параллаксе и собственном "
+"движении более чем 1.46 миллиарда источников, ограниченные звёздной "
+"величиной G = 21. Доступная автономная выборка, обеспечивающая достаточный "
+"охват для астрономического решения всех звёздных полей, исключая самые "
+"глубокие. Gaia DR3 представляет передовой уровень астрометрических и "
+"фотометрических каталогов.\n"
+"    * Каталог PPMXL содержит положения, собственные движения, данные ближней "
 "инфракрасной (2MASS) и оптической фотометрии порядка 900 миллионов звёзд и "
 "галактик.\n"
-"* Каталог ярких звёзд содержит все звёзды со звёздной величиной от 6.5, что "
-"примерно соответствует звёздам, видимым невооружённым глазом с Земли. "
+"    * Каталог ярких звёзд содержит все звёзды со звёздной величиной от 6.5, "
+"что примерно соответствует звёздам, видимым невооружённым глазом с Земли. "
 "Каталог включает 9 110 объектов.\n"
-"* APASS, фотометрический обзор всего неба Американской ассоциации "
+"    * APASS, фотометрический обзор всего неба Американской ассоциации "
 "наблюдателей переменных звёзд (AAVSO). Обзор выполнен в восьми фильтрах: "
 "Johnson B и V, Sloan u', g′, r′, i′, z_s и Z. Он действителен для более чем "
-"37 миллионов звёзд примерно от 7-й до 17-й звёздных величин."
+"37-ми миллионов звёзд примерно от 7-й до 17-й звёздных величин."
 
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:743
 msgid ""
@@ -1387,7 +1375,6 @@ msgid "Manual detection"
 msgstr "Определение вручную"
 
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:784
-#, fuzzy
 msgid ""
 "Check this option if you want to pick each stars manually. It could be "
 "useful in some cases where Siril can't find enough stars. Please, try to "
@@ -1399,7 +1386,7 @@ msgstr ""
 "быть полезно в некоторых случаях, когда Siril не находит достаточного "
 "количества звёзд. Пожалуйста, попытайтесь выбрать самые яркие звёзды на "
 "изображении. \n"
-"Используйте инструмент «Динамическая PSF» или команду findstar, подбирая "
+"    Используйте инструмент «Динамическая PSF» или команду findstar, подбирая "
 "настройки под изображение."
 
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:790
@@ -1513,12 +1500,11 @@ msgstr "Астрономическое решение"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:79
 msgid "Sample-based"
-msgstr ""
+msgstr "По образцам фона"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:80
-#, fuzzy
 msgid "Automatic (sample-free)"
-msgstr "Автоматическое обновление"
+msgstr "Автоматически (без образцов)"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:85
 msgid ""
@@ -1526,6 +1512,9 @@ msgid ""
 "or automatically on every pixel that survives an iterative robust rejection "
 "of structures (no samples)."
 msgstr ""
+"Выберите способ построения модели фона: по образцам (сетка/вручную) или "
+"автоматически для каждого пикселя, прошедшего итеративную робастную "
+"выбраковку структур (без образцов)."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:104
 #: src/algos/background_extraction.c:1450
@@ -1572,7 +1561,6 @@ msgid "Degree order: "
 msgstr "Степень функции: "
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:190
-#, fuzzy
 msgid ""
 "Choose the degree order of the polynomial function used in the fit.\n"
 "    By default the value is of 4.\n"
@@ -1580,8 +1568,8 @@ msgid ""
 "removed."
 msgstr ""
 "Укажите степень полиномиальной функции, используемой при подгонке.\n"
-"По умолчанию это значение 4.\n"
-"Чем выше степень, тем более комплексные градиенты могут быть удалены."
+"    По умолчанию это значение 4.\n"
+"    Чем выше степень, тем более комплексные градиенты могут быть удалены."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:212
 #: src/gui-gtk4/background_extraction.c:279
@@ -1593,7 +1581,6 @@ msgid "Grid tolerance"
 msgstr "Допуск"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:244
-#, fuzzy
 msgid ""
 "Avoid generating banding by adding some random noise in the low dynamic "
 "background gradient.\n"
@@ -1601,7 +1588,7 @@ msgid ""
 msgstr ""
 "Позволяет избежать появления полошения, добавляя некоторое количество "
 "случайного шума в низкодинамический градиент фона.\n"
-"Следует включить для нерастянутых изображений."
+"    Следует включить для нерастянутых изображений."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:256
 msgid ""
@@ -1641,7 +1628,6 @@ msgid "Add dither"
 msgstr "Подмешать шум"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:288
-#, fuzzy
 msgid ""
 "Hit this option when color banding is produced after background extraction.\n"
 "    Dither is an intentionally applied form of noise used to randomize "
@@ -1650,7 +1636,7 @@ msgid ""
 msgstr ""
 "Установите этот флажок, если после извлечения фона появляется цветовое "
 "полошение.\n"
-"Этот намеренно привнесённый шум используется для рандомизации ошибок "
+"    Этот намеренно привнесённый шум используется для рандомизации ошибок "
 "квантования, предотвращая появление крупномасштабных градиентов на "
 "изображениях, таких как цветовое полошение."
 
@@ -1693,7 +1679,6 @@ msgid "Generate"
 msgstr "Создать"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:319
-#, fuzzy
 msgid ""
 "Click here to generate the automatically defined samples.\n"
 "\n"
@@ -1704,7 +1689,7 @@ msgid ""
 msgstr ""
 "Нажмите для создания автоматически определённых образцов.\n"
 "\n"
-"При обработке последовательности образцы показаны лишь для того, чтобы "
+"    При обработке последовательности образцы показаны лишь для того, чтобы "
 "увидеть влияние настроек «Плотность образцов» и «Допуск» на размещение "
 "образов: для каждого кадра в последовательности образцы будут созданы "
 "автоматически."
@@ -1714,13 +1699,12 @@ msgid "Click here to clear all the samples."
 msgstr "Нажмите, чтобы удалить все образцы."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:350
-#, fuzzy
 msgid ""
 "You also can set samples manually.\n"
 "    Left click adds samples while right click removes them."
 msgstr ""
 "Образцы могут быть созданы вручную.\n"
-"Левый клик добавляет, а правый — удаляет образцы."
+"    Левый клик добавляет, а правый — удаляет образцы."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:358
 msgid "Interpolation Method"
@@ -1747,42 +1731,45 @@ msgid ""
 "Extra smoothing of the final model. Higher gives a softer, more gradual "
 "background; 0 leaves the fitted model untouched."
 msgstr ""
+"Дополнительное сглаживание окончательной модели. Более высокое значение "
+"обеспечивает более мягкий, плавный фон; значение 0 оставляет подобранную "
+"модель неизменной."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:437
-#, fuzzy
 msgid "Structure protection"
-msgstr "Определение звёзд"
+msgstr "Защита структуры"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:439
 msgid ""
 "Mask extended bright structures (nebulae) so they are not absorbed into the "
 "model."
 msgstr ""
+"Маскирует протяжённые яркие структуры (туманности), чтобы они не были "
+"поглощены моделью."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:449
-#, fuzzy
 msgid "    Protection threshold"
-msgstr "Способ защиты: "
+msgstr "    Порог защиты"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:450
 msgid ""
 "Brightness above the model at which a pixel is treated as a structure. Lower "
 "= protects more."
 msgstr ""
+"Значение яркости выше которого пиксель рассматривается как структура. Чем "
+"ниже значение, тем лучше защита."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:472
-#, fuzzy
 msgid "    Protection amount"
-msgstr "Способ защиты: "
+msgstr "    Уровень защиты"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:473
 msgid "How far the protection mask grows around detected structures."
-msgstr ""
+msgstr "Насколько широка защитная маска вокруг обнаруженных структур."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:492
-#, fuzzy
 msgid "Simplified model"
-msgstr "Сверхразрешение (×2)"
+msgstr "Упрощённая модель"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:493
 msgid ""
@@ -1792,13 +1779,16 @@ msgstr ""
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:503
 msgid "    Model degree"
-msgstr ""
+msgstr "    Степень модели"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:504
+#, fuzzy
 msgid ""
 "Polynomial degree of the simplified model. Lower = stiffer (degree 1 = "
 "plane)."
 msgstr ""
+"Степень полинома упрощённой модели. Чем ниже степень, тем жестче модель "
+"(степень 1 = плоскость)."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:525
 #, fuzzy
@@ -1812,9 +1802,8 @@ msgid ""
 msgstr ""
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:552
-#, fuzzy
 msgid "Automatic Model"
-msgstr "Автоматическое обновление"
+msgstr "Автоматическая модель"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:570
 msgid "Subtraction"
@@ -1825,7 +1814,6 @@ msgid "Division"
 msgstr "Деление"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:576
-#, fuzzy
 msgid ""
 "Choose the type of correction you want apply:\n"
 "    Subtraction: it is mainly used to correct additive effects, such as "
@@ -1835,9 +1823,9 @@ msgid ""
 "kind of operation should be done by master-flat correction."
 msgstr ""
 "Выберите тип коррекции:\n"
-"Вычитание: главным образом корректируются аддитивные эффекты, вызванные "
+"    Вычитание: главным образом корректируются аддитивные эффекты, вызванные "
 "световым загрязнением или Луной.\n"
-"Деление: главным образом используется для коррекции мультипликативных "
+"    Деление: главным образом используется для коррекции мультипликативных "
 "эффектов, как виньетирование или дифференциальное поглощение атмосферы. "
 "Однако такие операции должны корректироваться с помощью мастер-кадров "
 "плоского поля."
@@ -1862,22 +1850,19 @@ msgstr ""
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:612
 msgid "View"
-msgstr ""
+msgstr "Просмотр"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:621
-#, fuzzy
 msgid "Processed image"
-msgstr "Обработка изображения..."
+msgstr "Обработанное изображение"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:622
-#, fuzzy
 msgid "Background model"
-msgstr "Удаление фона"
+msgstr "Модель фона"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:623
-#, fuzzy
 msgid "Original image"
-msgstr "Показать оригинальное изображение"
+msgstr "Оригинальное изображение"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:628
 msgid ""
@@ -1885,6 +1870,9 @@ msgid ""
 "the corrected image, the background model that was removed, or the original "
 "image."
 msgstr ""
+"Выберите, что будет показано в главном окне после вычисления фона: "
+"исправленное изображение, модель фона, которая была удалена, или исходное "
+"изображение."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:640
 #: src/gui-gtk4/uifiles/bdeconv_dialog.ui:1615
@@ -2462,7 +2450,6 @@ msgid "Wiener filter"
 msgstr "Фильтр Винера"
 
 #: src/gui-gtk4/uifiles/bdeconv_dialog.ui:1428
-#, fuzzy
 msgid ""
 "Once the PSF is estimated or provided the image is finally deconvolved using "
 "the selected algorithm.\n"
@@ -2471,7 +2458,7 @@ msgid ""
 msgstr ""
 "Как только PSF рассчитана или предоставлена, изображение окончательно "
 "реконструируется с использованием выбранного алгоритма.\n"
-"Выберите алгоритм Ричардсона-Люси для снимков глубокого космоса, для "
+"    Выберите алгоритм Ричардсона-Люси для снимков глубокого космоса, для "
 "изображений Луны и планет — метод Брэгмана или фильтр Винера."
 
 #: src/gui-gtk4/uifiles/bdeconv_dialog.ui:1453
@@ -2515,7 +2502,6 @@ msgid "None"
 msgstr "Нет"
 
 #: src/gui-gtk4/uifiles/bdeconv_dialog.ui:1501
-#, fuzzy
 msgid ""
 "Total Variation regularization preserves sharp edges in the image well. If "
 "in doubt, stick with Total Variation. However it can have a tendency to "
@@ -2524,13 +2510,12 @@ msgid ""
 "It is more often used in regularizing denoising algorithms but can perform "
 "well when deconvolving a star mask."
 msgstr ""
-"Регуляризация с помощью полной вариации хорошо сохраняет четкие края "
+"Регуляризация с помощью полной вариации хорошо сохраняет чёткие края "
 "изображения. Если сомневаетесь, выбирайте полную вариацию. Однако это имеет "
 "тенденцию создавать «эффект лестницы» на крупных однородных областях.\n"
-"Норма Фробениуса для гессиана использует член регуляризации второго порядка. "
-"Она чаще используется в регуляризации алгоритмов шумоподавления, но может "
-"хорошо работать при реконструкции маски звёзд, создаваемой интерфейсом Siril "
-"к Starnet++."
+"    Норма Фробениуса для гессиана использует член регуляризации второго "
+"порядка. Она чаще используется в регуляризации алгоритмов шумоподавления, но "
+"может хорошо работать при реконструкции маски звёзд."
 
 #: src/gui-gtk4/uifiles/bdeconv_dialog.ui:1512
 msgid "Alpha (α)"
@@ -2813,7 +2798,6 @@ msgid "Background Neutralization"
 msgstr "Нейтрализация фона"
 
 #: src/gui-gtk4/uifiles/color_calibration.ui:190
-#, fuzzy
 msgid ""
 "Background Neutralization will compute the mean of each color channel and "
 "will equalize the sky background in a neutral grey.\n"
@@ -2821,7 +2805,7 @@ msgid ""
 msgstr ""
 "При нейтрализации фона вычисляется среднее значение каждого цветового канала "
 "и выравнивается фон неба в нейтрально-сером цвете.\n"
-"Этот шаг необходимо выполнять перед любой попыткой калибровки цвета."
+"    Этот шаг необходимо выполнять перед любой попыткой калибровки цвета."
 
 #: src/gui-gtk4/uifiles/color_calibration.ui:202
 msgid "Background reference"
@@ -2875,7 +2859,6 @@ msgid "Height of the white reference selection"
 msgstr "Высота образца белого"
 
 #: src/gui-gtk4/uifiles/color_calibration.ui:407
-#, fuzzy
 msgid ""
 "You should specify a selection that represents an average of suitable white "
 "reference.\n"
@@ -2883,7 +2866,7 @@ msgid ""
 msgstr ""
 "Необходимо указать выделение, содержащее подходящее среднее значение образца "
 "белого цвета.\n"
-"Если выделение не сделано, как образец используется изображение целиком."
+"    Если выделение не сделано, как образец используется всё изображение."
 
 #: src/gui-gtk4/uifiles/color_calibration.ui:425
 msgid ""
@@ -2914,7 +2897,6 @@ msgid "White reference"
 msgstr "Ориентир белого"
 
 #: src/gui-gtk4/uifiles/color_calibration.ui:511
-#, fuzzy
 msgid ""
 "A set of three color calibration factors will be computed and multiplied "
 "with every color channel.\n"
@@ -2922,7 +2904,7 @@ msgid ""
 msgstr ""
 "Три коэффициента калибровки цвета будут рассчитаны и умножены на каждый "
 "цветовой канал.\n"
-"Перед этой операцией должна быть выполнена нейтрализация фона."
+"    Перед этой операцией должна быть выполнена нейтрализация фона."
 
 #: src/gui-gtk4/uifiles/color_calibration.ui:524
 #: src/gui-gtk4/uifiles/siril.ui:905 src/gui-gtk4/uifiles/siril.ui:1219
@@ -2935,38 +2917,32 @@ msgid "Pick a colour for the current composition layer."
 msgstr ""
 
 #: src/gui-gtk4/uifiles/colorchooserdialog.ui:26
-#, fuzzy
 msgid "Pick Colour"
-msgstr "Получить цвет из изображения"
+msgstr "Получить цвет"
 
 #: src/gui-gtk4/uifiles/colorchooserdialog.ui:41
-#, fuzzy
 msgid ""
 "Alternatively, for true colour rendering, select a filter from the list or "
 "enter a visible wavelength in nm."
 msgstr ""
-"В противном случае для правильной цветопередачи,\n"
-"выберите фильтр из списка или\n"
-"введите видимую длину волны в нм"
+"В противном случае для правильной цветопередачи, выберите фильтр из списка "
+"или введите видимую длину волны в нм."
 
 #: src/gui-gtk4/uifiles/colorchooserdialog.ui:52
 #: src/io/image_format_fits.c:3006
-#, fuzzy
 msgid "Filter"
-msgstr "Фильтры"
+msgstr "Фильтр"
 
 #: src/gui-gtk4/uifiles/colorchooserdialog.ui:71
-#, fuzzy
 msgid "Wavelength (nm)"
-msgstr "Длина волны / нм"
+msgstr "Длина волны (нм)"
 
 #: src/gui-gtk4/uifiles/colorchooserdialog.ui:82
-#, fuzzy
 msgid ""
 "Enter a wavelength value in nanometers, between 380 and 780, decimals are "
 "accepted."
 msgstr ""
-"Введите длину волны в нанометрах (между 380 и 780 нм). Допустимы дробные "
+"Введите длину волны в нанометрах (между 380 и 780 нм). Допустимы десятичные "
 "значения."
 
 #: src/gui-gtk4/uifiles/colorchooserdialog.ui:99 src/gui-gtk4/callbacks.c:3803
@@ -3005,35 +2981,32 @@ msgid "x alignment"
 msgstr "выравнивание по x"
 
 #: src/gui-gtk4/uifiles/composition_dialog.ui:116
-#, fuzzy
 msgid ""
 "In manual alignment mode, sets the x-axis shift.\n"
 "    In other alignment modes, shows the x-axis shift applied to the layer."
 msgstr ""
 "Устанавливает смещение по оси X в ручном режиме выравнивания.\n"
-"В других режимах выравнивания показывает смещение по оси X, применённое к "
-"слою."
+"    В других режимах выравнивания показывает смещение по оси X, применённое "
+"к слою."
 
 #: src/gui-gtk4/uifiles/composition_dialog.ui:126
 msgid "y alignment"
 msgstr "выравнивание по y"
 
 #: src/gui-gtk4/uifiles/composition_dialog.ui:127
-#, fuzzy
 msgid ""
 "In manual alignment mode, sets the y-axis shift.\n"
 "    In other alignment modes, shows the y-axis shift applied to the layer."
 msgstr ""
 "Устанавливает смещение по оси Y в ручном режиме выравнивания.\n"
-"В других режимах выравнивания показывает смещение по оси Y, применённое к "
-"слою."
+"    В других режимах выравнивания показывает смещение по оси Y, применённое "
+"к слою."
 
 #: src/gui-gtk4/uifiles/composition_dialog.ui:137
 msgid "rotation"
 msgstr "вращение"
 
 #: src/gui-gtk4/uifiles/composition_dialog.ui:138
-#, fuzzy
 msgid ""
 "In manual alignment mode, sets the rotation around the center of the image.\n"
 "    In other alignment modes, shows the rotation applied to the layer around "
@@ -3042,9 +3015,9 @@ msgid ""
 msgstr ""
 "Устанавливает вращение вокруг центра изображения в ручном режиме "
 "выравнивания.\n"
-"В других режимах выравнивания показывает поворот вокруг начала координат, "
-"применённый к слою.\n"
-"Поворот отображается в градусах против часовой стрелки."
+"    В других режимах выравнивания показывает поворот вокруг начала "
+"координат, применённый к слою.\n"
+"    Поворот отображается в градусах против часовой стрелки."
 
 #: src/gui-gtk4/uifiles/composition_dialog.ui:152
 #: src/gui-gtk4/compositing.c:443
@@ -3078,15 +3051,14 @@ msgid "Linear match"
 msgstr "Линейный поиск соответствий"
 
 #: src/gui-gtk4/uifiles/composition_dialog.ui:196
-#, fuzzy
 msgid ""
 "Linear match the input layer images to the first layer.\n"
 "    This is important if you are not coloring the layers with pure R, pure G "
 "and pure B."
 msgstr ""
 "Линейное сопоставление изображений входящего слоя с первым слоем.\n"
-"Это важно если не выполняется окраска слоёв с помощью чистого красного (R), "
-"чистого зелёного (G) и чистого синего (B)."
+"    Это важно если не выполняется окраска слоёв с помощью чистого красного "
+"(R), чистого зелёного (G) и чистого синего (B)."
 
 #: src/gui-gtk4/uifiles/composition_dialog.ui:204
 msgid "Adjust layers brightness"
@@ -3155,7 +3127,6 @@ msgid "COG"
 msgstr "Центр тяжести"
 
 #: src/gui-gtk4/uifiles/composition_dialog.ui:305
-#, fuzzy
 msgid ""
 "Select framing method for deep-sky alignment:\n"
 "    First channel - frame to the first channel (always L in luminance "
@@ -3166,9 +3137,10 @@ msgid ""
 msgstr ""
 "Выберите способ кадрирования для выравнивания изображений глубокого "
 "космоса:\n"
-"Первый канал — кадр к первому каналу (в режиме «Светимость» это всегда L);\n"
-"Минимум — кадр к минимальному перекрытию всех выравненных изображений;\n"
-"COG — кадр к центру тяжести пикселей в группе выравненных изображений."
+"    Первый канал — кадр к первому каналу (в режиме «Светимость» это всегда L)"
+";\n"
+"    Минимум — кадр к минимальному перекрытию всех выравненных изображений;\n"
+"    COG — кадр к центру тяжести пикселей в группе выравненных изображений."
 
 #: src/gui-gtk4/uifiles/composition_dialog.ui:318
 msgid "Align"
@@ -3257,13 +3229,12 @@ msgstr ""
 "отличаться от соседних, чтобы рассматривать пиксель как горячий."
 
 #: src/gui-gtk4/uifiles/cosmetic_dialog.ui:140
-#, fuzzy
 msgid ""
 "0: No correction\n"
 "    1 : 100% corrected"
 msgstr ""
 "0: Без коррекции\n"
-"1: 100% коррекция"
+"    1: 100% коррекция"
 
 #: src/gui-gtk4/uifiles/cosmetic_dialog.ui:149
 #: src/gui-gtk4/uifiles/cut_dialog.ui:182
@@ -3271,13 +3242,12 @@ msgid "CFA"
 msgstr "CFA"
 
 #: src/gui-gtk4/uifiles/cosmetic_dialog.ui:150
-#, fuzzy
 msgid ""
 "Check if the target frames are CFA images.\n"
 "    Uncheck if images come from a monochrome sensor."
 msgstr ""
 "Установите этот флажок, если целевые кадры это CFA-изображения. \n"
-"Снимите этот флажок, если изображения получены на монохромный сенсор."
+"    Снимите этот флажок, если изображения получены на монохромный сенсор."
 
 #: src/gui-gtk4/uifiles/cosmetic_dialog.ui:201
 #: src/gui-gtk4/uifiles/dialog_star_remix.ui:1052
@@ -3318,7 +3288,6 @@ msgid "Logarithmic scale"
 msgstr "Логарифмическая шкала"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:80
-#, fuzzy
 msgid ""
 "Show the histogram with a logarithmic scale. Does not affect the transfer "
 "function display.\n"
@@ -3326,7 +3295,7 @@ msgid ""
 msgstr ""
 "Показать гистограмму на логарифмической шкале. Не влияет на отображение "
 "передаточной функции.\n"
-"                            "
+"                                "
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:126 src/gui-gtk4/curves.c:249
 msgid "Toggles whether to apply the curve to the red channel"
@@ -3986,7 +3955,6 @@ msgstr "Преобразование Фурье"
 
 #: src/gui-gtk4/uifiles/dialog_star_remix.ui:95
 #: src/gui-gtk4/uifiles/dialog_star_remix.ui:500
-#, fuzzy
 msgid ""
 "Select a starless image for recomposing with a star mask.\n"
 "    While the primary aim of the tool is star recomposition as part of a "
@@ -3994,7 +3962,7 @@ msgid ""
 "dimensions and bit depth for blending."
 msgstr ""
 "Выберите изображение без звёзд для восстановления с маской звёзд.\n"
-"Хотя этот инструмент предназначен для восстановления звёзд как часть "
+"    Хотя этот инструмент предназначен для восстановления звёзд как часть "
 "рабочего процесса уменьшения звёзд, вы можете указать любые два файла FITS с "
 "одинаковыми размерами и разрядностью для смешения."
 
@@ -4084,7 +4052,6 @@ msgstr "Равновзвешенная светимость"
 
 #: src/gui-gtk4/uifiles/dialog_star_remix.ui:185
 #: src/gui-gtk4/uifiles/dialog_star_remix.ui:592
-#, fuzzy
 msgid ""
 "Set the stretch model for colour stretches. The options are: evenly weighted "
 "luminance, which calculates the stretch based on a luminance value weighting "
@@ -4101,8 +4068,8 @@ msgstr ""
 "светимости, применяя веса к каналам R, G и B согласно относительной "
 "чувствительности человеческого глаза и 3) независимые значения каналов, "
 "когда растягивание применяется независимо к каждому каналу пикселя.\n"
-"Обратите внимание, что модели, основанные на светимости, обычно не являются "
-"обратимыми."
+"    Обратите внимание, что модели, основанные на светимости, обычно не "
+"являются обратимыми."
 
 #: src/gui-gtk4/uifiles/dialog_star_remix.ui:202
 #: src/gui-gtk4/uifiles/dialog_star_remix.ui:609
@@ -4444,7 +4411,6 @@ msgid "Guide Image"
 msgstr "Эталонное изобр."
 
 #: src/gui-gtk4/uifiles/epf_dialog.ui:88
-#, fuzzy
 msgid ""
 "Select guide image. No need to select a file if the \"self guided\" check "
 "box is checked.\n"
@@ -4453,7 +4419,7 @@ msgid ""
 msgstr ""
 "Выберите эталонное изображение. В выборе файла нет необходимости, если "
 "установлен флажок «самообучение».\n"
-"ПРЕДУПРЕЖДЕНИЕ: использование эталонного изображения, не основанного на "
+"    ПРЕДУПРЕЖДЕНИЕ: использование эталонного изображения, не основанного на "
 "исходном, скорее всего даст плохие результаты."
 
 #: src/gui-gtk4/uifiles/epf_dialog.ui:101
@@ -4521,7 +4487,6 @@ msgid "Sigma (intensity)"
 msgstr "σ (интенсивность)"
 
 #: src/gui-gtk4/uifiles/epf_dialog.ui:208
-#, fuzzy
 msgid ""
 "This value affects the range of pixel value similarity the edge preserving "
 "filter aplies over.\n"
@@ -4531,22 +4496,21 @@ msgid ""
 msgstr ""
 "Это значение влияет на диапазон сходства значений пикселей, к которым "
 "применяется фильтр, сохраняющий края.\n"
-"Если ваши звёзды выглядят большими и расфокусированными, начните с "
+"    Если ваши звёзды выглядят большими и расфокусированными, начните с "
 "уменьшения этого значения. В зависимости от ваших данных, вам может "
 "потребоваться внести существенные коррективы, например, установить значение "
 "ниже 1.0."
 
 #: src/gui-gtk4/uifiles/epf_dialog.ui:235
 #: src/gui-gtk4/uifiles/epf_dialog.ui:251
-#, fuzzy
 msgid ""
 "Modulation parameter set in the [0, 1] range.\n"
 "    When this parameter is equal to 1, no modulation is applied.\n"
 "    If the parameters is 0, no filter is applied at all."
 msgstr ""
 "Параметр модуляции устанавливается в диапазоне [0, 1].\n"
-"Когда этот параметр равен 1, модуляция не применяется.\n"
-"Если параметр равен 0, тогда фильтр вообще не применяется."
+"    Когда этот параметр равен 1, модуляция не применяется.\n"
+"    Если параметр равен 0, тогда фильтр не применяется вовсе."
 
 #: src/gui-gtk4/uifiles/epf_dialog.ui:270
 msgid ""
@@ -4664,7 +4628,6 @@ msgid "Wavelets Layers Extraction"
 msgstr "Извлечение вейвлетных слоёв"
 
 #: src/gui-gtk4/uifiles/file_information_dialog.ui:21
-#, fuzzy
 msgid ""
 "Information related to the image, extracted from the file if available, from "
 "the preferences otherwise.\n"
@@ -4672,7 +4635,7 @@ msgid ""
 msgstr ""
 "Информация, связанная с изображением, которая получена из файла (при "
 "возможности), или из настроек в противном случае.\n"
-"Изменённые данные можно сохранить в файле формата FITS."
+"    Изменённые данные можно сохранить в файле формата FITS."
 
 #: src/gui-gtk4/uifiles/file_information_dialog.ui:34
 msgid "Pixel size (micron): "
@@ -4735,7 +4698,6 @@ msgid "Real pixel size"
 msgstr "Реальный размер пикселя"
 
 #: src/gui-gtk4/uifiles/file_information_dialog.ui:164
-#, fuzzy
 msgid ""
 "Check this button if binning is not taken into account in the pixel size "
 "value. In this case, the binning value will be used to compute the "
@@ -4746,8 +4708,8 @@ msgstr ""
 "Установите этот флажок, если значение биннинга не учитывается при вычислении "
 "размера пикселя. В этом случае биннинг будет использован при вычислении "
 "разрешения.\n"
-"ПРЕДУПРЕЖДЕНИЕ: установка этого флажка сохраняет данную настройку, которая "
-"также доступна в разделе настроек FITS."
+"    ПРЕДУПРЕЖДЕНИЕ: установка этого флажка сохраняет данную настройку, "
+"которая также доступна в разделе настроек FITS."
 
 #: src/gui-gtk4/uifiles/file_information_dialog.ui:184
 msgid "Save as default values"
@@ -4775,7 +4737,6 @@ msgid "Reset zooms to 1."
 msgstr "Сбросить масштаб к 1."
 
 #: src/gui-gtk4/uifiles/histogram_dialog.ui:150
-#, fuzzy
 msgid ""
 "Show the histogram with a logarithmic scale. Does not affect the transfer "
 "function display.\n"
@@ -4783,6 +4744,7 @@ msgid ""
 msgstr ""
 "Показать гистограмму на логарифмической шкале. Не влияет на отображение "
 "передаточной функции.\n"
+"    "
 
 #: src/gui-gtk4/uifiles/histogram_dialog.ui:189
 msgid "Toggles whether the stretch applies to the red channel"
@@ -4887,7 +4849,6 @@ msgid "Saturation stretch"
 msgstr "Растянуть насыщенность"
 
 #: src/gui-gtk4/uifiles/histogram_dialog.ui:545
-#, fuzzy
 msgid ""
 "Set the stretch model for colour stretches. The options are: evenly weighted "
 "luminance, which calculates the stretch based on a luminance value weighting "
@@ -4909,8 +4870,8 @@ msgstr ""
 "каналу пикселя; насыщенность — применяет растягивание к компоненту S в "
 "пространстве HSL. В режиме насыщенности гистограмма насыщенности "
 "отображается жёлтым.\n"
-"Замечание: для изображений с менее чем 3-мя каналами, модель, основанная на "
-"относительной чувствительности глаза недоступна, поскольку это не имеет "
+"    Замечание: для изображений с менее чем 3-мя каналами, модель, основанная "
+"на относительной чувствительности глаза недоступна, поскольку это не имеет "
 "смысла."
 
 #: src/gui-gtk4/uifiles/histogram_dialog.ui:561
@@ -4979,6 +4940,8 @@ msgid ""
 "\n"
 "    "
 msgstr ""
+"\n"
+"    "
 
 #: src/gui-gtk4/uifiles/icc_dialog.ui:188
 msgid "Built-in profile"
@@ -5107,7 +5070,6 @@ msgid "Color Management"
 msgstr "Управление цветом"
 
 #: src/gui-gtk4/uifiles/icc_gamut_dialog.ui:26
-#, fuzzy
 msgid ""
 "This image shows a comparison of the various working gamuts available in "
 "Siril. (Note P3 is not available in Siril: it is shown for reference, and "
@@ -5128,20 +5090,20 @@ msgstr ""
 "На этом рисунке показано сравнение различных цветовых охватов, доступных в "
 "Siril (Обратите внимание, что P3 недоступен в Siril, он показан для справки, "
 "и, при желании, вы можете предоставить ICC-профиль P3)\n"
-"Пространство CIE 1931 xy представляет все цвета, видимые человеческому "
+"    Пространство CIE 1931 xy представляет все цвета, видимые человеческому "
 "глазу.\n"
-"sRGB является стандартом для публикации в интернете и соответствует "
+"    sRGB является стандартом для публикации в интернете и соответствует "
 "цветовому охвату большинства мониторов.\n"
-"Другие цветовые пространства предлагают более широкий цветовой охват, "
+"    Другие цветовые пространства предлагают более широкий цветовой охват, "
 "покрывающий бо́льшую часть пространства CIE 1931. Rec 2020 имеет самый "
 "широкий цветовой охват, который не включает воображаемые цвета; ProPhoto RGB "
 "имеет еще бо́льший охват, особенно в зелёно-синей области, но включает "
 "некоторые воображаемые цвета.\n"
-"Напечатанные фотографии могут обеспечить более насыщенные и глубокие цвета, "
-"если они созданы в цветовом пространстве с более широким цветовым охватом. "
-"Также доступны специальные мониторы более широким, чем sRGB, цветовым "
-"охватом и вы, вероятно, захотите использовать как минимум такой же охват, "
-"который может отобразить ваш монитор."
+"    Напечатанные фотографии могут обеспечить более насыщенные и глубокие "
+"цвета, если они созданы в цветовом пространстве с более широким цветовым "
+"охватом. Также доступны специальные мониторы более широким, чем sRGB, "
+"цветовым охватом и вы, вероятно, захотите использовать как минимум такой же "
+"охват, который может отобразить ваш монитор."
 
 #: src/gui-gtk4/uifiles/icc_gamut_dialog.ui:36
 msgid ""
@@ -5418,7 +5380,6 @@ msgid "Selected Color"
 msgstr "Выбранный цвет"
 
 #: src/gui-gtk4/uifiles/mask_from_chromaticity.ui:111
-#, fuzzy
 msgid ""
 "<i>Click \"Pick Color from Image\" to select\n"
 "    a pixel from the image. The chromaticity\n"
@@ -5426,9 +5387,9 @@ msgid ""
 "    automatically, independent of brightness.</i>"
 msgstr ""
 "<i>Нажмите «Получить цвет из изображения» для выбора\n"
-"пикселя на изображении. Цветность (отношение чистых\n"
-"цветов) будет получена автоматически, независимо\n"
-"от яркости</i>"
+"    пикселя на изображении. Цветность (отношение чистых\n"
+"    цветов) будет получена автоматически, независимо\n"
+"    от яркости.</i>"
 
 #: src/gui-gtk4/uifiles/mask_from_chromaticity.ui:123
 msgid "Pick Color from Image"
@@ -5638,14 +5599,12 @@ msgid ""
 msgstr ""
 
 #: src/gui-gtk4/uifiles/mask_thresholds_dialog.ui:97
-#, fuzzy
 msgid "Minimum"
-msgstr "минимум"
+msgstr "Минимум"
 
 #: src/gui-gtk4/uifiles/mask_thresholds_dialog.ui:107
-#, fuzzy
 msgid "Maximum"
-msgstr "максимум"
+msgstr "Максимум"
 
 #: src/gui-gtk4/uifiles/mask_thresholds_dialog.ui:176
 #, fuzzy
@@ -5777,7 +5736,6 @@ msgstr ""
 "каналов CFA."
 
 #: src/gui-gtk4/uifiles/merge_cfa_dialog.ui:232
-#, fuzzy
 msgid ""
 "You must have one of the CFA sequences selected in the main window sequence "
 "tab. Siril will autodetect which CFA channel it corresponds to from the CFA "
@@ -5794,14 +5752,14 @@ msgid ""
 "\n"
 "    Note that CFA merge does not work for X-Trans files."
 msgstr ""
-"У вас должна быть выбрана одна из последовательностей CFA на вкладке "
-"«Последовательность» главного окна. Siril автоматически определит какому из "
+"У вас должна быть выбрана одна из последовательностей CFA на вкладке «"
+"Последовательность» главного окна. Siril автоматически определит какому из "
 "каналов CFA она соответствует по метке (marker string). Все 4 "
 "последовательности должны иметь одинаковый шаблон названия и метку, "
 "отличаясь лишь номером, следующим за меткой (например, CFA0, CFA1, CFA2 and "
 "CFA3).\n"
 "\n"
-"Каждое изображение в последовательности будет обработано только в том "
+"    Каждое изображение в последовательности будет обработано только в том "
 "случае, если будут найдены соответствующие изображения оставшихся 3-х "
 "каналов CFA. Требуются как файл G1, так и G2. Примечание: это означает, что "
 "если вы отбросите изображение, содержащее один канал CFA изображения между "
@@ -5809,7 +5767,8 @@ msgstr ""
 "для этого изображения. Вся фильтрация последовательностей должна выполняться "
 "либо до split_cfa, либо после merge_cfa.\n"
 "\n"
-"Обратите внимание, что совмещение каналов CFA не работает для файлов X-Trans."
+"    Обратите внимание, что совмещение каналов CFA не работает для файлов X-"
+"Trans."
 
 #: src/gui-gtk4/uifiles/merge_cfa_dialog.ui:248
 msgid "Sequences"
@@ -6035,9 +5994,8 @@ msgstr ""
 "поэтому сценарии не должны зависеть исключительно от аргументов для ввода."
 
 #: src/gui-gtk4/uifiles/python_scratchpad.ui:124
-#, fuzzy
 msgid "Clear arguments"
-msgstr "Удалить образцы"
+msgstr "Очистить аргументы"
 
 #: src/gui-gtk4/uifiles/python_scratchpad.ui:138 src/gui-gtk4/python_gui.c:2101
 #: src/gui-gtk4/python_gui.c:2269
@@ -6345,14 +6303,13 @@ msgid "Red:"
 msgstr "Красный:"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:446
-#, fuzzy
 msgid ""
 "Nominal passband wavelength in nm\n"
 "    Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - "
 "486.1 nm"
 msgstr ""
 "Номинальная длина волны в полосе пропускания в нм\n"
-"Обычные длины волн: S II — 672 нм; Ha — 656.46 нм; O III — 500 нм; Hb — "
+"    Обычные длины волн: S II — 672 нм; Ha — 656.46 нм; O III — 500 нм; Hb — "
 "486.1 нм"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:456
@@ -6492,7 +6449,6 @@ msgid "GAIA DR3"
 msgstr "GAIA DR3"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:788
-#, fuzzy
 msgid ""
 "Choose the online catalogue against one want to compare the image and "
 "compute photometry.\n"
@@ -6512,16 +6468,16 @@ msgid ""
 msgstr ""
 "Выберете удалённый каталог, с которым хотите сравнить изображение и получить "
 "данные фотометрии.\n"
-"* каталог NOMAD включает данные астрометрии и оптической фотометрии из "
+"    * каталог NOMAD включает данные астрометрии и оптической фотометрии из "
 "каталогов Hipparcos, Tycho-2, UCAC2, Yellow-Blue 6 и USNO-B, дополненные "
 "данными ближнего инфракрасного диапазона из каталога 2MASS. Практически 100 "
 "Гб набор данных содержит информацию об астрометрии и фотометрии около 1.1 "
 "миллиарда звёзд.\n"
-"* APASS, фотометрический обзор всего неба Американской ассоциации "
+"    * APASS, фотометрический обзор всего неба Американской ассоциации "
 "наблюдателей переменных звёзд (AAVSO). Обзор выполняется в восьми фильтрах: "
 "Johnson B и V, Sloan u', g′, r′, i′, z_s и Z. Он действителен для более чем "
 "37 миллионов звёзд примерно от 7-й до 17-й звёздной величины.\n"
-"* Третий релиз данных Gaia был представлен 13 июня 2022. Содержит данные "
+"    * Третий релиз данных Gaia был представлен 13 июня 2022. Содержит данные "
 "фотометрии для приблизительно 1.46 миллиарда источников с приделом звёздной "
 "величины G = 21. Использованы различные фильтры из Johnson B и V, однако "
 "эффективная температура источника измерена на основе его спектра и Siril "
@@ -6536,7 +6492,6 @@ msgid "Gaia DR3 (local catalogue)"
 msgstr "Gaia DR3 (локальный каталог)"
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:845
-#, fuzzy
 msgid ""
 "Choose the catalogue to use for spectrophotometric colour calibration.\n"
 "    * Gaia DR3 archive is an online service providing direct access to the "
@@ -6548,12 +6503,12 @@ msgid ""
 msgstr ""
 "Выберите каталог, который будет использован для спектрофотометрической "
 "калибровки цвета.\n"
-"* Архив Gaia DR3 — это удалённый сервис, предоставляющий прямой доступ к "
+"    * Архив Gaia DR3 — это удалённый сервис, предоставляющий прямой доступ к "
 "каталогу Gaia DR3.\n"
-"* Локальный каталог Gaia DR3 xp_sampled — это оптимизированный локальный "
+"    * Локальный каталог Gaia DR3 xp_sampled — это оптимизированный локальный "
 "каталог, разработанный для SPCC.\n"
-"Gaia DR3 содержит данные о спектрах для примерно 30 млн звёзд вплоть до 17.6 "
-"звёздной величины."
+"    Gaia DR3 содержит данные о спектрах для примерно 30 млн звёзд вплоть до "
+"17.6 звёздной величины."
 
 #: src/gui-gtk4/uifiles/s_pcc_dialog.ui:874
 msgid ""
@@ -6787,7 +6742,6 @@ msgid "FITS"
 msgstr "FITS"
 
 #: src/gui-gtk4/uifiles/savepopup.ui:508
-#, fuzzy
 msgid ""
 "Quality. Setting quality = 100 gives lossless compression (note that this "
 "can be quite slow). Other quality values work in the same way as JPEG "
@@ -6806,11 +6760,11 @@ msgstr ""
 "между ними нет (одно и то же значение качества не даст точно такого же "
 "визуального качества или размера файла, как для файла JPEG).\n"
 "\n"
-"ПРИМЕЧАНИЕ: сжатие с потерями даёт плохие результаты при сохранении линейных "
-"данных из-за очень высокого динамического диапазона. Однако сжатие без "
-"потерь обеспечивает меньший размер файла, чем сжатие в формате TIFF, за счёт "
-"того, что оно медленнее и не предоставляет метаданные, доступные в формате "
-"TIFF."
+"    ПРИМЕЧАНИЕ: сжатие с потерями даёт плохие результаты при сохранении "
+"линейных данных из-за очень высокого динамического диапазона. Однако сжатие "
+"без потерь обеспечивает меньший размер файла, чем сжатие в формате TIFF, за "
+"счёт того, что оно медленнее и не предоставляет метаданные, доступные в "
+"формате TIFF."
 
 #: src/gui-gtk4/uifiles/savepopup.ui:529
 msgid "Effort:"
@@ -6945,7 +6899,6 @@ msgid "Bayer information from file's header if available"
 msgstr "По возможности брать информацию о шаблоне Байера из заголовка файла"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:241
-#, fuzzy
 msgid ""
 "If this box is checked, Siril will automatically apply the Bayer pattern "
 "found in the file's header as well as X and Y Bayer offsets. If the result "
@@ -6959,7 +6912,7 @@ msgstr ""
 "обнаруженный в заголовке файла, вместе со смещением шаблона по X и Y. В том "
 "случае, если результат выглядит неверным, снимите этот флажок и вручную "
 "укажите шаблон Байера в диалоге ниже.\n"
-"Если этот флажок снят, будет использован указанный шаблон Байера. "
+"    Если этот флажок снят, будет использован указанный шаблон Байера. "
 "Предупреждение: для дебайеризации файлов SER, конвертируемых из роликов, "
 "монохромные файлы SER будут принудительно преобразованы в CFA с указанным "
 "шаблоном."
@@ -7037,7 +6990,6 @@ msgid "RCD"
 msgstr "RCD"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:330
-#, fuzzy
 msgid ""
 "Select an interpolation method to perform demosaicing.\n"
 "\n"
@@ -7070,34 +7022,35 @@ msgid ""
 msgstr ""
 "Выберите метод интерполяции для дебайеризации.\n"
 "\n"
-"* <b>Быстрая дебайеризация</b> это самый быстрый алгоритм, доступный в "
+"    * <b>Быстрая дебайеризация</b> это самый быстрый алгоритм, доступный в "
 "Siril. Однако другие алгоритмы, перечисленные ниже, часто дают гораздо "
 "лучший результат.\n"
-"** <b>VNG4</b> (Threshold-Based Variable Number of Gradients), алгоритм "
+"    ** <b>VNG4</b> (Threshold-Based Variable Number of Gradients), алгоритм "
 "работает в области 5×5 пикселей вокруг каждого исходного пикселя. Это очень "
 "хороший алгоритм для ровных областей изображения (например, фон неба), но "
 "создает артефакты в высококонтрастных областях (например, звёзды).\n"
-"* <b>AHD</b> (Adaptive Homogeneity-Directed), это другой хорошо известный "
-"алгоритм дебайеризации. Однако обычно он демонстрирует артефакты фона и "
-"плохие формы звёзд.\n"
-"* <b>AMaZE</b> (Aliasing Minimization and Zipper Elimination), это алгоритм, "
-"который даёт хорошие результаты, особенно при съёмке с низким уровнем шума.\n"
-"* <b>DCB</b> (Double Corrected Bilinear), более современный алгоритм, "
+"    * <b>AHD</b> (Adaptive Homogeneity-Directed), это другой хорошо "
+"известный алгоритм дебайеризации. Однако обычно он демонстрирует артефакты "
+"фона и плохие формы звёзд.\n"
+"    * <b>AMaZE</b> (Aliasing Minimization and Zipper Elimination), это "
+"алгоритм, который даёт хорошие результаты, особенно при съёмке с низким "
+"уровнем шума.\n"
+"    * <b>DCB</b> (Double Corrected Bilinear), более современный алгоритм, "
 "демонстрирующий некоторые артефакты фона, подобно AHD.\n"
-"* <b>HPHD</b> (Heterogeneity-Projection Hard-Decision), старый алгоритм, "
+"    * <b>HPHD</b> (Heterogeneity-Projection Hard-Decision), старый алгоритм, "
 "демонстрирующий хорошие результаты, но достаточно медленный.\n"
-"* <b>IGV</b> и <b>LMMSE</b> очень хороши при работе с сильно зашумлёнными "
-"изображениями. Однако IGV имеет тенденцию к потере некоторой цветовой "
-"информации, а LMMSE — один из алгоритмов дебайеризации требующих "
+"    * <b>IGV</b> и <b>LMMSE</b> очень хороши при работе с сильно "
+"зашумлёнными изображениями. Однако IGV имеет тенденцию к потере некоторой "
+"цветовой информации, а LMMSE — один из алгоритмов дебайеризации требующих "
 "значительного количества вычислений и который нуждается в большом количестве "
 "памяти.\n"
-"* <b>RCD</b> (Ratio Corrected Demosaicing) предназначен для сглаживания "
+"    * <b>RCD</b> (Ratio Corrected Demosaicing) предназначен для сглаживания "
 "ошибок в коррекции цвета, которые имеют место у многих методов интерполяции. "
 "Этот алгоритм хорошо себя ведёт на круглых границах, например, звёздах, и "
 "поэтому является алгоритмом по умолчанию в Siril.\n"
 "\n"
-"Для сенсоров X-Trans, независимо от указанного в настройках, используется "
-"специальный алгоритм <b>Markesteijn</b>."
+"    Для сенсоров X-Trans, независимо от указанного в настройках, "
+"используется специальный алгоритм <b>Markesteijn</b>."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:351
 msgid "X offset:"
@@ -7121,14 +7074,13 @@ msgstr "Качество дебайеризации X-Trans"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:402
 #: src/gui-gtk4/uifiles/settings_window.ui:417
-#, fuzzy
 msgid ""
 "Number of passes for the X-Trans\n"
 "    Markesteijn demosaicing algorithm, 1 is the default, 3 may be slightly "
 "better but slower."
 msgstr ""
 "Количество проходов для сенсоров X-Trans.\n"
-"Алгоритм дебайеризации Markesteijn. Значение по умолчанию — 1, немного "
+"    Алгоритм дебайеризации Markesteijn. Значение по умолчанию — 1, немного "
 "лучшим, но более медленным будет 3."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:430
@@ -7152,7 +7104,6 @@ msgid "Force Bottom-Up"
 msgstr "Принудительно снизу вверх"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:450
-#, fuzzy
 msgid ""
 "Siril read FITS data in the bottom-up orientation but a lot of capture "
 "software do not meet this specification. Most of them now write a ROWORDER "
@@ -7164,15 +7115,15 @@ msgid ""
 "as per their standard."
 msgstr ""
 "Siril читает данные FITS в ориентации сверху вниз, но многие программы "
-"захвата не соответствуют этой спецификации. Большинство в настоящее время "
-"записывают ключ ROWORDER в метаданные изображения для указания в каком "
+"захвата не следуют этой спецификации. Большинство в настоящее время "
+"записывает ключ ROWORDER в метаданные изображения для указания в каком "
 "порядке сохранены данные.\n"
-"Выберите подходящую опцию из списка. При выборе первых двух программа "
+"    Выберите подходящую опцию из списка. При выборе первых двух программа "
 "сначала пытается прочитать ROWORDER из заголовка файла, а потом "
 "переключается на резервный вариант. Две последние опции принудительно "
 "устанавливают порядок сверху вниз или снизу вверх.\n"
-"Эта настройка игнорируется при работе с файлам SER, в которых ориентация, по "
-"стандарту, всегда предполагается сверху вниз."
+"    Эта настройка игнорируется при работе с файлам SER, в которых "
+"ориентация, по стандарту, всегда предполагается сверху вниз."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:463
 #: src/gui-gtk4/uifiles/siril_conversion.ui:203
@@ -7270,7 +7221,6 @@ msgid "Update pixel size of binned image"
 msgstr "Обновить размер пикселей при биннинге"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:611
-#, fuzzy
 msgid ""
 "Used for image sampling computation, pixel size can be given in two "
 "different ways: the real pixel size is given but has to be multiplied by the "
@@ -7281,7 +7231,8 @@ msgstr ""
 "двумя способами: указывается реальный размер пикселя, который умножается на "
 "коэффициент биннинга (флажок установлен) или указывается размер пикселя уже "
 "с учётом коэффициента биннига (флажок снят).\n"
-"Это зависит от программного обеспечения, использованного для создания FITS."
+"    Это зависит от программного обеспечения, использованного для создания "
+"FITS."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:620
 msgid "Embed ICC profiles in saved FITS files"
@@ -7354,7 +7305,6 @@ msgid "GZIP2"
 msgstr "GZIP2"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:711
-#, fuzzy
 msgid ""
 "Select an algorithm method for FITS compression:\n"
 "\n"
@@ -7369,11 +7319,11 @@ msgid ""
 msgstr ""
 "Выберите метод для сжатия FITS:\n"
 "\n"
-"* <b>Rice</b>: Алгоритм Райса простой и очень быстрый\n"
-"* <b>GZIP 1</b>: Алгоритм gzip используется для упаковки и распаковки "
+"    * <b>Rice</b>: Алгоритм Райса простой и очень быстрый\n"
+"    * <b>GZIP 1</b>: Алгоритм gzip используется для упаковки и распаковки "
 "пикселей изображения. Gzip это алгоритм сжатия, используемый свободной "
 "утилитой GNU с таким же названием.\n"
-"* <b>GZIP 2</b>: Байты в массиве значений пикселей изображения "
+"    * <b>GZIP 2</b>: Байты в массиве значений пикселей изображения "
 "перетасовываются в порядке убывания значимости перед сжатием с помощью "
 "алгоритма gzip. Обычно это особенно эффективно при сжатии массивов с "
 "плавающей точкой."
@@ -7438,13 +7388,12 @@ msgstr ""
 "ObsCodesF.html\">код обсерватории</a>"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:896
-#, fuzzy
 msgid ""
 "Purge Solar Sys\n"
 "    user Catalog"
 msgstr ""
 "Очистить каталог\n"
-"Солнечной системы"
+"    Солнечной системы"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:899
 msgid ""
@@ -7455,13 +7404,12 @@ msgstr ""
 "не может быть отменена"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:906
-#, fuzzy
 msgid ""
 "Purge Deep Sky\n"
 "    user Catalog"
 msgstr ""
 "Очистить каталог\n"
-"глубокого космоса"
+"    глубокого космоса"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:909
 msgid ""
@@ -7513,7 +7461,6 @@ msgid "Formalism 1 (PC keywords)"
 msgstr "Формализм 1 (ключевые слова PC)"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:989
-#, fuzzy
 msgid ""
 "<b>Formalism 1</b>: It encodes Mij in so called PCi_j keywords and scale "
 "factor Si are the values of the CDELTi keywords from the FITS header. It is "
@@ -7531,20 +7478,19 @@ msgstr ""
 "масштабный коэффициент Si является значениями ключевых слов CDELTi из "
 "заголовка FITS. Очевидно, что значение CDELT не должно быть 0.0.\n"
 "\n"
-"<b>Формализм 2</b>: Если объединить матрицу и масштабирование, то будет "
+"    <b>Формализм 2</b>: Если объединить матрицу и масштабирование, то будет "
 "получено промежуточное значение WORLD COORDINATE Xi:\n"
 "\n"
-"               Xi = Sigma_j=1^N (Si*Mij)(Pj-Rj)\n"
+"                   Xi = Sigma_j=1^N (Si*Mij)(Pj-Rj)\n"
 "\n"
-"Ключевые слова FITS CDi_j кодируют результат Si*Mij. Единицы измерения xi "
-"задаются с помощью ключевого слова FITS CTYPEi."
+"    Ключевые слова FITS CDi_j кодируют результат Si*Mij. Единицы измерения "
+"xi задаются с помощью ключевого слова FITS CTYPEi."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:1000
 msgid "World Coordinate System"
 msgstr "Мировая система координат"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:1023
-#, fuzzy
 msgid ""
 "These four catalogues from KStars are used for plate solving and "
 "astrometry.\n"
@@ -7554,10 +7500,9 @@ msgstr ""
 "Эти четыре каталога из KStars используются для решения изображений и "
 "астрометрии.\n"
 "\n"
-"<b>namedstars.dat</b>: ярчайшие звёзды, все имеющие названия."
+"    <b>namedstars.dat</b>: ярчайшие звёзды, все имеющие названия."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:1037
-#, fuzzy
 msgid ""
 "These four catalogues from KStars are used for plate solving and "
 "astrometry.\n"
@@ -7567,7 +7512,7 @@ msgstr ""
 "Эти четыре каталога из KStars используются для поиска астрономического "
 "решения изображений и астрометрии.\n"
 "\n"
-"<b>unnamedstars.dat</b>: тоже яркие звёзды, но до 8-й звёздной величины"
+"    <b>unnamedstars.dat</b>: тоже яркие звёзды, но до 8-й звёздной величины"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:1049
 msgid ""
@@ -7585,7 +7530,6 @@ msgid ""
 msgstr "Расположение каталога звёзд deepstars.dat в вашей системе."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:1084
-#, fuzzy
 msgid ""
 "These four catalogues from KStars are used for plate solving and "
 "astrometry.\n"
@@ -7596,8 +7540,8 @@ msgstr ""
 "Эти четыре каталога из KStars используются для поиска астрономического "
 "решения изображений и астрометрии.\n"
 "\n"
-"<b>deepstars.dat</b>:более слабые звёзды, извлечённые из каталога Tycho-2 из "
-"2.5 миллионов самых ярких звёзд, вплоть до звёздной величины 12.5"
+"    <b>deepstars.dat</b>:более слабые звёзды, извлечённые из каталога Tycho-"
+"2 из 2.5 миллионов самых ярких звёзд, вплоть до звёздной величины 12.5"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:1096
 msgid ""
@@ -7605,7 +7549,6 @@ msgid ""
 msgstr "Расположение каталога звёзд USNO-NOMAD-1e8.dat в вашей системе."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:1108
-#, fuzzy
 msgid ""
 "These four catalogues from KStars are used for plate solving and "
 "astrometry.\n"
@@ -7617,9 +7560,9 @@ msgstr ""
 "Эти четыре каталога из KStars используются для поиска астрономического "
 "решения изображений и астрометрии.\n"
 "\n"
-"<b>USNO-NOMAD-1e8.dat</b>: выборка из огромного каталога NOMAD, ограниченная "
-"фотометрической информацией B-V и собственным движением звёзд в компактном "
-"двойном формате, вплоть до 18-й звёздной величины."
+"    <b>USNO-NOMAD-1e8.dat</b>: выборка из огромного каталога NOMAD, "
+"ограниченная фотометрической информацией B-V и собственным движением звёзд в "
+"компактной бинарной форме, вплоть до 18-й звёздной величины."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:1120
 msgid "Gaia astrometric extract:"
@@ -7774,7 +7717,6 @@ msgid "Location of local astrometry.net solver"
 msgstr "Расположение локального решателя astrometry.net"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:1370
-#, fuzzy
 msgid ""
 "Select astrometry.net location.\n"
 "    On UNIX-based systems, it is generally in the PATH variable and not "
@@ -7783,10 +7725,10 @@ msgid ""
 "if not installed in %LOCALAPPDATA%."
 msgstr ""
 "Укажите расположение astrometry.net.\n"
-"На UNIX-подобных системах он обычно находится в переменной PATH и не "
+"    На UNIX-подобных системах он обычно находится в переменной PATH и не "
 "является необходимым.\n"
-"На WIndows необходимо указать расположение папки cygwin_ansvr, только если "
-"он не установлен в %LOCALAPPDATA%."
+"    На WIndows необходимо указать расположение папки cygwin_ansvr, только "
+"если он не установлен в %LOCALAPPDATA%."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:1384
 msgid "Show solve-field output"
@@ -7893,7 +7835,6 @@ msgid "Default name:"
 msgstr "Название по умолчанию:"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:1689
-#, fuzzy
 msgid ""
 "The default name to be used to name stacking result.\n"
 "    This can be an expression that uses the keyword $seqname$ which will be "
@@ -7905,11 +7846,12 @@ msgid ""
 "added"
 msgstr ""
 "Название по умолчанию, используемое для результатов укладки.\n"
-"Это может быть выражение, использующее ключевое слово $seqname$, которое "
+"    Это может быть выражение, использующее ключевое слово $seqname$, которое "
 "будет преобразовано в название текущей последовательности в конце укладки.\n"
-"Пример: $seqname$stacked создаст «r_pp_light_stacked» для последовательности "
-"«r_pp_light_». Это поведение по умолчанию, если ничего не указано.\n"
-"Если в названии последовательности нет суффикса «_», он будет добавлен "
+"    Пример: $seqname$stacked создаст «r_pp_light_stacked» для "
+"последовательности «r_pp_light_». Это поведение по умолчанию, если ничего не "
+"указано.\n"
+"    Если в названии последовательности нет суффикса «_», он будет добавлен "
 "автоматически"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:1700
@@ -8069,7 +8011,6 @@ msgid "Enable repository"
 msgstr "Включить репозиторий"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:2287
-#, fuzzy
 msgid ""
 "Enable the git repository. This provides the filter and sensor data required "
 "to use SPCC.\n"
@@ -8079,9 +8020,9 @@ msgid ""
 msgstr ""
 "При установленном флажке включает репозиторий git, предоставляющий данные "
 "фильтров и сенсоров, необходимые для использования SPCC.\n"
-"Настоятельно рекомендуется оставить этот параметр включённым. Если вы решите "
-"не использовать репозиторий, вам будет необходимо загрузить файлы json "
-"вручную и распаковать их по указанному ниже пути к репозиторию, чтобы "
+"    Настоятельно рекомендуется оставить этот параметр включённым. Если вы "
+"решите не использовать репозиторий, вам будет необходимо загрузить файлы "
+"json вручную и распаковать их по указанному ниже пути к репозиторию, чтобы "
 "использовать SPCC."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:2299
@@ -8303,7 +8244,6 @@ msgid "Automatic from selection"
 msgstr "Автоматически из выделения"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:2813
-#, fuzzy
 msgid ""
 "Sets the method of selecting a ROI.\n"
 "    <b>Manual</b> requires the ROI to be selected and cleared manually using "
@@ -8312,9 +8252,9 @@ msgid ""
 "selection, and clears it when the selection is cleared."
 msgstr ""
 "Устанавливает метод выбора области интереса (ROI).\n"
-"<b>Вручную</b> требует, чтобы область интереса была выбрана и очищена "
+"    <b>Вручную</b> требует, чтобы область интереса была выбрана и очищена "
 "вручную с помощью правой кнопки мыши.\n"
-"<b>Автоматически</b> — область интереса автоматически синхронизируется с "
+"    <b>Автоматически</b> — область интереса автоматически синхронизируется с "
 "текущим выделением и очищается вместе с ним."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:2826
@@ -8382,9 +8322,8 @@ msgid "Mouse Behaviour"
 msgstr "Поведение мыши"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:2975
-#, fuzzy
 msgid "Background extraction samples"
-msgstr "Образцы для извлечения фона:"
+msgstr "Образцы для извлечения фона"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:2992
 msgid "Background extraction samples:"
@@ -8407,19 +8346,16 @@ msgid "Temporary Object (user) annotations:"
 msgstr "Пользовательские аннотации временных объектов:"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:3043
-#, fuzzy
 msgid "Standard annotations"
-msgstr "Стандартные аннотации:"
+msgstr "Стандартные аннотации"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:3061
-#, fuzzy
 msgid "DSO annotations"
-msgstr "Аннотации"
+msgstr "Аннотации DSO"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:3079
-#, fuzzy
 msgid "SSO annotations"
-msgstr "Аннотации"
+msgstr "Аннотации SSO"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:3097
 #, fuzzy
@@ -8665,7 +8601,6 @@ msgid "Image's current ICC profile"
 msgstr "Текущий ICC-профиль изображения"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:3473
-#, fuzzy
 msgid ""
 "Selects which color space to export >8bpp bit depth images to. The ICC color "
 "profile will be embedded in the file.\n"
@@ -8673,10 +8608,10 @@ msgid ""
 "always be exported as sRGB."
 msgstr ""
 "Выбирает, в какое цветовое пространство экспортировать изображения с "
-"глубиной бо́лее 8-ми бит на пиксель (8bpp). В файл будет встроен цветовой ICC-"
+"глубиной более 8-ми бит на пиксель (8bpp). В файл будет встроен цветовой ICC-"
 "профиль.\n"
-"Примечание: если формат не поддерживает встраивание ICC-профиля, изображения "
-"всегда будут экспортированы в формате sRGB."
+"    Примечание: если формат не поддерживает встраивание ICC-профиля, "
+"изображения всегда будут экспортированы в формате sRGB."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:3485
 msgid "Conversion and export intent:"
@@ -8693,7 +8628,6 @@ msgstr ""
 "в поддерживаемые форматы"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:3519
-#, fuzzy
 msgid ""
 "For files with no assigned color profile, when exporting to TIFF / PNG / "
 "JPG, embed a sRGB (or Gray with sRGB TRC) ICC profile. This does not give a "
@@ -8706,14 +8640,13 @@ msgstr ""
 "обеспечивает полноценного рабочего процесса с управлением цветопередачей и "
 "не гарантирует согласованную цветопередачу при открытии экспортированных "
 "файлов в других приложениях.\n"
-"Если этот параметр не установлен, ICC-профиль встроен не будет."
+"    Если этот параметр не установлен, ICC-профиль встроен не будет."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:3531
 msgid "Export 8-bit images using:"
 msgstr "Экспорт 8-битных изображений используя:"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:3550
-#, fuzzy
 msgid ""
 "Selects which color space to export 8-bit images to, if the format supports "
 "ICC profiles. The ICC color profile will be embedded in the file.\n"
@@ -8722,11 +8655,10 @@ msgid ""
 msgstr ""
 "В какое цветовое пространство экспортировать 8-битные изображения. В файл "
 "будет встроен цветовой ICC-профиль.\n"
-"Примечание: если формат не поддерживает встраивание ICC-профиля, изображения "
-"всегда будут экспортированы в формате sRGB."
+"    Примечание: если формат не поддерживает встраивание ICC-профиля, "
+"изображения всегда будут экспортированы в формате sRGB."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:3561
-#, fuzzy
 msgid ""
 "This section contains settings affecting how color spaces are applied to "
 "saved files\n"
@@ -8737,8 +8669,8 @@ msgstr ""
 "В данном разделе находятся настройки, влияющие на то, каким образом цветовые "
 "пространства применяются к сохранённым файлам\n"
 "\n"
-"Эти настройки не влияют на профили, сохранённые в файлах FITS, которые были "
-"указаны в параметрах FITS"
+"    Эти настройки не влияют на профили, сохранённые в файлах FITS, которые "
+"были указаны в параметрах FITS"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:3566
 msgid "File Import / Export Options"
@@ -8793,7 +8725,6 @@ msgid "Pedantically assign linear ICC profiles"
 msgstr "Тщательно назначать линейные ICC-профили"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:3685
-#, fuzzy
 msgid ""
 "When assigning an ICC image to:\n"
 "    * a loaded image that doesn't show stretches in HISTORY\n"
@@ -8803,11 +8734,11 @@ msgid ""
 "unnecessary."
 msgstr ""
 "При назначении ICC изображению:\n"
-"* загруженному изображению, которое не имеет растягивания в HISTORY\n"
-"* новому совмещённому изображению\n"
-"* новому уложенному изображению\n"
-"назначается линейный ICC-профиль. Это технически правильно, но, как правило, "
-"не требуется."
+"    * загруженному изображению, которое не имеет растягивания в HISTORY\n"
+"    * новому совмещённому изображению\n"
+"    * новому уложенному изображению\n"
+"    назначается линейный ICC-профиль. Это технически правильно, но, как "
+"правило, не требуется."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:3701
 msgid "Auto Conversion / Assignment Options"
@@ -8881,7 +8812,6 @@ msgid "\"Requires\" command is mandatory in scripts"
 msgstr "Команда «requires» в сценариях обязательна"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:3880
-#, fuzzy
 msgid ""
 "If this option is checked, scripts cannot be executed without the "
 "\"requires\" command. That ensures the compatibility between scripts and "
@@ -8894,8 +8824,8 @@ msgstr ""
 "будут выполняться. Это необходимо для обеспечения совместимости между "
 "сценариями и Siril.\n"
 "\n"
-"<span foreground=\"red\"><b>ПРЕДУПРЕЖДЕНИЕ: снимайте этот флажок только если "
-"вы знаете, что делаете!</b></span>"
+"    <span foreground=\"red\"><b>ПРЕДУПРЕЖДЕНИЕ: снимайте этот флажок только "
+"если вы знаете, что делаете!</b></span>"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:3889
 #: src/gui-gtk4/uifiles/settings_window.ui:4531
@@ -8907,7 +8837,6 @@ msgid "Enable use of the siril-scripts online repository"
 msgstr "Включить использование удалённого репозитория сценариев siril-scripts"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:3911
-#, fuzzy
 msgid ""
 "Siril will fetch and update scripts from the official siril-scripts "
 "repository. These will be available offline and specific scripts can be "
@@ -8919,13 +8848,13 @@ msgid ""
 "only take place when the Apply button is clicked, in the usual way."
 msgstr ""
 "Siril получит и обновит сценарии из официального репозитория. Они будут "
-"доступны локально и отдельные сценарии можно будет добавить в меню "
-"«Сценарии».\n"
+"доступны локально и отдельные сценарии можно будет добавить в меню «Сценарии"
+"».\n"
 "\n"
-"<b>Замечание:</b>\n"
-"Включение репозитория произойдёт немедленно и вы сможете выбрать сценарии, "
-"как только их список будет получен. Выключение репозитория произойдёт только "
-"после нажатия кнопки «Применить»."
+"    <b>Замечание:</b>\n"
+"    Включение репозитория произойдёт немедленно и вы сможете выбрать "
+"сценарии, как только их список будет получен. Выключение репозитория "
+"произойдёт только после нажатия кнопки «Применить»."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:3924
 msgid "Automatic updates"
@@ -8959,7 +8888,6 @@ msgstr ""
 "обновляется по мере ввода."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:3961
-#, fuzzy
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
 "Scripts menu. Double-click a row to open the script in the Script Editor. "
@@ -8970,14 +8898,14 @@ msgid ""
 "toggles in the \"At startup\" column: scripts that are not designated for "
 "running at startup do not show a toggle."
 msgstr ""
-"Список доступных сценариев. Выбранные сценарии будут доступные через меню "
-"«Сценарии». После двойного нажатия на строку, код сценария будет открыт в "
+"Список доступных сценариев. Выбранные сценарии будут доступные через меню «"
+"Сценарии». После двойного нажатия на строку, код сценария будет открыт в "
 "редакторе (Это позволяет вносить локальные изменения в сценарии и сохранять "
 "их).\n"
-"Чтобы открыть одну из предыдущих ревизий (например, чтобы получить более "
+"    Чтобы открыть одну из предыдущих ревизий (например, чтобы получить более "
 "старую версию после неудачного обновления сценария), щёлкните правой кнопкой "
 "мыши на строке.\n"
-"Некоторые сценарии python можно запускать автоматически при загрузке "
+"    Некоторые сценарии python можно запускать автоматически при загрузке "
 "программы. У таких сценариев доступен переключатель в столбце «При запуске». "
 "У сценариев, не предназначенных для запуска при загрузке, такой "
 "переключатель отсутствует."
@@ -8991,7 +8919,6 @@ msgid "Reset python venv"
 msgstr "Сбросить вирт. среду python"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:3992
-#, fuzzy
 msgid ""
 "<b>WARNING!!</b> <i>This will kill all running python scripts and reset the "
 "virtual environment \"venv\" directory to an as-new state. Any modules that "
@@ -9005,8 +8932,8 @@ msgstr ""
 "исходное состояние. Все модули, которые были установлены с помощью "
 "сценариев, потребуют переустановки.</i>\n"
 "\n"
-"Обычно в этом нет необходимости, и эта возможность является крайней мерой "
-"для восстановления исходного состояния venv при устранении неполадок."
+"    Обычно в этом нет необходимости, и эта возможность является крайней "
+"мерой для восстановления исходного состояния venv при устранении неполадок."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:4015
 msgid "Python Interface"
@@ -9022,7 +8949,6 @@ msgid "Ratio of available"
 msgstr "Доля доступной памяти"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:4065
-#, fuzzy
 msgid ""
 "Siril will limit itself to a ratio of the amount of free physical memory and "
 "will decrease the size of work tasks if needed.\n"
@@ -9034,19 +8960,19 @@ msgid ""
 msgstr ""
 "Siril будет ограничен долей свободной физической памяти и, при "
 "необходимости, уменьшит размер рабочих задач.\n"
-"Значение выше 1 означает, что будет использована некоторая часть памяти, "
+"    Значение выше 1 означает, что будет использована некоторая часть памяти, "
 "выгруженная в настроенную директорию, и, в целом, процесс будет медленнее, а "
 "система, скорее всего, не будет отвечать на запросы в ходе некоторых "
 "операций.\n"
-"Если у вас не настроена директория подкачки на каком-либо разделе, значение "
-"1 или выше, скорее всего, приведет к сбою siril или операционной системы."
+"    Если у вас не настроена директория подкачки на каком-либо разделе, "
+"значение 1 или выше, скорее всего, приведет к сбою siril или операционной "
+"системы."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:4079
 msgid "Fixed amount (GB)"
 msgstr "Фикс. объём (Гбайт)"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:4080
-#, fuzzy
 msgid ""
 "Siril will limit itself to a fixed amount of memory and will decrease the "
 "size of work tasks if needed.\n"
@@ -9055,8 +8981,8 @@ msgid ""
 msgstr ""
 "Siril ограничит себя фиксированным объёмом памяти и, при необходимости, "
 "уменьшит размер рабочих задач.\n"
-"Указание объёма памяти бо́льшего, чем доступен вашей системе может привести к "
-"падению siril или операционной системы."
+"    Указание объёма памяти бо́льшего, чем доступен вашей системе может "
+"привести к падению siril или операционной системы."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:4097
 msgid ""
@@ -9167,7 +9093,6 @@ msgid "Exhaustive"
 msgstr "Исчерпывающая"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:4298
-#, fuzzy
 msgid ""
 "Sets the FFTW planning strategy. FFTW generates and stores wisdom to help it "
 "optimise FFT calculations of given sizes. For each successive level of "
@@ -9194,12 +9119,12 @@ msgstr ""
 "умолчанию стратегия «Оценка» вполне приемлема. В случае, если вы регулярно "
 "имеете дело с изображениями самых разных размеров, возможно, лучше "
 "использовать стратегии «Измерение» или «Полная»; если размер ваших "
-"изображений всегда одинаков, возможно, вы захотите попробовать стратегию "
-"«Исчерпывающая». Обратите внимание, что создание первоначального плана для "
+"изображений всегда одинаков, возможно, вы захотите попробовать стратегию «"
+"Исчерпывающая». Обратите внимание, что создание первоначального плана для "
 "заданного размера и уровня планирования занимает больше времени, если вы "
 "выбрали многопоточный FFTW.\n"
 "\n"
-"Эта настройка используется Реконструкцией, но игнорируется функцией "
+"    Эта настройка используется Реконструкцией, но игнорируется функцией "
 "преобразований Фурье, которая всегда использует стратегию «Оценка», "
 "поскольку накладные расходы других стратегий не окупаются для одного "
 "преобразования Фурье."
@@ -9394,9 +9319,8 @@ msgid "AutoStretch"
 msgstr "Авторастягивание"
 
 #: src/gui-gtk4/uifiles/siril.ui:288
-#, fuzzy
 msgid "HD"
-msgstr "AHD"
+msgstr "HD"
 
 #: src/gui-gtk4/uifiles/siril.ui:289
 msgid "Use a high definition LUT for the autostretch display"
@@ -9558,14 +9482,12 @@ msgstr ""
 
 #: src/gui-gtk4/uifiles/siril.ui:644 src/core/command.c:15515
 #: src/gui-gtk4/masks_gui.c:555 src/gui-gtk4/mouse_action_functions.c:173
-#, fuzzy
 msgid "Mask from stars"
-msgstr "PSF по звёздам"
+msgstr "Маска по звёздам"
 
 #: src/gui-gtk4/uifiles/siril.ui:651 src/gui-gtk4/mouse_action_functions.c:174
-#, fuzzy
 msgid "Mask from image file"
-msgstr "Не удалось прочитать файл изображения"
+msgstr "Маска из файла изображения"
 
 #: src/gui-gtk4/uifiles/siril.ui:658 src/gui-gtk4/mouse_action_functions.c:176
 msgid "Add freehand to mask"
@@ -9767,7 +9689,6 @@ msgid "Photometric Color Calibration..."
 msgstr "Фотометрическая калибровка цвета…"
 
 #: src/gui-gtk4/uifiles/siril.ui:1242
-#, fuzzy
 msgid ""
 "Open the photometric color calibration dialog.\n"
 "\n"
@@ -9775,14 +9696,14 @@ msgid ""
 msgstr ""
 "Диалог фотометрической калибровки цвета.\n"
 "\n"
-"<b>Предупреждение: изображение уже должно иметь астрономическое решение.</b>"
+"        <b>Предупреждение: изображение уже должно иметь астрономическое "
+"решение.</b>"
 
 #: src/gui-gtk4/uifiles/siril.ui:1250
 msgid "Spectrophotometric Color Calibration..."
 msgstr "Спектрофотометрическая калибровка цвета…"
 
 #: src/gui-gtk4/uifiles/siril.ui:1251
-#, fuzzy
 msgid ""
 "Open the spectrophotometric color calibration dialog.\n"
 "\n"
@@ -9790,7 +9711,8 @@ msgid ""
 msgstr ""
 "Диалог спектрофотометрической калибровки цвета.\n"
 "\n"
-"<b>Предупреждение: изображение уже должно иметь астрономическое решение.</b>"
+"        <b>Предупреждение: изображение уже должно иметь астрономическое "
+"решение.</b>"
 
 #: src/gui-gtk4/uifiles/siril.ui:1298
 msgid "RGB Compositing..."
@@ -9846,7 +9768,6 @@ msgid "Full Resynthesis"
 msgstr "Полный повторный синтез"
 
 #: src/gui-gtk4/uifiles/siril.ui:1427
-#, fuzzy
 msgid ""
 "Create synthetic Gaussian / Moffat star mask with perfect profiles for every "
 "star detected by Siril's star finder routine, using parameters measured from "
@@ -9856,11 +9777,12 @@ msgid ""
 "        Star selection can be manually fine-tuned using the Dynamic PSF tool."
 msgstr ""
 "Для каждой звезды, обнаруженной операцией поиска звёзд, создаётся "
-"синтетическая маска по Гауссу/Моффату с идеальными профилями. Это маска "
-"может быть скомбинирована с изображением без звёзд для устранения "
-"аберраций.\n"
-"Синтез звёзд должен выполняться <i>перед</i> <b>растягиванием</b>.\n"
-"Выбор звёзд может настроен вручную с помощью инструмента «Динамическая PSF»."
+"синтетическая маска по Гауссу/Моффату с идеальными профилями, используя "
+"параметры, полученные из оригинальных данных. Это маска может быть "
+"скомбинирована с изображением без звёзд для устранения аберраций.\n"
+"        Синтез звёзд должен выполняться <i>перед</i> <b>растягиванием</b>.\n"
+"        Выбор звёзд может настроен вручную с помощью инструмента «"
+"Динамическая PSF»."
 
 #: src/gui-gtk4/uifiles/siril.ui:1437
 msgid "Open Dynamic PSF dialog."
@@ -10091,13 +10013,12 @@ msgid "Create Comparison Stars File ..."
 msgstr "Создать файл со списком звёзд сравнения ..."
 
 #: src/gui-gtk4/uifiles/siril.ui:2009
-#, fuzzy
 msgid ""
 "Generate a list of comparison stars (APASS, NOMAD) contained in the FOV.\n"
 "        Output is a csv file compatible with NINA Exoplanet"
 msgstr ""
 "Создать список звёзд сравнения (APASS, NOMAD), находящихся в поле зрения.\n"
-"Будет создан файл CSV, совместимый с плагином NINA Exoplanets"
+"        Будет создан файл CSV, совместимый с плагином NINA Exoplanets"
 
 #: src/gui-gtk4/uifiles/siril.ui:2016
 msgid "Calibrate magnitudes ..."
@@ -10936,9 +10857,8 @@ msgstr ""
 #: src/gui-gtk4/uifiles/siril_conversion.ui:215
 #: src/gui-gtk4/uifiles/siril_registration.ui:995
 #: src/gui-gtk4/message_dialog.c:568
-#, fuzzy
 msgid "AVI Bayer pattern:"
-msgstr "Шаблон Байера"
+msgstr "Шаблон Байера AVI:"
 
 #: src/gui-gtk4/uifiles/siril_conversion.ui:221
 msgid ""
@@ -10952,9 +10872,8 @@ msgstr ""
 #: src/gui-gtk4/uifiles/siril_conversion.ui:226
 #: src/gui-gtk4/uifiles/siril_registration.ui:1009
 #: src/gui-gtk4/message_dialog.c:565
-#, fuzzy
 msgid "None (mono)"
-msgstr "Трёхпрофильный (моно)"
+msgstr "Нет (моно)"
 
 #: src/gui-gtk4/uifiles/siril_conversion.ui:249
 msgid ""
@@ -11579,9 +11498,8 @@ msgid ""
 msgstr ""
 
 #: src/gui-gtk4/uifiles/siril_registration.ui:931
-#, fuzzy
 msgid "Reference frame %:"
-msgstr "Опорное изображение:\n"
+msgstr "Опорное изображение %:"
 
 #: src/gui-gtk4/uifiles/siril_registration.ui:941
 msgid ""
@@ -11601,9 +11519,8 @@ msgid ""
 msgstr ""
 
 #: src/gui-gtk4/uifiles/siril_registration.ui:967
-#, fuzzy
 msgid "Alignment mode:"
-msgstr "Режим обрезки:"
+msgstr "Режим выравнивания:"
 
 #: src/gui-gtk4/uifiles/siril_registration.ui:976
 msgid ""
@@ -11667,9 +11584,8 @@ msgid ""
 msgstr ""
 
 #: src/gui-gtk4/uifiles/siril_registration.ui:1073
-#, fuzzy
 msgid "Advanced settings…"
-msgstr "Расширенные настройки SOS"
+msgstr "Расширенные настройки…"
 
 #: src/gui-gtk4/uifiles/siril_registration.ui:1096
 msgid "Registration method:"
@@ -12782,23 +12698,20 @@ msgid ""
 msgstr ""
 
 #: src/gui-gtk4/uifiles/siril_stacking.ui:504
-#, fuzzy
 msgid "1x"
-msgstr "x"
+msgstr "1×"
 
 #: src/gui-gtk4/uifiles/siril_stacking.ui:505
 msgid "1.5x"
 msgstr ""
 
 #: src/gui-gtk4/uifiles/siril_stacking.ui:506
-#, fuzzy
 msgid "2x"
-msgstr "x"
+msgstr "2×"
 
 #: src/gui-gtk4/uifiles/siril_stacking.ui:507
-#, fuzzy
 msgid "3x"
-msgstr "x"
+msgstr "3×"
 
 #: src/gui-gtk4/uifiles/siril_stacking.ui:521
 msgid "Engine:"
@@ -13173,7 +13086,6 @@ msgstr ""
 "использованы только самые яркие пиксели."
 
 #: src/gui-gtk4/uifiles/stars_list_window.ui:123
-#, fuzzy
 msgid ""
 "Threshold value above the noise for star detection.\n"
 "    The median and standard deviation of the image are computed, then the "
@@ -13183,10 +13095,10 @@ msgid ""
 "signal or low noise (high S/N)."
 msgstr ""
 "Пороговое значение выше уровня шума для определения звёзд.\n"
-"Вычисляются медиана и стандартное отклонение (σ) изображения, после чего "
+"    Вычисляются медиана и стандартное отклонение (σ) изображения, после чего "
 "порог рассчитывается как: медиана + [порог] + σ.\n"
-"Значение порога по умолчанию — 1.00. Увеличение этого значения приведёт к "
-"обнаружению менее тусклых звёзд, что следует делать только когда на "
+"    Значение порога по умолчанию — 1.00. Увеличение этого значения приведёт "
+"к обнаружению менее тусклых звёзд, что следует делать только когда на "
 "изображениях много сигнала или мало шума (высокое соотношение сигнал/шум)."
 
 #: src/gui-gtk4/uifiles/stars_list_window.ui:138
@@ -13213,7 +13125,6 @@ msgid "Roundness threshold:"
 msgstr "Порог округлости:"
 
 #: src/gui-gtk4/uifiles/stars_list_window.ui:174
-#, fuzzy
 msgid ""
 "Threshold value of star roundnesses. Decrease this value if stars in the "
 "images show small trails, conversely, increase it if they are very round to "
@@ -13224,8 +13135,8 @@ msgstr ""
 "Пороговое значение для округлости звезды. Уменьшите это значение, если "
 "звёзды на изображениях имеют небольшие хвосты. В противном случае увеличьте, "
 "если звёзды очень округлые, чтобы избежать ложноположительных данных.\n"
-"Значение по умолчанию установленное в 0.5, пригодно для звёзд, в два раза "
-"бо́льших в одном направлении, чем в другом."
+"    Значение по умолчанию установленное в 0.5, пригодно для звёзд, в два "
+"раза бо́льших в одном направлении, чем в другом."
 
 #: src/gui-gtk4/uifiles/stars_list_window.ui:189
 msgid "Relax PSF checks"
@@ -13251,7 +13162,6 @@ msgid "Convergence:"
 msgstr "Сходимость:"
 
 #: src/gui-gtk4/uifiles/stars_list_window.ui:214
-#, fuzzy
 msgid ""
 "Convergence criterion for PSF fitting.\n"
 "    Default value of 1 should work on most cases. However for images with "
@@ -13261,10 +13171,10 @@ msgid ""
 "this value may signicantly impact star finding computation time."
 msgstr ""
 "Критерий сходимости для подгонки PSF.\n"
-"Значение по умолчанию (1) должно работать в большинстве случаев. Однако для "
-"изображений с сильной комой может быть необходимо увеличить это значение для "
-"обеспечения большего количества итераций.\n"
-"В норме это следует делать только для сложенных изображений. Увеличение "
+"    Значение по умолчанию (1) должно работать в большинстве случаев. Однако "
+"для изображений с сильной комой может быть необходимо увеличить это значение "
+"для обеспечения большего количества итераций.\n"
+"    В норме это следует делать только для сложенных изображений. Увеличение "
 "этого значения может существенно повлиять на время поиска звезды."
 
 #: src/gui-gtk4/uifiles/stars_list_window.ui:229
@@ -13307,7 +13217,6 @@ msgid "Amplitude range"
 msgstr "Диапазон амплитуд"
 
 #: src/gui-gtk4/uifiles/stars_list_window.ui:338
-#, fuzzy
 msgid ""
 "Enable amplitude range (only stars with an amplitude in this range will be "
 "kept from the detection).\n"
@@ -13316,7 +13225,7 @@ msgid ""
 msgstr ""
 "Включить диапазон амплитуд (только звёзды с амплитудами из этого диапазона "
 "будут исключены из определения).\n"
-"Замечание: исключение насыщенных звёзд из этого списка может затруднить "
+"    Замечание: исключение насыщенных звёзд из этого списка может затруднить "
 "регистрацию или астрометрию."
 
 #: src/gui-gtk4/uifiles/stars_list_window.ui:350
@@ -13324,14 +13233,13 @@ msgid "Roundness range"
 msgstr "Диапазон округлости"
 
 #: src/gui-gtk4/uifiles/stars_list_window.ui:351
-#, fuzzy
 msgid ""
 "Enable roundness upper bound.\n"
 "    Use only to display optical distortions or double stars, not for "
 "registration or astrometry, this will break them."
 msgstr ""
 "Включить верхнюю границу округлости.\n"
-"Используйте только для отображения оптических искажений (дисторсии) или "
+"    Используйте только для отображения оптических искажений (дисторсии) или "
 "двойных звёзд, а не для регистрации или астрометрии, это нарушит их."
 
 #: src/gui-gtk4/uifiles/stars_list_window.ui:367
@@ -13371,26 +13279,24 @@ msgid "Blue Adjustment"
 msgstr "Коррекция синего"
 
 #: src/gui-gtk4/uifiles/unpurple_dialog.ui:65
-#, fuzzy
 msgid ""
 "Amount of blue channel adjustment set in the [0, 1] range.\n"
 "    When this parameter is equal to 1, no reduction is applied.\n"
 "    Reduce this value for stronger effect."
 msgstr ""
 "Уровень коррекции синего канала находится в диапазоне [0, 1].\n"
-"Когда этот параметр равен 1, уменьшение не применяется.\n"
-"Уменьшение этого значения усиливает эффект."
+"    Когда этот параметр равен 1, уменьшение не применяется.\n"
+"    Уменьшение этого значения усиливает эффект."
 
 #: src/gui-gtk4/uifiles/unpurple_dialog.ui:81
-#, fuzzy
 msgid ""
 "Amount of blue channel adjustment set in the [0, 1] range.\n"
 "    When this parameter is equal to 1, no modulation is applied.\n"
 "    Reduce this value for stronger effect."
 msgstr ""
 "Уровень коррекции синего канала находится в диапазоне [0, 1].\n"
-"Когда этот параметр равен 1, модуляция не применяется.\n"
-"Уменьшение этого значения усиливает эффект."
+"    Когда этот параметр равен 1, модуляция не применяется.\n"
+"    Уменьшение этого значения усиливает эффект."
 
 #: src/gui-gtk4/uifiles/unpurple_dialog.ui:103
 msgid "Threshold"
@@ -13398,7 +13304,6 @@ msgstr "Порог"
 
 #: src/gui-gtk4/uifiles/unpurple_dialog.ui:115
 #: src/gui-gtk4/uifiles/unpurple_dialog.ui:132
-#, fuzzy
 msgid ""
 "When \"Use starmask\" is turned on, this affects the size of each star\n"
 "    in the star mask. When it's turned off, it affects the\n"
@@ -13406,9 +13311,9 @@ msgid ""
 "    Threshold for purple reduction set in the [0, 1] range."
 msgstr ""
 "Когда установлен флажок «Маска звёзд», это параметр влияет\n"
-"на размер каждой звезды в маске. Когда флажок снят, параметр\n"
-"влияет на уровень светимости фона для выбираемых пикселей\n"
-"Порог для уменьшения фиолетового находится в диапазоне [0, 1]."
+"    на размер каждой звезды в маске. Когда флажок снят, параметр\n"
+"    влияет на уровень светимости фона для выбираемых пикселей\n"
+"    Порог для уменьшения фиолетового находится в диапазоне [0, 1]."
 
 #: src/gui-gtk4/uifiles/unpurple_dialog.ui:149
 msgid "Use Starmask"
@@ -13862,10 +13767,10 @@ msgid "Not enough memory\n"
 msgstr "Недостаточно памяти\n"
 
 #: src/algos/astrometry_solver.c:511
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "There are not enough stars picked in the image. At least %d are needed\n"
-msgstr "На изображении выбрано недостаточно звёзд. Необходимо как минимум %d\n"
+msgstr "На изображении выбрано недостаточно звёзд. Необходимый минимум — %d\n"
 
 #: src/algos/astrometry_solver.c:514
 msgid "Transformation matrix is invalid, solve failed\n"
@@ -14315,9 +14220,9 @@ msgstr "Многоступенчатый"
 
 #: src/algos/background_extraction.c:1448
 #: src/algos/background_extraction.c:1899
-#, fuzzy, c-format
+#, c-format
 msgid "Automatic gradient removal (%s)"
-msgstr "Автоматическое определение"
+msgstr "Автоматическое удаление градиента (%s)"
 
 #: src/algos/background_extraction.c:1450
 #, fuzzy
@@ -14344,9 +14249,8 @@ msgid "Automatic gradient removed from %s channel.\n"
 msgstr "Извлечение фона из канала %s.\n"
 
 #: src/algos/background_extraction.c:1921
-#, fuzzy
 msgid "Automatic gradient removal done"
-msgstr "Автоматическое определение"
+msgstr "Автоматическое удаление градиента завершено"
 
 #: src/algos/background_extraction.c:2146
 #: src/algos/background_extraction.c:2279
@@ -14893,9 +14797,8 @@ msgid "Lanczos4"
 msgstr "Ланцош-4"
 
 #: src/algos/geometry.c:808
-#, fuzzy
 msgid "Error resizing mask\n"
-msgstr "Ошибка чередования изображения\n"
+msgstr "Ошибка изменения размера маски\n"
 
 #: src/algos/geometry.c:877 src/algos/geometry.c:918
 msgid "Error rotating mask\n"
@@ -15961,9 +15864,8 @@ msgstr "Не удалось усилить насыщенность\n"
 
 #: src/core/command.c:458 src/filters/synthstar.c:310
 #: src/gui-gtk4/siril_actions.c:1004
-#, fuzzy
 msgid "Synthetic stars"
-msgstr "Синтез %d звёзд...\n"
+msgstr "Синтетические звёздв"
 
 #: src/core/command.c:475 src/filters/synthstar.c:318
 #: src/gui-gtk4/siril_actions.c:989
@@ -16174,14 +16076,14 @@ msgid "Image subtraction of %s"
 msgstr "Вычитание изображений %s"
 
 #: src/core/command.c:1090
-#, fuzzy, c-format
+#, c-format
 msgid "Image multiplication by %s"
-msgstr "Инструменты проверки изображений"
+msgstr "Умножение изображения на %s"
 
 #: src/core/command.c:1093
-#, fuzzy, c-format
+#, c-format
 msgid "Image division by %s"
-msgstr "Изображение %d, %s = %s\n"
+msgstr "Деление изображения на %s"
 
 #: src/core/command.c:1111 src/core/command.c:6965 src/core/command.c:7227
 #: src/core/command.c:7892 src/core/command.c:8270
@@ -16655,9 +16557,8 @@ msgid "AutoGHS"
 msgstr "Авто GHS"
 
 #: src/core/command.c:3782
-#, fuzzy
 msgid "AutoGHS (unlinked)"
-msgstr "несвязано"
+msgstr "AutoGHS (несвязано)"
 
 #: src/core/command.c:3832
 msgid "The target background value must be in the [0, 1] range\n"
@@ -17636,9 +17537,8 @@ msgid "Canon Banding Reduction"
 msgstr "Уменьшение полошения"
 
 #: src/core/command.c:8619
-#, fuzzy
 msgid "Polynomial degree must be within the [1, 6] range.\n"
-msgstr "Порядок степени полинома должен быть в диапазоне [1, 4].\n"
+msgstr "Порядок степени полинома должен быть в диапазоне [1, 6].\n"
 
 #: src/core/command.c:8628
 msgid "Downsample must be one of 1, 2, 4, 8.\n"
@@ -17760,9 +17660,8 @@ msgid "Statistics (CFA)"
 msgstr "Статистика (CFA)"
 
 #: src/core/command.c:9707
-#, fuzzy
 msgid "Statistics (main)"
-msgstr "Статистика"
+msgstr "Статистика (основная)"
 
 #: src/core/command.c:9748
 #, c-format
@@ -17859,13 +17758,12 @@ msgstr ""
 "Сортировка по дате невозможна, файл %s не содержит DATE-OBS, не сортируем\n"
 
 #: src/core/command.c:10315
-#, fuzzy
 msgid ""
 "Too many files: you should use the 'convert' command and pass the argument "
 "-fitseq to convert your sequence to fitseq format.\n"
 msgstr ""
-"Необходимо передать дополнительный аргумент -fitseq для конвертации "
-"последовательности в формат fitseq.\n"
+"Слишком много файлов: необходимо использовать команду 'convert' и передать "
+"аргумент -fitseq для конвертации последовательности в формат fitseq.\n"
 
 #: src/core/command.c:10321
 #, c-format
@@ -18929,9 +18827,8 @@ msgid "Error opening target ICC profile.\n"
 msgstr "Ошибка открытия целевого профиля ICC.\n"
 
 #: src/core/command.c:14232 src/gui-gtk4/icc_profile.c:378
-#, fuzzy
 msgid "ICC profile assignment"
-msgstr "Назначение цветового профиля"
+msgstr "Назначение IICC-профиля"
 
 #: src/core/command.c:14249
 msgid ""
@@ -18960,9 +18857,8 @@ msgid "ICC color space conversion"
 msgstr "Конвертация цветового профиля"
 
 #: src/core/command.c:14324 src/gui-gtk4/icc_profile.c:392
-#, fuzzy
 msgid "ICC profile removal"
-msgstr "ICC-профиль удалён"
+msgstr "Удаление ICC-профиля"
 
 #: src/core/command.c:14344
 msgid "OSC Sensors"
@@ -19051,9 +18947,8 @@ msgid "Limit pixels"
 msgstr "пиксели"
 
 #: src/core/command.c:14795
-#, fuzzy
 msgid "pss: missing sequence name\n"
-msgstr "Закрываем последовательность %s\n"
+msgstr "pss: отсутствует название последовательности\n"
 
 #: src/core/command.c:14816
 #, c-format
@@ -19096,9 +18991,9 @@ msgid "pss: Stage C failed (code %d)\n"
 msgstr ""
 
 #: src/core/command.c:14874
-#, fuzzy, c-format
+#, c-format
 msgid "pss: failed to save %s\n"
-msgstr "Не удалось сохранить список в %s\n"
+msgstr "pss: не удалось сохранить %s\n"
 
 #: src/core/command.c:14880
 #, c-format
@@ -19155,9 +19050,8 @@ msgid "register_mpp: sidecar written to %s\n"
 msgstr ""
 
 #: src/core/command.c:14978
-#, fuzzy
 msgid "stack_mpp: missing sequence name\n"
-msgstr "Укладка последовательности %s\n"
+msgstr "stack_mpp: отсутствует название последовательности\n"
 
 #: src/core/command.c:14993
 #, c-format
@@ -19182,9 +19076,9 @@ msgid "stack_mpp: Stage C failed (code %d)\n"
 msgstr ""
 
 #: src/core/command.c:15036
-#, fuzzy, c-format
+#, c-format
 msgid "stack_mpp: failed to save %s\n"
-msgstr "Не удалась укладка изображения %d"
+msgstr "stack_mpp: не удалось сохранить %s\n"
 
 #: src/core/command.c:15042
 #, c-format
@@ -19197,14 +19091,12 @@ msgid "Current working directory: '%s'\n"
 msgstr "Текущая рабочая директория: '%s'\n"
 
 #: src/core/command.c:15218
-#, fuzzy
 msgid "The loaded image does not have the expected QHY GPS headers from NINA\n"
-msgstr "Первое загруженное изображение сейчас должно иметь наибольший размер\n"
+msgstr "У загруженного изображения нет ожидаемых заголовков QHY GPS из NINA\n"
 
 #: src/core/command.c:15222
-#, fuzzy
 msgid "Line is outside image\n"
-msgstr "Индекс за приделами диапазона"
+msgstr "Линия за приделами изображения\n"
 
 #: src/core/command.c:15247
 #, c-format
@@ -19217,19 +19109,16 @@ msgid "Successfully extracted metadata and cropped %d row(s) of the image\n"
 msgstr ""
 
 #: src/core/command.c:15326
-#, fuzzy
 msgid "Could not parse the coordinates\n"
-msgstr "Не удалось разобрать координаты цели\n"
+msgstr "Не удалось разобрать координаты\n"
 
 #: src/core/command.c:15375
-#, fuzzy
 msgid "Arguments for margins in arcsec or pixels are mutually exclusive\n"
-msgstr "Ошибка: режим CFA и трёхпрофильный режим исключают друг друга.\n"
+msgstr "Аргументы для границ в угл. сек. или пикселях взаимоисключающие\n"
 
 #: src/core/command.c:15406
-#, fuzzy
 msgid "Image is not plate solved!\n"
-msgstr "Изображение Siril не имеет астрономического решения"
+msgstr "Изображение не имеет астрономического решения!\n"
 
 #: src/core/command.c:15416
 msgid "Reference temperature is out of usual range [2000, 10000]K\n"
@@ -19246,38 +19135,35 @@ msgid "Reference B-V index is out of usual range [-0.5, 1.5]\n"
 msgstr ""
 
 #: src/core/command.c:15449
-#, fuzzy
 msgid ""
 "local catalogues not found and offline mode is enabled, cannot proceed\n"
 msgstr ""
-"Фокусное расстояние не найдено в изображении или в настройках, не удалось "
+"не найдены локальные каталоги и доступ к сети отключен, не удалось "
 "продолжить\n"
 
 #: src/core/command.c:15546
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid argument %s, channel must be 0-2, aborting.\n"
-msgstr "Неверный аргумент %s, прерывание.\n"
+msgstr "Неверный аргумент %s, канал должен быть 0-2, прерывание.\n"
 
 #: src/core/command.c:15565
-#, fuzzy
 msgid "Channel parameter (-channel=) is required, aborting.\n"
-msgstr "Неизвестный параметр %s, прерывание.\n"
+msgstr "Необходим параметр -channel=, прерывание.\n"
 
 #: src/core/command.c:15583 src/gui-gtk4/masks_gui.c:353
 #: src/gui-gtk4/masks_gui.c:409
-#, fuzzy
 msgid "Mask from channel"
-msgstr "канал Ha"
+msgstr "Маска из канала"
 
 #: src/core/command.c:15622
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid argument %s, red weight must be 0-1, aborting.\n"
-msgstr "Неверный аргумент %s, прерывание.\n"
+msgstr "Неверный аргумент %s, вес красного должен быть 0-1, прерывание.\n"
 
 #: src/core/command.c:15630
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid argument %s, green weight must be 0-1, aborting.\n"
-msgstr "Неверный аргумент %s, прерывание.\n"
+msgstr "Неверный аргумент %s, вес зелёного должен быть 0-1, прерывание.\n"
 
 #: src/core/command.c:15638
 #, c-format
@@ -19289,10 +19175,9 @@ msgid "Cannot specify both -human and -even options, aborting.\n"
 msgstr "Нельзя одновременно передать опции -human и -even, прерывание.\n"
 
 #: src/core/command.c:15662
-#, fuzzy
 msgid "Cannot specify custom weights with -human or -even options, aborting.\n"
 msgstr ""
-"Нельзя передать пользовательские веса с опциями -human или -even, "
+"Нельзя указать пользовательские веса с опциями -human или -even, "
 "прерывание.\n"
 
 #: src/core/command.c:15668
@@ -19301,9 +19186,8 @@ msgstr "Необходимо указать все веса (-rw, -gw, -bw), п�
 
 #: src/core/command.c:15706 src/gui-gtk4/masks_gui.c:330
 #: src/gui-gtk4/masks_gui.c:386
-#, fuzzy
 msgid "Mask from luminance"
-msgstr "Использовать светимость"
+msgstr "Маска по светимости"
 
 #: src/core/command.c:15740 src/core/command.c:15851 src/core/command.c:15915
 #: src/core/command.c:15952 src/core/command.c:15978 src/core/command.c:16000
@@ -19328,23 +19212,23 @@ msgid "Apply intensity threshold to mask"
 msgstr ""
 
 #: src/core/command.c:15838
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid argument %s, radius must be > 0 and <= 1000, aborting.\n"
-msgstr "Неверная степень %s, должна быть между 0,0 и 10,0: прерывание.\n"
+msgstr "Неверный аргумент %s, радиус должен быть > 0 и <= 1000, прерывание.\n"
 
 #: src/core/command.c:15846
-#, fuzzy
 msgid "Radius parameter (-radius=) is required, aborting.\n"
-msgstr "Ошибка в параметре %s: должен быть в %s, прерывание.\n"
+msgstr "Необходим параметр -radius=, прерывание.\n"
 
 #: src/core/command.c:15865 src/gui-gtk4/masks_gui.c:578
 msgid "Blur mask"
 msgstr "Размыть маску"
 
 #: src/core/command.c:15886
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid argument %s, distance must be > 0 and <= 2000, aborting.\n"
-msgstr "Неверная степень %s, должна быть между 0,0 и 10,0: прерывание.\n"
+msgstr ""
+"Неверный аргумент %s, дистанция должна быть > 0 и <= 2000, прерывание.\n"
 
 #: src/core/command.c:15902
 #, c-format
@@ -19353,9 +19237,8 @@ msgid ""
 msgstr ""
 
 #: src/core/command.c:15910
-#, fuzzy
 msgid "Distance parameter (-distance=) is required, aborting.\n"
-msgstr "Ошибка в параметре %s: должен быть в %s, прерывание.\n"
+msgstr "Необходим параметр -distance=, прерывание.\n"
 
 #: src/core/command.c:15930 src/gui-gtk4/masks_gui.c:602
 #, fuzzy
@@ -19374,9 +19257,9 @@ msgid "Autostretch mask"
 msgstr "Авторастягивание"
 
 #: src/core/command.c:16027
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid argument %s, bitdepth must be 8, 16 or 32, aborting.\n"
-msgstr "Неверный аргумент %s, прерывание.\n"
+msgstr "Неверный аргумент %s, разрядность может быть 8, 16 или 32, прерывание\n"
 
 #: src/core/command.c:16047
 msgid "Change mask bitdepth"
@@ -19432,7 +19315,6 @@ msgid "Luminance minimum cannot be greater than luminance maximum, aborting.\n"
 msgstr ""
 
 #: src/core/command_def.h:6
-#, fuzzy
 msgid ""
 "Computes a new image combining the image in memory with the image "
 "<b>filename</b>. At each pixel location, the new value is determined as the "
@@ -19441,11 +19323,11 @@ msgid ""
 msgstr ""
 "Вычисляет новое изображение, комбинируя изображение, находящееся в памяти с "
 "изображением <b>filename</b>. Значение в каждом положении пикселя "
-"вычисляется как максимум из значений текущего изображения и изображения "
-"<b>filename</b>"
+"вычисляется как максимум из значений текущего изображения и изображения <b>"
+"filename</b>. Данная команда учитывает маску и будет работать с ней только в "
+"том случае, если передан флаг <b>-mask</b>"
 
 #: src/core/command_def.h:7
-#, fuzzy
 msgid ""
 "Stretches the image to show faint objects using an hyperbolic arcsin "
 "transformation. The mandatory argument <b>stretch</b>, typically between 1 "
@@ -19470,11 +19352,12 @@ msgstr ""
 "растягивания для каждого пикселя, а не просто средние значения пикселей "
 "каналов. Этот метод растягивания сохраняет светимость в цветовом "
 "пространстве L*a*b*. С помощью аргумента <b>-clipmode=</b> можно установить "
-"режим обрезки в одно из следующих значений: <b>clip</b>, <b>rescale</b>, "
-"<b>rgbblend</b> или <b>globalrescale</b>. По умолчанию используется rgbblend"
+"режим обрезки в одно из следующих значений: <b>clip</b>, <b>rescale</b>, <b>"
+"rgbblend</b> или <b>globalrescale</b>. По умолчанию используется rgbblend. "
+"Данная команда учитывает маску и будет работать с ней только в том случае, "
+"если передан флаг <b>-mask</b>"
 
 #: src/core/command_def.h:8
-#, fuzzy
 msgid ""
 "Application of the generalized hyperbolic stretch with a symmetry point SP "
 "defined as k.sigma from the median of each channel (the provided "
@@ -19491,21 +19374,22 @@ msgid ""
 "the <b>-mask</b> flag is provided"
 msgstr ""
 "Применение обобщённого гиперболического растягивания с точкой симметрии SP, "
-"определяемой как k.σ из медианы каждого канала (здесь значение "
-"<b>shadowsclip</b> является k и может быть отрицательным). По умолчанию "
-"точка симметрии и растягивание вычисляются поканально. Точка симметрии может "
-"быть рассчитана как среднее значение каналов при помощи опции <b>-linked</"
-"b>. Интенсивность растягивания <b>D</b> передаётся во втором обязательном "
+"определяемой как k.σ из медианы каждого канала (здесь значение <b>"
+"shadowsclip</b> является k и может быть отрицательным). По умолчанию точка "
+"симметрии и растягивание вычисляются поканально. Точка симметрии может быть "
+"рассчитана как среднее значение каналов при помощи опции <b>-linked</b>. "
+"Интенсивность растягивания <b>D</b> передаётся во втором обязательном "
 "аргументе.\n"
 "Используются следующие неявные значения: 13 для <b>B</b>, фокусирующее на "
 "диапазон яркости точки симметрии SP; 0.7 для <b>HP</b> и 0 для <b>LP</b>. "
 "Все значения могут быть изменены при помощи опций с соответствующими "
 "названиями. С помощью аргумента <b>-clipmode=</b> можно установить режим "
-"обрезки в одно из следующих значений: <b>clip</b>, <b>rescale</b>, "
-"<b>rgbblend</b> или <b>globalrescale</b>. По умолчанию используется rgbblend"
+"обрезки в одно из следующих значений: <b>clip</b>, <b>rescale</b>, <b>"
+"rgbblend</b> или <b>globalrescale</b>. По умолчанию используется rgbblend. "
+"Данная команда учитывает маску и будет работать с ней только в том случае, "
+"если передан флаг <b>-mask</b>"
 
 #: src/core/command_def.h:9
-#, fuzzy
 msgid ""
 "Auto-stretches the currently loaded image, with different parameters for "
 "each channel (unlinked) unless <b>-linked</b> is passed. Arguments are "
@@ -19529,7 +19413,8 @@ msgstr ""
 "авторастягивании.\n"
 "\n"
 "Не используйте несвязанную версию после калибровки цвета, поскольку это "
-"изменит баланс белого"
+"изменит баланс белого. Данная команда учитывает маску и будет работать с ней "
+"только в том случае, если передан флаг <b>-mask</b>"
 
 #: src/core/command_def.h:10
 msgid ""
@@ -19840,7 +19725,6 @@ msgstr ""
 "тяжести вычисляется если имеется по крайней мере 50 таких пикселей"
 
 #: src/core/command_def.h:26
-#, fuzzy
 msgid ""
 "Equalizes the histogram of an image using Contrast Limited Adaptive "
 "Histogram Equalization.\n"
@@ -19857,7 +19741,8 @@ msgstr ""
 "<b>cliplimit</b> устанавливает порог для ограничения контраста.\n"
 "<b>tilesize</b> устанавливает размер ячейки для выравнивания гистограммы. "
 "Входящее изображение будет разделено на прямоугольные ячейки одинакового "
-"размера"
+"размера. Данная команда учитывает маску и будет работать с ней только в том "
+"случае, если передан флаг <b>-mask</b>"
 
 #: src/core/command_def.h:27
 msgid "Clears the graphical output logs"
@@ -20031,7 +19916,6 @@ msgstr ""
 "размер выделения. Выделение может быть сделано с помощью команды BOXSELECT"
 
 #: src/core/command_def.h:38
-#, fuzzy
 msgid ""
 "Performs a DDP (digital development processing) on the loaded image, as "
 "described first by Kunihiko Okano. This implementation is the one described "
@@ -20048,8 +19932,8 @@ msgid ""
 "provided"
 msgstr ""
 "Выполняет цифровую обработку загруженного изображения (DDP — digital "
-"development processing), как это было описано Кунихико Окано (Kunihiko "
-"Okano). Данная реализация аналогична таковой в IRIS.\n"
+"development processing), как это было описано Кунихико Окано (Kunihiko Okano)"
+". Данная реализация аналогична таковой в IRIS.\n"
 "\n"
 "Она сочетает линейное распределение на низких уровнях (ниже <b>level</b>) и "
 "нелинейное — на высоких.\n"
@@ -20058,10 +19942,10 @@ msgstr ""
 "<b>sigma</b> находятся в диапазоне 0.7-2. Аргумент level должен быть в "
 "диапазоне [0, 65535] для 16-битных изображений и может быть указан в "
 "диапазоне [0, 1] или [0, 65535] для 32-битных изображений; в этом случае он "
-"будет масштабирован автоматически"
+"будет масштабирован автоматически. Данная команда учитывает маску и будет "
+"работать с ней только в том случае, если передан флаг <b>-mask</b>"
 
 #: src/core/command_def.h:39
-#, fuzzy
 msgid ""
 "Denoises the image using the non-local Bayesian algorithm described by <a "
 "href=\"https://www.ipol.im/pub/art/2013/16\">Lebrun, Buades and Morel</a>.\n"
@@ -20112,8 +19996,8 @@ msgid ""
 "mask if and only if the <b>-mask</b> flag is provided"
 msgstr ""
 "Подавляет шум на изображении, используя нелокальный Байесовский (НЛ "
-"Байесовский) алгоритм описанный <a href=\"https://www.ipol.im/pub/art/"
-"2013/16\">Лебраном, Буадесом и Морелом</a>.\n"
+"Байесовский) алгоритм описанный <a href=\"https://www.ipol.im/pub/art/2013/"
+"16\">Лебраном, Буадесом и Морелом</a>.\n"
 "\n"
 "Перед шумоподавлением настоятельно рекомендуется применить косметическую "
 "коррекцию для удаления шума типа 'соль и перец'. По умолчанию эта команда "
@@ -20122,8 +20006,8 @@ msgstr ""
 "отключена с помощью опции <b>-nocosmetic</b>.\n"
 "\n"
 "Может быть указан необязательный аргумент <b>-mod=m</b>, где 0 &lt;= m &lt;= "
-"1. Итоговое значение пикселя вычисляется как <i>out=m x d + (1 − m) x in</"
-"i>, где <i>d</i> это значение пикселя после шумопдавления. При значении 1 "
+"1. Итоговое значение пикселя вычисляется как <i>out=m x d + (1 − m) x in</i>"
+", где <i>d</i> это значение пикселя после шумопдавления. При значении 1 "
 "модуляция не применяется. Если этот параметр не указан, по умолчанию он "
 "равен 1.\n"
 "\n"
@@ -20160,7 +20044,9 @@ msgstr ""
 "В очень редких случаях, при подавлении шума на цветных изображениях могут "
 "появляться цветные артефакты. Для предотвращения этого можно использовать "
 "необязательный аргумент <b>-indep</b>, благодаря чему подавление шума в "
-"каждом канале выполняется отдельно. Это медленнее, но удаляет артефакты"
+"каждом канале выполняется отдельно. Это медленнее, но удаляет артефакты. "
+"Данная команда учитывает маску и будет работать с ней только в том случае, "
+"если передан флаг <b>-mask</b>"
 
 #: src/core/command_def.h:40
 msgid ""
@@ -20199,7 +20085,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:45
-#, fuzzy
 msgid ""
 "Applies an edge preserving filter. By default a bilateral filter is applied; "
 "a guided filter can be specified using the argument <b>-guided</b>. The "
@@ -20228,8 +20113,8 @@ msgid ""
 "and will obey the mask if and only if the <b>-mask</b> flag is provided"
 msgstr ""
 "Применяет фильтр сохранения краёв. По умолчанию применяется билатеральный "
-"фильтр; фильтр с учителем можно применить с помощью аргумента <b>-guided</"
-"b>. Диаметр фильтра по умолчанию равен 3 и может быть установлен с помощью "
+"фильтр; фильтр с учителем можно применить с помощью аргумента <b>-guided</b>"
+". Диаметр фильтра по умолчанию равен 3 и может быть установлен с помощью "
 "аргумента <b>-d=</b>. Будьте осторожны со значениями d, превышающими 20, так "
 "как алгоритм может потребовать большого количества вычислений.\n"
 "\n"
@@ -20239,9 +20124,9 @@ msgstr ""
 "битных изображений значение должно быть от 0 до 1.0, тогда как для 16-битных "
 "изображений оно должно быть от 0 до 65535. Значения по умолчанию, если они "
 "не указаны, должны быть равны 11. Если указано значение <b>-d=0</b>, диаметр "
-"фильтра будет установлен автоматически на основе значения <b>-ss</b>. "
-"<i>Обратите внимание, что при применении фильтра с учителем применяется "
-"только <b>-sc</b>.</i>\n"
+"фильтра будет установлен автоматически на основе значения <b>-ss</b>. <i>"
+"Обратите внимание, что при применении фильтра с учителем применяется только "
+"<b>-sc</b>.</i>\n"
 "\n"
 "При указании фильтра с учителем опорное изображение может быть задано с "
 "помощью <b>-guideimage=</b>. По умолчанию, если направляющее изображение не "
@@ -20251,7 +20136,8 @@ msgstr ""
 "Силу фильтра можно регулировать с помощью аргумента <b>-mod=</b>. Если mod = "
 "1.0, то фильтр будет применён в полную силу; при mod менее 1.0 часть "
 "исходного изображения будет смешана с результатом, а при mod = 0.0 "
-"фильтрация применяться не будет"
+"фильтрация применяться не будет. Данная команда учитывает маску и будет "
+"работать с ней только в том случае, если передан флаг <b>-mask</b>"
 
 #: src/core/command_def.h:46
 msgid "Quits the application"
@@ -20326,7 +20212,6 @@ msgstr ""
 "изображением Ha"
 
 #: src/core/command_def.h:52
-#, fuzzy
 msgid ""
 "Divides the loaded image by the image given in argument. The resulting image "
 "is multiplied by the value of the <b>scalar</b> argument. See also IDIV. "
@@ -20334,8 +20219,9 @@ msgid ""
 "mask</b> flag is provided"
 msgstr ""
 "Выполняет деление загруженного изображения на изображение, указанно в "
-"аргументе. Получившееся изображение умножается на значение аргумента "
-"<b>scalar</b>. См. также IDIV"
+"аргументе. Получившееся изображение умножается на значение аргумента <b>"
+"scalar</b>. См. также IDIV. Данная команда учитывает маску и будет работать "
+"с ней только в том случае, если передан флаг <b>-mask</b>"
 
 #: src/core/command_def.h:53
 msgid ""
@@ -20350,7 +20236,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:54
-#, fuzzy
 msgid ""
 "Same command as FILL but this is a symmetric fill of a region defined by the "
 "mouse or with BOXSELECT. Used to process an image in the Fourier (FFT) "
@@ -20359,7 +20244,8 @@ msgid ""
 msgstr ""
 "Аналогична команде FILL, но выполняет симметричную заливку области, "
 "определённой с помощью мыши или команды BOXSELECT. Используется для "
-"обработки изображения в домене Фурье (FFT)"
+"обработки изображения в домене Фурье (FFT). Данная команда учитывает маску и "
+"будет работать с ней только в том случае, если передан флаг <b>-mask</b>"
 
 #: src/core/command_def.h:55
 msgid ""
@@ -20381,7 +20267,6 @@ msgstr ""
 "файлов. Результатом будет новое загруженное изображение"
 
 #: src/core/command_def.h:57
-#, fuzzy
 msgid ""
 "Fills the loaded image entirely or only the selection if there is one with "
 "pixels having the <b>value</b> intensity expressed in ADU. This command is "
@@ -20389,7 +20274,9 @@ msgid ""
 "provided"
 msgstr ""
 "Полностью заливает текущее изображение или, при наличии, выделение пикселями "
-"со значением интенсивности <b>value</b>, выраженной в ADU"
+"со значением интенсивности <b>value</b>, выраженной в ADU. Данная команда "
+"учитывает маску и будет работать с ней только в том случае, если передан "
+"флаг <b>-mask</b>"
 
 #: src/core/command_def.h:58
 msgid ""
@@ -20540,7 +20427,6 @@ msgstr ""
 "умолчанию предполагается, что полошение горизонтальное"
 
 #: src/core/command_def.h:65
-#, fuzzy
 msgid ""
 "Performs a median filter of size <b>ksize</b> x <b>ksize</b> (<b>ksize</b> "
 "MUST be odd) to the loaded image with a modulation parameter <b>modulation</"
@@ -20557,7 +20443,9 @@ msgstr ""
 "\n"
 "Значения итоговых пикселей вычисляются как : out=mod × m + (1 − mod) × in, "
 "где m это значение пикселя после применения медианного фильтра. При значении "
-"модуляции равном 1, модуляция не применяется"
+"модуляции равном 1, модуляция не применяется.  Данная команда учитывает "
+"маску и будет работать с ней только в том случае, если передан флаг <b>-"
+"mask</b>"
 
 #: src/core/command_def.h:66
 msgid ""
@@ -20574,7 +20462,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:69
-#, fuzzy
 msgid ""
 "Applies to the loaded image a Gaussian blur with the given <b>sigma</b>.\n"
 "\n"
@@ -20584,7 +20471,9 @@ msgstr ""
 "Применяет размытие по Гауссу с указанной <b>sigma</b> к загруженному "
 "изображению.\n"
 "\n"
-"См. также UNSHARP, аналогичная команда с параметром смешения"
+"См. также UNSHARP, аналогичная команда с параметром смешения.  Данная "
+"команда учитывает маску и будет работать с ней только в том случае, если "
+"передан флаг <b>-mask</b>"
 
 #: src/core/command_def.h:70
 msgid ""
@@ -20622,7 +20511,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:73
-#, fuzzy
 msgid ""
 "Generalised hyperbolic stretch based on the work of the ghsastro.co.uk "
 "team.\n"
@@ -20681,8 +20569,10 @@ msgstr ""
 "необязательный параметр <b>[channels]</b>, принимающий значения R, G, B, RG, "
 "RB или GB. По умолчанию растягивание применяется ко всем каналам. С помощью "
 "аргумента <b>-clipmode=</b> можно установить режим обрезки в одно из "
-"следующих значений: <b>clip</b>, <b>rescale</b>, <b>rgbblend</b> или "
-"<b>globalrescale</b>. По умолчанию используется rgbblend"
+"следующих значений: <b>clip</b>, <b>rescale</b>, <b>rgbblend</b> или <b>"
+"globalrescale</b>. По умолчанию используется rgbblend.  Данная команда "
+"учитывает маску и будет работать с ней только в том случае, если передан "
+"флаг <b>-mask</b>"
 
 #: src/core/command_def.h:74
 msgid ""
@@ -20718,7 +20608,6 @@ msgstr ""
 "layer = 0, 1 или 2 при 0=красный, 1=зелёный and 2=синий"
 
 #: src/core/command_def.h:80
-#, fuzzy
 msgid ""
 "Adds the image <b>filename</b> to the loaded image.\n"
 "Result will be in 32 bits per channel if allowed in the preferences. This "
@@ -20727,7 +20616,9 @@ msgid ""
 msgstr ""
 "Выполняет сложение изображения <b>filename</b> с изображением, находящимся в "
 "памяти.\n"
-"Если позволяют настройки, результат будет иметь разрядность 32 бита на канал"
+"Если позволяют настройки, результат будет иметь разрядность 32 бита на "
+"канал. Данная команда учитывает маску и будет работать с ней только в том "
+"случае, если передан флаг <b>-mask</b>"
 
 #: src/core/command_def.h:81
 msgid ""
@@ -20784,7 +20675,6 @@ msgid "Removes the ICC profile from the current image, if it has one"
 msgstr "Удаляет ICC-профиль из текущего изображения если оно уже имеет таковой"
 
 #: src/core/command_def.h:84
-#, fuzzy
 msgid ""
 "Divides the loaded image by the image <b>filename</b>.\n"
 "Result will be in 32 bits per channel if allowed in the preferences.\n"
@@ -20796,7 +20686,8 @@ msgstr ""
 "Результат будет иметь разрядность 32 бита на канал, если разрешено "
 "настройками.\n"
 "\n"
-"См. также FDIV"
+"См. также FDIV.  Данная команда учитывает маску и будет работать с ней "
+"только в том случае, если передан флаг <b>-mask</b>"
 
 #: src/core/command_def.h:85
 msgid ""
@@ -20812,7 +20703,6 @@ msgid "Inverts the image mask, if one is set"
 msgstr "Инвертирует маску изображения, если установлена"
 
 #: src/core/command_def.h:87
-#, fuzzy
 msgid ""
 "Inverts a generalised hyperbolic stretch. It provides the inverse "
 "transformation of GHT, if provided with the same parameters, undoes a GHT "
@@ -20823,10 +20713,11 @@ msgstr ""
 "Инвертирует обобщённое гиперболическое растягивание. Предоставляет обратное "
 "преобразование GHT с теми же параметрами (если указаны), отменяет команду "
 "GHT, возможно возвращаясь к линейному изображению. Может работать таким же "
-"образом, как и GHT, но для негативных изображений"
+"образом, как и GHT, но для негативных изображений.  Данная команда учитывает "
+"маску и будет работать с ней только в том случае, если передан флаг <b>-"
+"mask</b>"
 
 #: src/core/command_def.h:88
-#, fuzzy
 msgid ""
 "Inverts a midtones transfer function. It provides the inverse transformation "
 "of MTF, if provided with the same parameters, undoes a MTF command, possibly "
@@ -20837,10 +20728,11 @@ msgstr ""
 "Инвертирует функцию передачи полутонов. Предоставляет обратное "
 "преобразование MTF с теми же параметрами (если указаны), отменяет команду "
 "MTF, возможно возвращаясь к линейному изображению. Может работать таким же "
-"образом, как и MTF, но для негативных изображений"
+"образом, как и MTF, но для негативных изображений.  Данная команда учитывает "
+"маску и будет работать с ней только в том случае, если передан флаг <b>-"
+"mask</b>"
 
 #: src/core/command_def.h:89
-#, fuzzy
 msgid ""
 "Inverts a modified arcsinh stretch. It provides the inverse transformation "
 "of MODASINH, if provided with the same parameters, undoes a MODASINH "
@@ -20852,10 +20744,10 @@ msgstr ""
 "обратное преобразование MODASINH с теми же параметрами (если указаны), "
 "отменяет команду MODASINH, возможно возвращаясь к линейному изображению. "
 "Может работать таким же образом, как и MODASINH, но для негативных "
-"изображений"
+"изображений.  Данная команда учитывает маску и будет работать с ней только в "
+"том случае, если передан флаг <b>-mask</b>"
 
 #: src/core/command_def.h:90
-#, fuzzy
 msgid ""
 "Multiplies image <b>filename</b> by the loaded image.\n"
 "Result will be in 32 bits per channel if allowed in the preferences. This "
@@ -20863,10 +20755,11 @@ msgid ""
 "flag is provided"
 msgstr ""
 "Выполняет умножение изображения <b>filename</b> на загруженное изображение.\n"
-"Если позволяют настройки, результат будет иметь разрядность 32 бита на канал"
+"Если позволяют настройки, результат будет иметь разрядность 32 бита на "
+"канал. Данная команда учитывает маску и будет работать с ней только в том "
+"случае, если передан флаг <b>-mask</b>"
 
 #: src/core/command_def.h:91
-#, fuzzy
 msgid ""
 "Subtracts the loaded image by the image <b>filename</b>.\n"
 "Result will be in 32 bits per channel if allowed in the preferences, so "
@@ -20878,7 +20771,8 @@ msgstr ""
 "В результате будет получено изображение с 32-мя битами на канал (если это "
 "позволено настройками), в котором возможно сохранение отрицательных "
 "значений. Для обрезки отрицательных значений используйте 16-битный режим или "
-"команду THRESHOLD"
+"команду THRESHOLD. Данная команда учитывает маску и будет работать с ней "
+"только в том случае, если передан флаг <b>-mask</b>"
 
 #: src/core/command_def.h:93
 msgid ""
@@ -21347,7 +21241,6 @@ msgid "Flips the image about the vertical axis"
 msgstr "Переворачивает изображение по вертикали"
 
 #: src/core/command_def.h:117
-#, fuzzy
 msgid ""
 "Modified arcsinh stretch based on the work of the ghsastro.co.uk team.\n"
 "\n"
@@ -21401,8 +21294,10 @@ msgstr ""
 "необязательный параметр <b>[channels]</b>, принимающий значения R, G, B, RG, "
 "RB или GB. По умолчанию растягивание применяется ко всем каналам. С помощью "
 "аргумента <b>-clipmode=</b> можно установить режим обрезки в одно из "
-"следующих значений: <b>clip</b>, <b>rescale</b>, <b>rgbblend</b> или "
-"<b>globalrescale</b>. По умолчанию используется rgbblend"
+"следующих значений: <b>clip</b>, <b>rescale</b>, <b>rgbblend</b> или <b>"
+"globalrescale</b>. По умолчанию используется rgbblend. Данная команда "
+"учитывает маску и будет работать с ней только в том случае, если передан "
+"флаг <b>-mask</b>"
 
 #: src/core/command_def.h:118
 #, c-format
@@ -21482,7 +21377,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:119
-#, fuzzy
 msgid ""
 "Applies midtones transfer function to the current loaded image.\n"
 "\n"
@@ -21504,10 +21398,11 @@ msgstr ""
 "см. AUTOSTRETCH.\n"
 "Необязательный параметр <b>[channels]</b> можно использовать для указания "
 "каналов, к которым необходимо применить растягивание: это могут быть R, G, "
-"B, RG, RB или GB. По умолчанию применяется ко всем каналам"
+"B, RG, RB или GB. По умолчанию применяется ко всем каналам. Данная команда "
+"учитывает маску и будет работать с ней только в том случае, если передан "
+"флаг <b>-mask</b>"
 
 #: src/core/command_def.h:121
-#, fuzzy
 msgid ""
 "Changes pixel values of the currently loaded image to a negative view, like "
 "1-value for 32 bits, 65535-value for 16 bits. This does not change the "
@@ -21515,8 +21410,10 @@ msgid ""
 "if the <b>-mask</b> flag is provided"
 msgstr ""
 "Изменяет значения пикселей загруженного в настоящий момент изображения на "
-"отрицательное представление, например, 1-значение для 32-х бит, 65535-"
-"значение для 16-ти бит. Режим просмотра при этом не изменяется"
+"отрицательное представление, например, 1 — значение для 32-х бит, 65535 — "
+"значение для 16-ти бит. Режим просмотра при этом не изменяется. Данная "
+"команда учитывает маску и будет работать с ней только в том случае, если "
+"передан флаг <b>-mask</b>"
 
 #: src/core/command_def.h:122
 msgid ""
@@ -21558,7 +21455,6 @@ msgstr ""
 "Данные из кэша при этом остаются доступными"
 
 #: src/core/command_def.h:126
-#, fuzzy
 msgid ""
 "Adds the constant <b>value</b> (specified in ADU) to the current image. This "
 "constant can take a negative value.\n"
@@ -21571,7 +21467,9 @@ msgstr ""
 "изображению. Эта константа может принимать отрицательное значение.\n"
 "\n"
 "В 16-битном режиме значения пикселей, попадающие за приделы [0, 65535] "
-"обрезаются. В 32-битном режиме обрезки не происходит"
+"обрезаются. В 32-битном режиме обрезки не происходит. Данная команда "
+"учитывает маску и будет работать с ней только в том случае, если передан "
+"флаг <b>-mask</b>"
 
 #: src/core/command_def.h:127
 msgid ""
@@ -22237,7 +22135,6 @@ msgstr ""
 "изображения. Этот процесс также называет фильтром Ларсона Секанина"
 
 #: src/core/command_def.h:146
-#, fuzzy
 msgid ""
 "Restores an image using the Richardson-Lucy method.\n"
 "\n"
@@ -22261,8 +22158,8 @@ msgid ""
 msgstr ""
 "Восстанавливает изображение с помощью метода Ричардсона-Люси.\n"
 "\n"
-"PSF может быть загружена с помощью необязательного аргумента <b>-"
-"loadpsf=<i>filename</i></b> (созданного с помощью MAKEPSF).\n"
+"PSF может быть загружена с помощью необязательного аргумента <b>-loadpsf=<i>"
+"filename</i></b> (созданного с помощью MAKEPSF).\n"
 "\n"
 "Количество повторов устанавливается с помощью <b>-iters</b> (по умолчанию — "
 "10).\n"
@@ -22276,10 +22173,10 @@ msgstr ""
 "помощью <b>-mul</b> может быть использован мультипликативный метод.\n"
 "\n"
 "Можно включить критерий остановки, указав предел остановки с помощью <b>-"
-"stop=</b>"
+"stop=</b>. Данная команда учитывает маску и будет работать с ней только в "
+"том случае, если передан флаг <b>-mask</b>"
 
 #: src/core/command_def.h:147
-#, fuzzy
 msgid ""
 "Applies a chromatic noise reduction filter. It removes green tint in the "
 "current image. This filter is based on PixInsight's SCNR and it is also the "
@@ -22303,7 +22200,9 @@ msgstr ""
 "нейтральный\", 1 для алгоритма \"Максимальный нейтральный\", 2 для алгоритма "
 "\"Максимальная маска\" и 3 для алгоритма \"Аддитивная маска\". Значение по "
 "умолчанию — 0. Последние два могут принимать аргумент <b>amount</b> со "
-"значением между 0 и 1. Значение по умолчанию — 1"
+"значением между 0 и 1. Значение по умолчанию — 1. Данная команда учитывает "
+"маску и будет работать с ней только в том случае, если передан флаг <b>-"
+"mask</b>"
 
 #: src/core/command_def.h:148
 msgid ""
@@ -22352,7 +22251,6 @@ msgstr ""
 "команде \"ROTATE 180\" или \"ROTATE -180\""
 
 #: src/core/command_def.h:151
-#, fuzzy
 msgid ""
 "Enhances the color saturation of the loaded image. Try iteratively to obtain "
 "best results.\n"
@@ -22379,7 +22277,8 @@ msgstr ""
 "<b>hue_range_index</b> может быть [0, 6], что означает: 0 от розового до "
 "оранжевого, 1 от оранжевого до жёлтого, 2 от жёлтого до голубого, 3 для "
 "голубого, 4 от голубого до пурпурного, 5 от пурпурного до розового, 6 все "
-"цвета (значение по умолчанию)"
+"цвета (значение по умолчанию). Данная команда учитывает маску и будет "
+"работать с ней только в том случае, если передан флаг <b>-mask</b>"
 
 #: src/core/command_def.h:152
 msgid ""
@@ -22515,7 +22414,6 @@ msgstr ""
 "сохранение в формате Astro-tiff, а аргумент <b>-deflate</b> включает сжатие"
 
 #: src/core/command_def.h:161
-#, fuzzy
 msgid ""
 "Restores an image using the Split Bregman method.\n"
 "\n"
@@ -22531,14 +22429,16 @@ msgid ""
 msgstr ""
 "Восстанавливает изображение с помощью метода Брэгмана.\n"
 "\n"
-"PSF может быть загружена с помощью необязательного аргумента <b>-"
-"loadpsf=<i>filename</i></b>.\n"
+"PSF может быть загружена с помощью необязательного аргумента <b>-loadpsf=<i>"
+"filename</i></b>.\n"
 "\n"
 "Количество повторов устанавливается с помощью <b>-iters</b> (по умолчанию - "
 "1).\n"
 "\n"
 "Коэффициент регуляризации <b>-alpha=</b> устанавливает силу регуляризации "
-"(меньшее значение = бо́льшая регуляризация, по умолчанию = 3000)"
+"(меньшее значение = бо́льшая регуляризация, по умолчанию = 3000). Данная "
+"команда учитывает маску и будет работать с ней только в том случае, если "
+"передан флаг <b>-mask</b>"
 
 #: src/core/command_def.h:162
 msgid ""
@@ -23280,7 +23180,6 @@ msgstr ""
 "статистика выводится для каждого фильтра"
 
 #: src/core/command_def.h:194
-#, fuzzy
 msgid ""
 "Same command as SUBSKY but for the sequence <b>sequencename</b>.\n"
 "Dithering, required for low dynamic gradients, can be disabled with <b>-"
@@ -23303,7 +23202,9 @@ msgstr ""
 "\n"
 "Название итоговой последовательности будет начинаться с префикса \"bkg_\", "
 "если не указан другой с помощью опции <b>-prefix=</b>. Будут обработаны "
-"только выбранные изображения из последовательности"
+"только выбранные изображения из последовательности.\n"
+"Доступны опции <b>-random</b> и <b>-gradient</b>, как в SUBSKY.\n"
+"Доступна <b>-border=</b>, как в SUBSKY"
 
 #: src/core/command_def.h:195
 msgid ""
@@ -24071,14 +23972,14 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:228
-#, fuzzy
 msgid ""
 "Replaces values below <b>lo</b> with <b>lo</b> and values above <b>hi</b> "
 "with <b>hi</b> in the loaded image. This command is mask-aware and will obey "
 "the mask if and only if the <b>-mask</b> flag is provided"
 msgstr ""
 "Заменяет на загруженном изображении значения ниже <b>lo</b> на <b>lo</b> и "
-"выше <b>hi</b> на <b>hi</b>"
+"выше <b>hi</b> на <b>hi</b>. Данная команда учитывает маску и будет работать "
+"с ней только в том случае, если передан флаг <b>-mask</b>"
 
 #: src/core/command_def.h:229
 msgid ""
@@ -24112,7 +24013,6 @@ msgstr ""
 "го уровня в файл \"trixels.csv\""
 
 #: src/core/command_def.h:232
-#, fuzzy
 msgid ""
 "Applies a cosmetic filter to reduce effects of purple fringing on stars.\n"
 "\n"
@@ -24137,7 +24037,7 @@ msgstr ""
 "Если передан аргумент <b>-starmask</b>, то для определения областей "
 "изображения, на которые необходимо воздействовать, будет использована маска "
 "звёзд. Если «Динамическая PSF» уже запущена, она будет использоваться для "
-"создания маски, в противном случае она будет создана автоматически. "
+"создания маски, в противном случае маска будет создана автоматически. "
 "Параметру <b>-mod=</b> следует присвоить значение около 0.14, чтобы "
 "уменьшить количество фиолетового цвета. Параметр <b>-thresh=</b> задает "
 "модификатор размера для каждой звезды в маске звёзд и должен быть достаточно "
@@ -24147,7 +24047,9 @@ msgstr ""
 "применено ко всему изображению для любых фиолетовых пикселей со значением "
 "светимости, превышающим заданное значение <b>-thresh=</b>. В этом случае "
 "значение <b>-thresh=</b> должно быть достаточно низким. Этот режим полезен "
-"для масок звёзд или других изображений без туманностей или галактик"
+"для масок звёзд или других изображений без туманностей или галактик. Данная "
+"команда учитывает маску и будет работать с ней только в том случае, если "
+"передан флаг <b>-mask</b>"
 
 #: src/core/command_def.h:233
 msgid ""
@@ -24163,7 +24065,6 @@ msgid "Resets the magnitude calibration to 0. See SETMAG"
 msgstr "Сбрасывает калибровку блеска к 0. См. SETMAG"
 
 #: src/core/command_def.h:235
-#, fuzzy
 msgid ""
 "Applies an unsharp mask, actually a Gaussian filtered image  with sigma "
 "<b>sigma</b> and a blend with the parameter <b>amount</b> used as such: out "
@@ -24176,7 +24077,9 @@ msgstr ""
 "со значением σ <b>sigma</b> и смешением (blend) с параметром <b>amount</b>, "
 "используемое как: out = in * (1 + amount) + filtered * (-amount).\n"
 "\n"
-"См. также GAUSS, аналогичная команда без смешения"
+"См. также GAUSS, аналогичная команда без смешения. Данная команда учитывает "
+"маску и будет работать с ней только в том случае, если передан флаг <b>-"
+"mask</b>"
 
 #: src/core/command_def.h:236
 msgid ""
@@ -24225,7 +24128,6 @@ msgstr ""
 "См. также EXTRACT"
 
 #: src/core/command_def.h:241
-#, fuzzy
 msgid ""
 "Restores an image using the Wiener deconvolution method.\n"
 "\n"
@@ -24242,7 +24144,8 @@ msgstr ""
 "быть загружена PSF, созданная с помощью MAKEPSF.\n"
 "\n"
 "Аргумент <b>-alpha=</b> предоставляет коэффициент регуляризации, "
-"моделируемый Гауссовым шумом"
+"моделируемый Гауссовым шумом. Данная команда учитывает маску и будет "
+"работать с ней только в том случае, если передан флаг <b>-mask</b>"
 
 #: src/core/command_def.h:242
 msgid ""
@@ -24771,9 +24674,8 @@ msgid "Could not load background\n"
 msgstr "Не удалось загрузить фон\n"
 
 #: src/core/icc_profile.c:1439
-#, fuzzy
 msgid "Error assigning ICC profile.\n"
-msgstr "Ошибка при открытии профиля ICC.\n"
+msgstr "Ошибка назначения профиля ICC.\n"
 
 #: src/core/icc_profile.c:1464
 #, fuzzy
@@ -24857,9 +24759,9 @@ msgid "Warning: luminance weights sum to %.3f (should be 1.0), normalizing\n"
 msgstr ""
 
 #: src/core/masks.c:605
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to load mask image: %s\n"
-msgstr "Не удалось сохранить маску изображения %d\n"
+msgstr "Не удалось загрузить изображение маски: %s\n"
 
 #: src/core/masks.c:612
 #, fuzzy, c-format
@@ -24872,14 +24774,12 @@ msgid "Channel %d not available in source image (has %u channels)\n"
 msgstr ""
 
 #: src/core/masks.c:664 src/core/masks.c:1461 src/core/masks.c:1542
-#, fuzzy
 msgid "Mask creation failed"
-msgstr "Не удалось создать поток: %s.\n"
+msgstr "Не удалось создать маску"
 
 #: src/core/masks.c:665 src/core/masks.c:1462 src/core/masks.c:1543
-#, fuzzy
 msgid "Failed to create mask."
-msgstr "Не удалось прочитать файл изображения"
+msgstr "Не удалось маску."
 
 #. Use luminance with specified weights
 #: src/core/masks.c:675
@@ -25167,9 +25067,8 @@ msgid "%s: processing%s...\n"
 msgstr "%s: обработка…\n"
 
 #: src/core/processing.c:1668
-#, fuzzy
 msgid " (mask active)"
-msgstr "активен"
+msgstr " (маска активна)"
 
 #: src/core/processing.c:1673
 msgid "Processing image..."
@@ -26205,9 +26104,8 @@ msgid "Dynamically wrap long lines in the script editor"
 msgstr "показать номера строк в редакторе сценариев"
 
 #: src/core/settings.c:574
-#, fuzzy
 msgid "Enable code folding in the script editor"
-msgstr "подсветить текущую строку в редакторе сценариев"
+msgstr "Включить сворачивание кода в редакторе сценариев"
 
 #: src/core/settings.c:614
 #, c-format
@@ -26723,9 +26621,9 @@ msgid "%s curve transformation with %d points"
 msgstr "Применить преобразование кривых (%s) с %d точек\n"
 
 #: src/filters/curve_transform.c:275
-#, fuzzy, c-format
+#, c-format
 msgid "Applying %s curve transformation with %d points: "
-msgstr "Применить преобразование кривых (%s) с %d точек\n"
+msgstr "Применить преобразование кривых (%s) с %d точек: "
 
 #: src/filters/da3d/DA3D.cpp:208
 #, fuzzy
@@ -28844,21 +28742,20 @@ msgstr "_Недавние файлы"
 
 #: src/gui-gtk4/file_browser.c:939 src/gui-gtk4/file_browser.c:2252
 msgid "Trash"
-msgstr ""
+msgstr "Корзина"
 
 #: src/gui-gtk4/file_browser.c:1110
-#, fuzzy
 msgid "Invalid folder name"
-msgstr "Недопустимый символ"
+msgstr "Неверное название директории"
 
 #: src/gui-gtk4/file_browser.c:1111
 msgid "The folder name must not be empty or contain a path separator."
 msgstr ""
+"Название директории не должно быть пустым или содержать разделитель пути."
 
 #: src/gui-gtk4/file_browser.c:1125
-#, fuzzy
 msgid "Could not create folder"
-msgstr "Не удалось создать %s, прерывание.\n"
+msgstr "Не удалось создать директорию"
 
 #. Unable to claim the thread
 #: src/gui-gtk4/file_browser.c:1126 src/io/siril_pythoncommands.c:2540
@@ -28871,87 +28768,80 @@ msgid "Folder"
 msgstr "Папка"
 
 #: src/gui-gtk4/file_browser.c:1634
-#, fuzzy, c-format
+#, c-format
 msgid "A file named \"%s\" already exists. Do you want to replace it?"
-msgstr "Файл %s уже существует. Хотите заменить его?\n"
+msgstr "Файл\" %s\" уже существует. Хотите заменить его?"
 
 #: src/gui-gtk4/file_browser.c:1636
-#, fuzzy
 msgid "Replace file?"
-msgstr "Заменить файл"
+msgstr "Заменить файл?"
 
 #: src/gui-gtk4/file_browser.c:1827
-#, fuzzy
 msgid "Recent"
-msgstr "_Недавние файлы"
+msgstr "Недавние файлы"
 
 #: src/gui-gtk4/file_browser.c:1950
-#, fuzzy
 msgid "Volume"
-msgstr "колонка"
+msgstr "Том"
 
 #: src/gui-gtk4/file_browser.c:1951
 msgid "Not mounted"
-msgstr ""
+msgstr "Не смонтировано"
 
 #: src/gui-gtk4/file_browser.c:1953
 msgid "Click to mount this device"
-msgstr ""
+msgstr "Нажмите, чтобы смонтировать устройство"
 
 #: src/gui-gtk4/file_browser.c:2065
-#, fuzzy, c-format
+#, c-format
 msgid "Could not mount %s: %s\n"
-msgstr "Не удалось открыть '%s': %s\n"
+msgstr "Монтирование не удалось %s: %s\n"
 
 #. Sidebar entries.  Order mirrors the GTK3 GtkFileChooser sidebar that
 #. * Siril shipped previously, plus the Working Directory shortcut that
 #. * jumps to com.wd (the folder Siril is operating on).  Templates /
 #. * Public / Computer are intentionally omitted — see the brief.
 #: src/gui-gtk4/file_browser.c:2230
-#, fuzzy
 msgid "Places"
-msgstr "Заменить"
+msgstr "Места"
 
 #: src/gui-gtk4/file_browser.c:2233
 msgid "Home"
-msgstr ""
+msgstr "Домой"
 
 #: src/gui-gtk4/file_browser.c:2235
-#, fuzzy
 msgid "Documents"
-msgstr "Аргументы:"
+msgstr "Документы"
 
 #: src/gui-gtk4/file_browser.c:2238
 msgid "Pictures"
-msgstr ""
+msgstr "Изображения"
 
 #: src/gui-gtk4/file_browser.c:2241
 msgid "Music"
-msgstr ""
+msgstr "Музыка"
 
 #: src/gui-gtk4/file_browser.c:2244
-#, fuzzy
 msgid "Downloads"
-msgstr "При загрузке"
+msgstr "Загрузки"
 
 #: src/gui-gtk4/file_browser.c:2247
 msgid "Videos"
-msgstr ""
+msgstr "Видео"
 
 #: src/gui-gtk4/file_browser.c:2257
-#, fuzzy
 msgid "Working Directory"
-msgstr "Рабочая директория не установлена"
+msgstr "Рабочая директория"
 
 #. Section: Bookmarks (only if the user has any).
 #: src/gui-gtk4/file_browser.c:2260
 msgid "Bookmarks"
-msgstr ""
+msgstr "Закладки"
 
 #. Section: Devices (mounted first, then unmounted with a Mount badge).
 #: src/gui-gtk4/file_browser.c:2263
 msgid "Devices"
-msgstr ""
+msgstr "Устройства"
 
 #: src/gui-gtk4/file_browser.c:2411
 #, fuzzy
@@ -29005,9 +28895,8 @@ msgid "Type"
 msgstr "Тип"
 
 #: src/gui-gtk4/file_browser.c:3266
-#, fuzzy
 msgid "Modified"
-msgstr "Модификатор"
+msgstr "Изменён"
 
 #: src/gui-gtk4/file_browser.c:3421
 msgid ""
@@ -29016,9 +28905,8 @@ msgid ""
 msgstr ""
 
 #: src/gui-gtk4/file_browser.c:3449
-#, fuzzy
 msgid "Name:"
-msgstr "Название: "
+msgstr "Название:"
 
 #: src/gui-gtk4/file_browser.c:3873 src/gui-gtk4/open_dialog.c:273
 #: src/gui-gtk4/open_dialog.c:281
@@ -30116,14 +30004,12 @@ msgstr ""
 "Предпросмотр не может использоваться, когда выбрано \"Применить к выделению\""
 
 #: src/gui-gtk4/newdeconv.c:837
-#, fuzzy
 msgid "Deconvolution Preview"
-msgstr "Реконструкция"
+msgstr "Предпросмотр реконструкции"
 
 #: src/gui-gtk4/newdeconv.c:941
-#, fuzzy
 msgid "PSF Estimation"
-msgstr "Оценка шума"
+msgstr "Оценка PSF"
 
 #: src/gui-gtk4/nina_light_curve.c:58
 msgid "Automated light curve"
@@ -30275,9 +30161,8 @@ msgid "Select Master Bias from Library"
 msgstr ""
 
 #: src/gui-gtk4/open_dialog.c:313
-#, fuzzy
 msgid "Select Working Directory"
-msgstr "Выберите директорию подкачки"
+msgstr "Выберите рабочую директорию"
 
 #: src/gui-gtk4/open_dialog.c:335
 msgid "Master-distortion: file (*.wcs)"
@@ -30314,13 +30199,13 @@ msgstr ""
 #: src/gui-gtk4/open_dialog.c:626
 #, c-format
 msgid "Recent file no longer exists: %s\n"
-msgstr ""
+msgstr "Недавний файл более не существует: %s\n"
 
 #. Tooltip matches the GTK3 behaviour: "Open '<path>'"
 #: src/gui-gtk4/open_dialog.c:706
-#, fuzzy, c-format
+#, c-format
 msgid "Open '%s'"
-msgstr "Открыть"
+msgstr "Открыть '%s'"
 
 #: src/gui-gtk4/photometric_cc.c:106
 msgid "Checking SPCC remote catalogue status..."
@@ -30748,9 +30633,8 @@ msgid "Path"
 msgstr "Путь"
 
 #: src/gui-gtk4/pixelmath.c:471
-#, fuzzy
 msgid "expression"
-msgstr "Предобработка"
+msgstr "выражение"
 
 #: src/gui-gtk4/pixelmath.c:497
 msgid "Operator"
@@ -30769,9 +30653,9 @@ msgstr[1] "%d × %d пикселя (%d канала)"
 msgstr[2] "%d × %d пикселей (%d каналов)"
 
 #: src/gui-gtk4/pixelmath.c:814 src/pixelMath/pixel_math_runner.c:527
-#, fuzzy, c-format
+#, c-format
 msgid "File not found or not supported: %s\n"
-msgstr "Ошибка при открытии %s: файл не найден или не поддерживается.\n"
+msgstr "Файл не найден или не поддерживается: %s\n"
 
 #: src/gui-gtk4/pixelmath.c:829
 msgid ""
@@ -31001,24 +30885,20 @@ msgid "You don't have permission to write in this directory: %s\n"
 msgstr "Нет прав на запись в директорию %s\n"
 
 #: src/gui-gtk4/preferences.c:873
-#, fuzzy
 msgid "Select namedstars.dat"
-msgstr "Сначала выберите область\n"
+msgstr "Выберете namedstars.dat"
 
 #: src/gui-gtk4/preferences.c:875
-#, fuzzy
 msgid "Select unnamedstars.dat"
-msgstr "Сначала выберите область\n"
+msgstr "Выберете unnamedstars.dat"
 
 #: src/gui-gtk4/preferences.c:877
-#, fuzzy
 msgid "Select deepstars.dat"
-msgstr "Выберите папку"
+msgstr "Выберете deepstars.dat"
 
 #: src/gui-gtk4/preferences.c:879
-#, fuzzy
 msgid "Select USNO-NOMAD-1e8.dat"
-msgstr "Путь к каталогу USNO-NOMAD-1e8.dat"
+msgstr "Выберете USNO-NOMAD-1e8.dat"
 
 #: src/gui-gtk4/preferences.c:881
 #, fuzzy
@@ -31026,14 +30906,12 @@ msgid "Select Gaia astrometric extract"
 msgstr "Данные Gaia для астрометрии:"
 
 #: src/gui-gtk4/preferences.c:883
-#, fuzzy
 msgid "Select Gaia photometric folder"
-msgstr "Данные Gaia для фотометрии:"
+msgstr "Выберете папку Gaia для фотометрии"
 
 #: src/gui-gtk4/preferences.c:885
-#, fuzzy
 msgid "Select ICC profile"
-msgstr "ICC-профиль отсутствует"
+msgstr "Выберете ICC-профиль"
 
 #: src/gui-gtk4/preferences.c:887
 #, fuzzy
@@ -31041,9 +30919,8 @@ msgid "Select Gray ICC profile"
 msgstr "Ч/Б ICC-профиль"
 
 #: src/gui-gtk4/preferences.c:889
-#, fuzzy
 msgid "Select monitor profile"
-msgstr "Пользовательский профиль монитора:"
+msgstr "Выберете профиль монитора"
 
 #: src/gui-gtk4/preferences.c:891
 #, fuzzy
@@ -31225,51 +31102,44 @@ msgid "_Save"
 msgstr "_Сохранить"
 
 #: src/gui-gtk4/python_gui.c:251
-#, fuzzy
 msgid "Save _As"
-msgstr "Сохранить как"
+msgstr "Сохранить _как"
 
 #: src/gui-gtk4/python_gui.c:255
-#, fuzzy
 msgid "_Close tab"
-msgstr "_Закрыть"
+msgstr "_Закрыть вкладку"
 
 #: src/gui-gtk4/python_gui.c:256
 msgid "Close _all tabs"
-msgstr ""
+msgstr "Закрыть _все вкладки"
 
 #: src/gui-gtk4/python_gui.c:259
 msgid "_File"
 msgstr "_Файл"
 
 #: src/gui-gtk4/python_gui.c:265
-#, fuzzy
 msgid "_Undo"
-msgstr "Отменить"
+msgstr "_Отменить"
 
 #: src/gui-gtk4/python_gui.c:266
-#, fuzzy
 msgid "_Redo"
-msgstr "Повторить"
+msgstr "_Повторить"
 
 #: src/gui-gtk4/python_gui.c:270
 msgid "Cu_t"
-msgstr ""
+msgstr "Вы_резать"
 
 #: src/gui-gtk4/python_gui.c:271
-#, fuzzy
 msgid "_Copy"
-msgstr "Копировать"
+msgstr "_Копировать"
 
 #: src/gui-gtk4/python_gui.c:272
-#, fuzzy
 msgid "_Paste"
-msgstr "Вставить"
+msgstr "_Вставить"
 
 #: src/gui-gtk4/python_gui.c:276
-#, fuzzy
 msgid "_Find"
-msgstr "Найти"
+msgstr "_Найти"
 
 #: src/gui-gtk4/python_gui.c:279
 msgid "_Edit"
@@ -31277,17 +31147,15 @@ msgstr "_Правка"
 
 #: src/gui-gtk4/python_gui.c:285
 msgid "_Run"
-msgstr ""
+msgstr "_Выполнить"
 
 #: src/gui-gtk4/python_gui.c:289
-#, fuzzy
 msgid "_Python scripts"
-msgstr "Сценарии Python"
+msgstr "Сценарии _Python"
 
 #: src/gui-gtk4/python_gui.c:294
-#, fuzzy
 msgid "_Siril Script Files"
-msgstr "Сценарии Siril"
+msgstr "Сценарии _Siril"
 
 #: src/gui-gtk4/python_gui.c:302
 msgid "_Fold top-level nodes"
@@ -31295,114 +31163,95 @@ msgstr ""
 
 #: src/gui-gtk4/python_gui.c:303
 msgid "_Unfold all"
-msgstr ""
+msgstr "_Развернуть все"
 
 #: src/gui-gtk4/python_gui.c:307
-#, fuzzy
 msgid "Enable test _arguments"
-msgstr "Включить тестовые аргументы"
+msgstr "Включить тестовые _аргументы"
 
 #: src/gui-gtk4/python_gui.c:308
-#, fuzzy
 msgid "Enable python _debug mode"
-msgstr "Режим отладки python"
+msgstr "Режим _отладки python"
 
 #: src/gui-gtk4/python_gui.c:311
 msgid "_Script"
 msgstr "_Сценарий"
 
 #: src/gui-gtk4/python_gui.c:316
-#, fuzzy
 msgid "_Highlight syntax"
-msgstr "Подсветка синтаксиса"
+msgstr "_Подсветка синтаксиса"
 
 #: src/gui-gtk4/python_gui.c:317
-#, fuzzy
 msgid "Enable right _margin indicator"
-msgstr "Включить индикатор правой границы"
+msgstr "Включить индикатор правой _границы"
 
 #: src/gui-gtk4/python_gui.c:318
-#, fuzzy
 msgid "Set right margin _position"
-msgstr "Установить положение правой границы"
+msgstr "Установить _положение правой границы"
 
 #: src/gui-gtk4/python_gui.c:319
-#, fuzzy
 msgid "Enable _bracket matching"
-msgstr "Подсвечивать парные скобки"
+msgstr "Подсвечивать парные _скобки"
 
 #: src/gui-gtk4/python_gui.c:320
-#, fuzzy
 msgid "Show _line numbers"
-msgstr "Показывать номера строк"
+msgstr "Показывать номера _строк"
 
 #: src/gui-gtk4/python_gui.c:321
-#, fuzzy
 msgid "Show line ma_rks"
-msgstr "Показывать метки строк"
+msgstr "Показывать ме_тки строк"
 
 #: src/gui-gtk4/python_gui.c:322
-#, fuzzy
 msgid "Highlight c_urrent line"
-msgstr "Подсвечивать текущую строку"
+msgstr "Подсвечивать те_кущую строку"
 
 #: src/gui-gtk4/python_gui.c:323
-#, fuzzy
 msgid "Enable _auto-indentation"
-msgstr "Включить автоматические отступы"
+msgstr "Включить _автоматические отступы"
 
 #: src/gui-gtk4/python_gui.c:324
-#, fuzzy
 msgid "_Indent on tab"
-msgstr "Отступ по табуляции"
+msgstr "_Отступ по табуляции"
 
 #: src/gui-gtk4/python_gui.c:325
-#, fuzzy
 msgid "Enable smart _backspace"
-msgstr "Включить умный backspace"
+msgstr "Включить умный _backspace"
 
 #: src/gui-gtk4/python_gui.c:326
-#, fuzzy
 msgid "Smart H_ome / End"
-msgstr "Умные Home / End"
+msgstr "Умные H_ome / End"
 
 #: src/gui-gtk4/python_gui.c:327
-#, fuzzy
 msgid "Show spaces and _tabs"
-msgstr "Показывать пробелы и табуляции"
+msgstr "Показывать пробелы и _табуляции"
 
 #: src/gui-gtk4/python_gui.c:328
-#, fuzzy
 msgid "Show _newlines"
-msgstr "Показывать перевод строки"
+msgstr "Показывать перевод _строки"
 
 #: src/gui-gtk4/python_gui.c:329
-#, fuzzy
 msgid "Show mi_nimap"
-msgstr "Показывать миникарту"
+msgstr "Показывать ми_никарту"
 
 #: src/gui-gtk4/python_gui.c:330
 msgid "Dynamic line _wrap"
 msgstr ""
 
 #: src/gui-gtk4/python_gui.c:331
-#, fuzzy
 msgid "Enable code _folding"
-msgstr "Подсвечивать парные скобки"
+msgstr "Включить _сворачивание кода"
 
 #: src/gui-gtk4/python_gui.c:332
 msgid "_Preferences"
 msgstr "_Настройки"
 
 #: src/gui-gtk4/python_gui.c:337
-#, fuzzy
 msgid "Python _API reference"
-msgstr "Справочник по API Python"
+msgstr "Справочник по _API Python"
 
 #: src/gui-gtk4/python_gui.c:338
-#, fuzzy
 msgid "Siril _Command Reference"
-msgstr "Справочник по командам Siril"
+msgstr "Справочник по _командам Siril"
 
 #: src/gui-gtk4/python_gui.c:339
 msgid "_Help"
@@ -31414,28 +31263,26 @@ msgid "Python Script"
 msgstr "Сценарий Python"
 
 #: src/gui-gtk4/python_gui.c:2191 src/gui-gtk4/python_gui.c:2251
-#, fuzzy
 msgid "Unsaved changes"
-msgstr "Несохранённые изменения в сценарии"
+msgstr "Несохранённые изменения"
 
 #: src/gui-gtk4/python_gui.c:2192
-#, fuzzy
 msgid "This tab has unsaved changes that will be lost. Close it anyway?"
-msgstr "В редакторе сценариев есть несохранённые изменения. Выйти?"
+msgstr "Эта вкладка содержит несохранённые изменения. Закрыть?"
 
 #: src/gui-gtk4/python_gui.c:2252
 msgid "Some tabs have unsaved changes that will be lost. Close all tabs?"
 msgstr ""
+"Ряд вкладок содержат несохранённые изменения, которые будут потеряны. "
+"Закрыть все вкладки?"
 
 #: src/gui-gtk4/python_gui.c:2253
-#, fuzzy
 msgid "Close all"
-msgstr "Очистить все"
+msgstr "Закрыть все"
 
 #: src/gui-gtk4/python_gui.c:2275
-#, fuzzy
 msgid "Close tab"
-msgstr "Закрыть"
+msgstr "Закрыть вкладку"
 
 #: src/gui-gtk4/python_gui.c:2675
 msgid "No file is currently loaded to reload.\n"
@@ -31456,15 +31303,14 @@ msgstr ""
 #: src/gui-gtk4/python_gui.c:2763
 #, c-format
 msgid "Recent script no longer exists: %s\n"
-msgstr ""
+msgstr "Недавний сценарий больше не существует: %s\n"
 
 #. Empty placeholder so the submenu still opens but conveys
 #. * there's nothing to pick.  Disabled by targeting a no-op
 #. * action name that isn't registered.
 #: src/gui-gtk4/python_gui.c:2841
-#, fuzzy
 msgid "(no recent scripts)"
-msgstr "Не удалось обновить список сценариев"
+msgstr "(нет недавних сценариев)"
 
 #: src/gui-gtk4/python_gui.c:2849
 msgid ""
@@ -32203,9 +32049,8 @@ msgid "Get Scripts"
 msgstr "Скачать сценарии"
 
 #: src/gui-gtk4/script_menu.c:746
-#, fuzzy
 msgid "Script Editor…"
-msgstr "Редактор сценариев..."
+msgstr "Редактор сценариев…"
 
 #: src/gui-gtk4/script_menu.c:747
 msgid "Enable Python debug mode"
