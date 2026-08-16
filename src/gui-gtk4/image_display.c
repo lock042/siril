@@ -1548,7 +1548,10 @@ static gboolean wk_queue_draw_idle(gpointer p) {
 
 static void materialise_worker(gpointer data, gpointer user) {
 	(void) user;
-	const int vport = GPOINTER_TO_INT(data);
+	/* The job payload is vport BIASED BY ONE — see the push in
+	 * schedule_view_worker(); a plain vport 0 would be a NULL pointer, which
+	 * the pool's queue refuses. */
+	const int vport = GPOINTER_TO_INT(data) - 1;
 	/* Only the gray channels (0..2) and the RGB composite have lazy
 	 * materialisers; the mask vport has none (see materialise_tile). */
 	if (vport < 0 || vport > RGB_VPORT)
@@ -1781,9 +1784,18 @@ static void schedule_view_worker(struct image_view *view, int vport,
 	}
 	g_thread_pool_set_max_threads(materialise_pool, want, NULL);
 
+	/* Bias the vport by one: the payload is the whole job data, and
+	 * GINT_TO_POINTER(0) is NULL, which g_thread_pool_push() hands to
+	 * g_async_queue_push() — where a g_return_if_fail(data) rejects it.  Every
+	 * push for vport 0 was therefore dropped on the floor (with a GLib
+	 * CRITICAL) while workers_active had already been incremented, so the gray
+	 * channel every mono image is displayed in never materialised a tile on
+	 * the pool, and its count stayed pinned at `want`, which is the condition
+	 * this loop uses to decide there is nothing left to schedule.
+	 * materialise_worker() takes the one back off. */
 	while (view->workers_active < want) {
 		view->workers_active++;
-		g_thread_pool_push(materialise_pool, GINT_TO_POINTER(vport), NULL);
+		g_thread_pool_push(materialise_pool, GINT_TO_POINTER(vport + 1), NULL);
 	}
 }
 
