@@ -80,6 +80,40 @@ void close_single_image() {
 /* frees resources when changing sequence or closing a single image */
 void free_image_data() {
 	siril_log_debug("free_image_data() called, clearing loaded image\n");
+
+	/* Stop the display's tile-materialisation pool before anything is torn
+	 * down, and keep it stopped until the last free.  Suppressing redraws is
+	 * what stops new workers being scheduled (the snapshot skips the scheduler
+	 * while the flag is set); the drain then waits out the ones already
+	 * running, which is the part no lock here can do.
+	 *
+	 * A worker holds gfit's reader lock across its whole tile fill, and this
+	 * function dismantles the struct that lock lives in: on a FLIS document
+	 * gfit points at the active layer's fits, which is freed outright below and
+	 * replaced by a fresh allocation.  A writer lock only orders access to the
+	 * pixels — it cannot make it safe to free() the rwlock itself, nor to
+	 * repoint gfit while a worker sits between reading the global and locking
+	 * what it read.  Waiting for the pool to leave covers both.
+	 *
+	 * It also closes the window on the display ICC transforms that
+	 * reset_icc_transforms() drops just below, which a worker likewise holds
+	 * across a fill (pick_render_luts / unlock_display_transform).
+	 *
+	 * The flag is a plain boolean and not a counter, so it is saved and
+	 * restored rather than forced off, as copy_backup_to_gfit() does with the
+	 * same flag: a close nested inside an operation that suppressed redraws for
+	 * its own duration (generic_image_worker(), core/processing.c) must not
+	 * un-suppress them under it.  Headless stubs both calls out.
+	 *
+	 * No caller holds gfit's writer lock across the close — install_new_single_
+	 * image() releases it inside swap_into_gfit() before calling
+	 * close_single_image() — which matters twice over: the drain would deadlock
+	 * against a worker blocked on the reader lock, and the writer lock taken at
+	 * the bottom of this function is not recursive. */
+	const gboolean prev_suppress = gui_iface.get_suppress_redraws();
+	gui_iface.set_suppress_redraws(TRUE);
+	gui_iface.drain_tile_workers();
+
 	reset_icc_transforms();
 	if (!single_image_is_loaded() && sequence_is_loaded())
 		save_stats_from_fit(gfit, &com.seq, com.seq.current);
@@ -115,7 +149,13 @@ void free_image_data() {
 			 *      (clearfits + free, same as flis_layer_free does).
 			 *   5. Allocate a fresh empty fits for gfit so the
 			 *      trailing clearfits(gfit) and the next
-			 *      read_single_image both have a valid struct. */
+			 *      read_single_image both have a valid struct.
+			 *
+			 * Steps 4 and 5 are only safe because the tile pool was
+			 * drained at the top of this function: the free hands back
+			 * the rwlock a worker would otherwise be holding, and the
+			 * repoint moves gfit under readers that dereference the
+			 * global to find the lock in the first place. */
 			flis_layer_t *active = flis_active_layer();
 			fits *active_fit = (active && active->fit == gfit) ? active->fit : NULL;
 			if (active_fit) active->fit = NULL;
@@ -158,27 +198,15 @@ void free_image_data() {
 	 * (it memsets only up to offsetof(struct ffit, rwlock)); only the close
 	 * path was unguarded.
 	 *
-	 * The pool is quiesced first for the reason swap_into_gfit() gives: the
-	 * workers honour gui.suppress_drawarea_redraw and bail, so the
-	 * non-recursive writer lock is granted in bounded time instead of being
-	 * starved by a pool that keeps re-taking the reader lock tile after tile.
+	 * The pool is drained at the top of this function rather than merely
+	 * quiesced, so by here it is idle and the lock is uncontended.  The lock
+	 * stays because the pool is not gfit's only reader: the histogram, ROI,
+	 * photometry and background-extraction paths take the reader lock too, and
+	 * a close from the processing thread can race any of them.
 	 *
 	 * Keep this BELOW on_image_closed(): in script mode that call blocks on the
 	 * main thread running free_image_data_gui(), so taking the writer lock first
-	 * would deadlock against a GUI reader.  No caller holds the writer lock
-	 * across the close either — install_new_single_image() releases it inside
-	 * swap_into_gfit() before calling close_single_image() — so there is no
-	 * recursion on a non-recursive lock.  Headless stubs set_suppress_redraws
-	 * out and the lock is uncontended there.
-	 *
-	 * The suppression is saved and restored rather than forced off, as
-	 * copy_backup_to_gfit() does with the same flag: it is a plain boolean and
-	 * not a counter, so a close nested inside an operation that suppressed
-	 * redraws for its own duration (generic_image_worker(), core/processing.c)
-	 * would otherwise un-suppress them under it, letting a partial remap of the
-	 * image the operation is still writing reach the screen. */
-	const gboolean prev_suppress = gui_iface.get_suppress_redraws();
-	gui_iface.set_suppress_redraws(TRUE);
+	 * would deadlock against a GUI reader. */
 	g_rw_lock_writer_lock(&gfit->rwlock);
 	clearfits(gfit);
 	g_rw_lock_writer_unlock(&gfit->rwlock);

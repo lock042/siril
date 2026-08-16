@@ -1787,6 +1787,58 @@ static void schedule_view_worker(struct image_view *view, int vport,
 	}
 }
 
+/* Stop the tile-materialisation pool and wait for its threads to leave.
+ *
+ * The caller MUST have suppressed redraws first (set_suppress_redraws(TRUE))
+ * and must keep the suppression up for as long as the pool has to stay idle:
+ * with the flag set the snapshot skips schedule_view_worker(), so nothing
+ * rebuilds the pool behind us, and a worker still inside its loop bails at the
+ * top rather than claiming another tile.
+ *
+ * Suppressing alone is not enough for a caller about to free the fits gfit
+ * points at, or to repoint gfit at another one: an in-flight worker holds a
+ * reader lock on the OLD struct across its fill, so neither the pixels nor the
+ * struct carrying the rwlock may go away until it has actually left.  That is
+ * what free_image_data() needs when it dismantles a FLIS layer stack; a writer
+ * lock cannot express it, because the lock being waited on lives inside the
+ * memory about to be freed.
+ *
+ * The pool is detached under cairo_mutex — schedule_view_worker() pushes with
+ * that held, so it cannot push into a pool being freed; it would find NULL and
+ * build a fresh one, which the caller's suppression prevents — and then freed
+ * OUTSIDE it, because the workers being joined need the mutex themselves to
+ * finish.  g_thread_pool_free() discards whatever is still queued and returns
+ * once every running worker has returned.  A fresh pool is created by the next
+ * schedule_view_worker() after the caller lifts the suppression.
+ *
+ * view->workers_active is reset rather than waited on.  It is the scheduler's
+ * own accounting and it over-counts: a live session sits at 12 "in flight" for
+ * a view whose pool has an empty queue and no thread anywhere inside
+ * materialise_worker, which also pins workers_active at `want` and stops that
+ * view scheduling any further tile work.  Joining the threads is the ground
+ * truth; the counters only mean anything again once they agree with it, and
+ * after a join that is zero.
+ *
+ * Callable from any thread, and it cannot deadlock against the main loop: a
+ * worker never waits on the GTK main context (its redraw request is an async
+ * g_idle_add), so every in-flight job finishes without our help.  Never call it
+ * while holding gfit's WRITER lock: a worker blocked on the reader lock would
+ * never return, and the join would never finish. */
+void materialise_pool_drain(void) {
+	g_mutex_lock(&gui.cairo_mutex);
+	GThreadPool *pool = materialise_pool;
+	materialise_pool = NULL;
+	g_mutex_unlock(&gui.cairo_mutex);
+
+	if (pool)
+		g_thread_pool_free(pool, TRUE, TRUE);
+
+	g_mutex_lock(&gui.cairo_mutex);
+	for (int vport = 0; vport <= RGB_VPORT; vport++)
+		gui.view[vport].workers_active = 0;
+	g_mutex_unlock(&gui.cairo_mutex);
+}
+
 void check_gfit_profile_identical_to_monitor() {
 	/* Profile is stored authoritatively on com.uniq for both plain FITS
 	 * and FLIS images. */

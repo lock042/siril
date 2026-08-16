@@ -368,6 +368,12 @@ static gboolean impl_get_suppress_redraws(void) {
 	return g_atomic_int_get(&gui.suppress_drawarea_redraw) != 0;
 }
 
+extern void materialise_pool_drain(void);  /* image_display.c */
+
+static void impl_drain_tile_workers(void) {
+	materialise_pool_drain();
+}
+
 static void impl_populate_roi(void) {
 	populate_roi();
 }
@@ -1676,6 +1682,7 @@ void siril_register_gui_iface(void) {
 	gui_iface.dismiss_autohide_popovers = close_open_autohide_popovers;
 	gui_iface.set_suppress_redraws   = impl_set_suppress_redraws;
 	gui_iface.get_suppress_redraws   = impl_get_suppress_redraws;
+	gui_iface.drain_tile_workers     = impl_drain_tile_workers;
 	gui_iface.populate_roi           = impl_populate_roi;
 	gui_iface.on_geometry_changed    = impl_on_geometry_changed;
 	gui_iface.on_mask_state_changed  = impl_on_mask_state_changed;

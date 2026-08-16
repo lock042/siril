@@ -231,6 +231,14 @@ typedef struct {
 	 * already-suppressed one must save this and restore it rather than force
 	 * the flag off — see free_image_data(). */
 	gboolean (*get_suppress_redraws)(void);
+	/* Block until the display's tile-materialisation pool is idle.  Call only
+	 * with redraws already suppressed, and keep them suppressed for as long as
+	 * the pool must stay idle — the flag is what stops new workers starting.
+	 * Needed before freeing or repointing the fits gfit refers to, since a
+	 * worker holds a reader lock on that struct across its fill; taking the
+	 * writer lock cannot cover that, as the lock lives inside the memory being
+	 * freed.  Never call while holding gfit's writer lock. */
+	void     (*drain_tile_workers)(void);
 	/* Repopulate the ROI display from current gfit data (call while holding
 	 * the gfit read lock). */
 	void     (*populate_roi)(void);
