@@ -1558,14 +1558,26 @@ static void materialise_worker(gpointer data, gpointer user) {
 		return;
 
 	for (;;) {
-		if (!gfit) {
+		/* Read the global ONCE per job and work off `fit` from here on.
+		 * gfit is not a fixed struct in a FLIS build: uniq_set_active_layer()
+		 * retargets it at a layer switch, and flis_display_swap_in_composite()
+		 * / remap_all() point it at the composite for the duration of a remap.
+		 * Re-reading it per dereference would let a retarget land between the
+		 * acquire below and the release at the bottom, so we would release a
+		 * lock we never took and leave the one we did take held for good —
+		 * every later writer, close included, would then block on it.  Filling
+		 * from the fits we locked is also the only self-consistent choice: a
+		 * retarget mid-fill costs one stale tile, which the generation and
+		 * invalidate_seq checks in phase 3 already discard. */
+		fits *fit = gfit;
+		if (!fit) {
 			g_mutex_lock(&gui.cairo_mutex);
 			gui.view[vport].workers_active--;
 			g_mutex_unlock(&gui.cairo_mutex);
 			return;
 		}
 
-		g_rw_lock_reader_lock(&gfit->rwlock);
+		g_rw_lock_reader_lock(&fit->rwlock);
 		g_mutex_lock(&gui.cairo_mutex);
 		struct image_view *view = &gui.view[vport];
 
@@ -1573,7 +1585,7 @@ static void materialise_worker(gpointer data, gpointer user) {
 		    || g_atomic_int_get(&gui.suppress_drawarea_redraw)) {
 			view->workers_active--;
 			g_mutex_unlock(&gui.cairo_mutex);
-			g_rw_lock_reader_unlock(&gfit->rwlock);
+			g_rw_lock_reader_unlock(&fit->rwlock);
 			return;
 		}
 
@@ -1643,7 +1655,7 @@ static void materialise_worker(gpointer data, gpointer user) {
 		if (!found) {
 			view->workers_active--;
 			g_mutex_unlock(&gui.cairo_mutex);
-			g_rw_lock_reader_unlock(&gfit->rwlock);
+			g_rw_lock_reader_unlock(&fit->rwlock);
 			return;
 		}
 
@@ -1652,8 +1664,8 @@ static void materialise_worker(gpointer data, gpointer user) {
 
 		/* Phase 1b — snapshot every input the fill needs, so phase 2 touches no
 		 * shared mutable state.  LUT *pointers* are captured here (contents may
-		 * race a remap, see the section note); gfit pixel pointers stay valid
-		 * under the reader lock. */
+		 * race a remap, see the section note); `fit`'s pixel pointers stay valid
+		 * under the reader lock we hold on it. */
 		const guint gen = view->generation;
 		const guint seq = view->invalidate_seq;
 		int gx0, gy0, gtw, gth, gtex_w, gtex_h;
@@ -1664,13 +1676,13 @@ static void materialise_worker(gpointer data, gpointer user) {
 		const int out_h = MAX(1, gtex_h >> jmip);
 		const gsize tile_bytes = (gsize)out_w * out_h * 4;
 		const gboolean neg = view->render_neg;
-		const int gtype = gfit->type;
+		const int gtype = fit->type;
 		const guint hd_max = gui.hd_remap_max;
 		const BYTE *idx[3];
 		cmsHTRANSFORM icc_tf = NULL;
 		const gboolean hd_mode = pick_render_luts(vport, idx, &icc_tf);
-		const WORD *psrc[3] = { gfit->pdata[0], gfit->pdata[1], gfit->pdata[2] };
-		const float *fpsrc[3] = { gfit->fpdata[0], gfit->fpdata[1], gfit->fpdata[2] };
+		const WORD *psrc[3] = { fit->pdata[0], fit->pdata[1], fit->pdata[2] };
+		const float *fpsrc[3] = { fit->fpdata[0], fit->fpdata[1], fit->fpdata[2] };
 
 		g_mutex_unlock(&gui.cairo_mutex);   /* keep the reader lock for the fill */
 
@@ -1682,7 +1694,7 @@ static void materialise_worker(gpointer data, gpointer user) {
 		if (!buf) {
 			if (icc_tf)
 				unlock_display_transform();
-			g_rw_lock_reader_unlock(&gfit->rwlock);
+			g_rw_lock_reader_unlock(&fit->rwlock);
 			g_mutex_lock(&gui.cairo_mutex);
 			if (view->generation == gen && view->tiles
 			    && view->tile_cols == cols && view->tile_rows == rows)
@@ -1731,7 +1743,7 @@ static void materialise_worker(gpointer data, gpointer user) {
 			}
 		}
 		g_mutex_unlock(&gui.cairo_mutex);
-		g_rw_lock_reader_unlock(&gfit->rwlock);
+		g_rw_lock_reader_unlock(&fit->rwlock);
 
 		if (!assigned)
 			g_object_unref(tex);   /* discard; frees buf via the GBytes free func */
