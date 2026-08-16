@@ -226,6 +226,11 @@ typedef struct {
 	/* Suppress (TRUE) or restore (FALSE) drawarea redraws during processing.
 	 * When suppressing, also disables the display-mode menu button. */
 	void     (*set_suppress_redraws)(gboolean suppress);
+	/* Current state of that flag.  It is a plain boolean and not a counter,
+	 * so a caller that suppresses around a section which can nest inside an
+	 * already-suppressed one must save this and restore it rather than force
+	 * the flag off — see free_image_data(). */
+	gboolean (*get_suppress_redraws)(void);
 	/* Repopulate the ROI display from current gfit data (call while holding
 	 * the gfit read lock). */
 	void     (*populate_roi)(void);
