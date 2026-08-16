@@ -364,6 +364,10 @@ static void impl_set_suppress_redraws(gboolean suppress) {
 	}
 }
 
+static gboolean impl_get_suppress_redraws(void) {
+	return g_atomic_int_get(&gui.suppress_drawarea_redraw) != 0;
+}
+
 static void impl_populate_roi(void) {
 	populate_roi();
 }
@@ -617,6 +621,22 @@ static gboolean free_image_data_gui(gpointer p) {
 	g_signal_handlers_unblock_by_func(binning,       on_combobinning_changed, NULL);
 	siril_log_debug("free_image_data_idle() complete\n");
 
+	/* Hold gui.cairo_mutex across the whole teardown.  This is the same race
+	 * free_image_data() closes with gfit's writer lock, one indirection out:
+	 * materialise_worker() (image_display.c) walks view->tiles under this
+	 * mutex, so g_free()ing the array from here without it hands a worker a
+	 * freed tile grid.  It is narrower than the pixel-data window — the worker
+	 * only touches the grid in its short pick/assign sections, not across the
+	 * fill — which is why the reported backtraces land in the remap instead.
+	 *
+	 * Nulling the pointers under the mutex is enough on its own: every worker
+	 * phase re-tests view->tiles and view->lazy after re-acquiring it, so an
+	 * in-flight fill simply discards its finished texture and exits.  Nothing
+	 * has to drain, and there is no lock inversion — workers take gfit's
+	 * reader lock BEFORE this mutex, and this runs from on_image_closed(),
+	 * i.e. before free_image_data() takes the writer lock, so no lock a worker
+	 * could be waiting on is held here. */
+	g_mutex_lock(&gui.cairo_mutex);
 	for (int vport = 0; vport < MAXVPORT; vport++) {
 		struct image_view *view = &gui.view[vport];
 		/* Drop tile textures.  Per-tile bytes (lazy mode) and the eager
@@ -648,6 +668,7 @@ static gboolean free_image_data_gui(gpointer p) {
 		view->view_width = -1;
 		view->view_height = -1;
 	}
+	g_mutex_unlock(&gui.cairo_mutex);
 	clear_previews();
 	free_reference_image();
 	siril_log_debug("free_image_data_gui() complete\n");
@@ -1654,6 +1675,7 @@ void siril_register_gui_iface(void) {
 	gui_iface.update_menu_state      = impl_update_menu_state;
 	gui_iface.dismiss_autohide_popovers = close_open_autohide_popovers;
 	gui_iface.set_suppress_redraws   = impl_set_suppress_redraws;
+	gui_iface.get_suppress_redraws   = impl_get_suppress_redraws;
 	gui_iface.populate_roi           = impl_populate_roi;
 	gui_iface.on_geometry_changed    = impl_on_geometry_changed;
 	gui_iface.on_mask_state_changed  = impl_on_mask_state_changed;

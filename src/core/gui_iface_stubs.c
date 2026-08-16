@@ -108,6 +108,7 @@ static void stub_set_seq_browser_active(gboolean active) { (void)active; }
 static void stub_update_status_bar(void) {}
 static void stub_update_menu_state(void) {}
 static void stub_set_suppress_redraws(gboolean suppress) { (void)suppress; }
+static gboolean stub_get_suppress_redraws(void) { return FALSE; }
 static void stub_populate_roi(void) {}
 static void stub_on_geometry_changed(void) {}
 static void stub_on_mask_state_changed(void) {}
@@ -364,6 +365,7 @@ SirilGuiInterface gui_iface = {
 	.update_status_bar      = stub_update_status_bar,
 	.update_menu_state      = stub_update_menu_state,
 	.set_suppress_redraws   = stub_set_suppress_redraws,
+	.get_suppress_redraws   = stub_get_suppress_redraws,
 	.populate_roi           = stub_populate_roi,
 	.on_geometry_changed    = stub_on_geometry_changed,
 	.on_mask_state_changed  = stub_on_mask_state_changed,
