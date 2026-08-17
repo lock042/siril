@@ -83,6 +83,7 @@
 #include "io/sequence.h"
 #include "io/conversion.h"
 #include "io/single_image.h"
+#include "io/image_format_flis.h"
 #include "gui-gtk4/ui_files.h"
 #include "gui-gtk4/utils.h"
 #include "gui-gtk4/callbacks.h"
@@ -924,6 +925,12 @@ int main(int argc, char *argv[]) {
 
 	// Shut down the processing thread
 	processing_system_shutdown();
+
+	/* Release any layer pixels still awaiting their retirement idle.  The
+	 * main loop has returned, so that idle can no longer run and the batch
+	 * would be leaked at exit; the flush drains the tile pool itself before
+	 * freeing, just as the idle does. */
+	flis_flush_retired_fits();
 
 #ifdef HAVE_LIBGIT2
 	git_libgit2_shutdown();

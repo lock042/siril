@@ -1421,13 +1421,16 @@ flis_layer_t *flis_layer_new(fits *fit, const gchar *name) {
 static GMutex flis_retired_mutex;
 static GSList *flis_retired_fits = NULL;
 
-static gboolean flis_retire_idle(gpointer unused) {
-    (void)unused;
+/* Take whatever has been retired so far and release it with the pool stopped.
+ * Safe to call with an empty queue, and safe to call more than once — each
+ * caller takes the whole batch or nothing, so a second one simply finds
+ * nothing to do. */
+static void flis_release_retired(void) {
     g_mutex_lock(&flis_retired_mutex);
     GSList *batch = flis_retired_fits;
     flis_retired_fits = NULL;
     g_mutex_unlock(&flis_retired_mutex);
-    if (!batch) return G_SOURCE_REMOVE;   /* an earlier idle took the batch */
+    if (!batch) return;
 
     const gboolean prev_suppress = gui_iface.get_suppress_redraws();
     gui_iface.set_suppress_redraws(TRUE);
@@ -1438,7 +1441,22 @@ static gboolean flis_retire_idle(gpointer unused) {
     }
     gui_iface.set_suppress_redraws(prev_suppress);
     g_slist_free(batch);
+}
+
+static gboolean flis_retire_idle(gpointer unused) {
+    (void)unused;
+    flis_release_retired();
     return G_SOURCE_REMOVE;
+}
+
+/* Shutdown flush.  Anything retired after the last idle ran would otherwise
+ * still be queued when the process exits — bounded, but a leak.  Called from
+ * main() once g_application_run() has returned, i.e. with the main loop gone,
+ * so the idle that would normally do this can no longer fire.  The drain still
+ * happens: the tile pool outlives the main loop, and joining it is how we know
+ * nothing is reading the buffers we are about to free. */
+void flis_flush_retired_fits(void) {
+    flis_release_retired();
 }
 
 void flis_retire_fits(fits *f) {

@@ -343,6 +343,17 @@ void flis_layer_free(flis_layer_t *layer);
 void flis_retire_fits(fits *f);
 
 /**
+ * flis_flush_retired_fits:
+ *
+ * Releases anything still on the retirement queue, draining the tile pool
+ * first exactly as the idle would.  For shutdown: call it after the main loop
+ * has returned, when no further idle can run and a queued batch would
+ * otherwise be leaked at exit.  No-op when the queue is empty, which is always
+ * the case in the CLI and in unit tests — they free inline and never queue.
+ */
+void flis_flush_retired_fits(void);
+
+/**
  * layermask_free:
  * @mask: mask to free.  May be NULL (no-op).
  */
