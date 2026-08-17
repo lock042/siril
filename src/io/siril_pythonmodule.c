@@ -4726,6 +4726,38 @@ cleanup:
 	return NULL;
 }
 
+/* The venv initialisation runs on its own thread, and anything that wants to run
+ * a python script — or to delete the venv from under it — has to know whether
+ * that initialisation has finished.  The handle and that readiness are both
+ * shared state, so both live behind this mutex: the unlocked test-then-join this
+ * replaces raced the initialisation releasing the handle itself, which in
+ * headless mode happens on the venv thread rather than from the GTK main loop.
+ *
+ * Readiness is published as a flag rather than as the liveness of the handle,
+ * because a GThread can only be joined once and only by one caller: handing the
+ * handle to the first waiter would leave every other one free to run ahead of an
+ * initialisation that is still in flight.  The flag releases all of them, and
+ * python_init_cond is broadcast when it clears.  com.python_init_thread is then
+ * bookkeeping only — it holds the reference g_thread_new() returned until
+ * python_init_finished() drops it. */
+static GMutex python_init_mutex;
+static GCond python_init_cond;
+static gboolean python_init_in_flight = FALSE;
+
+/* Block until no venv initialisation is in flight.  A no-op when none is
+ * running, and safe from any thread — including the initialisation thread
+ * itself, which reaches this through execute_startup_scripts() and by then has
+ * already cleared the flag.  waiting_message, when given, is logged only if
+ * there is actually something to wait for. */
+static void wait_for_python_init(const gchar *waiting_message) {
+	g_mutex_lock(&python_init_mutex);
+	if (python_init_in_flight && waiting_message)
+		siril_log_warning("%s", waiting_message);
+	while (python_init_in_flight)
+		g_cond_wait(&python_init_cond, &python_init_mutex);
+	g_mutex_unlock(&python_init_mutex);
+}
+
 //***********************************************************************************
 // WARNING: the following function will IMMEDIATELY kill all running python scripts,
 // delete the siril venv directory and rebuild it. Any call to this MUST be
@@ -4734,22 +4766,17 @@ cleanup:
 // have been installed by scripts will require reinstallation.
 //***********************************************************************************
 
-// Wait for any in-flight python init thread to finish so the destructive
-// operations below don't race with it. Common preamble for all four §4.8
-// operations.
-static void wait_for_python_init(void) {
-	if (com.python_init_thread) {
-		siril_log_warning(_("Warning: Python initialization in progress. "
-				"Waiting for it to complete...\n"));
-		g_thread_join(com.python_init_thread);
-		com.python_init_thread = NULL;
-	}
-}
+// Each of the four §4.8 operations deletes state that an in-flight
+// initialisation may still be building, so each waits it out first — through
+// wait_for_python_init(), which lives with the init-thread bookkeeping near the
+// top of this file — and warns if there is anything to wait for.
+#define PYTHON_INIT_WAIT_WARNING _("Warning: Python initialization in progress. " \
+		"Waiting for it to complete...\n")
 
 // §4.8.1: rebuild just the base venv. Per-script venvs and the uv cache
 // remain untouched. Caller is expected to have shown a confirm dialog.
 void rebuild_base_venv(void) {
-	wait_for_python_init();
+	wait_for_python_init(PYTHON_INIT_WAIT_WARNING);
 	kill_all_python_scripts();
 
 	const gchar *targets[] = { "venv", ".python_module", NULL };
@@ -4838,7 +4865,7 @@ gboolean rebuild_script_venv_by_path(const gchar *script_path, GError **error) {
 // §4.8.3: nuclear. Wipes base venv, per-script venvs, ledger, and optionally
 // the uv cache itself. Re-runs init to recreate the base venv.
 void rebuild_all_python_state(gboolean clear_cache) {
-	wait_for_python_init();
+	wait_for_python_init(PYTHON_INIT_WAIT_WARNING);
 	kill_all_python_scripts();
 
 	gchar *project = g_build_filename(g_get_user_data_dir(), "siril", NULL);
@@ -4997,7 +5024,7 @@ gboolean prune_uv_cache(GError **error) {
 	// dispatcher can fire before that thread has finished, in which case
 	// get_uv_executable_path() would return NULL and we'd report "uv is
 	// not in use" even when uv is installed. Wait first.
-	wait_for_python_init();
+	wait_for_python_init(PYTHON_INIT_WAIT_WARNING);
 
 	const gchar *uv_path = get_uv_executable_path();
 	if (!uv_path) {
@@ -5449,10 +5476,27 @@ static void execute_startup_scripts(void) {
 	}
 }
 
-gboolean python_venv_idle(gpointer user_data) {
-//	g_thread_unref(com.python_init_thread);
+/* Called by the initialisation thread at each of its exit points, once the venv
+ * is either prepared or known to have failed.  Clearing the flag here — before
+ * execute_startup_scripts() runs, and on the failure returns as well as the
+ * successful one — is what makes "not in flight" mean "com.python_version, the
+ * python magic number and the venv's environment variables are final", which is
+ * the property execute_python_script() relies on.
+ *
+ * It takes the same mutex that initialize_python_venv_in_thread() holds across
+ * g_thread_new(), so it cannot run ahead of the assignment it is releasing. */
+static void python_init_finished(void) {
+	g_mutex_lock(&python_init_mutex);
+	GThread *thread = com.python_init_thread;
 	com.python_init_thread = NULL;
-	return FALSE;
+	python_init_in_flight = FALSE;
+	g_cond_broadcast(&python_init_cond);
+	g_mutex_unlock(&python_init_mutex);
+	/* Drop the reference g_thread_new() returned.  It used to be leaked — the
+	 * g_thread_unref() was commented out — and dropping it from the thread
+	 * itself is safe: a running thread holds a reference of its own. */
+	if (thread)
+		g_thread_unref(thread);
 }
 
 /*
@@ -5475,6 +5519,7 @@ static gpointer initialize_python_venv(gpointer user_data) {
 				error ? error->message : "Unknown error");
 		g_clear_error(&error);
 		g_free(project_path);
+		python_init_finished();
 		return GINT_TO_POINTER(1);
 	}
 
@@ -5487,6 +5532,7 @@ static gpointer initialize_python_venv(gpointer user_data) {
 				prep_error ? prep_error->message : "Unknown error");
 		g_clear_error(&prep_error);		g_free(venv_path);
 		g_free(project_path);
+		python_init_finished();
 		return GINT_TO_POINTER(1);
 	}
 
@@ -5526,33 +5572,33 @@ static gpointer initialize_python_venv(gpointer user_data) {
 	}
 	g_free(venv_path);
 	g_free(project_path);
-	if (!com.headless) {
-		g_idle_add(python_venv_idle, NULL);
+	/* The venv is ready: release the waiters before running the startup
+	 * scripts, which go through execute_python_script() on this very thread and
+	 * would otherwise wait for an initialisation that is already done. */
+	python_init_finished();
+	if (!com.headless)
 		execute_startup_scripts(); // execute any scripts marked as execute-at-startup
-	} else {
-		python_venv_idle(NULL);
-	}
 	return GINT_TO_POINTER(0);
 }
 
 void initialize_python_venv_in_thread() {
-	// Prevent multiple simultaneous initializations
-	static GMutex init_mutex;
-
-	if (!g_mutex_trylock(&init_mutex)) {
-		siril_log_warning(_("Python initialization already in progress\n"));
-		return;
-	}
+	/* Blocking rather than a trylock: the critical section is a flag check and
+	 * a g_thread_new(), and a caller that lost the trylock used to return
+	 * having neither started an initialisation nor waited for one.  Holding the
+	 * lock across the assignment also orders it before the new thread's own
+	 * call to python_init_finished(), which takes the same lock. */
+	g_mutex_lock(&python_init_mutex);
 
 	// Check if already initialized or in progress
-	if (com.python_init_thread) {
-		siril_log_debug("Python initialization thread already exists\n");
-		g_mutex_unlock(&init_mutex);
+	if (python_init_in_flight) {
+		siril_log_debug("Python initialization already in progress\n");
+		g_mutex_unlock(&python_init_mutex);
 		return;
 	}
 
+	python_init_in_flight = TRUE;
 	com.python_init_thread = g_thread_new("initialize python venv", initialize_python_venv, NULL);
-	g_mutex_unlock(&init_mutex);
+	g_mutex_unlock(&python_init_mutex);
 }
 
 void shutdown_python_communication(CommunicationState *commstate) {
@@ -5731,23 +5777,24 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 						gboolean debug_mode,
 						const gchar *venv_identity_path,
 						const gchar *pep723_source) {
+	/* Wait for the initialisation whenever one is in flight, rather than only
+	 * when com.python_version is still unset: the version is assigned early in
+	 * the venv setup, while the venv's environment variables are only exported
+	 * at the end of it, so testing the version alone let a script launch python
+	 * against a half-prepared environment. */
+	wait_for_python_init(NULL);
+
 	version_number none = { 0 };
 	if (compare_version(none, com.python_version) >= 0) {
-		if (com.python_init_thread) {
-			g_thread_join(com.python_init_thread); // wait for python initialization to start
-			com.python_init_thread = NULL;
-		} else {
-			siril_log_error(_("Error: python not ready yet. This may happen at first run "
-					"if the python venv and module setup has not yet completed. Please wait a short "
-					"time for a completion message in the log and try again.\n"));
-			// Clean up the temporary file if it's one; always free
-			// script_name (the function owns it per the caller contract).
-			if (is_temp_file && script_name) {
-				g_unlink(script_name);
-			}
-			g_free(script_name);
-			return;
-		}
+		siril_log_error(_("Error: python not ready yet. This may happen at first run "
+				"if the python venv and module setup has not yet completed. Please wait a short "
+				"time for a completion message in the log and try again.\n"));
+		// Clean up the temporary file if it's one; script_name is owned by this
+		// function either way, so it is freed on every path
+		if (is_temp_file && script_name)
+			g_unlink(script_name);
+		g_free(script_name);
+		return;
 	}
 
 	// Generate a unique connection path for the pipe or socket for this script

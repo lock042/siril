@@ -166,6 +166,7 @@ int	process_register_mpp(int nb);
 int	process_resample(int nb);
 int	process_reloadscripts(int nb);
 int	process_requires(int nb);
+int	process_rgbalign(int nb);
 int	process_rgbcomp(int nb);
 int	process_rgradient(int nb);
 int	process_rl(int nb);
