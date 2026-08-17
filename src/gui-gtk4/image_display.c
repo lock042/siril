@@ -603,11 +603,11 @@ void drop_lazy_tile_textures(void) {
  * on both axes) get eager mode — one contiguous buf, no LRU; anything
  * larger uses lazy mode — tile bytes materialised on demand and bounded
  * by SIRIL_LAZY_BUDGET.  Returns 0 on success. */
-static int allocate_full_surface(struct image_view *view) {
+static int allocate_full_surface(struct image_view *view, fits *fit) {
 	g_mutex_lock(&gui.cairo_mutex);
 
-	const int img_w = (int)gfit->rx;
-	const int img_h = (int)gfit->ry;
+	const int img_w = (int)fit->rx;
+	const int img_h = (int)fit->ry;
 	if (img_w <= 0 || img_h <= 0) {
 		g_mutex_unlock(&gui.cairo_mutex);
 		return 1;
@@ -1893,24 +1893,24 @@ void check_gfit_profile_identical_to_monitor() {
 	siril_log_debug("current image profile identical to monitor profile: %d\n", identical);
 }
 
-static void remaprgb(void) {
+static void remaprgb(fits *fit) {
 	guint32 *dst;
 	const guint32 *bufr, *bufg, *bufb;
 	gint i;
 	int nbdata;
 
 	siril_log_debug("remaprgb\n");
-	if (!isrgb(gfit))
+	if (!isrgb(fit))
 		return;
 
 	struct image_view *rgbview = &gui.view[RGB_VPORT];
-	if (allocate_full_surface(rgbview))
+	if (allocate_full_surface(rgbview, fit))
 		return;
 
 	g_mutex_lock(&gui.cairo_mutex);
 
 	/* Lazy mode: no gray bufs to composite from.  materialise_tile_rgb
-	 * reads gfit + the per-channel LUTs directly when it fills each
+	 * reads fit + the per-channel LUTs directly when it fills each
 	 * RGB tile, so we just invalidate here. */
 	if (rgbview->lazy) {
 		view_refresh_tile_textures(rgbview);
@@ -2043,7 +2043,7 @@ enum {
 	INDEX_REUSED		/* the previous LUT is still valid, transform already composed */
 };
 
-static int make_index_for_current_display(int vport, float *fidx);
+static int make_index_for_current_display(int vport, float *fidx, fits *fit);
 
 static int make_hd_index_for_current_display(int vport);
 
@@ -2054,7 +2054,7 @@ static void remap_mask(mask_t *mask) {
 
 	int vport = MASK_VPORT;
 	struct image_view *view = &gui.view[vport];
-	if (allocate_full_surface(view))
+	if (allocate_full_surface(view, gfit))
 		return;
 
 	g_mutex_lock(&gui.cairo_mutex);
@@ -2173,7 +2173,7 @@ static gboolean viewer_mode_sensitive_idle(gpointer data) {
 }
 
 // remapping one vport at a time is used for DISPLAY_STF and DISPLAY_HISTEQ
-static void remap(int vport) {
+static void remap(int vport, fits *fit) {
 	// This function maps fit data with a linear LUT between lo and hi levels
 	// to the buffer to be displayed; display only is modified
 	BYTE *dst, *index, rainbow_index[UCHAR_MAX + 1][3];
@@ -2182,16 +2182,16 @@ static void remap(int vport) {
 	gboolean inverted;
 	siril_log_debug("HISTEQ / STF remap %d\n", vport);
 	if (vport == RGB_VPORT) {
-		remaprgb();
+		remaprgb(fit);
 		return;
 	}
-	if (gfit->type == DATA_UNSUPPORTED) {
+	if (fit->type == DATA_UNSUPPORTED) {
 		siril_log_debug("data is not loaded yet\n");
 		return;
 	}
 
 	struct image_view *view = &gui.view[vport];
-	if (allocate_full_surface(view))
+	if (allocate_full_surface(view, fit))
 		return;
 
 	/* Cache the two GAction pointers on first call.
@@ -2219,14 +2219,14 @@ static void remap(int vport) {
 		 * free/recompute by notify_gfit_data_modified() and against the
 		 * histogram dialog's draw handler. */
 		g_mutex_lock(&com.histogram_mutex);
-		compute_histo_for_fit(gfit);
+		compute_histo_for_fit(fit);
 		histo = com.layers_hist[vport];
 		if (!histo) {
 			g_mutex_unlock(&com.histogram_mutex);
 			return;
 		}
 		hist_nb_bins = gsl_histogram_bins(histo);
-		nb_pixels = (double)(gfit->rx * gfit->ry);
+		nb_pixels = (double)(fit->rx * fit->ry);
 		// build the remap_index; HISTEQ derives a curve per channel, so it
 		// belongs in this channel's slot (see lut_slot_for_channel)
 		index = gui.remap_index[vport];
@@ -2244,21 +2244,21 @@ static void remap(int vport) {
 	} else {
 		if (gui.rendering_mode == STF_DISPLAY && !stf_computed) {
 			if (gui.unlink_channels)
-				find_unlinked_midtones_balance(gfit, AS_DEFAULT_SHADOWS_CLIPPING, gui.autostretch_target_bg, stf);
-			else find_linked_midtones_balance(gfit, AS_DEFAULT_SHADOWS_CLIPPING, gui.autostretch_target_bg, stf);
+				find_unlinked_midtones_balance(fit, AS_DEFAULT_SHADOWS_CLIPPING, gui.autostretch_target_bg, stf);
+			else find_linked_midtones_balance(fit, AS_DEFAULT_SHADOWS_CLIPPING, gui.autostretch_target_bg, stf);
 			stf_computed = TRUE;
 		}
-		if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit->type == DATA_FLOAT) {
+		if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && fit->type == DATA_FLOAT) {
 			make_hd_index_for_current_display(vport);
 		}
 		else
-			make_index_for_current_display(vport, NULL);
+			make_index_for_current_display(vport, NULL, fit);
 		siril_add_idle(viewer_mode_sensitive_idle,
 		               GINT_TO_POINTER(gui.rendering_mode != STF_DISPLAY));
 	}
 
-	src = gfit->pdata[vport];
-	fsrc = gfit->fpdata[vport];
+	src = fit->pdata[vport];
+	fsrc = fit->fpdata[vport];
 
 	g_mutex_lock(&gui.cairo_mutex);
 
@@ -2284,7 +2284,7 @@ static void remap(int vport) {
 		make_index_for_rainbow(rainbow_index);
 	int target_index = lut_slot_for_channel(vport);
 
-	gboolean hd_mode = (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit->type == DATA_FLOAT);
+	gboolean hd_mode = (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && fit->type == DATA_FLOAT);
 	if (hd_mode) {
 		index = gui.hd_remap_index[target_index];
 	}
@@ -2294,7 +2294,7 @@ static void remap(int vport) {
 	// Check if mask overlay is active
 	mask_t overlay_mask = { 0 };
 	gboolean apply_mask =
-	    (gfit->mask_active && com.pref.gui.mask_tints_vports
+	    (fit->mask_active && com.pref.gui.mask_tints_vports
 	     && flis_get_displayed_mask(&overlay_mask));
 	uint8_t *mask_u8 = NULL;
 	uint16_t *mask_u16 = NULL;
@@ -2319,14 +2319,14 @@ static void remap(int vport) {
 		}
 	}
 
-	const guint width = gfit->rx;
-	const guint height = gfit->ry;
+	const guint width = fit->rx;
+	const guint height = fit->ry;
 
 /* Macro to compute a pixel from source index src_i and write it to dst+dst_i */
 #define REMAP_WRITE_PIXEL(src_i, dst_i) \
 	do { \
 		BYTE dpv; \
-		if (gfit->type == DATA_USHORT) { \
+		if (fit->type == DATA_USHORT) { \
 			const WORD sv = src[(src_i)]; \
 			dpv = hd_mode ? index[sv * gui.hd_remap_max / USHRT_MAX] : index[sv]; \
 		} else { \
@@ -2382,7 +2382,7 @@ static void remap(int vport) {
 	test_and_allocate_reference_image(vport);
 }
 
-static void remap_all_vports() {
+static void remap_all_vports(fits *fit) {
 	gboolean inverted;
 	/* Snapshot gui.hi/gui.lo: init_layers_hi_and_lo_values() may write them
 	 * from the worker thread concurrently while this path runs from
@@ -2420,7 +2420,7 @@ static void remap_all_vports() {
 	// mask-view radio via flis_get_displayed_mask).
 	mask_t overlay_mask = { 0 };
 	gboolean apply_mask =
-	    (gfit->mask_active && com.pref.gui.mask_tints_vports
+	    (fit->mask_active && com.pref.gui.mask_tints_vports
 	     && flis_get_displayed_mask(&overlay_mask));
 	uint8_t *mask_u8 = NULL;
 	uint16_t *mask_u16 = NULL;
@@ -2451,7 +2451,7 @@ static void remap_all_vports() {
 	WORD *src[3];
 	float *fsrc[3];
 
-	if (gfit->type == DATA_UNSUPPORTED) {
+	if (fit->type == DATA_UNSUPPORTED) {
 		siril_log_debug("data is not loaded yet\n");
 		return;
 	}
@@ -2498,11 +2498,11 @@ static void remap_all_vports() {
 			PRINT_ALLOC_ERR;
 	}
 
-	int status = make_index_for_current_display(0, fidx);
+	int status = make_index_for_current_display(0, fidx, fit);
 	index[0] = gui.remap_index[0];
 	if (managed) {
 		for (int i = 1 ; i < 3 ; i++) {
-			make_index_for_current_display(i, NULL);
+			make_index_for_current_display(i, NULL, fit);
 			index[i] = gui.remap_index[i];
 		}
 	}
@@ -2526,9 +2526,9 @@ static void remap_all_vports() {
 	// pointer race: a concurrent allocate_full_surface() could realloc view->buf
 	// between its internal unlock and the cairo_mutex acquisition below.
 	for (int i = 0 ; i < 3 ; i++) {
-		src[i] = gfit->pdata[i];
-		fsrc[i] = gfit->fpdata[i];
-		if (allocate_full_surface(view[i]))
+		src[i] = fit->pdata[i];
+		fsrc[i] = fit->fpdata[i];
+		if (allocate_full_surface(view[i], fit))
 			return;
 	}
 	g_mutex_lock(&gui.cairo_mutex);
@@ -2550,9 +2550,9 @@ static void remap_all_vports() {
 	for (int i = 0 ; i < 3 ; i++)
 		dst[i] = view[i]->buf;
 
-	int norm = (int) get_normalized_value(gfit);
-	const guint width = gfit->rx;
-	const guint height = gfit->ry;
+	int norm = (int) get_normalized_value(fit);
+	const guint width = fit->rx;
+	const guint height = fit->ry;
 
 	/* Render is always at the image's natural resolution now — the
 	 * downscaled path that worked around the Cairo 32767-px limit has
@@ -2643,7 +2643,7 @@ static void remap_all_vports() {
 				}
 			}
 
-			if (gfit->type == DATA_FLOAT) {
+			if (fit->type == DATA_FLOAT) {
 				for (int c = 0 ; c < 3 ; c++) {
 					WORD *line = linebuf[c];
 					float *source = fsrc[c];
@@ -2664,7 +2664,7 @@ static void remap_all_vports() {
 // No omp simd here as memcpy should already be highly optimized
 					memcpy(linebuf[c], src[c] + src_i, width * sizeof(WORD));
 			}
-			if (gfit->type == DATA_USHORT && norm == UCHAR_MAX) {
+			if (fit->type == DATA_USHORT && norm == UCHAR_MAX) {
 				for (int c = 0 ; c < 3 ; c++) {
 					WORD *line = linebuf[c];
 #pragma omp simd
@@ -2846,7 +2846,7 @@ static int make_hd_index_for_current_display(int vport) {
  *
  * If fidx is non-NULL it receives the stretch output before quantisation,
  * normalised to [0, 1], for the caller to compose from. */
-static int make_index_for_current_display(int vport, float *fidx) {
+static int make_index_for_current_display(int vport, float *fidx, fits *fit) {
 	g_mutex_lock(&com.mutex);
 	WORD lo = gui.lo;
 	WORD hi = gui.hi;
@@ -2919,7 +2919,7 @@ static int make_index_for_current_display(int vport, float *fidx) {
 				val = (float) i * slope;
 				break;
 			case STF_DISPLAY:
-				pxl = (gfit->orig_bitpix == BYTE_IMG ?
+				pxl = (fit->orig_bitpix == BYTE_IMG ?
 						(float) i / UCHAR_MAX_SINGLE :
 						(float) i / USHRT_MAX_SINGLE);
 				val = (MTFp(pxl, stf[target_index])) * slope;
@@ -5393,25 +5393,28 @@ void invalidate_autostretch_cache(void) {
 }
 
 void remap_all() {
-	/* FLIS swap (stage 3.1): for the duration of the remap loop, gfit
-	 * points at the FLIS composite — built lazily from com.uniq->layers
-	 * — so all downstream pixel reads see the composited multi-layer
-	 * image rather than just the active layer.  Restored unconditionally
-	 * at the end (even on early-return paths inside remap()) because the
-	 * composite is a private allocation, not a permanent replacement.
+	/* The render source is DERIVED, not stored: the composite built from
+	 * com.uniq->layers for a FLIS document (stage 3.1), otherwise the plain
+	 * image in gfit.  This used to be done by pointing gfit at the composite
+	 * for the duration of the remap and putting it back at the end, which
+	 * every other reader of the global saw too — a worker measuring the image
+	 * got the composite instead of the layer it asked for, and anything
+	 * holding gfit's rwlock across the window released a different lock than
+	 * it acquired.  Passing the fits down the call chain costs nothing and has
+	 * neither problem.
 	 *
-	 * Future stages 3.2/3.3 replace this with a per-layer GdkTexture
-	 * cache and per-tile materialisation; the composite cache here
-	 * remains the CPU fallback and the correctness oracle. */
-	fits *flis_saved_gfit = NULL;
-	if (is_current_image_flis()) {
-		g_mutex_lock(&gui.cairo_mutex);
-		if (flis_composite_ensure_built() == 0 && flis_display_composite) {
-			flis_saved_gfit = gfit;
-			gfit = flis_display_composite;
-		}
-		g_mutex_unlock(&gui.cairo_mutex);
-	}
+	 * The pointer is borrowed for the duration of the call: the composite is
+	 * only released or rebuilt under cairo_mutex, on the close and invalidate
+	 * paths.
+	 *
+	 * Future stages 3.2/3.3 replace this with a per-layer GdkTexture cache and
+	 * per-tile materialisation; the composite cache here remains the CPU
+	 * fallback and the correctness oracle. */
+	fits *fit = flis_display_get_composite();
+	if (!fit)
+		fit = gfit;
+	if (!fit)
+		return;
 
 	/* When auto-refresh is on (default) the autostretch follows every image
 	 * change. When off, keep the previously computed parameters so the stretch
@@ -5419,18 +5422,14 @@ void remap_all() {
 	if (gui.autostretch_auto_refresh)
 		stf_computed = FALSE;
 	if (gui.rendering_mode == HISTEQ_DISPLAY || gui.rendering_mode == STF_DISPLAY) {
-		for (int i = 0; i < gfit->naxes[2]; i++) {
-			remap(i);
+		for (int i = 0; i < fit->naxes[2]; i++) {
+			remap(i, fit);
 		}
 	} else {
-		remap_all_vports();
+		remap_all_vports(fit);
 	}
-	if (gfit->naxis == 3)
-		remaprgb();
-
-	if (flis_saved_gfit) {
-		gfit = flis_saved_gfit;
-	}
+	if (fit->naxis == 3)
+		remaprgb(fit);
 }
 
 void redraw(remap_type doremap) {
