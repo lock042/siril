@@ -6,6 +6,7 @@ xx/xx/xx
 * Fixed python-related thread contention bug (#1959)
 * Fixed opening JPEG XL files wrapped in an ISO/IEC 18181-2 container (#1961)
 * Fixed compilation when the version of opencv is >= 5
+* Fixed a race in the Python venv initialisation: the shared initialisation handle was read and cleared without a lock, and pyscript could launch python before the virtual environment's variables had been exported (#1977)
 
 siril-1.4.4
 06/17/26
