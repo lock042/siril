@@ -1557,7 +1557,7 @@ static void materialise_worker(gpointer data, gpointer user) {
 		 * from the fits we locked is also the only self-consistent choice: a
 		 * retarget mid-fill costs one stale tile, which the generation and
 		 * invalidate_seq checks in phase 3 already discard. */
-		fits *fit = gfit;
+		fits *fit = g_atomic_pointer_get(&gfit);
 		if (!fit) {
 			g_mutex_lock(&gui.cairo_mutex);
 			gui.view[vport].workers_active--;

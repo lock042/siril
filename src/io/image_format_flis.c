@@ -130,8 +130,23 @@
  *      layer worker.
  *   b. flis_group_t.collapsed (flis_gui.c): panel-only state, written
  *      and read exclusively on the main thread.
- *   c. gfit repointing by uniq_set_active_layer: a single pointer
- *      store; all call sites are the main thread or a worker hook.
+ *   c. gfit repointing by uniq_set_active_layer: a single atomic pointer
+ *      store.  Not benign because of where it is called from — the
+ *      display's tile pool reads gfit from its own threads, which that
+ *      reasoning never covered — but because of what the readers do with
+ *      it: materialise_worker latches the pointer once per job and then
+ *      locks and fills THAT fits, so a retarget under it costs at most one
+ *      tile rendered from the outgoing layer, and the rwlock it releases is
+ *      the one it took.  Any reader added later must latch once for the
+ *      same reason; re-reading gfit per dereference would straddle the
+ *      store and unlock a different lock than it acquired.
+ *
+ *      The retarget is therefore safe on its own.  FREEING the outgoing
+ *      layer's fits is not — see flis_layer_remove / flis_merge_down_layer
+ *      / flis_flatten_all, which retarget and then free.  A worker that
+ *      latched the old pointer is still reading it, and the pool cannot be
+ *      drained from under the stack writer lock (rule 1 forbids taking
+ *      gui.cairo_mutex there, which is what draining does).
  *   d. The undo restore path (undo.c undo_display_data): rewrites layer
  *      payloads on the MAIN thread with no stack lock.  Safe because
  *      every unlocked reader is main-thread-confined (same thread,
@@ -1413,7 +1428,19 @@ void uniq_set_active_layer(single *uniq, gint index) {
     uniq->active_layer = index;
     uniq->fit   = layer->fit;
     uniq->chans = (layer->fit->naxes[2] > 0) ? (int)layer->fit->naxes[2] : 1;
-    gfit        = layer->fit;
+    /* Atomic store, because gfit is read off this thread: the display's tile
+     * workers latch it once per job (materialise_worker) and then lock and
+     * fill the fits they latched.  A retarget racing that is harmless to them
+     * — they finish against the layer they picked up, which stays alive in the
+     * layer list — but the store itself should be well defined rather than a
+     * torn read waiting to happen.
+     *
+     * Deliberately NO pool drain here: this runs inside worker hooks holding
+     * the FLIS stack writer lock, which may not take gui.cairo_mutex (rule 1
+     * below, and generic_layer_worker in core/processing.c), and draining does
+     * exactly that.  What needs the pool stopped is FREEING a layer's fits,
+     * not repointing gfit at a different one. */
+    g_atomic_pointer_set(&gfit, layer->fit);
     /* Single layer-change chokepoint: every GUI state keyed to the
      * active layer is reconciled by ONE asynchronous callback, whatever
      * path performed the switch (user, load, worker hook).  Async by
