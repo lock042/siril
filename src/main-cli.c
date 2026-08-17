@@ -217,6 +217,12 @@ static void siril_app_activate(GApplication *application) {
 	curl_global_init(CURL_GLOBAL_ALL);
 #endif
 
+	/* Start the python venv initialisation BEFORE the script runs.  This used
+	 * to sit after execute_script() / read_pipe(), so com.python_init_thread
+	 * was still NULL for the whole script and every `pyscript` failed with
+	 * "python not ready yet".  See main.c for the details. */
+	initialize_python_venv_in_thread();
+
 	if (main_option_script) {
 		GInputStream *input_stream = NULL;
 
@@ -248,7 +254,6 @@ static void siril_app_activate(GApplication *application) {
 		read_pipe(main_option_rpipe_path);
 	}
 
-	initialize_python_venv_in_thread();
 	initialize_profiles_and_transforms(); // color management
 	initialize_spcc_mirrors();
 	if (main_option_sync_spcc) {
