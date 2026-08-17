@@ -7,6 +7,7 @@ siril-1.5.0
 **Fixes**
 * Fixed issue with bgnoise calculation that could result in a small overestimate (#1817)
 * Fixed reading of FITS images storing floating point data as BSCALE/BZERO-scaled integers, which loaded as pure black and white: they are now read as 32-bit float and normalized to Siril's [0, 1] range, the normalization being recorded in HISTORY and the DATA* keywords describing the original physical data dropped
+* Fixed pyscript failing with "python not ready yet" in scripts run with -s: the python venv initialisation was ordered after script execution and could never be reached (#1976)
 * Fixed a crash when closing a large image: the pixel data was freed without the gfit writer lock, and the display's tile grid without the mutex guarding it, while the tile-materialisation threads were still reading both (#1975)
 * Fixed a race in the Python venv initialisation: the shared initialisation handle was read and cleared without a lock, and pyscript could launch python before the virtual environment's variables had been exported (#1977)
 
