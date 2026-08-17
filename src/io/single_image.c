@@ -644,17 +644,27 @@ static void fit_lohi_to_layers(fits *fit, double lo_in, double hi_in, WORD *lo_o
  * max.
  */
 void init_layers_hi_and_lo_values(sliders_mode force_minmax) {
-	if (force_minmax == USER) return;
+	init_layers_hi_and_lo_values_from(force_minmax, gfit);
+}
+
+/* As above, but against an explicit fits.  A FLIS document displays the
+ * composite while gfit is the active layer on its own, so the caller has to
+ * say which of the two the display range should describe — see
+ * notify_gfit_data_modified(), where MINMAX must measure the composite (that
+ * is what is on screen) and MIPSLOHI must read the active layer (only that
+ * carries the MIPS-LO/HI keywords). */
+void init_layers_hi_and_lo_values_from(sliders_mode force_minmax, fits *src) {
+	if (force_minmax == USER || !src) return;
 	WORD lo = 0, hi = 0xFFFF;
 	sliders_mode sliders;
-	if (gfit->keywords.hi == 0 || force_minmax == MINMAX) {
+	if (src->keywords.hi == 0 || force_minmax == MINMAX) {
 		sliders = MINMAX;
-		image_find_minmax(gfit);
-		fit_lohi_to_layers(gfit, gfit->mini, gfit->maxi, &lo, &hi);
+		image_find_minmax(src);
+		fit_lohi_to_layers(src, src->mini, src->maxi, &lo, &hi);
 	} else {
 		sliders = MIPSLOHI;
-		hi = gfit->keywords.hi;
-		lo = gfit->keywords.lo;
+		hi = src->keywords.hi;
+		lo = src->keywords.lo;
 	}
 	gui_iface.update_display_range_after_load((int)sliders, (int)lo, (int)hi);
 }
@@ -801,66 +811,47 @@ void notify_gfit_data_modified() {
 			gui_iface.copy_roi_into_gfit();
 
 		/* For FLIS the histogram dialog should show the composite's
-		 * distribution, not the active layer in isolation — swap
-		 * gfit to the composite for compute_histo_for_fit only. */
-		fits *flis_saved = gui_iface.flis_swap_in_composite();
-		gui_iface.compute_histo_for_fit(gfit); // reads gfit pixel data; GTK toggle update deferred to idle
+		 * distribution, not the active layer in isolation.  NULL for a
+		 * plain image, in which case the active layer IS the image. */
+		fits *composite = (fits *)gui_iface.flis_get_composite();
+		gui_iface.compute_histo_for_fit(composite ? composite : gfit); // GTK toggle update deferred to idle
 		g_mutex_unlock(&com.histogram_mutex);
 
 		/* Update hi/lo display range BEFORE remapping so the first
 		 * rendered frame of a new image uses the correct stretch (not
-		 * stale values from the previously displayed image).  Mode-
-		 * dependent: gfit must point at the right fits so init reads
-		 * the values that actually represent what's on screen.
+		 * stale values from the previously displayed image).  Which fits
+		 * the range must describe is mode-dependent, and is now said in
+		 * the argument rather than by aliasing gfit around the call:
 		 *
 		 *   USER     → no-op (init returns early); manual values kept.
-		 *   MIPSLOHI → swap-out first.  init reads gfit->keywords.hi/lo,
-		 *              which only the active-layer fits carries — the
-		 *              composite is a transient build with no keywords.
-		 *              Skip the call entirely when keywords.hi == 0
-		 *              (common for FLIS layers added from stacker
-		 *              output without MIPS-HI), otherwise init's
-		 *              fallback would silently flip gui.sliders to
-		 *              MINMAX and leave the display "too dark".
-		 *   MINMAX   → keep the composite in.  init runs
-		 *              image_find_minmax(gfit), and what's actually
-		 *              displayed is the COMPOSITE — so the LUT range
-		 *              must match the composite's min/max, not the
-		 *              active layer's.  Running init against the
-		 *              active layer (the pre-fix behaviour) made the
-		 *              LUT track a different image than the one on
-		 *              screen, producing "too dark" / "too bright"
-		 *              wherever the composite range differed from the
-		 *              active layer's.
-		 *
-		 * After init returns we always swap out (so subsequent code
-		 * sees gfit = active layer, the rest of the function and its
-		 * callers' invariant). */
+		 *   MIPSLOHI → the ACTIVE LAYER.  init reads keywords.hi/lo, which
+		 *              only the active-layer fits carries — the composite
+		 *              is a transient build with no keywords.  Skip the
+		 *              call entirely when keywords.hi == 0 (common for
+		 *              FLIS layers added from stacker output without
+		 *              MIPS-HI), otherwise init's fallback would silently
+		 *              flip gui.sliders to MINMAX and leave the display
+		 *              "too dark".
+		 *   MINMAX   → the COMPOSITE.  init runs image_find_minmax, and
+		 *              what is actually displayed is the composite — so
+		 *              the LUT range must match the composite's min/max,
+		 *              not the active layer's.  Measuring the active layer
+		 *              (the pre-fix behaviour) made the LUT track a
+		 *              different image than the one on screen, producing
+		 *              "too dark" / "too bright" wherever the composite
+		 *              range differed from the active layer's. */
 		g_mutex_lock(&com.mutex);
 		sliders_mode sm = (sliders_mode)gui_iface.get_sliders_mode();
-		if (sm == USER) {
-			/* USER mode: nothing to do.  Keep gfit on the composite
-			 * shortly until swap-out below; remap_all_vports below
-			 * will run against the active layer either way (the
-			 * remap path sources its own swap). */
-		} else if (sm == MIPSLOHI) {
-			gui_iface.flis_swap_out_composite(flis_saved);
-			flis_saved = NULL;
+		if (sm == MIPSLOHI) {
 			/* The hi == 0 skip is FLIS-only (see the comment above);
 			 * ordinary images keep the historical behaviour where init
 			 * falls back to MINMAX for files without MIPS-HI — skipping
 			 * for them left the display range stale after operations on
 			 * e.g. TIFF/PNG-sourced images. */
 			if (!is_current_image_flis() || gfit->keywords.hi != 0)
-				init_layers_hi_and_lo_values(sm);
-		} else /* MINMAX */ {
-			/* gfit is still the composite here — exactly what we want
-			 * for image_find_minmax to compute the LUT against. */
-			init_layers_hi_and_lo_values(sm);
-		}
-		if (flis_saved) {
-			gui_iface.flis_swap_out_composite(flis_saved);
-			flis_saved = NULL;
+				init_layers_hi_and_lo_values_from(sm, gfit);
+		} else if (sm != USER) /* MINMAX */ {
+			init_layers_hi_and_lo_values_from(sm, composite ? composite : gfit);
 		}
 		g_mutex_unlock(&com.mutex);
 		gui_iface.remap_all_vports(); // Updates the Cairo image buffers based on applying the remap LUT to gfit

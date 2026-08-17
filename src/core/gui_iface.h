@@ -264,6 +264,11 @@ typedef struct {
 	 *          FLIS_INV_LAYER_PROPS; ignored otherwise).
 	 * No-op in headless / GTK3 builds. */
 	void     (*flis_display_invalidate)(int flags, int item_id);
+	/* Build the FLIS composite if stale and return a borrowed pointer to
+	 * it, or NULL when there is nothing to composite (non-FLIS image, or
+	 * the build failed).  Pass the result to whatever must measure or
+	 * render the multi-layer image; do not assign it to gfit. */
+	void    *(*flis_get_composite)(void);
 	/* Swap gfit to the FLIS composite for the duration of caller's
 	 * read-from-gfit work (histogram, hi/lo computation, etc.).
 	 * Returns the saved gfit on success — caller MUST pass it back

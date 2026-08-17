@@ -230,6 +230,27 @@ void flis_display_composite_free(void) {
 	flis_composite_release();
 }
 
+/* Build the composite if it is stale and hand back a borrowed pointer to it,
+ * or NULL when there is nothing to composite (no FLIS document open, or the
+ * build failed).  Callers pass this to whatever has to measure or render the
+ * multi-layer image, rather than pointing gfit at it for the duration: gfit is
+ * read unsynchronised throughout the code base — including by the tile pool,
+ * which takes a lock on whichever fits it finds there — so aliasing it even
+ * briefly hands every one of those readers a different image mid-flight.
+ *
+ * Borrowed, not owned.  The composite lives until flis_composite_release() or
+ * the next rebuild, both of which run under cairo_mutex from the close and
+ * invalidate paths; that is exactly the lifetime the swap pair below offered
+ * its callers. */
+fits *flis_display_get_composite(void) {
+	if (!is_current_image_flis()) return NULL;
+	g_mutex_lock(&gui.cairo_mutex);
+	fits *composite = (flis_composite_ensure_built() == 0) ? flis_display_composite
+	                                                       : NULL;
+	g_mutex_unlock(&gui.cairo_mutex);
+	return composite;
+}
+
 /* Temporarily point gfit at the FLIS composite so callers that read
  * gfit (histogram, display-range computation, statistics) see the
  * multi-layer composite rather than the active layer in isolation.

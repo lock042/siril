@@ -133,6 +133,7 @@ static void stub_update_histogram(void) {}
 static void stub_redraw_mask_idle(gboolean remap_tints) { (void)remap_tints; }
 static void stub_flis_invalidate_composite(void) {}
 static void stub_flis_display_invalidate(int flags, int item_id) { (void)flags; (void)item_id; }
+static void *stub_flis_get_composite(void) { return NULL; }
 static void *stub_flis_swap_in_composite(void) { return NULL; }
 static void stub_flis_swap_out_composite(void *saved) { (void)saved; }
 static void stub_flis_composite_free(void) {}
@@ -385,6 +386,7 @@ SirilGuiInterface gui_iface = {
 	.redraw_mask_idle            = stub_redraw_mask_idle,
 	.flis_invalidate_composite   = stub_flis_invalidate_composite,
 	.flis_display_invalidate     = stub_flis_display_invalidate,
+	.flis_get_composite          = stub_flis_get_composite,
 	.flis_swap_in_composite      = stub_flis_swap_in_composite,
 	.flis_swap_out_composite     = stub_flis_swap_out_composite,
 	.flis_composite_free         = stub_flis_composite_free,

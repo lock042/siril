@@ -41,6 +41,7 @@ int image_find_minmax(fits *fit);
 double fit_get_max(fits *fit, int layer);
 double fit_get_min(fits *fit, int layer);
 void init_layers_hi_and_lo_values(sliders_mode force_minmax);
+void init_layers_hi_and_lo_values_from(sliders_mode force_minmax, fits *src);
 void unique_free_preprocessing_data(single *uniq);
 int single_image_is_loaded();
 

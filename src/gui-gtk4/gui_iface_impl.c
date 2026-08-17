@@ -942,6 +942,7 @@ static void impl_redraw_mask_idle(gboolean remap_tints) {
 extern void flis_display_invalidate_composite(void);
 extern void flis_display_composite_free(void);
 extern void flis_display_invalidate(int flags, int item_id);
+extern fits *flis_display_get_composite(void);
 extern fits *flis_display_swap_in_composite(void);
 extern void  flis_display_swap_out_composite(fits *saved);
 
@@ -955,6 +956,10 @@ static void impl_flis_composite_free(void) {
 
 static void impl_flis_display_invalidate(int flags, int item_id) {
 	flis_display_invalidate(flags, item_id);
+}
+
+static void *impl_flis_get_composite(void) {
+	return flis_display_get_composite();
 }
 
 static void *impl_flis_swap_in_composite(void) {
@@ -1700,6 +1705,7 @@ void siril_register_gui_iface(void) {
 	gui_iface.redraw_mask_idle            = impl_redraw_mask_idle;
 	gui_iface.flis_invalidate_composite   = impl_flis_invalidate_composite;
 	gui_iface.flis_display_invalidate     = impl_flis_display_invalidate;
+	gui_iface.flis_get_composite          = impl_flis_get_composite;
 	gui_iface.flis_swap_in_composite      = impl_flis_swap_in_composite;
 	gui_iface.flis_swap_out_composite     = impl_flis_swap_out_composite;
 	gui_iface.flis_composite_free         = impl_flis_composite_free;
