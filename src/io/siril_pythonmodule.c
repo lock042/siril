@@ -2401,8 +2401,67 @@ static gpointer connection_worker(gpointer data) {
 typedef struct {
 	gchar *venv_path;
 	gchar *python_version;
-	GHashTable *env_vars;
+	gchar *bin_dir;		// the venv's bin/Scripts directory
 } PythonVenvInfo;
+
+/* The base venv's environment belongs to the python child, not to Siril.  It
+ * used to be exported into our own environ with g_setenv() once the
+ * initialisation had finished, which is unsound twice over.
+ *
+ * g_setenv() rewrites a table every thread reads through g_getenv() /
+ * g_get_environ() without any lock — glibc may reallocate `environ` — and the
+ * initialisation no longer runs after script execution but alongside it, so that
+ * overlap is now reachable rather than theoretical.  The com.env_mutex the
+ * export held is only taken by the other *writers*; readers all over Siril do
+ * not, and cannot be made to.
+ *
+ * And it put a python venv's bin directory at the front of the PATH Siril itself
+ * searches, so g_find_program_in_path() could hand back a program from inside
+ * the venv — the very lookups used to find the system python and uv.
+ *
+ * So the venv's environment is kept here instead, behind its own lock, and
+ * folded into the child's environment block at spawn time, which is the only
+ * place it was ever wanted. */
+static GMutex venv_env_mutex;
+static gchar *venv_env_virtual_env = NULL;	// base venv path, or NULL
+static gchar *venv_env_bin_dir = NULL;		// its bin dir, or NULL
+
+/* Publish the prepared venv's environment.  Called by the initialisation thread
+ * in place of the old g_setenv() loop. */
+static void publish_venv_environment(const gchar *venv_path, const gchar *bin_dir) {
+	g_mutex_lock(&venv_env_mutex);
+	g_free(venv_env_virtual_env);
+	g_free(venv_env_bin_dir);
+	venv_env_virtual_env = g_strdup(venv_path);
+	venv_env_bin_dir = g_strdup(bin_dir);
+	g_mutex_unlock(&venv_env_mutex);
+}
+
+/* Fold the base venv's environment into a g_get_environ()-style block: its bin
+ * directory at the front of PATH, and VIRTUAL_ENV.  A no-op until the
+ * initialisation has published one — and callers that then select a per-script
+ * venv overwrite VIRTUAL_ENV afterwards, exactly as they did when this arrived
+ * through the inherited environment. */
+static gchar **apply_venv_environment(gchar **envp) {
+	g_mutex_lock(&venv_env_mutex);
+	gchar *virtual_env = g_strdup(venv_env_virtual_env);
+	gchar *bin_dir = g_strdup(venv_env_bin_dir);
+	g_mutex_unlock(&venv_env_mutex);
+
+	if (virtual_env)
+		envp = g_environ_setenv(envp, "VIRTUAL_ENV", virtual_env, TRUE);
+	if (bin_dir) {
+		const gchar *path = g_environ_getenv(envp, "PATH");
+		gchar *new_path = path ?
+			g_strjoin(G_SEARCHPATH_SEPARATOR_S, bin_dir, path, NULL) :
+			g_strdup(bin_dir);
+		envp = g_environ_setenv(envp, "PATH", new_path, TRUE);
+		g_free(new_path);
+	}
+	g_free(virtual_env);
+	g_free(bin_dir);
+	return envp;
+}
 
 static gchar* build_venv_subdir_path(const gchar *venv_path, const gchar *subdir) {
 #ifdef _WIN32
@@ -5382,19 +5441,8 @@ gboolean get_python_magic_number(char *out_buf, gsize out_buf_size) {
 static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path, GError **error) {
 	PythonVenvInfo *info = g_new0(PythonVenvInfo, 1);
 	info->venv_path = g_strdup(venv_path);
-	info->env_vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 
 	siril_log_message(_("Preparing python virtual environment: %s.\n"), venv_path);
-	// Copy current environment
-	gchar **current_env = g_get_environ();
-	for (gchar **env = current_env; env && *env; env++) {
-		gchar **parts = g_strsplit(*env, "=", 2);
-		if (parts && parts[0] && parts[1]) {
-			g_hash_table_insert(info->env_vars, g_strdup(parts[0]), g_strdup(parts[1]));
-		}
-		g_strfreev(parts);
-	}
-	g_strfreev(current_env);
 
 	// Get Python version
 	info->python_version = get_venv_python_version(venv_path);
@@ -5404,26 +5452,15 @@ static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path, GError *
 		goto cleanup;
 	}
 
-	// Set VIRTUAL_ENV
-	g_hash_table_insert(info->env_vars, g_strdup("VIRTUAL_ENV"), g_strdup(venv_path));
-
-	// Update PATH
-	gchar *bin_dir = find_venv_bin_dir(venv_path);
-	if (!bin_dir) {
-	g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+	/* The venv's bin directory, kept for the child's PATH (see
+	 * publish_venv_environment).  Locating it also validates the venv layout,
+	 * which is why this is a hard failure. */
+	info->bin_dir = find_venv_bin_dir(venv_path);
+	if (!info->bin_dir) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
 				"Failed to locate virtual environment binary directory");
 		goto cleanup;
 	}
-	gchar *old_path = g_hash_table_lookup(info->env_vars, "PATH");
-	gchar *new_path = old_path ?
-		g_strjoin(G_SEARCHPATH_SEPARATOR_S, bin_dir, old_path, NULL) :
-		g_strdup(bin_dir);
-	g_hash_table_insert(info->env_vars, g_strdup("PATH"), new_path);
-	g_free(bin_dir);
-
-	// Remove PYTHONPATH and PYTHONHOME to allow natural path discovery
-	g_hash_table_remove(info->env_vars, "PYTHONPATH");
-	g_hash_table_remove(info->env_vars, "PYTHONHOME");
 
 	// Check the sirilpy python module is the latest version and install or
 	// update it using the venv pip (or uv pip) if not.
@@ -5468,8 +5505,7 @@ cleanup:
 	// and if the g_new0 alloc fails the program will abort.
 	g_free(info->venv_path);
 	g_free(info->python_version);
-	if (info->env_vars)
-		g_hash_table_destroy(info->env_vars);
+	g_free(info->bin_dir);
 	g_free(info);
 	return NULL;
 }
@@ -6299,38 +6335,17 @@ static gpointer initialize_python_venv(gpointer user_data) {
 		return GINT_TO_POINTER(1);
 	}
 
-	// Set up environment for connection
-	GHashTableIter iter;
-	gpointer key, value;
-	g_hash_table_iter_init(&iter, venv_info->env_vars);
-	// Pre-build array of environment changes to minimize mutex hold time
-	GPtrArray *env_changes = g_ptr_array_new_full(
-		g_hash_table_size(venv_info->env_vars),
-		(GDestroyNotify)g_strfreev);
-
-	g_hash_table_iter_init(&iter, venv_info->env_vars);
-	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		gchar **pair = g_new(gchar*, 3);
-		pair[0] = g_strdup((const gchar*)key);
-		pair[1] = g_strdup((const gchar*)value);
-		pair[2] = NULL;
-		g_ptr_array_add(env_changes, pair);
-	}
-	// Lock the mutex
-	g_mutex_lock(&com.env_mutex);
-	for (guint i = 0; i < env_changes->len; i++) {
-		gchar **pair = g_ptr_array_index(env_changes, i);
-		if (!g_setenv(pair[0], pair[1], TRUE))
-			siril_log_debug("Error in g_setenv: key = %s, value = %s\n", pair[0], pair[1]);
-	}
-	g_mutex_unlock(&com.env_mutex);
-	g_ptr_array_free(env_changes, TRUE);
+	/* Hand the venv's environment to the spawn path rather than exporting it
+	 * into our own: nothing in Siril reads it, and mutating environ from this
+	 * thread races every unlocked g_getenv() elsewhere now that the
+	 * initialisation runs alongside script execution. */
+	publish_venv_environment(venv_info->venv_path, venv_info->bin_dir);
 
 	// Clean up
 	if (venv_info) {
 		g_free(venv_info->venv_path);
 		g_free(venv_info->python_version);
-		g_hash_table_destroy(venv_info->env_vars);
+		g_free(venv_info->bin_dir);
 		g_free(venv_info);
 	}
 	g_free(venv_path);
@@ -6621,6 +6636,13 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		g_free(connection_path);
 		return;
 	}
+
+	/* Fold in the base venv's environment — VIRTUAL_ENV and its bin directory on
+	 * PATH.  The initialisation used to g_setenv() these into Siril's own environ
+	 * and let the child inherit them; it publishes them instead, so they are
+	 * applied here.  Before the per-script selection below, which overrides
+	 * VIRTUAL_ENV just as it overrode the inherited one. */
+	env = apply_venv_environment(env);
 
 	// Pick the venv for this script (§4.5). When the per-script gate is
 	// off this just returns the base venv path, so behaviour matches the
