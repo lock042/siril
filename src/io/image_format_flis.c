@@ -1396,11 +1396,80 @@ flis_layer_t *flis_layer_new(fits *fit, const gchar *name) {
     return layer;
 }
 
+/* ── Retiring a layer's pixels ────────────────────────────────────────────
+ * A layer's fits cannot be freed at the moment its layer is destroyed.  The
+ * display's tile workers latch gfit once per job and fill from the fits they
+ * latched, so the layer that was active a moment ago may still be under a
+ * worker when flis_layer_remove() / flis_merge_down_layer() / flis_flatten_all()
+ * drop it.  The pool has to be stopped before that memory goes back to the
+ * allocator, and it cannot be stopped from here: all three run under the FLIS
+ * stack writer lock, which may not take gui.cairo_mutex (rule 1 above), and
+ * draining does exactly that.
+ *
+ * So the fits is RETIRED instead — detached, queued, and released from a main
+ * thread idle that suppresses redraws, drains the pool, and only then frees.
+ * The idle takes no stack lock and touches nothing the operation owns (a
+ * retired fits is off the layer list and is not gfit), so it cannot deadlock
+ * against the operation that queued it, whichever thread that ran on.
+ *
+ * Deferring costs no extra peak memory in the case that would matter: flatten
+ * already holds every layer alive until it has built its result.
+ *
+ * Unlike layermask_free_deferred() above, being the main-loop owner is NOT a
+ * licence to free inline here — the racing reader is a worker thread, not the
+ * main loop, and the stack lock is held either way. */
+static GMutex flis_retired_mutex;
+static GSList *flis_retired_fits = NULL;
+
+static gboolean flis_retire_idle(gpointer unused) {
+    (void)unused;
+    g_mutex_lock(&flis_retired_mutex);
+    GSList *batch = flis_retired_fits;
+    flis_retired_fits = NULL;
+    g_mutex_unlock(&flis_retired_mutex);
+    if (!batch) return G_SOURCE_REMOVE;   /* an earlier idle took the batch */
+
+    const gboolean prev_suppress = gui_iface.get_suppress_redraws();
+    gui_iface.set_suppress_redraws(TRUE);
+    gui_iface.drain_tile_workers();
+    for (GSList *l = batch; l; l = l->next) {
+        clearfits((fits *)l->data);
+        free(l->data);
+    }
+    gui_iface.set_suppress_redraws(prev_suppress);
+    g_slist_free(batch);
+    return G_SOURCE_REMOVE;
+}
+
+void flis_retire_fits(fits *f) {
+    if (!f) return;
+    /* Retiring what gfit still points at would leave the global dangling once
+     * the idle ran.  Every caller retargets first, so this is a bug if it
+     * happens; leak the buffer rather than hand out freed pixels. */
+    if (f == (fits *)g_atomic_pointer_get(&gfit)) {
+        siril_log_debug("BUG: refusing to retire the fits gfit points at; leaking it\n");
+        return;
+    }
+    /* No display registered — CLI, or a unit test — means no tile pool to
+     * race and no main loop to run the idle on, so free it here.  This tests
+     * gui_registered rather than com.headless deliberately: com.headless says
+     * which binary is running, not whether anything is rendering. */
+    if (!gui_iface.gui_registered) {
+        clearfits(f);
+        free(f);
+        return;
+    }
+    g_mutex_lock(&flis_retired_mutex);
+    flis_retired_fits = g_slist_prepend(flis_retired_fits, f);
+    g_mutex_unlock(&flis_retired_mutex);
+    g_idle_add(flis_retire_idle, NULL);
+}
+
 void flis_layer_free(flis_layer_t *layer) {
     if (!layer) return;
     if (layer->fit) {
-        clearfits(layer->fit);
-        free(layer->fit);
+        flis_retire_fits(layer->fit);
+        layer->fit = NULL;
     }
     layermask_free(layer->lmask);
     g_free(layer->layer_name);

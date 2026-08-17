@@ -1834,6 +1834,10 @@ void siril_register_gui_iface(void) {
 	gui_iface.get_log_as_string              = impl_get_log_as_string;
 	/* CCD */
 	gui_iface.compute_aberration_inspector   = impl_compute_aberration_inspector;
+
+	/* Last: from here on there is a display, so code that must defer work to
+	 * the main loop rather than doing it inline can tell. */
+	gui_iface.gui_registered = TRUE;
 }
 
 static void impl_apply_display_icc_compensation(gpointer p) {

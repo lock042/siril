@@ -313,12 +313,34 @@ flis_layer_t *flis_layer_new(fits *fit, const gchar *name);
  * @layer: layer to free.  May be NULL (no-op).
  *
  * Frees the flis_layer_t and all owned resources:
- *   fit (via clearfits + free), lmask (via layermask_free),
+ *   fit (via flis_retire_fits), lmask (via layermask_free),
  *   layer_name, created, modified.
  * Does NOT close the FITS file descriptor — that must be done before
  * handing the fit to this layer, or by the caller beforehand.
+ *
+ * The layer struct is gone when this returns, but its PIXELS are not
+ * necessarily released yet: see flis_retire_fits().  Callers must not assume
+ * the memory is back before the next main-loop iteration.
  */
 void flis_layer_free(flis_layer_t *layer);
+
+/**
+ * flis_retire_fits:
+ * @f: fits to release.  May be NULL (no-op).
+ *
+ * Releases a fits that the display may still be reading.  A tile worker
+ * latches gfit and fills from the fits it latched, so a layer's pixels can be
+ * live on a worker thread after the layer is dropped; freeing them inline is a
+ * use-after-free.  The pool cannot be drained at that point either — the
+ * callers hold the FLIS stack writer lock, under which gui.cairo_mutex is
+ * forbidden — so the fits is queued and freed from a main thread idle that
+ * drains the pool first.
+ *
+ * Takes ownership.  Frees inline when headless (no pool, no main loop).
+ * Refuses to retire the fits gfit currently points at: that would leave the
+ * global dangling, so the buffer is leaked and the bug logged instead.
+ */
+void flis_retire_fits(fits *f);
 
 /**
  * layermask_free:

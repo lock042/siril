@@ -124,6 +124,14 @@ typedef enum {
  * always valid function pointers, so no NULL guard is needed.
  */
 typedef struct {
+	/* TRUE once siril_register_gui_iface() has swapped the stubs out, i.e.
+	 * there is a real display: a main loop running idles, and a tile pool
+	 * that may be reading image buffers off-thread.  Stays FALSE in the CLI
+	 * and in unit tests, which never register.  Code that has to defer work
+	 * to the main loop tests this rather than com.headless, which only says
+	 * which binary is running (see flis_retire_fits). */
+	gboolean gui_registered;
+
 	/* A – Progress / status ------------------------------------------------ */
 	/* fraction: PROGRESS_* constant or [0.0, 1.0]; msg may be NULL */
 	void     (*set_progress)(double fraction, const char *msg);
