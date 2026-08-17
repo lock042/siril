@@ -710,7 +710,10 @@ gboolean local_kstars_available() {
 gboolean local_gaia_available() {
 	if (!is_readable_file(com.pref.catalogue_paths[4]))
 		return FALSE;
-	return TRUE;
+	// the file must also actually be a Siril Healpix catalogue, otherwise we
+	// would select it for plate solving and fail instead of falling back to
+	// another catalogue
+	return local_gaia_astro_available() ? TRUE : FALSE;
 }
 
 /* This function is the main interface to collect a local catalogue

@@ -404,6 +404,7 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 		// Not RGB, so we need to value_check the image to avoid out-of-range pixels
 		if (!value_check(gfit)) {
 			siril_log_error(_("Error in value_check(). This should not happen...\n"));
+			free(args);
 			return;
 		}
 	}

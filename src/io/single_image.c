@@ -101,7 +101,45 @@ void free_image_data() {
 
 	if (!com.headless)
 		gui_iface.on_image_closed();
+
+	/* Hold the WRITER lock across the clear.  The GTK4 display materialises
+	 * its tiles on a thread pool (materialise_worker(), gui-gtk4/image_display.c)
+	 * which reads gfit's pixel planes under the reader lock; freeing them
+	 * without ever taking the writer lock lets a worker read memory clearfits()
+	 * has already handed back to the allocator, and it segfaults inside the
+	 * float -> LUT -> byte remap.  The window scales with the image: a large
+	 * mosaic has enough tiles that the pool is still busy when `close` arrives,
+	 * where a small one finishes rendering in time and hides it.  The load path
+	 * already guards itself — end_open_single_image() takes the reader lock
+	 * around on_image_loaded() — and clearfits() preserves the lock itself
+	 * (it memsets only up to offsetof(struct ffit, rwlock)); only the close
+	 * path was unguarded.
+	 *
+	 * The pool is quiesced first for the reason swap_into_gfit() gives: the
+	 * workers honour gui.suppress_drawarea_redraw and bail, so the
+	 * non-recursive writer lock is granted in bounded time instead of being
+	 * starved by a pool that keeps re-taking the reader lock tile after tile.
+	 *
+	 * Keep this BELOW on_image_closed(): in script mode that call blocks on the
+	 * main thread running free_image_data_gui(), so taking the writer lock first
+	 * would deadlock against a GUI reader.  No caller holds the writer lock
+	 * across the close either — install_new_single_image() releases it inside
+	 * swap_into_gfit() before calling close_single_image() — so there is no
+	 * recursion on a non-recursive lock.  Headless stubs set_suppress_redraws
+	 * out and the lock is uncontended there.
+	 *
+	 * The suppression is saved and restored rather than forced off, as
+	 * copy_backup_to_gfit() does with the same flag: it is a plain boolean and
+	 * not a counter, so a close nested inside an operation that suppressed
+	 * redraws for its own duration (generic_image_worker(), core/processing.c)
+	 * would otherwise un-suppress them under it, letting a partial remap of the
+	 * image the operation is still writing reach the screen. */
+	const gboolean prev_suppress = gui_iface.get_suppress_redraws();
+	gui_iface.set_suppress_redraws(TRUE);
+	g_rw_lock_writer_lock(&gfit->rwlock);
 	clearfits(gfit);
+	g_rw_lock_writer_unlock(&gfit->rwlock);
+	gui_iface.set_suppress_redraws(prev_suppress);
 	siril_log_debug("free_image_data() complete\n");
 }
 

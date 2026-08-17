@@ -104,6 +104,15 @@ if criterion_dep.found()
 
      test('ser_test', ser_exec)
 
+     healpix_cat_exec = executable('healpix_cat_test',
+                                   'healpix_cat_test.c',
+                                   dependencies : [siril_dep, criterion_dep],
+                                   link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                   c_args : siril_c_flag,
+                                   cpp_args : siril_cpp_flag)
+
+     test('healpix_cat_test', healpix_cat_exec)
+
      siril_spawn_test_exec = executable('siril_spawn_test',
                                         'siril_spawn_test.c',
                                         dependencies : [siril_dep, criterion_dep],
@@ -138,6 +147,15 @@ if criterion_dep.found()
                                    cpp_args : siril_cpp_flag)
 
      test('mpp_sidecar_test', mpp_sidecar_exec, suite: 'mpp')
+
+     homography_exec = executable('homography_test',
+                                  'homography_test.c',
+                                  dependencies : [siril_dep, criterion_dep],
+                                  link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                  c_args : siril_c_flag,
+                                  cpp_args : siril_cpp_flag)
+
+     test('homography_test', homography_exec, suite: 'arithmetic')
 
      gps_exec = executable('qhy_gps_test',
                            ['qhy_gps_test.c', 'download_files.c'],
@@ -174,6 +192,23 @@ if criterion_dep.found()
                                      cpp_args : siril_cpp_flag)
 
      test('da3d_dft_perf', da3d_dft_perf_exec, suite: 'perfs', protocol: 'exitcode', is_parallel : false)
+
+     fits_scaling_exec = executable('fits_scaling_test',
+                                    'fits_scaling_test.c',
+                                    dependencies : [siril_dep, criterion_dep],
+                                    link_args : siril_link_arg,
+                                    c_args : siril_c_flag,
+                                    cpp_args : siril_cpp_flag)
+
+     test('fits_scaling_test', fits_scaling_exec)
+
+     test_icc_state_exec = executable('test_icc_state',
+                                'test_icc_state.c',
+                                dependencies : [siril_dep, criterion_dep],
+                                link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                c_args : siril_c_flag,
+                                cpp_args : siril_cpp_flag)
+     test('test_icc_state', test_icc_state_exec)
 
      # Performance testing
      sorting_perf_exec = executable('sorting_perf',

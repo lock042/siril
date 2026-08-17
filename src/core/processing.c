@@ -1655,7 +1655,9 @@ gpointer generic_image_worker(gpointer p) {
 
 	gboolean using_mask = args->mask_aware && hook_fit->mask && hook_fit->mask_active;
 
-	// Set default max_threads if not specified
+	/* An unset (zero) max_threads means "use the whole machine"; callers only
+	 * set it when they want fewer. Resolve it here so the hook always receives
+	 * a usable positive count. */
 	if (args->max_threads < 1)
 		args->max_threads = com.max_thread;
 

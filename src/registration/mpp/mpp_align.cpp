@@ -232,15 +232,33 @@ cv::Vec2d center_of_gravity(const cv::Mat &frame_mono_blurred) {
 	weights -= threshold;
 	cv::max(weights, 0.0, weights);   /* clip(frame, thr, None) - thr */
 
-	const cv::Moments m = cv::moments(weights, /*binaryImage=*/false);
-	if (m.m00 <= 0.0) {
+#if CV_VERSION_MAJOR >= 5
+	/* cv::moments() was moved out of imgproc in OpenCV 5; compute the raw
+	 * moments m00, m10, m01 we need directly. */
+	double m00 = 0.0, m10 = 0.0, m01 = 0.0;
+	for (int y = 0; y < weights.rows; ++y) {
+		const double *row = weights.ptr<double>(y);
+		double row_sum = 0.0, row_xsum = 0.0;
+		for (int x = 0; x < weights.cols; ++x) {
+			row_sum  += row[x];
+			row_xsum += row[x] * x;
+		}
+		m00 += row_sum;
+		m10 += row_xsum;
+		m01 += row_sum * y;
+	}
+#else
+	const cv::Moments mom = cv::moments(weights, /*binaryImage=*/false);
+	const double m00 = mom.m00, m10 = mom.m10, m01 = mom.m01;
+#endif
+	if (m00 <= 0.0) {
 		/* Blank/flat frame: no centroid. Fall back to the geometric
 		 * centre so a uniform sequence yields zero relative shift. */
 		return cv::Vec2d((frame_mono_blurred.rows - 1) / 2.0,
 		                 (frame_mono_blurred.cols - 1) / 2.0);
 	}
-	const double cog_x = m.m10 / m.m00;
-	const double cog_y = m.m01 / m.m00;
+	const double cog_x = m10 / m00;
+	const double cog_y = m01 / m00;
 	return cv::Vec2d(cog_y, cog_x);
 }
 

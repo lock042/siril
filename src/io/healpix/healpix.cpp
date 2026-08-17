@@ -149,11 +149,15 @@ static std::vector<EntryType> query_catalog(const std::string& filename, std::ve
     size_t INDEX_SIZE = (n_healpixels) * sizeof(uint32_t);
 
     // Open the catalog file in binary mode
-    std::ifstream file(filename, std::ios::binary);
+    std::ifstream file(filename, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
         siril_log_error(_("Failed to open file: %s\n"), filename.c_str());
         return results;
     }
+    // The offsets read from the index are checked against the file size below,
+    // so that a corrupted index cannot make us request an absurd allocation
+    const size_t file_size = (size_t) file.tellg();
+    file.seekg(0, std::ios::beg);
 
     // Function to read a single index entry at a specific position
     auto read_index_entry = [&file, &results](uint32_t healpixel_id) -> uint32_t {
@@ -197,7 +201,13 @@ static std::vector<EntryType> query_catalog(const std::string& filename, std::ve
         size_t data_start_pos = HEADER_SIZE + INDEX_SIZE + start_offset * sizeof(EntryType);
 
         // Read the required data entries
-        size_t num_records = end_offset - start_offset;
+        size_t num_records = (end_offset > start_offset) ? end_offset - start_offset : 0;
+        if (end_offset < start_offset ||
+                data_start_pos + num_records * sizeof(EntryType) > file_size) {
+            siril_log_error(_("Catalogue index is corrupted: %s\n"), filename.c_str());
+            results.clear();
+            return results;
+        }
         std::vector<EntryType> buffer(num_records);
 
         file.seekg(data_start_pos, std::ios::beg);
@@ -223,8 +233,34 @@ static bool header_compatible(HealpixCatHeader& a, HealpixCatHeader& b) {
     return same_version && same_chunk_level && same_index_level;
 }
 
-// Function to read the Healpix catalogue header
-static HealpixCatHeader read_healpix_cat_header(const std::string& filename, int* error_status) {
+// The catalogues we distribute are indexed at Healpix level 8. Anything much
+// larger is not a Siril catalogue: the index alone would be several GB. The
+// limit mostly matters because an out-of-range level makes T_Healpix_Base throw
+// a PlanckError, which, escaping through the extern "C" boundary, terminates
+// Siril.
+#define MAX_HEALPIX_CAT_LEVEL 13
+
+// Sanity check on a header read from a file (or downloaded from a mirror): it
+// tells apart a real catalogue from a truncated download, an error page or a
+// file that simply isn't a Siril Healpix catalogue at all. Only clearly invalid
+// values are rejected, so that catalogues built with other parameters than the
+// ones we distribute still work.
+static bool healpix_cat_header_is_valid(const HealpixCatHeader& header) {
+    if (header.healpix_level < 1 || header.healpix_level > MAX_HEALPIX_CAT_LEVEL)
+        return false;
+    if (header.gaia_version > (uint8_t) GaiaVersion::DR5)
+        return false;
+    if (header.cat_type > (uint8_t) CatalogueType::Photometric_XP_Continuous)
+        return false;
+    if (header.chunked && header.chunk_level > header.healpix_level)
+        return false;
+    return true;
+}
+
+// Function to read the Healpix catalogue header. If quiet is true, an invalid
+// header is reported through error_status only: this is used by the catalogue
+// availability checks, which are called often and must not spam the log.
+static HealpixCatHeader read_healpix_cat_header(const std::string& filename, int* error_status, bool quiet = false) {
     HealpixCatHeader header{};
 
     // Initialize error status
@@ -247,6 +283,16 @@ static HealpixCatHeader read_healpix_cat_header(const std::string& filename, int
         if (error_status)
             *error_status = READ_ERROR;
         return {};
+    }
+
+    if (!healpix_cat_header_is_valid(header)) {
+        if (!quiet)
+            siril_log_error(_("Error: %s is not a valid Siril Healpix catalogue file, "
+                        "or it is corrupted. Check the catalogue paths in Preferences "
+                        "and that the file downloaded completely.\n"), filename.c_str());
+        if (error_status)
+            *error_status = -4; // Invalid header
+        return {}; // don't hand back a header nothing can be done with
     }
 
     return header;
@@ -299,7 +345,14 @@ static HealpixCatHeader read_healpix_cat_header_http_with_curl(CURL* curl, const
         free(buffer);
     }
 
-    return read_healpix_cat_header(cache_path, error_status);
+    HealpixCatHeader header = read_healpix_cat_header(cache_path, error_status);
+    if (error_status && *error_status) {
+        // the cached header is unusable (truncated download, error page from the
+        // mirror...): drop it so that the next attempt fetches it again
+        std::error_code rm_ec;
+        std::filesystem::remove(cache_path, rm_ec);
+    }
+    return header;
 }
 
 template<typename EntryType>
@@ -774,9 +827,9 @@ static std::string find_matching_cat_file(std::string& path, const char *type_ta
  * is the cat_type byte we require in the on-disk header (2 = xp_sampled,
  * 3 = xp_continuous), per the Siril HEALpix Catalog Format 1.0.0 spec. */
 template<typename EntryType>
-static int local_gaia_xp_query(double ra, double dec, double radius, double limitmag,
-                               const char *type_tag, uint8_t expected_cat_type,
-                               EntryType **stars, uint32_t *nb_stars) {
+static int local_gaia_xp_query_impl(double ra, double dec, double radius, double limitmag,
+                                    const char *type_tag, uint8_t expected_cat_type,
+                                    EntryType **stars, uint32_t *nb_stars) {
     radius /= 60.0; // arcmin -> deg, then radians below
     siril_log_debug("Search radius: %f deg\n", radius);
     const double DEG_TO_RAD = G_PI / 180.0;
@@ -843,9 +896,14 @@ static int local_gaia_xp_query(double ra, double dec, double radius, double limi
         }
         int chunk_status = 0;
         HealpixCatHeader this_header = read_healpix_cat_header(this_chunk_path, &chunk_status);
+        if (chunk_status) {
+            file_error = true;
+            break;
+        }
         if (!header_compatible(header, this_header)) {
             siril_log_error(_("Error: catalog header values for chunk %lu are incompatible with previous values. All chunk files must have the same chunk level and indexing level and must represent the same Gaia data release\n"), (unsigned long)i);
-            return 1;
+            file_error = true;
+            break;
         }
         results_in_chunks[i] = query_catalog<EntryType>(this_chunk_path, healpixel_ranges, this_header);
     }
@@ -881,6 +939,26 @@ static int local_gaia_xp_query(double ra, double dec, double radius, double limi
     return 0;
 }
 
+/* Nothing may escape into the C callers: the healpix library reports errors by
+ * throwing, and an uncaught exception crossing the extern "C" boundary
+ * terminates Siril. */
+template<typename EntryType>
+static int local_gaia_xp_query(double ra, double dec, double radius, double limitmag,
+                               const char *type_tag, uint8_t expected_cat_type,
+                               EntryType **stars, uint32_t *nb_stars) {
+    try {
+        return local_gaia_xp_query_impl<EntryType>(ra, dec, radius, limitmag,
+                                                   type_tag, expected_cat_type, stars, nb_stars);
+    } catch (const std::exception& e) {
+        siril_log_error(_("Error querying the local %s catalogue: %s\n"), type_tag, e.what());
+    } catch (...) {
+        siril_log_error(_("Error querying the local %s catalogue\n"), type_tag);
+    }
+    *stars = nullptr;
+    *nb_stars = 0;
+    return 1;
+}
+
 extern "C" {
     int local_gaia_xpsamp_available() {
         // Back-compat: report 'available' if the photometric dir contains
@@ -889,6 +967,17 @@ extern "C" {
         std::string chunkpath(com.pref.catalogue_paths[5]);
         std::string first_chunk = find_matching_cat_file(chunkpath, nullptr);
         return (!first_chunk.empty());
+    }
+
+    // Checks that the file configured as the local Gaia astrometric catalogue
+    // really is one: this is what allows the callers to fall back to another
+    // catalogue instead of failing the solve when the file is not usable.
+    int local_gaia_astro_available() {
+        if (!com.pref.catalogue_paths[4] || com.pref.catalogue_paths[4][0] == '\0')
+            return 0;
+        int status = 0;
+        read_healpix_cat_header(std::string(com.pref.catalogue_paths[4]), &status, true);
+        return status == 0;
     }
 
     int local_gaia_xpcts_available() {
@@ -922,7 +1011,7 @@ extern "C" {
         return LOCAL_GAIA_PHOTO_BAD;
     }
 
-    int get_raw_stars_from_local_gaia_astro_catalogue(double ra, double dec, double radius, double limitmag, gboolean phot, deepStarData **stars, uint32_t *nb_stars) {
+    static int get_raw_stars_from_local_gaia_astro_catalogue_impl(double ra, double dec, double radius, double limitmag, gboolean phot, deepStarData **stars, uint32_t *nb_stars) {
 
 #ifdef HEALPIX_DEBUG
         show_healpixel_entries(0);
@@ -1031,6 +1120,19 @@ extern "C" {
         return 0;
     }
 
+    int get_raw_stars_from_local_gaia_astro_catalogue(double ra, double dec, double radius, double limitmag, gboolean phot, deepStarData **stars, uint32_t *nb_stars) {
+        try {
+            return get_raw_stars_from_local_gaia_astro_catalogue_impl(ra, dec, radius, limitmag, phot, stars, nb_stars);
+        } catch (const std::exception& e) {
+            siril_log_error(_("Error querying the local Gaia astrometric catalogue: %s\n"), e.what());
+        } catch (...) {
+            siril_log_error(_("Error querying the local Gaia astrometric catalogue\n"));
+        }
+        *stars = nullptr;
+        *nb_stars = 0;
+        return 1;
+    }
+
     int get_raw_stars_from_local_gaia_xpsampled_catalogue(double ra, double dec, double radius, double limitmag, SourceEntryXPsamp **stars, uint32_t *nb_stars) {
         return local_gaia_xp_query<SourceEntryXPsamp>(ra, dec, radius, limitmag, "xpsamp", 2, stars, nb_stars);
     }
@@ -1053,10 +1155,10 @@ extern "C" {
  *                       mirror; updated in place when fallback succeeds.
  * Returns 0 on success, 1 on no-data or unrecoverable mirror failure, -1 on OOM. */
 template<typename EntryType>
-static int remote_gaia_xp_query(double ra, double dec, double radius, double limitmag,
-                                const char *type_tag, uint8_t expected_cat_type,
-                                gchar **mirrors, gchar **current_mirror_ptr,
-                                EntryType **stars, uint32_t *nb_stars) {
+static int remote_gaia_xp_query_impl(double ra, double dec, double radius, double limitmag,
+                                     const char *type_tag, uint8_t expected_cat_type,
+                                     gchar **mirrors, gchar **current_mirror_ptr,
+                                     EntryType **stars, uint32_t *nb_stars) {
     if (!mirrors || !mirrors[0] || !current_mirror_ptr || !*current_mirror_ptr) {
         siril_log_error(_("No remote %s mirrors are configured.\n"), type_tag);
         *stars = nullptr; *nb_stars = 0;
@@ -1243,6 +1345,26 @@ static int remote_gaia_xp_query(double ra, double dec, double radius, double lim
     if (*stars == nullptr) return -1;
     std::copy(matches.begin(), matches.end(), *stars);
     return 0;
+}
+
+/* As for the local queries, no exception may reach the C callers */
+template<typename EntryType>
+static int remote_gaia_xp_query(double ra, double dec, double radius, double limitmag,
+                                const char *type_tag, uint8_t expected_cat_type,
+                                gchar **mirrors, gchar **current_mirror_ptr,
+                                EntryType **stars, uint32_t *nb_stars) {
+    try {
+        return remote_gaia_xp_query_impl<EntryType>(ra, dec, radius, limitmag,
+                                                    type_tag, expected_cat_type,
+                                                    mirrors, current_mirror_ptr, stars, nb_stars);
+    } catch (const std::exception& e) {
+        siril_log_error(_("Error querying the remote %s catalogue: %s\n"), type_tag, e.what());
+    } catch (...) {
+        siril_log_error(_("Error querying the remote %s catalogue\n"), type_tag);
+    }
+    *stars = nullptr;
+    *nb_stars = 0;
+    return 1;
 }
 
 extern "C" {
