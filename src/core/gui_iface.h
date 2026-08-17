@@ -269,14 +269,6 @@ typedef struct {
 	 * the build failed).  Pass the result to whatever must measure or
 	 * render the multi-layer image; do not assign it to gfit. */
 	void    *(*flis_get_composite)(void);
-	/* Swap gfit to the FLIS composite for the duration of caller's
-	 * read-from-gfit work (histogram, hi/lo computation, etc.).
-	 * Returns the saved gfit on success — caller MUST pass it back
-	 * to flis_swap_out_composite to restore.  Returns NULL when
-	 * no swap is needed / possible (non-FLIS, or composite build
-	 * failed); no unswap call then. */
-	void    *(*flis_swap_in_composite)(void);
-	void     (*flis_swap_out_composite)(void *saved);
 	/* Release the cached FLIS display composite.  Called when an image
 	 * is closed (free_image_data) so the per-image composite memory is
 	 * released promptly rather than waiting for the next FLIS open.

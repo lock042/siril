@@ -251,38 +251,6 @@ fits *flis_display_get_composite(void) {
 	return composite;
 }
 
-/* Temporarily point gfit at the FLIS composite so callers that read
- * gfit (histogram, display-range computation, statistics) see the
- * multi-layer composite rather than the active layer in isolation.
- * Returns the previously-active gfit on success (caller MUST pass it
- * back to flis_display_swap_out_composite); returns NULL when the
- * swap didn't happen (non-FLIS image, or composite couldn't build),
- * in which case no unswap call is needed.
- *
- * Mirrors the gfit-swap pattern remap_all uses for its own work; the
- * difference is this pair lets external callers (notify_gfit_data_
- * modified in particular) compute against the composite without
- * needing to know about the static flis_display_composite pointer. */
-fits *flis_display_swap_in_composite(void) {
-	if (!is_current_image_flis()) return NULL;
-	g_mutex_lock(&gui.cairo_mutex);
-	if (flis_composite_ensure_built() != 0 || !flis_display_composite) {
-		g_mutex_unlock(&gui.cairo_mutex);
-		return NULL;
-	}
-	fits *saved = gfit;
-	gfit = flis_display_composite;
-	g_mutex_unlock(&gui.cairo_mutex);
-	return saved;
-}
-
-void flis_display_swap_out_composite(fits *saved) {
-	if (!saved) return;
-	g_mutex_lock(&gui.cairo_mutex);
-	gfit = saved;
-	g_mutex_unlock(&gui.cairo_mutex);
-}
-
 /* Stage 3.4 — narrow-flag invalidation chokepoint.  Dispatched by
  * gui_iface.flis_display_invalidate().  Translates declarative
  * "what changed" flags into the minimal cache-drop pattern.
@@ -1581,8 +1549,7 @@ static void materialise_worker(gpointer data, gpointer user) {
 	for (;;) {
 		/* Read the global ONCE per job and work off `fit` from here on.
 		 * gfit is not a fixed struct in a FLIS build: uniq_set_active_layer()
-		 * retargets it at a layer switch, and flis_display_swap_in_composite()
-		 * / remap_all() point it at the composite for the duration of a remap.
+		 * retargets it whenever the active layer changes.
 		 * Re-reading it per dereference would let a retarget land between the
 		 * acquire below and the release at the bottom, so we would release a
 		 * lock we never took and leave the one we did take held for good —
