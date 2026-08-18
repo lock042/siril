@@ -1969,8 +1969,7 @@ void on_checkcut_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 void on_gamutcheck_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	if (gfit.color_managed) {
 		lock_display_transform();
-		if (gui.icc.proofing_transform)
-			cmsDeleteTransform(gui.icc.proofing_transform);
+		clear_proofing_transforms();
 		gui.icc.proofing_transform = initialize_proofing_transform();
 		unlock_display_transform();
 	}
