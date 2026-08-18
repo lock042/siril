@@ -617,16 +617,29 @@ sequence * readseqfile(const char *name){
 					goto error;
 				}
 				break;
-			case 'E': { // External reference: "E path rx ry"
-				char buf0[256];
+			case 'E': { // External reference: "E path active rx ry"
+				/* The path may contain spaces, so parse the three trailing
+				 * integers first and take everything before them as the path. */
+				char *rest = g_strchomp(line + 2);
+				char *p = rest + strlen(rest);
+				int fields = 0;
+				while (p > rest && fields < 3) {
+					while (p > rest && g_ascii_isspace(p[-1])) p--;
+					while (p > rest && !g_ascii_isspace(p[-1])) p--;
+					fields++;
+				}
 				unsigned int ref_rx, ref_ry, active;
-				nb_tokens = sscanf(line + 2, "%255s %u %u %u\n",
-							buf0, &active, &ref_rx, &ref_ry);
-				if (nb_tokens != 4) {
+				if (fields != 3 || sscanf(p, "%u %u %u", &active, &ref_rx, &ref_ry) != 3) {
 					fprintf(stderr, "readseqfile: sequence file format error: %s\n", line);
 					goto error;
 				}
-				seq->ext_ref_path = g_strchomp(g_strdup(buf0));
+				while (p > rest && g_ascii_isspace(p[-1])) p--;
+				*p = '\0';
+				if (p == rest) { // empty path
+					fprintf(stderr, "readseqfile: sequence file format error: %s\n", line);
+					goto error;
+				}
+				seq->ext_ref_path = g_strdup(rest);
 				seq->ext_ref_rx = ref_rx;
 				seq->ext_ref_ry = ref_ry;
 				seq->ext_ref = (gboolean)active;
