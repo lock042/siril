@@ -240,6 +240,8 @@ typedef struct {
 	void     (*invalidate_histogram)(void);
 	/* Recompute histogram if stale (call while holding at least a read lock). */
 	void     (*update_histogram)(void);
+	/* Reset the curves tool state after an undo/redo (no-op in headless mode). */
+	void     (*curves_reset_after_undo)(void);
 	/* Run the mask redraw now.  remap_tints as in queue_redraw_mask. */
 	void     (*redraw_mask_idle)(gboolean remap_tints);
 

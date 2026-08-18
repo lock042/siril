@@ -664,6 +664,13 @@ entry.search_empty {
  border-image: none;
 }
 
+/* Curves dialog: compact channel selector (7 buttons on one row) */
+button.curves-channel-btn {
+  padding: 2px 8px;
+  min-width: 16px;
+  min-height: 24px;
+}
+
 /* Wavelets dialog per-scale grid.  The default Adwaita scale/spinbutton
  * min-heights bloat the six layer rows, and a GtkScale's tiny natural width
  * lets the strength sliders collapse next to the spinbuttons.  Mirror the

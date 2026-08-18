@@ -748,6 +748,10 @@ static void update_drawingarea_cursor(const drawingarea_ctx *c) {
 		set_cursor("cell");
 		return;
 	}
+	if (mouse_status == MOUSE_ACTION_CURVES_PIPETTE) {
+		set_cursor("crosshair");
+		return;
+	}
 	const pointi zoomed = c->zoomed;
 	const double zoom = c->zoom;
 	/* Order matters when the selection is small enough that edge
