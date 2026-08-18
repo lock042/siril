@@ -8,6 +8,9 @@ xx/xx/xx
 * Fixed compilation when the version of opencv is >= 5
 * Fixed a race in the Python venv initialisation: the shared initialisation handle was read and cleared without a lock, and pyscript could launch python before the virtual environment's variables had been exported (#1977)
 
+**Improvements**
+* Allowed editing FITS keywords of a whole sequence from the UI
+
 siril-1.4.4
 06/17/26
 

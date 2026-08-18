@@ -39,6 +39,9 @@ static GtkNotebook *key_notebook = NULL;
 static GtkTreeSelection *key_selection = NULL;
 static GtkWidget *key_export_button = NULL;
 
+/* sequence keyword edit confirmed once per dialog opening */
+static gboolean seq_kw_edit_confirmed = FALSE;
+
 
 enum {
 	COLUMN_KEY,		// string
@@ -165,7 +168,41 @@ static int listFITSKeywords(fits *fit, gboolean editable) {
 	return (status);
 }
 
+/* edits go to the whole sequence, except for the RESULT/SCALED in-memory image */
+static gboolean keyword_edits_target_sequence() {
+	return sequence_is_loaded()
+			&& com.seq.current != RESULT_IMAGE
+			&& com.seq.current != SCALED_IMAGE;
+}
+
+static gboolean confirm_seq_keyword_edit() {
+	if (seq_kw_edit_confirmed)
+		return TRUE;
+	if (siril_confirm_dialog(_("Operation on the sequence"),
+			_("Keyword edits made here will be applied to the FITS header of "
+			  "every image of the entire sequence. Are you sure?"), _("Proceed"))) {
+		seq_kw_edit_confirmed = TRUE;
+		return TRUE;
+	}
+	return FALSE;
+}
+
+/* returns FALSE if the user declined the confirmation */
+static gboolean launch_seq_keyword_edit(const gchar *fits_key, const gchar *newkey,
+		const gchar *value, const gchar *comment) {
+	if (!confirm_seq_keyword_edit())
+		return FALSE;
+	struct keywords_data *kargs = calloc(1, sizeof(struct keywords_data));
+	kargs->FITS_key = g_strdup(fits_key);
+	kargs->newkey   = newkey  ? g_strdup(newkey)  : NULL;
+	kargs->value    = value   ? g_strdup(value)   : NULL;
+	kargs->comment  = comment ? g_strdup(comment) : NULL;
+	start_sequence_keywords(&com.seq, kargs);
+	return TRUE;
+}
+
 void on_keywords_dialog_show(GtkWidget *dialog, gpointer user_data) {
+	seq_kw_edit_confirmed = FALSE;
 	gui_function(refresh_keywords_dialog, NULL);
 }
 
@@ -265,6 +302,10 @@ void on_key_edited(GtkCellRendererText *renderer, char *path, char *new_val, gpo
 		if (g_strcmp0(old_keyname, new_val)) {
 			if (strlen(new_val) > 8) {
 				siril_log_color_message(_("Keyname can contain a maximum of 8 characters.\n"), "red");
+			} else if (keyword_edits_target_sequence()) {
+				if (launch_seq_keyword_edit(old_keyname, new_val, NULL, NULL)) {
+					gtk_list_store_set(key_liststore, &iter, COLUMN_KEY, new_val, -1);
+				}
 			} else {
 				if (!updateFITSKeyword(&gfit, old_keyname, new_val, NULL, NULL, TRUE, FALSE)) {
 					gtk_list_store_set(key_liststore, &iter, COLUMN_KEY, new_val, -1);
@@ -291,7 +332,11 @@ void on_val_edited(GtkCellRendererText *renderer, char *path, char *new_val, gpo
 		/* update FITS key */
 		process_keyword_string_value(new_val, valstring, dtype == 'C' && (new_val[0] != '\'' || new_val[strlen(new_val) - 1] != '\''));
 		if (g_strcmp0(original_val, valstring)) {
-			if (!updateFITSKeyword(&gfit, FITS_key, NULL, valstring, FITS_comment, TRUE, FALSE)) {
+			if (keyword_edits_target_sequence()) {
+				if (launch_seq_keyword_edit(FITS_key, NULL, valstring, FITS_comment)) {
+					gtk_list_store_set(key_liststore, &iter, COLUMN_VALUE, valstring, -1);
+				}
+			} else if (!updateFITSKeyword(&gfit, FITS_key, NULL, valstring, FITS_comment, TRUE, FALSE)) {
 				gtk_list_store_set(key_liststore, &iter, COLUMN_VALUE, valstring, -1);
 			}
 		}
@@ -317,7 +362,11 @@ void on_comment_edited(GtkCellRendererText *renderer, char *path, char *new_comm
 			siril_debug_print("Exceeded FITS COMMENT length\n");
 		}
 		if (g_strcmp0(original_comment, new_comment)) {
-			if (!updateFITSKeyword(&gfit, FITS_key, NULL, valstring, commentstring, TRUE, FALSE)) {
+			if (keyword_edits_target_sequence()) {
+				if (launch_seq_keyword_edit(FITS_key, NULL, valstring, commentstring)) {
+					gtk_list_store_set(key_liststore, &iter, COLUMN_COMMENT, commentstring, -1);
+				}
+			} else if (!updateFITSKeyword(&gfit, FITS_key, NULL, valstring, commentstring, TRUE, FALSE)) {
 				gtk_list_store_set(key_liststore, &iter, COLUMN_COMMENT, commentstring, -1);
 			}
 		}
@@ -671,7 +720,7 @@ gboolean refresh_keywords_dialog(gpointer user_data) {
 	gboolean is_a_single_image_loaded = single_image_is_loaded() &&
 			(!sequence_is_loaded() || (sequence_is_loaded() &&
 			(com.seq.current == RESULT_IMAGE || com.seq.current == SCALED_IMAGE)));
-	listFITSKeywords(&gfit, is_a_single_image_loaded);
+	listFITSKeywords(&gfit, is_a_single_image_loaded || keyword_edits_target_sequence());
 	if (gfit.header)
 		show_header_text(gfit.header);
 	return FALSE;

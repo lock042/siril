@@ -1270,6 +1270,7 @@ static int keywords_finalize_hook(struct generic_seq_args *arg) {
 		writeseqfile(arg->seq);
 finish:
 	free(kargs->FITS_key);
+	free(kargs->newkey);
 	free(kargs->value);
 	free(kargs->comment);
 	free(kargs);
