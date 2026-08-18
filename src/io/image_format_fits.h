@@ -77,6 +77,7 @@ void fit_debayer_buffer(fits *fit, void *newbuf);
  * core header gdk-pixbuf-free. */
 
 // internal read of FITS file, for FITS images and FITS sequences
+gboolean fits_uses_physical_scaling(fitsfile *fptr, double *scale, double *zero);
 void manage_bitpix(fitsfile *fptr, int *bitpix, int *orig_bitpix);
 int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float);
 int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,

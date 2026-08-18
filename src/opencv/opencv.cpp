@@ -319,11 +319,13 @@ int cvRotateImage(fits *image, int angle) {
 }
 
 void cvTransformImageRefPoint(Homography Hom, point refpointin, point *refpointout) {
-	Mat refptout;
-	Point3d refptin(refpointin.x, refpointin.y, 1);
 	Mat H = Mat(3, 3, CV_64FC1);
 	convert_H_to_MatH(&Hom, H);
-	refptout = H * Mat(refptin);
+	/* the homogeneous point must be built as an explicit 3x1 column vector:
+	 * Mat(Point3d) is 3x1 with OpenCV 4 but 1x3 with OpenCV 5, which makes
+	 * the matrix product throw */
+	Mat refptin = (Mat_<double>(3, 1) << refpointin.x, refpointin.y, 1.);
+	Mat refptout = H * refptin;
 	refpointout->x = refptout.at<double>(0) / refptout.at<double>(2);
 	refpointout->y = refptout.at<double>(1) / refptout.at<double>(2);
 }

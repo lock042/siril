@@ -391,13 +391,18 @@ static void update_sigma_readout(void) {
 	const char *tmpdir = g_get_tmp_dir();
 	GString *str = g_string_new(_("Noise σ: "));
 	for (int i = 0; i < gfit->naxes[2]; i++) {
-		gchar *dir = g_build_filename(tmpdir, names[i], NULL);
 		double s;
-		if (!wavelet_sigma_from_file(dir, &s))
+		/* from the held transform when there is one, else from the file */
+		gboolean got = wavelet_session_sigma(i, &s, com.max_thread);
+		if (!got) {
+			gchar *dir = g_build_filename(tmpdir, names[i], NULL);
+			got = !wavelet_sigma_from_file(dir, &s, com.max_thread);
+			g_free(dir);
+		}
+		if (got)
 			g_string_append_printf(str, "%s%.4g", i ? ", " : "", s);
 		else
 			g_string_append(str, i ? ", ?" : "?");
-		g_free(dir);
 	}
 	gtk_label_set_text(denoise_sigma_label, str->str);
 	g_string_free(str, TRUE);
@@ -475,6 +480,8 @@ void on_wavelets_dialog_hide(GtkWidget *widget, gpointer user_data) {
 	roi_supported(FALSE);
 	remove_roi_callback(wavelet_roi_changed);
 	clear_backup();
+	/* the held transform is only for this window's repeated reconstructions */
+	wavelet_session_release();
 }
 
 void on_button_reset_w_clicked(GtkButton *button, gpointer user_data) {
@@ -640,6 +647,9 @@ void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 	args->Nbr_Plan = Nbr_Plan;
 	args->Type_Transform = Type_Transform;
 	args->anscombe = wavelet_vst_applied;
+	/* the window reconstructs on every slider move, so keep the transform
+	 * around rather than reading it back from disk each time */
+	args->keep_in_memory = TRUE;
 	/* the worker runs this on the main thread once the decomposition is done */
 	args->idle = wavelet_compute_idle;
 

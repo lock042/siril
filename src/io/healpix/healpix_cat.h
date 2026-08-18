@@ -31,6 +31,10 @@ int local_gaia_xpsamp_available();
 /* New: distinct probes if a caller specifically wants one kind. */
 int local_gaia_xpcts_available();
 
+/* Returns non-zero iff catalogue_paths[4] holds a readable file whose header
+ * really is a Siril Healpix catalogue header. */
+int local_gaia_astro_available();
+
 int get_raw_stars_from_local_gaia_astro_catalogue(double ra,
 												  double dec,
 												  double radius,

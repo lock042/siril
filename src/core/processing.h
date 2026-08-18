@@ -191,7 +191,13 @@ struct generic_img_args {
 	 */
 
 	gpointer user;
-	int max_threads; // number of threads to use for the operation
+	/* Number of threads the operation may use. Leave it at 0 (as a calloc'd
+	 * struct does) to mean "the whole machine": generic_image_worker fills it
+	 * in with com.max_thread. Set it explicitly only to ask for fewer, e.g.
+	 * for an operation that does not scale or that is already parallel
+	 * elsewhere. Hooks receive this value and must not read com.max_thread
+	 * themselves, or a caller asking for fewer threads gets ignored. */
+	int max_threads;
 	gboolean for_preview; // if TRUE, this is a preview operation and should not save undo
 	gboolean for_roi; // if TRUE, operation is being applied to ROI only
 	/* if TRUE, generic_image_worker does not create an undo state; provision
@@ -232,7 +238,7 @@ struct generic_mask_args {
 	 first member, which is called in free_generic_img_args() */
 	gpointer user;
 	gboolean mask_creation; // states if this is a mask creation operation (mask is active on completion if TRUE)
-	int max_threads; // number of threads to use for the operation
+	int max_threads; // as above: 0 means com.max_thread
 };
 
 void free_generic_img_args(struct generic_img_args *args);

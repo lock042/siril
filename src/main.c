@@ -496,6 +496,16 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	if (com.headless) {
+		/* Start the python venv initialisation BEFORE the script runs.  The
+		 * initialize_python_venv_in_thread() call further down is only reached
+		 * once execute_script() / read_pipe() has already finished, so on the
+		 * headless path com.python_init_thread stayed NULL for the whole run
+		 * and every `pyscript` failed with "python not ready yet" no matter how
+		 * long the script waited.  execute_python_script() joins
+		 * com.python_init_thread when one exists, so starting it here is all
+		 * `pyscript` needs to wait for the venv instead of erroring out. */
+		initialize_python_venv_in_thread();
+
 		if (main_option_script) {
 			GInputStream *input_stream = NULL;
 
@@ -634,7 +644,11 @@ static void siril_app_activate(GApplication *application) {
 		siril_check_spcc_mirrors(TRUE, TRUE);
 		exit(EXIT_SUCCESS);
 	}
-	initialize_python_venv_in_thread();
+	/* Headless already started it above, before the script ran; by now that
+	 * initialisation has completed and cleared com.python_init_thread, so an
+	 * unconditional call here would kick off a second, pointless one. */
+	if (!com.headless)
+		initialize_python_venv_in_thread();
 
 	g_free(supported_files);
 }

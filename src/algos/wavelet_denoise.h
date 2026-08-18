@@ -32,7 +32,12 @@
  * factor" e_j that depends only on the scaling function and the scale, not on
  * the image. Combined with a single global noise estimate sigma, the per-scale
  * noise std is sigma_j = sigma * e_j, which is the basis of k-sigma
- * thresholding and bivariate shrinkage on this transform. */
+ * thresholding and bivariate shrinkage on this transform.
+ *
+ * Every entry point here takes an explicit `threads` budget rather than
+ * reading com.max_thread, so a caller that is already running one frame per
+ * thread (seqatrous) can pass the per-frame share it was given and not
+ * over-commit the machine. Pass com.max_thread to use the whole machine. */
 
 /* Maximum number of planes supported by the factor cache. */
 #define WD_MAX_PLAN 16
@@ -49,22 +54,25 @@
  * (nbr_plan - 1) doubles; it is filled for the detail scales 0..nbr_plan-2 (the
  * coarsest plane is the residual and has no factor). Results are cached per
  * (type, nbr_plan). Returns 0 on success, non-zero on bad arguments/allocation. */
-int wavelet_noise_factors(int type, int nbr_plan, double *e_out);
+int wavelet_noise_factors(int type, int nbr_plan, double *e_out, int threads);
 
 /* Robust (MAD-based) Gaussian noise std of a coefficient band of n samples:
  * 1.4826 * median(|x - median(x)|). Returns < 0 on allocation failure. The
  * input band is not modified. */
-double wavelet_mad_sigma_float(const float *band, size_t n);
+double wavelet_mad_sigma_float(const float *band, size_t n, int threads);
 
 /* Estimate the global image noise sigma from the finest detail plane (band0,
  * n samples) and that scale's propagation factor e1: sigma = MAD_sigma / e1.
  * Returns < 0 on error (e1 <= 0 or allocation failure). */
-double wavelet_estimate_noise_float(const float *band0, size_t n, double e1);
+double wavelet_estimate_noise_float(const float *band0, size_t n, double e1,
+		int threads);
 
 /* Estimate the global noise sigma of an on-disk a trous transform (.wave file)
  * from its finest detail plane. Writes the result to *sigma_out. Returns 0 on
  * success, non-zero on read/estimation failure. */
-int wavelet_sigma_from_file(const char *filename, double *sigma_out);
+int wavelet_sigma_from_file(const char *filename, double *sigma_out, int threads);
+/* wavelet_sigma_from_data(), the same from an in-memory transform, is declared
+ * in Def_Wavelet.h where wave_transf_des is defined. */
 
 /* Shrinkage method. WD_THRESHOLD is implemented now; WD_BISHRINK (the intended
  * default) and WD_GSM are added in later phases. */
@@ -104,8 +112,8 @@ struct denoise_params {
  * algebraic inverse, so VST with no denoising round-trips to the original. */
 #define ANSCOMBE_USHORT_SCALE 1.0    /* USHORT wavelet buffer is already in ADU */
 #define ANSCOMBE_FLOAT_SCALE  65535.0 /* map normalised [0,1] data to ADU-like */
-void anscombe_forward(float *data, size_t n, double scale);
-void anscombe_inverse(float *data, size_t n, double scale);
+void anscombe_forward(float *data, size_t n, double scale, int threads);
+void anscombe_inverse(float *data, size_t n, double scale, int threads);
 
 /* Initialise dp to safe defaults: disabled, threshold/soft, k = 3, all
  * per-scale factors = 1, propagated sigma. Callers tweak fields afterwards. */
@@ -116,6 +124,6 @@ void denoise_params_init(struct denoise_params *dp);
  * TO_PAVE_LINEAR/TO_PAVE_BSPLINE; the coarsest plane (nbr_plan-1, the residual)
  * is left untouched. No-op when dp is NULL or disabled. Returns 0 on success. */
 int wavelet_denoise_planes(float *pave_data, int type, int nbr_plan, int Nl,
-		int Nc, const struct denoise_params *dp);
+		int Nc, const struct denoise_params *dp, int threads);
 
 #endif /* SRC_ALGOS_WAVELET_DENOISE_H_ */

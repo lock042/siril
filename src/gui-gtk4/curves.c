@@ -291,17 +291,26 @@ static void curves_startup() {
 	update_do_channel();
 	copy_gfit_to_backup();
 	// also get the display histogram
+	/* histogram_mutex guards layers_hist[] against the worker thread, which
+	 * frees and recomputes it in notify_gfit_data_modified(). */
+	g_mutex_lock(&com.histogram_mutex);
 	compute_histo_for_fit(fit);
-	set_curves_toggles_names();
 	for (int i = 0; i < fit->naxes[2]; i++)
-		display_histogram[i] = gsl_histogram_clone(com.layers_hist[i]);
+		display_histogram[i] = com.layers_hist[i] ? gsl_histogram_clone(com.layers_hist[i]) : NULL;
+	g_mutex_unlock(&com.histogram_mutex);
+	set_curves_toggles_names();
 }
 
 static void curves_close(gboolean update_image_if_needed, gboolean revert_icc_profile) {
+	/* Ownership of the display histograms transfers to com.layers_hist[];
+	 * take histogram_mutex so no reader sees a half-swapped array.  Released
+	 * before notify_gfit_data_modified() below, which takes it itself. */
+	g_mutex_lock(&com.histogram_mutex);
 	for (int i = 0; i < fit->naxes[2]; i++) {
 		set_histogram(display_histogram[i], i);
 		display_histogram[i] = NULL;
 	}
+	g_mutex_unlock(&com.histogram_mutex);
 	if (is_preview_active() && !copy_backup_to_gfit() && update_image_if_needed) {
 		set_cursor_waiting(TRUE);
 		notify_gfit_data_modified();
@@ -590,11 +599,16 @@ static gboolean is_curves_log_scale() {
 
 /* call from main thread */
 void update_gfit_curves_histogram_if_needed() {
+	/* Hold histogram_mutex across the invalidate+recompute pair so no other
+	 * thread observes a partially-nullified layers_hist[]. */
+	g_mutex_lock(&com.histogram_mutex);
 	invalidate_gfit_histogram();
-	if (gtk_widget_get_visible(curves_dialog)) {
+	gboolean visible = gtk_widget_get_visible(curves_dialog);
+	if (visible)
 		compute_histo_for_fit(fit);   // shared version: no sat/toggle-names side effects
+	g_mutex_unlock(&com.histogram_mutex);
+	if (visible)
 		gtk_widget_queue_draw(curves_drawingarea);
-	}
 }
 
 /* Callback functions */
