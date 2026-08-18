@@ -507,6 +507,144 @@ static void convert_data_float(int bitpix, const void *from, float *to, size_t n
 	}
 }
 
+/* The FITS standard allows integer BITPIX data to be a linearly scaled
+ * representation of floating point physical values, the transform being
+ * physical = BZERO + BSCALE * stored. cfitsio only uses BSCALE/BZERO for the
+ * unsigned integer offset trick (BSCALE 1, BZERO 2^15 or 2^31), which is what
+ * Siril expects, but some instruments (the GREGOR HiFI+ solar imagers for
+ * example) really do pack float data in 16 bits this way. Reading such a file
+ * as integers gives a black and white image, so it has to be read as float and
+ * rescaled instead.
+ * Returns TRUE for these files, with the transform in scale and zero. */
+gboolean fits_uses_physical_scaling(fitsfile *fptr, double *scale, double *zero) {
+	int status = 0, bitpix = 0;
+	double bscale = 1.0, bzero = 0.0;
+
+	if (!fptr)
+		return FALSE;
+	/* the type as written in the file, before cfitsio's unsigned adjustment */
+	fits_get_img_type(fptr, &bitpix, &status);
+	if (status || (bitpix != BYTE_IMG && bitpix != SHORT_IMG && bitpix != LONG_IMG))
+		return FALSE;
+
+	status = 0;
+	fits_read_key(fptr, TDOUBLE, "BSCALE", &bscale, NULL, &status);
+	if (status) {
+		bscale = 1.0;
+		status = 0;
+	}
+	fits_read_key(fptr, TDOUBLE, "BZERO", &bzero, NULL, &status);
+	if (status) {
+		bzero = 0.0;
+		status = 0;
+	}
+	/* a unit scale and an integer offset keep the data integer: that's either
+	 * plain data or the unsigned integer trick, both handled elsewhere */
+	if (bscale == 1.0 && bzero == floor(bzero))
+		return FALSE;
+
+	if (scale)
+		*scale = bscale;
+	if (zero)
+		*zero = bzero;
+	return TRUE;
+}
+
+/* Numeric DATA* keywords that do not hold a value in the units of the pixel
+ * data: counts of pixels, and flags. A rescaling leaves them valid, so they
+ * must survive it. They come from the two conventions that produce the kind of
+ * file this applies to, the SOLARNET metadata recommendation and the SDO/JSOC
+ * keyword set. Restricting the removal to floating point values would catch
+ * these three, but SOLARNET defines DATAMIN and DATAMAX as integers, and those
+ * are the ones it matters most to drop. */
+static const char *data_keywords_not_pixel_values[] = {
+	"DATANPIX",	// SOLARNET: number of usable pixels
+	"DATAVALS",	// SDO/JSOC: actual number of data values in the image
+	"DATASIGN"	// SDO/JSOC: sign of the observable quantity wrt Sun center
+};
+
+static gboolean data_keyword_is_pixel_value(const char *keyname) {
+	for (guint i = 0; i < G_N_ELEMENTS(data_keywords_not_pixel_values); i++)
+		if (!g_strcmp0(keyname, data_keywords_not_pixel_values[i]))
+			return FALSE;
+	return TRUE;
+}
+
+/* Once the pixel values have been rescaled, the DATA* keywords the file came
+ * with (DATAMIN, DATAMED, DATARMS...) describe the original physical data, in
+ * units that are no longer those of the array. Siril cannot reinterpret them:
+ * beyond DATAMIN and DATAMAX their meaning is not defined by any standard, and
+ * it does not maintain them across processing anyway. They are removed rather
+ * than left to be read as if they still applied; the HISTORY record says how to
+ * get back to the physical values, and the original file is untouched.
+ * Returns the number of keywords that were removed. */
+static int strip_data_keywords(fits *fit) {
+	if (!fit->unknown_keys || !fit->unknown_keys[0])
+		return 0;
+	gchar **cards = g_strsplit(fit->unknown_keys, "\n", -1);
+	GString *kept = g_string_new(NULL);
+	int removed = 0;
+
+	for (int i = 0; cards[i]; i++) {
+		char keyname[FLEN_KEYWORD], value[FLEN_VALUE], comment[FLEN_COMMENT];
+		char type = 0;
+		int length = 0, status = 0;
+
+		if (!cards[i][0])
+			continue;
+		fits_get_keyname(cards[i], keyname, &length, &status);
+		fits_parse_value(cards[i], value, comment, &status);
+		fits_get_keytype(value, &type, &status);
+		/* Only numeric DATA* keywords, minus the ones known not to be pixel
+		 * values: a value in the units of the pixel data is necessarily a
+		 * number, while a string or boolean one (DATAMODE, DATATYPE = 'science'
+		 * and the like) says nothing about them and is kept, as is anything
+		 * with no parsable value at all.
+		 * DATASUM never gets here, read_fits_header() filters it out. */
+		if (!status && (type == 'I' || type == 'F')
+				&& g_str_has_prefix(keyname, "DATA")
+				&& data_keyword_is_pixel_value(keyname)) {
+			siril_log_debug("removing %s, it describes the original physical data\n", keyname);
+			removed++;
+			continue;
+		}
+		g_string_append(kept, cards[i]);
+		g_string_append_c(kept, '\n');
+	}
+
+	g_strfreev(cards);
+	g_free(fit->unknown_keys);
+	fit->unknown_keys = g_string_free(kept, FALSE);
+	return removed;
+}
+
+/* Physical values obtained from a BSCALE/BZERO transform have no reason to fit
+ * Siril's [0, 1] float range, so rescale them using the whole image's min and
+ * max (which must be the same for every call on a given image, otherwise
+ * partial reads would not be consistent with each other).
+ * Returns TRUE if the data was rescaled, and then reports in out_offset and
+ * out_factor the transform that gives the physical values back:
+ * physical = value / factor + offset. */
+static gboolean rescale_physical_floats(float *data, size_t nbdata, double mini,
+		double maxi, double *out_offset, double *out_factor, gboolean verbose) {
+	if (maxi <= mini || (mini >= 0.0 && maxi <= 1.0))
+		return FALSE;		// unusable range, or already in ours
+	/* only offset the data if it has negative values, to preserve the zero
+	 * point of images that don't */
+	double offset = mini < 0.0 ? mini : 0.0;
+	double factor = 1.0 / (maxi - offset);
+	if (verbose)
+		siril_log_message(_("Normalizing the image data from [%g, %g] to our float range [0, 1]\n"),
+				mini, maxi);
+	for (size_t i = 0; i < nbdata; i++)
+		data[i] = (float)((data[i] - offset) * factor);
+	if (out_offset)
+		*out_offset = offset;
+	if (out_factor)
+		*out_factor = factor;
+	return TRUE;
+}
+
 static void convert_floats(int bitpix, float *data, size_t nbdata, gboolean verbose) {
 	size_t i;
 	switch (bitpix) {
@@ -728,7 +866,44 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 		 * some values can be negative
 		 */
 		read_pix_with_progress(fit->fptr, TFLOAT, nbdata, sizeof(float), fit->fdata, &status);
-		if ((fit->bitpix == USHORT_IMG || fit->bitpix == SHORT_IMG
+		if (status) break;
+		double bscale, bzero;
+		if (fits_uses_physical_scaling(fit->fptr, &bscale, &bzero)) {
+			/* cfitsio applied the BSCALE/BZERO transform, we now hold physical
+			 * values that need to be brought back into [0, 1] */
+			siril_log_message(_("This FITS image stores floating point data scaled to integers "
+						"(BSCALE = %g, BZERO = %g), reading it as 32-bit float\n"), bscale, bzero);
+			double mini = fit->keywords.data_min, maxi = fit->keywords.data_max;
+			if (maxi <= mini) {
+				// read_fits_metadata() usually got them from fit_stats() already
+				float fmin, fmax;
+				if (!fit_stats(fit->fptr, &fmin, &fmax)) {
+					mini = fmin;
+					maxi = fmax;
+				}
+			}
+			double offset, factor;
+			if (rescale_physical_floats(fit->fdata, nbdata, mini, maxi, &offset,
+						&factor, TRUE)) {
+				/* the statistics the file carries describe the physical data,
+				 * they no longer apply to the pixels. The history is not
+				 * translated, it has to stay machine-readable, and each entry
+				 * is short enough for a single HISTORY card */
+				fit->keywords.data_min = (mini - offset) * factor;
+				fit->keywords.data_max = (maxi - offset) * factor;
+				fit->history = g_slist_append(fit->history, g_strdup_printf(
+							"Physical data read with BSCALE=%.9g BZERO=%.9g", bscale, bzero));
+				fit->history = g_slist_append(fit->history, g_strdup_printf(
+							"Rescaled to [0, 1]: physical = pixel / %.9g + %.9g", factor, offset));
+				int removed = strip_data_keywords(fit);
+				if (removed) {
+					siril_log_message(_("Removed %d DATA* keyword(s) that described the "
+								"original physical data\n"), removed);
+					fit->history = g_slist_append(fit->history, g_strdup(
+								"Removed DATA* keywords describing the physical data"));
+				}
+			}
+		} else if ((fit->bitpix == USHORT_IMG || fit->bitpix == SHORT_IMG
 				// needed for some FLOAT_IMG. 10.0 is probably a good number to represent the limit at which we judge that these are not clip-on pixels.
 				|| fit->bitpix == BYTE_IMG) || fit->keywords.data_max > 10.0) {
 			convert_floats(fit->bitpix, fit->fdata, nbdata, TRUE);
@@ -810,6 +985,14 @@ int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 		case FLOAT_IMG:		// 32-bit floating point pixels
 			fits_read_subset(fptr, TFLOAT, fpixel, lpixel, inc, &zero, dest, &zero, &status);
 			if (status) break;
+			if (fits_uses_physical_scaling(fptr, NULL, NULL)) {
+				/* physical values: rescale on the whole image's range so that
+				 * all the areas read from this image are scaled the same way */
+				float mini, maxi;
+				if (!fit_stats(fptr, &mini, &maxi))
+					rescale_physical_floats(dest, nbdata, mini, maxi, NULL, NULL, FALSE);
+				break;
+			}
 			int status2 = 0;
 			fits_read_key(fptr, TDOUBLE, "DATAMAX", &data_max, NULL, &status2);
 			if (status2 == KEY_NO_EXIST && nbdata > 3) {
@@ -1179,6 +1362,16 @@ int read_icc_profile_from_fits(fits *fit) {
 void manage_bitpix(fitsfile *fptr, int *bitpix, int *orig_bitpix) {
 	double offset;
 	int status = 0;
+	double bscale, bzero;
+	if (fits_uses_physical_scaling(fptr, &bscale, &bzero)) {
+		/* the file stores floating point values in integers, cfitsio applies
+		 * the transform for us when we ask for float data. The message is
+		 * logged by read_fits_with_convert(), which only runs once per read */
+		siril_log_debug("FITS with physical scaling: BSCALE = %g, BZERO = %g\n", bscale, bzero);
+		*bitpix = FLOAT_IMG;
+		*orig_bitpix = FLOAT_IMG;
+		return;
+	}
 	fits_read_key(fptr, TDOUBLE, "BZERO", &offset, NULL, &status);
 	if (!status) {
 		if (*bitpix == SHORT_IMG && offset != 0.0) {
@@ -3024,13 +3217,12 @@ guchar *extract_thumbnail_from_fits(const char *filename, gchar **descr,
 	}
 	g_free(filter_str);
 	*descr = description;
-
+	
 	// Dimensions calibrated exactly to match CFITSIO striding
 	const float scale_x = (float)w / MAX_SIZE;
 	const float scale_y = (float)h / MAX_SIZE;
 	const float max_scale = (scale_x > scale_y) ? scale_x : scale_y;
 
-	// If max_scale is less than 1.0 (image is smaller than thumbnail size), step is 1
 	const int pixScale = (max_scale > 1.0f) ? (int)max_scale : 1;
 
 	const int Ws = ((w - 1) / pixScale) + 1;
@@ -3038,32 +3230,105 @@ guchar *extract_thumbnail_from_fits(const char *filename, gchar **descr,
 	size_t prev_size = (size_t)Ws * Hs;
 
 	if (Ws <= 0 || Hs <= 0) {
-		fits_close_file(fp, &status);
-		return NULL;
+		   fits_close_file(fp, &status);
+		   return NULL;
 	}
 
-	// Allocate preview buffer directly
+	// Configurable anti-aliasing sample size (e.g., 2, 4, or 8 pixels)
+	// Must be less than pixel scale or it's not worth doing!!
+	int SAMPLE_SIZE = 2;
+	if (SAMPLE_SIZE > pixScale) SAMPLE_SIZE = pixScale;
+	if (SAMPLE_SIZE < 1) SAMPLE_SIZE = 1;
+
+	// Modulate BOTH horizontal and vertical strides dynamically
+	const int stride_x = (pixScale > 1) ? (pixScale / SAMPLE_SIZE) : 1;
+	const int stride_y = (pixScale > 1) ? (pixScale / SAMPLE_SIZE) : 1;
+
+	const int Ws_oversampled = ((w - 1) / stride_x) + 1;
+	const int Hs_oversampled = ((h - 1) / stride_y) + 1;
+
+	// Allocate temporary buffers to hold the image data
+	float *oversampled_data = malloc(Ws_oversampled * Hs_oversampled * n_channels * sizeof(float));
 	float *preview_data = malloc(prev_size * n_channels * sizeof(float));
 	if (!preview_data) {
+		free(oversampled_data);
 		fits_close_file(fp, &status);
 		return NULL;
 	}
 
-	// Read each channel plane sequentially to optimize disk streaming layout 
+	// Retrieve data from FITS file
+	// Start at the top-left corner (1,1) of channel ch+1, sweep across to the bottom-right corner (w,h), 
+	// but don't read every single pixel. Step horizontally by stride_x columns and vertically by stride_y rows.
 	int anynul;
 	stat = 0;
 	for (int ch = 0; ch < n_channels; ch++) {
-		long fpixel[3] = { 1, 1, ch + 1 }; // Step to the specific channel plane
-		long lpixel[3] = { w, h, ch + 1 }; // Limit read to just this plane
-		long inc[3]	= { pixScale, pixScale, 1 };
-		float *channel_dest = preview_data + (ch * prev_size);
+		long fpixel[3] = { 1, 1, ch + 1 };
+		long lpixel[3] = { w, h, ch + 1 };
+		long inc[3]	= { stride_x, stride_y, 1 }; 
+		float *channel_dest = oversampled_data + (ch * Ws_oversampled * Hs_oversampled);
 
 		if (fits_read_subset(fp, TFLOAT, fpixel, lpixel, inc, &nullval, channel_dest, &anynul, &stat)) {
+			free(oversampled_data);
 			free(preview_data);
 			fits_close_file(fp, &status);
 			return NULL;
 		}
 	}
+
+	// True 2D sampled Box Filter
+	float inv_sample_area = 1.0f / (float)(SAMPLE_SIZE * SAMPLE_SIZE);
+	float sample_step_x = (float)Ws_oversampled / (float)Ws;
+	float sample_step_y = (float)Hs_oversampled / (float)Hs;
+
+	// for each channel
+	for (int ch = 0; ch < n_channels; ch++) {
+		float *src_ch = oversampled_data + (ch * Ws_oversampled * Hs_oversampled);
+		float *dest_ch = preview_data + (ch * prev_size);
+
+		// for each row
+		for (int y = 0; y < Hs; y++) {
+			int base_y = (int)(y * sample_step_y);
+
+			// for each column in each row
+			for (int x = 0; x < Ws; x++) {
+				int base_x = (int)(x * sample_step_x);
+				float sum = 0.0f;
+
+				/*
+				* =============================================================
+				* INNER 2D BOX BLUR COLLAPSE
+				* =============================================================
+				* We sweep a localized kernel window of size (SAMPLE_SIZE x SAMPLE_SIZE)
+				* across the oversampled data buffer. The code flattens this 2D sub-grid
+				* and sums all points into a single accumulator.
+				* * Example for SAMPLE_SIZE = 4:
+				* * (base_x, base_y)
+				* │
+				* ▼  sx=0    sx=1    sx=2    sx=3
+				* sy=0 [ P0 ]  [ P1 ]  [ P2 ]  [ P3 ]
+				* sy=1 [ P4 ]  [ P5 ]  [ P6 ]  [ P7 ]  ───► All 16 samples
+				* sy=2 [ P8 ]  [ P9 ]  [P10 ]  [P11 ]       are accumulated
+				* sy=3 [P12 ]  [P13 ]  [P14 ]  [P15 ]       into 'sum'
+				* * =============================================================
+				*/
+				for (int sy = 0; sy < SAMPLE_SIZE; sy++) {
+					int src_y = base_y + sy;
+					if (src_y >= Hs_oversampled) src_y = Hs_oversampled - 1;
+
+					int row_start = src_y * Ws_oversampled;
+
+					for (int sx = 0; sx < SAMPLE_SIZE; sx++) {
+						int src_x = base_x + sx;
+						if (src_x >= Ws_oversampled) src_x = Ws_oversampled - 1;
+
+						sum += src_ch[row_start + src_x];
+					}
+				}
+				dest_ch[y * Ws + x] = sum * inv_sample_area;
+			}
+		}
+	}
+	free(oversampled_data);
 
 	// Set min, max and scale, avoiding calculations where possible
 	float maxmax = 1.f;
@@ -3107,6 +3372,7 @@ guchar *extract_thumbnail_from_fits(const char *filename, gchar **descr,
 		}
 	}
 
+	// Scale the data
 	for (int idx = 0 ; idx < (int)(prev_size * n_channels); idx++) {
 		preview_data[idx] = (preview_data[idx] - minmin) * scale;
 	}

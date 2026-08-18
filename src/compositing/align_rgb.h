@@ -21,6 +21,16 @@
 #ifndef SRC_COMPOSITING_ALIGN_RGB_H_
 #define SRC_COMPOSITING_ALIGN_RGB_H_
 
-void rgb_align(int m);
+/* Values are indices into the reg_methods[] table in align_rgb.c */
+typedef enum {
+	RGBALIGN_PSF = 0,
+	RGBALIGN_DFT = 1,
+	RGBALIGN_GLOBAL = 2,
+	RGBALIGN_KOMBAT = 3,
+} rgb_align_method;
+
+const char *rgb_align_method_name(rgb_align_method m);
+gboolean rgb_align_prerequisites_met(rgb_align_method m);
+int rgb_align(rgb_align_method m);
 
 #endif /* SRC_COMPOSITING_ALIGN_RGB_H_ */

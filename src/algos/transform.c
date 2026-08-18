@@ -117,12 +117,13 @@
 #include "algos/Def_Wavelet.h"
 #include "algos/wavelet_denoise.h"
 
-int prepare_rawdata(float *Imag, int Nl, int Nc, WORD *buf) {
+int prepare_rawdata(float *Imag, int Nl, int Nc, WORD *buf, int threads) {
+	threads = wavelet_threads(threads);
 	float *im = Imag;
 	int i;
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) private(i) schedule(static)
+#pragma omp parallel for num_threads(threads) private(i) schedule(static)
 #endif
 	for (i = 0; i < (Nl) * (Nc); ++i) {
 		im[i] = (float) buf[i];
@@ -133,7 +134,7 @@ int prepare_rawdata(float *Imag, int Nl, int Nc, WORD *buf) {
 /****************************************************************************/
 
 /* allocates a vector of float */
-float *f_vector_alloc(int Nbr_Elem)
+float *f_vector_alloc(size_t Nbr_Elem)
 {
 	float *Vector;
 
@@ -148,21 +149,22 @@ float *f_vector_alloc(int Nbr_Elem)
 
 int wavelet_transform_file(float *Imag, int Nl, int Nc,
 		char *File_Name_Transform, int Type_Transform, int Nbr_Plan, WORD *data,
-		int anscombe) {
+		int anscombe, int threads) {
+	threads = wavelet_threads(threads);
 	wave_transf_des Wavelet;
 	memset(&Wavelet, 0, sizeof(wave_transf_des));
 
 	/* read the input image */
-	prepare_rawdata(Imag, Nl, Nc, data);
+	prepare_rawdata(Imag, Nl, Nc, data, threads);
 	/* stabilise the noise before the linear decomposition if requested */
 	if (anscombe)
-		anscombe_forward(Imag, (size_t) Nl * Nc, ANSCOMBE_USHORT_SCALE);
+		anscombe_forward(Imag, (size_t) Nl * Nc, ANSCOMBE_USHORT_SCALE, threads);
 	snprintf(Wavelet.Name_Imag, MAX_SIZE_NAME_IMAG - 1, "%s",
 			File_Name_Transform);
 	Wavelet.Name_Imag[MAX_SIZE_NAME_IMAG - 1] = '\0';
 
 	if (wavelet_transform_data(Imag, Nl, Nc, &Wavelet, Type_Transform,
-			Nbr_Plan)) {
+			Nbr_Plan, threads)) {
 		return 1;
 	}
 	if (wave_io_write(File_Name_Transform, &Wavelet)) {
@@ -175,7 +177,8 @@ int wavelet_transform_file(float *Imag, int Nl, int Nc,
 
 int wavelet_transform_file_float(float *Imag, int Nl, int Nc,
 		char *File_Name_Transform, int Type_Transform, int Nbr_Plan,
-		int anscombe) {
+		int anscombe, int threads) {
+	threads = wavelet_threads(threads);
 	wave_transf_des Wavelet;
 	memset(&Wavelet, 0, sizeof(wave_transf_des));
 
@@ -190,7 +193,7 @@ int wavelet_transform_file_float(float *Imag, int Nl, int Nc,
 			return 1;
 		}
 		memcpy(tmp, Imag, (size_t) Nl * Nc * sizeof(float));
-		anscombe_forward(tmp, (size_t) Nl * Nc, ANSCOMBE_FLOAT_SCALE);
+		anscombe_forward(tmp, (size_t) Nl * Nc, ANSCOMBE_FLOAT_SCALE, threads);
 		src = tmp;
 	}
 
@@ -199,7 +202,7 @@ int wavelet_transform_file_float(float *Imag, int Nl, int Nc,
 	Wavelet.Name_Imag[MAX_SIZE_NAME_IMAG - 1] = '\0';
 
 	if (wavelet_transform_data(src, Nl, Nc, &Wavelet, Type_Transform,
-			Nbr_Plan)) {
+			Nbr_Plan, threads)) {
 		free(tmp);
 		return 1;
 	}
@@ -218,15 +221,17 @@ int wavelet_transform_file_float(float *Imag, int Nl, int Nc,
 // alternative to wavelet_transform_file that does not use a file
 // call wave_io_free() on the returned Wavelet if retval is 0
 int wavelet_transform(float *Imag, int Nl, int Nc,
-		wave_transf_des *Wavelet, int Type_Transform, int Nbr_Plan, WORD *data) {
+		wave_transf_des *Wavelet, int Type_Transform, int Nbr_Plan, WORD *data,
+		int threads) {
+	threads = wavelet_threads(threads);
 
 	memset(Wavelet, 0, sizeof(wave_transf_des));
 
 	/* read the input image */
-	prepare_rawdata(Imag, Nl, Nc, data);
+	prepare_rawdata(Imag, Nl, Nc, data, threads);
 
 	if (wavelet_transform_data(Imag, Nl, Nc, Wavelet, Type_Transform,
-				Nbr_Plan)) {
+				Nbr_Plan, threads)) {
 		wave_io_free(Wavelet);
 		return 1;
 	}
@@ -235,12 +240,13 @@ int wavelet_transform(float *Imag, int Nl, int Nc,
 }
 
 int wavelet_transform_float(float *Imag, int Nl, int Nc,
-		wave_transf_des *Wavelet, int Type_Transform, int Nbr_Plan) {
+		wave_transf_des *Wavelet, int Type_Transform, int Nbr_Plan, int threads) {
+	threads = wavelet_threads(threads);
 
 	memset(Wavelet, 0, sizeof(wave_transf_des));
 
 	if (wavelet_transform_data(Imag, Nl, Nc, Wavelet, Type_Transform,
-				Nbr_Plan)) {
+				Nbr_Plan, threads)) {
 		wave_io_free(Wavelet);
 		return 1;
 	}
@@ -250,10 +256,11 @@ int wavelet_transform_float(float *Imag, int Nl, int Nc,
 
 
 int wavelet_transform_data(float *Imag, int Nl, int Nc,
-		wave_transf_des *Wavelet, int Type_Transform, int Nbr_Plan) {
+		wave_transf_des *Wavelet, int Type_Transform, int Nbr_Plan, int threads) {
+	threads = wavelet_threads(threads);
 	float *Pave;
 	double Exp;
-	int Size, Min, temp;
+	int Min, temp;
 
 	Wavelet->Nbr_Ligne = Nl;
 	Wavelet->Nbr_Col = Nc;
@@ -271,16 +278,21 @@ int wavelet_transform_data(float *Imag, int Nl, int Nc,
 
 	switch (Type_Transform) {
 	case TO_PAVE_LINEAR:
-	case TO_PAVE_BSPLINE:
-		Size = Nl * Nc * Nbr_Plan;
+	case TO_PAVE_BSPLINE: {
+		const size_t Size = (size_t) Nl * (size_t) Nc * (size_t) Nbr_Plan;
 		Wavelet->Pave.Data = f_vector_alloc(Size);
 		if (Wavelet->Pave.Data == NULL) {
 			PRINT_ALLOC_ERR;
 			return 1;
 		}
 		Pave = Wavelet->Pave.Data;
-		pave_2d_tfo(Imag, Pave, Nl, Nc, Nbr_Plan, Type_Transform);
+		if (pave_2d_tfo(Imag, Pave, Nl, Nc, Nbr_Plan, Type_Transform, threads)) {
+			free(Wavelet->Pave.Data);
+			Wavelet->Pave.Data = NULL;
+			return 1;
+		}
 		break;
+	}
 	default:
 		printf("wavelet_transform_data: wrong transform type\n");
 		return 1;

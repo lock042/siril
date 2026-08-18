@@ -57,6 +57,19 @@ const op_descriptor op_desc_ccm = {
 const gchar *extractionstring = "Extraction";
 
 static gchar *add_filter_str[] = { "R", "G", "B"};
+
+/* Removes the last entry from a history list and returns the new head.
+ * Does nothing if the list is empty. */
+static GSList *remove_last_history_entry(GSList *history) {
+	if (!history)
+		return NULL;
+	GSList *last = g_slist_last(history);
+	history = g_slist_remove_link(history, last);
+	g_free(last->data);
+	g_slist_free_1(last);
+	return history;
+}
+
 /*
  * A Fast HSL-to-RGB Transform
  * by Ken Fishkin
@@ -652,6 +665,44 @@ void xyz_to_rgbf(float x, float y, float z, float *r, float *g, float *b) {
 	*b = (*b > 0.0031308f) ? 1.055f * (powf(*b, (1.f / 2.4f))) - 0.055f : 12.92f * (*b);
 }
 
+const char *coloring_type_to_str(coloring_type_enum type) {
+	switch (type) {
+		case COLORING_HSV:
+			return "HSV";
+		case COLORING_CIELAB:
+			return "CIE L*a*b*";
+		default:
+			return "HSL";
+	}
+}
+
+/* Substitutes the luminance value lum into the colour information carried by
+ * (r, g, b), in the requested colour space. All values are in the [0, 1] range;
+ * the result may fall slightly outside it for the HSV and L*a*b* modes, so
+ * callers are expected to clip it. */
+void merge_luminance(double r, double g, double b, double lum, coloring_type_enum type,
+		double *ro, double *go, double *bo) {
+	double h, s, i, X, Y, Z, a, bb;
+
+	switch (type) {
+		default:
+		case COLORING_HSL:
+			rgb_to_hsl(r, g, b, &h, &s, &i);
+			hsl_to_rgb(h, s, lum, ro, go, bo);
+			break;
+		case COLORING_HSV:
+			rgb_to_hsv(r, g, b, &h, &s, &i);
+			hsv_to_rgb(h, s, lum, ro, go, bo);
+			break;
+		case COLORING_CIELAB:
+			rgb_to_xyz(r, g, b, &X, &Y, &Z);
+			xyz_to_LAB(X, Y, Z, &i, &a, &bb);
+			LAB_to_xyz(lum * 100.0, a, bb, &X, &Y, &Z);	// 0 < L < 100
+			xyz_to_rgb(X, Y, Z, ro, go, bo);
+			break;
+	}
+}
+
 // Reference: https://en.wikipedia.org/wiki/Color_index and https://arxiv.org/abs/1201.1809 (Ballesteros, F. J., 2012)
 // Uses Ballesteros' formula based on considering stars as black bodies
 double BV_to_T(double BV) {
@@ -906,27 +957,16 @@ static gpointer extract_channels_ushort(gpointer p) {
 		args->fit->history = g_slist_append(args->fit->history, g_strdup_printf(_("Channel extraction from 3-channel image with ICC profile:")));
 		args->fit->history = g_slist_append(args->fit->history, g_strdup_printf("%s", desc));
 	}
+	gboolean history_appended = FALSE;
 	for (int i = 0; i < 3; i++) {
 		if (args->channel[i]) {
 			update_filter_information(args->fit, add_filter_str[i], TRUE);
-			if (i > 0) {
-				GSList *current = args->fit->history;
-				while (current->next != NULL && current->next->next != NULL) {
-					current = current->next;
-				}
-				// Check if there is only one element in the list.
-				if (current->next == NULL) {
-					g_slist_free_full(args->fit->history, g_free);
-					args->fit->history = NULL;
-				} else {
-					// Remove the last element.
-					GSList *last = current->next;
-					current->next = NULL;
-					g_free(last->data);
-					g_slist_free_1(last);
-				}
-			}
+			// Drop the history line written for the previously saved channel,
+			// if any: only the current channel's line belongs in this file.
+			if (history_appended)
+				args->fit->history = remove_last_history_entry(args->fit->history);
 			args->fit->history = g_slist_append(args->fit->history, g_strdup_printf("%s %d", histstring, i));
+			history_appended = TRUE;
 			args->fit->keywords.bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
 			save1fits16(args->channel[i], args->fit, i);
 			update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name
@@ -1053,27 +1093,16 @@ static gpointer extract_channels_float(gpointer p) {
 		args->fit->history = g_slist_append(args->fit->history, g_strdup_printf(_("Channel extraction from 3-channel image with ICC profile:")));
 		args->fit->history = g_slist_append(args->fit->history, g_strdup_printf("%s", desc));
 	}
+	gboolean history_appended = FALSE;
 	for (int i = 0; i < 3; i++) {
 		if (args->channel[i]) {
 			update_filter_information(args->fit, add_filter_str[i], TRUE);
-			if (i > 0) {
-				GSList *current = args->fit->history;
-				while (current->next != NULL && current->next->next != NULL) {
-					current = current->next;
-				}
-				// Check if there is only one element in the list.
-				if (current->next == NULL) {
-					g_slist_free_full(args->fit->history, g_free);
-					args->fit->history = NULL;
-				} else {
-					// Remove the last element.
-					GSList *last = current->next;
-					current->next = NULL;
-					g_free(last->data);
-					g_slist_free_1(last);
-				}
-			}
+			// Drop the history line written for the previously saved channel,
+			// if any: only the current channel's line belongs in this file.
+			if (history_appended)
+				args->fit->history = remove_last_history_entry(args->fit->history);
 			args->fit->history = g_slist_append(args->fit->history, g_strdup_printf("%s %d", histstring, i));
+			history_appended = TRUE;
 			args->fit->keywords.bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
 			save1fits32(args->channel[i], args->fit, i);
 			update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name

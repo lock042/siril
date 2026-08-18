@@ -273,12 +273,28 @@ static void update_display_histogram_from_curve() {
 	}
 }
 
+/* Recompute layers_hist[] and take our own copies of it.  histogram_mutex
+ * guards it against the worker thread, which frees and recomputes it in
+ * notify_gfit_data_modified(). */
+static void refresh_display_histogram_from_fit() {
+	if (!fit) return;
+	g_mutex_lock(&com.histogram_mutex);
+	compute_histo_for_fit(fit);
+	for (int i = 0; i < (int)fit->naxes[2]; i++) {
+		if (display_histogram[i]) { gsl_histogram_free(display_histogram[i]); display_histogram[i] = NULL; }
+		display_histogram[i] = com.layers_hist[i] ? gsl_histogram_clone(com.layers_hist[i]) : NULL;
+	}
+	g_mutex_unlock(&com.histogram_mutex);
+}
+
 static void refresh_hist_input_from_fit() {
 	if (!fit) return;
+	g_mutex_lock(&com.histogram_mutex);
 	for (int i = 0; i < (int)fit->naxes[2]; i++) {
 		if (hist_input[i]) { gsl_histogram_free(hist_input[i]); hist_input[i] = NULL; }
 		if (com.layers_hist[i]) hist_input[i] = gsl_histogram_clone(com.layers_hist[i]);
 	}
+	g_mutex_unlock(&com.histogram_mutex);
 	if (hist_input_lum) { gsl_histogram_free(hist_input_lum); hist_input_lum = NULL; }
 	if (display_histogram_lum) hist_input_lum = gsl_histogram_clone(display_histogram_lum);
 	if (hist_input_sat) { gsl_histogram_free(hist_input_sat); hist_input_sat = NULL; }
@@ -352,10 +368,8 @@ static void curves_rebuild_from_stages() {
 		apply_snapshot_to_fit(gfit, (curve_state_snapshot *) l->data);
 
 	copy_gfit_to_backup();
-	compute_histo_for_fit(fit);
 	clear_display_histogram();
-	for (int i = 0; i < (int)fit->naxes[2]; i++)
-		display_histogram[i] = gsl_histogram_clone(com.layers_hist[i]);
+	refresh_display_histogram_from_fit();
 	if (fit->naxes[2] == 3) {
 		if (curves_chromabuf) { free(curves_chromabuf); curves_chromabuf = NULL; }
 		if (curves_satbuf) { free(curves_satbuf); curves_satbuf = NULL; }
@@ -1179,11 +1193,7 @@ static void curves_startup() {
 		free_stage_stack();
 	}
 
-	compute_histo_for_fit(fit);
-	for (int i = 0; i < (int)fit->naxes[2]; i++) {
-		if (display_histogram[i]) { gsl_histogram_free(display_histogram[i]); display_histogram[i] = NULL; }
-		display_histogram[i] = gsl_histogram_clone(com.layers_hist[i]);
-	}
+	refresh_display_histogram_from_fit();
 
 	// Compute special histograms for L, C, S channels
 	if (fit->naxes[2] == 3) {
@@ -1210,11 +1220,16 @@ static void curves_close(gboolean update_image_if_needed, gboolean revert_icc_pr
 	}
 	free_stage_stack();
 
+	/* Ownership of the display histograms transfers to com.layers_hist[];
+	 * take histogram_mutex so no reader sees a half-swapped array.  Released
+	 * before notify_gfit_data_modified() below, which takes it itself. */
+	g_mutex_lock(&com.histogram_mutex);
 	for (int i = 0; i < (int)fit->naxes[2]; i++) {
 		set_histogram(display_histogram[i], i);
 		display_histogram[i] = NULL;
 		if (hist_input[i]) { gsl_histogram_free(hist_input[i]); hist_input[i] = NULL; }
 	}
+	g_mutex_unlock(&com.histogram_mutex);
 	if (hist_input_lum) { gsl_histogram_free(hist_input_lum); hist_input_lum = NULL; }
 	if (hist_input_sat) { gsl_histogram_free(hist_input_sat); hist_input_sat = NULL; }
 	if (hist_input_chroma) { gsl_histogram_free(hist_input_chroma); hist_input_chroma = NULL; }
@@ -1355,11 +1370,7 @@ gboolean curve_apply_idle(gpointer p) {
 		original_fit_copy = calloc(1, sizeof(fits));
 		copyfits(gfit, original_fit_copy, CP_ALLOC | CP_FORMAT | CP_COPYA, 0);
 
-		compute_histo_for_fit(fit);
-		for (int i = 0; i < (int)fit->naxes[2]; i++) {
-			if (display_histogram[i]) { gsl_histogram_free(display_histogram[i]); display_histogram[i] = NULL; }
-			display_histogram[i] = gsl_histogram_clone(com.layers_hist[i]);
-		}
+		refresh_display_histogram_from_fit();
 
 		// Clear HSL buffers to force recomputation from the new transformed image
 		if (fit->naxes[2] == 3) {
@@ -1400,9 +1411,15 @@ void _update_entry_text() {
 }
 
 void update_gfit_curves_histogram_if_needed() {
+	/* Hold histogram_mutex across the invalidate+recompute pair so no other
+	 * thread observes a partially-nullified layers_hist[]. */
+	g_mutex_lock(&com.histogram_mutex);
 	invalidate_gfit_histogram();
-	if (curves_dialog && gtk_widget_get_visible(curves_dialog)) {
-		compute_histo_for_fit(fit);
+	gboolean visible = curves_dialog && gtk_widget_get_visible(curves_dialog);
+	if (visible)
+		compute_histo_for_fit(fit);   // shared version: no sat/toggle-names side effects
+	g_mutex_unlock(&com.histogram_mutex);
+	if (visible) {
 		// Clear HSL buffers to force recomputation from current image
 		if (fit->naxes[2] == 3) {
 			if (curves_chromabuf) { free(curves_chromabuf); curves_chromabuf = NULL; }
@@ -1422,11 +1439,8 @@ void curves_reset_after_undo() {
 	fit = gfit;
 	copy_gfit_to_backup();
 
-	compute_histo_for_fit(fit);
-
 	clear_display_histogram();
-	for (int i = 0; i < fit->naxes[2]; i++)
-		display_histogram[i] = gsl_histogram_clone(com.layers_hist[i]);
+	refresh_display_histogram_from_fit();
 
 	// Clear HSL buffers to force recomputation from current image
 	if (fit->naxes[2] == 3) {
@@ -1558,7 +1572,9 @@ void on_curves_window_show(GtkWidget *object, gpointer user_data) {
 	curves_startup();
 	_initialize_clip_text();
 	reset_cursors_and_values(TRUE);
+	g_mutex_lock(&com.histogram_mutex);
 	compute_histo_for_fit(fit);
+	g_mutex_unlock(&com.histogram_mutex);
 	update_stage_buttons();
 
 	// Mono image: only the master curve is meaningful
@@ -2052,10 +2068,8 @@ void on_curves_apply_stage_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	// Refresh histograms from the new backup
-	compute_histo_for_fit(fit);
 	clear_display_histogram();
-	for (int i = 0; i < (int)fit->naxes[2]; i++)
-		display_histogram[i] = gsl_histogram_clone(com.layers_hist[i]);
+	refresh_display_histogram_from_fit();
 	if (fit->naxes[2] == 3) {
 		if (curves_chromabuf) { free(curves_chromabuf); curves_chromabuf = NULL; }
 		if (curves_satbuf) { free(curves_satbuf); curves_satbuf = NULL; }
