@@ -69,6 +69,7 @@
 #include "gui-gtk4/utils.h"
 #include "gui-gtk4/histogram_utils.h"
 #include "gui-gtk4/remixer.h"
+#include "gui-gtk4/curves.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 
@@ -371,6 +372,10 @@ static void impl_on_crop_complete(void) {
 static void impl_on_stats_ready(void) {
 	computeStat();
 	siril_open_dialog("StatWindow");
+}
+
+static void impl_curves_reset_after_undo(void) {
+	curves_reset_after_undo();
 }
 
 /* ── Group J: Photometry ─────────────────────────────────────────────────── */
@@ -1532,6 +1537,7 @@ void siril_register_gui_iface(void) {
 	gui_iface.on_mask_state_changed  = impl_on_mask_state_changed;
 	gui_iface.on_crop_complete       = impl_on_crop_complete;
 	gui_iface.on_stats_ready         = impl_on_stats_ready;
+	gui_iface.curves_reset_after_undo = impl_curves_reset_after_undo;
 	gui_iface.on_photometry_changed  = impl_on_photometry_changed;
 	gui_iface.show_siril_plot        = impl_show_siril_plot;
 	gui_iface.update_star_list       = impl_update_star_list;
