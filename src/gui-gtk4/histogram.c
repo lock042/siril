@@ -1718,7 +1718,10 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			args->max_threads = com.max_thread;
 			args->for_preview = FALSE;
 			args->mask_aware = TRUE;
-			args->for_roi = gui.roi.active;
+			/* Apply runs on the whole image (fit == gfit above), so the flag
+			 * must say so: a hook that consults for_roi — wavelets does —
+			 * would otherwise be told to treat a full image as a region. */
+			args->for_roi = FALSE;
 
 		} else if (invocation == GHT_STRETCH) {
 			struct ght_data *data = create_ght_data();
@@ -1766,7 +1769,9 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			args->max_threads = com.max_thread;
 			args->mask_aware = TRUE;
 			args->for_preview = FALSE;
-			args->for_roi = gui.roi.active;
+			/* See the MTF branch above: fit is the whole image, so must the
+			 * flag be. */
+			args->for_roi = FALSE;
 		}
 
 		if (args) {

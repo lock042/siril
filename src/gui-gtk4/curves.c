@@ -1451,13 +1451,19 @@ gboolean curve_apply_idle(gpointer p) {
 
 		/* One undo entry for the whole operation (stages + final curves),
 		 * restoring the image saved when the tool was opened or last
-		 * applied.  Skipped for ROI runs, which never saved undo.
+		 * applied.
 		 *
 		 * The worker ran with skip_generic_undo, so it captured no NDE
 		 * record either: this is the commit point for the preview-off path,
 		 * mirroring the preview-on branch of on_curves_apply_button_clicked.
-		 * Capture before the save (worker order) and tag the entry. */
-		if (!gui.roi.active && original_fit_copy) {
+		 * Capture before the save (worker order) and tag the entry.
+		 *
+		 * This used to be skipped when a ROI was active, because the apply
+		 * was then ROI-scoped and saved no undo.  Apply is full-image now
+		 * whether or not a rectangle is drawn, so the commit must happen
+		 * either way — gating it on gui.roi.active would leave a full-image
+		 * apply uncommitted merely because the user had a ROI on screen. */
+		if (original_fit_copy) {
 			gchar *summary = curves_log_hook(args->user, SUMMARY);
 			gint64 first_rid = 0, last_rid = 0;
 			curves_capture_records(original_fit_copy, gfit, args->user,
@@ -1928,10 +1934,14 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 			return;
 		}
 
-		// Preview not active or ROI active: apply the curve now, defer reinit to curve_apply_idle
+		/* Preview not active, or it only covered the ROI: apply the curve now,
+		 * defer reinit to curve_apply_idle.  A ROI is a preview scope, so the
+		 * apply is full-image regardless — passing gui.roi.active here sent it
+		 * down the worker's non-swap path, which curved only the rectangle and
+		 * committed neither undo nor an NDE record. */
 		copy_backup_to_gfit();
 		populate_roi();
-		curves_process_with_worker(FALSE, gui.roi.active);
+		curves_process_with_worker(FALSE, FALSE);
 		single_image_stretch_applied = TRUE;
 		set_cursor("default");
 	}

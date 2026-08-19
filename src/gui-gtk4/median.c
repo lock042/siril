@@ -224,35 +224,6 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 	gboolean for_preview = ((GtkWidget*) button == median_roi_preview_btn);
 	fill_median_params_from_gui(params, for_preview);
 
-	if (!for_preview && !com.script) {
-		gchar *summary = g_strdup_printf(_("Median Filter (filter=%dx%d px, iters=%d), mod=%.3lf"),
-			params->ksize, params->ksize, params->iterations, params->amount);
-		/* NDE provenance: the worker below runs WITHOUT skip_generic_undo,
-		 * so on the full-image apply (fit == gfit, use_swap) it records the
-		 * provenance itself — do NOT capture here or we double-record.
-		 * With an active ROI the worker's fit is &gui.roi.fit (use_swap
-		 * false), so it captures nothing: this manual save is then the sole
-		 * commit point and we capture here.  Capture before the save. */
-		gint64 rid = 0;
-		if (gui.roi.active) {
-			/* NDE baseline (phase 2): copy_backup_to_gfit() above restored the
-			 * pre-op whole-image pixels into gfit — the baseline for this item.
-			 * The full-image (non-ROI) path is baselined by the worker itself. */
-			nde_checkpoint_baseline_ensure(gfit, nde_checkpoint_active_item_id());
-			/* No output checkpoint (post == NULL): at this point gfit holds
-			 * the PRE-op pixels (copy_backup_to_gfit above); the ROI median
-			 * runs in the worker below.  Median is Tier A with no mask here,
-			 * so it is not a barrier and post is ignored anyway — but pass
-			 * NULL to stay correct should a mask ever make it a barrier. */
-			rid = nde_capture_from_descriptor(&op_desc_median, params, summary, NULL, FALSE);
-		}
-		if (!undo_save_state(gfit, "%s", summary) && gui.roi.active)
-			undo_tag_top_nde_record(rid);
-		siril_log_info(_("Median Filter (filter=%dx%d px, iterations=%d, modulation=%.3lf)\n"),
-			params->ksize, params->ksize, params->iterations, params->amount);
-		g_free(summary);
-	}
-
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	if (!args) {
 		PRINT_ALLOC_ERR;
@@ -260,7 +231,19 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	args->fit = gui.roi.active ? &gui.roi.fit : gfit;
+	/* A ROI is a preview scope, never an edit scope: Apply always runs on the
+	 * whole image, so the only ROI run is the dedicated preview button.
+	 * fill_median_params_from_gui() already gates params->fit that way — take
+	 * both fields from it so the buffer and the flag cannot disagree.
+	 *
+	 * Apply therefore always reaches the worker with fit == gfit (use_swap),
+	 * where the worker itself saves undo, captures the NDE record and logs
+	 * through median_log_hook.  The hand-rolled block that used to stand here
+	 * existed only for the ROI-scoped apply; on the full-image path it was
+	 * duplicating the worker's undo and log. */
+	const gboolean roi = (params->fit == &gui.roi.fit);
+
+	args->fit = params->fit;
 	args->op = &op_desc_median;
 	args->idle_function = for_preview ? NULL : median_apply_idle;
 	args->command_updates_gfit = TRUE;
@@ -268,7 +251,7 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 	args->user = params;
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
-	args->for_roi = gui.roi.active;
+	args->for_roi = roi;
 
 	generic_image_worker(args);
 }
