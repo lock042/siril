@@ -34,6 +34,25 @@
  * caller owns the slot — one continuous occupancy for the whole chain, so
  * python cannot interleave).  nde_chain_build() only snapshots and
  * validates; it is safe anywhere.
+ *
+ * REGIONS.  A replay is never region-scoped today: it applies whole records to
+ * a private fits, and generic_image_worker's region path is gated on
+ * for_preview, which a replay never sets.  The eventual prize is a WINDOWED
+ * replay — recompute an amended tail only inside the ROI rectangle, so
+ * adjusting a parameter upstream of an expensive op is cheap.  See the ROI
+ * model above roi_t (core/siril.h) for the scope rules that would apply, and
+ * note the classification rule this end has to satisfy first:
+ *
+ *   an op is region-replayable iff its record is PARAMETER-COMPLETE — it pins
+ *   the derived quantity, not the recipe for deriving it — and its spatial
+ *   support is bounded and declared (OP_ROI_CAPABLE + roi_halo).
+ *
+ * Many "global" ops are MORE region-safe on replay than interactively, because
+ * the record carries the computed result: an MTF record carries its transfer
+ * function, so at replay time it is pixel-local.  Background extraction is the
+ * counterexample — its replay_pre reinstalls recorded sample POSITIONS and
+ * refits from the image, so on a cropped image it would fit the wrong pixels.
+ * It is a barrier until its record pins the model.
  */
 
 #include <glib.h>

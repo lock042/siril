@@ -986,13 +986,54 @@ struct historic_struct {
  * should include that header.  The forward typedef below lets non-GUI code
  * name the type without accessing its fields. */
 
-/* Region of interest: a PREVIEW scope, never an edit scope.  The rectangle
- * is the whole concept — there is no region pixel buffer.  generic_image_worker
- * crops the region out of the pre-op image, runs the hook on the crop and
- * pastes the result back into gfit; Apply always runs full-image.
+/* ── Region of interest ──────────────────────────────────────────────────────
  *
- * `selection` is in DISPLAY (canvas) coordinates; translate and clip it to the
- * layer being processed with flis_display_to_active_layer_rect(). */
+ * AN ROI IS A PREVIEW SCOPE, NEVER AN EDIT SCOPE.  It exists to make an
+ * expensive computation cheap to preview — historically a single operation
+ * (deconvolution), and in due course an NDE replay tail.  Apply is always
+ * full-image, and nothing recorded in the edit history is ever region-scoped:
+ * every record is a full-image op on one item.  If "apply to this region only"
+ * is ever wanted it must arrive as a rectangular PROCESSING MASK derived from
+ * the ROI, not as a new kind of record — NDE already records `mask_active` and
+ * pins the mask, so that keeps "records are full-image ops, optionally masked"
+ * intact.
+ *
+ * THE ROI IS A RECTANGLE.  `selection` is the whole concept.  There is no
+ * region pixel buffer: a cache of one layer's pixels was of no use to a
+ * multi-layer replay, which needs only the rectangle and derives its own
+ * per-item rects from it, and keeping it in step with gfit was a standing
+ * source of staleness bugs.
+ *
+ * THE ROI IS LAYER-SCOPED, NOT COMPOSITE-SCOPED.  `selection` is in DISPLAY
+ * (canvas) coordinates; translate and clip it to the item being processed with
+ * flis_display_to_active_layer_rect() (io/image_format_flis.h).  Because gfit
+ * IS the active layer, a single-op region preview is already composited live.
+ *
+ * OUTSIDE THE RECTANGLE, THE VIEWPORT SHOWS THE PRE-OPERATION STATE.  The
+ * rectangle marks where the preview differs from the pre-op state, regardless
+ * of how those pixels were computed or how long they took.
+ *
+ * THE HALO EXTENDS THE INPUT, NEVER SHRINKS THE OUTPUT.  Where an op's result
+ * at a pixel depends on its neighbours, the INPUT crop is grown by the op's
+ * declared halo and exactly the drawn rectangle is written back.  The drawn
+ * rectangle is therefore always the updated area, so the existing overlay is
+ * correct and there is nothing extra to denote.  (The alternative — shrink the
+ * displayed region to an inner "valid" rect and explain it in the UI — was
+ * rejected: it puts a permanent explanatory burden in the UI to cover a
+ * shortcut.)
+ *
+ * WHO DECIDES.  generic_image_worker, and only it.  A run is region-scoped iff
+ * it is a preview (args->for_preview — for a dialog with no live preview this
+ * is the button discriminator, and it is what keeps commands, scripts and
+ * replays full-image), a ROI is active, the op descriptor carries
+ * OP_ROI_CAPABLE, and the open dialog has declared that op via
+ * roi_declare_op() — which is what `operation_supports_roi` holds, and what
+ * the overlay colour shows the user.  Both terms are required so the outline
+ * cannot promise something the run does not do.
+ *
+ * `operation_supports_roi` belongs to the OPEN DIALOG, not to the rectangle:
+ * clearing the ROI deliberately preserves it.
+ */
 typedef struct roi {
 	rectangle selection;
 	gboolean active;

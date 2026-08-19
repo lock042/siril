@@ -18,7 +18,10 @@ void handle_owner_change(GdkClipboard *clipboard, gpointer data);
 void on_press_seq_field();
 gboolean launch_clipboard_survey(gpointer user_data);
 
-// Region of Interest processing
+/* Region of Interest processing.  The model — what an ROI is, what it is not,
+ * who decides whether a run is region-scoped — is documented above roi_t in
+ * core/siril.h.  The short version: it is a preview scope and a rectangle;
+ * generic_image_worker owns everything else. */
 typedef void (*ROICallback)();
 /**
  * roi_stats_source:
