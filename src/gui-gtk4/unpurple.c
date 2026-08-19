@@ -149,7 +149,6 @@ static int unpurple_update_preview() {
 }
 
 void unpurple_change_between_roi_and_image() {
-	gui.roi.operation_supports_roi = TRUE;
 	// If we are showing the preview, update it after the ROI change.
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = unpurple_update_preview;
@@ -160,7 +159,7 @@ void unpurple_change_between_roi_and_image() {
 static void unpurple_startup() {
 	copy_gfit_to_backup();
 	add_roi_callback(unpurple_change_between_roi_and_image);
-	roi_supported(TRUE);
+	roi_declare_op(&op_desc_unpurple);
 }
 
 static void unpurple_close(gboolean revert) {
@@ -171,7 +170,7 @@ static void unpurple_close(gboolean revert) {
 	} else {
 		invalidate_stats_from_fit(gfit);
 	}
-	roi_supported(FALSE);
+	roi_declare_op(NULL);
 	remove_roi_callback(unpurple_change_between_roi_and_image);
 	clearfits(&starmask);
 	clear_backup();

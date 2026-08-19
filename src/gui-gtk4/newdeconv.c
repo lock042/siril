@@ -641,7 +641,6 @@ void on_bdeconv_psfstars_toggled(GtkCheckButton *button, gpointer user_data) {
 }
 
 void deconv_roi_callback() {
-	gui.roi.operation_supports_roi = TRUE;
 	gtk_widget_set_visible(GTK_WIDGET(bdeconv_roi_preview), gui.roi.active);
 	// When operations are clicked, bdeconv_fill_estk_from_gui will check gui.roi.active.
 	copy_backup_to_gfit();
@@ -649,7 +648,7 @@ void deconv_roi_callback() {
 }
 
 void close_deconv() {
-	roi_supported(FALSE);
+	roi_declare_op(NULL);
 	siril_preview_hide();
 	remove_roi_callback(deconv_roi_callback);
 	siril_close_dialog("bdeconv_dialog");
@@ -661,7 +660,7 @@ void on_bdeconv_close_clicked(GtkButton *button, gpointer user_data) {
 
 void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
 	bdeconv_dialog_init_statics();
-	roi_supported(TRUE);
+	roi_declare_op(&op_desc_deconvolve);
 	deconv_roi_callback();
 	add_roi_callback(deconv_roi_callback);
 	copy_gfit_to_backup();

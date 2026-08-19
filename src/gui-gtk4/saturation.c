@@ -149,7 +149,6 @@ static int satu_update_preview(void) {
 }
 
 void satu_change_between_roi_and_image(void) {
-	gui.roi.operation_supports_roi = TRUE;
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = satu_update_preview;
 	param->show_preview = satu_show_preview;
@@ -157,7 +156,7 @@ void satu_change_between_roi_and_image(void) {
 }
 
 static void satu_startup(void) {
-	roi_supported(TRUE);
+	roi_declare_op(&op_desc_saturation);
 	add_roi_callback(satu_change_between_roi_and_image);
 	copy_gfit_to_backup();
 	satu_amount = 0.0;
@@ -190,7 +189,7 @@ static void satu_close(gboolean revert) {
 			gfit_modified_update_gui();
 		}
 	}
-	roi_supported(FALSE);
+	roi_declare_op(NULL);
 	remove_roi_callback(satu_change_between_roi_and_image);
 	clear_backup();
 	set_cursor_waiting(FALSE);

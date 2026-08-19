@@ -234,7 +234,10 @@ static void histo_startup() {
 
 	set_controls_active(TRUE);
 	add_roi_callback(histo_change_between_roi_and_image);
-	roi_supported(TRUE);
+	/* This dialog hosts two ops; declare the one it is currently invoked
+	 * for.  Both are ROI-capable, but saying which keeps the declaration
+	 * honest if that ever stops being true for one of them. */
+	roi_declare_op(invocation == GHT_STRETCH ? &op_desc_ghs : &op_desc_mtf);
 	copy_gfit_to_backup();
 	if (fit->naxes[2] == 3 && _payne_colourstretchmodel == COL_SAT)
 		setup_hsl();
@@ -305,7 +308,7 @@ static void histo_close(gboolean revert, gboolean update_image_if_needed, gboole
 	}
 	clear_backup();
 	clear_hist_backup();
-	roi_supported(FALSE);
+	roi_declare_op(NULL);
 	remove_roi_callback(histo_change_between_roi_and_image);
 	/* Drop the region snapshot: it can be the size of the whole image and the
 	 * dialog may not be reopened.  Point `fit` away from it first — several
@@ -1258,7 +1261,6 @@ void histo_change_between_roi_and_image() {
 		setup_hsl();
 	}
 	update_histo_mtf();
-	gui.roi.operation_supports_roi = TRUE;
 	// If we are showing the preview, update it after the ROI change.
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = histo_update_preview;
@@ -1354,7 +1356,7 @@ void on_histogram_window_show(GtkWidget *object, gpointer user_data) {
 		/* Show the RECORD's parameters, not a fresh autostretch: prefill
 		 * after reset_cursors_and_values so the record's values win.  No
 		 * ROI (previews are full-image against the pre-record backup). */
-		roi_supported(FALSE);
+		roi_declare_op(NULL);
 		remove_roi_callback(histo_change_between_roi_and_image);
 		if (gui.roi.active)
 			on_clear_roi();

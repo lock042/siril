@@ -130,7 +130,6 @@ static int scnr_update_preview(void) {
 }
 
 void scnr_change_between_roi_and_image(void) {
-	gui.roi.operation_supports_roi = TRUE;
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = scnr_update_preview;
 	param->show_preview = siril_toggle_get_active(GTK_WIDGET(scnr_roi_preview));
@@ -158,7 +157,7 @@ void on_SCNR_dialog_show(GtkWidget *widget, gpointer user_data) {
 		return;
 	}
 
-	roi_supported(TRUE);
+	roi_declare_op(&op_desc_scnr);
 	gtk_widget_set_visible(GTK_WIDGET(scnr_roi_preview), gui.roi.active);
 
 	copy_gfit_to_backup();
@@ -182,7 +181,7 @@ void on_SCNR_cancel_clicked(GtkButton *button, gpointer user_data) {
 		siril_close_dialog("SCNR_dialog");
 		return;
 	}
-	roi_supported(FALSE);
+	roi_declare_op(NULL);
 
 	if (siril_toggle_get_active(GTK_WIDGET(scnr_roi_preview))) {
 		copy_backup_to_gfit();
@@ -235,7 +234,7 @@ void on_SCNR_Apply_clicked(GtkButton *button, gpointer user_data) {
 
 		clear_backup();
 		remove_roi_callback(scnr_change_between_roi_and_image);
-		roi_supported(FALSE);
+		roi_declare_op(NULL);
 		siril_close_dialog("SCNR_dialog");
 	}
 }

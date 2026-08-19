@@ -221,7 +221,6 @@ static int denoise_process_with_worker(gboolean for_preview) {
 }
 
 void denoise_change_between_roi_and_image() {
-	gui.roi.operation_supports_roi = TRUE;
 	gtk_widget_set_visible(GTK_WIDGET(denoise_roi_preview), gui.roi.active);
 	// Restore original image first
 	copy_backup_to_gfit();
@@ -231,7 +230,7 @@ void denoise_change_between_roi_and_image() {
 static void denoise_startup() {
 	copy_gfit_to_backup();
 	add_roi_callback(denoise_change_between_roi_and_image);
-	roi_supported(TRUE);
+	roi_declare_op(&op_desc_denoise);
 }
 
 static void denoise_close_internal(gboolean revert) {
@@ -243,14 +242,13 @@ static void denoise_close_internal(gboolean revert) {
 	} else {
 		invalidate_stats_from_fit(gfit);
 	}
-	roi_supported(FALSE);
+	roi_declare_op(NULL);
 	remove_roi_callback(denoise_change_between_roi_and_image);
 	clear_backup();
 	set_cursor_waiting(FALSE);
 }
 
 void denoise_roi_callback() {
-	gui.roi.operation_supports_roi = TRUE;
 	if (denoise_roi_preview)
 		gtk_widget_set_visible(GTK_WIDGET(denoise_roi_preview), gui.roi.active);
 }

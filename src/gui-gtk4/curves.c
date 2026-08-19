@@ -1293,7 +1293,7 @@ static void clear_display_histogram() {
 static void curves_startup() {
 	init_all_curves();
 	add_roi_callback(curves_histogram_change_between_roi_and_image);
-	roi_supported(TRUE);
+	roi_declare_op(&op_desc_curves);
 	copy_gfit_to_backup();
 
 	// Save a copy of the original image for stage-stack undo (only at first open)
@@ -1356,7 +1356,7 @@ static void curves_close(gboolean update_image_if_needed, gboolean revert_icc_pr
 	clear_backup();
 	clear_display_histogram();
 	curves_clear_hsl();
-	roi_supported(FALSE);
+	roi_declare_op(NULL);
 	remove_roi_callback(curves_histogram_change_between_roi_and_image);
 	/* Drop the region snapshot: it can be the size of the whole image and the
 	 * dialog may not be reopened.  Point `fit` away from it first — several
@@ -1651,7 +1651,6 @@ void curves_reset_after_undo() {
 
 void curves_histogram_change_between_roi_and_image() {
 	fit = roi_stats_source(&roi_stats_cache);
-	gui.roi.operation_supports_roi = TRUE;
 	curves_update_image();
 }
 
@@ -1779,7 +1778,7 @@ void on_curves_window_show(GtkWidget *object, gpointer user_data) {
 	if (curves_amend_mode) {
 		/* No ROI in amend mode: previews are full-image against the
 		 * pre-record backup that curves_startup() just armed. */
-		roi_supported(FALSE);
+		roi_declare_op(NULL);
 		remove_roi_callback(curves_histogram_change_between_roi_and_image);
 		if (gui.roi.active)
 			on_clear_roi();

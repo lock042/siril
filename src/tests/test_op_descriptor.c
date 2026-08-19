@@ -98,9 +98,8 @@ Test(op_descriptor, ids_unique) {
  * The flag is now what generic_image_worker consults to decide whether a
  * preview run is region-scoped, so an op silently gaining or losing it changes
  * behaviour.  Pinning the whole set is what makes such a change fail here
- * rather than in a user's viewport.  The dialogs' roi_supported(TRUE) calls
- * must agree with this list (that is only the overlay colour, but a
- * disagreement is a lie to the user).
+ * rather than in a user's viewport.  The dialogs no longer carry a second
+ * copy of this truth: roi_declare_op() names the op and reads the flag.
  *
  * wavelets is in the set for a different reason from the rest: its hook cannot
  * compute from a crop, because its input is a decomposition of the whole

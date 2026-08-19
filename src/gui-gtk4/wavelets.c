@@ -409,7 +409,6 @@ static void update_sigma_readout(void) {
 
 /* Re-run the preview when the ROI is created, moved or cleared. */
 static void wavelet_roi_changed(void) {
-	gui.roi.operation_supports_roi = TRUE;
 	if (gtk_widget_get_sensitive(wavelets_frame) != TRUE)
 		return; /* nothing computed yet */
 	update_image *param = malloc(sizeof(update_image));
@@ -424,7 +423,7 @@ static void wavelets_startup() {
 	}
 	copy_gfit_to_backup();
 	add_roi_callback(wavelet_roi_changed);
-	roi_supported(TRUE);
+	roi_declare_op(&op_desc_wrecons);
 }
 
 /* Idle function: called after generic_image_worker finishes the wrecons apply */
@@ -504,7 +503,7 @@ void on_wavelets_dialog_hide(GtkWidget *widget, gpointer user_data) {
 	nb_computed_layers = 0;
 	if (wavelets_plans_spin)
 		refresh_layer_visibility();
-	roi_supported(FALSE);
+	roi_declare_op(NULL);
 	remove_roi_callback(wavelet_roi_changed);
 	clear_backup();
 	/* the held transform is only for this window's repeated reconstructions */
@@ -545,7 +544,7 @@ static void apply_wavelets_to_current_sequence(void) {
 	/* stop any live preview/ROI compositing and restore the loaded frame first */
 	cancel_pending_update();
 	cancel_and_wait_for_preview();
-	roi_supported(FALSE);
+	roi_declare_op(NULL);
 	remove_roi_callback(wavelet_roi_changed);
 	if (is_preview_active())
 		copy_backup_to_gfit();
@@ -596,7 +595,7 @@ void on_button_ok_w_clicked(GtkButton *button, gpointer user_data) {
 	/* Apply always commits the full image. Stop ROI compositing now so the
 	 * worker's notify_gfit_data_modified() does not paste the (restored,
 	 * original) ROI back over the freshly reconstructed result. */
-	roi_supported(FALSE);
+	roi_declare_op(NULL);
 	remove_roi_callback(wavelet_roi_changed);
 	/* The live preview may have been showing an isolated reconstruction (only
 	 * some layers at their adjusted strength). Whatever was previewed, the

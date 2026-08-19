@@ -6,6 +6,8 @@
 #include <sys/time.h>
 #include "core/siril.h"	// for sliders_mode
 
+struct op_descriptor;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -44,7 +46,11 @@ void update_roi_config();
 gboolean is_gui_ready();
 void lock_roi_mutex();
 void unlock_roi_mutex();
-void roi_supported(gboolean state);
+/* Declare the operation the currently open dialog will run, so the ROI
+ * machinery can answer "can this be previewed on a rectangle?" from the op
+ * descriptor rather than from a hand-maintained boolean.  NULL to withhold
+ * (dialog closing, amend mode, apply-to-sequence). */
+void roi_declare_op(const struct op_descriptor *op);
 void initialize_all_GUI(gchar *files);
 /* Registers any GApplication-level actions that exist only in this
  * toolkit's build of the GUI tree.  Called once from siril_app_startup

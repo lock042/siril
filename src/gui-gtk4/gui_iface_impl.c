@@ -73,6 +73,7 @@
 #include "gui-gtk4/curves.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
+#include "io/image_format_flis.h"
 #include "gui-gtk4/wavelets.h"
 
 /* ── Main-thread dispatch helpers ────────────────────────────────────────────

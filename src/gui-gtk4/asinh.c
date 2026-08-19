@@ -121,7 +121,6 @@ static int asinh_update_preview() {
 }
 
 void asinh_change_between_roi_and_image() {
-	gui.roi.operation_supports_roi = TRUE;
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = asinh_update_preview;
 	param->show_preview = siril_toggle_get_active(GTK_WIDGET(asinh_preview_btn));
@@ -130,7 +129,7 @@ void asinh_change_between_roi_and_image() {
 
 static void asinh_startup() {
 	add_roi_callback(asinh_change_between_roi_and_image);
-	roi_supported(TRUE);
+	roi_declare_op(&op_desc_asinh);
 	copy_gfit_to_backup();
 }
 
@@ -181,7 +180,7 @@ static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 		g_free(summary);
 	}
 
-	roi_supported(FALSE);
+	roi_declare_op(NULL);
 	remove_roi_callback(asinh_change_between_roi_and_image);
 	if (revert_icc_profile && !single_image_stretch_applied) {
 		current_image_set_icc_profile(original_icc

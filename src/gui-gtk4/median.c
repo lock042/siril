@@ -130,7 +130,6 @@ static void fill_median_params_from_gui(struct median_filter_data *params, gbool
 }
 
 void median_roi_callback(void) {
-	gui.roi.operation_supports_roi = TRUE;
 	gtk_widget_set_visible(median_roi_preview_btn, gui.roi.active);
 	copy_backup_to_gfit();
 	gfit_modified_update_gui();
@@ -160,7 +159,7 @@ void median_close(void) {
 		return;
 	}
 	siril_preview_hide();
-	roi_supported(FALSE);
+	roi_declare_op(NULL);
 	remove_roi_callback(median_roi_callback);
 	siril_close_dialog("Median_dialog");
 }
@@ -183,7 +182,7 @@ void on_Median_dialog_show(GtkWidget *widget, gpointer user_data) {
 		return;
 	}
 
-	roi_supported(TRUE);
+	roi_declare_op(&op_desc_median);
 	gtk_widget_set_visible(median_roi_preview_btn, gui.roi.active);
 	copy_gfit_to_backup();
 	add_roi_callback(median_roi_callback);

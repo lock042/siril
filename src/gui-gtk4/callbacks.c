@@ -23,6 +23,7 @@
 #include <string.h>
 
 #include "core/siril.h"
+#include "core/op_descriptor.h"
 #include "core/op_descriptors.h"
 #include "core/processing_thread.h"
 #include "core/proto.h"
@@ -355,10 +356,18 @@ static void roi_info_message_if_needed() {
 	com.pref.gui.enable_roi_warning = !dont_show_again;
 }
 
-void roi_supported(gboolean state) {
-	gui.roi.operation_supports_roi = state;
+void roi_declare_op(const op_descriptor *op) {
+	/* One declaration, one source of truth.  The dialog names the op it is
+	 * about to run and the DESCRIPTOR decides whether that op can be computed
+	 * on a sub-rectangle — the same OP_ROI_CAPABLE bit generic_image_worker
+	 * consults, so the outline colour and the behaviour cannot drift apart.
+	 * NULL means "no op, or not this session": a dialog withholds region
+	 * previews that way even for a capable op (amend mode previews full-image
+	 * against the pre-record backup; an apply-to-sequence run has no ROI). */
+	gui.roi.operation_supports_roi = op_descriptor_is_roi_capable(op);
 	// Provide a one-time notification about ROI support
-	if (state && gui.roi.active && com.pref.gui.enable_roi_warning)
+	if (gui.roi.operation_supports_roi && gui.roi.active
+	    && com.pref.gui.enable_roi_warning)
 		roi_info_message_if_needed();
 	redraw(REDRAW_OVERLAY);
 }
@@ -409,7 +418,12 @@ gpointer on_clear_roi() {
 		g_mutex_lock(&roi_mutex); // Wait until any thread previews are finished
 		cancel_pending_update();
 		copy_backup_to_gfit();
+		/* Keep the declaration: it says what the OPEN DIALOG can do, which
+		 * clearing a rectangle does not change.  Wiping it here is why every
+		 * dialog's ROI callback used to re-assert it. */
+		const gboolean supports = gui.roi.operation_supports_roi;
 		memset(&gui.roi, 0, sizeof(roi_t));
+		gui.roi.operation_supports_roi = supports;
 		redraw(REDRAW_OVERLAY);
 		g_mutex_unlock(&roi_mutex);
 		call_roi_callbacks();   /* see on_set_roi: must not hold roi_mutex */

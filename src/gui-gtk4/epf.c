@@ -233,7 +233,6 @@ static int epf_update_preview() {
 }
 
 void epf_change_between_roi_and_image() {
-	gui.roi.operation_supports_roi = TRUE;
 	// If we are showing the preview, update it after the ROI change.
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = epf_update_preview;
@@ -244,7 +243,7 @@ void epf_change_between_roi_and_image() {
 static void epf_startup() {
 	copy_gfit_to_backup();
 	add_roi_callback(epf_change_between_roi_and_image);
-	roi_supported(TRUE);
+	roi_declare_op(&op_desc_epf);
 }
 
 static void epf_close(gboolean revert) {
@@ -258,7 +257,7 @@ static void epf_close(gboolean revert) {
 		get_epf_values(&d, &sigma_col, &sigma_space, NULL, NULL);
 	}
 
-	roi_supported(FALSE);
+	roi_declare_op(NULL);
 	remove_roi_callback(epf_change_between_roi_and_image);
 	clearfits(&loaded_fit);
 	clear_backup();
