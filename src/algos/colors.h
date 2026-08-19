@@ -16,6 +16,14 @@ struct extract_channels_data {
 	const char* str_type;
 };
 
+/* Colour space in which a luminance channel is substituted into RGB colour
+ * data, for LRGB composition (compositing tool and the rgbcomp command). */
+typedef enum {
+	COLORING_HSL,
+	COLORING_HSV,
+	COLORING_CIELAB,
+} coloring_type_enum;
+
 typedef float ccm[3][3]; // Color Conversion Matrix
 
 struct ccm_data {
@@ -52,6 +60,9 @@ void linrgb_to_xyzf(float r, float g, float b, float *x, float *y, float *z, gbo
 void xyz_to_linrgbf(float x, float y, float z, float *r, float *g, float *b, gboolean scale);
 void rgb_to_yuvf(float red, float green, float blue, float *y, float *u, float *v);
 void yuv_to_rgbf(float y, float u, float v, float *red, float *green, float *blue);
+void merge_luminance(double r, double g, double b, double lum, coloring_type_enum type,
+		double *ro, double *go, double *bo);
+const char *coloring_type_to_str(coloring_type_enum type);
 
 double BV_to_T(double BV);
 double T_to_BV(double T);

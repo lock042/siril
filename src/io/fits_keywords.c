@@ -79,7 +79,9 @@ static gboolean should_use_keyword(const fits *fit, KeywordInfo keyword) {
 /****************************** handlers ******************************/
 
 static void bscale_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
-	if (1.0 != fit->keywords.bscale) {
+	/* files that use BSCALE/BZERO to store physical floating point values need
+	 * the transform, they are read as float (see fits_uses_physical_scaling) */
+	if (1.0 != fit->keywords.bscale && !fits_uses_physical_scaling(fit->fptr, NULL, NULL)) {
 		siril_log_message(_("Loaded FITS file has a BSCALE different than 1 (%f)\n"), fit->keywords.bscale);
 		int status = 0;
 		/* We reset the scaling factors as we don't use it */
@@ -341,7 +343,12 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			/* ATTENTION: PROGRAM MUST BE BEFORE DATAMAX */
 			KEYWORD_PRIMARY( "image", "PROGRAM", KTYPE_STR, "Software that created this HDU", &(fit->keywords.program), NULL, program_handler_save),
 			KEYWORD_SECONDA( "image", "SWCREATE", KTYPE_STR, "Software that created this HDU", &(fit->keywords.program), NULL, NULL),
-			/* We do not want to save datamax */
+			/* We do not want to save datamax: read_fits_with_convert() divides
+			 * float data by USHRT_MAX when DATAMAX is above 10, which is how
+			 * foreign files storing floats in the [0, 65535] range are
+			 * recognized. Writing a truthful DATAMAX would fire that on our own
+			 * files whenever the data legitimately goes above 10, dividing them
+			 * by 65535 on the next load. */
 			KEYWORD_PRIMARY( "image", "FILENAME", KTYPE_STR, "", &(fit->keywords.filename), NULL, NULL), // no comment to save space for filename
 			KEYWORD_SECONDA( "image", "DATAMAX", KTYPE_DOUBLE, "Maximum pixel value", &(fit->keywords.data_max), NULL, NULL),
 			KEYWORD_PRIMARY( "date",  "DATE", KTYPE_DATE, "UTC date that FITS file was created", &(fit->keywords.date), NULL, NULL),
@@ -1411,6 +1418,7 @@ static int keywords_finalize_hook(struct generic_seq_args *arg) {
 		writeseqfile(arg->seq);
 finish:
 	free(kargs->FITS_key);
+	free(kargs->newkey);
 	free(kargs->value);
 	free(kargs->comment);
 	free(kargs);

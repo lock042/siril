@@ -233,14 +233,15 @@ void display_histo(gsl_histogram *histo, cairo_t *cr, int layer, int width,
 		tmp = realloc(displayed_values, nb_bins_allocated * sizeof(gfloat));
 		if (!tmp) {
 			if (displayed_values != NULL) {
-				g_free(displayed_values);
+				free(displayed_values);	// allocated with realloc(), not g_malloc()
 				displayed_values = NULL;
 			}
+			nb_bins_allocated = 0;
 			PRINT_ALLOC_ERR;
 			return;
 		}
 		displayed_values = tmp;
-		memset(displayed_values, 0, nb_bins_allocated);
+		memset(displayed_values, 0, nb_bins_allocated * sizeof(gfloat));
 	}
 	if (is_mono)
 		cairo_set_source_rgb(cr, 255.0, 255.0, 255.0);

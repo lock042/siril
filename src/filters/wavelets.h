@@ -46,6 +46,11 @@ struct wavelet_transform_data {
 	int Nbr_Plan;
 	int Type_Transform;
 	gboolean anscombe; /* decompose in the Anscombe VST domain */
+	/* Keep the transform in memory for later reconstructions instead of only
+	 * writing it to the .wave files. Set by the tool window, which reconstructs
+	 * repeatedly; the caller must then call wavelet_session_release() when it
+	 * is done with it. Honoured only if the transform fits the memory budget. */
+	gboolean keep_in_memory;
 	/* Optional completion idle run on the main thread once the decomposition
 	 * has finished (GUI re-enables its widgets here). When set, it takes
 	 * ownership of this struct and must free it; when NULL the generic idle is
@@ -53,12 +58,13 @@ struct wavelet_transform_data {
 	GSourceFunc idle;
 };
 
-int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer);
+int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer,
+		int threads);
 /* One-shot à trous decompose + denoise + weighted reconstruct of a single image
- * in place. `id` makes the per-channel temporary transform files unique so
- * parallel callers (and the GUI's live decomposition) never collide. Returns 0
- * on success. */
-int atrous_transform_image(fits *fit, const struct atrous_data *args, int id);
+ * in place. The transform is held in memory for the reconstruction that
+ * immediately consumes it, so this is re-entrant and safe to run on several
+ * frames at once. Returns 0 on success. */
+int atrous_transform_image(fits *fit, const struct atrous_data *args, int threads);
 /* Image hook for the single-image atrous command (used with generic_image_worker). */
 int atrous_image_hook(struct generic_img_args *args, fits *fit, int threads);
 gchar *atrous_log_hook(gpointer p, log_hook_detail detail);
@@ -71,6 +77,12 @@ void free_wrecons_data(void *p);
 int wrecons_image_hook(struct generic_img_args *args, fits *fit, int threads);
 gchar *wrecons_log_hook(gpointer p, log_hook_detail detail);
 gpointer wavelet_transform_worker(gpointer p);
+/* Free any transform held by wavelet_transform_worker's keep_in_memory. Safe
+ * to call when nothing is held, and safe against a reconstruction in flight. */
+void wavelet_session_release(void);
+/* Noise sigma of a held channel; FALSE if the transform is not held (the
+ * caller should then fall back to reading the .wave file). */
+gboolean wavelet_session_sigma(int chan, double *sigma_out, int threads);
 /* apply_wavelets_cancel declared in gui/wavelets.h */
 
 #endif /* SRC_FILTERS_WAVELETS_H_ */

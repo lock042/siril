@@ -25,6 +25,7 @@
 
 #include "core/siril.h"
 #include "algos/Def_Wavelet.h"
+#include "algos/sorting.h"
 #include "algos/wavelet_denoise.h"
 
 cominfo com;	// the core data struct
@@ -32,7 +33,7 @@ fits *gfit;	// currently loaded image (now a pointer)
 
 static void setup(void) {
 	com.headless = TRUE;
-	com.max_thread = 1; /* pave.c OpenMP pragmas read com.max_thread */
+	com.max_thread = 1; /* the tests pass this as their thread budget */
 }
 
 TestSuite(wavelet_denoise, .init = setup);
@@ -44,7 +45,7 @@ static const double B3_FACTORS[] = {
 
 Test(wavelet_denoise, bspline_factors_match_published) {
 	double e[WD_MAX_PLAN];
-	int ret = wavelet_noise_factors(TO_PAVE_BSPLINE, 6, e);
+	int ret = wavelet_noise_factors(TO_PAVE_BSPLINE, 6, e, com.max_thread);
 	cr_assert_eq(ret, 0, "wavelet_noise_factors failed");
 
 	for (int j = 0; j < 5; j++) {
@@ -62,7 +63,7 @@ Test(wavelet_denoise, bspline_factors_match_published) {
 
 Test(wavelet_denoise, linear_scale0_factor) {
 	double e[WD_MAX_PLAN];
-	int ret = wavelet_noise_factors(TO_PAVE_LINEAR, 6, e);
+	int ret = wavelet_noise_factors(TO_PAVE_LINEAR, 6, e, com.max_thread);
 	cr_assert_eq(ret, 0, "wavelet_noise_factors failed");
 
 	/* Linear [1,2,1]/4 separable smooth: scale-0 detail = delta - smooth, so
@@ -74,18 +75,18 @@ Test(wavelet_denoise, linear_scale0_factor) {
 
 Test(wavelet_denoise, factors_cached_stable) {
 	double a[WD_MAX_PLAN], b[WD_MAX_PLAN];
-	cr_assert_eq(wavelet_noise_factors(TO_PAVE_BSPLINE, 6, a), 0);
-	cr_assert_eq(wavelet_noise_factors(TO_PAVE_BSPLINE, 6, b), 0);
+	cr_assert_eq(wavelet_noise_factors(TO_PAVE_BSPLINE, 6, a, com.max_thread), 0);
+	cr_assert_eq(wavelet_noise_factors(TO_PAVE_BSPLINE, 6, b, com.max_thread), 0);
 	for (int j = 0; j < 5; j++)
 		cr_assert_float_eq(a[j], b[j], 1e-12, "cache mismatch at %d", j);
 }
 
 Test(wavelet_denoise, bad_arguments_rejected) {
 	double e[WD_MAX_PLAN];
-	cr_assert_neq(wavelet_noise_factors(TO_PAVE_BSPLINE, 6, NULL), 0);
-	cr_assert_neq(wavelet_noise_factors(99, 6, e), 0);
-	cr_assert_neq(wavelet_noise_factors(TO_PAVE_BSPLINE, 1, e), 0);
-	cr_assert_neq(wavelet_noise_factors(TO_PAVE_BSPLINE, WD_MAX_PLAN + 1, e), 0);
+	cr_assert_neq(wavelet_noise_factors(TO_PAVE_BSPLINE, 6, NULL, com.max_thread), 0);
+	cr_assert_neq(wavelet_noise_factors(99, 6, e, com.max_thread), 0);
+	cr_assert_neq(wavelet_noise_factors(TO_PAVE_BSPLINE, 1, e, com.max_thread), 0);
+	cr_assert_neq(wavelet_noise_factors(TO_PAVE_BSPLINE, WD_MAX_PLAN + 1, e, com.max_thread), 0);
 }
 
 /* Deterministic standard normal sample (Box-Muller). */
@@ -104,11 +105,58 @@ Test(wavelet_denoise, mad_sigma_recovers_gaussian) {
 	for (size_t i = 0; i < n; i++)
 		band[i] = (float) (sigma * gauss());
 
-	double est = wavelet_mad_sigma_float(band, n);
+	double est = wavelet_mad_sigma_float(band, n, com.max_thread);
 	/* MAD estimator is consistent; 2% is generous for n = 1e6. */
 	cr_assert_float_eq(est, sigma, 0.02 * sigma, "MAD sigma %.4f != %.4f", est,
 			sigma);
 	free(band);
+}
+
+/* What wavelet_mad_sigma_float did before it selected on the float bit
+ * pattern: copy, destructive quickselect, rewrite as |x - median|, select
+ * again. The replacement must agree with this exactly, whatever the thread
+ * count, or it would silently move everyone's denoising threshold. */
+static double mad_sigma_reference(const float *band, size_t n) {
+	float *buf = malloc(n * sizeof(float));
+	cr_assert_not_null(buf);
+	memcpy(buf, band, n * sizeof(float));
+	const float med = (float) quickmedian_float(buf, n);
+	for (size_t i = 0; i < n; i++)
+		buf[i] = fabsf(band[i] - med);
+	const double mad = quickmedian_float(buf, n);
+	free(buf);
+	return mad * 1.482602218505602;
+}
+
+Test(wavelet_denoise, mad_sigma_matches_quickselect) {
+	/* odd and even lengths, either side of the small-n sorting network, and
+	 * data carrying signed zeroes, exact ties and denormals -- the selection
+	 * works on the float bit pattern, so those are where it could diverge */
+	const size_t sizes[] = { 8, 9, 10, 1001, 4096, 65537, 200000 };
+	srand(1234);
+	for (unsigned s = 0; s < G_N_ELEMENTS(sizes); s++) {
+		const size_t n = sizes[s];
+		float *band = malloc(n * sizeof(float));
+		cr_assert_not_null(band);
+		for (size_t i = 0; i < n; i++) {
+			switch (i % 7) {
+			case 0: band[i] = 0.f; break;
+			case 1: band[i] = -0.f; break;
+			case 2: band[i] = 1e-40f * (float) (rand() % 5); break; /* denormal */
+			case 3: band[i] = 0.25f; break;                         /* exact ties */
+			case 4: band[i] = -0.25f; break;
+			default: band[i] = (float) (gauss() * 3.0); break;
+			}
+		}
+		const double ref = mad_sigma_reference(band, n);
+		for (int th = 1; th <= 4; th++) {
+			const double got = wavelet_mad_sigma_float(band, n, th);
+			cr_assert_float_eq(got, ref, 0.0,
+					"n=%zu threads=%d: got %.17g, reference %.17g",
+					n, th, got, ref);
+		}
+		free(band);
+	}
 }
 
 /* Standard deviation of (a - b) over a sub-rectangle of an N-wide image. */
@@ -157,7 +205,7 @@ Test(wavelet_denoise, threshold_reconstruction_denoises) {
 	const char *tmpdir = g_get_tmp_dir();
 	gchar *fname = g_build_filename(tmpdir, "siril_wd_test.wave", NULL);
 	cr_assert_eq(wavelet_transform_file_float(noisy, N, N, fname,
-			TO_PAVE_BSPLINE, nplan, 0), 0, "transform failed");
+			TO_PAVE_BSPLINE, nplan, 0, com.max_thread), 0, "transform failed");
 
 	float coef[7];
 	for (int i = 0; i < 7; i++)
@@ -166,7 +214,7 @@ Test(wavelet_denoise, threshold_reconstruction_denoises) {
 	/* 1) disabled denoise reconstructs the (noisy) input near-losslessly */
 	struct denoise_params dp;
 	denoise_params_init(&dp); /* enabled == FALSE */
-	cr_assert_eq(wavelet_reconstruct_file_float(fname, coef, &dp, out), 0);
+	cr_assert_eq(wavelet_reconstruct_file_float(fname, coef, &dp, out, com.max_thread), 0);
 	float maxdiff = 0.f;
 	for (size_t i = 0; i < n; i++)
 		maxdiff = fmaxf(maxdiff, fabsf(out[i] - noisy[i]));
@@ -175,7 +223,7 @@ Test(wavelet_denoise, threshold_reconstruction_denoises) {
 	/* 2) enabled denoise (soft threshold, k=3) cuts background noise hard */
 	dp.enabled = TRUE;
 	dp.method = WD_THRESHOLD;
-	cr_assert_eq(wavelet_reconstruct_file_float(fname, coef, &dp, out), 0);
+	cr_assert_eq(wavelet_reconstruct_file_float(fname, coef, &dp, out, com.max_thread), 0);
 
 	double noisy_bg = region_resid_std(noisy, clean, N, 8, 8, 48, 48);
 	double den_bg = region_resid_std(out, clean, N, 8, 8, 48, 48);
@@ -233,7 +281,7 @@ Test(wavelet_denoise, bishrink_reconstruction_denoises) {
 	const char *tmpdir = g_get_tmp_dir();
 	gchar *fname = g_build_filename(tmpdir, "siril_wd_bishrink.wave", NULL);
 	cr_assert_eq(wavelet_transform_file_float(noisy, N, N, fname,
-			TO_PAVE_BSPLINE, nplan, 0), 0);
+			TO_PAVE_BSPLINE, nplan, 0, com.max_thread), 0);
 
 	float coef[7];
 	for (int i = 0; i < 7; i++)
@@ -244,7 +292,7 @@ Test(wavelet_denoise, bishrink_reconstruction_denoises) {
 	denoise_params_init(&dp);
 	cr_assert_eq(dp.method, WD_BISHRINK, "BiShrink must be the default method");
 	dp.enabled = TRUE;
-	cr_assert_eq(wavelet_reconstruct_file_float(fname, coef, &dp, out), 0);
+	cr_assert_eq(wavelet_reconstruct_file_float(fname, coef, &dp, out, com.max_thread), 0);
 
 	double noisy_bg = region_resid_std(noisy, clean, N, 8, 8, 48, 48);
 	double den_bg = region_resid_std(out, clean, N, 8, 8, 48, 48);
@@ -273,8 +321,8 @@ Test(wavelet_denoise, anscombe_roundtrip_exact) {
 	cr_assert(a && b);
 	for (size_t i = 0; i < n; i++)
 		a[i] = b[i] = (float) i / (float) n; /* [0,1) */
-	anscombe_forward(b, n, ANSCOMBE_FLOAT_SCALE);
-	anscombe_inverse(b, n, ANSCOMBE_FLOAT_SCALE);
+	anscombe_forward(b, n, ANSCOMBE_FLOAT_SCALE, com.max_thread);
+	anscombe_inverse(b, n, ANSCOMBE_FLOAT_SCALE, com.max_thread);
 	for (size_t i = 0; i < n; i++)
 		cr_assert_float_eq(b[i], a[i], 1e-4, "VST round-trip off at %zu: %.6f vs %.6f",
 				i, b[i], a[i]);
@@ -298,7 +346,7 @@ Test(wavelet_denoise, vst_decompose_reconstruct_identity) {
 	gchar *fname = g_build_filename(tmpdir, "siril_wd_vst.wave", NULL);
 	/* decompose in the VST domain */
 	cr_assert_eq(wavelet_transform_file_float(noisy, N, N, fname,
-			TO_PAVE_BSPLINE, nplan, 1), 0);
+			TO_PAVE_BSPLINE, nplan, 1, com.max_thread), 0);
 
 	float coef[7];
 	for (int i = 0; i < 7; i++)
@@ -308,7 +356,7 @@ Test(wavelet_denoise, vst_decompose_reconstruct_identity) {
 	struct denoise_params dp;
 	denoise_params_init(&dp);
 	dp.anscombe = TRUE; /* enabled stays FALSE */
-	cr_assert_eq(wavelet_reconstruct_file_float(fname, coef, &dp, out), 0);
+	cr_assert_eq(wavelet_reconstruct_file_float(fname, coef, &dp, out, com.max_thread), 0);
 
 	float maxdiff = 0.f;
 	for (size_t i = 0; i < n; i++)
@@ -320,6 +368,134 @@ Test(wavelet_denoise, vst_decompose_reconstruct_identity) {
 	free(clean);
 	free(noisy);
 	free(out);
+}
+
+/* The tool window keeps the transform in memory and reconstructs from it
+ * repeatedly. Those reconstructions must match what re-reading the .wave file
+ * gives, and must leave the transform intact for the next one -- the denoising
+ * shrinks coefficient planes in place, so a careless implementation would
+ * corrupt the held copy on the first preview and drift on every one after. */
+Test(wavelet_denoise, held_reconstruct_matches_file_and_is_repeatable) {
+	const int N = 256;
+	const int nplan = 5;
+	const size_t n = (size_t) N * N;
+	float *clean = malloc(n * sizeof(float));
+	float *noisy = malloc(n * sizeof(float));
+	float *ref = malloc(n * sizeof(float));
+	float *got1 = malloc(n * sizeof(float));
+	float *got2 = malloc(n * sizeof(float));
+	cr_assert(clean && noisy && ref && got1 && got2);
+
+	int sx[3] = { 100, 150, 180 }, sy[3] = { 110, 160, 90 };
+	make_scene(clean, noisy, N, 0.03, sx, sy);
+
+	const char *tmpdir = g_get_tmp_dir();
+	gchar *fname = g_build_filename(tmpdir, "siril_wd_held.wave", NULL);
+
+	float coef[7] = { 1.4f, 1.f, 0.6f, 1.f, 1.f, 1.f, 1.f };
+
+	/* once with plain synthesis, once with the in-place shrinkage active */
+	for (int pass = 0; pass < 2; pass++) {
+		struct denoise_params dp;
+		denoise_params_init(&dp);
+		if (pass == 1) {
+			dp.enabled = TRUE;
+			dp.method = WD_BISHRINK;
+			dp.k = 3.0f;
+		}
+
+		cr_assert_eq(wavelet_transform_file_float(noisy, N, N, fname,
+				TO_PAVE_BSPLINE, nplan, 0, com.max_thread), 0);
+		cr_assert_eq(wavelet_reconstruct_file_float(fname, coef, &dp, ref,
+				com.max_thread), 0);
+
+		wave_transf_des held = { 0 };
+		cr_assert_eq(wavelet_transform_float(noisy, N, N, &held, TO_PAVE_BSPLINE,
+				nplan, com.max_thread), 0);
+
+		cr_assert_eq(wavelet_reconstruct_preserving(&held, got1, coef, &dp,
+				com.max_thread), 0);
+		cr_assert_eq(wavelet_reconstruct_preserving(&held, got2, coef, &dp,
+				com.max_thread), 0);
+		wave_io_free(&held);
+
+		for (size_t i = 0; i < n; i++) {
+			cr_assert_float_eq(got1[i], ref[i], 0.0,
+					"pass %d: held reconstruction differs from the file at %zu",
+					pass, i);
+			cr_assert_float_eq(got2[i], got1[i], 0.0,
+					"pass %d: second reconstruction from the same held transform "
+					"differs at %zu -- it was modified in place", pass, i);
+		}
+	}
+
+	g_unlink(fname);
+	g_free(fname);
+	free(clean); free(noisy); free(ref); free(got1); free(got2);
+}
+
+/* Same for the ROI preview path. */
+Test(wavelet_denoise, held_roi_matches_file_roi) {
+	const int N = 256;
+	const int nplan = 5;
+	const size_t n = (size_t) N * N;
+	float *clean = malloc(n * sizeof(float));
+	float *noisy = malloc(n * sizeof(float));
+	cr_assert(clean && noisy);
+
+	int sx[3] = { 90, 140, 200 }, sy[3] = { 100, 150, 120 };
+	make_scene(clean, noisy, N, 0.03, sx, sy);
+
+	const char *tmpdir = g_get_tmp_dir();
+	gchar *fname = g_build_filename(tmpdir, "siril_wd_heldroi.wave", NULL);
+	cr_assert_eq(wavelet_transform_file_float(noisy, N, N, fname,
+			TO_PAVE_BSPLINE, nplan, 0, com.max_thread), 0);
+
+	wave_transf_des held = { 0 };
+	cr_assert_eq(wavelet_transform_float(noisy, N, N, &held, TO_PAVE_BSPLINE,
+			nplan, com.max_thread), 0);
+
+	float coef[7] = { 1.2f, 1.f, 0.8f, 1.f, 1.f, 1.f, 1.f };
+	struct denoise_params dp;
+	denoise_params_init(&dp);
+	dp.enabled = TRUE;
+	dp.method = WD_BISHRINK;
+	dp.k = 3.0f;
+
+	const int rx = 40, ry = 50, w = 64, h = 48;
+	fits a = { 0 }, b = { 0 };
+	for (int k = 0; k < 2; k++) {
+		fits *f = k ? &b : &a;
+		f->type = DATA_FLOAT;
+		f->rx = f->naxes[0] = w;
+		f->ry = f->naxes[1] = h;
+		f->naxes[2] = 1;
+		f->naxis = 2;
+		f->fdata = malloc((size_t) w * h * sizeof(float));
+		cr_assert_not_null(f->fdata);
+		f->fpdata[0] = f->fdata;
+	}
+
+	cr_assert_eq(wavelet_reconstruct_file_roi(fname, coef, &dp, rx, ry, w, h, 0,
+			&a, com.max_thread), 0);
+	cr_assert_eq(wavelet_reconstruct_data_roi(&held, coef, &dp, rx, ry, w, h, 0,
+			&b, com.max_thread), 0);
+	for (size_t i = 0; i < (size_t) w * h; i++)
+		cr_assert_float_eq(b.fdata[i], a.fdata[i], 0.0,
+				"held ROI differs from the file ROI at %zu", i);
+
+	/* and again, to show the held transform survived the first one */
+	memset(b.fdata, 0, (size_t) w * h * sizeof(float));
+	cr_assert_eq(wavelet_reconstruct_data_roi(&held, coef, &dp, rx, ry, w, h, 0,
+			&b, com.max_thread), 0);
+	for (size_t i = 0; i < (size_t) w * h; i++)
+		cr_assert_float_eq(b.fdata[i], a.fdata[i], 0.0,
+				"second held ROI differs at %zu", i);
+
+	wave_io_free(&held);
+	g_unlink(fname);
+	g_free(fname);
+	free(a.fdata); free(b.fdata); free(clean); free(noisy);
 }
 
 Test(wavelet_denoise, roi_reconstruct_matches_full) {
@@ -337,7 +513,7 @@ Test(wavelet_denoise, roi_reconstruct_matches_full) {
 	const char *tmpdir = g_get_tmp_dir();
 	gchar *fname = g_build_filename(tmpdir, "siril_wd_roi.wave", NULL);
 	cr_assert_eq(wavelet_transform_file_float(noisy, N, N, fname,
-			TO_PAVE_BSPLINE, nplan, 0), 0);
+			TO_PAVE_BSPLINE, nplan, 0, com.max_thread), 0);
 
 	float coef[7];
 	for (int i = 0; i < 7; i++)
@@ -347,7 +523,7 @@ Test(wavelet_denoise, roi_reconstruct_matches_full) {
 	denoise_params_init(&dp); /* disabled: pure reconstruction */
 
 	/* full reconstruction (FITS-ordered buffer) */
-	cr_assert_eq(wavelet_reconstruct_file_float(fname, coef, &dp, full), 0);
+	cr_assert_eq(wavelet_reconstruct_file_float(fname, coef, &dp, full, com.max_thread), 0);
 
 	/* ROI reconstruction into a minimal float fits */
 	const int rx = 40, ry = 50, w = 64, h = 48;
@@ -361,7 +537,7 @@ Test(wavelet_denoise, roi_reconstruct_matches_full) {
 	cr_assert_not_null(roifit.fdata);
 	roifit.fpdata[0] = roifit.fdata;
 
-	cr_assert_eq(wavelet_reconstruct_file_roi(fname, coef, &dp, rx, ry, w, h, 0, &roifit), 0);
+	cr_assert_eq(wavelet_reconstruct_file_roi(fname, coef, &dp, rx, ry, w, h, 0, &roifit, com.max_thread), 0);
 
 	/* ROI row y maps to FITS row N-1-ry-y (top-down -> bottom-up) */
 	float maxdiff = 0.f;
@@ -392,10 +568,10 @@ Test(wavelet_denoise, estimate_noise_divides_by_factor) {
 	for (size_t i = 0; i < n; i++)
 		band[i] = (float) (sigma_global * e1 * gauss());
 
-	double est = wavelet_estimate_noise_float(band, n, e1);
+	double est = wavelet_estimate_noise_float(band, n, e1, com.max_thread);
 	cr_assert_float_eq(est, sigma_global, 0.02 * sigma_global,
 			"recovered sigma %.4f != %.4f", est, sigma_global);
-	cr_assert(wavelet_estimate_noise_float(band, n, 0.0) < 0.0,
+	cr_assert(wavelet_estimate_noise_float(band, n, 0.0, com.max_thread) < 0.0,
 			"e1=0 must return error");
 	free(band);
 }
