@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-11 13:08+0100\n"
-"PO-Revision-Date: 2026-05-22 07:53+0000\n"
+"PO-Revision-Date: 2026-08-19 06:48+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -714,7 +714,7 @@ msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:397
 msgid "Click this button to select a csv file."
-msgstr "Нажмите на эту кнопку, чтобы выбрать файл CSV."
+msgstr "Нажмите на эту кнопку, чтобы выбрать файл csv."
 
 #: src/gui/uifiles/annotate_dialog.ui:430
 msgid ""
@@ -16846,8 +16846,8 @@ msgid ""
 "Too many files: you should use the 'convert' command and pass the argument "
 "-fitseq to convert your sequence to fitseq format.\n"
 msgstr ""
-"Слишком много файлов: вам следует использовать команду \"convert\" с "
-"аргументом -fitseq для преобразования последовательности в формат fitseq.\n"
+"Слишком много файлов: необходимо использовать команду 'convert' и передать "
+"аргумент -fitseq для конвертации последовательности в формат fitseq.\n"
 
 #: src/core/command.c:7524
 #, c-format

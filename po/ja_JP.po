@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-11 13:08+0100\n"
-"PO-Revision-Date: 2026-07-19 06:24+0000\n"
+"PO-Revision-Date: 2026-08-19 06:48+0000\n"
 "Last-Translator: Tomoya Maeda <yumyum.ytm6020@gmail.com>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
@@ -30344,20 +30344,20 @@ msgstr ""
 
 #: src/stacking/stacking.c:236
 msgid "Image weighting ........... from weighted FWHM\n"
-msgstr ""
+msgstr "画像の重み付け ........... weighted FWHM\n"
 
 #: src/stacking/stacking.c:238
 msgid "Image weighting ........... from star count\n"
-msgstr ""
+msgstr "画像の重み付け ........... 星の数\n"
 
 #: src/stacking/stacking.c:239
 msgid "Image weighting ........... disabled\n"
-msgstr ""
+msgstr "画像の重み付け ........... 無効\n"
 
 #: src/stacking/stacking.c:242
 #, c-format
 msgid "Feathering ................ over %4d pixels\n"
-msgstr ""
+msgstr "フェザリング処理中................（%4d ピクセル幅）\n"
 
 #: src/stacking/stacking.c:246
 msgid "RGB equalization .......... enabled\n"
@@ -30369,45 +30369,47 @@ msgstr "RGB イコライゼーション …… 無効\n"
 
 #: src/stacking/stacking.c:417
 msgid "Stacking result image"
-msgstr ""
+msgstr "スタック結果の画像"
 
 #: src/stacking/stacking.c:466
 msgid "Unsaved stacking result"
-msgstr ""
+msgstr "スタック結果はまだ保存されていません"
 
 #: src/stacking/stackminmax.c:67
 msgid "No frame selected for stacking (select at least 2). Aborting.\n"
 msgstr ""
+"スタック処理：フレームが選択されていません（最低 2 枚を選択してください）。処"
+"理を中止します。\n"
 
 #: src/stacking/stackminmax.c:112
 msgid "Stacking: could not read frame, aborting\n"
-msgstr ""
+msgstr "スタック処理：フレームを読み込めなかったため、処理を中止します。\n"
 
 #: src/stacking/stackminmax.c:161
 msgid "Stacking: image in sequence doesn't has the same dimensions\n"
-msgstr ""
+msgstr "スタック処理：シーケンス内の画像の寸法が一致していません。\n"
 
 #: src/stacking/stackminmax.c:298
 msgid "Stacking failed. Check the log."
-msgstr ""
+msgstr "スタック処理が失敗しました。ログを確認してください。"
 
 #: src/stacking/stackminmax.c:301
 msgid "Stacking complete."
-msgstr ""
+msgstr "スタック処理が完了しました。"
 
 #: src/stacking/sum.c:314
 msgid ""
 "Reducing the stacking output to a 16-bit image will result in precision "
 "loss\n"
-msgstr ""
+msgstr "スタック結果を 16-bit 画像に縮小すると、精度が低下します。\n"
 
 #: src/stacking/upscaling.c:138
 msgid "Up-scaling sequence for stacking"
-msgstr ""
+msgstr "スタック処理のためにシーケンスをアップスケールします"
 
 #: src/stacking/upscaling.c:149
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
-msgstr ""
+msgstr "スタック処理はアップスケーリングなしで行われます（“drizzle” を無効化）\n"
 
 #, fuzzy
 #~ msgid "Reloading image"
