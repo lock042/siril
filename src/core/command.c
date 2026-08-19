@@ -4467,7 +4467,7 @@ int process_ls(int nb){
 				siril_log_status(_("Image: %s\n"), list[i]->d_name);
 			else
 				siril_log_error(_("Image: %s\n"), list[i]->d_name);
-		} else if (!strncmp(ext, "seq", 3))
+		} else if (!g_ascii_strncasecmp(ext, "seq", 3))
 			siril_log_status(_("Sequence: %s\n"), list[i]->d_name);
 	}
 	for (int i = 0; i < n; i++)
@@ -4514,7 +4514,7 @@ int process_ls(int nb){
 						siril_log_status(_("Image: %s\n"), filename);
 					else
 						siril_log_error(_("Image: %s\n"), filename);
-				} else if (!strncmp(ext, "seq", 3))
+				} else if (!g_ascii_strncasecmp(ext, "seq", 3))
 					siril_log_status(_("Sequence: %s\n"), filename);
 
 			}

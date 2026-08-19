@@ -660,7 +660,7 @@ static void do_open_file(gchar *path) {
 	if (!path)
 		return;
 	const char *ext = get_filename_ext(path);
-	if (ext && !strncmp(ext, "seq", 4)) {
+	if (ext && !g_ascii_strncasecmp(ext, "seq", 4)) {
 		gchar *sequence_dir = g_path_get_dirname(path);
 		if (!siril_change_dir(sequence_dir, NULL)) {
 			if (check_seq()) {
