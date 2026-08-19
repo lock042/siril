@@ -2047,6 +2047,9 @@ the_end:;
 				fits_swap_all_except_rwlock(argfit, orig);
 			g_rw_lock_writer_unlock(&argfit->rwlock);
 			gui_iface.set_suppress_redraws(FALSE);
+			/* A whole-image result: gfit may now differ from the preview
+			 * backup everywhere, so drop any region it was holding. */
+			gui_iface.preview_note_gfit_change(NULL);
 			if (retargeted) {
 				siril_log_message(_("%s: the active layer changed during processing, discarding the result.\n"),
 						desc ? desc : _("Operation"));
@@ -2084,10 +2087,16 @@ the_end:;
 			 * roi_rect was translated against the layer this job started
 			 * on.  Dropping a preview is the right outcome — unlike a
 			 * discarded apply it needs no error, the next tick redraws. */
+			gboolean pasted = FALSE;
 			if (gfit == argfit && !flis_gfit_retarget_in_progress())
-				paste_fits_region(roi_work, gfit, &roi_rect);
+				pasted = !paste_fits_region(roi_work, gfit, &roi_rect);
 			else
 				siril_log_debug("region preview discarded: the active layer changed\n");
+			/* Tell the preview module what changed, so its next restore copies
+			 * back one rectangle instead of the whole image.  Only a paste that
+			 * actually happened may be reported; anything else must leave the
+			 * conservative "assume all" answer in place. */
+			gui_iface.preview_note_gfit_change(pasted ? &roi_rect : NULL);
 			g_rw_lock_writer_unlock(&argfit->rwlock);
 			gui_iface.set_suppress_redraws(FALSE);
 		}

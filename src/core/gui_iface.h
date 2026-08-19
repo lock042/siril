@@ -536,6 +536,11 @@ typedef struct {
 	int      (*copy_backup_to_gfit)(void);
 	/* Return the internal preview backup fits buffer cast to gpointer. */
 	gpointer (*get_preview_gfit_backup)(void);
+	/* Report what this job changed in gfit relative to a live preview backup,
+	 * so the next preview restore can be scoped to it.  @region is the
+	 * rectangle a region preview wrote; NULL means "assume the whole image",
+	 * which is always the safe answer. */
+	void     (*preview_note_gfit_change)(const rectangle *region);
 	/* The PRE-OPERATION pixels of the displayed image: the preview backup when
 	 * one is live and belongs to the current gfit, gfit itself otherwise.
 	 * Unlike get_preview_gfit_backup() this never hands back another layer's

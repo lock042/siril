@@ -30,6 +30,11 @@ typedef struct update_preview_struct {
 void copy_gfit_icc_to_backup();
 void copy_gfit_to_backup();
 int copy_backup_to_gfit();
+/* Report what a completed job changed in gfit relative to the live preview
+ * backup, so the next copy_backup_to_gfit() can be scoped to it.  @region is
+ * the rectangle a region preview wrote, or NULL for "assume the whole image".
+ * Reporting nothing is always safe; reporting a wrong rectangle is not. */
+void preview_note_gfit_change(const rectangle *region);
 fits *get_preview_gfit_backup();
 /* The pre-operation pixels of the displayed image: the preview backup when one
  * is live AND belongs to the current gfit, gfit itself otherwise. */

@@ -213,3 +213,76 @@ Test(fits_region, paste_refuses_a_mismatched_source) {
 	clearfits(&region);
 	free_image(img);
 }
+
+/* copy_fits_region is the whole-to-whole case: it must touch exactly the
+ * rectangle crop_fits_region would take and leave every other pixel alone.
+ *
+ * Checking "the region now matches the source" alone would pass for a routine
+ * that copied the whole image, and checking "the rest is untouched" alone would
+ * pass for one that copied nothing — so both halves are asserted, against a
+ * source deliberately made to differ everywhere. */
+Test(fits_region, copy_writes_the_region_and_only_the_region) {
+	fits *dst = make_image(23, 17, 3, DATA_USHORT);
+	fits *src = make_image(23, 17, 3, DATA_USHORT);
+	fits *before = make_image(23, 17, 3, DATA_USHORT);
+	const size_t n = (size_t)23 * 17 * 3;
+
+	/* make src differ from dst at every pixel, and keep dst's original */
+	for (size_t i = 0; i < n; i++)
+		src->data[i] = (WORD)((dst->data[i] + 12345u) % 65535u);
+	memcpy(before->data, dst->data, n * sizeof(WORD));
+
+	const rectangle area = { 5, 3, 9, 6 };
+	cr_assert_eq(copy_fits_region(src, dst, &area), 0);
+
+	/* the rectangle took src's pixels: compare against an independent crop,
+	 * so an error in the flip cannot cancel itself out */
+	fits want = { 0 }, got = { 0 };
+	cr_assert_eq(crop_fits_region(src, &area, &want), 0);
+	cr_assert_eq(crop_fits_region(dst, &area, &got), 0);
+	cr_assert_eq(memcmp(want.data, got.data, (size_t)9 * 6 * 3 * sizeof(WORD)), 0,
+		     "region does not match the source");
+
+	/* everything outside it is untouched */
+	size_t changed_outside = 0;
+	for (size_t c = 0; c < 3; c++) {
+		for (uint32_t fy = 0; fy < 17; fy++) {
+			for (uint32_t fx = 0; fx < 23; fx++) {
+				/* display row of this FITS row */
+				const uint32_t dy = 17 - 1 - fy;
+				const gboolean inside = (fx >= 5 && fx < 5 + 9
+							 && dy >= 3 && dy < 3 + 6);
+				if (inside)
+					continue;
+				const size_t i = c * (size_t)23 * 17 + (size_t)fy * 23 + fx;
+				if (dst->data[i] != before->data[i])
+					changed_outside++;
+			}
+		}
+	}
+	cr_assert_eq(changed_outside, 0, "%zu pixels outside the area were modified",
+		     changed_outside);
+
+	clearfits(&want);
+	clearfits(&got);
+	free_image(before);
+	free_image(src);
+	free_image(dst);
+}
+
+/* Mismatched geometry is a caller error: this variant has no way to resize. */
+Test(fits_region, copy_refuses_mismatched_images) {
+	fits *a = make_image(16, 16, 1, DATA_USHORT);
+	fits *b = make_image(16, 15, 1, DATA_USHORT);
+	fits *c = make_image(16, 16, 1, DATA_FLOAT);
+	const rectangle area = { 1, 1, 4, 4 };
+
+	cr_assert_neq(copy_fits_region(a, b, &area), 0, "size mismatch accepted");
+	cr_assert_neq(copy_fits_region(a, c, &area), 0, "type mismatch accepted");
+	cr_assert_neq(copy_fits_region(a, a, &(rectangle){ 14, 0, 4, 4 }), 0,
+		      "out-of-bounds area accepted");
+
+	free_image(a);
+	free_image(b);
+	free_image(c);
+}

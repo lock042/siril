@@ -69,6 +69,23 @@ extern "C" {
 int crop_fits_region(fits *src, const rectangle *area, fits *dst);
 
 /**
+ * copy_fits_region:
+ * @src: source image; not modified.
+ * @dst: destination image, written in place at @area.  Must have the same
+ *       dimensions, channel count and pixel type as @src.
+ * @area: region to copy, display convention, must lie within both.
+ *
+ * Copies just @area between two images of the SAME geometry — the same rows
+ * crop_fits_region would take, written to the same place they came from.  This
+ * is the whole-to-whole case the crop/paste pair cannot express without a
+ * region-sized buffer in between; it is what lets a preview restore touch only
+ * the rectangle a region preview modified.  Pixels only: no mask, no metadata.
+ *
+ * Returns: 0 on success, non-zero on bad or mismatched arguments.
+ */
+int copy_fits_region(const fits *src, fits *dst, const rectangle *area);
+
+/**
  * paste_fits_region:
  * @src: region-sized image, whose dimensions must equal @area's.
  * @dst: destination image, written in place at @area.

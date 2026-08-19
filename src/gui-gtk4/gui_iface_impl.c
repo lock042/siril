@@ -1595,6 +1595,7 @@ static void impl_reset_cut_gui_filedependent(gpointer u) {
 static int impl_copy_backup_to_gfit(void) { return copy_backup_to_gfit(); }
 static gpointer impl_get_preview_gfit_backup(void) { return (gpointer)get_preview_gfit_backup(); }
 static gpointer impl_get_preop_gfit(void) { return (gpointer)get_preop_gfit(); }
+static void impl_preview_note_gfit_change(const rectangle *r) { preview_note_gfit_change(r); }
 /* Registration */
 static gboolean update_reg_interface_idle(gpointer p) {
 	update_reg_interface(GPOINTER_TO_INT(p));
@@ -1815,6 +1816,7 @@ void siril_register_gui_iface(void) {
 	gui_iface.copy_backup_to_gfit            = impl_copy_backup_to_gfit;
 	gui_iface.get_preview_gfit_backup        = impl_get_preview_gfit_backup;
 	gui_iface.get_preop_gfit                 = impl_get_preop_gfit;
+	gui_iface.preview_note_gfit_change       = impl_preview_note_gfit_change;
 	/* Registration */
 	gui_iface.update_reg_interface           = impl_update_reg_interface;
 	gui_iface.reset_3stars_gui               = impl_reset_3stars_gui;

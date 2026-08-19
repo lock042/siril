@@ -26,6 +26,7 @@
 #include "core/icc_profile.h"
 #include "core/OS_utils.h"
 #include "core/processing.h"
+#include "core/fits_region.h"
 #include "core/processing_thread.h"
 #include "core/siril_log.h"
 #include "gui-gtk4/progress_and_log.h"
@@ -61,6 +62,34 @@ static gboolean      preview_in_flight = FALSE;
 static gboolean      preview_job_active = FALSE;
 static cmsHPROFILE preview_icc_backup = NULL;
 static fits preview_gfit_backup = { 0 };
+/* How gfit differs from the live backup, so a restore can be scoped to it.
+ *
+ * Conservative by construction: UNKNOWN ("assume the whole image") is the
+ * default and every transition that is not a positive report puts it back
+ * there.  REGION is only ever reached from NONE — i.e. gfit provably matched
+ * the backup and then a single region preview wrote one rectangle — so a
+ * narrowed restore can never leave a foreign modification on screen.
+ *
+ * NONE still does a full copy.  It costs nothing (in the steady restore ->
+ * region-write -> restore loop the state at each restore is REGION) and it
+ * keeps the "restore always copies" property for any writer that does not
+ * report. */
+static enum { PREVIEW_DIFF_UNKNOWN, PREVIEW_DIFF_NONE, PREVIEW_DIFF_REGION }
+             preview_diff = PREVIEW_DIFF_UNKNOWN;
+static rectangle preview_diff_region = { 0 };
+
+void preview_note_gfit_change(const rectangle *region) {
+	if (region && preview_diff == PREVIEW_DIFF_NONE) {
+		preview_diff = PREVIEW_DIFF_REGION;
+		preview_diff_region = *region;
+		return;
+	}
+	if (region && preview_diff == PREVIEW_DIFF_REGION
+	    && !memcmp(region, &preview_diff_region, sizeof(rectangle)))
+		return;   /* same rectangle rewritten; still the only difference */
+	preview_diff = PREVIEW_DIFF_UNKNOWN;
+}
+
 /* Identity of the fits the backup was taken from.  gfit can be repointed
  * at a DIFFERENT layer's fits (FLIS active-layer switch) between backup
  * and restore; a dimensions check alone cannot detect that when layers
@@ -179,6 +208,7 @@ void copy_gfit_to_backup() {
 		copy_gfit_icc_to_backup();
 	preview_backup_owner = gfit;
 	preview_is_active = TRUE;
+	preview_diff = PREVIEW_DIFF_NONE;   /* gfit == backup by construction */
 }
 
 fits *get_preview_backup_owner(void) {
@@ -232,6 +262,24 @@ int copy_backup_to_gfit() {
 		 * overflow for a larger one.  Skip; on-screen pixels stay. */
 		siril_log_debug("copy_backup_to_gfit: backup belongs to another image, skipping restore\n");
 		retval = 1;
+	} else if (preview_diff == PREVIEW_DIFF_REGION) {
+		/* Only one rectangle differs, so only that rectangle needs restoring.
+		 * On a large image the full copy below was the dominant cost of an
+		 * "ROI preview" — every tick copied the whole image back to undo a
+		 * change confined to a few hundred pixels square.  The mask is not
+		 * restored because a region preview never writes it (the worker pastes
+		 * pixels only). */
+		if (copy_fits_region(&preview_gfit_backup, gfit, &preview_diff_region)) {
+			siril_log_debug("Region restore failed, falling back to full\n");
+			if (copyfits(&preview_gfit_backup, gfit, CP_COPYA | CP_COPYMASK, -1))
+				retval = 1;
+		}
+		if (retval == 0) {
+			if (!com.script)
+				copy_backup_icc_to_gfit();
+			copy_fits_metadata(&preview_gfit_backup, gfit);
+			invalidate_stats_from_fit(gfit);
+		}
 	} else {
 		// Restore the mask state too
 		if (copyfits(&preview_gfit_backup, gfit, CP_COPYA | CP_COPYMASK, -1)) {
@@ -247,6 +295,7 @@ int copy_backup_to_gfit() {
 			invalidate_stats_from_fit(gfit);
 		}
 	}
+	preview_diff = retval ? PREVIEW_DIFF_UNKNOWN : PREVIEW_DIFF_NONE;
 	g_rw_lock_writer_unlock(&gfit->rwlock);
 	gui_iface.set_suppress_redraws(FALSE);
 	return retval;
@@ -277,6 +326,7 @@ void clear_backup() {
 	clear_backup_icc();
 	preview_backup_owner = NULL;
 	preview_is_active = FALSE;
+	preview_diff = PREVIEW_DIFF_UNKNOWN;
 }
 
 void set_notify_block(gboolean value) {

@@ -153,6 +153,47 @@ int crop_fits_region(fits *src, const rectangle *area, fits *dst) {
 	return 0;
 }
 
+int copy_fits_region(const fits *src, fits *dst, const rectangle *area) {
+	if (!src || !dst || !area)
+		return 1;
+	if (src->rx != dst->rx || src->ry != dst->ry)
+		return 1;
+	if (src->type != dst->type || src->naxes[2] != dst->naxes[2])
+		return 1;
+	if (!area_within(area, dst->rx, dst->ry)) {
+		siril_log_debug("copy_fits_region: area outside the image\n");
+		return 1;
+	}
+
+	const size_t nchans = src->naxes[2];
+	const size_t npix = (size_t)src->rx * src->ry;
+
+	if (src->type == DATA_FLOAT) {
+		if (!src->fdata || !dst->fdata)
+			return 1;
+		for (size_t c = 0; c < nchans; c++) {
+			for (uint32_t y = 0; y < (uint32_t)area->h; y++) {
+				const size_t off = (npix * c)
+					+ (src_row_of(src->ry, area->y, y) * src->rx) + area->x;
+				memcpy(dst->fdata + off, src->fdata + off,
+				       (size_t)area->w * sizeof(float));
+			}
+		}
+	} else {
+		if (!src->data || !dst->data)
+			return 1;
+		for (size_t c = 0; c < nchans; c++) {
+			for (uint32_t y = 0; y < (uint32_t)area->h; y++) {
+				const size_t off = (npix * c)
+					+ (src_row_of(src->ry, area->y, y) * src->rx) + area->x;
+				memcpy(dst->data + off, src->data + off,
+				       (size_t)area->w * sizeof(WORD));
+			}
+		}
+	}
+	return 0;
+}
+
 int paste_fits_region(const fits *src, fits *dst, const rectangle *area) {
 	if (!src || !dst || !area)
 		return 1;

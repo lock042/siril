@@ -323,6 +323,7 @@ static void stub_reset_cut_gui_filedependent(gpointer u) { (void)u; }
 static int stub_copy_backup_to_gfit(void) { return 0; }
 static gpointer stub_get_preview_gfit_backup(void) { return NULL; }
 static gpointer stub_get_preop_gfit(void) { return NULL; }
+static void stub_preview_note_gfit_change(const rectangle *r) { (void)r; }
 /* Registration */
 static void stub_update_reg_interface(gboolean b) { (void)b; }
 static void stub_reset_3stars_gui(void) {}
@@ -471,6 +472,7 @@ SirilGuiInterface gui_iface = {
 	.copy_backup_to_gfit             = stub_copy_backup_to_gfit,
 	.get_preview_gfit_backup         = stub_get_preview_gfit_backup,
 	.get_preop_gfit                  = stub_get_preop_gfit,
+	.preview_note_gfit_change        = stub_preview_note_gfit_change,
 	/* Registration */
 	.update_reg_interface            = stub_update_reg_interface,
 	.reset_3stars_gui                = stub_reset_3stars_gui,
