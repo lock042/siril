@@ -346,8 +346,10 @@ static curve_state_snapshot *snapshot_current_state() {
 	return snap;
 }
 
-static void apply_snapshot_to_fit(fits *f, curve_state_snapshot *snap) {
+// Caller owns the result and must free it with free_curve_params().
+static struct curve_params *params_from_snapshot(const curve_state_snapshot *snap) {
 	struct curve_params *p = new_curve_params();
+	if (!p) return NULL;
 	for (int i = 0; i < CHAN_COUNT; i++) {
 		p->channels[i].active       = snap->channels[i].active;
 		p->channels[i].range_enabled= snap->channels[i].range_enabled;
@@ -359,15 +361,94 @@ static void apply_snapshot_to_fit(fits *f, curve_state_snapshot *snap) {
 			: NULL;
 	}
 	p->algorithm = snap->algorithm;
+	return p;
+}
+
+static void apply_snapshot_to_fit(fits *f, curve_state_snapshot *snap) {
+	struct curve_params *p = params_from_snapshot(snap);
+	if (!p) { PRINT_ALLOC_ERR; return; }
 	p->fit = f;
 	p->verbose = FALSE;
+	/* Blend through the processing mask exactly as the preview/apply worker
+	 * does (curves_process_with_worker sets mask_aware).  Without this, a
+	 * stage frozen with the preview off — or any stage replayed by
+	 * curves_rebuild_from_stages — would ignore a mask the preview honoured,
+	 * and the history record would describe pixels that were never produced. */
+	fits *orig = NULL;
+	if (f->mask && f->mask_active) {
+		orig = calloc(1, sizeof(fits));
+		if (orig && copyfits(f, orig, CP_ALLOC | CP_FORMAT | CP_COPYA, 0)) {
+			free(orig);
+			orig = NULL;
+		}
+	}
 	apply_curve(f, f, p, TRUE);
+	if (orig) {
+		blend_fits_with_mask(f, orig);
+		clearfits(orig);
+		free(orig);
+	}
 	free_curve_params(p);
 }
 
 static void update_stage_buttons() {
 	if (curves_undo_stage_button)
 		gtk_widget_set_sensitive(GTK_WIDGET(curves_undo_stage_button), stage_stack != NULL);
+	/* Amend mode rewrites a single history record: a second stage would have
+	 * nowhere to be recorded, so freezing one is not offered. */
+	if (curves_apply_stage_button)
+		gtk_widget_set_sensitive(GTK_WIDGET(curves_apply_stage_button), !curves_amend_mode);
+}
+
+static gboolean params_any_curve_active(const struct curve_params *p) {
+	for (int i = 0; i < CHAN_COUNT; i++)
+		if (!channel_is_identity(&p->channels[i]))
+			return TRUE;
+	return FALSE;
+}
+
+/* Append one Tier-A record for @p, extending the [@first_id, @last_id] range
+ * the caller will tag its undo entry with. */
+static void curves_capture_one(const struct curve_params *p, const fits *post,
+		gint64 *first_id, gint64 *last_id) {
+	gchar *summary = curves_log_hook((gpointer) p, SUMMARY);
+	gint64 rid = nde_capture_from_descriptor(&op_desc_curves, p, summary, post, TRUE);
+	g_free(summary);
+	if (!rid)
+		return;
+	if (!*first_id)
+		*first_id = rid;
+	*last_id = rid;
+}
+
+/* Emit the NDE provenance for a completed commit.  A commit is up to N frozen
+ * stages followed by the curves still live in the editor, all applied to the
+ * image since the tool was opened (or last fully applied), so it captures one
+ * Tier-A record per stage in application order plus one for @final_params —
+ * each individually amendable, and together replayable from @pre.
+ *
+ * @pre is the image as it stood before the FIRST stage: the baseline the
+ * chain replays from.  @post is the committed result; only the LAST record
+ * gets it, since the intermediate pixel states were never retained and a
+ * barrier record must not claim the final image as its output.
+ *
+ * Returns the id range through @first_id / @last_id, for the caller to hand
+ * to undo_tag_top_nde_record_range() — the whole commit is ONE undo entry. */
+static void curves_capture_records(const fits *pre, const fits *post,
+		const struct curve_params *final_params,
+		gint64 *first_id, gint64 *last_id) {
+	*first_id = *last_id = 0;
+	if (pre)
+		nde_checkpoint_baseline_ensure(pre, nde_checkpoint_active_item_id());
+
+	for (GList *l = stage_stack; l; l = l->next) {
+		struct curve_params *staged = params_from_snapshot((const curve_state_snapshot *) l->data);
+		if (!staged) { PRINT_ALLOC_ERR; continue; }
+		curves_capture_one(staged, NULL, first_id, last_id);
+		free_curve_params(staged);
+	}
+	if (final_params && params_any_curve_active(final_params))
+		curves_capture_one(final_params, post, first_id, last_id);
 }
 
 static void curves_rebuild_from_stages() {
@@ -1370,11 +1451,20 @@ gboolean curve_apply_idle(gpointer p) {
 
 		/* One undo entry for the whole operation (stages + final curves),
 		 * restoring the image saved when the tool was opened or last
-		 * applied.  Skipped for ROI runs, which never saved undo. */
+		 * applied.  Skipped for ROI runs, which never saved undo.
+		 *
+		 * The worker ran with skip_generic_undo, so it captured no NDE
+		 * record either: this is the commit point for the preview-off path,
+		 * mirroring the preview-on branch of on_curves_apply_button_clicked.
+		 * Capture before the save (worker order) and tag the entry. */
 		if (!gui.roi.active && original_fit_copy) {
 			gchar *summary = curves_log_hook(args->user, SUMMARY);
-			undo_save_state_with_icc(original_fit_copy, original_icc,
-					"%s", summary);
+			gint64 first_rid = 0, last_rid = 0;
+			curves_capture_records(original_fit_copy, gfit, args->user,
+					&first_rid, &last_rid);
+			if (!undo_save_state_with_icc(original_fit_copy, original_icc,
+					"%s", summary))
+				undo_tag_top_nde_record_range(first_rid, last_rid);
 			g_free(summary);
 		}
 
@@ -1500,6 +1590,11 @@ void update_gfit_curves_histogram_if_needed() {
 void curves_reset_after_undo() {
 	// curves_dialog is NULL until the dialog has been opened once
 	if (!curves_dialog || !gtk_widget_get_visible(curves_dialog))
+		return;
+	/* In amend mode the editor holds the record's curves, and gfit holds the
+	 * synthetic pre-record state the amend preview installed — neither is
+	 * something an undo of an unrelated earlier operation should reset. */
+	if (curves_amend_mode)
 		return;
 
 	fit = gfit;
@@ -1803,18 +1898,19 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 			 * holds the last stage.  That same image is the NDE baseline
 			 * the record chain replays from. */
 			fits *pre = original_fit_copy ? original_fit_copy : get_preview_gfit_backup();
-			/* This preview-on / non-ROI branch is the sole commit point for
-			 * a preview-applied curve: the curve was applied incrementally
-			 * by the preview pipeline, so no generic_image_worker run (which
-			 * would capture) fires here.  Capture before the save (worker
-			 * order) and tag the entry. */
-			nde_checkpoint_baseline_ensure(pre, nde_checkpoint_active_item_id());
-			gint64 rid = nde_capture_from_descriptor(&op_desc_curves,
-					undo_params, summary, gfit, TRUE);
+			/* This preview-on / non-ROI branch is one of the two commit
+			 * points: the curve was applied incrementally by the preview
+			 * pipeline, so no generic_image_worker run (which would capture)
+			 * fires here.  The other is curve_apply_idle, for the
+			 * preview-off / ROI runs — the worker itself never captures,
+			 * because curves_process_with_worker sets skip_generic_undo.
+			 * Capture before the save (worker order) and tag the entry. */
+			gint64 first_rid = 0, last_rid = 0;
+			curves_capture_records(pre, gfit, undo_params, &first_rid, &last_rid);
 			/* One entry captures pre-curve pixels + pre-curve ICC
-			 * profile so a single Ctrl-Z reverts the operation. */
+			 * profile so a single Ctrl-Z reverts the whole commit. */
 			if (!undo_save_state_with_icc(pre, original_icc, "%s", summary))
-				undo_tag_top_nde_record(rid);
+				undo_tag_top_nde_record_range(first_rid, last_rid);
 			g_free(summary);
 			free_curve_params(undo_params);
 
@@ -2193,6 +2289,9 @@ gboolean curves_open_amend(gint64 record_id) {
 
 void on_curves_apply_stage_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa()) return;
+	/* Amend mode replaces exactly ONE history record, so there is nothing a
+	 * second stage could be recorded as; the button is insensitive there. */
+	if (curves_amend_mode) return;
 	// Nothing to freeze if every channel is still the identity curve
 	if (!any_curve_active()) return;
 

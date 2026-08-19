@@ -1432,7 +1432,7 @@ void free_generic_img_args(struct generic_img_args *args) {
 }
 
 FAST_MATH_PUSH
-static inline void blend_fits_with_mask(fits* fit, fits* orig) {
+void blend_fits_with_mask(fits* fit, fits* orig) {
 	size_t npixels = fit->rx * fit->ry;
 	mask_t *mask = fit->mask;
 

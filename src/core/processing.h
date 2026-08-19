@@ -273,6 +273,12 @@ struct generic_mask_args {
 };
 
 void free_generic_img_args(struct generic_img_args *args);
+/* Blend @fit's processing mask result back over @orig's pixels, in place in
+ * @fit: the exact operation generic_image_worker performs for a mask_aware
+ * job.  Exported for the dialogs that apply an op synchronously outside the
+ * worker (the curves stage stack) and must reproduce the same masked result.
+ * No-op when @fit carries no mask data. */
+void blend_fits_with_mask(fits *fit, fits *orig);
 gpointer generic_sequence_worker(gpointer p);
 gboolean end_generic_sequence(gpointer p);
 

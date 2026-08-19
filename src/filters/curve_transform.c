@@ -212,7 +212,9 @@ const op_descriptor op_desc_curves = {
 	.log_hook = curves_log_hook,
 	.description = N_("Curve Transformation"),
 	.mem_ratio = 2.0f,
-	.flags = 0,
+	/* apply_curve is pointwise, so blending its result through the processing
+	 * mask is well defined — curves_process_with_worker asks for it. */
+	.flags = OP_MASK_CAPABLE,
 	.serialize = curves_serialize, .deserialize = curves_deserialize,
 };
 
