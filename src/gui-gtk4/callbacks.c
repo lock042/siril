@@ -391,9 +391,16 @@ gpointer on_set_roi() {
 	gui.roi.active = TRUE;
 	if (gui.roi.selection.w > 0 && gui.roi.selection.h > 0 && is_preview_active())
 		copy_backup_to_gfit();
-	// Call any callbacks that need calling
-	call_roi_callbacks();
 	g_mutex_unlock(&roi_mutex);
+	/* AFTER the unlock.  A ROI callback is a dialog re-running its preview at
+	 * the new rectangle, and that reaches dispatch_preview(), which takes this
+	 * same mutex — non-recursively, on this same thread.  Calling them inside
+	 * the lock froze the GTK main loop outright whenever no preview happened
+	 * to be in flight (with one in flight, notify_update() coalesces and
+	 * returns before reaching dispatch_preview, which is why this survived).
+	 * The ROI state the callbacks read is fully written by now, so there is
+	 * nothing left for the lock to protect. */
+	call_roi_callbacks();
 	return GINT_TO_POINTER(0);
 }
 
@@ -404,9 +411,8 @@ gpointer on_clear_roi() {
 		copy_backup_to_gfit();
 		memset(&gui.roi, 0, sizeof(roi_t));
 		redraw(REDRAW_OVERLAY);
-		// Call any callbacks that need calling
-		call_roi_callbacks();
 		g_mutex_unlock(&roi_mutex);
+		call_roi_callbacks();   /* see on_set_roi: must not hold roi_mutex */
 	}
 	return GINT_TO_POINTER(0);
 }
