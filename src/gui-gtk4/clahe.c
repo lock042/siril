@@ -99,7 +99,6 @@ static int clahe_process_with_worker(gboolean for_preview) {
 	args->user = params;
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
-	args->for_roi = FALSE;
 
 	start_in_new_thread(generic_image_worker, args);
 	return 0;
@@ -227,7 +226,6 @@ void on_clahe_Apply_clicked(GtkButton *button, gpointer user_data) {
 	args->user = params;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	start_in_new_thread(generic_image_worker, args);
 

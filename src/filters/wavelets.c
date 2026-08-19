@@ -52,7 +52,14 @@ const op_descriptor op_desc_wrecons = {
 	.log_hook = wrecons_log_hook,
 	.description = N_("Wavelet reconstruction"),
 	.mem_ratio = 0.0f,
-	.flags = 0,
+	/* ROI-capable in a different way from the pixel-local ops: the hook
+	 * cannot compute from the crop it is handed, because its input is a
+	 * decomposition of the whole image — but it CAN produce just that
+	 * window, reading only the transform rows the window covers
+	 * (wavelet_reconstruct_*_roi).  The rectangle comes from
+	 * generic_img_args.roi_rect; full_rx/full_ry pin the geometry the
+	 * transform was computed at. */
+	.flags = OP_ROI_CAPABLE,
 };
 
 /* NDE serializers for wavelets.atrous.  atrous_transform_image is a
@@ -320,17 +327,20 @@ int wrecons_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 	/* Held for the whole reconstruction so the tool window cannot free the
 	 * transform underneath a preview that is still running. For an ROI
 	 * preview the geometry to match is the full image, not the ROI fit. */
+	const gboolean for_roi = gargs->for_roi;
+	const int roi_x = gargs->roi_rect.x, roi_y = gargs->roi_rect.y;
+
 	g_mutex_lock(&wsession_mutex);
-	const gboolean cached = args->for_roi
+	const gboolean cached = for_roi
 			? (wsession.held && wsession.nb_chan == args->nb_chan
 					&& wsession.rx == args->full_rx && wsession.ry == args->full_ry)
 			: wsession_matches(fit, args->nb_chan);
 
 	for (int i = 0; i < args->nb_chan && !ret; i++) {
 		if (cached) {
-			if (args->for_roi)
+			if (for_roi)
 				ret = wavelet_reconstruct_data_roi(&wsession.chan[i], args->coef,
-						&args->denoise, args->roi_x, args->roi_y, fit->rx,
+						&args->denoise, roi_x, roi_y, fit->rx,
 						fit->ry, i, fit, threads);
 			else if (fit->type == DATA_USHORT) {
 				float *Imag = f_vector_alloc((size_t) fit->rx * (size_t) fit->ry);
@@ -368,8 +378,8 @@ int wrecons_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 		 * are easy to come by — they survive the image (and the FLIS active
 		 * layer) that produced them — so refuse any geometry mismatch here.
 		 * For an ROI preview the geometry to match is the full image. */
-		const int exp_nl = args->for_roi ? args->full_ry : (int) fit->ry;
-		const int exp_nc = args->for_roi ? args->full_rx : (int) fit->rx;
+		const int exp_nl = for_roi ? args->full_ry : (int) fit->ry;
+		const int exp_nc = for_roi ? args->full_rx : (int) fit->rx;
 		int wnl = 0, wnc = 0;
 		if (wave_io_read_header(dir, &wnl, &wnc, NULL)
 				|| wnl != exp_nl || wnc != exp_nc) {
@@ -377,11 +387,11 @@ int wrecons_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 					"the current image (%d x %d): run the wavelet transform again.\n"),
 					wnc, wnl, exp_nc, exp_nl);
 			ret = 1;
-		} else if (args->for_roi) {
+		} else if (for_roi) {
 			/* Reconstruct only the selection: reads just the ROI rows of the
 			 * transform and denoises/reconstructs that small window. */
 			ret = wavelet_reconstruct_file_roi(dir, args->coef, &args->denoise,
-					args->roi_x, args->roi_y, fit->rx, fit->ry, i, fit, threads);
+					roi_x, roi_y, fit->rx, fit->ry, i, fit, threads);
 		} else if (fit->type == DATA_USHORT) {
 			ret = wavelet_reconstruct_file(dir, args->coef, &args->denoise, fit->pdata[i], threads);
 		} else if (fit->type == DATA_FLOAT) {

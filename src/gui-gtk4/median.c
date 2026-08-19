@@ -124,7 +124,7 @@ static void fill_median_params_from_gui(struct median_filter_data *params, gbool
 			params->ksize = 15;
 			break;
 	}
-	params->fit = for_preview && gui.roi.active && !com.headless ? &gui.roi.fit : gfit;
+	params->fit = gfit;
 	params->amount = amount;
 	params->iterations = iterations;
 }
@@ -231,18 +231,15 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	/* A ROI is a preview scope, never an edit scope: Apply always runs on the
-	 * whole image, so the only ROI run is the dedicated preview button.
-	 * fill_median_params_from_gui() already gates params->fit that way — take
-	 * both fields from it so the buffer and the flag cannot disagree.
+	/* Always gfit.  A ROI is a preview scope, never an edit scope: the
+	 * worker decides on its own whether this run is region-scoped, from
+	 * for_preview (set by the dedicated preview button) and the descriptor.
 	 *
 	 * Apply therefore always reaches the worker with fit == gfit (use_swap),
 	 * where the worker itself saves undo, captures the NDE record and logs
 	 * through median_log_hook.  The hand-rolled block that used to stand here
 	 * existed only for the ROI-scoped apply; on the full-image path it was
 	 * duplicating the worker's undo and log. */
-	const gboolean roi = (params->fit == &gui.roi.fit);
-
 	args->fit = params->fit;
 	args->op = &op_desc_median;
 	args->idle_function = for_preview ? NULL : median_apply_idle;
@@ -251,7 +248,6 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 	args->user = params;
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
-	args->for_roi = roi;
 
 	generic_image_worker(args);
 }

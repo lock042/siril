@@ -226,7 +226,7 @@ int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, const
  * from the transform file; denoising and reconstruction then run on that small
  * sub-transform. roi_x/roi_y are the selection's top-left in top-down display
  * coordinates; the result is written into roifit's channel buffer in roifit's
- * (top-down) layout, matching populate_roi(). */
+ * (top-down) layout, matching crop_fits_region() (core/fits_region.h). */
 /* Padded crop window for an ROI reconstruction, in FITS (bottom-up) rows.
  * Shared by the file-backed and in-memory front ends. Returns 1 if unusable. */
 static int roi_window(int Nl, int Nc, int roi_x, int roi_y, int roi_w, int roi_h,

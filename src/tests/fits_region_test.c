@@ -179,7 +179,7 @@ Test(fits_region, crop_reads_display_rows_top_down) {
 }
 
 /* A partially-overlapping or oversized rectangle is a caller error, not
- * something to clamp silently: populate_roi does its own clipping through
+ * something to clamp silently: the ROI path clips through
  * flis_display_to_active_layer_rect before it gets here. */
 Test(fits_region, out_of_bounds_areas_are_refused) {
 	fits *img = make_image(16, 16, 1, DATA_USHORT);

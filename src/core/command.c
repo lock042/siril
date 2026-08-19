@@ -395,7 +395,6 @@ int process_satu(int nb) {
 	args->mask_aware = mask_aware;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	/* Run synchronously */
 	gui_iface.set_busy(TRUE);
@@ -852,7 +851,6 @@ int process_denoise(int nb) {
 	args->user = params;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 	args->mask_aware = mask_aware;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
@@ -1363,7 +1361,6 @@ int process_imoper(int nb) {
 	args->max_threads = 1;  // imoper likely doesn't need multi-threading
 	args->for_preview = FALSE;
 	args->mask_aware = mask_aware;
-	args->for_roi = FALSE;
 
 	/* Start the worker thread */
 	start_in_new_thread(generic_image_worker, args);
@@ -1528,7 +1525,6 @@ int process_addmax(int nb) {
 	args->mask_aware = mask_aware;
 	args->max_threads = 1;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -1712,7 +1708,6 @@ int process_fdiv(int nb) {
 	args->mask_aware = mask_aware;
 	args->max_threads = 1;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -1824,7 +1819,6 @@ int process_fmul(int nb) {
 	args->mask_aware = mask_aware;
 	args->max_threads = 1;  // soper doesn't need multi-threading
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	// Start the worker thread
 	if (!start_in_new_thread(generic_image_worker, args)) {
@@ -1931,7 +1925,6 @@ int process_gauss(int nb) {
 	args->mask_aware = mask_aware;
 	args->max_threads = com.max_thread;  // Gaussian blur can benefit from multi-threading
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	// Start the worker thread
 	if (!start_in_new_thread(generic_image_worker, args)) {
@@ -2007,7 +2000,6 @@ int process_entropy(int nb) {
 	args->user = data;
 	args->max_threads = 1;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -2104,7 +2096,6 @@ int process_unpurple(int nb) {
 	args->user = params;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 	args->mask_aware = mask_aware;
 	args->command = TRUE;
 	args->command_updates_gfit = TRUE;
@@ -2286,7 +2277,6 @@ int process_epf(int nb) {
 	args->mask_aware = mask_aware;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	char log[90];
 	if (filter == EP_BILATERAL) {
@@ -2536,7 +2526,6 @@ int process_makepsf(int nb) {
 			args->user = data; // Dynamic estk_data managed by generic worker
 			args->max_threads = com.max_thread;
 			args->for_preview = FALSE;
-			args->for_roi = FALSE;
 
 			if (!start_in_new_thread(generic_image_worker, args)) {
 				// Free both args and data on thread start failure
@@ -2621,7 +2610,6 @@ int process_makepsf(int nb) {
 			args->user = data; // Dynamic estk_data managed by generic worker
 			args->max_threads = com.max_thread;
 			args->for_preview = FALSE;
-			args->for_roi = FALSE;
 
 			if (!start_in_new_thread(generic_image_worker, args)) {
 				// Free both args and data on thread start failure
@@ -2797,7 +2785,6 @@ int process_makepsf(int nb) {
 			args->user = data; // Dynamic estk_data managed by generic worker
 			args->max_threads = com.max_thread;
 			args->for_preview = FALSE;
-			args->for_roi = FALSE;
 
 			if (!start_in_new_thread(generic_image_worker, args)) {
 				// Free both args and data on thread start failure
@@ -2996,7 +2983,6 @@ int process_deconvolve(int nb, nonblind_t type) {
 		args->mask_aware = data->mask_aware;
 		args->max_threads = com.max_thread;
 		args->for_preview = FALSE;
-		args->for_roi = FALSE;
 
 		if (!start_in_new_thread(generic_image_worker, args)) {
 			// Free both args and data on thread start failure
@@ -3159,7 +3145,6 @@ int process_unsharp(int nb) {
 	args->mask_aware = mask_aware;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	// Start the worker thread
 	if (!start_in_new_thread(generic_image_worker, args)) {
@@ -4067,7 +4052,6 @@ int process_mtf(int nb) {
 	args->mask_aware = mask_aware;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	// Run worker synchronously - cleanup happens via destructor
 	gpointer result = generic_image_worker(args);
@@ -4141,7 +4125,6 @@ int process_ghs(int nb, int stretchtype) {
 	args->mask_aware = mask_aware;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	// Run worker synchronously - cleanup happens via destructor
 	gpointer result = generic_image_worker(args);
@@ -4175,9 +4158,6 @@ int process_ghs(int nb, int stretchtype) {
 			break;
 	}
 	gfit->history = g_slist_append(gfit->history, g_strdup(log));
-
-	if (gui_iface.roi_is_active())
-		gui_iface.populate_roi();
 
 	return CMD_OK;
 }
@@ -4542,7 +4522,6 @@ int process_autostretch(int nb) {
 	args->mask_aware = mask_aware;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	/* Run worker synchronously - cleanup happens via destructor */
 	gpointer result = generic_image_worker(args);
@@ -4768,7 +4747,6 @@ int process_asinh(int nb) {
 	args->max_threads = com.max_thread;
 	args->mask_aware = use_mask;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	// Run synchronously by calling the worker directly
 	if (!start_in_new_thread(generic_image_worker, args)) {
@@ -4843,7 +4821,6 @@ int process_clahe(int nb) {
 	args->mask_aware = word[3] && g_strcmp0(word[3], "-mask") == 0; // handle the -mask flag to set mask_aware state
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free(params);
@@ -7363,7 +7340,6 @@ int process_bg(int nb) {
 	args->user = data;
 	args->max_threads = 1;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -7417,7 +7393,6 @@ int process_bgnoise(int nb) {
 	args->user = noise_args;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -7729,7 +7704,6 @@ int process_thresh(int nb) {
 	args->mask_aware = mask_aware;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	/* Start the worker thread */
 	if (!start_in_new_thread(generic_image_worker, args)) {
@@ -7786,7 +7760,6 @@ int process_neg(int nb) {
 	// No log_hook required here as the basic description is enough
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	// Start the worker thread
 	if (!start_in_new_thread(generic_image_worker, args)) {
@@ -7873,7 +7846,6 @@ int process_nozero(int nb) {
 	args->user = data;
 	args->max_threads = 1;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -8014,7 +7986,6 @@ int process_ddp(int nb) {
 	args->mask_aware = mask_aware;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	/* Start the worker thread */
 	if (!start_in_new_thread(generic_image_worker, args)) {
@@ -8225,7 +8196,6 @@ int process_ffill(int nb) {
 	args->mask_aware = mask_aware;
 	args->max_threads = 1;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -8572,7 +8542,6 @@ int process_cosme(int nb) {
 	args->user = params;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 	args->command = TRUE;
 	args->command_updates_gfit = TRUE;
 
@@ -8705,7 +8674,6 @@ int process_fmedian(int nb) {
 	args->mask_aware = mask_aware;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	image_cfa_warning_check();
 
@@ -8773,7 +8741,6 @@ int process_cdg(int nb) {
 	args->user = data;
 	args->max_threads = 1;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -8939,7 +8906,6 @@ int process_fill(int nb) {
 	args->mask_aware = mask_aware;
 	args->max_threads = 1;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -9052,7 +9018,6 @@ int process_offset(int nb) {
 	args->mask_aware = mask_aware;
 	args->max_threads = 1;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -9146,7 +9111,6 @@ int process_scnr(int nb) {
 	args->user = params;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 	args->mask_aware = mask_aware;
 	args->command = TRUE;
 	args->command_updates_gfit = TRUE;
@@ -9246,7 +9210,6 @@ int process_fixbanding(int nb) {
 	args->user = params;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_banding_data(params);

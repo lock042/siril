@@ -135,7 +135,7 @@ void initialize_calibration_interface() {
 
 
 /* What the direct-apply path used to do inline after mutating gfit.  The
- * worker already handles undo, the NDE record, populate_roi() and
+ * worker already handles undo, the NDE record and
  * notify_gfit_data_modified(); what is left is the dialog's own tidying. */
 static gboolean end_colour_tool(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *) p;

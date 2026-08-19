@@ -306,35 +306,6 @@ void on_combo_theme_changed(GObject *obj, GParamSpec *pspec, gpointer user_data)
 	siril_set_theme(active);
 }
 
-int populate_roi() {
-	if (com.python_command)
-		return 1;
-	if (gui.roi.selection.w == 0 || gui.roi.selection.h == 0)
-		return 1;
-	/* gui.roi.selection is DISPLAY-space; gfit is the active layer.
-	 * Translate and CLIP to the layer (see the coordinate model in
-	 * image_format_flis.h): a selection partially overlapping a sparse
-	 * layer yields an ROI covering the overlapping part.
-	 * copy_roi_into_gfit derives the same clipped rect from the same
-	 * inputs, so the pair stays consistent. */
-	rectangle lsel;
-	if (!flis_display_to_active_layer_rect(&gui.roi.selection, &lsel, TRUE)) {
-		siril_log_debug("populate_roi: selection does not intersect the active layer, skipping\n");
-		return 1;
-	}
-	g_assert(gfit->naxes[2] == 1 || gfit->naxes[2] == 3);
-
-	/* Image and mask copy, including the display-to-FITS vertical flip, live
-	 * in crop_fits_region(); copy_roi_into_gfit() pastes back through its
-	 * mirror.  Keeping the two directions in one place is what stops them
-	 * drifting apart. */
-	int retval = crop_fits_region(gfit, &lsel, &gui.roi.fit);
-
-	backup_roi();
-	gui.roi.active = TRUE;
-	return retval;
-}
-
 fits *roi_stats_source(fits *cache) {
 	if (!cache || !gui.roi.active)
 		return gfit;
@@ -414,15 +385,12 @@ gpointer on_set_roi() {
 	cancel_pending_update();
 	if (gui.roi.operation_supports_roi && com.pref.gui.enable_roi_warning)
 		roi_info_message_if_needed();
-	// Ensure any pending ROI changes are overwritten by the backup
-	// Must copy the whole backup to gfit and gui.roi.fit to account
-	// for switching between full image and ROI
+	// Ensure any pending preview is overwritten by the backup, so the new
+	// rectangle previews against the pre-operation image
 	memcpy(&gui.roi.selection, &sel, sizeof(rectangle));
 	gui.roi.active = TRUE;
 	if (gui.roi.selection.w > 0 && gui.roi.selection.h > 0 && is_preview_active())
 		copy_backup_to_gfit();
-	populate_roi();
-	backup_roi();
 	// Call any callbacks that need calling
 	call_roi_callbacks();
 	g_mutex_unlock(&roi_mutex);
@@ -434,7 +402,6 @@ gpointer on_clear_roi() {
 		g_mutex_lock(&roi_mutex); // Wait until any thread previews are finished
 		cancel_pending_update();
 		copy_backup_to_gfit();
-		clearfits(&gui.roi.fit);
 		memset(&gui.roi, 0, sizeof(roi_t));
 		redraw(REDRAW_OVERLAY);
 		// Call any callbacks that need calling
@@ -1334,27 +1301,22 @@ void update_display_selection() {
 }
 
 static void update_roi_from_selection() {
-	if (gui.roi.active) {
-		restore_roi();
-		copy_roi_into_gfit();
-	}
 	memcpy(&gui.roi.selection, &com.selection, sizeof(rectangle));
 	gboolean active = (gui.roi.selection.w > 0 && gui.roi.selection.h > 0);
 	if (active)
 		on_set_roi();
 	else
 		on_clear_roi();
-	/* The steps above modify gfit pixels (restore_roi+copy_roi_into_gfit
-	 * write the OLD-ROI restoration; on_set_roi's copy_backup_to_gfit and
-	 * any registered ROI callback restore further state).  None of that
-	 * by itself re-remaps the Cairo display buffers — the call chain
-	 * gfit_modified_update_gui → end_gfit_operation → redraw_image_async
-	 * only queues a GTK paint, which then renders from whatever's already
-	 * cached in the per-vport buffers (still showing the previous preview
-	 * at the OLD ROI position).  notify_gfit_data_modified() is the one
-	 * that calls remap_all_vports() — mirror what siril_preview_hide()
-	 * does at siril_preview.c:189.  Cheap enough to call on every ROI
-	 * change; populate_roi/etc. above already touched gfit. */
+	/* The steps above modify gfit pixels: on_set_roi/on_clear_roi restore
+	 * the preview backup, and any registered ROI callback re-runs the
+	 * dialog's preview at the new rectangle.  Neither by itself re-remaps
+	 * the Cairo display buffers — the call chain gfit_modified_update_gui →
+	 * end_gfit_operation → redraw_image_async only queues a GTK paint,
+	 * which then renders from whatever's already cached in the per-vport
+	 * buffers (still showing the previous preview at the OLD ROI
+	 * position).  notify_gfit_data_modified() is the one that calls
+	 * remap_all_vports() — mirror what siril_preview_hide() does.  Cheap
+	 * enough to call on every ROI change. */
 	if (!com.script && !com.python_command && !com.headless)
 		notify_gfit_data_modified();
 }

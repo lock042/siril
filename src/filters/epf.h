@@ -20,6 +20,11 @@ struct epfargs {
 	gboolean applying;
 	char *guide_path;       /* pinned guide-image path for a file guide (phase 4.5
 	                         * Convention 1); NULL for self-guide / non-guided */
+	/* Region preview: set by epf_image_hook from the worker's own state.
+	 * When for_roi is set, `fit` is a crop of roi_rect out of the image and
+	 * a separate guide has to be cropped to match. */
+	gboolean for_roi;
+	rectangle roi_rect;
 };
 
 gchar *epf_log_hook(gpointer p, log_hook_detail detail);

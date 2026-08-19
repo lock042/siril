@@ -65,7 +65,7 @@ static void get_unpurple_values(double *mod_b_out, double *thresh_out, gboolean 
 }
 
 /* Create and launch unpurple processing */
-static int unpurple_process_with_worker(gboolean for_preview, gboolean for_roi) {
+static int unpurple_process_with_worker(gboolean for_preview) {
 	// Allocate parameters
 	struct unpurpleargs *params = new_unpurple_args();
 	if (!params) {
@@ -77,7 +77,7 @@ static int unpurple_process_with_worker(gboolean for_preview, gboolean for_roi) 
 	gboolean withstarmask;
 	get_unpurple_values(&params->mod_b, &params->thresh, &withstarmask);
 	params->withstarmask = withstarmask;
-	params->fit = for_roi ? &gui.roi.fit : gfit;
+	params->fit = gfit;
 
 	// Set up starmask if needed
 	params->starmask_needs_freeing = FALSE;
@@ -125,14 +125,13 @@ static int unpurple_process_with_worker(gboolean for_preview, gboolean for_roi) 
 	}
 
 	// Set the fit based on whether ROI is active
-	args->fit = for_roi ? &gui.roi.fit : gfit;
+	args->fit = gfit;
 	args->op = &op_desc_unpurple;
 	args->idle_function = NULL;
 	args->verbose = !for_preview;
 	args->user = params;
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
-	args->for_roi = for_roi;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -144,7 +143,7 @@ static int unpurple_process_with_worker(gboolean for_preview, gboolean for_roi) 
 static int unpurple_update_preview() {
 	if (siril_toggle_get_active(GTK_WIDGET(unpurple_preview_btn))) {
 		copy_backup_to_gfit();
-		return unpurple_process_with_worker(TRUE, gui.roi.active);
+		return unpurple_process_with_worker(TRUE);
 	}
 	return 0;
 }
@@ -222,7 +221,7 @@ void on_unpurple_apply_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	// Always process full image when Apply is clicked
-	unpurple_process_with_worker(FALSE, FALSE);
+	unpurple_process_with_worker(FALSE);
 
 	apply_unpurple_changes();
 	siril_close_dialog("unpurple_dialog");

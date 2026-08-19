@@ -1741,7 +1741,6 @@ int ccm_process_with_worker(ccm matrix, float power) {
 	// We don't need to do these two because of calloc, but they are shown as a
 	// reminder of intent
 	// args->for_preview = FALSE;
-	// args->for_roi = FALSE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);

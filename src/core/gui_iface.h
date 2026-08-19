@@ -247,10 +247,6 @@ typedef struct {
 	 * writer lock cannot cover that, as the lock lives inside the memory being
 	 * freed.  Never call while holding gfit's writer lock. */
 	void     (*drain_tile_workers)(void);
-	/* Repopulate the ROI display from current gfit data (call while holding
-	 * the gfit read lock). */
-	void     (*populate_roi)(void);
-
 	/* D additions – Histogram / image modification state ------------------ */
 	/* Mark the histogram as stale (call while holding at least a read lock). */
 	void     (*invalidate_histogram)(void);
@@ -373,15 +369,14 @@ typedef struct {
 	/* Returns TRUE if the current operation has set up an ROI preview patch
 	 * (gui.roi.operation_supports_roi).  Always FALSE in headless mode. */
 	gboolean (*roi_operation_supports)(void);
-	/* Return a pointer to the ROI fits buffer (gui.roi.fit) cast to gpointer.
-	 * Returns NULL in headless/CLI mode.  Callers cast back to fits*. */
-	gpointer (*get_roi_fit)(void);
 	/* Copy the current ROI selection rectangle into *rect. */
 	void     (*get_roi_selection)(rectangle *rect);
 	/* Clear any active ROI selection. */
 	void     (*clear_roi)(void);
-	/* Set *rect as the new ROI selection and notify the GUI. */
-	void     (*restore_roi)(const rectangle *rect);
+	/* The ROI selection translated and clipped to the ACTIVE LAYER, i.e. the
+	 * region of gfit a region preview covers.  FALSE (leaving *rect
+	 * untouched) when no ROI is active or it misses the layer entirely. */
+	gboolean (*roi_active_layer_rect)(rectangle *rect);
 	/* Reset (delete) the ICC proofing display transform under its lock. */
 	void     (*reset_display_transform)(void);
 
@@ -541,6 +536,11 @@ typedef struct {
 	int      (*copy_backup_to_gfit)(void);
 	/* Return the internal preview backup fits buffer cast to gpointer. */
 	gpointer (*get_preview_gfit_backup)(void);
+	/* The PRE-OPERATION pixels of the displayed image: the preview backup when
+	 * one is live and belongs to the current gfit, gfit itself otherwise.
+	 * Unlike get_preview_gfit_backup() this never hands back another layer's
+	 * backup after a FLIS active-layer switch. */
+	gpointer (*get_preop_gfit)(void);
 
 	/* ── Registration / sequence state ─────────────────────────────────────── */
 	/* Update the registration panel's status indicators. */
@@ -671,8 +671,6 @@ typedef struct {
 	void     (*update_sequence_overlay_async)(void);
 	/* Ensure the sequence-list dialog is closed before modifying seq data. */
 	void     (*ensure_seqlist_dialog_closed)(void);
-	/* Copy the active ROI pixels back into gfit. */
-	void     (*copy_roi_into_gfit)(void);
 	/* Acquire the ROI mutex (prevents ROI callbacks during processing). */
 	void     (*lock_roi_mutex)(void);
 	/* Release the ROI mutex. */

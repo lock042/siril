@@ -95,17 +95,17 @@ Test(op_descriptor, ids_unique) {
 
 /* The exact set of ops that may be computed on a sub-rectangle.
  *
- * Pinned rather than derived, because the authority is currently elsewhere:
- * each of these is an op whose dialog calls roi_supported(TRUE), and that call
- * lives in GUI code a unit test cannot reach.  Until the flag becomes the sole
- * source of truth, the two must be changed together — this list is what makes
- * a one-sided change fail rather than silently enable or disable a region
- * preview.
+ * The flag is now what generic_image_worker consults to decide whether a
+ * preview run is region-scoped, so an op silently gaining or losing it changes
+ * behaviour.  Pinning the whole set is what makes such a change fail here
+ * rather than in a user's viewport.  The dialogs' roi_supported(TRUE) calls
+ * must agree with this list (that is only the overlay colour, but a
+ * disagreement is a lie to the user).
  *
- * wavelets is deliberately absent: it services a ROI by reconstructing the
- * whole image and copying the window out (filters/wavelets.h), which is a
- * correctness measure rather than a region computation, and it holds a
- * decomposition keyed to the full image geometry. */
+ * wavelets is in the set for a different reason from the rest: its hook cannot
+ * compute from a crop, because its input is a decomposition of the whole
+ * image — but it can produce just the window, reading only the transform rows
+ * that window covers. */
 static const char *const roi_capable_ids[] = {
 	"color.saturation",
 	"filters.deconvolve",
@@ -118,6 +118,7 @@ static const char *const roi_capable_ids[] = {
 	"stretch.curves",
 	"stretch.ghs",
 	"stretch.mtf",
+	"wavelets.wrecons",
 };
 
 static gboolean id_in_roi_list(const char *id) {

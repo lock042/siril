@@ -60,7 +60,6 @@ static update_image *pending_preview   = NULL;
 static gboolean      preview_in_flight = FALSE;
 static gboolean      preview_job_active = FALSE;
 static cmsHPROFILE preview_icc_backup = NULL;
-static fits preview_roi_backup;
 static fits preview_gfit_backup = { 0 };
 /* Identity of the fits the backup was taken from.  gfit can be repointed
  * at a DIFFERENT layer's fits (FLIS active-layer switch) between backup
@@ -163,22 +162,6 @@ static void clear_backup_icc() {
 	}
 }
 
-int backup_roi() {
-	int retval;
-	if ((retval = copyfits(&gui.roi.fit, &preview_roi_backup, CP_ALLOC | CP_COPYA | CP_FORMAT | CP_COPYMASK, -1)))
-		siril_log_debug("Image copy error in ROI\n");
-
-	return retval;
-}
-
-int restore_roi() {
-	int retval;
-	if ((retval = copyfits(&preview_roi_backup, &gui.roi.fit, CP_ALLOC | CP_COPYA | CP_FORMAT | CP_COPYMASK, -1)))
-		siril_log_debug("Image copy error in ROI\n");
-
-	return retval;
-}
-
 void copy_gfit_to_backup() {
 	guint64 gfit_size = (guint64)gfit->rx * gfit->ry * gfit->naxes[2]
 	                    * (gfit->type == DATA_FLOAT ? 4 : 2);
@@ -194,10 +177,6 @@ void copy_gfit_to_backup() {
 	copy_fits_metadata(gfit, &preview_gfit_backup);
 	if (!com.script)
 		copy_gfit_icc_to_backup();
-	if (gui.roi.active && backup_roi()) {
-		siril_log_debug("Image copy error in ROI\n");
-		return;
-	}
 	preview_backup_owner = gfit;
 	preview_is_active = TRUE;
 }
@@ -267,10 +246,6 @@ int copy_backup_to_gfit() {
 			 * so stale values are never saved back to the input sequence. */
 			invalidate_stats_from_fit(gfit);
 		}
-		if (gui.roi.active && restore_roi()) {
-			siril_log_debug("Image copy error in ROI\n");
-			retval = 1;
-		}
 	}
 	g_rw_lock_writer_unlock(&gfit->rwlock);
 	gui_iface.set_suppress_redraws(FALSE);
@@ -281,8 +256,16 @@ fits *get_preview_gfit_backup() {
 	return (is_preview_active()) ? &preview_gfit_backup : gfit;
 }
 
-fits *get_roi_backup() {
-	return (is_preview_active()) ? &preview_roi_backup : &gui.roi.fit;
+/* The PRE-OPERATION pixels of the displayed image.  Same intent as
+ * get_preview_gfit_backup(), but it also applies copy_backup_to_gfit's owner
+ * check: after a FLIS active-layer switch the live backup belongs to the
+ * OUTGOING layer, and handing it out as "the pixels behind gfit" would feed a
+ * region preview another layer's pixels (or read out of bounds if that layer
+ * was smaller).  gfit is the honest answer in that window; the reconciler
+ * re-arms the backup shortly afterwards. */
+fits *get_preop_gfit() {
+	return (preview_is_active && preview_backup_owner == gfit)
+	        ? &preview_gfit_backup : gfit;
 }
 
 gboolean is_preview_active() {

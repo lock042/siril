@@ -46,11 +46,11 @@ typedef enum {
 	                                 * surrounding context the hook needs is a
 	                                 * separate question (roi-nde-plan.md
 	                                 * §1.1), and a pixel-local op needing none
-	                                 * is still ROI-capable.  Today this
-	                                 * mirrors the roi_supported(TRUE) call in
-	                                 * each dialog; it lives here so the
-	                                 * processing layer, which has no access to
-	                                 * dialog state, can consult it too. */
+	                                 * is still ROI-capable.  This is what
+	                                 * generic_image_worker consults to decide
+	                                 * whether a preview run may be computed on
+	                                 * the ROI rectangle, and what the dialogs
+	                                 * project into the overlay colour. */
 } op_descriptor_flags;
 
 typedef struct op_descriptor {
@@ -83,6 +83,12 @@ typedef struct op_descriptor {
 /* Fill args fields from args->op, if set.  No-op when args->op == NULL, so the
  * legacy (un-migrated) path is byte-for-byte unchanged.  Factored out of the
  * worker so the unit test can exercise the fill semantics directly. */
+/* TRUE when @op declares OP_ROI_CAPABLE.  NULL-safe: an un-migrated call site
+ * with no descriptor is not ROI-capable. */
+static inline gboolean op_descriptor_is_roi_capable(const op_descriptor *op) {
+	return op && (op->flags & OP_ROI_CAPABLE) != 0;
+}
+
 void op_descriptor_fill_img_args(struct generic_img_args *args);
 void op_descriptor_fill_mask_args(struct generic_mask_args *args);
 void op_descriptor_fill_layer_args(struct generic_layer_args *args);

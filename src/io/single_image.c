@@ -797,19 +797,6 @@ void notify_gfit_data_modified() {
 			g_mutex_unlock(&com.histogram_mutex);
 			return;
 		}
-		/* If a ROI is active and contains processed data, merge it back into
-		 * gfit now — before computing the histogram and before remap_all()
-		 * builds the Cairo display buffers — so that both operations see the
-		 * fully-updated pixel data.  This is the correct point to do this:
-		 * gui_iface.redraw_image() must remain a pure "repaint from Cairo buffers" function
-		 * and must not write gfit. */
-		fits *roi_fit = (fits*)gui_iface.get_roi_fit();
-		if (gui_iface.roi_is_active() && gui_iface.roi_operation_supports() &&
-				roi_fit &&
-				((gfit->type == DATA_FLOAT && roi_fit->fdata) ||
-				 (gfit->type == DATA_USHORT && roi_fit->data)))
-			gui_iface.copy_roi_into_gfit();
-
 		/* For FLIS the histogram dialog should show the composite's
 		 * distribution, not the active layer in isolation.  NULL for a
 		 * plain image, in which case the active layer IS the image. */

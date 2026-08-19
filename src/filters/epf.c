@@ -28,6 +28,7 @@
 #include "io/image_format_fits.h"
 #include "opencv/opencv.h"
 
+#include "core/fits_region.h"
 #include "filters/epf.h"
 #include "core/op_descriptors.h"
 #include "core/nde_history.h"
@@ -198,54 +199,6 @@ gchar *epf_log_hook(gpointer p, log_hook_detail detail) {
 	return message;
 }
 
-static int match_guide_to_roi(fits *guide, fits *guide_roi) {
-	int retval = 0;
-	if (!gui_iface.roi_is_active())
-		return 1;
-	fits *roi_fit = (fits*)gui_iface.get_roi_fit();
-	rectangle sel;
-	gui_iface.get_roi_selection(&sel);
-	uint32_t nchans = guide->naxes[2];
-	size_t npixels = guide->rx * guide->ry;
-	gboolean rgb = (nchans == 3);
-	size_t npixels_roi = roi_fit->rx * roi_fit->ry;
-	copyfits(guide, guide_roi, CP_FORMAT, -1);
-	guide_roi->rx = guide_roi->naxes[0] = sel.w;
-	guide_roi->ry = guide_roi->naxes[1] = sel.h;
-	guide_roi->naxes[2] = nchans;
-	guide_roi->naxis = nchans == 1 ? 2 : 3;
-	if (guide->type == DATA_FLOAT) {
-		guide_roi->fdata = malloc(npixels_roi * nchans * sizeof(float));
-		if (!guide_roi->fdata)
-			retval = 1;
-		guide_roi->fpdata[0] = roi_fit->fdata;
-		guide_roi->fpdata[1] = rgb? guide_roi->fdata + npixels_roi : guide_roi->fdata;
-		guide_roi->fpdata[2] = rgb? guide_roi->fdata + 2 * npixels_roi : guide_roi->fdata;
-		for (uint32_t c = 0 ; c < nchans ; c++) {
-			for (uint32_t y = 0; y < (uint32_t)sel.h ; y++) {
-				float *srcindex = guide->fdata + (npixels * c) + ((guide->ry - y - sel.y) * guide->rx) + sel.x;
-				float *destindex = guide_roi->fdata + (npixels_roi * c) + (guide_roi->rx * y);
-				memcpy(destindex, srcindex, sel.w * sizeof(float));
-			}
-		}
-	} else {
-		guide_roi->data = malloc(npixels_roi * nchans * sizeof(WORD));
-		if (!guide_roi->data)
-			retval = 1;
-		guide_roi->pdata[0] = roi_fit->data;
-		guide_roi->pdata[1] = rgb? guide_roi->data + npixels_roi : guide_roi->data;
-		guide_roi->pdata[2] = rgb? guide_roi->data + 2 * npixels_roi : guide_roi->data;
-		for (uint32_t c = 0 ; c < nchans ; c++) {
-			for (uint32_t y = 0; y < (uint32_t)sel.h ; y++) {
-				WORD *srcindex = guide->data + (npixels * c) + ((guide->ry - y - sel.y) * guide->rx) + sel.x;
-				WORD *destindex = guide_roi->data + (npixels_roi * c) + (guide_roi->rx * y);
-				memcpy(destindex, srcindex, sel.w * sizeof(WORD));
-			}
-		}
-	}
-	return retval;
-}
-
 static int edge_preserving_filter(struct epfargs *args) {
 	fits *fit = args->fit;
 	fits *guide = args->guidefit;
@@ -296,11 +249,23 @@ static int edge_preserving_filter(struct epfargs *args) {
 			cvBilateralFilter(fit, d, eps, sigma_space);
 			break;
 		case EP_GUIDED:
+			/* On a region preview `fit` is a crop of the image, so a
+			 * separate guide image has to be cropped to the same rectangle
+			 * before cvGuidedFilter can pair them.  A self-guided filter
+			 * needs nothing: the hook already pointed the guide at the
+			 * crop. */
 			guide_roi = calloc(1, sizeof(fits));
-			fits *roi_fit_ptr = (fits*)gui_iface.get_roi_fit();
-			roi_fitting_needed = (fit == roi_fit_ptr && guide != roi_fit_ptr && gui_iface.roi_is_active());
-			if (roi_fitting_needed)
-				match_guide_to_roi(guide, guide_roi);
+			roi_fitting_needed = args->for_roi && guide != fit;
+			if (roi_fitting_needed
+			    && crop_fits_region(guide, &args->roi_rect, guide_roi)) {
+				siril_log_error(_("Guide image does not cover the region of "
+				                  "interest.\n"));
+				clearfits(guide_roi);
+				free(guide_roi);
+				if (orig_type == DATA_USHORT)
+					fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, ndata), DATA_USHORT);
+				return 1;
+			}
 			guidance = roi_fitting_needed ? guide_roi : guide;
 			cvGuidedFilter(fit, guidance, d, eps);
 			clearfits(guide_roi);
@@ -337,8 +302,8 @@ static int edge_preserving_filter(struct epfargs *args) {
 		fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, ndata), DATA_USHORT);
 	}
 
-	/* No populate_roi() / notify here: generic_image_worker performs both
-	 * universally when args->fit == gfit. */
+	/* No display refresh here: generic_image_worker notifies once the
+	 * result has been installed. */
 	return 0;
 }
 
@@ -347,7 +312,21 @@ int epf_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
 	struct epfargs *params = (struct epfargs *)args->user;
 	if (!params)
 		return 1;
+	/* Plumb the worker's `fit` through, as the hook contract requires — the
+	 * worker may hand us a private copy or a region crop rather than gfit.
+	 * A self-guided filter is identified by guidefit == fit and must follow
+	 * it, or a region run would pair a crop with a full-size guide.
+	 * Restored afterwards: params outlives the hook (serialize reads it). */
+	fits *saved_fit = params->fit, *saved_guide = params->guidefit;
+	const gboolean self_guided = (params->guidefit == params->fit);
 	params->fit = fit;
-	return edge_preserving_filter(params);
+	if (self_guided)
+		params->guidefit = fit;
+	params->for_roi = args->for_roi;
+	params->roi_rect = args->roi_rect;
+	int retval = edge_preserving_filter(params);
+	params->fit = saved_fit;
+	params->guidefit = saved_guide;
+	return retval;
 }
 

@@ -261,9 +261,11 @@ gpointer stack_function_handler(gpointer p) {
 		g_rw_lock_writer_unlock(&gfit->rwlock);
 		gui_iface.set_suppress_redraws(FALSE);
 		/* notify_gfit_data_modified must run with the writer lock released:
-		 * it reaches copy_roi_into_gfit() which itself acquires the writer
-		 * lock, triggering pthread EDEADLK on glibc and silent self-deadlock
-		 * elsewhere.  Defer to here, immediately after unlock, so the rest
+		 * it reaches the display remap, which takes gfit's rwlock as a
+		 * reader, and re-entering the lock from the thread already holding
+		 * it as a writer triggers pthread EDEADLK on glibc and silent
+		 * self-deadlock elsewhere.  Defer to here, immediately after
+		 * unlock, so the rest
 		 * of the cleanup pipeline (bgnoise, end_stacking idle) sees the
 		 * histogram/stats invalidations as expected. */
 		notify_gfit_data_modified();

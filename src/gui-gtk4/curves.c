@@ -52,7 +52,7 @@
 // ---------------------------------------------------------------------------
 // FORWARD DECLARATIONS
 // ---------------------------------------------------------------------------
-static int curves_process_with_worker(gboolean for_preview, gboolean for_roi);
+static int curves_process_with_worker(gboolean for_preview);
 static gboolean is_curves_log_scale();
 static void update_range_ui_from_state();
 static int curves_update_preview();
@@ -1188,7 +1188,7 @@ static int curves_update_preview() {
 	fit = roi_stats_source(&roi_stats_cache);
 	if (!closing) {
 		copy_backup_to_gfit();
-		curves_process_with_worker(TRUE, gui.roi.active);
+		curves_process_with_worker(TRUE);
 	}
 	return 0;
 }
@@ -1401,7 +1401,7 @@ static void disable_mask_preview() {
 	g_signal_handlers_unblock_by_func(curves_show_mask_check, on_curves_show_mask_toggled, NULL);
 }
 
-static int curves_process_with_worker(gboolean for_preview, gboolean for_roi) {
+static int curves_process_with_worker(gboolean for_preview) {
 	struct curve_params *params = build_curve_params_from_gui();
 	if (!params) { PRINT_ALLOC_ERR; return 1; }
 
@@ -1410,7 +1410,7 @@ static int curves_process_with_worker(gboolean for_preview, gboolean for_roi) {
 	clipped[1] = 0;
 	params->clipped_count = clipped;
 
-	params->fit = for_roi ? &gui.roi.fit : gfit;
+	params->fit = gfit;
 	params->verbose = !for_preview;
 	params->for_preview = for_preview;
 
@@ -1421,7 +1421,6 @@ static int curves_process_with_worker(gboolean for_preview, gboolean for_roi) {
 		return 1;
 	}
 
-	// Set the fit based on whether ROI is active
 	args->fit = params->fit;
 	args->op = &op_desc_curves;   // supplies image_hook, log_hook, description, mem_ratio
 	/* Undo is handled by curve_apply_idle with the pre-tool image so that
@@ -1436,7 +1435,6 @@ static int curves_process_with_worker(gboolean for_preview, gboolean for_roi) {
 	 * mask while its history record claimed one was in effect. */
 	args->mask_aware = TRUE;
 	args->for_preview = for_preview;
-	args->for_roi = for_roi;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -1943,7 +1941,6 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 			g_free(summary);
 			free_curve_params(undo_params);
 
-			populate_roi();
 			clear_backup();
 			clear_display_histogram();
 			single_image_stretch_applied = TRUE;
@@ -1959,12 +1956,10 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 
 		/* Preview not active, or it only covered the ROI: apply the curve now,
 		 * defer reinit to curve_apply_idle.  A ROI is a preview scope, so the
-		 * apply is full-image regardless — passing gui.roi.active here sent it
-		 * down the worker's non-swap path, which curved only the rectangle and
-		 * committed neither undo nor an NDE record. */
+		 * apply is full-image regardless — the worker only region-scopes a run
+		 * whose for_preview is set, which this one's is not. */
 		copy_backup_to_gfit();
-		populate_roi();
-		curves_process_with_worker(FALSE, FALSE);
+		curves_process_with_worker(FALSE);
 		single_image_stretch_applied = TRUE;
 		set_cursor("default");
 	}

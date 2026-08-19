@@ -375,10 +375,6 @@ static void impl_drain_tile_workers(void) {
 	materialise_pool_drain();
 }
 
-static void impl_populate_roi(void) {
-	populate_roi();
-}
-
 /* ── Group H: Geometry / ROI / Mask state ────────────────────────────────── */
 
 static gboolean clear_roi_idle(gpointer p) {
@@ -979,8 +975,6 @@ extern void flis_gui_update_from_idle(void);  /* flis_gui.h, stage 4 */
  *   - re-arms a live preview whose backup was taken from another layer
  *     (identity-checked; restores and preview ticks are blocked by the
  *     owner gate in siril_preview.c until this runs);
- *   - repopulates the ROI pixel cache, which held the outgoing layer's
- *     pixels (populate_roi clips to the new layer, or empties);
  *   - retests mask-tab visibility (lmask presence differs per layer);
  *   - refreshes the layers panel / header / canvas dialog.
  */
@@ -993,8 +987,6 @@ static gboolean active_layer_reconcile_idle(gpointer p) {
 		clear_backup();
 		copy_gfit_to_backup();
 	}
-	if (gui.roi.active)
-		populate_roi();
 	/* The wavelets tool's decomposition (held transform + .wave files) is
 	 * keyed to gfit's pixels but guarded only by geometry — another layer of
 	 * the same size would pass the guard and reconstruct the OLD layer's
@@ -1062,10 +1054,6 @@ static gboolean impl_roi_operation_supports(void) {
 	return gui.roi.operation_supports_roi;
 }
 
-static gpointer impl_get_roi_fit(void) {
-	return (gpointer)&gui.roi.fit;
-}
-
 static void impl_get_roi_selection(rectangle *rect) {
 	memcpy(rect, &gui.roi.selection, sizeof(rectangle));
 }
@@ -1074,9 +1062,10 @@ static void impl_clear_roi(void) {
 	clear_roi_threadsafe();
 }
 
-static void impl_restore_roi(const rectangle *rect) {
-	memcpy(&com.selection, rect, sizeof(rectangle));
-	on_set_roi();
+static gboolean impl_roi_active_layer_rect(rectangle *rect) {
+	if (!gui.roi.active || !rect)
+		return FALSE;
+	return flis_display_to_active_layer_rect(&gui.roi.selection, rect, TRUE);
 }
 
 static void impl_reset_display_transform(void) {
@@ -1527,9 +1516,6 @@ static void impl_ensure_seqlist_dialog_closed(void) {
 	ensure_seqlist_dialog_closed();
 }
 
-static void impl_copy_roi_into_gfit(void) {
-	copy_roi_into_gfit();
-}
 
 static void impl_lock_roi_mutex(void) {
 	lock_roi_mutex();
@@ -1607,6 +1593,7 @@ static void impl_reset_cut_gui_filedependent(gpointer u) {
 /* Preview */
 static int impl_copy_backup_to_gfit(void) { return copy_backup_to_gfit(); }
 static gpointer impl_get_preview_gfit_backup(void) { return (gpointer)get_preview_gfit_backup(); }
+static gpointer impl_get_preop_gfit(void) { return (gpointer)get_preop_gfit(); }
 /* Registration */
 static gboolean update_reg_interface_idle(gpointer p) {
 	update_reg_interface(GPOINTER_TO_INT(p));
@@ -1685,7 +1672,6 @@ void siril_register_gui_iface(void) {
 	gui_iface.set_suppress_redraws   = impl_set_suppress_redraws;
 	gui_iface.get_suppress_redraws   = impl_get_suppress_redraws;
 	gui_iface.drain_tile_workers     = impl_drain_tile_workers;
-	gui_iface.populate_roi           = impl_populate_roi;
 	gui_iface.on_geometry_changed    = impl_on_geometry_changed;
 	gui_iface.on_mask_state_changed  = impl_on_mask_state_changed;
 	gui_iface.on_crop_complete       = impl_on_crop_complete;
@@ -1715,10 +1701,9 @@ void siril_register_gui_iface(void) {
 	gui_iface.on_precision_changed        = impl_on_precision_changed;
 	gui_iface.roi_is_active               = impl_roi_is_active;
 	gui_iface.roi_operation_supports      = impl_roi_operation_supports;
-	gui_iface.get_roi_fit                 = impl_get_roi_fit;
 	gui_iface.get_roi_selection           = impl_get_roi_selection;
 	gui_iface.clear_roi                   = impl_clear_roi;
-	gui_iface.restore_roi                 = impl_restore_roi;
+	gui_iface.roi_active_layer_rect       = impl_roi_active_layer_rect;
 	gui_iface.reset_display_transform     = impl_reset_display_transform;
 	gui_iface.is_preview_active           = impl_is_preview_active;
 	gui_iface.hide_preview                = impl_hide_preview;
@@ -1804,7 +1789,6 @@ void siril_register_gui_iface(void) {
 	gui_iface.update_seqlist                  = impl_update_seqlist;
 	gui_iface.update_sequence_overlay_async   = impl_update_sequence_overlay_async;
 	gui_iface.ensure_seqlist_dialog_closed    = impl_ensure_seqlist_dialog_closed;
-	gui_iface.copy_roi_into_gfit              = impl_copy_roi_into_gfit;
 	gui_iface.lock_roi_mutex                  = impl_lock_roi_mutex;
 	gui_iface.unlock_roi_mutex                = impl_unlock_roi_mutex;
 	gui_iface.show_or_hide_mask_tab           = impl_show_or_hide_mask_tab;
@@ -1829,6 +1813,7 @@ void siril_register_gui_iface(void) {
 	/* Preview */
 	gui_iface.copy_backup_to_gfit            = impl_copy_backup_to_gfit;
 	gui_iface.get_preview_gfit_backup        = impl_get_preview_gfit_backup;
+	gui_iface.get_preop_gfit                 = impl_get_preop_gfit;
 	/* Registration */
 	gui_iface.update_reg_interface           = impl_update_reg_interface;
 	gui_iface.reset_3stars_gui               = impl_reset_3stars_gui;

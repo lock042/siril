@@ -82,7 +82,7 @@ static void scnr_prefill_from_amend(void) {
 }
 
 static int scnr_process_with_worker(scnr_type type, double amount, gboolean preserve,
-                                    gboolean for_preview, gboolean for_roi) {
+                                    gboolean for_preview) {
 	struct scnr_data *params = new_scnr_data();
 	if (!params) {
 		PRINT_ALLOC_ERR;
@@ -102,7 +102,7 @@ static int scnr_process_with_worker(scnr_type type, double amount, gboolean pres
 		return 1;
 	}
 
-	args->fit = for_roi ? &gui.roi.fit : gfit;
+	args->fit = gfit;
 	args->op = &op_desc_scnr;
 	args->idle_function = NULL;
 	args->description = _("Subtractive Chromatic Noise Reduction");
@@ -110,7 +110,6 @@ static int scnr_process_with_worker(scnr_type type, double amount, gboolean pres
 	args->user = params;
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
-	args->for_roi = for_roi;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -125,7 +124,7 @@ static int scnr_update_preview(void) {
 		gboolean preserve = siril_toggle_get_active(GTK_WIDGET(scnr_preserve_light));
 		double amount = gtk_range_get_value(GTK_RANGE(scnr_scale));
 		copy_backup_to_gfit();
-		return scnr_process_with_worker(type, amount, preserve, TRUE, gui.roi.active);
+		return scnr_process_with_worker(type, amount, preserve, TRUE);
 	}
 	return 0;
 }
@@ -225,14 +224,14 @@ void on_SCNR_Apply_clicked(GtkButton *button, gpointer user_data) {
 	gboolean is_preview = ((GtkWidget*) button == GTK_WIDGET(scnr_roi_preview));
 
 	if (is_preview) {
-		scnr_process_with_worker(type, amount, preserve, TRUE, gui.roi.active);
+		scnr_process_with_worker(type, amount, preserve, TRUE);
 	} else {
 		if (siril_toggle_get_active(GTK_WIDGET(scnr_roi_preview))) {
 			copy_backup_to_gfit();
 		}
 
 		set_cursor_waiting(TRUE);
-		scnr_process_with_worker(type, amount, preserve, FALSE, FALSE);
+		scnr_process_with_worker(type, amount, preserve, FALSE);
 
 		clear_backup();
 		remove_roi_callback(scnr_change_between_roi_and_image);

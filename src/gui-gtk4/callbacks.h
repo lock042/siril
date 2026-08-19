@@ -18,7 +18,6 @@ gboolean launch_clipboard_survey(gpointer user_data);
 
 // Region of Interest processing
 typedef void (*ROICallback)();
-int populate_roi();
 /**
  * roi_stats_source:
  * @cache: caller-owned fits used as scratch for the region snapshot.  Zeroed

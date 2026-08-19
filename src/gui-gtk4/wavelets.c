@@ -350,16 +350,12 @@ static int update_wavelets() {
 	sync_denoise_params();
 	wrecons_args->denoise = wavelet_denoise;
 
-	/* Preview only the region of interest when one is set: reconstruct into the
-	 * ROI fit and let the framework composite it back. */
-	gboolean roi = gui.roi.active;
-	if (roi) {
-		wrecons_args->for_roi = TRUE;
-		wrecons_args->roi_x = gui.roi.selection.x;
-		wrecons_args->roi_y = gui.roi.selection.y;
-		wrecons_args->full_rx = gfit->rx;
-		wrecons_args->full_ry = gfit->ry;
-	}
+	/* The held transform covers the whole image, so a region preview still
+	 * reconstructs from full-image geometry and windows the result out.
+	 * Where that window is comes from the worker at run time (it owns the
+	 * region); only the full geometry has to be recorded here. */
+	wrecons_args->full_rx = gfit->rx;
+	wrecons_args->full_ry = gfit->ry;
 
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	if (!args) {
@@ -367,14 +363,13 @@ static int update_wavelets() {
 		free_wrecons_data(wrecons_args);
 		return 1;
 	}
-	args->fit = roi ? &gui.roi.fit : gfit;
+	args->fit = gfit;
 	args->op = &op_desc_wrecons;
 	args->description = _("Wavelets preview");  // override: variant label
 	args->verbose = FALSE;
 	args->user = wrecons_args;
 	args->max_threads = com.max_thread;
 	args->for_preview = TRUE;
-	args->for_roi = roi;
 	if (!start_in_new_thread(generic_image_worker, args))
 		free_generic_img_args(args);
 	return 0;

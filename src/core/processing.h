@@ -199,7 +199,15 @@ struct generic_img_args {
 	 * themselves, or a caller asking for fewer threads gets ignored. */
 	int max_threads;
 	gboolean for_preview; // if TRUE, this is a preview operation and should not save undo
-	gboolean for_roi; // if TRUE, operation is being applied to ROI only
+	/* Region preview — set BY THE WORKER, not by the caller.  When an active
+	 * ROI, a preview run and an OP_ROI_CAPABLE descriptor coincide, the worker
+	 * crops roi_rect out of the pre-op image and hands the hook that crop
+	 * instead of the whole image; it pastes the result back afterwards.  Hooks
+	 * only need these if they must know WHERE their input sits in the image
+	 * (wavelets reconstructs from a full-image transform).  roi_rect is in the
+	 * processed image's own DISPLAY (top-down) coordinates. */
+	gboolean for_roi;
+	rectangle roi_rect;
 	/* if TRUE, generic_image_worker does not create an undo state; provision
 	 * of an undo state (if any) is left to the caller. Two use cases:
 	 *  - operations that handle their own undo (e.g. stretches, which need to
@@ -209,11 +217,6 @@ struct generic_img_args {
 	gboolean skip_generic_undo;
 	gboolean mask_aware; // Whether the operation is mask-aware or not
 	gboolean has_mask;   // Captured from fit->mask before writer unlock; used by end_generic_image_update_gfit
-	/* DEPRECATED — the worker now calls populate_roi() automatically whenever
-	 * args->fit == gfit (and not script/python/headless), so callers no longer
-	 * need to set this.  Retained on the struct purely so existing call sites
-	 * continue to compile; the value is ignored. */
-	gboolean populate_roi_on_complete;
 	/* When TRUE, this op resizes / rotates / mirrors the layer fit, so when
 	 * a FLIS is loaded the worker routes the undo entry through
 	 * undo_save_flis_layer_full (which captures pixels + pmask + lmask + props

@@ -986,8 +986,14 @@ struct historic_struct {
  * should include that header.  The forward typedef below lets non-GUI code
  * name the type without accessing its fields. */
 
+/* Region of interest: a PREVIEW scope, never an edit scope.  The rectangle
+ * is the whole concept — there is no region pixel buffer.  generic_image_worker
+ * crops the region out of the pre-op image, runs the hook on the crop and
+ * pastes the result back into gfit; Apply always runs full-image.
+ *
+ * `selection` is in DISPLAY (canvas) coordinates; translate and clip it to the
+ * layer being processed with flis_display_to_active_layer_rect(). */
 typedef struct roi {
-	fits fit;
 	rectangle selection;
 	gboolean active;
 	gboolean operation_supports_roi;

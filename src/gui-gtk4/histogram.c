@@ -347,7 +347,9 @@ static void histo_recompute(gboolean for_preview) {
 	gboolean auto_comp = auto_display_compensation;
 	auto_display_compensation = FALSE;
 
-	// Ensure we're working with the right fit
+	/* Re-take the region snapshot the DISPLAYED histograms are computed
+	 * from.  This is not the image the op runs on — that is always gfit,
+	 * and the worker decides for itself whether to region-scope the run. */
 	fit = roi_stats_source(&roi_stats_cache);
 
 	copy_backup_to_gfit();
@@ -362,7 +364,7 @@ static void histo_recompute(gboolean for_preview) {
 			return;
 		}
 
-		data->fit = fit;
+		data->fit = gfit;
 		data->params.shadows = _shadows;
 		data->params.midtones = _midtones;
 		data->params.highlights = _highlights;
@@ -379,7 +381,7 @@ static void histo_recompute(gboolean for_preview) {
 			return;
 		}
 
-		args->fit = fit;
+		args->fit = gfit;
 		args->op = &op_desc_mtf;
 		args->idle_function = mtf_single_image_idle;
 		args->description = _("Midtone Transfer Function");  // override: variant label
@@ -389,7 +391,6 @@ static void histo_recompute(gboolean for_preview) {
 		args->for_preview = TRUE;
 		args->skip_generic_undo = TRUE;
 		args->mask_aware = TRUE;
-		args->for_roi = gui.roi.active;
 
 	} else if (invocation == GHT_STRETCH) {
 		struct ght_data *data = create_ght_data();
@@ -398,7 +399,7 @@ static void histo_recompute(gboolean for_preview) {
 			return;
 		}
 
-		data->fit = fit;
+		data->fit = gfit;
 		data->params_ght = malloc(sizeof(struct ght_params));
 		if (!data->params_ght) {
 			destroy_ght_data(data);
@@ -428,7 +429,7 @@ static void histo_recompute(gboolean for_preview) {
 			return;
 		}
 
-		args->fit = fit;
+		args->fit = gfit;
 		args->op = &op_desc_ghs;
 		args->mem_ratio = (_payne_colourstretchmodel == COL_SAT) ? 2.0f : 1.0f;  // override: computed
 		args->idle_function = ght_single_image_idle;
@@ -438,7 +439,6 @@ static void histo_recompute(gboolean for_preview) {
 		args->max_threads = com.max_thread;
 		args->for_preview = TRUE;
 		args->mask_aware = TRUE;
-		args->for_roi = gui.roi.active;
 	}
 
 	if (args) {
@@ -1562,8 +1562,6 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			// The stretch is already applied to gfit via preview
 			// Just need to prepare undo with the backup
 
-			populate_roi();
-
 			// Prepare undo state with separate ICC snapshot
 			fits *backup = get_preview_gfit_backup();
 
@@ -1655,12 +1653,17 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		if (!preview_active || gui.roi.active) {
 			copy_backup_to_gfit();
 			if (_payne_colourstretchmodel == COL_SAT) {
+				/* The HSL buffers are consumed by the hook, indexed by the
+				 * pixel count of the fits it is handed — so they must be
+				 * sized from THAT, not from the statistics view.  Apply is
+				 * always full-image, so point `fit` at gfit before
+				 * setup_hsl(): sized from a region snapshot instead, the
+				 * hook reads past the end of every one of them. */
+				fit = gfit;
 				clear_hsl();
 				setup_hsl();
 			}
 		}
-
-		populate_roi();
 
 		// Prepare undo state with separate ICC snapshot BEFORE applying stretch
 		fits *backup = get_preview_gfit_backup();
@@ -1751,10 +1754,6 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			args->max_threads = com.max_thread;
 			args->for_preview = FALSE;
 			args->mask_aware = TRUE;
-			/* Apply runs on the whole image (fit == gfit above), so the flag
-			 * must say so: a hook that consults for_roi — wavelets does —
-			 * would otherwise be told to treat a full image as a region. */
-			args->for_roi = FALSE;
 
 		} else if (invocation == GHT_STRETCH) {
 			struct ght_data *data = create_ght_data();
@@ -1802,9 +1801,6 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			args->max_threads = com.max_thread;
 			args->mask_aware = TRUE;
 			args->for_preview = FALSE;
-			/* See the MTF branch above: fit is the whole image, so must the
-			 * flag be. */
-			args->for_roi = FALSE;
 		}
 
 		if (args) {

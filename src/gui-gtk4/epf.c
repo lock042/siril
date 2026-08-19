@@ -166,7 +166,7 @@ static void get_epf_values(double *d, double *sigma_col, double *sigma_space, do
 }
 
 /* Create and launch EPF processing */
-static int epf_process_with_worker(gboolean for_preview, gboolean for_roi) {
+static int epf_process_with_worker(gboolean for_preview) {
 	// Allocate parameters
 	struct epfargs *params = new_epf_args();
 	if (!params) {
@@ -176,7 +176,7 @@ static int epf_process_with_worker(gboolean for_preview, gboolean for_roi) {
 
 	// Get current values from widgets
 	get_epf_values(&params->d, &params->sigma_col, &params->sigma_space, &params->mod, &params->filter);
-	params->fit = for_roi ? &gui.roi.fit : gfit;
+	params->fit = gfit;
 	// Set up guide image
 	params->guide_needs_freeing = FALSE;
 	if (params->filter == EP_GUIDED) {
@@ -208,14 +208,13 @@ static int epf_process_with_worker(gboolean for_preview, gboolean for_roi) {
 	}
 
 	// Set the fit based on whether ROI is active
-	args->fit = for_roi ? &gui.roi.fit : gfit;
+	args->fit = gfit;
 	args->op = &op_desc_epf;
 	args->idle_function = NULL;
 	args->verbose = !for_preview;
 	args->user = params;
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
-	args->for_roi = for_roi;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -228,7 +227,7 @@ static int epf_process_with_worker(gboolean for_preview, gboolean for_roi) {
 static int epf_update_preview() {
 	if (siril_toggle_get_active(GTK_WIDGET(epf_preview))) {
 		copy_backup_to_gfit();
-		return epf_process_with_worker(TRUE, gui.roi.active);
+		return epf_process_with_worker(TRUE);
 	}
 	return 0;
 }
@@ -399,7 +398,7 @@ void on_epf_apply_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	// Always process full image when Apply is clicked
-	epf_process_with_worker(FALSE, FALSE);
+	epf_process_with_worker(FALSE);
 
 	apply_epf_changes();
 	siril_close_dialog("epf_dialog");

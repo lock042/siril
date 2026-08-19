@@ -160,7 +160,6 @@ static int rgradient_process_with_worker(void) {
 	args->mask_aware = TRUE;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	set_cursor_waiting(TRUE);
 

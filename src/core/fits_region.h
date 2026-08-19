@@ -24,8 +24,8 @@
  * \file fits_region.h
  * \brief Out-of-place rectangular region copy between two fits.
  *
- * The pair is the primitive under the ROI preview path (populate_roi /
- * copy_roi_into_gfit), and is intended to serve region-scoped processing more
+ * The pair is the primitive under the region-preview path in
+ * generic_image_worker, and is intended to serve region-scoped processing more
  * generally — see roi-nde-plan.md.
  *
  * COORDINATE CONVENTION.  \c area is in DISPLAY convention: x/y measured from

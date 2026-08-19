@@ -42,6 +42,7 @@
 #include "core/sequence_filtering.h"
 #include "core/command_line_processor.h"
 #include "core/masks.h"
+#include "core/fits_region.h"
 #include "core/OS_utils.h"
 #include "core/undo.h"
 #include "core/gui_iface.h"
@@ -1585,6 +1586,39 @@ gpointer generic_image_worker(gpointer p) {
 	gboolean verbose = (args->verbose || !args->for_preview) && !args->nde_replay;
 	gchar* desc = g_strdup(args->description);
 
+	/* Region preview (the ROI model, core/siril.h).  DERIVED here, never
+	 * passed in: an op declares only that it CAN be computed on a
+	 * sub-rectangle (OP_ROI_CAPABLE), and this is the single place that
+	 * decides whether a given run is one.  Deriving it is what removes the
+	 * class of drift where a dialog's fit and its flag disagreed.
+	 *
+	 * for_preview is the load-bearing term.  For a dialog with no live
+	 * preview it is the BUTTON discriminator — "Preview ROI" sets it, Apply
+	 * does not — which is what makes "the ROI is a preview scope, never an
+	 * edit scope" true rather than aspirational.  It is also what keeps
+	 * commands, scripts and replays full-image.
+	 *
+	 * Both the descriptor AND the dialog have to agree.  The descriptor says
+	 * what the op can do; roi_operation_supports() is what the ROI overlay
+	 * colour shows the user, and a dialog can withhold it for the session it
+	 * is in (an amend-mode editor previews full-image against the pre-record
+	 * backup).  Region-scoping a run the overlay says is not region-scoped
+	 * would make the outline a lie. */
+	rectangle roi_rect = { 0 };
+	args->for_roi = FALSE;
+	if (args->for_preview && !args->nde_replay && argfit == gfit
+	    && op_descriptor_is_roi_capable(args->op)
+	    && !com.script && !com.python_command && !com.headless
+	    && gui_iface.roi_is_active()
+	    && gui_iface.roi_operation_supports()
+	    && gui_iface.roi_active_layer_rect(&roi_rect)) {
+		args->for_roi = TRUE;
+		args->roi_rect = roi_rect;
+	}
+	const gboolean for_roi = args->for_roi;
+	fits *roi_work = NULL;    /* region preview: the crop the hook runs on,
+	                           * pasted back into gfit afterwards. */
+
 	/* FLIS geometry-op undo capture: when geometry_changing is set AND a FLIS
 	 * is loaded, route the undo entry through undo_save_flis_layer_full so the
 	 * active layer's pixels, pmask, lmask and props are reverted together.
@@ -1603,7 +1637,7 @@ gpointer generic_image_worker(gpointer p) {
 	 * whether or not this run saved an undo entry, scripts included. */
 	gint     nde_pre_pos_x = 0, nde_pre_pos_y = 0;
 	gboolean nde_have_pos  = FALSE;
-	if (argfit == gfit && !args->nde_replay && is_current_image_flis()) {
+	if (argfit == gfit && !for_roi && !args->nde_replay && is_current_image_flis()) {
 		flis_layer_t *pos_lay = flis_active_layer();
 		if (pos_lay) {
 			nde_pre_pos_x = pos_lay->position_x;
@@ -1628,7 +1662,7 @@ gpointer generic_image_worker(gpointer p) {
 	gint job_item_id    = -1;                    /* NDE target (edit-at borrow aware) */
 	gint job_undo_layer = FLIS_UNDO_LAYER_NONE;  /* undo attribution */
 	gint job_pmask_id   = 0;                     /* mask-pin item id */
-	if (argfit == gfit && !args->nde_replay) {
+	if (argfit == gfit && !for_roi && !args->nde_replay) {
 		job_item_id = nde_capture_target_item();
 		if (is_current_image_flis()) {
 			flis_layer_t *job_lay = flis_layer_get_by_fit(argfit);
@@ -1642,27 +1676,33 @@ gpointer generic_image_worker(gpointer p) {
 		}
 	}
 
-	/* Two processing strategies live in this one function:
+	/* Three processing strategies live in this one function:
 	 *
-	 *   Swap path (argfit == gfit) — the long-running image_hook works
-	 *   on a private copy (`orig`).  gfit is left untouched for the
-	 *   duration so the GUI can keep reading it; readers (motion
-	 *   handlers, ROI fills) hit the lock for ~µs only at the swap
-	 *   point.  After the hook, fits_swap_all_except_rwlock(gfit, orig)
-	 *   installs the result.  As a happy side effect, `orig` then
-	 *   holds the pre-modification image — exactly what
-	 *   undo_save_state() wants.  An aborted swap-path op leaves gfit
-	 *   untouched (no swap on retval).
+	 *   Swap path (argfit == gfit, whole image) — the long-running
+	 *   image_hook works on a private copy (`orig`).  gfit is left
+	 *   untouched for the duration so the GUI can keep reading it;
+	 *   readers (motion handlers, tile fills) hit the lock for ~µs only
+	 *   at the swap point.  After the hook,
+	 *   fits_swap_all_except_rwlock(gfit, orig) installs the result.  As
+	 *   a happy side effect, `orig` then holds the pre-modification
+	 *   image — exactly what undo_save_state() wants.  An aborted
+	 *   swap-path op leaves gfit untouched (no swap on retval).
 	 *
-	 *   Non-swap path (argfit == &gui.roi.fit or similar) — keep the
-	 *   in-place pattern.  Take args->fit's writer lock for the
-	 *   duration of the hook.  The lock isn't on gfit, so it doesn't
-	 *   block GTK main-thread readers.
+	 *   Region path (for_roi) — the same shape at a smaller scale: crop
+	 *   the region out of the PRE-OP image, run the hook on the crop with
+	 *   no lock held, then paste the result back into gfit under a brief
+	 *   writer lock.  Nothing outside the rectangle changes, and no undo
+	 *   entry or provenance record is created — a region run is a preview.
+	 *
+	 *   Non-swap path (argfit is some other fits) — keep the in-place
+	 *   pattern.  Take args->fit's writer lock for the duration of the
+	 *   hook.  The lock isn't on gfit, so it doesn't block GTK
+	 *   main-thread readers.
 	 *
 	 * The 87-of-94 hook audit confirmed every image_hook operates only
 	 * on its `fit` parameter, so passing `orig` instead of gfit on the
 	 * swap path is safe. */
-	gboolean use_swap = (argfit == gfit);
+	gboolean use_swap = (argfit == gfit) && !for_roi;
 
 	fits *orig = NULL;        /* original backup + (swap path) hook
 	                           * working buffer.  After the swap it
@@ -1770,6 +1810,52 @@ gpointer generic_image_worker(gpointer p) {
 			goto the_end;
 		}
 		hook_fit = orig;
+	} else if (for_roi) {
+		/* Region path: crop the region out of the pre-op image.  The
+		 * source is get_preop_gfit(), not gfit, and that is what makes a
+		 * live region preview idempotent — by the second slider tick gfit
+		 * already holds the first tick's result inside the rectangle, so
+		 * cropping gfit would compound the effect. */
+		fits *roi_src = (fits *)gui_iface.get_preop_gfit();
+		roi_work = calloc(1, sizeof(fits));
+		if (!roi_work) {
+			PRINT_ALLOC_ERR;
+			args->retval = 1;
+			goto the_end;
+		}
+		int rc;
+		if (roi_src == gfit) {
+			g_rw_lock_reader_lock(&gfit->rwlock);
+			rc = crop_fits_region(roi_src, &roi_rect, roi_work);
+			g_rw_lock_reader_unlock(&gfit->rwlock);
+		} else {
+			/* The preview backup is written only from the GTK main
+			 * thread, and only while no job is in flight. */
+			rc = crop_fits_region(roi_src, &roi_rect, roi_work);
+		}
+		if (rc) {
+			siril_log_error(_("Failed to copy original image.\n"));
+			args->retval = 1;
+			goto the_end;
+		}
+		hook_fit = roi_work;
+		/* Mask blending compares against the pre-hook pixels, which on this
+		 * path the hook is about to overwrite in place.  Keep a copy, under
+		 * the same condition (and in the same variable) as the non-swap
+		 * path below, so the blend call itself needs no special case. */
+		if (args->mask_aware && roi_work->mask && roi_work->mask_active) {
+			orig = calloc(1, sizeof(fits));
+			if (!orig) {
+				PRINT_ALLOC_ERR;
+				args->retval = 1;
+				goto the_end;
+			}
+			if (copyfits(roi_work, orig, CP_ALLOC | CP_FORMAT | CP_COPYA | CP_COPYMASK, -1)) {
+				siril_log_error(_("Failed to copy original image.\n"));
+				args->retval = 1;
+				goto the_end;
+			}
+		}
 	} else {
 		/* Non-swap path: writer-lock args->fit for the hook's
 		 * duration (legacy in-place pattern).  Allocate orig as a
@@ -1917,16 +2003,19 @@ the_end:;
 	 * aborted op leaves gfit pristine.  After the swap, `orig` holds
 	 * the pre-op image (perfect undo source).
 	 *
+	 * Region path: paste the crop back over exactly the rectangle it came
+	 * from, under the same brief writer-lock window.
+	 *
 	 * Non-swap path: just release the long-held writer lock on
-	 * args->fit.  notify_gfit_data_modified() below will take gfit's
-	 * writer lock briefly itself via copy_roi_into_gfit().
+	 * args->fit.
 	 *
 	 * The unlock-then-housekeeping ordering is also load-bearing for
 	 * deadlock avoidance: holding the writer lock across the
 	 * execute_idle_sync() further down would self-deadlock the main
-	 * thread (motion handlers take the reader lock), and the
-	 * notify→copy_roi_into_gfit chain would recursively acquire
-	 * gfit's writer lock on the swap path. */
+	 * thread (motion handlers take the reader lock), and
+	 * notify_gfit_data_modified() reaches the display remap, which takes
+	 * gfit's rwlock as a reader — re-entering it from the thread holding
+	 * the writer lock deadlocks. */
 	if (use_swap) {
 		if (!retval) {
 			/* Re-check the swap target: on a FLIS image the active-layer
@@ -1965,6 +2054,43 @@ the_end:;
 				retval = 1;
 			}
 		}
+	} else if (for_roi) {
+		if (!retval) {
+			/* A hook may hand back a different pixel type than it was
+			 * given (deconvolution normalises to float internally).  A
+			 * region preview replaces a rectangle, so it cannot change
+			 * gfit's type the way a swap can — coerce the result back. */
+			if (roi_work->type != gfit->type) {
+				const size_t n = (size_t)roi_work->rx * roi_work->ry * roi_work->naxes[2];
+				if (gfit->type == DATA_FLOAT) {
+					fit_replace_buffer(roi_work,
+					        roi_work->bitpix == BYTE_IMG ?
+					            ushort8_buffer_to_float(roi_work->data, n) :
+					            ushort_buffer_to_float(roi_work->data, n),
+					        DATA_FLOAT);
+				} else {
+					fit_replace_buffer(roi_work,
+					        float_buffer_to_ushort(roi_work->fdata, n), DATA_USHORT);
+					if (gfit->bitpix == BYTE_IMG) {
+						for (size_t i = 0; i < n; i++)
+							roi_work->data[i] >>= 8;
+						roi_work->bitpix = BYTE_IMG;
+					}
+				}
+			}
+			gui_iface.set_suppress_redraws(TRUE);
+			g_rw_lock_writer_lock(&argfit->rwlock);
+			/* Same retarget check as the swap path, for the same reason:
+			 * roi_rect was translated against the layer this job started
+			 * on.  Dropping a preview is the right outcome — unlike a
+			 * discarded apply it needs no error, the next tick redraws. */
+			if (gfit == argfit && !flis_gfit_retarget_in_progress())
+				paste_fits_region(roi_work, gfit, &roi_rect);
+			else
+				siril_log_debug("region preview discarded: the active layer changed\n");
+			g_rw_lock_writer_unlock(&argfit->rwlock);
+			gui_iface.set_suppress_redraws(FALSE);
+		}
 	} else {
 		g_rw_lock_writer_unlock(&argfit->rwlock);
 		if (nonswap_quiesced)
@@ -1987,6 +2113,8 @@ the_end:;
 		}
 		return GINT_TO_POINTER(retval);
 	}
+	/* A replay is never a region run (asserted at entry), so roi_work is
+	 * necessarily NULL above. */
 
 	/* Carry out data updates (statistics, histograms, update Cairo
 	 * buffers in GUI mode).  Only invoke on success; on failure gfit
@@ -1997,7 +2125,7 @@ the_end:;
 	 * pointer read): a refresh that slips through is redundant work, not
 	 * a correctness problem, which is why the bookkeeping below does NOT
 	 * use this check — it relies on the identity captured at job start. */
-	gboolean still_current = !use_swap
+	gboolean still_current = (!use_swap && !for_roi)
 			|| (gfit == argfit && !flis_gfit_retarget_in_progress());
 	if (!retval && still_current) {
 		notify_gfit_data_modified();
@@ -2105,19 +2233,6 @@ the_end:;
 		nde_history_notify_panel();
 	}
 
-	/* populate_roi() refreshes gui.roi.fit from the (now-updated) gfit
-	 * so the ROI preview reflects the result.  Only meaningful for the
-	 * swap path — non-swap ops worked on roi.fit directly and
-	 * re-populating from gfit would overwrite the result.
-	 * populate_roi() short-circuits if no ROI is selected.  Skipped (same
-	 * best-effort check as notify above) when gfit was retargeted after the
-	 * swap: the ROI now belongs to the incoming layer and the switch path
-	 * repopulates it itself. */
-	if (use_swap && still_current && !com.script && !com.python_command
-	    && !com.headless) {
-		gui_iface.populate_roi();
-	}
-
 	/* Cairo buffers are up to date; re-enable full viewport redraws so the
 	 * completion idle paints the updated image.  Same gate as the matching
 	 * suppress at worker entry — suppression is COUNTING now, so an
@@ -2198,6 +2313,9 @@ the_end:;
 	if (orig)
 		clearfits(orig);
 	free(orig);
+	if (roi_work)
+		clearfits(roi_work);
+	free(roi_work);
 
 	return GINT_TO_POINTER(retval);
 }

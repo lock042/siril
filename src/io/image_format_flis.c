@@ -1547,16 +1547,13 @@ void uniq_set_active_layer(single *uniq, gint index) {
 
 /* User-driven active-layer switch (panel row click, flis_active_layer
  * command).  Unlike the bare uniq_set_active_layer, this keeps a live
- * preview and the ROI pixel cache coherent across the retarget:
- *
- *   - the preview's full-image backup belongs to the OUTGOING gfit;
- *     restoring it into a different layer later would write another
- *     layer's pixels (junk for a smaller backup, heap overflow for a
- *     larger one).  Revert the preview on the outgoing layer while the
- *     backup still matches, then re-arm it on the incoming one.
- *   - gui.roi.fit holds the outgoing layer's pixels; repopulate from the
- *     new gfit (populate_roi skips — and the write-back guard skips too —
- *     when the canvas-space selection lies outside the new layer).
+ * preview coherent across the retarget: the preview's full-image backup
+ * belongs to the OUTGOING gfit, and restoring it into a different layer
+ * later would write another layer's pixels (junk for a smaller backup,
+ * heap overflow for a larger one).  Revert the preview on the outgoing
+ * layer while the backup still matches, then re-arm it on the incoming
+ * one.  The ROI needs nothing: it is a canvas-space rectangle,
+ * re-translated to whichever layer is active each time it is used.
  *
  * NOT for use inside worker hooks: the preview revert takes gfit's
  * rwlock, which is forbidden under the FLIS stack lock (see the lock
@@ -1636,8 +1633,6 @@ void flis_switch_active_layer_gui(gint index) {
         gui_iface.clear_backup();
     }
     uniq_set_active_layer(com.uniq, index);
-    if (gui_iface.roi_is_active())
-        gui_iface.populate_roi();
     if (preview_was_active)
         gui_iface.copy_gfit_to_backup();
     g_atomic_int_set(&gfit_retarget_in_progress, 0);

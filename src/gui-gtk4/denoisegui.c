@@ -169,7 +169,7 @@ static gboolean validate_denoise_params(struct denoise_args *params) {
 }
 
 /* Create and launch denoising processing */
-static int denoise_process_with_worker(gboolean for_preview, gboolean for_roi) {
+static int denoise_process_with_worker(gboolean for_preview) {
 	// Allocate parameters
 	struct denoise_args *params = new_denoise_args();
 	if (!params) {
@@ -205,14 +205,13 @@ static int denoise_process_with_worker(gboolean for_preview, gboolean for_roi) {
 	}
 
 	// Set the fit based on whether ROI is active
-	args->fit = for_roi ? &gui.roi.fit : gfit;
+	args->fit = gfit;
 	args->op = &op_desc_denoise;
 	args->idle_function = for_preview ? denoise_preview_idle : denoise_apply_idle;
 	args->verbose = !for_preview;
 	args->user = params;
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
-	args->for_roi = for_roi;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -226,8 +225,6 @@ void denoise_change_between_roi_and_image() {
 	gtk_widget_set_visible(GTK_WIDGET(denoise_roi_preview), gui.roi.active);
 	// Restore original image first
 	copy_backup_to_gfit();
-	// If we are showing the preview, update it after the ROI change.
-	restore_roi();
 	gfit_modified_update_gui();
 }
 
@@ -396,7 +393,7 @@ void on_denoise_apply_clicked(GtkButton *button, gpointer user_data) {
 
 	if (is_preview) {
 		// For ROI preview, just process the ROI
-		if (denoise_process_with_worker(TRUE, gui.roi.active)) {
+		if (denoise_process_with_worker(TRUE)) {
 			return; // Error occurred
 		}
 	} else {
@@ -405,12 +402,8 @@ void on_denoise_apply_clicked(GtkButton *button, gpointer user_data) {
 		undo_save_state(get_preview_gfit_backup(),
 				_("NL-Bayes denoising: (modulation=%.2f)"), mod);
 
-		// If ROI is active, restore to full image first
-		if (gui.roi.active)
-			restore_roi();
-
 		// Process the full image (not ROI, not preview)
-		if (denoise_process_with_worker(FALSE, FALSE)) {
+		if (denoise_process_with_worker(FALSE)) {
 			return; // Error occurred
 		}
 	}

@@ -219,8 +219,6 @@ int execute_command(int wordnb) {
 	siril_log_warning(_("Running command: %s\n"), word[0]);
 	fprintf(stdout, "%lu: running command %s\n", time(NULL), word[0]);
 	int retval = commands[i].process(wordnb);
-	if (gui_iface.roi_is_active())
-		gui_iface.populate_roi();
 	if (retval & CMD_NOTIFY_GFIT_MODIFIED) {
 		waiting_for_thread(); // we can't proceed until the generic_image_Worker is done
 		if (!com.python_script) {

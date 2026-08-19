@@ -18,11 +18,10 @@ struct wrecons_data {
 	float coef[7];
 	int nb_chan;
 	struct denoise_params denoise; /* per-scale denoising (disabled by default) */
-	/* ROI preview: when for_roi is set the full image is reconstructed and the
-	 * (roi_x, roi_y, full_rx*full_ry-relative) selection window is copied into
-	 * the smaller fit the hook receives. */
-	gboolean for_roi;
-	int roi_x, roi_y;
+	/* Geometry of the image the transform was computed from.  On a region
+	 * preview the hook receives a crop instead of the image, so it cannot
+	 * read these off its `fit`; WHERE that crop sits comes from the worker
+	 * (generic_img_args.roi_rect), which owns the region. */
 	int full_rx, full_ry;
 };
 

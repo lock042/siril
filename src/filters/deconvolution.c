@@ -267,7 +267,7 @@ void reset_conv_args(estk_data* args) {
 	args->stars_need_clearing = FALSE;
 	args->recalc_ks = FALSE;
 	args->psftype = PSF_BLIND;
-	args->fit = gui_iface.roi_is_active() ? (fits*)gui_iface.get_roi_fit() : gfit;
+	args->fit = gfit;
 	imageorientation = get_imageorientation(args->fit);
 	args->fdata = NULL;
 	args->rx = 0;
@@ -896,7 +896,7 @@ gpointer deconvolve(gpointer p) {
 		if (sequence_is_running == 0)
 			siril_log_message(_("No FFT wisdom found to import...\n"));
 	}
-	if (args->fit == gfit || args->fit == (fits*)gui_iface.get_roi_fit())
+	if (args->fit == gfit)
 		if (!com.script && !com.headless && !args->previewing)
 			undo_save_state(gfit, _("Deconvolution"));
 	args->ndata = args->fit->rx * args->fit->ry * args->fit->naxes[2];
@@ -1040,7 +1040,7 @@ ENDDECONV:
 /* Wrapper hooks for deconvolution.
  *
  * `args->user` is an estk_data whose `->fit` pointer is pre-bound at
- * process_deconvolve() time (to gfit or gui.roi.fit).  The worker's
+ * process_deconvolve() time (always gfit).  The worker's
  * image_hook contract is "operate on the `fit` parameter, not on the
  * global gfit" — necessary for the upcoming swap refactor where the
  * worker passes a private copy of gfit and installs the result later

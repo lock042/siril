@@ -28,12 +28,12 @@ typedef struct update_preview_struct {
 } update_image;
 
 void copy_gfit_icc_to_backup();
-int backup_roi();
-int restore_roi();
 void copy_gfit_to_backup();
 int copy_backup_to_gfit();
-fits *get_roi_backup();
 fits *get_preview_gfit_backup();
+/* The pre-operation pixels of the displayed image: the preview backup when one
+ * is live AND belongs to the current gfit, gfit itself otherwise. */
+fits *get_preop_gfit();
 /* Identity of the fits the live backup was taken from (NULL when no
  * preview is active).  gfit != owner means an active-layer switch
  * happened under the preview and the backup must be re-armed. */

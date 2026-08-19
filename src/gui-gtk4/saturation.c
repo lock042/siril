@@ -121,21 +121,16 @@ static int satu_process_with_worker(gboolean for_preview) {
 		return 1;
 	}
 
-	/* A ROI is a preview scope, never an edit scope: Apply always runs on the
-	 * whole image.  Without the for_preview gate, an Apply with an active ROI
-	 * took the worker's non-swap path — it saturated only the rectangle and,
-	 * because both undo and the NDE record require fit == gfit, committed
-	 * neither. */
-	const gboolean roi = for_preview && gui.roi.active;
-
-	args->fit = roi ? &gui.roi.fit : gfit;
+	/* Always gfit.  A ROI is a preview scope, never an edit scope: the
+	 * worker decides for itself whether this run is region-scoped, from
+	 * for_preview and the op descriptor. */
+	args->fit = gfit;
 	args->op = &op_desc_saturation;
 	args->idle_function = for_preview ? NULL : satu_apply_idle;
 	args->verbose = !for_preview;
 	args->user = params;
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
-	args->for_roi = roi;
 	args->mask_aware = TRUE;
 
 	if (for_preview)

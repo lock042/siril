@@ -95,7 +95,7 @@ static int asinh_process_with_worker(gboolean for_preview) {
 		return 1;
 	}
 
-	args->fit = gui.roi.active ? &gui.roi.fit : gfit;
+	args->fit = gfit;
 	args->op = &op_desc_asinh;
 	args->idle_function = for_preview ? NULL : asinh_apply_idle;
 	args->verbose = !for_preview;
@@ -103,7 +103,6 @@ static int asinh_process_with_worker(gboolean for_preview) {
 	args->mask_aware = TRUE;
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
-	args->for_roi = gui.roi.active;
 
 	if (for_preview)
 		generic_image_worker(args);
@@ -364,7 +363,6 @@ void on_asinh_ok_clicked(GtkButton *button, gpointer user_data) {
 	args->max_threads = com.max_thread;
 	args->mask_aware = TRUE;
 	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 	args->skip_generic_undo = TRUE;
 
 	start_in_new_thread(generic_image_worker, args);

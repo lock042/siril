@@ -1119,22 +1119,23 @@ int undo_display_data(int dir) {
 			// Avoid any issues with ROI or preview
 			gboolean preview_was_active = gui_iface.is_preview_active();
 			historic *top = (historic *) com.undo_stack->data;
-			// Can't reactivate the ROI if the size has changed
-			gboolean roi_was_active = (gui_iface.roi_is_active()
+			/* The ROI is a rectangle, not a buffer, so it survives an undo
+			 * that leaves the geometry alone — there is nothing to
+			 * repopulate.  A geometry change does invalidate it. */
+			gboolean roi_survives = (gui_iface.roi_is_active()
 					&& gfit->rx == top->rx
 					&& gfit->ry == top->ry
 					&& gfit->naxes[2] == top->nchans);
-			rectangle roi_rect;
-			gui_iface.get_roi_selection(&roi_rect);
 
-			/* hide_preview() and clear_roi() can transitively reach
-			 * notify_gfit_data_modified() → copy_roi_into_gfit(), which acquires
-			 * gfit->rwlock as a writer. They MUST run with no gfit lock held —
-			 * otherwise the same thread re-entering the writer lock self-deadlocks
-			 * (silently, since GLib's GRWLock makes recursive lock UB and Linux
-			 * pthread_rwlock blocks indefinitely). */
+			/* hide_preview() and clear_roi() write gfit and reach
+			 * notify_gfit_data_modified(), which takes gfit->rwlock. They
+			 * MUST run with no gfit lock held — otherwise the same thread
+			 * re-entering the lock self-deadlocks (silently, since GLib's
+			 * GRWLock makes recursive lock UB and Linux pthread_rwlock
+			 * blocks indefinitely). */
 			gui_iface.hide_preview();
-			gui_iface.clear_roi();
+			if (!roi_survives)
+				gui_iface.clear_roi();
 
 			/* Writer lock: undo_push_to (reads pixels) and undo_restore
 			 * (writes pixels) must be atomic against the Python thread.
@@ -1195,9 +1196,9 @@ int undo_display_data(int dir) {
 			gui_iface.update_menu_state();
 			gui_iface.reset_display_transform();
 			refresh_annotations(TRUE);
-			/* No gfit lock held here: notify_gfit_data_modified() may call
-			 * copy_roi_into_gfit() which acquires the writer lock, and
-			 * redraw_mask_idle takes the reader lock itself. */
+			/* No gfit lock held here: notify_gfit_data_modified() reaches
+			 * the display remap, and redraw_mask_idle takes the reader lock
+			 * itself. */
 			notify_gfit_data_modified();
 			gui_iface.redraw_image(REDRAW_ALL);
 			/* The remap above already applied any mask tint, so only the
@@ -1211,9 +1212,6 @@ int undo_display_data(int dir) {
 				// look up the correct one for the open dialog and re-apply the preview
 				siril_log_message(_("Following undo / redo with a preview active you may need "
 						"to toggle the preview off and on again to reactivate the preview effect\n"));
-			}
-			if (roi_was_active) {
-				gui_iface.restore_roi(&roi_rect);
 			}
 			g_rw_lock_reader_lock(&gfit->rwlock);
 			update_fits_header(gfit);
@@ -1233,18 +1231,18 @@ int undo_display_data(int dir) {
 			// Avoid any issues with ROI or preview
 			gboolean preview_was_active = gui_iface.is_preview_active();
 			historic *top = (historic *) com.redo_stack->data;
-			// Can't reactivate the ROI if the size has changed
-			gboolean roi_was_active = (gui_iface.roi_is_active()
+			/* See UNDO case: the ROI is a rectangle and survives unless the
+			 * geometry changed. */
+			gboolean roi_survives = (gui_iface.roi_is_active()
 					&& gfit->rx == top->rx
 					&& gfit->ry == top->ry
 					&& gfit->naxes[2] == top->nchans);
-			rectangle roi_rect;
-			gui_iface.get_roi_selection(&roi_rect);
 
-			/* See UNDO case: these can transitively try to take the writer
-			 * lock via notify_gfit_data_modified() → copy_roi_into_gfit()
-			 * and must run with no gfit lock held. */
-			gui_iface.clear_roi();
+			/* See UNDO case: these take gfit->rwlock via
+			 * notify_gfit_data_modified() and must run with no gfit lock
+			 * held. */
+			if (!roi_survives)
+				gui_iface.clear_roi();
 			gui_iface.hide_preview();
 
 			/* Writer lock: undo_push_to (reads pixels) and undo_restore
@@ -1294,9 +1292,9 @@ int undo_display_data(int dir) {
 			refresh_annotations(TRUE);
 			gui_iface.reset_display_transform();
 			gui_iface.on_channel_count_changed(); // These 2 lines account for possible change from mono to RGB
-			/* No gfit lock held here: notify_gfit_data_modified() may call
-			 * copy_roi_into_gfit() which acquires the writer lock, and
-			 * redraw_mask_idle takes the reader lock itself. */
+			/* No gfit lock held here: notify_gfit_data_modified() reaches
+			 * the display remap, and redraw_mask_idle takes the reader lock
+			 * itself. */
 			notify_gfit_data_modified();
 			gui_iface.redraw_image(REDRAW_ALL);
 			/* The remap above already applied any mask tint, so only the
@@ -1306,9 +1304,6 @@ int undo_display_data(int dir) {
 				g_rw_lock_reader_lock(&gfit->rwlock);
 				gui_iface.copy_gfit_to_backup();
 				g_rw_lock_reader_unlock(&gfit->rwlock);
-			}
-			if (roi_was_active) {
-				gui_iface.restore_roi(&roi_rect);
 			}
 			g_rw_lock_reader_lock(&gfit->rwlock);
 			update_fits_header(gfit);

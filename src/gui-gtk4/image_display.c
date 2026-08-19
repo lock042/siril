@@ -3835,7 +3835,7 @@ static void draw_selection(const draw_data_t* dd) {
 		 * destroyed the user's selection on layer switch and replaced
 		 * it with a layer-sized box at the canvas origin.  Ops that
 		 * consume the selection translate to layer-local coordinates
-		 * themselves (see populate_roi).  flis_canvas_rx/ry return
+		 * themselves (flis_display_to_active_layer_rect).  flis_canvas_rx/ry return
 		 * gfit dims for non-FLIS images. */
 		const gint disp_rx = (gint)flis_canvas_rx();
 		const gint disp_ry = (gint)flis_canvas_ry();
@@ -5269,71 +5269,6 @@ void adjust_vport_size_to_image() {
 	}
 }
 
-void copy_roi_into_gfit() {
-	size_t npixels_roi = gui.roi.selection.w * gui.roi.selection.h;
-	if (npixels_roi == 0 || com.script || com.python_command)
-		return;
-	/* Mirror populate_roi(): same translate-and-clip through the shared
-	 * helper, so the write-back region is exactly the region that was
-	 * captured. */
-	rectangle lsel;
-	if (!flis_display_to_active_layer_rect(&gui.roi.selection, &lsel, TRUE)) {
-		siril_log_debug("copy_roi_into_gfit: selection does not intersect the active layer, skipping\n");
-		return;
-	}
-	/* The ROI cache dims must match the clipped rect — they can drift if
-	 * the layer or selection changed since populate (the reconciler
-	 * repopulates asynchronously).  Skip rather than write mismatched
-	 * rows. */
-	if ((guint)lsel.w != gui.roi.fit.rx || (guint)lsel.h != gui.roi.fit.ry) {
-		siril_log_debug("copy_roi_into_gfit: ROI cache stale, skipping\n");
-		return;
-	}
-	/* Quiesce the materialise pool before the writer lock (writer-starvation
-	 * protocol, counting suppression — safe under an outer suppression). */
-	gui_iface.set_suppress_redraws(TRUE);
-	g_rw_lock_writer_lock(&gfit->rwlock);
-	/* Note the plane stride of the ROI cache is its own dims, NOT the
-	 * selection's — with a partially overlapping sparse layer the cache holds
-	 * only the clipped intersection.  paste_fits_region derives it from the
-	 * source fits for that reason. */
-	if (gui.roi.fit.type != gfit->type) {
-		size_t roi_ndata = gui.roi.fit.rx * gui.roi.fit.ry * gui.roi.fit.naxes[2];
-		if (gfit->type == DATA_FLOAT) {
-			fit_replace_buffer(&gui.roi.fit, gui.roi.fit.bitpix == BYTE_IMG ? ushort8_buffer_to_float(gui.roi.fit.data, roi_ndata): ushort_buffer_to_float(gui.roi.fit.data, roi_ndata), DATA_FLOAT);
-			if (is_preview_active()) {
-				fits *roi_backup = get_roi_backup();
-				fit_replace_buffer(roi_backup, roi_backup->bitpix == BYTE_IMG ? ushort8_buffer_to_float(roi_backup->data, roi_ndata) : ushort_buffer_to_float(roi_backup->data, roi_ndata), DATA_FLOAT);
-			}
-		} else {
-			fit_replace_buffer(&gui.roi.fit, float_buffer_to_ushort(gui.roi.fit.fdata, roi_ndata), DATA_USHORT);
-			if (gfit->bitpix == BYTE_IMG) {
-				for (size_t i = 0 ; i < roi_ndata ; i++) {
-					gui.roi.fit.data[i] >>= 8;
-				}
-				gui.roi.fit.bitpix = BYTE_IMG;
-			}
-			if (is_preview_active()) {
-				fits *roi_backup = get_roi_backup();
-				fit_replace_buffer(roi_backup, float_buffer_to_ushort(roi_backup->fdata, roi_ndata), DATA_USHORT);
-				if (gfit->bitpix == BYTE_IMG) {
-					for (size_t i = 0 ; i < roi_ndata ; i++) {
-						roi_backup->data[i] >>= 8;
-					}
-					roi_backup->bitpix = BYTE_IMG;
-				}
-			}
-		}
-	}
-
-	/* Mirror of populate_roi's crop_fits_region (fits_region.h): same rect,
-	 * same flip, pixels only. */
-	paste_fits_region(&gui.roi.fit, gfit, &lsel);
-
-	g_rw_lock_writer_unlock(&gfit->rwlock);
-	gui_iface.set_suppress_redraws(FALSE);
-}
-
 /* Drop the cached autostretch parameters so the next STF remap recomputes the
  * midtones balance from the current image and target background. */
 void invalidate_autostretch_cache(void) {
@@ -5433,7 +5368,7 @@ gboolean redraw_mask_idle(gpointer p) {
 		 * notify_gfit_data_modified()) already have the tint applied, and a
 		 * second full remap here would be pure duplication.
 		 * Reader lock released before this call: notify_gfit_data_modified()
-		 * may call copy_roi_into_gfit() which acquires the writer lock. */
+		 * re-enters the remap path, which takes the lock itself. */
 		if (remap_tints)
 			notify_gfit_data_modified();
 		redraw(REDRAW_ALL); // need to redraw all so the tinted vports repaint
