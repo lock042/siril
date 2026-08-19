@@ -224,6 +224,14 @@ static void set_controls_active(gboolean state) {
 }
 
 static void histo_startup() {
+	/* FIRST: init_toggles() performs the one-time `fit = gfit`, and everything
+	 * below dereferences fit.  It used to sit after the first of those
+	 * dereferences, which was safe only because every entry point that reaches
+	 * here (toggle_histogram_window_visibility, histo_amend_open) happens to
+	 * call init_toggles() itself beforehand — open the dialog by any route
+	 * that does not and this is a NULL deref. */
+	init_toggles();
+
 	set_controls_active(TRUE);
 	add_roi_callback(histo_change_between_roi_and_image);
 	roi_supported(TRUE);
@@ -231,7 +239,6 @@ static void histo_startup() {
 	if (fit->naxes[2] == 3 && _payne_colourstretchmodel == COL_SAT)
 		setup_hsl();
 
-	init_toggles();
 	do_channel[0] = siril_toggle_get_active(GTK_WIDGET(toggles[0]));
 	do_channel[1] = siril_toggle_get_active(GTK_WIDGET(toggles[1]));
 	do_channel[2] = siril_toggle_get_active(GTK_WIDGET(toggles[2]));
