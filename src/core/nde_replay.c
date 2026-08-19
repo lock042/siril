@@ -3882,11 +3882,25 @@ static nde_region_tail *region_tail_plan(const op_descriptor *editing,
 	if (!applies || !op_match)
 		return NULL;
 	if (borrowed) {
-		/* The item is not on the canvas — a merge or a flatten consumed it —
-		 * so the ROI rectangle, which is canvas-space, has no defined
-		 * translation into its coordinates.  What resolves this is the
-		 * windowed composite (roi-nde-plan.md phase 9 items 3 and 5), not a
-		 * guess at an offset. */
+		/* A merge or a flatten consumed this item, and the refusal is about
+		 * the CHAIN BOUNDARY, not about coordinates — the composite record
+		 * does keep the input's canvas position (nde_composite_input), so an
+		 * offset is not what is missing.
+		 *
+		 * What is missing is everything past the boundary.  Chain membership
+		 * is target_item_id, and the composite targets the item it PRODUCED,
+		 * so nde_chain_build(input) stops where the input was consumed: the
+		 * composite and every step built on its result sit on another item's
+		 * chain and this scan cannot see them.  It would therefore report a
+		 * replayable tail — truthfully, about the input in isolation — while
+		 * the user is looking at a display fed through a composite that is not
+		 * being replayed at all, and the banner would promise "the whole
+		 * chain".
+		 *
+		 * The composite could not be replayed on a rectangle anyway: it reads
+		 * its other inputs at full size.  Making it able to is exactly the
+		 * windowed composite (roi-nde-plan.md phase 9 items 3 and 5), which is
+		 * why that is where this belongs and not in a coordinate patch. */
 		if (why)
 			*why = g_strdup(_("this image was merged into another, so only the "
 			                  "step being edited can be previewed"));
