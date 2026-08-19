@@ -33,6 +33,13 @@ extern "C" {
 #include <sstream>
 #include <string>
 
+/* Windows path handling. Exiv2 <= 0.27 interprets a narrow path in the ANSI code
+ * page unless it was built with EXV_UNICODE_PATH, which enables the wstring
+ * overloads used here. Exiv2 >= 0.28 removed EXV_UNICODE_PATH and the wide API
+ * entirely, and interprets the narrow path as UTF-8 -- which is what Siril hands
+ * it -- so the pass-through below is the correct branch there. The broken
+ * combination is Windows + Exiv2 0.27 built WITHOUT EXV_UNICODE_PATH: a path
+ * containing non-ASCII characters then silently fails to open. */
 #if defined(_WIN32) && defined(EXV_UNICODE_PATH)
   #define WIDEN(s) pugi::as_wide(s)
 #else

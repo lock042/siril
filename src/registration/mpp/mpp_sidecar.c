@@ -78,6 +78,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+/* g_fopen, not fopen: the sidecar path is derived from the sequence path and can
+ * contain non-ASCII characters, which the narrow CRT mis-decodes on Windows. */
+#include <glib/gstdio.h>
 
 #include "registration/mpp.h"
 #include "registration/mpp/mpp_ap.h"
@@ -165,7 +168,7 @@ static int read_all(FILE *f, void *p, size_t n) {
 mpp_status_t mpp_sidecar_write(const char *path, const mpp_run_t *run) {
 	if (!path || !run || !run->aps || !run->cfg) return MPP_EINVAL;
 
-	FILE *f = fopen(path, "wb");
+	FILE *f = g_fopen(path, "wb");
 	if (!f) return MPP_EIO;
 
 	if (write_all(f, MPP_SIDECAR_MAGIC, 8) != 0) goto err;
@@ -253,7 +256,7 @@ mpp_status_t mpp_sidecar_read(const char *path, mpp_run_t **run_out) {
 	if (!path || !run_out) return MPP_EINVAL;
 	*run_out = NULL;
 
-	FILE *f = fopen(path, "rb");
+	FILE *f = g_fopen(path, "rb");
 	if (!f) return MPP_EIO;
 
 	char magic[8];

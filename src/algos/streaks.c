@@ -185,7 +185,9 @@ static void add_result_middle_and_ends(struct streak_result_set *set, int image_
 // also frees the streak_result_set
 static int dump_results(struct streak_result_set *set, const char *filename) {
 	int retval = 0;
-	FILE *fd = fopen(filename, "w");
+	// g_fopen, not fopen: filename is derived from the sequence path, so it can
+	// contain non-ASCII characters that the narrow CRT would mis-decode on Windows
+	FILE *fd = g_fopen(filename, "w");
 	if (!fd) {
 		siril_log_error(_("Could not save the result CSV file %s\n"), filename);
 		fd = stdout;
