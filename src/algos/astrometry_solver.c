@@ -1666,6 +1666,64 @@ gboolean asnet_is_available() {
 	return success;
 }
 
+/* Returns a newly-allocated copy of `path` whose directory component has been
+ * replaced by its 8.3 short (pure-ASCII) form, keeping the original base name.
+ * This lets the cygwin build of solve-field read the file even when the working
+ * directory contains non-ASCII characters (e.g. a national-character Windows
+ * account name), while leaving the base name untouched so the .wcs/.solved
+ * outputs solve-field derives from it keep their expected names.
+ *
+ * Scope/limitations:
+ *  - Only the DIRECTORY is shortened, so a non-ASCII *base name* (possible via a
+ *    non-ASCII image/sequence root in args->filename) is not addressed.
+ *  - Returns NULL if 8.3 short-name generation is disabled on the volume
+ *    (fsutil 8dot3name) or the directory does not exist; the caller then falls
+ *    back to the original long path. On such systems the fix silently no-ops and
+ *    the UTF-8 active-code-page manifest is the remaining backstop. */
+static gchar *asnet_short_dir_path(const gchar *path) {
+	gchar *dir = g_path_get_dirname(path);
+	gchar *base = g_path_get_basename(path);
+	gchar *result = NULL;
+
+	wchar_t *wdir = g_utf8_to_utf16(dir, -1, NULL, NULL, NULL);
+	if (wdir) {
+		DWORD len = GetShortPathNameW(wdir, NULL, 0);
+		if (len > 0) {
+			wchar_t *wshort = g_new(wchar_t, len);
+			if (GetShortPathNameW(wdir, wshort, len) > 0) {
+				gchar *shortdir = g_utf16_to_utf8(wshort, -1, NULL, NULL, NULL);
+				if (shortdir)
+					result = g_build_filename(shortdir, base, NULL);
+				g_free(shortdir);
+			}
+			g_free(wshort);
+		}
+		g_free(wdir);
+	}
+	g_free(dir);
+	g_free(base);
+	if (!result)
+		siril_log_debug("Could not derive a short path for '%s' (8.3 names disabled?); "
+				"using the long path\n", path);
+	return result;
+}
+
+/* Escapes the four characters bash treats specially inside a double-quoted
+ * string, so that a path written as p="<escaped>" in the generated asnet.sh is
+ * read back byte-for-byte and cannot terminate the quote or inject a command
+ * substitution. Every other byte (including the '\' of a Windows path, which
+ * bash leaves alone unless it precedes one of these four) round-trips as-is,
+ * so ordinary paths are written exactly as before. */
+static gchar *asnet_escape_double_quoted(const gchar *s) {
+	GString *out = g_string_sized_new(strlen(s) + 8);
+	for (const gchar *p = s; *p; p++) {
+		if (*p == '"' || *p == '\\' || *p == '$' || *p == '`')
+			g_string_append_c(out, '\\');
+		g_string_append_c(out, *p);
+	}
+	return g_string_free(out, FALSE);
+}
+
 #else
 
 static gchar *siril_get_asnet_bin() {
@@ -1804,11 +1862,23 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 		g_free(command);
 		return SOLVE_ASNET_PROC;
 	}
-	/* Write data to this file  */
-	fprintf(tmpfd, "p=\"%s\"\n", (char*)table_filename);
-	fprintf(tmpfd, "c=\"%s\"\n", (char*)stopfile);
+	/* Write data to this file. Replace the directory component of the input
+	 * table and stop-file paths with their 8.3 short form so that cygwin
+	 * solve-field can open them when com.wd contains non-ASCII characters,
+	 * and escape them so that a path containing a shell metacharacter cannot
+	 * break out of the double-quoted assignment. */
+	gchar *p_short = asnet_short_dir_path(table_filename);
+	gchar *c_short = asnet_short_dir_path(stopfile);
+	gchar *p_quoted = asnet_escape_double_quoted(p_short ? p_short : (char*)table_filename);
+	gchar *c_quoted = asnet_escape_double_quoted(c_short ? c_short : (char*)stopfile);
+	fprintf(tmpfd, "p=\"%s\"\n", p_quoted);
+	fprintf(tmpfd, "c=\"%s\"\n", c_quoted);
 	fprintf(tmpfd, "%s\n", command);
 	fclose(tmpfd);
+	g_free(p_short);
+	g_free(c_short);
+	g_free(p_quoted);
+	g_free(c_quoted);
 	g_free(asnetscript);
 	gchar *asnet_bash = g_build_filename(asnet_shell, "bin", "bash", NULL);
 	memset(sfargs, '\0', sizeof(sfargs));
