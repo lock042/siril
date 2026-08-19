@@ -458,49 +458,85 @@ static GList *make_point(GList *l, double x, double y) {
 Test(nde_serializers, curves_roundtrip_with_points) {
 	struct curve_params in = { 0 };
 	in.algorithm = LINEAR;   /* 1 */
-	in.do_channel[0] = TRUE; in.do_channel[1] = FALSE; in.do_channel[2] = TRUE;
-	in.points = make_point(in.points, 0.1, 0.2);
-	in.points = make_point(in.points, 0.5, 0.03125);
-	in.points = make_point(in.points, 1.0 / 3.0, -0.25);
+	/* two channels curved, one of them range-masked */
+	in.channels[CHAN_RGB_K].points = make_point(in.channels[CHAN_RGB_K].points, 0.1, 0.2);
+	in.channels[CHAN_RGB_K].points = make_point(in.channels[CHAN_RGB_K].points, 0.5, 0.03125);
+	in.channels[CHAN_RGB_K].points = make_point(in.channels[CHAN_RGB_K].points, 1.0 / 3.0, -0.25);
+	in.channels[CHAN_S].points = make_point(in.channels[CHAN_S].points, 0.0, 0.0);
+	in.channels[CHAN_S].points = make_point(in.channels[CHAN_S].points, 0.25, 0.75);
+	in.channels[CHAN_S].points = make_point(in.channels[CHAN_S].points, 1.0, 1.0);
+	in.channels[CHAN_S].range_enabled = TRUE;
+	in.channels[CHAN_S].lum_min = 0.125f;
+	in.channels[CHAN_S].lum_max = 0.875f;
+	in.channels[CHAN_S].feather = 0.5f;
 
 	gchar *blob = op_desc_curves.serialize(&in);
 	cr_assert_not_null(blob);
 	struct curve_params *out = op_desc_curves.deserialize(blob, op_desc_curves.version);
 	cr_assert_not_null(out);
 	cr_assert_eq(out->algorithm, in.algorithm);
-	cr_assert_eq(out->do_channel[0], TRUE);
-	cr_assert_eq(out->do_channel[1], FALSE);
-	cr_assert_eq(out->do_channel[2], TRUE);
-	cr_assert_eq(g_list_length(out->points), 3);
-	GList *a = in.points, *b = out->points;
-	for (; a && b; a = a->next, b = b->next) {
-		const point *pa = a->data, *pb = b->data;
-		cr_assert(memcmp(&pa->x, &pb->x, sizeof(double)) == 0, "point x not bit-exact");
-		cr_assert(memcmp(&pa->y, &pb->y, sizeof(double)) == 0, "point y not bit-exact");
+	for (int c = 0; c < CHAN_COUNT; c++) {
+		cr_assert_eq(g_list_length(out->channels[c].points),
+		             g_list_length(in.channels[c].points),
+		             "channel %d point count", c);
+		GList *a = in.channels[c].points, *b = out->channels[c].points;
+		for (; a && b; a = a->next, b = b->next) {
+			const point *pa = a->data, *pb = b->data;
+			cr_assert(memcmp(&pa->x, &pb->x, sizeof(double)) == 0, "point x not bit-exact");
+			cr_assert(memcmp(&pa->y, &pb->y, sizeof(double)) == 0, "point y not bit-exact");
+		}
+		cr_assert_eq(out->channels[c].range_enabled, in.channels[c].range_enabled,
+		             "channel %d range_enabled", c);
 	}
-	/* the deserialized struct owns its list — its destructor must free it */
+	cr_assert_float_eq(out->channels[CHAN_S].lum_min, 0.125f, 1e-6f);
+	cr_assert_float_eq(out->channels[CHAN_S].lum_max, 0.875f, 1e-6f);
+	cr_assert_float_eq(out->channels[CHAN_S].feather, 0.5f, 1e-6f);
+	/* the deserialized struct owns its lists — its destructor must free them */
 	cr_assert_not_null(out->destroy_fn);
 	FREE_VIA_DESTRUCTOR(out);
 	CHECK_MALFORMED(&op_desc_curves, blob);
 	g_free(blob);
-	g_list_free_full(in.points, g_free);
+	for (int c = 0; c < CHAN_COUNT; c++)
+		g_list_free_full(in.channels[c].points, g_free);
 }
 
-Test(nde_serializers, curves_empty_points) {
-	/* empty points list: no points key; deserialize yields an empty list */
+Test(nde_serializers, curves_identity_channels_omitted) {
+	/* Identity (and empty) channels write no keys at all, and come back as
+	 * the new_curve_params() defaults. */
 	struct curve_params in = { 0 };
 	in.algorithm = CUBIC_SPLINE;   /* 0 */
-	in.do_channel[0] = in.do_channel[1] = in.do_channel[2] = TRUE;
-	in.points = NULL;
+	in.channels[CHAN_R].points = make_point(in.channels[CHAN_R].points, 0.0, 0.0);
+	in.channels[CHAN_R].points = make_point(in.channels[CHAN_R].points, 1.0, 1.0);
+	/* a range mask on an identity channel is meaningless and is not written */
+	in.channels[CHAN_R].range_enabled = TRUE;
+
 	gchar *blob = op_desc_curves.serialize(&in);
 	cr_assert_not_null(blob);
-	cr_assert_null(strstr(blob, "points="), "empty list must omit the points key");
+	cr_assert_null(strstr(blob, "_points="), "identity channels must write no keys");
 	struct curve_params *out = op_desc_curves.deserialize(blob, op_desc_curves.version);
 	cr_assert_not_null(out);
-	cr_assert_null(out->points);
 	cr_assert_eq(out->algorithm, CUBIC_SPLINE);
+	for (int c = 0; c < CHAN_COUNT; c++) {
+		cr_assert_null(out->channels[c].points, "channel %d must be empty", c);
+		cr_assert_eq(out->channels[c].range_enabled, FALSE);
+	}
 	FREE_VIA_DESTRUCTOR(out);
 	g_free(blob);
+	g_list_free_full(in.channels[CHAN_R].points, g_free);
+}
+
+Test(nde_serializers, curves_rejects_v1_blob) {
+	/* The pre-VeraLux v1 blob shares no keys with v2: accepting it would
+	 * replay as a silent no-op, so the deserializer must refuse it. */
+	struct curve_params in = { 0 };
+	in.algorithm = LINEAR;
+	in.channels[CHAN_L].points = make_point(in.channels[CHAN_L].points, 0.0, 0.0);
+	in.channels[CHAN_L].points = make_point(in.channels[CHAN_L].points, 0.4, 0.6);
+	in.channels[CHAN_L].points = make_point(in.channels[CHAN_L].points, 1.0, 1.0);
+	gchar *blob = op_desc_curves.serialize(&in);
+	cr_assert_null(op_desc_curves.deserialize(blob, 1));
+	g_free(blob);
+	g_list_free_full(in.channels[CHAN_L].points, g_free);
 }
 
 Test(nde_serializers, bkg_remove_gradient_roundtrip) {

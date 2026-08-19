@@ -256,6 +256,8 @@ typedef struct {
 	void     (*invalidate_histogram)(void);
 	/* Recompute histogram if stale (call while holding at least a read lock). */
 	void     (*update_histogram)(void);
+	/* Reset the curves tool state after an undo/redo (no-op in headless mode). */
+	void     (*curves_reset_after_undo)(void);
 	/* Queue an idle mask redraw (may also trigger a full image redraw).
 	 * remap_tints: TRUE when the mask data changed and cached tints are
 	 * stale and must be recomputed. */

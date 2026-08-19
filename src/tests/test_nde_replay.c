@@ -565,18 +565,28 @@ Test(nde_replay, golden_curves) {
 	fill_mono_gradient(f);
 	gfit = f;
 	/* Build curve_params exactly as the GUI does: new_curve_params() sets
-	 * destroy_fn = free_curve_params (which does NOT free the points list — the
-	 * caller owns it), and we attach a points GList we free ourselves after the
-	 * worker.  Mirrors src/gui-gtk4/curves.c curves_process_with_worker(). */
+	 * destroy_fn = free_curve_params, which owns and frees the per-channel
+	 * points lists.  Mirrors src/gui-gtk4/curves.c
+	 * build_curve_params_from_gui(). */
 	struct curve_params *u = new_curve_params();
 	cr_assert_not_null(u);
 	GList *pts = NULL;
 	point *p0 = g_new(point, 1); p0->x = 0.0; p0->y = 0.0; pts = g_list_append(pts, p0);
 	point *p1 = g_new(point, 1); p1->x = 0.4; p1->y = 0.6; pts = g_list_append(pts, p1);
 	point *p2 = g_new(point, 1); p2->x = 1.0; p2->y = 1.0; pts = g_list_append(pts, p2);
-	u->points = pts;
+	u->channels[CHAN_RGB_K].points = pts;
+	/* a range-masked L* curve on top, so the replay has to reproduce the
+	 * mask parameters as well as the points */
+	GList *lpts = NULL;
+	point *l0 = g_new(point, 1); l0->x = 0.0; l0->y = 0.0; lpts = g_list_append(lpts, l0);
+	point *l1 = g_new(point, 1); l1->x = 0.5; l1->y = 0.35; lpts = g_list_append(lpts, l1);
+	point *l2 = g_new(point, 1); l2->x = 1.0; l2->y = 1.0; lpts = g_list_append(lpts, l2);
+	u->channels[CHAN_L].points = lpts;
+	u->channels[CHAN_L].range_enabled = TRUE;
+	u->channels[CHAN_L].lum_min = 0.2f;
+	u->channels[CHAN_L].lum_max = 0.8f;
+	u->channels[CHAN_L].feather = 0.3f;
 	u->algorithm = LINEAR;
-	u->do_channel[0] = u->do_channel[1] = u->do_channel[2] = TRUE;
 	u->fit = gfit;
 	u->verbose = FALSE;
 	u->for_preview = FALSE;
@@ -584,7 +594,6 @@ Test(nde_replay, golden_curves) {
 	fits *result = replay_current_chain(1);
 	assert_pixels_bit_exact(result, gfit, "curves");
 	golden_teardown(result, f);
-	g_list_free_full(pts, g_free);   /* the caller owns the points list */
 }
 
 /* ---- multi-op chain: three different ops stacked ---- */

@@ -44,6 +44,7 @@
 #include "registration/mpp.h"
 #include "registration/mpp/mpp_ap.h"
 #include "gui-gtk4/masks_gui.h"
+#include "gui-gtk4/curves.h"
 #include "image_display.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/save_dialog.h"
@@ -663,6 +664,11 @@ static gboolean sample_mask_color_release(mouse_data *data) {
 	return TRUE;
 }
 
+static gboolean curves_pipette_release(mouse_data *data) {
+	curves_handle_pipette_click(data->zoomed.x, data->zoomed.y);
+	return TRUE;
+}
+
 static gboolean show_popup_menu(mouse_data *data) {
 	if (gui.cvport == MASK_VPORT) {
 		do_popup_maskmenu(data->widget, data->x, data->y);
@@ -1014,6 +1020,10 @@ gboolean main_action_click(mouse_data *data) {
 			}
 			case MOUSE_ACTION_SAMPLE_MASK_COLOR: {
 				register_release_callback(sample_mask_color_release, data->button);
+				break;
+			}
+			case MOUSE_ACTION_CURVES_PIPETTE: {
+				register_release_callback(curves_pipette_release, data->button);
 				break;
 			}
 			default: {
