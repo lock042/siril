@@ -35,13 +35,12 @@
  * python cannot interleave).  nde_chain_build() only snapshots and
  * validates; it is safe anywhere.
  *
- * REGIONS.  A replay is never region-scoped today: it applies whole records to
- * a private fits, and generic_image_worker's region path is gated on
- * for_preview, which a replay never sets.  The eventual prize is a WINDOWED
- * replay — recompute an amended tail only inside the ROI rectangle, so
- * adjusting a parameter upstream of an expensive op is cheap.  See the ROI
- * model above roi_t (core/siril.h) for the scope rules that would apply, and
- * note the classification rule this end has to satisfy first:
+ * REGIONS.  A replay that REBUILDS an item is never region-scoped: it applies
+ * whole records to a private full-size fits, and generic_image_worker's region
+ * path is gated on for_preview, which such a replay never sets.  What IS
+ * region-scoped is the amend PREVIEW's tail — see the nde_region_tail block
+ * further down, and the ROI model above roi_t (core/siril.h) for the scope
+ * rules.  The classification rule both ends share:
  *
  *   an op is region-replayable iff its record is PARAMETER-COMPLETE — it pins
  *   the derived quantity, not the recipe for deriving it — and its spatial
@@ -57,11 +56,14 @@
 
 #include <glib.h>
 
+#include "core/settings.h"   /* rectangle */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 struct ffit;
+struct op_descriptor;
 
 /* Per-member flag bits in nde_chain.member_flags. */
 #define NDE_CHAIN_MEMBER_BARRIER 0x1  /* non-replayable member (Tier B / mask) */
@@ -294,6 +296,85 @@ const gchar *nde_amend_preview_params(void);
  */
 gboolean nde_amend_preview_begin_execute(gint64 record_id, gchar **err);
 gboolean nde_amend_preview_end_execute(gboolean apply, const gchar *new_params, gchar **err);
+
+/* ---- region-scoped tail replay (roi-nde-plan.md phase 9) ----------------
+ * The amend preview shows the chain up to K−1 with the steps AFTER K hidden,
+ * so the user tunes a parameter against a state the image will never look
+ * like.  Recomputing K+1…head every slider tick is what makes it honest, and
+ * it is affordable exactly when it is confined to the ROI rectangle.
+ *
+ * So when a region preview runs while an amend preview is installed, the
+ * worker grows its crop by K's halo PLUS the tail's, runs K's hook on the
+ * crop, then replays K+1…head over it before pasting the requested rectangle
+ * back.  Inside the rectangle the user sees the whole chain; outside it the
+ * pre-K state — which is the contract every region preview has always had
+ * ("outside the rectangle, the pre-operation state"), not a new one.
+ *
+ * A tail is region-replayable iff every record in it is Tier-A with a
+ * registered descriptor, declares OP_ROI_CAPABLE, does not change geometry,
+ * and is parameter-complete.  In code the last of those reads "has no
+ * replay_pre": that hook exists precisely for records that re-derive
+ * something from the image they are about to run on, which is the one thing a
+ * crop cannot reproduce.  Halos ADD down the tail.
+ *
+ * Nothing here is recorded, deposited or committed.  A region replay produces
+ * preview pixels for one rectangle, and its intermediate states are worth
+ * nothing to anyone — a snapstore deposit of a region-sized state would be
+ * actively harmful, since a later full replay could restart from it.
+ */
+
+/** Opaque plan: a snapshot of the tail, taken once per preview run so the
+ *  halo the crop is grown by and the records replayed into it are the same
+ *  list.  Free with nde_region_tail_free(). */
+typedef struct nde_region_tail nde_region_tail;
+
+/**
+ * Plan the tail replay for a preview about to run @editing.  NULL when there
+ * is nothing to do — no amend preview installed, a different op than the one
+ * being amended, or a tail that cannot be region-replayed.  On success *halo
+ * (optional) receives the pixels of extra context the tail needs, which the
+ * caller must add to its own op's halo before cropping.
+ *
+ * An EMPTY tail (the amended record is the last one) plans successfully with
+ * a zero halo: there is nothing to replay and nothing hidden, which is the
+ * truthful answer rather than a refusal.
+ */
+nde_region_tail *nde_region_tail_begin(const struct op_descriptor *editing,
+                                       int *halo);
+
+/**
+ * Replay the planned tail over @region in place.  @rect is the crop @region
+ * was taken from, in the amended item's coordinates — needed to crop the
+ * records' pinned masks to match.  @max_threads is passed through.
+ *
+ * FALSE when the tail did not complete: @region then holds a partial result,
+ * and the caller should paste it anyway.  That degrades the rectangle to what
+ * the REST of the image is already showing (pre-K plus the step being
+ * edited), which beats freezing the preview.
+ *
+ * Two ways not to complete, and telling them apart is load-bearing.  A record
+ * that FAILS is a fault: logged once, and the plan refuses to build again for
+ * the rest of this amend preview, so a broken tail costs one message rather
+ * than one per slider tick.  Being CANCELLED is not: notify_update cancels
+ * the running preview job every time a newer tick arrives, so it happens
+ * constantly during an ordinary drag — it is silent and leaves the feature
+ * armed.  Treating the two alike disarmed the tail for good the first time
+ * the user moved the rectangle.
+ */
+gboolean nde_region_tail_apply(nde_region_tail *plan, struct ffit *region,
+                               const rectangle *rect, int max_threads);
+
+void nde_region_tail_free(nde_region_tail *plan);
+
+/**
+ * The regime, for the amend banner to state once at open: TRUE when the
+ * installed amend preview's tail would be recomputed inside a region preview.
+ * @halo (optional) receives the tail's halo, @why (optional) a translated
+ * one-line reason when the answer is FALSE *and there is one to give* — it
+ * stays NULL when no amend preview is installed at all, which is not a
+ * refusal but a different situation entirely.  Caller g_free()s it.
+ */
+gboolean nde_region_tail_available(int *halo, gchar **why);
 
 /* ---- edit at / insert before K (graph step 2) ---------------------------
  * The same pre-K install as the amend preview, with a different exit verb.

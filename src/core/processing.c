@@ -1622,6 +1622,11 @@ gpointer generic_image_worker(gpointer p) {
 	 * the image.  The hook sees this; only roi_rect is written back, so the
 	 * halo extends the input and never shrinks what the user sees. */
 	rectangle roi_grown = roi_rect;
+	/* Non-NULL when this preview is a dialog amending a history record whose
+	 * SUCCESSORS can be recomputed on the rectangle too (nde_replay.h).  Held
+	 * across the hook so the halo the crop was grown by and the records
+	 * replayed into it come from one snapshot of the tail. */
+	nde_region_tail *roi_tail = NULL;
 
 	/* FLIS geometry-op undo capture: when geometry_changing is set AND a FLIS
 	 * is loaded, route the undo entry through undo_save_flis_layer_full so the
@@ -1830,7 +1835,9 @@ gpointer generic_image_worker(gpointer p) {
 		/* Grow by the op's declared halo, clipped to the image.  Clipping is
 		 * not an approximation: a hook's own edge handling at the image
 		 * border is what a full-image run would do there too. */
-		const int halo = op_descriptor_roi_halo(args->op, args->user);
+		int tail_halo = 0;
+		roi_tail = nde_region_tail_begin(args->op, &tail_halo);
+		const int halo = op_descriptor_roi_halo(args->op, args->user) + tail_halo;
 		if (halo > 0) {
 			const gint x0 = MAX(0, roi_rect.x - halo);
 			const gint y0 = MAX(0, roi_rect.y - halo);
@@ -2075,6 +2082,22 @@ the_end:;
 		}
 	} else if (for_roi) {
 		if (!retval) {
+			/* Amend preview: replay the amended record's SUCCESSORS over the
+			 * crop, so inside the rectangle the user sees the whole chain and
+			 * not just the step being edited.  The crop was grown by their
+			 * halos as well as this op's, so the requested rectangle is still
+			 * computed from full context.
+			 *
+			 * The nested worker takes com.pref_rwlock's reader lock, which
+			 * this one already holds — recursive read locks are explicitly
+			 * permitted by GRWLock.
+			 *
+			 * A partial failure is pasted anyway: the rectangle then shows
+			 * what the rest of the image is showing, which beats a frozen
+			 * preview.  nde_region_tail_apply logs it once and disarms. */
+			if (roi_tail)
+				nde_region_tail_apply(roi_tail, roi_work, &roi_grown,
+				                      args->max_threads);
 			/* A hook may hand back a different pixel type than it was
 			 * given (deconvolution normalises to float internally).  A
 			 * region preview replaces a rectangle, so it cannot change
@@ -2359,6 +2382,7 @@ the_end:;
 	if (roi_work)
 		clearfits(roi_work);
 	free(roi_work);
+	nde_region_tail_free(roi_tail);
 
 	return GINT_TO_POINTER(retval);
 }

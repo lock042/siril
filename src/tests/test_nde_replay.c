@@ -29,6 +29,7 @@
 #include "core/nde_checkpoint.h"
 #include "core/nde_snapstore.h"
 #include "core/nde_replay.h"
+#include "core/fits_region.h"
 #include "core/masks.h"
 #include "algos/geometry.h"
 #include "filters/asinh.h"
@@ -1993,6 +1994,197 @@ Test(nde_replay, amend_preview_apply_uses_deposited_restart) {
 	cr_assert(strstr(rec->params, "beta=40") != NULL, "params: %s", rec->params);
 	g_ptr_array_unref(snap);
 
+	golden_teardown(NULL, f);
+}
+
+/* ---------------- phase 9: region-scoped tail replay ---------------- */
+
+/* The worker's region-preview algorithm, spelled out here so the claim can be
+ * checked against the only thing it means: crop the pre-op image, grown by
+ * the edited op's halo PLUS the tail's; run the edited op on the crop; replay
+ * the tail over it; take the requested rectangle back out.  That rectangle
+ * must equal a full-image computation of the whole amended chain, cropped to
+ * the same place. */
+Test(nde_replay, region_tail_replay_matches_a_full_recompute) {
+	com.pref.nde_cache_mb = 256;   /* fixture memsets com — enable the pool */
+	com.max_thread = 1;
+	fits *f = flis_test_make_mono_fits(48, 40, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	/* asinh(10) — the record we amend — then a median with a real reach, then
+	 * a second stretch, so the tail is neither trivially pixel-local nor a
+	 * single step. */
+	asinh_params *u1 = calloc(1, sizeof(*u1));
+	u1->beta = 10.0f; u1->clip_mode = RESCALE;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, u1), 0);
+	struct median_filter_data *u2 = calloc(1, sizeof(*u2));
+	u2->ksize = 5; u2->iterations = 2; u2->amount = 1.0;
+	cr_assert_eq(apply_op_real(&op_desc_median, u2), 0);
+	asinh_params *u3 = calloc(1, sizeof(*u3));
+	u3->beta = 20.0f; u3->clip_mode = RESCALE;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, u3), 0);
+
+	/* The truth: the whole chain, full-image, with record 1 amended. */
+	fits *truth = nde_checkpoint_baseline_get(-1);
+	cr_assert_not_null(truth);
+	{
+		asinh_params *e1 = calloc(1, sizeof(*e1));
+		e1->beta = 25.0f; e1->clip_mode = RESCALE;
+		apply_direct(&op_desc_asinh, e1, truth);
+		struct median_filter_data *e2 = calloc(1, sizeof(*e2));
+		e2->ksize = 5; e2->iterations = 2; e2->amount = 1.0;
+		apply_direct(&op_desc_median, e2, truth);
+		asinh_params *e3 = calloc(1, sizeof(*e3));
+		e3->beta = 20.0f; e3->clip_mode = RESCALE;
+		apply_direct(&op_desc_asinh, e3, truth);
+	}
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_amend_preview_begin_execute(1, &err),
+	          "begin failed: %s", err ? err : "?");
+
+	int tail_halo = -1;
+	nde_region_tail *plan = nde_region_tail_begin(&op_desc_asinh, &tail_halo);
+	cr_assert_not_null(plan, "a median + asinh tail is region-replayable");
+	cr_assert_eq(tail_halo, 4,
+	             "the tail's halo is the median's radius x iterations (2x2); "
+	             "the trailing asinh is pixel-local");
+
+	/* Crop as the worker would: the requested rectangle grown by 0 (asinh)
+	 * + tail_halo, clipped to the image. */
+	const rectangle want = { 18, 14, 12, 10 };
+	const rectangle grown = { want.x - tail_halo, want.y - tail_halo,
+	                          want.w + 2 * tail_halo, want.h + 2 * tail_halo };
+	fits region = { 0 };
+	cr_assert_eq(crop_fits_region(gfit, &grown, &region), 0);
+
+	asinh_params *k = calloc(1, sizeof(*k));
+	k->beta = 25.0f; k->clip_mode = RESCALE;
+	apply_direct(&op_desc_asinh, k, &region);
+
+	/* Before replaying the tail, keep what the rectangle WOULD have shown
+	 * without it — the discrimination control below. */
+	fits without_tail = { 0 };
+	copyfits(&region, &without_tail, CP_DEEPCOPY | CP_ALLOC, -1);
+
+	cr_assert(nde_region_tail_apply(plan, &region, &grown, 1));
+	nde_region_tail_free(plan);
+
+	const rectangle inner = { tail_halo, tail_halo, want.w, want.h };
+	fits got = { 0 }, expected = { 0 }, control = { 0 };
+	cr_assert_eq(crop_fits_region(&region, &inner, &got), 0);
+	cr_assert_eq(crop_fits_region(truth, &want, &expected), 0);
+	cr_assert_eq(crop_fits_region(&without_tail, &inner, &control), 0);
+
+	/* Not bit-exact: the median is OpenCV-backed and sums the same pixels in
+	 * a different order at a different image width (op_descriptor.h).  1e-5 is
+	 * two thirds of one ADU in 65535. */
+	assert_pixels_close(&got, &expected, 1e-5f, "region tail replay");
+
+	/* ...and the tail is what got it there.  Without this the test would pass
+	 * just as happily on a tail that never ran, since a stretch of a stretch
+	 * still looks like an image. */
+	float ctl_dev = 0.f;
+	for (size_t i = 0; i < (size_t)got.rx * got.ry; i++)
+		ctl_dev = fmaxf(ctl_dev, fabsf(control.fdata[i] - expected.fdata[i]));
+	cr_assert(ctl_dev > 1e-3f,
+	          "the un-replayed rectangle must differ substantially (max %g)", ctl_dev);
+
+	cr_assert(nde_amend_preview_end_execute(FALSE, NULL, &err));
+	unreserve_thread();
+
+	clearfits(&got); clearfits(&expected); clearfits(&control);
+	clearfits(&region); clearfits(&without_tail);
+	clearfits(truth); free(truth);
+	golden_teardown(NULL, f);
+}
+
+/* The regime the amend banner states, and the reason it gives when the answer
+ * is no.  A geometry op in the tail is the clearest case: the rectangle it
+ * would produce is not the rectangle that was asked for. */
+Test(nde_replay, region_tail_reports_why_it_cannot_run) {
+	com.pref.nde_cache_mb = 256;
+	com.max_thread = 1;
+	fits *f = flis_test_make_mono_fits(24, 20, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	/* Nothing installed: not a refusal, a different situation — and the
+	 * banner must be able to tell them apart. */
+	gchar *why = (gchar *)0x1;
+	cr_assert(!nde_region_tail_available(NULL, &why));
+	cr_assert_null(why, "no amend preview is not a reason to report");
+
+	asinh_params *u1 = calloc(1, sizeof(*u1));
+	u1->beta = 10.0f; u1->clip_mode = RESCALE;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, u1), 0);
+	struct mirror_args *u2 = calloc(1, sizeof(*u2));
+	u2->x_axis = TRUE;
+	cr_assert_eq(apply_op_real(&op_desc_mirrorx, u2), 0);
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_amend_preview_begin_execute(1, &err),
+	          "begin failed: %s", err ? err : "?");
+
+	cr_assert(!nde_region_tail_available(NULL, &why));
+	cr_assert_not_null(why, "a refusal must name the step responsible");
+	cr_assert(strstr(why, "geometry") != NULL, "got: %s", why);
+	g_clear_pointer(&why, g_free);
+	cr_assert_null(nde_region_tail_begin(&op_desc_asinh, NULL));
+
+	cr_assert(nde_amend_preview_end_execute(FALSE, NULL, &err));
+	unreserve_thread();
+	golden_teardown(NULL, f);
+}
+
+/* Amending the LAST record: the tail is empty, so there is nothing hidden and
+ * nothing to replay — which is a plan with a zero halo, not a refusal.  And a
+ * preview of some OTHER op running while the amend preview is installed is
+ * not this dialog's preview, so it gets no tail. */
+Test(nde_replay, region_tail_empty_and_mismatched) {
+	com.pref.nde_cache_mb = 256;
+	com.max_thread = 1;
+	fits *f = flis_test_make_mono_fits(24, 20, 0.f);
+	fill_mono_gradient(f);
+	gfit = f;
+
+	asinh_params *u1 = calloc(1, sizeof(*u1));
+	u1->beta = 10.0f; u1->clip_mode = RESCALE;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, u1), 0);
+	asinh_params *u2 = calloc(1, sizeof(*u2));
+	u2->beta = 20.0f; u2->clip_mode = RESCALE;
+	cr_assert_eq(apply_op_real(&op_desc_asinh, u2), 0);
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_amend_preview_begin_execute(2, &err),
+	          "begin failed: %s", err ? err : "?");
+
+	int halo = -1;
+	cr_assert(nde_region_tail_available(&halo, NULL));
+	cr_assert_eq(halo, 0, "an empty tail needs no context");
+
+	nde_region_tail *plan = nde_region_tail_begin(&op_desc_asinh, NULL);
+	cr_assert_not_null(plan);
+	/* Applying an empty tail is a no-op, not an error. */
+	fits region = { 0 };
+	const rectangle r = { 4, 4, 8, 8 };
+	cr_assert_eq(crop_fits_region(gfit, &r, &region), 0);
+	fits before = { 0 };
+	copyfits(&region, &before, CP_DEEPCOPY | CP_ALLOC, -1);
+	cr_assert(nde_region_tail_apply(plan, &region, &r, 1));
+	assert_pixels_bit_exact(&region, &before, "empty tail");
+	nde_region_tail_free(plan);
+	clearfits(&region); clearfits(&before);
+
+	cr_assert_null(nde_region_tail_begin(&op_desc_median, NULL),
+	               "a different op's preview is not the amend dialog's");
+
+	cr_assert(nde_amend_preview_end_execute(FALSE, NULL, &err));
+	unreserve_thread();
 	golden_teardown(NULL, f);
 }
 

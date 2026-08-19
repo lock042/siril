@@ -33,6 +33,7 @@
 #include "algos/statistics.h"
 #include "io/single_image.h"
 #include "core/op_descriptor.h"
+#include "core/fits_region.h"
 #include "core/nde_history.h"
 #include "core/nde_checkpoint.h"
 #include "core/masks.h"
@@ -3461,6 +3462,9 @@ static struct {
 	 * layer on the way out; the composites that consume the item are
 	 * recomputed instead. */
 	gboolean borrowed;
+	/* A region tail replay failed once; stop attempting it for the rest of
+	 * this preview (nde_region_tail_apply). */
+	gboolean tail_failed;
 	gint64   record_id;
 	gint     item_id;
 	gchar   *op_id;
@@ -3536,6 +3540,7 @@ static void apv_clear_state_locked(void) {
 	apv.installed = FALSE;
 	apv.insert = FALSE;
 	apv.borrowed = FALSE;
+	apv.tail_failed = FALSE;
 	apv.record_id = 0;
 	apv.item_id = -1;
 	g_free(apv.op_id);    apv.op_id = NULL;
@@ -3796,6 +3801,306 @@ gboolean nde_amend_preview_end_execute(gboolean apply, const gchar *new_params, 
 	if (apply)
 		return edit_execute(record_id, new_params, err);
 	return TRUE;
+}
+
+/* ======================================================================= */
+/* Region-scoped tail replay (roi-nde-plan.md phase 9)                     */
+/* ======================================================================= */
+
+/* Taken once per preview run.  The halo the crop is grown by and the records
+ * replayed into that crop MUST come from the same list, or the tail runs with
+ * less context than it was measured to need — hence a plan object rather than
+ * two independent queries. */
+struct nde_region_tail {
+	nde_chain *chain;
+	guint      from;   /* first tail member index (== len ⇒ empty tail) */
+	int        halo;   /* Σ of the tail's declared halos */
+};
+
+/* Why @rec cannot be recomputed on a rectangle — a translated heap string —
+ * or NULL when it can, in which case *halo_out receives its declared halo.
+ *
+ * The op's own description is preferred to its id for the message: this is
+ * shown in the amend banner, and "Asinh transformation" is what the user
+ * clicked, whereas "colors.asinh" is what we called it. */
+static gchar *region_tail_member_reason(const nde_record *rec, guint8 flags,
+                                        int *halo_out) {
+	const op_descriptor *op = rec->op_id ? op_descriptor_by_id(rec->op_id) : NULL;
+	const gchar *name = (op && op->description) ? _(op->description)
+	                  : (rec->op_id ? rec->op_id : "?");
+
+	if (flags & NDE_CHAIN_MEMBER_BARRIER)
+		return g_strdup_printf(_("\"%s\" cannot be recomputed"), name);
+	if (rec->tier != NDE_TIER_A)
+		return g_strdup_printf(_("\"%s\" is not a replayable step"), name);
+	/* Composites and joint records read OTHER items, at full size.  They are
+	 * excluded by the descriptor test below too (neither has one), but naming
+	 * them separately is what makes the banner's reason useful. */
+	if (nde_composite_is_op(rec->op_id) || nde_joint_is_op(rec->op_id))
+		return g_strdup_printf(_("\"%s\" combines several images"), name);
+	if (!op || !op->deserialize)
+		return g_strdup_printf(_("\"%s\" is not a known operation"), name);
+	if (op->flags & OP_GEOMETRY_CHANGING)
+		return g_strdup_printf(_("\"%s\" changes the image geometry"), name);
+	if (!op_descriptor_is_roi_capable(op))
+		return g_strdup_printf(_("\"%s\" cannot be computed on a region"), name);
+	/* Parameter-completeness, in the one form the code can actually test for:
+	 * replay_pre exists so a record can re-derive something from the image it
+	 * is about to run on (background extraction refits from its recorded
+	 * sample positions), and a crop is not that image. */
+	if (op->replay_pre)
+		return g_strdup_printf(_("\"%s\" re-derives its settings from the whole image"), name);
+
+	gpointer user = op->deserialize(rec->params, rec->op_version);
+	if (!user)
+		return g_strdup_printf(_("\"%s\": its settings could not be read"), name);
+	*halo_out = op_descriptor_roi_halo(op, user);
+	destroy_user(user);
+	return NULL;
+}
+
+/* Build the plan, or NULL.  @editing NULL asks only "what is the regime?" —
+ * the banner's question — and skips the op match. */
+static nde_region_tail *region_tail_plan(const op_descriptor *editing,
+                                         gchar **why) {
+	if (why)
+		*why = NULL;
+
+	g_mutex_lock(&apv_mutex);
+	/* insert mode has no "record being edited" to sit in front of the tail:
+	 * what is hidden there is [anchor..head], replayed forward over inserted
+	 * work at the end, and the ops that produce that work are ordinary
+	 * full-image runs.  A later step. */
+	gboolean applies  = apv.installed && !apv.insert && !apv.tail_failed;
+	gboolean borrowed = apv.borrowed;
+	gint64   record_id = apv.record_id;
+	gint     item_id   = apv.item_id;
+	gboolean op_match = !editing || (editing->id && apv.op_id
+	                                 && !g_strcmp0(editing->id, apv.op_id));
+	g_mutex_unlock(&apv_mutex);
+
+	if (!applies || !op_match)
+		return NULL;
+	if (borrowed) {
+		/* The item is not on the canvas — a merge or a flatten consumed it —
+		 * so the ROI rectangle, which is canvas-space, has no defined
+		 * translation into its coordinates.  What resolves this is the
+		 * windowed composite (roi-nde-plan.md phase 9 items 3 and 5), not a
+		 * guess at an offset. */
+		if (why)
+			*why = g_strdup(_("this image was merged into another, so only the "
+			                  "step being edited can be previewed"));
+		return NULL;
+	}
+
+	nde_chain *chain = nde_chain_build(item_id);
+	gint e = -1;
+	for (guint i = 0; i < chain->records->len; i++) {
+		const nde_record *rec = g_ptr_array_index(chain->records, i);
+		if (rec->record_id == record_id) {
+			e = (gint)i;
+			break;
+		}
+	}
+	if (e < 0) {
+		nde_chain_free(chain);
+		return NULL;
+	}
+
+	int halo = 0;
+	gchar *reason = NULL;
+	for (guint i = (guint)e + 1; i < chain->records->len && !reason; i++) {
+		int h = 0;
+		reason = region_tail_member_reason(g_ptr_array_index(chain->records, i),
+		                                   g_array_index(chain->member_flags, guint8, i),
+		                                   &h);
+		halo += h;
+	}
+	if (reason) {
+		nde_chain_free(chain);
+		if (why)
+			*why = reason;
+		else
+			g_free(reason);
+		return NULL;
+	}
+
+	nde_region_tail *plan = g_new0(nde_region_tail, 1);
+	plan->chain = chain;
+	plan->from  = (guint)e + 1;
+	plan->halo  = halo;
+	return plan;
+}
+
+nde_region_tail *nde_region_tail_begin(const op_descriptor *editing, int *halo) {
+	nde_region_tail *plan = region_tail_plan(editing, NULL);
+	if (plan && halo)
+		*halo = plan->halo;
+	return plan;
+}
+
+gboolean nde_region_tail_available(int *halo, gchar **why) {
+	nde_region_tail *plan = region_tail_plan(NULL, why);
+	if (!plan)
+		return FALSE;
+	if (halo)
+		*halo = plan->halo;
+	nde_region_tail_free(plan);
+	return TRUE;
+}
+
+void nde_region_tail_free(nde_region_tail *plan) {
+	if (!plan)
+		return;
+	nde_chain_free(plan->chain);
+	g_free(plan);
+}
+
+/* mask_pin_install for a crop: the pinned mask is item-sized, so it is cropped
+ * to the same rectangle the pixels were.  Masking is per-pixel, so this is
+ * exact — a masked record needs no halo of its own beyond the op's. */
+static gboolean region_mask_pin_install(fits *region, const nde_record *rec,
+                                        const rectangle *rect, gchar **err) {
+	const nde_input_pin *pin = nde_record_input(rec, "mask");
+	if (!pin)
+		return TRUE;
+	fits *mfit = nde_checkpoint_get_at(pin->src_item_id, pin->src_record_id);
+	if (!mfit) {
+		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s): its mask is no longer stored"),
+		                       rec->record_id, rec->op_id ? rec->op_id : "?");
+		return FALSE;
+	}
+	gboolean ok = FALSE;
+	fits cropped = { 0 };
+	if (rect->x >= 0 && rect->y >= 0
+	    && rect->x + rect->w <= (int)mfit->rx
+	    && rect->y + rect->h <= (int)mfit->ry
+	    && !crop_fits_region(mfit, rect, &cropped)) {
+		mask_t *m = fits_to_mask(&cropped);
+		if (m) {
+			region->mask = m;
+			region->mask_active = TRUE;
+			ok = TRUE;
+		}
+	}
+	clearfits(&cropped);
+	clearfits(mfit);
+	free(mfit);
+	if (!ok)
+		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s): its mask does not fit the image"),
+		                       rec->record_id, rec->op_id ? rec->op_id : "?");
+	return ok;
+}
+
+/* Has this run been superseded?
+ *
+ * Cancellation here is ROUTINE, not a fault: notify_update cancels the running
+ * preview whenever a newer tick arrives (a slider drag, a moved rectangle), so
+ * it fires constantly in ordinary use.  It must neither disarm the feature nor
+ * say anything — the tick that superseded us is about to redraw the rectangle.
+ *
+ * The worker-thread test is what makes the question answerable at all.  A LIVE
+ * preview runs generic_image_worker SYNCHRONOUSLY on the GTK main thread
+ * (asinh.c and every other live-preview dialog), never through the job queue —
+ * so nothing clears cancel_flag for it, and it still holds the 1 that the last
+ * queued job's stop_processing_thread() left behind.  Polling it there reported
+ * "cancelled" on every tick after the first, which silently reduced the
+ * rectangle to the edited step alone.  Off the processing thread the flag says
+ * nothing about us, and a tail bounded by the rectangle is short enough that
+ * running it to completion is the right answer anyway. */
+static gboolean region_tail_cancelled(void) {
+	return processing_in_worker_thread() && !processing_should_continue();
+}
+
+gboolean nde_region_tail_apply(nde_region_tail *plan, fits *region,
+                               const rectangle *rect, int max_threads) {
+	g_return_val_if_fail(plan != NULL && region != NULL && rect != NULL, FALSE);
+
+	/* The crop carries the IMAGE's own processing mask, copied by
+	 * crop_fits_region.  The tail's records carry their own pinned ones, and
+	 * mask_pin_clear frees whatever it finds — so put the crop's aside and
+	 * give it back untouched, leaving this function non-destructive of its
+	 * input's mask.  (The hook for record K has already run, under that mask,
+	 * before we get here.) */
+	mask_t  *own_mask   = region->mask;
+	gboolean own_active = region->mask_active;
+	region->mask = NULL;
+	region->mask_active = FALSE;
+
+	gchar *err = NULL;
+	gboolean cancelled = FALSE;
+	for (guint i = plan->from; i < plan->chain->records->len && !err; i++) {
+		const nde_record *rec = g_ptr_array_index(plan->chain->records, i);
+		if (region_tail_cancelled()) {
+			cancelled = TRUE;
+			break;
+		}
+		/* Vetted by region_tail_member_reason when the plan was built. */
+		const op_descriptor *op = op_descriptor_by_id(rec->op_id);
+		gpointer user = op->deserialize(rec->params, rec->op_version);
+		if (!user) {
+			err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s): parameters failed to parse"),
+			                      rec->record_id, rec->op_id);
+			break;
+		}
+		if (!region_mask_pin_install(region, rec, rect, &err)) {
+			destroy_user(user);
+			break;
+		}
+		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+		if (!args) {
+			destroy_user(user);
+			mask_pin_clear(region);
+			err = g_strdup(_("out of memory"));
+			break;
+		}
+		args->fit         = region;     /* PRIVATE fits, as every replay demands */
+		args->op          = op;
+		args->user        = user;
+		args->nde_replay  = TRUE;
+		args->mask_aware  = (region->mask != NULL);
+		args->max_threads = max_threads;
+		gint64 outer = replay_current_record;
+		replay_current_record = rec->record_id;
+		int rc = GPOINTER_TO_INT(generic_image_worker(args));
+		replay_current_record = outer;
+		free_generic_img_args(args);    /* frees user through its destructor */
+		mask_pin_clear(region);
+		/* NO nde_snapstore_deposit here, deliberately: these are region-sized
+		 * intermediates and depositing one would let a later FULL replay
+		 * restart from a rectangle. */
+		if (rc) {
+			/* A hook that polls the cancel flag reports failure when a newer
+			 * tick supersedes this one; same routine cancellation, one layer
+			 * down. */
+			if (region_tail_cancelled())
+				cancelled = TRUE;
+			else
+				err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) failed to apply"),
+				                      rec->record_id, rec->op_id);
+			break;
+		}
+	}
+
+	region->mask = own_mask;
+	region->mask_active = own_active;
+
+	if (cancelled)
+		return FALSE;
+	if (!err)
+		return TRUE;
+
+	/* Sticky degrade: say it once, then stop trying.  The alternative is this
+	 * message on every slider tick, which buries itself. */
+	g_mutex_lock(&apv_mutex);
+	gboolean first = !apv.tail_failed;
+	apv.tail_failed = TRUE;
+	g_mutex_unlock(&apv_mutex);
+	if (first)
+		siril_log_error(_("Region preview: the later steps could not be recomputed "
+		                  "(%s); showing this step alone.\n"), err);
+	g_free(err);
+	return FALSE;
 }
 
 /* ======================================================================= */
