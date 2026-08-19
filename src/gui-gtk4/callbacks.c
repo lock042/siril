@@ -26,6 +26,7 @@
 #include "core/op_descriptors.h"
 #include "core/processing_thread.h"
 #include "core/proto.h"
+#include "core/fits_region.h"
 #include "core/icc_profile.h"
 #include "core/initfile.h"
 #include "core/undo.h"
@@ -321,128 +322,14 @@ int populate_roi() {
 		siril_log_debug("populate_roi: selection does not intersect the active layer, skipping\n");
 		return 1;
 	}
-	int retval = 0;
-	size_t npixels_roi = lsel.w * lsel.h;
-	size_t npixels_gfit = gfit->rx * gfit->ry;
-	size_t nchans = gfit->naxes[2];
-	g_assert(nchans == 1 || nchans == 3);
-	gboolean rgb = (nchans == 3);
+	g_assert(gfit->naxes[2] == 1 || gfit->naxes[2] == 3);
 
-	clearfits(&gui.roi.fit);
-	copyfits(gfit, &gui.roi.fit, CP_FORMAT, -1);
+	/* Image and mask copy, including the display-to-FITS vertical flip, live
+	 * in crop_fits_region(); copy_roi_into_gfit() pastes back through its
+	 * mirror.  Keeping the two directions in one place is what stops them
+	 * drifting apart. */
+	int retval = crop_fits_region(gfit, &lsel, &gui.roi.fit);
 
-	gui.roi.fit.rx = gui.roi.fit.naxes[0] = lsel.w;
-	gui.roi.fit.ry = gui.roi.fit.naxes[1] = lsel.h;
-	gui.roi.fit.naxes[2] = nchans;
-	gui.roi.fit.naxis = (nchans == 1 ? 2 : 3);
-
-	/* ---------------- IMAGE ROI COPY ---------------- */
-	if (gui.roi.fit.type == DATA_FLOAT) {
-		gui.roi.fit.fdata = malloc(npixels_roi * nchans * sizeof(float));
-		if (!gui.roi.fit.fdata)
-			retval = 1;
-
-		gui.roi.fit.fpdata[0] = gui.roi.fit.fdata;
-		gui.roi.fit.fpdata[1] = rgb ? gui.roi.fit.fdata + npixels_roi : gui.roi.fit.fdata;
-		gui.roi.fit.fpdata[2] = rgb ? gui.roi.fit.fdata + 2 * npixels_roi : gui.roi.fit.fdata;
-
-		for (uint32_t c = 0; c < nchans; c++) {
-			for (uint32_t y = 0; y < lsel.h; y++) {
-				float *srcindex =
-					gfit->fdata +
-					(npixels_gfit * c) +
-					((gfit->ry - y - (lsel.y + 1)) * gfit->rx) +
-					lsel.x;
-
-				float *destindex =
-					gui.roi.fit.fdata +
-					(npixels_roi * c) +
-					(gui.roi.fit.rx * y);
-
-				memcpy(destindex, srcindex, lsel.w * sizeof(float));
-			}
-		}
-	} else {
-		gui.roi.fit.data = malloc(npixels_roi * nchans * sizeof(WORD));
-		if (!gui.roi.fit.data)
-			retval = 1;
-
-		gui.roi.fit.pdata[0] = gui.roi.fit.data;
-		gui.roi.fit.pdata[1] = rgb ? gui.roi.fit.data + npixels_roi : gui.roi.fit.data;
-		gui.roi.fit.pdata[2] = rgb ? gui.roi.fit.data + 2 * npixels_roi : gui.roi.fit.data;
-
-		for (uint32_t c = 0; c < nchans; c++) {
-			for (uint32_t y = 0; y < lsel.h; y++) {
-				WORD *srcindex =
-					gfit->data +
-					(npixels_gfit * c) +
-					((gfit->ry - y - (lsel.y + 1)) * gfit->rx) +
-					lsel.x;
-
-				WORD *destindex =
-					gui.roi.fit.data +
-					(npixels_roi * c) +
-					(y * gui.roi.fit.rx);
-
-				memcpy(destindex, srcindex, lsel.w * sizeof(WORD));
-			}
-		}
-	}
-
-	/* ---------------- MASK ROI COPY ---------------- */
-	gui.roi.fit.mask_active = FALSE;
-	gui.roi.fit.mask = NULL;
-
-	if (gfit->mask && gfit->mask->data) {
-		size_t n = lsel.w * lsel.h;
-		size_t src_w = gfit->rx;
-		size_t src_h = gfit->ry;
-
-		gui.roi.fit.mask = malloc(sizeof(mask_t));
-		if (!gui.roi.fit.mask) {
-			retval = 1;
-			goto finalize;
-		}
-
-		gui.roi.fit.mask->bitpix = gfit->mask->bitpix;
-
-		size_t elem_size = 0;
-		switch (gfit->mask->bitpix) {
-		case 8:  elem_size = sizeof(uint8_t);  break;
-		case 16: elem_size = sizeof(uint16_t); break;
-		case 32: elem_size = sizeof(float);    break;
-		default:
-			free(gui.roi.fit.mask);
-			gui.roi.fit.mask = NULL;
-			goto finalize;
-		}
-
-		gui.roi.fit.mask->data = malloc(n * elem_size);
-		if (!gui.roi.fit.mask->data) {
-			free(gui.roi.fit.mask);
-			gui.roi.fit.mask = NULL;
-			retval = 1;
-			goto finalize;
-		}
-
-		/* Copy mask ROI with same flip logic as image */
-		for (uint32_t y = 0; y < lsel.h; y++) {
-			size_t src_y = src_h - y - (lsel.y + 1);
-			size_t src_x = lsel.x;
-
-			void *src = (uint8_t*)gfit->mask->data +
-						(src_y * src_w + src_x) * elem_size;
-
-			void *dst = (uint8_t*)gui.roi.fit.mask->data +
-						(y * lsel.w) * elem_size;
-
-			memcpy(dst, src, lsel.w * elem_size);
-		}
-
-		gui.roi.fit.mask_active = gfit->mask_active;
-	}
-
-finalize:
 	backup_roi();
 	gui.roi.active = TRUE;
 	return retval;

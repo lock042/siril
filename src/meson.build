@@ -90,6 +90,7 @@ src_files = [
   'core/command.c',
   'core/command_line_processor.c',
   'core/exif.cpp',
+  'core/fits_region.c',
   'core/icc_profile.c',
   'core/initfile.c',
   'core/masks.c',

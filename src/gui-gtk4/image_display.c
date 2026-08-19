@@ -26,6 +26,7 @@
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "core/processing.h"
+#include "core/fits_region.h"
 #include "core/gui_iface.h"
 #include "core/icc_profile.h"
 #include "algos/astrometry_solver.h"
@@ -5292,11 +5293,10 @@ void copy_roi_into_gfit() {
 	 * protocol, counting suppression — safe under an outer suppression). */
 	gui_iface.set_suppress_redraws(TRUE);
 	g_rw_lock_writer_lock(&gfit->rwlock);
-	size_t npixels_gfit = gfit->rx * gfit->ry;
-	/* Plane stride of the ROI cache: its own dims, NOT the selection's —
-	 * with a partially overlapping sparse layer the cache holds only the
-	 * clipped intersection. */
-	npixels_roi = (size_t)gui.roi.fit.rx * gui.roi.fit.ry;
+	/* Note the plane stride of the ROI cache is its own dims, NOT the
+	 * selection's — with a partially overlapping sparse layer the cache holds
+	 * only the clipped intersection.  paste_fits_region derives it from the
+	 * source fits for that reason. */
 	if (gui.roi.fit.type != gfit->type) {
 		size_t roi_ndata = gui.roi.fit.rx * gui.roi.fit.ry * gui.roi.fit.naxes[2];
 		if (gfit->type == DATA_FLOAT) {
@@ -5326,29 +5326,10 @@ void copy_roi_into_gfit() {
 		}
 	}
 
-	if (gui.roi.fit.type == DATA_FLOAT) {
-#ifdef _OPENMP
-#pragma omp parallel for schedule(static) collapse(2)
-#endif
-		for (uint32_t c = 0 ; c < gui.roi.fit.naxes[2] ; c++) {
-			for (uint32_t y = 0; y < lsel.h ; y++) {
-				const float *rowindex = gui.roi.fit.fdata + (y * gui.roi.fit.rx) + (c * npixels_roi);
-				float *destindex = gfit->fdata + (c * npixels_gfit) + ((gfit->ry - lsel.y - y - 1) * gfit->rx) + lsel.x;
-				memcpy(destindex, rowindex, lsel.w * sizeof(float));
-			}
-		}
-	} else {
-#ifdef _OPENMP
-#pragma omp parallel for schedule(static) collapse(2)
-#endif
-		for (uint32_t c = 0 ; c < gui.roi.fit.naxes[2] ; c++) {
-			for (uint32_t y = 0; y < lsel.h ; y++) {
-				const WORD *rowindex = gui.roi.fit.data + (y * gui.roi.fit.rx) + (c * npixels_roi);
-				WORD *destindex = gfit->data + (npixels_gfit * c) + ((gfit->ry - lsel.y - y - 1) * gfit->rx) + lsel.x;
-				memcpy(destindex, rowindex, lsel.w * sizeof(WORD));
-			}
-		}
-	}
+	/* Mirror of populate_roi's crop_fits_region (fits_region.h): same rect,
+	 * same flip, pixels only. */
+	paste_fits_region(&gui.roi.fit, gfit, &lsel);
+
 	g_rw_lock_writer_unlock(&gfit->rwlock);
 	gui_iface.set_suppress_redraws(FALSE);
 }

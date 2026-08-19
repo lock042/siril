@@ -50,6 +50,15 @@ if criterion_dep.found()
 
      test('imoper_test', imoper_exec, suite: 'arithmetic')
 
+     fits_region_exec = executable('fits_region_test',
+                                   'fits_region_test.c',
+                                   dependencies : [siril_dep, criterion_dep],
+                                   link_args : siril_link_arg,
+                                   c_args : siril_c_flag,
+                                   cpp_args : siril_cpp_flag)
+
+     test('fits_region_test', fits_region_exec, suite: 'flis')
+
      soper_exec = executable('soper_test',
                              'soper_test.c',
                              dependencies : [siril_dep, criterion_dep],
