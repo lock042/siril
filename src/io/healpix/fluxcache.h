@@ -7,7 +7,6 @@
 #include <map>
 #include <cstdint>
 #include <mutex>
-#include <filesystem>
 
 // Forward declare the header so we don't need the whole project header here
 struct HealpixCatHeader;
@@ -58,7 +57,11 @@ public:
     static void closeAllCaches();
     static void purge(int days);
     static FluxCacheStats getDatabaseStats();
-    static std::filesystem::path get_or_create_cache_dir();
+    // Returns a UTF-8 path. std::filesystem::path is deliberately not used
+    // anywhere in this class: constructing one from a narrow string re-decodes
+    // the bytes in the active ANSI code page on Windows, whereas Siril builds
+    // all paths as UTF-8, so a non-ASCII user data dir would be mangled.
+    static std::string get_or_create_cache_dir();
     static std::vector<int> getCachedHealpixelIds();
 
     // Getter and Setter
@@ -66,7 +69,8 @@ public:
     bool getCacheEntry(uint32_t hp_id, std::vector<char>& out_data);
 
 private:
-    static std::vector<std::filesystem::path> getCachePaths();
+    // UTF-8 paths, see get_or_create_cache_dir()
+    static std::vector<std::string> getCachePaths();
 };
 
 #endif

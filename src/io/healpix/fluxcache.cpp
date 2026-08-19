@@ -7,12 +7,11 @@
 #endif
 
 #include <ctime>
-#include <filesystem>
 #include <mutex>
-#include <fstream>
 #include <cstring>
 #include <algorithm>
 #include <omp.h>
+#include <glib/gstdio.h>
 #include "core/siril_log.h"
 #include "core/siril.h"
 
@@ -23,20 +22,22 @@ extern "C" {
 std::map<std::string, std::weak_ptr<FluxCache>> FluxCache::instances;
 std::mutex FluxCache::mtx;
 
-// public utility function to ensure we have our cache directory
-std::filesystem::path FluxCache::get_or_create_cache_dir() {
+// public utility function to ensure we have our cache directory. The path is
+// built and created with GLib so that a user data dir containing non-ASCII
+// characters (e.g. a national-character Windows account name) works: GLib
+// converts UTF-8 to UTF-16 and uses the wide CRT on Windows.
+std::string FluxCache::get_or_create_cache_dir() {
     const char *uddir = siril_get_user_data_dir();
-    std::filesystem::path siril_subdir = std::filesystem::path(uddir) / "spcc-cache";
-    try {
-        if (!std::filesystem::exists(siril_subdir)) {
-            std::filesystem::create_directories(siril_subdir);
-        }
-        return siril_subdir;
-    } catch (const std::filesystem::filesystem_error& e) {
+    gchar *siril_subdir = g_build_filename(uddir, "spcc-cache", NULL);
+    if (g_mkdir_with_parents(siril_subdir, 0755) != 0) {
         siril_log_debug(_("Can't create directory %s, falling back to system temp\n"),
-                          siril_subdir.string().c_str());
-        return std::filesystem::temp_directory_path();
+                          siril_subdir);
+        g_free(siril_subdir);
+        return std::string(g_get_tmp_dir());
     }
+    std::string result(siril_subdir);
+    g_free(siril_subdir);
+    return result;
 }
 
 
@@ -70,17 +71,18 @@ void FluxCache::closeAllCaches() {
 // Note, constructor is private. Use the static factory
 FluxCache::FluxCache(const std::string& dbPath) {
     bool corrupted = false;
-    std::error_code ec;
 
-    if (std::filesystem::exists(dbPath, ec)) {
+    if (g_file_test(dbPath.c_str(), G_FILE_TEST_EXISTS)) {
         // Quick Magic Header Check: SQLite files must start with "SQLite format 3\000"
-        std::ifstream f(dbPath, std::ios::binary);
+        FILE *f = g_fopen(dbPath.c_str(), "rb");
         char magic[16];
-        if (!f.read(magic, 16) || std::memcmp(magic, "SQLite format 3\000", 16) != 0) {
+        if (!f || fread(magic, 1, sizeof(magic), f) != sizeof(magic) ||
+                std::memcmp(magic, "SQLite format 3\000", 16) != 0) {
             siril_log_warning(_("FluxCache: Database corrupted. Resetting...\n"));
             corrupted = true;
         }
-        f.close();
+        if (f)
+            fclose(f);
 
         // Structural Integrity Check
         if (!corrupted) {
@@ -101,9 +103,9 @@ FluxCache::FluxCache(const std::string& dbPath) {
 
     if (corrupted) {
         // Delete the main DB and the WAL/SHM side-car files
-        std::filesystem::remove(dbPath, ec);
-        std::filesystem::remove(dbPath + "-wal", ec);
-        std::filesystem::remove(dbPath + "-shm", ec);
+        g_remove(dbPath.c_str());
+        g_remove((dbPath + "-wal").c_str());
+        g_remove((dbPath + "-shm").c_str());
     }
 
     // Open or create the database
@@ -162,11 +164,13 @@ std::shared_ptr<FluxCache> FluxCache::getCache(uint32_t chunk_level, uint32_t he
     }
 
     // Not found or expired: Create new instance
-    std::filesystem::path cache_dir = get_or_create_cache_dir();
+    std::string cache_dir = get_or_create_cache_dir();
     std::string db_filename = "siril_cat" + std::to_string(chunk_level) + "_healpix" +
                               std::to_string(healpix_level) + "_" + tag + "_" +
                               std::to_string(chunk_id) + ".dat.cache";
-    std::string full_path = (cache_dir / db_filename).string();
+    gchar *full_path_c = g_build_filename(cache_dir.c_str(), db_filename.c_str(), NULL);
+    std::string full_path(full_path_c);
+    g_free(full_path_c);
 
     siril_log_message(_("FluxCache: Initializing database for %s chunk %u at %s\n"),
                       tag.c_str(), chunk_id, full_path.c_str());
@@ -239,17 +243,23 @@ void FluxCache::setCacheEntry(const std::vector<CacheSegment>& segments) {
 }
 
 // Private utility function to gather the paths of our cache shards
-std::vector<std::filesystem::path> FluxCache::getCachePaths() {
-    std::vector<std::filesystem::path> paths;
-    std::filesystem::path cache_dir = get_or_create_cache_dir();
+std::vector<std::string> FluxCache::getCachePaths() {
+    std::vector<std::string> paths;
+    std::string cache_dir = get_or_create_cache_dir();
 
-    if (!std::filesystem::exists(cache_dir)) return paths;
+    // g_dir_open handles non-ASCII (UTF-8) directory paths on Windows
+    GDir *dir = g_dir_open(cache_dir.c_str(), 0, NULL);
+    if (!dir) return paths;
 
-    for (const auto& entry : std::filesystem::directory_iterator(cache_dir)) {
-        if (entry.is_regular_file() && entry.path().extension() == ".cache") {
-            paths.push_back(entry.path());
-        }
+    const gchar *name;
+    while ((name = g_dir_read_name(dir)) != NULL) {
+        if (!g_str_has_suffix(name, ".cache")) continue;
+        gchar *full = g_build_filename(cache_dir.c_str(), name, NULL);
+        if (g_file_test(full, G_FILE_TEST_IS_REGULAR))
+            paths.push_back(std::string(full));
+        g_free(full);
     }
+    g_dir_close(dir);
     return paths;
 }
 
@@ -257,9 +267,9 @@ std::vector<std::filesystem::path> FluxCache::getCachePaths() {
 void FluxCache::purge(int days) {
     // if (days < 0) return;
     const long long expiry_seconds = static_cast<long long>(days) * 86400LL;
-    std::filesystem::path cache_dir = get_or_create_cache_dir();
+    std::string cache_dir = get_or_create_cache_dir();
 
-    if (!std::filesystem::exists(cache_dir)) return;
+    if (!g_file_test(cache_dir.c_str(), G_FILE_TEST_IS_DIR)) return;
 
     // Initial Stats
     FluxCacheStats stats = getDatabaseStats();
@@ -268,13 +278,13 @@ void FluxCache::purge(int days) {
                       stats.file_count, readable_size, stats.total_rows);
     g_free(readable_size);
 
-    std::vector<std::filesystem::path> paths = getCachePaths();
+    std::vector<std::string> paths = getCachePaths();
 
     const std::string delete_sql =
         "DELETE FROM flux_cache WHERE timestamp < (strftime('%s','now') - " +
         std::to_string(expiry_seconds) + ");";
 
-    std::vector<std::filesystem::path> paths_to_vacuum;
+    std::vector<std::string> paths_to_vacuum;
     int total_deleted = 0;
 
     // PHASE 1: Fast Delete (All Threads)
@@ -283,7 +293,7 @@ void FluxCache::purge(int days) {
     #pragma omp parallel for reduction(+:total_deleted)
     for (size_t i = 0; i < paths.size(); ++i) {
         sqlite3* temp_db = nullptr;
-        if (sqlite3_open(paths[i].string().c_str(), &temp_db) == SQLITE_OK) {
+        if (sqlite3_open(paths[i].c_str(), &temp_db) == SQLITE_OK) {
             sqlite3_busy_timeout(temp_db, 1000);
             if (sqlite3_exec(temp_db, delete_sql.c_str(), nullptr, nullptr, nullptr) == SQLITE_OK) {
                 int count = sqlite3_changes(temp_db);
@@ -306,7 +316,7 @@ void FluxCache::purge(int days) {
         #pragma omp parallel for num_threads(2)
         for (size_t i = 0; i < paths_to_vacuum.size(); ++i) {
             sqlite3* temp_db = nullptr;
-            if (sqlite3_open(paths_to_vacuum[i].string().c_str(), &temp_db) == SQLITE_OK) {
+            if (sqlite3_open(paths_to_vacuum[i].c_str(), &temp_db) == SQLITE_OK) {
                 sqlite3_exec(temp_db, "VACUUM;", nullptr, nullptr, nullptr);
                 sqlite3_close(temp_db);
             }
@@ -326,19 +336,21 @@ FluxCacheStats FluxCache::getDatabaseStats() {
     uint64_t s_bytes = 0;
     uint64_t r_rows = 0;
 
-    std::filesystem::path cache_dir = get_or_create_cache_dir();
+    std::string cache_dir = get_or_create_cache_dir();
 
-    if (!std::filesystem::exists(cache_dir)) return {0, 0, 0};
+    if (!g_file_test(cache_dir.c_str(), G_FILE_TEST_IS_DIR)) return {0, 0, 0};
 
-    std::vector<std::filesystem::path> paths = getCachePaths();
+    std::vector<std::string> paths = getCachePaths();
 
     #pragma omp parallel for reduction(+:f_count, s_bytes, r_rows)
     for (size_t i = 0; i < paths.size(); ++i) {
         f_count++;
-        s_bytes += std::filesystem::file_size(paths[i]);
+        GStatBuf st;
+        if (g_stat(paths[i].c_str(), &st) == 0)
+            s_bytes += (uint64_t) st.st_size;
 
         sqlite3* temp_db = nullptr;
-        if (sqlite3_open_v2(paths[i].string().c_str(), &temp_db, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, nullptr) == SQLITE_OK) {
+        if (sqlite3_open_v2(paths[i].c_str(), &temp_db, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, nullptr) == SQLITE_OK) {
             sqlite3_stmt* stmt;
             if (sqlite3_prepare_v2(temp_db, "SELECT count(*) FROM flux_cache", -1, &stmt, nullptr) == SQLITE_OK) {
                 if (sqlite3_step(stmt) == SQLITE_ROW) {
@@ -356,12 +368,12 @@ FluxCacheStats FluxCache::getDatabaseStats() {
 // Return a list of all cached healpixels
 std::vector<int> FluxCache::getCachedHealpixelIds() {
     std::vector<int> all_cached_ids;
-    std::vector<std::filesystem::path> paths = getCachePaths();
+    std::vector<std::string> paths = getCachePaths();
 
     #pragma omp parallel
     for (const auto& path : paths) {
         sqlite3* temp_db = nullptr;
-        if (sqlite3_open(path.string().c_str(), &temp_db) == SQLITE_OK) {
+        if (sqlite3_open(path.c_str(), &temp_db) == SQLITE_OK) {
             const char* sql = "SELECT hp_id FROM flux_cache;";
             sqlite3_stmt* stmt;
 

@@ -17,17 +17,17 @@
 #include "io/healpix/fluxcache.h"
 #include "io/healpix/healpix_cat.h"
 #include "io/healpix/xp_continuous.h"
+#include <glib/gstdio.h>
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
-#include <filesystem>
-#include <fstream>
 #include <healpix_base.h>
 #include <iomanip>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <pointing.h>
 #include <regex>
 #include <set>
@@ -50,6 +50,40 @@ extern "C" {
 
 extern "C" gchar **spcc_mirrors;
 extern "C" gchar **spcc_mirrors_xpcts;
+
+// RAII handle for a C FILE* opened through g_fopen(). Unlike std::ifstream /
+// std::ofstream / std::filesystem::path, g_fopen() correctly handles UTF-8
+// paths that contain non-ASCII characters on Windows (it converts to UTF-16
+// and uses the wide CRT, instead of mis-decoding the bytes in the legacy ANSI
+// code page). All catalogue/cache file I/O in this file must go through it so
+// that SPCC works for users whose data dir contains national characters.
+using SirilFilePtr = std::unique_ptr<FILE, int(*)(FILE*)>;
+static SirilFilePtr siril_fopen_utf8(const std::string& path, const char* mode) {
+    return SirilFilePtr(g_fopen(path.c_str(), mode), fclose);
+}
+
+// 64-bit fseek/ftell: offsets into the catalogue files can exceed 2 GB, but
+// plain fseek()/ftell() take a 32-bit long on Windows. (std::ifstream::seekg
+// used a 64-bit std::streamoff, so we must preserve that here.)
+static int siril_fseek64(FILE* f, gint64 offset, int whence) {
+#if defined(_WIN32)
+    return _fseeki64(f, offset, whence);
+#elif defined(__GLIBC__) || defined(__gnu_hurd__)
+    return fseeko64(f, offset, whence);
+#else
+    return fseeko(f, (off_t)offset, whence);
+#endif
+}
+
+static gint64 siril_ftell64(FILE* f) {
+#if defined(_WIN32)
+    return _ftelli64(f);
+#elif defined(__GLIBC__) || defined(__gnu_hurd__)
+    return ftello64(f);
+#else
+    return (gint64)ftello(f);
+#endif
+}
 
 // Enum for Gaia version designator
 enum class GaiaVersion {
@@ -148,26 +182,36 @@ static std::vector<EntryType> query_catalog(const std::string& filename, std::ve
 
     size_t INDEX_SIZE = (n_healpixels) * sizeof(uint32_t);
 
-    // Open the catalog file in binary mode
-    std::ifstream file(filename, std::ios::binary | std::ios::ate);
-    if (!file.is_open()) {
+    // Open the catalog file in binary mode (g_fopen handles non-ASCII UTF-8 paths on Windows)
+    SirilFilePtr file = siril_fopen_utf8(filename, "rb");
+    if (!file) {
         siril_log_error(_("Failed to open file: %s\n"), filename.c_str());
         return results;
     }
+    FILE* fp = file.get();
     // The offsets read from the index are checked against the file size below,
     // so that a corrupted index cannot make us request an absurd allocation
-    const size_t file_size = (size_t) file.tellg();
-    file.seekg(0, std::ios::beg);
+    if (siril_fseek64(fp, 0, SEEK_END) != 0) {
+        siril_log_error(_("Failed to open file: %s\n"), filename.c_str());
+        return results;
+    }
+    const gint64 file_size_signed = siril_ftell64(fp);
+    if (file_size_signed < 0) {
+        siril_log_error(_("Failed to open file: %s\n"), filename.c_str());
+        return results;
+    }
+    const size_t file_size = (size_t) file_size_signed;
+    bool read_error = false;
 
     // Function to read a single index entry at a specific position
-    auto read_index_entry = [&file, &results](uint32_t healpixel_id) -> uint32_t {
+    auto read_index_entry = [fp, &results, &read_error](uint32_t healpixel_id) -> uint32_t {
         uint32_t index_value;
-        size_t pos = HEADER_SIZE + healpixel_id * sizeof(uint32_t);
-        file.seekg(pos, std::ios::beg);
-        file.read(reinterpret_cast<char*>(&index_value), sizeof(uint32_t));
-        if (!file) {
+        gint64 pos = (gint64)HEADER_SIZE + (gint64)healpixel_id * sizeof(uint32_t);
+        if (siril_fseek64(fp, pos, SEEK_SET) != 0 ||
+                fread(&index_value, sizeof(uint32_t), 1, fp) != 1) {
             siril_log_error(_("Failed to read catalog index entry.\n"));
             results.clear();
+            read_error = true;
             return 0;
         }
         return index_value;
@@ -186,13 +230,13 @@ static std::vector<EntryType> query_catalog(const std::string& filename, std::ve
 
         // Read the index entries, using previous healpixel's value for start
         uint32_t start_offset = (start_healpixel == 0) ? 0 : read_index_entry(start_healpixel - 1);
-        if (start_healpixel != 0 && !file) {
+        if (start_healpixel != 0 && read_error) {
             results.clear();
             return results;
         }
 
         uint32_t end_offset = read_index_entry(end_healpixel);
-        if (!file) {
+        if (read_error) {
             results.clear();
             return results;
         }
@@ -210,10 +254,8 @@ static std::vector<EntryType> query_catalog(const std::string& filename, std::ve
         }
         std::vector<EntryType> buffer(num_records);
 
-        file.seekg(data_start_pos, std::ios::beg);
-        file.read(reinterpret_cast<char*>(buffer.data()), num_records * sizeof(EntryType));
-
-        if (!file) {
+        if (siril_fseek64(fp, (gint64)data_start_pos, SEEK_SET) != 0 ||
+                fread(buffer.data(), sizeof(EntryType), num_records, fp) != num_records) {
             siril_log_error(_("Failed to read data entries.\n"));
             results.clear();
             return results;
@@ -268,9 +310,9 @@ static HealpixCatHeader read_healpix_cat_header(const std::string& filename, int
         *error_status = 0;
     }
 
-    // Open file in binary mode
-    std::ifstream file(filename, std::ios::binary);
-    if (!file.is_open()) {
+    // Open file in binary mode (g_fopen handles non-ASCII UTF-8 paths on Windows)
+    SirilFilePtr file = siril_fopen_utf8(filename, "rb");
+    if (!file) {
         if (error_status) {
             *error_status = -1; // File open error
         }
@@ -278,8 +320,7 @@ static HealpixCatHeader read_healpix_cat_header(const std::string& filename, int
     }
 
     // Read the header
-    file.read(reinterpret_cast<char*>(&header), sizeof(header));
-    if (!file) {
+    if (fread(&header, sizeof(header), 1, file.get()) != 1) {
         if (error_status)
             *error_status = READ_ERROR;
         return {};
@@ -303,22 +344,24 @@ static HealpixCatHeader read_healpix_cat_header_http_with_curl(CURL* curl, const
     if (error_status) *error_status = 0;
 
     // Setup Cache Path
-    auto tempdir = FluxCache::get_or_create_cache_dir();
+    std::string tempdir = FluxCache::get_or_create_cache_dir();
     std::string filename = url.substr(url.find_last_of("/\\") + 1);
-    std::string cache_path = (tempdir / (filename + ".header")).string();
+    gchar *cache_path_c = g_build_filename(tempdir.c_str(), (filename + ".header").c_str(), NULL);
+    std::string cache_path(cache_path_c);
+    g_free(cache_path_c);
 
     const size_t HEADER_SIZE = 128;
 
     bool cache_exists = false;
-    std::error_code ec;
 
     // Validate the cache file
-    if (std::filesystem::exists(cache_path, ec)) {
-        if (std::filesystem::file_size(cache_path, ec) == HEADER_SIZE) {
+    GStatBuf st;
+    if (g_stat(cache_path.c_str(), &st) == 0) {
+        if ((size_t) st.st_size == HEADER_SIZE) {
             cache_exists = true;
         } else {
             siril_log_warning(_("Cache file %s is corrupted or incomplete. Deleting...\n"), cache_path.c_str());
-            std::filesystem::remove(cache_path, ec);
+            g_remove(cache_path.c_str());
         }
     }
 
@@ -337,10 +380,9 @@ static HealpixCatHeader read_healpix_cat_header_http_with_curl(CURL* curl, const
         }
 
         // Save to disk
-        std::ofstream out(cache_path, std::ios::binary);
-        if (out.good()) {
-            out.write(buffer, HEADER_SIZE);
-            out.close();
+        SirilFilePtr out = siril_fopen_utf8(cache_path, "wb");
+        if (out) {
+            fwrite(buffer, 1, HEADER_SIZE, out.get());
         }
         free(buffer);
     }
@@ -349,8 +391,7 @@ static HealpixCatHeader read_healpix_cat_header_http_with_curl(CURL* curl, const
     if (error_status && *error_status) {
         // the cached header is unusable (truncated download, error page from the
         // mirror...): drop it so that the next attempt fetches it again
-        std::error_code rm_ec;
-        std::filesystem::remove(cache_path, rm_ec);
+        g_remove(cache_path.c_str());
     }
     return header;
 }
@@ -386,21 +427,23 @@ static std::optional<std::vector<EntryType>> query_catalog_http_with_curl(CURL* 
     size_t INDEX_SIZE = n_healpixels * sizeof(uint32_t);
     std::string full_url = base_url + "/" + filename;
 
-    auto tempdir = FluxCache::get_or_create_cache_dir();
-    std::string cache_path = (tempdir / (filename + ".index")).string();
+    std::string tempdir = FluxCache::get_or_create_cache_dir();
+    gchar *cache_path_c = g_build_filename(tempdir.c_str(), (filename + ".index").c_str(), NULL);
+    std::string cache_path(cache_path_c);
+    g_free(cache_path_c);
 
     // Load or download index
     std::vector<uint32_t> full_index(n_healpixels);
 
     bool cache_exists = false;
-    std::error_code ec;
-    if (std::filesystem::exists(cache_path, ec)) {
+    GStatBuf st;
+    if (g_stat(cache_path.c_str(), &st) == 0) {
         // Check if the size on disk matches our expected index size
-        if (std::filesystem::file_size(cache_path, ec) == INDEX_SIZE) {
+        if ((size_t) st.st_size == INDEX_SIZE) {
             cache_exists = true;
         } else {
             siril_log_warning(_("Cache file %s is corrupted or incomplete. Deleting...\n"), cache_path.c_str());
-            std::filesystem::remove(cache_path, ec);
+            g_remove(cache_path.c_str());
         }
     }
 
@@ -428,29 +471,31 @@ static std::optional<std::vector<EntryType>> query_catalog_http_with_curl(CURL* 
         }
 
         // Write buffer to cache file
-        std::ofstream out(cache_path, std::ios::binary);
-        if (!out.good()) {
+        SirilFilePtr out = siril_fopen_utf8(cache_path, "wb");
+        if (!out) {
             siril_log_error(_("Failed to write index cache file\n"));
             free(buffer);
             return std::nullopt;
         }
 
-        out.write(buffer, INDEX_SIZE);
-        out.close();
+        fwrite(buffer, 1, INDEX_SIZE, out.get());
+        out.reset();
         free(buffer);
     }
 
     // At this point, the cache file is guaranteed to exist.
     siril_log_debug(_("Loading index from cache\n"));
 
-    std::ifstream in(cache_path, std::ios::binary);
-    if (!in.good()) {
+    SirilFilePtr in = siril_fopen_utf8(cache_path, "rb");
+    if (!in) {
         siril_log_error(_("Failed to read index cache file\n"));
         return std::nullopt;
     }
 
-    in.read(reinterpret_cast<char*>(full_index.data()), INDEX_SIZE);
-    in.close();
+    if (fread(full_index.data(), 1, INDEX_SIZE, in.get()) != INDEX_SIZE) {
+        siril_log_error(_("Failed to read index cache file\n"));
+        return std::nullopt;
+    }
 
     // Process each healpixel range
     for (const auto& range : local_ranges) {
@@ -799,18 +844,33 @@ static std::string find_matching_cat_file(std::string& path, const char *type_ta
     std::string pattern = "siril_cat(\\d+)_healpix(\\d+)_" + type_re + "_(\\d+)\\.dat";
     std::regex file_regex(pattern);
 
-    try {
-        for (const auto& entry : std::filesystem::directory_iterator(path)) {
-            if (!entry.is_regular_file()) continue;
-            std::string filename = entry.path().filename().string();
-            std::smatch matches;
-            if (std::regex_match(filename, matches, file_regex)) return filename;
-        }
-    } catch (const std::filesystem::filesystem_error& e) {
-        g_warning("Error accessing directory: %s", e.what());
+    // g_dir_open handles non-ASCII (UTF-8) directory paths on Windows
+    GError *error = NULL;
+    GDir *dir = g_dir_open(path.c_str(), 0, &error);
+    if (!dir) {
+        g_warning("Error accessing directory: %s", error ? error->message : "(unknown)");
+        if (error)
+            g_error_free(error);
         return "";
     }
-    return "";
+
+    std::string match;
+    const gchar *name;
+    while ((name = g_dir_read_name(dir)) != NULL) {
+        std::string filename(name);
+        std::smatch matches;
+        if (!std::regex_match(filename, matches, file_regex)) continue;
+        gchar *full = g_build_filename(path.c_str(), name, NULL);
+        gboolean is_regular = g_file_test(full, G_FILE_TEST_IS_REGULAR);
+        g_free(full);
+        if (is_regular) {
+            match = filename;
+            break;
+        }
+    }
+    g_dir_close(dir);
+
+    return match;
 }
 
 // This function is the main entry point and is declared extern "C" for ease of
@@ -849,7 +909,9 @@ static int local_gaia_xp_query_impl(double ra, double dec, double radius, double
     }
 
     int status = 0;
-    std::string final_path = (std::filesystem::path(chunkpath) / first_chunk).string();
+    gchar *final_path_c = g_build_filename(chunkpath.c_str(), first_chunk.c_str(), NULL);
+    std::string final_path(final_path_c);
+    g_free(final_path_c);
     HealpixCatHeader header = read_healpix_cat_header(final_path, &status);
     if (status) {
         *stars = nullptr; *nb_stars = 0;
@@ -885,11 +947,12 @@ static int local_gaia_xp_query_impl(double ra, double dec, double radius, double
 
         gchar *filename = g_strdup_printf("siril_cat%u_healpix%u_%s_%d.dat",
                                           header.chunk_level, header.healpix_level, type_tag, chunk_id);
-        std::string chunkfile(filename);
+        gchar *this_chunk_path_c = g_build_filename(chunkpath.c_str(), filename, NULL);
+        std::string this_chunk_path(this_chunk_path_c);
+        g_free(this_chunk_path_c);
         g_free(filename);
-        std::string this_chunk_path = (std::filesystem::path(chunkpath) / chunkfile).string();
 
-        if (!std::filesystem::exists(this_chunk_path)) {
+        if (!g_file_test(this_chunk_path.c_str(), G_FILE_TEST_EXISTS)) {
             siril_log_error(_("Chunk file not found: %s\n"), this_chunk_path.c_str());
             file_error = true;
             break;
@@ -1001,7 +1064,9 @@ extern "C" {
             return LOCAL_GAIA_PHOTO_MIXED;
 
         std::string chosen = xpsamp_chunk.empty() ? xpcts_chunk : xpsamp_chunk;
-        std::string final_path = (std::filesystem::path(chunkpath) / chosen).string();
+        gchar *final_path_c = g_build_filename(chunkpath.c_str(), chosen.c_str(), NULL);
+        std::string final_path(final_path_c);
+        g_free(final_path_c);
         int status = 0;
         HealpixCatHeader header = read_healpix_cat_header(final_path, &status);
         if (status) return LOCAL_GAIA_PHOTO_BAD;
