@@ -72,7 +72,7 @@ const op_descriptor op_desc_scnr = {
 	.log_hook = scnr_log_hook,
 	.description = N_("SCNR"),
 	.mem_ratio = 1.5f,
-	.flags = OP_MASK_CAPABLE,
+	.flags = OP_MASK_CAPABLE | OP_ROI_CAPABLE,
 	.serialize = scnr_serialize, .deserialize = scnr_deserialize,
 };
 

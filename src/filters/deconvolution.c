@@ -193,7 +193,7 @@ const op_descriptor op_desc_deconvolve = {
 	.log_hook = deconvolve_log_hook,
 	.description = N_("Deconvolution"),
 	.mem_ratio = 4.0f,
-	.flags = OP_MASK_CAPABLE,
+	.flags = OP_MASK_CAPABLE | OP_ROI_CAPABLE,
 	.serialize = deconvolve_serialize, .deserialize = deconvolve_deserialize,
 	.replay_pre = deconvolve_replay_pre,
 };

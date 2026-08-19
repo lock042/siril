@@ -151,7 +151,7 @@ const op_descriptor op_desc_epf = {
 	.log_hook = epf_log_hook,
 	.description = N_("Edge Preserving Filter"),
 	.mem_ratio = 3.0f,
-	.flags = OP_MASK_CAPABLE,
+	.flags = OP_MASK_CAPABLE | OP_ROI_CAPABLE,
 	.serialize = epf_serialize, .deserialize = epf_deserialize,
 	.replay_pre = epf_replay_pre,
 };

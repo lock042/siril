@@ -93,6 +93,63 @@ Test(op_descriptor, ids_unique) {
 	}
 }
 
+/* The exact set of ops that may be computed on a sub-rectangle.
+ *
+ * Pinned rather than derived, because the authority is currently elsewhere:
+ * each of these is an op whose dialog calls roi_supported(TRUE), and that call
+ * lives in GUI code a unit test cannot reach.  Until the flag becomes the sole
+ * source of truth, the two must be changed together — this list is what makes
+ * a one-sided change fail rather than silently enable or disable a region
+ * preview.
+ *
+ * wavelets is deliberately absent: it services a ROI by reconstructing the
+ * whole image and copying the window out (filters/wavelets.h), which is a
+ * correctness measure rather than a region computation, and it holds a
+ * decomposition keyed to the full image geometry. */
+static const char *const roi_capable_ids[] = {
+	"color.saturation",
+	"filters.deconvolve",
+	"filters.denoise",
+	"filters.epf",
+	"filters.median",
+	"filters.scnr",
+	"filters.unpurple",
+	"stretch.asinh",
+	"stretch.curves",
+	"stretch.ghs",
+	"stretch.mtf",
+};
+
+static gboolean id_in_roi_list(const char *id) {
+	for (size_t i = 0; i < sizeof(roi_capable_ids) / sizeof(roi_capable_ids[0]); i++)
+		if (!strcmp(id, roi_capable_ids[i]))
+			return TRUE;
+	return FALSE;
+}
+
+Test(op_descriptor, roi_capable_set_is_exactly_the_expected_ops) {
+	size_t n = 0;
+	const op_descriptor *const *all = op_descriptor_all(&n);
+	size_t seen = 0;
+
+	for (size_t i = 0; i < n; i++) {
+		const gboolean flagged = (all[i]->flags & OP_ROI_CAPABLE) != 0;
+		const gboolean expected = id_in_roi_list(all[i]->id);
+		cr_assert_eq(flagged, expected,
+		             "'%s': OP_ROI_CAPABLE is %s but the pinned list says %s",
+		             all[i]->id, flagged ? "set" : "unset",
+		             expected ? "it should be set" : "it should not be");
+		if (flagged)
+			seen++;
+	}
+
+	/* Catches an id removed from the registry but left in the list above,
+	 * which the per-descriptor loop alone would not see. */
+	cr_assert_eq(seen, sizeof(roi_capable_ids) / sizeof(roi_capable_ids[0]),
+	             "%zu descriptors carry OP_ROI_CAPABLE, list names %zu",
+	             seen, sizeof(roi_capable_ids) / sizeof(roi_capable_ids[0]));
+}
+
 /* ------------------------------------------------------------------ *
  *  Fill semantics                                                    *
  * ------------------------------------------------------------------ */

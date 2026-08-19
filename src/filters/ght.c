@@ -113,7 +113,7 @@ const op_descriptor op_desc_ghs = {
 	.log_hook = ght_log_hook,
 	.description = N_("Generalised Hyperbolic Stretch"),
 	.mem_ratio = 1.0f,
-	.flags = OP_MASK_CAPABLE,
+	.flags = OP_MASK_CAPABLE | OP_ROI_CAPABLE,
 	.serialize = ght_serialize, .deserialize = ght_deserialize,
 };
 

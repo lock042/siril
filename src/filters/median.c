@@ -77,7 +77,7 @@ const op_descriptor op_desc_median = {
 	.log_hook = median_log_hook,
 	.description = N_("Median filter"),
 	.mem_ratio = 2.0f,
-	.flags = OP_MASK_CAPABLE,
+	.flags = OP_MASK_CAPABLE | OP_ROI_CAPABLE,
 	.serialize = median_serialize, .deserialize = median_deserialize,
 };
 

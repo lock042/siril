@@ -18693,7 +18693,7 @@ int process_ssr(int nb) {
 const op_descriptor op_desc_denoise = {
 	.id = "filters.denoise", .version = 1, .image_hook = denoise_image_hook,
 	.log_hook = denoise_log_hook, .description = N_("NL-Bayes Denoising"),
-	.mem_ratio = 3.0f, .flags = OP_MASK_CAPABLE,
+	.mem_ratio = 3.0f, .flags = OP_MASK_CAPABLE | OP_ROI_CAPABLE,
 	.serialize = denoise_serialize, .deserialize = denoise_deserialize,
 };
 const op_descriptor op_desc_gauss = {

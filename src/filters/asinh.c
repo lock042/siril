@@ -63,7 +63,7 @@ const op_descriptor op_desc_asinh = {
 	.log_hook = asinh_log_hook,
 	.description = N_("Asinh stretch"),
 	.mem_ratio = 1.0f,
-	.flags = OP_MASK_CAPABLE,
+	.flags = OP_MASK_CAPABLE | OP_ROI_CAPABLE,
 	.serialize = asinh_serialize, .deserialize = asinh_deserialize,
 };
 

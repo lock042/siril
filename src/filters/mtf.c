@@ -136,7 +136,7 @@ const op_descriptor op_desc_mtf = {
 	.log_hook = mtf_log_hook,
 	.description = N_("Midtones Transfer Function"),
 	.mem_ratio = 1.0f,
-	.flags = OP_MASK_CAPABLE,
+	.flags = OP_MASK_CAPABLE | OP_ROI_CAPABLE,
 	.serialize = mtf_serialize, .deserialize = mtf_deserialize,
 };
 

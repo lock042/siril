@@ -40,6 +40,17 @@ typedef enum {
 	                                 * an existing mask.  Its NDE record pins
 	                                 * the image it read, so the replay can
 	                                 * re-derive the mask (nde_replay.h). */
+	OP_ROI_CAPABLE       = 1 << 6,  /* the op can be computed on a
+	                                 * sub-rectangle of the image.  Declares
+	                                 * capability only, NOT locality: how much
+	                                 * surrounding context the hook needs is a
+	                                 * separate question (roi-nde-plan.md
+	                                 * §1.1), and a pixel-local op needing none
+	                                 * is still ROI-capable.  Today this
+	                                 * mirrors the roi_supported(TRUE) call in
+	                                 * each dialog; it lives here so the
+	                                 * processing layer, which has no access to
+	                                 * dialog state, can consult it too. */
 } op_descriptor_flags;
 
 typedef struct op_descriptor {
