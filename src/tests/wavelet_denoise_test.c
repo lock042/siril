@@ -573,12 +573,21 @@ Test(wavelet_denoise, roi_reconstruct_matches_full) {
 
 	cr_assert_eq(wavelet_reconstruct_file_roi(fname, coef, &dp, rx, ry, w, h, 0, &roifit, com.max_thread), 0);
 
-	/* ROI row y maps to FITS row N-1-ry-y (top-down -> bottom-up) */
+	/* roifit is an ordinary BOTTOM-UP fits, matching what crop_fits_region
+	 * produces (core/fits_region.h): its storage row y is its display row
+	 * h-1-y, which is the image's display row ry+h-1-y, which is the
+	 * FITS-ordered row N-ry-h+y.
+	 *
+	 * This expectation changed when the region-copy pair stopped emitting
+	 * top-down regions.  roi_finish() writes into a buffer the ROI preview
+	 * path also crops and pastes, so the two conventions have to agree; the
+	 * old one round-tripped through paste but mirrored a region that was
+	 * cropped again. */
 	float maxdiff = 0.f;
 	for (int y = 0; y < h; y++)
 		for (int x = 0; x < w; x++) {
 			float roiv = roifit.fdata[(size_t) y * w + x];
-			float fullv = full[(size_t) (N - 1 - ry - y) * N + (rx + x)];
+			float fullv = full[(size_t) (N - ry - h + y) * N + (rx + x)];
 			maxdiff = fmaxf(maxdiff, fabsf(roiv - fullv));
 		}
 	cr_assert_lt(maxdiff, 1e-3f, "ROI reconstruction differs from full by %.2e", maxdiff);

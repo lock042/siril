@@ -59,6 +59,15 @@ if criterion_dep.found()
 
      test('fits_region_test', fits_region_exec, suite: 'flis')
 
+     roi_halo_exec = executable('roi_halo_test',
+                                'roi_halo_test.c',
+                                dependencies : [siril_dep, criterion_dep],
+                                link_args : siril_link_arg,
+                                c_args : siril_c_flag,
+                                cpp_args : siril_cpp_flag)
+
+     test('roi_halo_test', roi_halo_exec, suite: 'flis')
+
      soper_exec = executable('soper_test',
                              'soper_test.c',
                              dependencies : [siril_dep, criterion_dep],

@@ -46,11 +46,18 @@ static gboolean area_within(const rectangle *area, uint32_t rx, uint32_t ry) {
 	    && (uint32_t)(area->y + area->h) <= ry;
 }
 
-/* Row y of the region (0 = its top row, display convention) maps to this row
- * of a bottom-up fits of height ry.  The single place the flip is expressed;
- * both directions call it, which is what keeps them exact mirrors. */
-static inline size_t src_row_of(uint32_t ry, int area_y, uint32_t y) {
-	return (size_t)ry - y - (size_t)(area_y + 1);
+/* Storage row @y of a region (a normal BOTTOM-UP fits of height area->h) maps
+ * to this storage row of a bottom-up fits of height @ry from which the region
+ * was taken at display-space top edge @area_y.
+ *
+ * Both directions call it, which is what keeps them exact mirrors.  Note it is
+ * a plain offset, not a reversal: the region is stored bottom-up like every
+ * other fits, so a crop of a crop, or a paste of a crop into a third image,
+ * behaves the way a caller would expect.  (It did not always: this used to
+ * emit a top-down region, which round-tripped perfectly through paste and then
+ * silently mirrored anything else — see fits_region_test.c.) */
+static inline size_t src_row_of(uint32_t ry, int area_y, int area_h, uint32_t y) {
+	return (size_t)ry - (size_t)area_y - (size_t)area_h + y;
 }
 
 int crop_fits_region(fits *src, const rectangle *area, fits *dst) {
@@ -91,7 +98,7 @@ int crop_fits_region(fits *src, const rectangle *area, fits *dst) {
 		for (size_t c = 0; c < nchans; c++) {
 			for (uint32_t y = 0; y < (uint32_t)area->h; y++) {
 				const float *from = src->fdata + (npix_src * c)
-					+ (src_row_of(src->ry, area->y, y) * src->rx) + area->x;
+					+ (src_row_of(src->ry, area->y, area->h, y) * src->rx) + area->x;
 				float *to = dst->fdata + (npix_dst * c) + ((size_t)dst->rx * y);
 				memcpy(to, from, (size_t)area->w * sizeof(float));
 			}
@@ -109,7 +116,7 @@ int crop_fits_region(fits *src, const rectangle *area, fits *dst) {
 		for (size_t c = 0; c < nchans; c++) {
 			for (uint32_t y = 0; y < (uint32_t)area->h; y++) {
 				const WORD *from = src->data + (npix_src * c)
-					+ (src_row_of(src->ry, area->y, y) * src->rx) + area->x;
+					+ (src_row_of(src->ry, area->y, area->h, y) * src->rx) + area->x;
 				WORD *to = dst->data + (npix_dst * c) + ((size_t)dst->rx * y);
 				memcpy(to, from, (size_t)area->w * sizeof(WORD));
 			}
@@ -143,7 +150,7 @@ int crop_fits_region(fits *src, const rectangle *area, fits *dst) {
 
 		for (uint32_t y = 0; y < (uint32_t)area->h; y++) {
 			const uint8_t *from = (const uint8_t *)src->mask->data
-				+ (src_row_of(src->ry, area->y, y) * src->rx + area->x) * elem;
+				+ (src_row_of(src->ry, area->y, area->h, y) * src->rx + area->x) * elem;
 			uint8_t *to = (uint8_t *)dst->mask->data + ((size_t)area->w * y) * elem;
 			memcpy(to, from, (size_t)area->w * elem);
 		}
@@ -174,7 +181,7 @@ int copy_fits_region(const fits *src, fits *dst, const rectangle *area) {
 		for (size_t c = 0; c < nchans; c++) {
 			for (uint32_t y = 0; y < (uint32_t)area->h; y++) {
 				const size_t off = (npix * c)
-					+ (src_row_of(src->ry, area->y, y) * src->rx) + area->x;
+					+ (src_row_of(src->ry, area->y, area->h, y) * src->rx) + area->x;
 				memcpy(dst->fdata + off, src->fdata + off,
 				       (size_t)area->w * sizeof(float));
 			}
@@ -185,7 +192,7 @@ int copy_fits_region(const fits *src, fits *dst, const rectangle *area) {
 		for (size_t c = 0; c < nchans; c++) {
 			for (uint32_t y = 0; y < (uint32_t)area->h; y++) {
 				const size_t off = (npix * c)
-					+ (src_row_of(src->ry, area->y, y) * src->rx) + area->x;
+					+ (src_row_of(src->ry, area->y, area->h, y) * src->rx) + area->x;
 				memcpy(dst->data + off, src->data + off,
 				       (size_t)area->w * sizeof(WORD));
 			}
@@ -224,7 +231,7 @@ int paste_fits_region(const fits *src, fits *dst, const rectangle *area) {
 			for (uint32_t y = 0; y < (uint32_t)area->h; y++) {
 				const float *from = src->fdata + ((size_t)src->rx * y) + (npix_src * c);
 				float *to = dst->fdata + (npix_dst * c)
-					+ (src_row_of(dst->ry, area->y, y) * dst->rx) + area->x;
+					+ (src_row_of(dst->ry, area->y, area->h, y) * dst->rx) + area->x;
 				memcpy(to, from, (size_t)area->w * sizeof(float));
 			}
 		}
@@ -238,7 +245,7 @@ int paste_fits_region(const fits *src, fits *dst, const rectangle *area) {
 			for (uint32_t y = 0; y < (uint32_t)area->h; y++) {
 				const WORD *from = src->data + ((size_t)src->rx * y) + (npix_src * c);
 				WORD *to = dst->data + (npix_dst * c)
-					+ (src_row_of(dst->ry, area->y, y) * dst->rx) + area->x;
+					+ (src_row_of(dst->ry, area->y, area->h, y) * dst->rx) + area->x;
 				memcpy(to, from, (size_t)area->w * sizeof(WORD));
 			}
 		}

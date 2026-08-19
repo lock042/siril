@@ -226,7 +226,8 @@ int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, const
  * from the transform file; denoising and reconstruction then run on that small
  * sub-transform. roi_x/roi_y are the selection's top-left in top-down display
  * coordinates; the result is written into roifit's channel buffer in roifit's
- * (top-down) layout, matching crop_fits_region() (core/fits_region.h). */
+ * own BOTTOM-UP layout, roifit being what crop_fits_region() produced
+ * (core/fits_region.h). */
 /* Padded crop window for an ROI reconstruction, in FITS (bottom-up) rows.
  * Shared by the file-backed and in-memory front ends. Returns 1 if unusable. */
 static int roi_window(int Nl, int Nc, int roi_x, int roi_y, int roi_w, int roi_h,
@@ -266,9 +267,12 @@ static int roi_finish(float *sub, int type, int Nbr_Plan, int Nl, int cy0,
 				(roifit->type == DATA_USHORT) ? ANSCOMBE_USHORT_SCALE : ANSCOMBE_FLOAT_SCALE,
 				threads);
 
-	/* copy the inner ROI into roifit (top-down), flipping FITS rows */
+	/* Copy the inner ROI into roifit.  roifit is an ordinary BOTTOM-UP fits
+	 * (it is what crop_fits_region produced), so its storage row y is its
+	 * display row roi_h-1-y, i.e. the image's display row roi_y+roi_h-1-y. */
 	for (int y = 0; y < roi_h; y++) {
-		const int sr = (Nl - 1 - roi_y - y) - cy0; /* sub-image row (FITS order) */
+		const int disp = roi_y + roi_h - 1 - y;    /* image display row */
+		const int sr = (Nl - 1 - disp) - cy0;      /* sub-image row (FITS order) */
 		const float *srow = out + (size_t) sr * cw + (roi_x - cx0);
 		if (roifit->type == DATA_USHORT) {
 			WORD *drow = roifit->pdata[chan] + (size_t) y * roi_w;

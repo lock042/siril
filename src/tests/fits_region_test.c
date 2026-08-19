@@ -157,7 +157,7 @@ Test(fits_region, roundtrip_is_the_identity_for_the_whole_image) {
 
 /* Pins the flip DIRECTION, which the round-trip alone cannot: the top display
  * row of the region must be the row at (ry - 1 - area.y) in storage. */
-Test(fits_region, crop_reads_display_rows_top_down) {
+Test(fits_region, crop_emits_a_bottom_up_region) {
 	const uint32_t rx = 24, ry = 20;
 	fits *img = make_image(rx, ry, 1, DATA_USHORT);
 	rectangle area = { 3, 2, 8, 4 };
@@ -165,8 +165,16 @@ Test(fits_region, crop_reads_display_rows_top_down) {
 	fits region = { 0 };
 	cr_assert_eq(crop_fits_region(img, &area, &region), 0);
 
+	/* The region is an ordinary fits: its storage row y is its display row
+	 * (h-1-y), which is the source's display row area.y + (h-1-y), which is
+	 * the source's storage row ry-1-that.  Pinning it this way rather than as
+	 * a formula copied from the implementation is the point — the earlier
+	 * top-down layout satisfied the round-trip property just as well and
+	 * mirrored every other use. */
 	for (uint32_t y = 0; y < (uint32_t)area.h; y++) {
-		const size_t storage_row = (size_t)ry - y - (size_t)(area.y + 1);
+		const uint32_t region_display_row = (uint32_t)area.h - 1 - y;
+		const uint32_t src_display_row = (uint32_t)area.y + region_display_row;
+		const size_t storage_row = (size_t)ry - 1 - src_display_row;
 		for (uint32_t x = 0; x < (uint32_t)area.w; x++) {
 			cr_assert_eq(region.data[(size_t)y * area.w + x],
 				     img->data[storage_row * rx + area.x + x],
@@ -175,6 +183,30 @@ Test(fits_region, crop_reads_display_rows_top_down) {
 	}
 
 	clearfits(&region);
+	free_image(img);
+}
+
+/* The property the old top-down layout broke: a region is a fits like any
+ * other, so cropping one again must compose. */
+Test(fits_region, cropping_a_region_composes) {
+	fits *img = make_image(40, 32, 1, DATA_USHORT);
+	const rectangle outer = { 6, 5, 20, 16 };
+	const rectangle inner_abs = { 11, 9, 7, 6 };
+	const rectangle inner_rel = { inner_abs.x - outer.x, inner_abs.y - outer.y,
+				      inner_abs.w, inner_abs.h };
+
+	fits a = { 0 }, b = { 0 }, direct = { 0 };
+	cr_assert_eq(crop_fits_region(img, &outer, &a), 0);
+	cr_assert_eq(crop_fits_region(&a, &inner_rel, &b), 0);
+	cr_assert_eq(crop_fits_region(img, &inner_abs, &direct), 0);
+
+	cr_assert_eq(memcmp(b.data, direct.data,
+			    (size_t)inner_abs.w * inner_abs.h * sizeof(WORD)), 0,
+		     "crop of a crop differs from the direct crop");
+
+	clearfits(&a);
+	clearfits(&b);
+	clearfits(&direct);
 	free_image(img);
 }
 

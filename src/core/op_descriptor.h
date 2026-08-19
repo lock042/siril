@@ -78,6 +78,37 @@ typedef struct op_descriptor {
 	 * extraction reinstalls its recorded sample positions here.  Return
 	 * non-zero to abort the replay.  NULL for everything else. */
 	int (*replay_pre)(gpointer user, GHashTable *kv, fits *target);
+
+	/* Region previews (the ROI model, above roi_t in core/siril.h).
+	 *
+	 * Pixels of INPUT CONTEXT the hook needs beyond the requested region for
+	 * its result INSIDE that region to match a full-image run.  The worker
+	 * grows the crop by this much and writes back only the requested
+	 * rectangle, so the halo never shrinks what the user sees.
+	 *
+	 * NULL means zero — a pixel-local op, which is fully region-capable.  It
+	 * is NOT "cannot do regions"; that is the absence of OP_ROI_CAPABLE.
+	 * Conflating the two would disable region previews for every stretch.
+	 *
+	 * @user is the params struct — the same argument serialize() takes — so
+	 * one implementation serves both the interactive path (args->user) and a
+	 * replay (the struct from deserialize).
+	 *
+	 * roi_halo_exact says the value is a true bound on the op's SPATIAL
+	 * SUPPORT: no pixel further away can influence the result.  It does not
+	 * claim bit-identical arithmetic, and for OpenCV-backed ops it is not —
+	 * the same pixels summed in a different order (different image width,
+	 * different SIMD blocking) differ by a few units in the last place, about
+	 * 0.01 ADU in 65535 measured.  Iterative and non-local ops (deconvolution,
+	 * NL-means) have no such bound at all: the agreed policy for them is a
+	 * flat one radius, documented as an approximation, and FALSE here.
+	 *
+	 * The property test (src/tests/roi_halo_test.c) checks the claim rather
+	 * than trusting it: negligible deviation at the declared halo AND a large
+	 * one below it, so a halo that is too small fails and one that is merely
+	 * generous cannot pass by accident. */
+	int      (*roi_halo)(gconstpointer user);
+	gboolean roi_halo_exact;
 } op_descriptor;
 
 /* Fill args fields from args->op, if set.  No-op when args->op == NULL, so the
@@ -87,6 +118,16 @@ typedef struct op_descriptor {
  * with no descriptor is not ROI-capable. */
 static inline gboolean op_descriptor_is_roi_capable(const op_descriptor *op) {
 	return op && (op->flags & OP_ROI_CAPABLE) != 0;
+}
+
+/* Halo in pixels for @op with @user params; 0 when it declares none.  Negative
+ * returns are clamped away, so a buggy implementation cannot shrink the crop
+ * below the requested region. */
+static inline int op_descriptor_roi_halo(const op_descriptor *op, gconstpointer user) {
+	if (!op || !op->roi_halo)
+		return 0;
+	const int h = op->roi_halo(user);
+	return h > 0 ? h : 0;
 }
 
 void op_descriptor_fill_img_args(struct generic_img_args *args);

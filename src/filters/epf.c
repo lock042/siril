@@ -146,6 +146,40 @@ static int epf_replay_pre(gpointer user, GHashTable *kv, fits *target) {
 }
 
 /* Op descriptor — single source of truth for this operation (op_descriptor.h) */
+/* Input context a region preview needs (op_descriptor.h).
+ *
+ * Both filters are fixed-kernel, so the halo is their radius and it is exact:
+ * with that much real context around the requested rectangle, OpenCV's border
+ * extrapolation only ever touches pixels the region does not keep.
+ *
+ * The radii mirror what edge_preserving_filter() actually passes down, so this
+ * has to track those adjustments rather than the raw GUI values:
+ *
+ *   bilateral — cv::bilateralFilter takes d as an int and uses radius = d/2,
+ *               or cvRound(sigma_space * 1.5) when d <= 0.
+ *   guided    — the filter is called with r = (d ? d : sigma_space) / 3, and
+ *               its box filter is applied TWICE (once to build a and b, once
+ *               to average them), so the support is 2r, not r.
+ *
+ * The 2r is the sort of thing that looks like an off-by-a-factor guess, which
+ * is why roi_halo_test.c asserts the deviation is zero here and non-zero one
+ * pixel below.
+ */
+static int epf_roi_halo(gconstpointer user) {
+	const struct epfargs *p = user;
+	if (!p)
+		return 0;
+	if (p->filter == EP_BILATERAL) {
+		const int d = (int)p->d;
+		const int radius = (d > 0) ? d / 2 : (int)lround(p->sigma_space * 1.5);
+		return radius > 1 ? radius : 1;
+	}
+	/* guided */
+	const double base = (p->d != 0.0) ? p->d : p->sigma_space;
+	const int r = (int)(base / 3.0);
+	return 2 * (r > 1 ? r : 1);
+}
+
 const op_descriptor op_desc_epf = {
 	.id = "filters.epf", .version = 1,
 	.image_hook = epf_image_hook,
@@ -153,6 +187,7 @@ const op_descriptor op_desc_epf = {
 	.description = N_("Edge Preserving Filter"),
 	.mem_ratio = 3.0f,
 	.flags = OP_MASK_CAPABLE | OP_ROI_CAPABLE,
+	.roi_halo = epf_roi_halo, .roi_halo_exact = TRUE,
 	.serialize = epf_serialize, .deserialize = epf_deserialize,
 	.replay_pre = epf_replay_pre,
 };

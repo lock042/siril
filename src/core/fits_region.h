@@ -31,8 +31,14 @@
  * COORDINATE CONVENTION.  \c area is in DISPLAY convention: x/y measured from
  * the TOP-left, which is what gui.roi.selection holds once
  * flis_display_to_active_layer_rect has translated it to layer-local
- * coordinates.  FITS pixel storage is bottom-up, so both functions apply the
- * same vertical flip internally.  They are exact mirrors: for any area within
+ * coordinates.  FITS pixel storage is bottom-up, so both functions translate
+ * between the two internally.
+ *
+ * The REGION ITSELF IS A NORMAL BOTTOM-UP FITS.  That is worth stating because
+ * it was not always so: an earlier version stored the region top-down, which
+ * round-tripped perfectly through paste_fits_region and silently mirrored
+ * anything else — cropping a region, or handing one to code that assumed the
+ * usual convention.  They are exact mirrors: for any area within
  * bounds,
  *
  *     crop_fits_region(img, area, tmp);

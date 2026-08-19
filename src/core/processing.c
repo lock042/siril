@@ -1618,6 +1618,10 @@ gpointer generic_image_worker(gpointer p) {
 	const gboolean for_roi = args->for_roi;
 	fits *roi_work = NULL;    /* region preview: the crop the hook runs on,
 	                           * pasted back into gfit afterwards. */
+	/* The crop actually taken: roi_rect grown by the op's halo and clipped to
+	 * the image.  The hook sees this; only roi_rect is written back, so the
+	 * halo extends the input and never shrinks what the user sees. */
+	rectangle roi_grown = roi_rect;
 
 	/* FLIS geometry-op undo capture: when geometry_changing is set AND a FLIS
 	 * is loaded, route the undo entry through undo_save_flis_layer_full so the
@@ -1823,15 +1827,27 @@ gpointer generic_image_worker(gpointer p) {
 			args->retval = 1;
 			goto the_end;
 		}
+		/* Grow by the op's declared halo, clipped to the image.  Clipping is
+		 * not an approximation: a hook's own edge handling at the image
+		 * border is what a full-image run would do there too. */
+		const int halo = op_descriptor_roi_halo(args->op, args->user);
+		if (halo > 0) {
+			const gint x0 = MAX(0, roi_rect.x - halo);
+			const gint y0 = MAX(0, roi_rect.y - halo);
+			const gint x1 = MIN((gint)roi_src->rx, roi_rect.x + roi_rect.w + halo);
+			const gint y1 = MIN((gint)roi_src->ry, roi_rect.y + roi_rect.h + halo);
+			roi_grown = (rectangle){ x0, y0, x1 - x0, y1 - y0 };
+		}
+		args->roi_rect = roi_grown;   /* what the hook is about to receive */
 		int rc;
 		if (roi_src == gfit) {
 			g_rw_lock_reader_lock(&gfit->rwlock);
-			rc = crop_fits_region(roi_src, &roi_rect, roi_work);
+			rc = crop_fits_region(roi_src, &roi_grown, roi_work);
 			g_rw_lock_reader_unlock(&gfit->rwlock);
 		} else {
 			/* The preview backup is written only from the GTK main
 			 * thread, and only while no job is in flight. */
-			rc = crop_fits_region(roi_src, &roi_rect, roi_work);
+			rc = crop_fits_region(roi_src, &roi_grown, roi_work);
 		}
 		if (rc) {
 			siril_log_error(_("Failed to copy original image.\n"));
@@ -2087,11 +2103,29 @@ the_end:;
 			 * roi_rect was translated against the layer this job started
 			 * on.  Dropping a preview is the right outcome — unlike a
 			 * discarded apply it needs no error, the next tick redraws. */
+			/* Write back ONLY the requested rectangle.  With a halo the
+			 * hook's result is larger than that, and its outer ring is the
+			 * part computed from truncated context — exactly what the halo
+			 * exists to keep out of the image. */
+			fits roi_inner = { 0 };
+			fits *to_paste = roi_work;
+			if (memcmp(&roi_grown, &roi_rect, sizeof(rectangle))) {
+				const rectangle inner = { roi_rect.x - roi_grown.x,
+				                          roi_rect.y - roi_grown.y,
+				                          roi_rect.w, roi_rect.h };
+				if (crop_fits_region(roi_work, &inner, &roi_inner))
+					to_paste = NULL;
+				else
+					to_paste = &roi_inner;
+			}
 			gboolean pasted = FALSE;
-			if (gfit == argfit && !flis_gfit_retarget_in_progress())
-				pasted = !paste_fits_region(roi_work, gfit, &roi_rect);
+			if (!to_paste)
+				siril_log_error(_("%s image processing failed.\n"), args->description);
+			else if (gfit == argfit && !flis_gfit_retarget_in_progress())
+				pasted = !paste_fits_region(to_paste, gfit, &roi_rect);
 			else
 				siril_log_debug("region preview discarded: the active layer changed\n");
+			clearfits(&roi_inner);
 			/* Tell the preview module what changed, so its next restore copies
 			 * back one rectangle instead of the whole image.  Only a paste that
 			 * actually happened may be reported; anything else must leave the

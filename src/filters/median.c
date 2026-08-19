@@ -70,6 +70,20 @@ static gpointer median_deserialize(const gchar *blob, int version) {
 	return p;
 }
 
+/* Input context a region preview needs (op_descriptor.h).  One pass reaches
+ * `radius` pixels; iteration k reads the previous pass's output, so N passes
+ * reach N*radius.  Exact: pixels that far outside the requested rectangle
+ * cannot influence anything inside it, and `amount` only blends the result
+ * with the pixel itself. */
+static int median_roi_halo(gconstpointer user) {
+	const struct median_filter_data *p = user;
+	if (!p)
+		return 0;
+	const int radius = (p->ksize - 1) / 2;
+	const int iters = p->iterations > 0 ? p->iterations : 1;
+	return radius * iters;
+}
+
 /* Op descriptor — single source of truth for this operation (op_descriptor.h) */
 const op_descriptor op_desc_median = {
 	.id = "filters.median", .version = 1,
@@ -78,6 +92,7 @@ const op_descriptor op_desc_median = {
 	.description = N_("Median filter"),
 	.mem_ratio = 2.0f,
 	.flags = OP_MASK_CAPABLE | OP_ROI_CAPABLE,
+	.roi_halo = median_roi_halo, .roi_halo_exact = TRUE,
 	.serialize = median_serialize, .deserialize = median_deserialize,
 };
 
