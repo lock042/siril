@@ -29,6 +29,7 @@
 #include "core/nde_replay.h"
 #include "filters/banding.h"
 #include "gui-gtk4/banding.h"
+#include "gui-gtk4/nde_editors.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/progress_and_log.h"
@@ -98,7 +99,8 @@ static void banding_amend_exit(gboolean apply, gchar *blob) {
 
 void on_canon_fixbanding_dialog_show(GtkWidget *widget, gpointer user_data) {
 	banding_dialog_init_statics();
-	gtk_widget_set_visible(banding_amend_note, banding_amend_mode);
+	nde_amend_note_update(banding_amend_note, banding_amend_mode,
+	                      NULL);
 	if (banding_amend_mode) {
 		/* gfit already shows the pre-record state.  No ROI (banding is
 		 * whole-image); the sequence controls are meaningless in amend mode. */

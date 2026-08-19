@@ -29,6 +29,7 @@
 #include "core/siril_log.h"
 #include "filters/nlbayes/call_nlbayes.h"
 #include "gui-gtk4/image_display.h"
+#include "gui-gtk4/nde_editors.h"
 #include "gui-gtk4/utils.h"
 #include "gui-gtk4/siril_preview.h"
 #include "gui-gtk4/dialogs.h"
@@ -255,23 +256,24 @@ void denoise_roi_callback() {
 
 void on_denoise_dialog_show(GtkWidget *widget, gpointer user_data) {
 	denoise_dialog_init_statics();
-	gtk_widget_set_visible(denoise_amend_note, denoise_amend_mode);
+	nde_amend_note_update(denoise_amend_note, denoise_amend_mode,
+	                      &op_desc_denoise);
 
 	if (denoise_amend_mode) {
-		/* gfit already shows the pre-record state.  Arm the backup with it
-		 * (so the ROI preview path works) but do not force a full-image
-		 * preview — NL-Bayes is slow; the user tunes then applies.  No ICC,
-		 * no ROI. */
-		if (gui.roi.active)
-			on_clear_roi();
-		copy_gfit_to_backup();   /* backup := pre-record state */
+		/* gfit already shows the pre-record state; denoise_startup() arms the
+		 * backup with it and keeps the ROI available.  No full-image preview
+		 * is forced — NL-Bayes is slow, the user tunes then applies — which
+		 * is exactly the case a region preview exists for, and the worker
+		 * replays the record's successors inside the rectangle
+		 * (nde_replay.h). */
+		denoise_startup();   /* ROI callback + descriptor + backup := pre-K */
 
 		set_notify_block(TRUE);
 		denoise_prefill_from_amend();
 		set_notify_block(FALSE);
 
 		gtk_widget_set_visible(GTK_WIDGET(denoise_artefact_control), (gfit->naxes[2] == 3));
-		gtk_widget_set_visible(GTK_WIDGET(denoise_roi_preview), FALSE);
+		gtk_widget_set_visible(GTK_WIDGET(denoise_roi_preview), gui.roi.active);
 		return;
 	}
 
@@ -294,6 +296,8 @@ void on_denoise_dialog_show(GtkWidget *widget, gpointer user_data) {
 /* Common amend-mode exit: tear down the backup without touching the pixels
  * (preview_end restores the true pixels wholesale), then leave amend mode. */
 static void denoise_amend_exit(gboolean apply, gchar *blob) {
+	roi_declare_op(NULL);
+	remove_roi_callback(denoise_change_between_roi_and_image);
 	clear_backup();
 	nde_amend_preview_end(apply, blob);
 	denoise_amend_mode = FALSE;
@@ -355,11 +359,17 @@ gboolean denoise_apply_idle(gpointer p) {
 }
 
 void on_denoise_apply_clicked(GtkButton *button, gpointer user_data) {
-	if (denoise_amend_mode) {
+	if (denoise_amend_mode && button != denoise_roi_preview) {
 		/* Serialize the widget state through the SAME struct and serializer
 		 * the normal apply uses (after the same validation), then route it
-		 * through the amend path.  The ROI-preview button is hidden in amend
-		 * mode, so this is always the real Apply. */
+		 * through the amend path.
+		 *
+		 * The button test is load-bearing: this handler serves Apply AND
+		 * "Preview ROI", and amend mode used to hide the latter.  Now that a
+		 * region preview replays the record's successors it is the whole
+		 * point of the mode here — NL-Bayes is far too slow to preview
+		 * full-image — so a preview click must fall through to the ordinary
+		 * path rather than commit the amend. */
 		struct denoise_args applied = { 0 };
 		get_denoise_values(&applied);
 		if (!validate_denoise_params(&applied))

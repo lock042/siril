@@ -34,6 +34,7 @@
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/nde_editors.h"
 #include "gui-gtk4/utils.h"	// for lookup_widget()
 #include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/dialogs.h"
@@ -1342,7 +1343,8 @@ void on_histogram_window_show(GtkWidget *object, gpointer user_data) {
 	closing = FALSE;
 	if (!histo_amend_note)
 		histo_amend_note = lookup_widget("histo_amend_note");
-	gtk_widget_set_visible(histo_amend_note, histo_amend_mode);
+	nde_amend_note_update(histo_amend_note, histo_amend_mode,
+	                      invocation == GHT_STRETCH ? &op_desc_ghs : &op_desc_mtf);
 
 	histo_startup();
 	_initialize_clip_text();
@@ -1354,12 +1356,11 @@ void on_histogram_window_show(GtkWidget *object, gpointer user_data) {
 
 	if (histo_amend_mode) {
 		/* Show the RECORD's parameters, not a fresh autostretch: prefill
-		 * after reset_cursors_and_values so the record's values win.  No
-		 * ROI (previews are full-image against the pre-record backup). */
-		roi_declare_op(NULL);
-		remove_roi_callback(histo_change_between_roi_and_image);
-		if (gui.roi.active)
-			on_clear_roi();
+		 * after reset_cursors_and_values so the record's values win.  The
+		 * ROI stays armed as histo_startup() left it: its backup IS the
+		 * pre-record state, so a region preview crops the right pixels and
+		 * the worker replays the successors inside the rectangle
+		 * (nde_replay.h). */
 		set_notify_block(TRUE);
 		siril_toggle_set_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("HistoCheckPreview"))), TRUE);
 		histo_prefill_from_amend();

@@ -29,6 +29,7 @@
 #include "core/nde_replay.h"
 #include "filters/clahe.h"
 #include "gui-gtk4/clahe.h"
+#include "gui-gtk4/nde_editors.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/progress_and_log.h"
@@ -235,7 +236,8 @@ void on_clahe_Apply_clicked(GtkButton *button, gpointer user_data) {
 
 void on_CLAHE_dialog_show(GtkWidget *widget, gpointer user_data) {
 	clahe_dialog_init_statics();
-	gtk_widget_set_visible(clahe_amend_note, clahe_amend_mode);
+	nde_amend_note_update(clahe_amend_note, clahe_amend_mode,
+	                      NULL);
 
 	if (clahe_amend_mode) {
 		/* gfit already shows the pre-record state.  No ICC/ROI juggling. */

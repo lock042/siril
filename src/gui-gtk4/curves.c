@@ -35,6 +35,7 @@
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "gui-gtk4/image_display.h"
+#include "gui-gtk4/nde_editors.h"
 #include "gui-gtk4/image_interactions.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/utils.h"
@@ -1756,7 +1757,8 @@ void on_curves_window_show(GtkWidget *object, gpointer user_data) {
 	fit = gfit;
 	closing = FALSE;
 	curves_dialog_init_statics();
-	gtk_widget_set_visible(curves_amend_note, curves_amend_mode);
+	nde_amend_note_update(curves_amend_note, curves_amend_mode,
+	                      &op_desc_curves);
 	pipette_value = -1.0f;
 	curves_startup();
 	_initialize_clip_text();
@@ -1776,12 +1778,10 @@ void on_curves_window_show(GtkWidget *object, gpointer user_data) {
 	gtk_widget_set_sensitive(GTK_WIDGET(curves_chan_s_radio), is_rgb);
 
 	if (curves_amend_mode) {
-		/* No ROI in amend mode: previews are full-image against the
-		 * pre-record backup that curves_startup() just armed. */
-		roi_declare_op(NULL);
-		remove_roi_callback(curves_histogram_change_between_roi_and_image);
-		if (gui.roi.active)
-			on_clear_roi();
+		/* The ROI stays armed as curves_startup() left it: the backup it took
+		 * IS the pre-record state, which is what a region preview crops from,
+		 * and the worker replays the record's successors inside the rectangle
+		 * (nde_replay.h). */
 
 		/* Load the record's curves into the editor, then one preview tick so
 		 * the dialog opens showing the record applied with its points. */

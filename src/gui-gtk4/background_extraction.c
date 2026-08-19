@@ -33,6 +33,7 @@
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "gui-gtk4/utils.h"
+#include "gui-gtk4/nde_editors.h"
 #include "gui-gtk4/image_display.h"
 #include "gui-gtk4/image_interactions.h"
 #include "gui-gtk4/progress_and_log.h"
@@ -668,7 +669,8 @@ void on_background_extraction_dialog_hide(GtkWidget *widget, gpointer user_data)
 
 void on_background_extraction_dialog_show(GtkWidget *widget, gpointer user_data) {
 	background_extraction_init_statics();
-	gtk_widget_set_visible(bkg_amend_note, bkg_amend_mode);
+	nde_amend_note_update(bkg_amend_note, bkg_amend_mode,
+	                      NULL);
 
 	if (bkg_amend_mode) {
 		/* Form-only: no sample overlay, no live preview.  gfit already shows

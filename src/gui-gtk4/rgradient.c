@@ -30,6 +30,7 @@
 #include "algos/PSF.h"
 #include "filters/rgradient.h"
 #include "gui-gtk4/rgradient.h"
+#include "gui-gtk4/nde_editors.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/message_dialog.h"
@@ -85,7 +86,8 @@ static void rgradient_prefill_from_amend(void) {
 
 void on_rgradient_dialog_show(GtkWidget *widget, gpointer user_data) {
 	rgradient_dialog_init_statics();
-	gtk_widget_set_visible(rgradient_amend_note, rgradient_amend_mode);
+	nde_amend_note_update(rgradient_amend_note, rgradient_amend_mode,
+	                      NULL);
 	if (rgradient_amend_mode) {
 		/* gfit already shows the pre-record state.  No ROI. */
 		if (gui.roi.active)

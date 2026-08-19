@@ -28,6 +28,7 @@
 #include "core/nde_replay.h"
 #include "filters/saturation.h"
 #include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/nde_editors.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/image_display.h"
 #include "gui-gtk4/progress_and_log.h"
@@ -207,6 +208,8 @@ static gboolean satu_amend_cancel(void) {
 		return FALSE;
 	cancel_pending_update();
 	cancel_and_wait_for_preview();
+	roi_declare_op(NULL);
+	remove_roi_callback(satu_change_between_roi_and_image);
 	clear_backup();
 	nde_amend_preview_end(FALSE, NULL);
 	satu_amend_mode = FALSE;
@@ -235,6 +238,8 @@ void on_satu_apply_clicked(GtkButton *button, gpointer user_data) {
 		applied.background_factor = background_factor;
 		satu_set_hues_from_types(&applied, satu_hue_type);
 		gchar *blob = op_desc_saturation.serialize(&applied);
+		roi_declare_op(NULL);
+		remove_roi_callback(satu_change_between_roi_and_image);
 		clear_backup();
 		nde_amend_preview_end(TRUE, blob);
 		g_free(blob);
@@ -262,14 +267,15 @@ gboolean on_satu_dialog_close(GtkWindow *dialog, gpointer user_data) {
 
 void on_satu_dialog_show(GtkWidget *widget, gpointer user_data) {
 	satu_dialog_init_statics();
-	gtk_widget_set_visible(satu_amend_note, satu_amend_mode);
+	nde_amend_note_update(satu_amend_note, satu_amend_mode,
+	                      &op_desc_saturation);
 
 	if (satu_amend_mode) {
-		/* gfit already shows the pre-record state.  No ROI (previews are
-		 * full-image against the pre-record backup). */
-		if (gui.roi.active)
-			on_clear_roi();
-		copy_gfit_to_backup();   /* backup := pre-record state */
+		/* gfit already shows the pre-record state, and the ROI stays armed:
+		 * the backup satu_startup() takes IS that state, so a region preview
+		 * crops the right pixels and the worker replays the record's
+		 * successors inside the rectangle (nde_replay.h). */
+		satu_startup();          /* ROI callback + descriptor + backup := pre-K */
 
 		set_notify_block(TRUE);
 		siril_toggle_set_active(GTK_WIDGET(satu_preview_btn), TRUE);

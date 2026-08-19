@@ -19,6 +19,9 @@
  */
 
 #include "gui-gtk4/nde_editors.h"
+#include "core/siril.h"
+#include "core/nde_replay.h"
+#include "core/op_descriptor.h"
 #include "gui-gtk4/asinh.h"
 #include "gui-gtk4/curves.h"
 #include "gui-gtk4/histogram.h"
@@ -96,4 +99,55 @@ gboolean nde_editor_open(const gchar *op_id, gint64 record_id) {
 		return editors[i].open(record_id);
 	}
 	return FALSE;
+}
+
+/* ---- the amend banner ---------------------------------------------------
+ * Every amend-capable dialog carries the same GtkLabel from its .ui file,
+ * shown while the dialog is in amend mode.  Its base sentence — later steps
+ * are hidden and recomputed on apply — stopped being the whole truth when
+ * region previews learned to replay the tail (nde_replay.h), so the regime is
+ * appended here rather than duplicated fourteen times in the .ui files.
+ *
+ * Stated once, at open, and phrased so it holds whether or not a region is
+ * drawn: the dialogs do not re-run this from their ROI callbacks, and a
+ * sentence that went stale the moment the user dragged a selection would be
+ * worse than no sentence at all. */
+void nde_amend_note_update(GtkWidget *note, gboolean amend_mode,
+                           const op_descriptor *op) {
+	if (!note)
+		return;
+	gtk_widget_set_visible(note, amend_mode);
+	if (!amend_mode || !GTK_IS_LABEL(note))
+		return;
+
+	/* Keep the .ui text: this runs on every open, and appending to the
+	 * previous result would grow the label without bound. */
+	const gchar *base = g_object_get_data(G_OBJECT(note), "nde-amend-base");
+	if (!base) {
+		base = g_strdup(gtk_label_get_text(GTK_LABEL(note)));
+		g_object_set_data_full(G_OBJECT(note), "nde-amend-base",
+		                       (gpointer)base, g_free);
+	}
+
+	gchar *why = NULL;
+	gchar *text;
+	if (!op_descriptor_is_roi_capable(op)) {
+		/* This dialog shows no rectangle in amend mode; the regime is not
+		 * the user's to reach, so there is nothing to tell them about it. */
+		text = g_strdup(base);
+	} else if (nde_region_tail_available(NULL, &why)) {
+		text = g_strconcat(base, " ",
+		                   _("A region preview recomputes them live inside the "
+		                     "region outline."), NULL);
+	} else if (why) {
+		gchar *tail = g_strdup_printf(_("A region preview cannot include them: %s."),
+		                              why);
+		text = g_strconcat(base, " ", tail, NULL);
+		g_free(tail);
+	} else {
+		text = g_strdup(base);   /* no amend preview installed — nothing to add */
+	}
+	g_free(why);
+	gtk_label_set_text(GTK_LABEL(note), text);
+	g_free(text);
 }

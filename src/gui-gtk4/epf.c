@@ -30,6 +30,7 @@
 #include "io/image_format_fits.h"
 #include "filters/epf.h"
 #include "gui-gtk4/epf.h"
+#include "gui-gtk4/nde_editors.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/message_dialog.h"
@@ -279,6 +280,8 @@ void apply_epf_cancel() {
 		cancel_and_wait_for_preview();
 		clearfits(&loaded_fit);
 		g_clear_pointer(&loaded_fit_path, g_free);
+		roi_declare_op(NULL);
+		remove_roi_callback(epf_change_between_roi_and_image);
 		clear_backup();
 		nde_amend_preview_end(FALSE, NULL);
 		epf_amend_mode = FALSE;
@@ -293,17 +296,18 @@ void apply_epf_cancel() {
 
 void on_epf_dialog_show(GtkWidget *widget, gpointer user_data) {
 	epf_dialog_init_statics();
-	gtk_widget_set_visible(epf_amend_note, epf_amend_mode);
+	nde_amend_note_update(epf_amend_note, epf_amend_mode,
+	                      &op_desc_epf);
 
 	if (epf_amend_mode) {
-		/* gfit already shows the pre-record state.  No ICC juggling (an
-		 * amend only changes pixels) and no ROI (previews are full-image
-		 * against the pre-record backup). */
-		if (gui.roi.active)
-			on_clear_roi();
+		/* gfit already shows the pre-record state.  No ICC juggling — an
+		 * amend only changes pixels.  The ROI stays armed: the backup
+		 * epf_startup() takes IS that state, so a region preview crops the
+		 * right pixels and the worker replays the record's successors inside
+		 * the rectangle (nde_replay.h). */
 		clearfits(&loaded_fit);
 		g_clear_pointer(&loaded_fit_path, g_free);
-		copy_gfit_to_backup();   /* backup := pre-record state */
+		epf_startup();   /* ROI callback + descriptor + backup := pre-K */
 
 		set_notify_block(TRUE);
 		siril_toggle_set_active(GTK_WIDGET(epf_preview), TRUE);
@@ -380,6 +384,8 @@ void on_epf_apply_clicked(GtkButton *button, gpointer user_data) {
 		free_epf_args(applied);
 		clearfits(&loaded_fit);
 		g_clear_pointer(&loaded_fit_path, g_free);
+		roi_declare_op(NULL);
+		remove_roi_callback(epf_change_between_roi_and_image);
 		clear_backup();
 		nde_amend_preview_end(TRUE, blob);
 		g_free(blob);

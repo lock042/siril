@@ -39,6 +39,7 @@
 #include "algos/statistics.h"
 
 #include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/nde_editors.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/image_display.h"
 #include "gui-gtk4/image_interactions.h"
@@ -827,7 +828,8 @@ void on_ccm_dialog_show(GtkWidget *widget, gpointer user_data) {
 		ccm_seq_entry = GTK_WIDGET(gtk_builder_get_object(gui.builder, "entryCCMSeq"));
 		ccm_restore_icc = GTK_WIDGET(gtk_builder_get_object(gui.builder, "ccm_restore_icc"));
 	}
-	gtk_widget_set_visible(ccm_amend_note, ccm_amend_mode);
+	nde_amend_note_update(ccm_amend_note, ccm_amend_mode,
+	                      NULL);
 	if (ccm_amend_mode) {
 		/* gfit already shows the pre-record state.  Sequence controls and the
 		 * ICC-restore affordance are meaningless in amend mode. */

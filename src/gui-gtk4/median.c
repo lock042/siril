@@ -32,6 +32,7 @@
 #include "core/nde_replay.h"
 #include "filters/median.h"
 #include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/nde_editors.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/siril_preview.h"
@@ -148,6 +149,11 @@ static gboolean median_apply_idle(gpointer p) {
 }
 
 void median_close(void) {
+	/* Unconditional: amend mode arms the ROI the same way ordinary mode does,
+	 * so it has the same teardown to do.  The amend preview's wholesale
+	 * swap-back below covers anything a region preview left in gfit. */
+	roi_declare_op(NULL);
+	remove_roi_callback(median_roi_callback);
 	if (median_amend_mode) {
 		/* Leave amend mode: drop the backup and restore the true pixels
 		 * (nothing committed).  Reached via the dialog registry's cancel
@@ -159,23 +165,22 @@ void median_close(void) {
 		return;
 	}
 	siril_preview_hide();
-	roi_declare_op(NULL);
-	remove_roi_callback(median_roi_callback);
 	siril_close_dialog("Median_dialog");
 }
 
 void on_Median_dialog_show(GtkWidget *widget, gpointer user_data) {
 	median_dialog_init_statics();
-	gtk_widget_set_visible(median_amend_note, median_amend_mode);
+	nde_amend_note_update(median_amend_note, median_amend_mode,
+	                      &op_desc_median);
 
 	if (median_amend_mode) {
-		/* gfit already shows the pre-record state.  No ROI (the amend
-		 * display is the whole pre-record image); the backup is armed with
-		 * that state so a ROI preview would still work if drawn. */
-		gtk_widget_set_visible(median_roi_preview_btn, FALSE);
-		if (gui.roi.active)
-			on_clear_roi();
+		/* gfit already shows the pre-record state, and the backup takes it —
+		 * which is exactly what a region preview must crop from, so the ROI
+		 * stays available here as it does anywhere else (nde_replay.h). */
+		roi_declare_op(&op_desc_median);
+		gtk_widget_set_visible(median_roi_preview_btn, gui.roi.active);
 		copy_gfit_to_backup();   /* backup := pre-record state */
+		add_roi_callback(median_roi_callback);
 		set_notify_block(TRUE);
 		median_prefill_from_amend();
 		set_notify_block(FALSE);
@@ -193,12 +198,20 @@ void on_Median_cancel_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
-	if (median_amend_mode) {
+	if (median_amend_mode && (GtkWidget *)button != median_roi_preview_btn) {
 		/* Serialize the widget state through the SAME struct and serializer
-		 * the normal apply uses, then route it through the amend path. */
+		 * the normal apply uses, then route it through the amend path.
+		 *
+		 * The button test is load-bearing: this handler serves Apply AND
+		 * "Preview ROI", and amend mode used to hide the latter.  Now that a
+		 * region preview replays the record's successors it is the whole
+		 * point of the mode, and a preview click must fall through to the
+		 * ordinary path rather than commit the amend. */
 		struct median_filter_data applied = { 0 };
 		fill_median_params_from_gui(&applied, FALSE);
 		gchar *blob = op_desc_median.serialize(&applied);
+		roi_declare_op(NULL);
+		remove_roi_callback(median_roi_callback);
 		clear_backup();
 		nde_amend_preview_end(TRUE, blob);
 		g_free(blob);

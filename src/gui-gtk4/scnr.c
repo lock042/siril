@@ -29,6 +29,7 @@
 #include "core/nde_replay.h"
 #include "filters/scnr.h"
 #include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/nde_editors.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/siril_preview.h"
@@ -138,7 +139,8 @@ void scnr_change_between_roi_and_image(void) {
 
 void on_SCNR_dialog_show(GtkWidget *widget, gpointer user_data) {
 	scnr_dialog_init_statics();
-	gtk_widget_set_visible(scnr_amend_note, scnr_amend_mode);
+	nde_amend_note_update(scnr_amend_note, scnr_amend_mode,
+	                      NULL);
 
 	if (scnr_amend_mode) {
 		/* gfit already shows the pre-record state.  SCNR has no preview,

@@ -19,6 +19,7 @@
 #include "algos/statistics.h"
 #include "io/single_image.h"
 #include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/nde_editors.h"
 #include "gui-gtk4/utils.h"
 #include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/dialogs.h"
@@ -207,6 +208,8 @@ void apply_asinh_cancel() {
 		 * true pixels (nothing was committed). */
 		cancel_pending_update();
 		cancel_and_wait_for_preview();
+		roi_declare_op(NULL);
+		remove_roi_callback(asinh_change_between_roi_and_image);
 		clear_backup();
 		nde_amend_preview_end(FALSE, NULL);
 		asinh_amend_mode = FALSE;
@@ -246,23 +249,24 @@ static void asinh_prefill_from_amend(void) {
 void on_asinh_dialog_show(GtkWidget *widget, gpointer user_data) {
 	asinh_dialog_init_statics();
 	gtk_widget_set_visible(asinh_clip_settings_widget, (gfit->naxes[2] == 3));
-	gtk_widget_set_visible(asinh_amend_note, asinh_amend_mode);
+	nde_amend_note_update(asinh_amend_note, asinh_amend_mode,
+	                      &op_desc_asinh);
 
 	if (gui.rendering_mode == LINEAR_DISPLAY)
 		setup_stretch_sliders();
 
 	if (asinh_amend_mode) {
-		/* gfit already shows the pre-record state.  No ICC juggling (an
-		 * amend only changes pixels) and no ROI (previews are full-image
-		 * against the pre-record backup). */
+		/* gfit already shows the pre-record state.  No ICC juggling — an
+		 * amend only changes pixels.  The ROI stays armed: the backup
+		 * asinh_startup() takes here IS the pre-record state, so a region
+		 * preview crops the right thing, and the worker replays the record's
+		 * successors inside the rectangle (nde_replay.h). */
 		if (original_icc) {
 			cmsCloseProfile(original_icc);
 			original_icc = NULL;
 		}
 		single_image_stretch_applied = FALSE;
-		if (gui.roi.active)
-			on_clear_roi();
-		copy_gfit_to_backup();   /* backup := pre-record state */
+		asinh_startup();   /* ROI callback + descriptor + backup := pre-K */
 
 		set_notify_block(TRUE);
 		siril_toggle_set_active(GTK_WIDGET(asinh_preview_btn), TRUE);
@@ -321,6 +325,8 @@ void on_asinh_ok_clicked(GtkButton *button, gpointer user_data) {
 		get_asinh_values(&applied.beta, &applied.offset,
 				&applied.human_luminance, &applied.clip_mode);
 		gchar *blob = op_desc_asinh.serialize(&applied);
+		roi_declare_op(NULL);
+		remove_roi_callback(asinh_change_between_roi_and_image);
 		clear_backup();
 		nde_amend_preview_end(TRUE, blob);
 		g_free(blob);

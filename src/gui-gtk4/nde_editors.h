@@ -21,6 +21,9 @@
 #define SRC_GUI_NDE_EDITORS_H_
 
 #include <glib.h>
+#include <gtk/gtk.h>
+
+struct op_descriptor;
 
 /*
  * Native amend editors (convergence C4).
@@ -49,5 +52,23 @@
  *  duration (nde_replay.h) and the change reaches the image through the
  *  composites that consumed the item. */
 gboolean nde_editor_open(const gchar *op_id, gint64 record_id);
+
+/** Show or hide a dialog's amend banner, and while showing it, append what a
+ *  region preview would do with the steps AFTER the one being edited —
+ *  recompute them live, or not, and why (nde_replay.h).  The .ui files carry
+ *  the base sentence; this owns the rest, so the regime is written once.
+ *
+ *  @op is the descriptor this dialog will region-preview with in amend mode,
+ *  or NULL when it offers no region preview there (it clears the ROI on
+ *  entry).  Passing it is what keeps the banner honest: the tail can be
+ *  perfectly region-replayable while THIS dialog has no rectangle to show it
+ *  in, and promising a live recompute that cannot happen is worse than saying
+ *  nothing.  It is a parameter rather than a read of
+ *  gui.roi.operation_supports_roi because the dialogs call this before their
+ *  startup declares the op.
+ *
+ *  Call wherever the dialog used to do gtk_widget_set_visible() on it. */
+void nde_amend_note_update(GtkWidget *note, gboolean amend_mode,
+                           const struct op_descriptor *op);
 
 #endif /* SRC_GUI_NDE_EDITORS_H_ */

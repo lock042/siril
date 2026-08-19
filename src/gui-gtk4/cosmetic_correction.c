@@ -28,6 +28,7 @@
 #include "core/nde_replay.h"
 #include "filters/cosmetic_correction.h"
 #include "gui-gtk4/cosmetic_correction.h"
+#include "gui-gtk4/nde_editors.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/progress_and_log.h"
@@ -99,7 +100,8 @@ static void cosme_prefill_from_amend(void) {
 
 void on_cosmetic_dialog_show(GtkWidget *widget, gpointer user_data) {
 	cosmetic_dialog_init_statics();
-	gtk_widget_set_visible(cosme_amend_note, cosme_amend_mode);
+	nde_amend_note_update(cosme_amend_note, cosme_amend_mode,
+	                      NULL);
 	if (cosme_amend_mode) {
 		/* gfit already shows the pre-record state.  No ROI; the sequence
 		 * controls are meaningless in amend mode. */
