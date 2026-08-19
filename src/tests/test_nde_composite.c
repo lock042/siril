@@ -916,6 +916,68 @@ Test(nde_composite, an_operation_can_be_inserted_into_a_consumed_input) {
 	done();
 }
 
+/* Reported against a FLATTENED document: "edit parameters" on an asinh step
+ * opened the raw key/value grid instead of the asinh dialog.  A flatten makes
+ * every layer a consumed input, and the amend preview refused those — so the
+ * panel had nothing to open but the grid.  The refusal was policy, not a
+ * missing mechanism: the same borrow an INSERTION uses lends the display to an
+ * item that has no layer, and the amend already reached the image through the
+ * composite.  Both halves are pinned here: what the preview shows while it is
+ * open, and that applying it lands exactly where the plain amend does. */
+Test(nde_composite, a_step_of_a_consumed_input_can_be_amended_with_a_preview) {
+	const gchar *amended = "beta=1.000000;offset=0.000000;human=0;clip_mode=0";
+
+	/* The oracle: the same amend through the plain (no-preview) path. */
+	gint top_item = 0;
+	two_edited_layers_merged(NULL, &top_item, FLIS_BLEND_NORMAL, 0.5f);
+	const float before = first_pixel();
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	cr_assert(nde_amend_execute(record_for_item(top_item), amended, &err),
+	          "amend failed: %s", err ? err : "?");
+	unreserve_thread();
+	const float expected = first_pixel();
+	cr_assert(fabsf(expected - before) > 1e-5f,
+	          "fixture: the amended parameters must make a visible difference");
+	done();
+	flis_free_layers(com.uniq);
+
+	/* The same document again, edited through the preview this time. */
+	two_edited_layers_merged(NULL, &top_item, FLIS_BLEND_NORMAL, 0.5f);
+	gint64 rid = record_for_item(top_item);
+	cr_assert_neq(rid, 0);
+	cr_assert_null(flis_layer_get_by_id(top_item),
+	               "precondition: the merge consumed this layer");
+	cr_assert_float_eq(first_pixel(), before, 1e-5, "fixture is reproducible");
+
+	cr_assert(reserve_thread());
+	cr_assert(nde_amend_preview_begin_execute(rid, &err),
+	          "an amend preview on a consumed input must open: %s", err ? err : "?");
+	cr_assert(nde_amend_preview_active());
+	/* The display holds the CONSUMED input's pre-record state — its own
+	 * baseline, not the merged image it is normally seen through. */
+	cr_assert_float_eq(first_pixel(), 0.25f, 1e-5,
+	                   "the borrowed display must show the input's pre-record state");
+
+	/* Cancelling gives the display back exactly as it was. */
+	cr_assert(nde_amend_preview_end_execute(FALSE, NULL, &err),
+	          "cancel failed: %s", err ? err : "?");
+	cr_assert(!nde_amend_preview_active());
+	cr_assert_float_eq(first_pixel(), before, 1e-5,
+	                   "cancelling must restore the merged image");
+
+	cr_assert(nde_amend_preview_begin_execute(rid, &err),
+	          "re-opening the preview failed: %s", err ? err : "?");
+	cr_assert(nde_amend_preview_end_execute(TRUE, amended, &err),
+	          "apply failed: %s", err ? err : "?");
+	unreserve_thread();
+	g_free(err);
+
+	cr_assert_float_eq(first_pixel(), expected, 1e-5,
+	                   "applying through the preview must land where the plain amend does");
+	done();
+}
+
 /* ---- undoing a merge --------------------------------------------------- */
 
 /* Deleting a composite step is not a chain edit: the step consumed several

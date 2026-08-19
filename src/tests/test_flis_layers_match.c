@@ -945,13 +945,12 @@ Test(flis_layers_match, layer_scale_hook_applies_affine) {
 
 /* spcc-edit.png: after a FLATTEN, clicking "edit parameters" on the group
  * calibration step opened the raw key/value grid instead of the real SPCC
- * dialog.  The record is fine — the panel never asks for its editor:
- * on_hist_edit_clicked gates the native editor on
- * !nde_item_is_retained_input(target), and a flatten turns every participant
- * into a retained input, the anchor included.  That gate exists for the
- * LIVE-PREVIEW editors, which have nothing to preview against once the layer
- * is gone; the joint and photometric editors are apply-on-OK and do not care.
- * This pins the precondition down so the gate's fix cannot silently regress. */
+ * dialog.  The record was fine — the panel never asked for its editor, because
+ * on_hist_edit_clicked gated the native editors on the target still being a
+ * live layer, and a flatten turns every participant into a retained input, the
+ * anchor included.  The gate is gone now (a live-preview amend borrows the
+ * display instead), but the condition it tripped over is what every editor on
+ * a flattened document has to cope with, so it is pinned here. */
 Test(flis_layers_match, a_flatten_makes_the_joint_anchor_a_retained_input) {
 	make_recorded_triple();
 	cr_assert_eq(run_layers_match(), CMD_OK);

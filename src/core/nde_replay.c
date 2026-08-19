@@ -3598,21 +3598,19 @@ static gboolean apv_begin_execute(gint64 record_id, gboolean insert, gchar **err
 
 	/* The dialog's preview pipeline works on the DISPLAYED image; refuse a
 	 * record targeting a non-active FLIS layer rather than previewing one
-	 * image while showing another.  An item a merge consumed is the exception
-	 * that proves it: there is no layer to make active, so for an INSERTION
-	 * the display is lent to it for the duration.  An amend preview keeps the
-	 * refusal — its dialog edits an existing step, which the History can do
-	 * without a preview at all. */
+	 * image while showing another.  An item a merge or flatten consumed is the
+	 * exception that proves it: there is no layer to make active, so the
+	 * display is LENT to it for the duration — for an insertion and for an
+	 * amend preview alike.  The amend used to be refused here, on the grounds
+	 * that the History could edit the step without a preview; what that meant
+	 * in practice was that flattening a document demoted every one of its
+	 * stretches to the raw key/value grid. */
 	gboolean borrow = FALSE;
 	if (item_id != nde_checkpoint_active_item_id()) {
-		if (insert && nde_item_is_retained_input(item_id)) {
+		if (nde_item_is_retained_input(item_id)) {
 			borrow = TRUE;
 		} else {
-			*err = nde_item_is_retained_input(item_id) ?
-				g_strdup(_("a merge or flatten consumed this layer, so it cannot "
-				           "be made active — edit its steps from the History "
-				           "instead")) :
-				g_strdup(_("this step targets another layer — make that layer active first"));
+			*err = g_strdup(_("this step targets another layer — make that layer active first"));
 			goto fail_free;
 		}
 	}
@@ -3770,6 +3768,7 @@ gboolean nde_amend_preview_end_execute(gboolean apply, const gchar *new_params, 
 	}
 	gint64 record_id = apv.record_id;
 	gint item_id = apv.item_id;
+	gboolean borrowed = apv.borrowed;
 	fits *saved = apv.saved;
 	apv_clear_state_locked();
 	g_mutex_unlock(&apv_mutex);
@@ -3777,9 +3776,12 @@ gboolean nde_amend_preview_end_execute(gboolean apply, const gchar *new_params, 
 	/* Restore the true pixels FIRST (the plan's ordering contract): gfit
 	 * must hold the real image again before any amend runs, so a failed
 	 * amend changes nothing.  `saved` receives the pre-K/preview pixels
-	 * from the swap — superseded either way. */
+	 * from the swap — superseded either way.  A borrowed item has no fits of
+	 * its own: the display held its state and takes its own back here, and
+	 * what carries the amend to the image is the composite recompute the
+	 * edit does. */
 	if (saved) {
-		fits *target = edit_target_fits(item_id);
+		fits *target = borrowed ? gfit : edit_target_fits(item_id);
 		if (target) {
 			apv_swap_into_target(target, saved);
 		} else {

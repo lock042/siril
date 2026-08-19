@@ -44,15 +44,10 @@
  *  record (e.g. an unlinked MTF stretch the histogram sliders cannot
  *  represent).
  *
- *  @target_is_retained_input says the record's item has been merged or
- *  flattened away and survives only as a composite's input.  That rules out
- *  the LIVE-PREVIEW editors — there is no on-screen image to preview against
- *  — but not the apply-on-OK ones, which read the record's parameters and
- *  commit.  Deciding it here rather than at the call site is what keeps the
- *  distinction next to the table that knows which editor is which: gating
- *  the whole registry on it sent a flattened document's SPCC step to the raw
- *  kv grid. */
-gboolean nde_editor_open(const gchar *op_id, gint64 record_id,
-                         gboolean target_is_retained_input);
+ *  An item a merge or flatten consumed keeps its editors: it has no layer to
+ *  be made active, so the live-preview ones BORROW the display for the
+ *  duration (nde_replay.h) and the change reaches the image through the
+ *  composites that consumed the item. */
+gboolean nde_editor_open(const gchar *op_id, gint64 record_id);
 
 #endif /* SRC_GUI_NDE_EDITORS_H_ */
