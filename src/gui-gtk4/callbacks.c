@@ -3074,10 +3074,12 @@ void on_checkcut_toggled(GtkCheckButton *togglebutton, gpointer user_data) {
 }
 /* gamut check was toggled. */
 void on_gamutcheck_toggled(GtkCheckButton *togglebutton, gpointer user_data) {
+	/* Cache the toggle for the transform builders, which run on worker
+	 * threads and must not read the widget themselves (see struct gui_icc). */
+	com.gui_icc.gamut_check = gtk_check_button_get_active(togglebutton);
 	if (gfit->color_managed) {
 		lock_display_transform();
-		if (com.gui_icc.proofing_transform)
-			cmsDeleteTransform(com.gui_icc.proofing_transform);
+		clear_proofing_transforms();
 		com.gui_icc.proofing_transform = initialize_proofing_transform();
 		unlock_display_transform();
 	}

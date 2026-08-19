@@ -57,6 +57,19 @@ const op_descriptor op_desc_ccm = {
 const gchar *extractionstring = "Extraction";
 
 static gchar *add_filter_str[] = { "R", "G", "B"};
+
+/* Removes the last entry from a history list and returns the new head.
+ * Does nothing if the list is empty. */
+static GSList *remove_last_history_entry(GSList *history) {
+	if (!history)
+		return NULL;
+	GSList *last = g_slist_last(history);
+	history = g_slist_remove_link(history, last);
+	g_free(last->data);
+	g_slist_free_1(last);
+	return history;
+}
+
 /*
  * A Fast HSL-to-RGB Transform
  * by Ken Fishkin
@@ -944,27 +957,16 @@ static gpointer extract_channels_ushort(gpointer p) {
 		args->fit->history = g_slist_append(args->fit->history, g_strdup_printf(_("Channel extraction from 3-channel image with ICC profile:")));
 		args->fit->history = g_slist_append(args->fit->history, g_strdup_printf("%s", desc));
 	}
+	gboolean history_appended = FALSE;
 	for (int i = 0; i < 3; i++) {
 		if (args->channel[i]) {
 			update_filter_information(args->fit, add_filter_str[i], TRUE);
-			if (i > 0) {
-				GSList *current = args->fit->history;
-				while (current->next != NULL && current->next->next != NULL) {
-					current = current->next;
-				}
-				// Check if there is only one element in the list.
-				if (current->next == NULL) {
-					g_slist_free_full(args->fit->history, g_free);
-					args->fit->history = NULL;
-				} else {
-					// Remove the last element.
-					GSList *last = current->next;
-					current->next = NULL;
-					g_free(last->data);
-					g_slist_free_1(last);
-				}
-			}
+			// Drop the history line written for the previously saved channel,
+			// if any: only the current channel's line belongs in this file.
+			if (history_appended)
+				args->fit->history = remove_last_history_entry(args->fit->history);
 			args->fit->history = g_slist_append(args->fit->history, g_strdup_printf("%s %d", histstring, i));
+			history_appended = TRUE;
 			args->fit->keywords.bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
 			save1fits16(args->channel[i], args->fit, i);
 			update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name
@@ -1091,27 +1093,16 @@ static gpointer extract_channels_float(gpointer p) {
 		args->fit->history = g_slist_append(args->fit->history, g_strdup_printf(_("Channel extraction from 3-channel image with ICC profile:")));
 		args->fit->history = g_slist_append(args->fit->history, g_strdup_printf("%s", desc));
 	}
+	gboolean history_appended = FALSE;
 	for (int i = 0; i < 3; i++) {
 		if (args->channel[i]) {
 			update_filter_information(args->fit, add_filter_str[i], TRUE);
-			if (i > 0) {
-				GSList *current = args->fit->history;
-				while (current->next != NULL && current->next->next != NULL) {
-					current = current->next;
-				}
-				// Check if there is only one element in the list.
-				if (current->next == NULL) {
-					g_slist_free_full(args->fit->history, g_free);
-					args->fit->history = NULL;
-				} else {
-					// Remove the last element.
-					GSList *last = current->next;
-					current->next = NULL;
-					g_free(last->data);
-					g_slist_free_1(last);
-				}
-			}
+			// Drop the history line written for the previously saved channel,
+			// if any: only the current channel's line belongs in this file.
+			if (history_appended)
+				args->fit->history = remove_last_history_entry(args->fit->history);
 			args->fit->history = g_slist_append(args->fit->history, g_strdup_printf("%s %d", histstring, i));
+			history_appended = TRUE;
 			args->fit->keywords.bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
 			save1fits32(args->channel[i], args->fit, i);
 			update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name

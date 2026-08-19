@@ -202,6 +202,14 @@ if criterion_dep.found()
 
      test('fits_scaling_test', fits_scaling_exec)
 
+     test_icc_state_exec = executable('test_icc_state',
+                                'test_icc_state.c',
+                                dependencies : [siril_dep, criterion_dep],
+                                link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                c_args : siril_c_flag,
+                                cpp_args : siril_cpp_flag)
+     test('test_icc_state', test_icc_state_exec)
+
      # Performance testing
      sorting_perf_exec = executable('sorting_perf',
                                    'measure_sorting.c',

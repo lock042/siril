@@ -108,6 +108,7 @@ static void stub_set_seq_browser_active(gboolean active) { (void)active; }
 static void stub_update_status_bar(void) {}
 static void stub_update_menu_state(void) {}
 static void stub_set_suppress_redraws(gboolean suppress) { (void)suppress; }
+static gboolean stub_get_suppress_redraws(void) { return FALSE; }
 static void stub_populate_roi(void) {}
 static void stub_on_geometry_changed(void) {}
 static void stub_on_mask_state_changed(void) {}
@@ -128,6 +129,7 @@ static GPid stub_select_child_process(GSList *children) { (void)children; return
 /* D additions */
 static void stub_invalidate_histogram(void) {}
 static void stub_update_histogram(void) {}
+static void stub_curves_reset_after_undo(void) {}
 static void stub_redraw_mask_idle(gboolean remap_tints) { (void)remap_tints; }
 
 /* G additions */
@@ -208,7 +210,6 @@ static void stub_activate_annotation_display(void) {}
 
 /* U – ICC status */
 static void stub_update_icc_status_icon(gpointer fit, gboolean active) { (void)fit; (void)active; }
-static gboolean stub_get_gamut_check_active(void) { return FALSE; }
 
 /* V – Registration panel status */
 static void stub_update_registration_status(const gchar *msg) { (void)msg; }
@@ -353,6 +354,7 @@ SirilGuiInterface gui_iface = {
 	.update_status_bar      = stub_update_status_bar,
 	.update_menu_state      = stub_update_menu_state,
 	.set_suppress_redraws   = stub_set_suppress_redraws,
+	.get_suppress_redraws   = stub_get_suppress_redraws,
 	.populate_roi           = stub_populate_roi,
 	.on_geometry_changed    = stub_on_geometry_changed,
 	.on_mask_state_changed  = stub_on_mask_state_changed,
@@ -367,6 +369,7 @@ SirilGuiInterface gui_iface = {
 	.select_child_process        = stub_select_child_process,
 	.invalidate_histogram        = stub_invalidate_histogram,
 	.update_histogram            = stub_update_histogram,
+	.curves_reset_after_undo     = stub_curves_reset_after_undo,
 	.redraw_mask_idle            = stub_redraw_mask_idle,
 	.on_channel_count_changed    = stub_on_channel_count_changed,
 	.on_precision_changed        = stub_on_precision_changed,
@@ -418,7 +421,6 @@ SirilGuiInterface gui_iface = {
 	.update_pixel_math_status    = stub_update_pixel_math_status,
 	.activate_annotation_display = stub_activate_annotation_display,
 	.update_icc_status_icon      = stub_update_icc_status_icon,
-	.get_gamut_check_active      = stub_get_gamut_check_active,
 	.update_registration_status  = stub_update_registration_status,
 	.update_single_image_display = stub_update_single_image_display,
 	.seq_redisplay_frame         = stub_seq_redisplay_frame,

@@ -7,6 +7,9 @@ siril-1.5.0
 **Fixes**
 * Fixed issue with bgnoise calculation that could result in a small overestimate (#1817)
 * Fixed reading of FITS images storing floating point data as BSCALE/BZERO-scaled integers, which loaded as pure black and white: they are now read as 32-bit float and normalized to Siril's [0, 1] range, the normalization being recorded in HISTORY and the DATA* keywords describing the original physical data dropped
+* Fixed pyscript failing with "python not ready yet" in scripts run with -s: the python venv initialisation was ordered after script execution and could never be reached (#1976)
+* Fixed a crash when closing a large image: the pixel data was freed without the gfit writer lock, and the display's tile grid without the mutex guarding it, while the tile-materialisation threads were still reading both (#1975)
+* Fixed a race in the Python venv initialisation: the shared initialisation handle was read and cleared without a lock, and pyscript could launch python before the virtual environment's variables had been exported (#1977)
 
 **Improvements**
 * Vectorized rejection stacking hotspot with portable SIMD, ~13% cold / ~22% warm stacking speedup (!1032)
@@ -43,7 +46,8 @@ siril-1.5.0
 * Removed original Starnet C interface (now covered by the new python script) (!tbc)
 * Added static autostretch mode to keep display stretch parameters fixed across images
 * Improve speed of extract_thumbnail_from_fits (!1066)
-* Improved à trous wavelets tool: better strength control, per-scale denoising (!1049)
+* Improved à trous wavelets tool: better strength control, per-scale denoising, faster (!1049, !1085)
+* Improved the Curves tool with the VeraLux engine: R, G, B, L*, chroma and saturation curves, Akima splines, luminance range masking and non-destructive stages (!983)
 
 **Fixes**
 * Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
@@ -58,6 +62,9 @@ xx/xx/xx
 * Fixed constellation names in annotations (#1055)
 * Fixed opening JPEG XL files wrapped in an ISO/IEC 18181-2 container (#1961)
 * Fixed compilation when the version of opencv is >= 5
+
+**Improvements**
+* Allowed editing FITS keywords of a whole sequence from the UI
 
 siril-1.4.4
 06/17/26

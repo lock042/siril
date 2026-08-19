@@ -69,6 +69,7 @@
 #include "gui-gtk4/utils.h"
 #include "gui-gtk4/histogram_utils.h"
 #include "gui-gtk4/remixer.h"
+#include "gui-gtk4/curves.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 
@@ -332,6 +333,10 @@ static void impl_set_suppress_redraws(gboolean suppress) {
 	}
 }
 
+static gboolean impl_get_suppress_redraws(void) {
+	return g_atomic_int_get(&gui.suppress_drawarea_redraw) != 0;
+}
+
 static void impl_populate_roi(void) {
 	populate_roi();
 }
@@ -367,6 +372,10 @@ static void impl_on_crop_complete(void) {
 static void impl_on_stats_ready(void) {
 	computeStat();
 	siril_open_dialog("StatWindow");
+}
+
+static void impl_curves_reset_after_undo(void) {
+	curves_reset_after_undo();
 }
 
 /* ── Group J: Photometry ─────────────────────────────────────────────────── */
@@ -585,6 +594,22 @@ static gboolean free_image_data_gui(gpointer p) {
 	g_signal_handlers_unblock_by_func(binning,       on_combobinning_changed, NULL);
 	siril_log_debug("free_image_data_idle() complete\n");
 
+	/* Hold gui.cairo_mutex across the whole teardown.  This is the same race
+	 * free_image_data() closes with gfit's writer lock, one indirection out:
+	 * materialise_worker() (image_display.c) walks view->tiles under this
+	 * mutex, so g_free()ing the array from here without it hands a worker a
+	 * freed tile grid.  It is narrower than the pixel-data window — the worker
+	 * only touches the grid in its short pick/assign sections, not across the
+	 * fill — which is why the reported backtraces land in the remap instead.
+	 *
+	 * Nulling the pointers under the mutex is enough on its own: every worker
+	 * phase re-tests view->tiles and view->lazy after re-acquiring it, so an
+	 * in-flight fill simply discards its finished texture and exits.  Nothing
+	 * has to drain, and there is no lock inversion — workers take gfit's
+	 * reader lock BEFORE this mutex, and this runs from on_image_closed(),
+	 * i.e. before free_image_data() takes the writer lock, so no lock a worker
+	 * could be waiting on is held here. */
+	g_mutex_lock(&gui.cairo_mutex);
 	for (int vport = 0; vport < MAXVPORT; vport++) {
 		struct image_view *view = &gui.view[vport];
 		/* Drop tile textures.  Per-tile bytes (lazy mode) and the eager
@@ -616,6 +641,7 @@ static gboolean free_image_data_gui(gpointer p) {
 		view->view_width = -1;
 		view->view_height = -1;
 	}
+	g_mutex_unlock(&gui.cairo_mutex);
 	clear_previews();
 	free_reference_image();
 	siril_log_debug("free_image_data_gui() complete\n");
@@ -911,10 +937,7 @@ static void impl_restore_roi(const rectangle *rect) {
 
 static void impl_reset_display_transform(void) {
 	lock_display_transform();
-	if (com.gui_icc.proofing_transform) {
-		cmsDeleteTransform(com.gui_icc.proofing_transform);
-		com.gui_icc.proofing_transform = NULL;
-	}
+	clear_proofing_transforms();
 	unlock_display_transform();
 }
 
@@ -1032,11 +1055,6 @@ static void impl_update_icc_status_icon(gpointer p, gboolean active) {
 	} else {
 		execute_idle_and_wait_for_it(cm_worker, &data);
 	}
-}
-
-static gboolean impl_get_gamut_check_active(void) {
-	GtkCheckButton *checkgamut = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "checkgamut"));
-	return siril_toggle_get_active(GTK_WIDGET(checkgamut));
 }
 
 /* ── V: Registration panel status ────────────────────────────────────────── */
@@ -1513,11 +1531,13 @@ void siril_register_gui_iface(void) {
 	gui_iface.update_menu_state      = impl_update_menu_state;
 	gui_iface.dismiss_autohide_popovers = close_open_autohide_popovers;
 	gui_iface.set_suppress_redraws   = impl_set_suppress_redraws;
+	gui_iface.get_suppress_redraws   = impl_get_suppress_redraws;
 	gui_iface.populate_roi           = impl_populate_roi;
 	gui_iface.on_geometry_changed    = impl_on_geometry_changed;
 	gui_iface.on_mask_state_changed  = impl_on_mask_state_changed;
 	gui_iface.on_crop_complete       = impl_on_crop_complete;
 	gui_iface.on_stats_ready         = impl_on_stats_ready;
+	gui_iface.curves_reset_after_undo = impl_curves_reset_after_undo;
 	gui_iface.on_photometry_changed  = impl_on_photometry_changed;
 	gui_iface.show_siril_plot        = impl_show_siril_plot;
 	gui_iface.update_star_list       = impl_update_star_list;
@@ -1565,7 +1585,6 @@ void siril_register_gui_iface(void) {
 	gui_iface.update_pixel_math_status    = impl_update_pixel_math_status;
 	gui_iface.activate_annotation_display = impl_activate_annotation_display;
 	gui_iface.update_icc_status_icon      = impl_update_icc_status_icon;
-	gui_iface.get_gamut_check_active      = impl_get_gamut_check_active;
 	gui_iface.update_registration_status  = impl_update_registration_status;
 	gui_iface.update_single_image_display = impl_update_single_image_display;
 	gui_iface.seq_redisplay_frame         = impl_seq_redisplay_frame;

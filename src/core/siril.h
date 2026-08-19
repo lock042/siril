@@ -827,6 +827,33 @@ struct gui_icc {
 	cmsHPROFILE monitor;
 	cmsHPROFILE soft_proof;
 	cmsHTRANSFORM proofing_transform;
+	/* The same transform with a float input, used to compose the display
+	 * transform into the display LUT at full precision. Built lazily, as it
+	 * is only needed when the image and monitor primaries match. */
+	cmsHTRANSFORM proofing_lut_transform;
+	/* Primaries-only variant, for modes whose stretch has already replaced the
+	 * encoding curve but whose chromaticity survives it (linked autostretch).
+	 * gamut_transform_tried stops us retrying the build every remap when the
+	 * profiles cannot support it. */
+	cmsHTRANSFORM gamut_transform;
+	gboolean gamut_transform_tried;
+	/* Cached state of the "checkgamut" toggle, baked into both display
+	 * transforms as cmsFLAGS_GAMUTCHECK when they are built.
+	 *
+	 * Cached rather than read from the widget because the transform builders
+	 * run on worker threads (remap_all_vports() is worker-callable, and the
+	 * lazy tile worker reaches build_gamut_transform() via
+	 * display_pixel_transform()), and touching GTK off the main thread is the
+	 * crash class fixed throughout gui_iface_impl.c.  The usual remedy there —
+	 * a synchronous idle round-trip — would deadlock here: the builders run
+	 * holding display_transform_mutex, which the main thread may already be
+	 * blocked on.
+	 *
+	 * Written only by on_gamutcheck_toggled(), on the main thread, which
+	 * clears the cached transforms in the same breath so the flag and the
+	 * transforms built from it cannot diverge.  Zero-initialised to FALSE,
+	 * matching the widget's unchecked default and the headless case. */
+	gboolean gamut_check;
 	cmsUInt32Number proofing_flags;
 	gboolean same_primaries;
 	gboolean profile_changed;

@@ -409,8 +409,15 @@ static gpointer merge_cfa_img_worker(gpointer p) {
 		return GINT_TO_POINTER(1);
 	}
 	siril_log_message("Bayer pattern produced: 1 layer, %dx%d pixels\n", out->rx, out->ry);
-	g_rw_lock_writer_lock(&gfit->rwlock);
+	/* close_single_image() must stay OUTSIDE the writer lock: it takes that
+	 * same non-recursive lock itself, inside free_image_data(), to clear gfit.
+	 * Closing from within the locked region makes GLib refuse the nested
+	 * acquisition — "Failed to get RW lock: Resource deadlock avoided" on
+	 * glibc, a hard hang where the platform has no such check — after which
+	 * the unlock paired with it releases the lock taken HERE, leaving the copy
+	 * below running unguarded and the final unlock with nothing to release. */
 	close_single_image();
+	g_rw_lock_writer_lock(&gfit->rwlock);
 	copyfits(out, gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 	copy_fits_metadata(out, gfit);
 	update_sampling_information(gfit, 0.5f);
