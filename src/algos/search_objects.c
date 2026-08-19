@@ -443,10 +443,10 @@ char *search_in_online_catalogs(sky_object_query_args *args) {
 	 * additionally double single quotes for the ADQL case so the name cannot
 	 * break out of the '...' literal. This also lets legitimate names that
 	 * contain quotes/plus/spaces (e.g. "Barnard's Star", "BD+30 3639") work. */
-	gchar *encoded_name = g_uri_escape_string(name, NULL, FALSE);
+	gchar *encoded_name = siril_url_escape(name);
 	GString *adql = g_string_new(name);
 	g_string_replace(adql, "'", "''", 0);
-	gchar *encoded_adql_name = g_uri_escape_string(adql->str, NULL, FALSE);
+	gchar *encoded_adql_name = siril_url_escape(adql->str);
 	g_string_free(adql, TRUE);
 	switch(args->server) {
 	case QUERY_SERVER_CDS:
