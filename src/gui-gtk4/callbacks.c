@@ -335,6 +335,17 @@ int populate_roi() {
 	return retval;
 }
 
+fits *roi_stats_source(fits *cache) {
+	if (!cache || !gui.roi.active)
+		return gfit;
+	rectangle lsel;
+	if (!flis_display_to_active_layer_rect(&gui.roi.selection, &lsel, TRUE))
+		return gfit;
+	if (crop_fits_region(gfit, &lsel, cache))
+		return gfit;
+	return cache;
+}
+
 static void call_roi_callbacks() {
 	if (com.python_command)
 		return;

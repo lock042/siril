@@ -82,7 +82,12 @@ static int _stretchtype = STRETCH_PAYNE_NORMAL;
 static int _payne_colourstretchmodel = COL_INDEP;
 static ght_compute_params compute_params;
 
+/* The image the DISPLAYED histograms and HSL buffers are computed from: gfit,
+ * or a snapshot of the ROI when one is active (roi_stats_source, callbacks.h).
+ * A snapshot and not an alias, so it must be re-taken before pixels are read —
+ * see refresh_stats_fit() below. */
 static fits* fit = NULL;
+static fits roi_stats_cache = { 0 };
 
 static gboolean auto_display_compensation = FALSE;
 
@@ -111,6 +116,7 @@ static gboolean lp_warning_given, hp_warning_given = FALSE;
 void *huebuf = NULL, *satbuf_orig = NULL, *satbuf_working = NULL, *lumbuf = NULL;
 
 static void setup_hsl();
+static void refresh_stats_fit(void);
 static void clear_hsl();
 static void stretch_dialog_compute_histograms(fits *thefit);
 void updateGHTcontrols(void);
@@ -246,6 +252,7 @@ static void histo_startup() {
 	// also get the backup histogram
 	/* histogram_mutex guards layers_hist[]/sat_hist against the worker thread,
 	 * which frees and recomputes them in notify_gfit_data_modified(). */
+	refresh_stats_fit();
 	g_mutex_lock(&com.histogram_mutex);
 	stretch_dialog_compute_histograms(fit);
 	for (int i = 0; i < fit->naxes[2]; i++)
@@ -293,6 +300,11 @@ static void histo_close(gboolean revert, gboolean update_image_if_needed, gboole
 	clear_hist_backup();
 	roi_supported(FALSE);
 	remove_roi_callback(histo_change_between_roi_and_image);
+	/* Drop the region snapshot: it can be the size of the whole image and the
+	 * dialog may not be reopened.  Point `fit` away from it first — several
+	 * draw handlers read fit->naxes[2] without checking whether we are open. */
+	fit = gfit;
+	clearfits(&roi_stats_cache);
 }
 
 
@@ -329,7 +341,7 @@ static void histo_recompute(gboolean for_preview) {
 	auto_display_compensation = FALSE;
 
 	// Ensure we're working with the right fit
-	fit = gui.roi.active ? &gui.roi.fit : gfit;
+	fit = roi_stats_source(&roi_stats_cache);
 
 	copy_backup_to_gfit();
 
@@ -1011,7 +1023,7 @@ static void update_histo_mtf() {
 }
 
 static int histo_update_preview() {
-	fit = gui.roi.active ? &gui.roi.fit : gfit;
+	fit = roi_stats_source(&roi_stats_cache);
 	if (!closing)
 		histo_recompute(TRUE);
 	return 0;
@@ -1047,6 +1059,8 @@ static void stretch_dialog_compute_histograms(fits *thefit) {
 
 /* call from main thread */
 void update_gfit_histogram_if_needed() {
+	/* Outside the mutex: the snapshot reads gfit, not the histograms. */
+	refresh_stats_fit();
 	/* Hold histogram_mutex across the invalidate+recompute pair so no other
 	 * thread observes a partially-nullified layers_hist[]. */
 	g_mutex_lock(&com.histogram_mutex);
@@ -1079,6 +1093,7 @@ gboolean mtf_single_image_idle(gpointer p) {
 	// Check if processing succeeded
 	if (args->retval == 0) {
 		// Update histograms
+		refresh_stats_fit();
 		g_mutex_lock(&com.histogram_mutex);
 		stretch_dialog_compute_histograms(fit);
 		g_mutex_unlock(&com.histogram_mutex);
@@ -1118,6 +1133,7 @@ gboolean ght_single_image_idle(gpointer p) {
 	// Check if processing succeeded
 	if (args->retval == 0) {
 		// Update histograms
+		refresh_stats_fit();
 		g_mutex_lock(&com.histogram_mutex);
 		stretch_dialog_compute_histograms(fit);
 		g_mutex_unlock(&com.histogram_mutex);
@@ -1162,7 +1178,16 @@ static int ght_image_hook(struct generic_seq_args *args, int o, int i, fits *fit
 	return 0;
 }
 
+/* Re-take the ROI snapshot immediately before pixels are read through `fit`.
+ * A no-op when `fit` is gfit: the whole-image case needs no snapshot, and the
+ * apply paths that deliberately point `fit` at gfit must stay there. */
+static void refresh_stats_fit(void) {
+	if (fit == &roi_stats_cache)
+		fit = roi_stats_source(&roi_stats_cache);
+}
+
 static void setup_hsl() {
+	refresh_stats_fit();
 	if (huebuf)
 		free(huebuf);
 	if (fit->type == DATA_FLOAT) {
@@ -1220,7 +1245,7 @@ void histo_change_between_roi_and_image() {
 	// This should be called if the ROI is set, changed or cleared to ensure the
 	// histogram dialog continues to process the right data. Especially important
 	// in GHT saturation stretch mode.
-	fit = gui.roi.active ? &gui.roi.fit : gfit;
+	fit = roi_stats_source(&roi_stats_cache);
 	if (_payne_colourstretchmodel == COL_SAT) {
 		clear_hsl();
 		setup_hsl();
@@ -1313,6 +1338,7 @@ void on_histogram_window_show(GtkWidget *object, gpointer user_data) {
 	histo_startup();
 	_initialize_clip_text();
 	reset_cursors_and_values(TRUE);
+	refresh_stats_fit();
 	g_mutex_lock(&com.histogram_mutex);
 	stretch_dialog_compute_histograms(fit);
 	g_mutex_unlock(&com.histogram_mutex);

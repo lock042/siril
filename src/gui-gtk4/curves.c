@@ -61,6 +61,7 @@ static void _initialize_clip_text();
 static void curves_setup_hsl();
 static void curves_clear_hsl();
 static void curves_compute_special_histograms();
+static void refresh_stats_fit(void);
 static gsl_histogram* curves_compute_histo_from_buffer(void* buf, fits* f);
 static void init_all_curves();
 static void init_all_curves_and_reset_channel();
@@ -127,7 +128,12 @@ static enum curve_channel current_channel = CHAN_RGB_K;
 enum curve_algorithm algorithm = AKIMA_SPLINE;
 
 static gboolean closing = FALSE;
+/* The image the DISPLAYED histograms are computed from: gfit, or a snapshot of
+ * the ROI when one is active (roi_stats_source, callbacks.h).  A snapshot and
+ * not an alias, so it has to be re-taken before pixels are read — see
+ * refresh_stats_fit() below. */
 static fits *fit = NULL;
+static fits roi_stats_cache = { 0 };
 static long clipped[] = {0, 0};
 static gsl_histogram *display_histogram[MAXVPORT] = {NULL, NULL, NULL, NULL};
 static gsl_histogram *display_histogram_lum = NULL;
@@ -288,6 +294,7 @@ static void update_display_histogram_from_curve() {
  * guards it against the worker thread, which frees and recomputes it in
  * notify_gfit_data_modified(). */
 static void refresh_display_histogram_from_fit() {
+	refresh_stats_fit();
 	if (!fit) return;
 	g_mutex_lock(&com.histogram_mutex);
 	compute_histo_for_fit(fit);
@@ -1072,6 +1079,7 @@ static void curves_clear_hsl() {
 }
 
 static void curves_compute_special_histograms() {
+	refresh_stats_fit();
 	if (!fit || fit->naxes[2] != 3) return;
 
 	// Free existing special histograms
@@ -1168,8 +1176,16 @@ gboolean redraw_curves(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	return FALSE;
 }
 
+/* Re-take the ROI snapshot immediately before pixels are read through `fit`.
+ * A no-op when `fit` is gfit: the whole-image case needs no snapshot, and the
+ * apply paths that deliberately point `fit` at gfit must stay there. */
+static void refresh_stats_fit(void) {
+	if (fit == &roi_stats_cache)
+		fit = roi_stats_source(&roi_stats_cache);
+}
+
 static int curves_update_preview() {
-	fit = gui.roi.active ? &gui.roi.fit : gfit;
+	fit = roi_stats_source(&roi_stats_cache);
 	if (!closing) {
 		copy_backup_to_gfit();
 		curves_process_with_worker(TRUE, gui.roi.active);
@@ -1342,6 +1358,11 @@ static void curves_close(gboolean update_image_if_needed, gboolean revert_icc_pr
 	curves_clear_hsl();
 	roi_supported(FALSE);
 	remove_roi_callback(curves_histogram_change_between_roi_and_image);
+	/* Drop the region snapshot: it can be the size of the whole image and the
+	 * dialog may not be reopened.  Point `fit` away from it first — several
+	 * draw handlers read fit->naxes[2] without checking whether we are open. */
+	fit = gfit;
+	clearfits(&roi_stats_cache);
 }
 
 // Build a fully-populated curve_params from the GUI channel state. Caller owns
@@ -1573,6 +1594,8 @@ static void curves_prefill_from_amend(void) {
 }
 
 void update_gfit_curves_histogram_if_needed() {
+	/* Outside the mutex: the snapshot reads gfit, not the histograms. */
+	refresh_stats_fit();
 	/* Hold histogram_mutex across the invalidate+recompute pair so no other
 	 * thread observes a partially-nullified layers_hist[]. */
 	g_mutex_lock(&com.histogram_mutex);
@@ -1629,7 +1652,7 @@ void curves_reset_after_undo() {
 }
 
 void curves_histogram_change_between_roi_and_image() {
-	fit = gui.roi.active ? &gui.roi.fit : gfit;
+	fit = roi_stats_source(&roi_stats_cache);
 	gui.roi.operation_supports_roi = TRUE;
 	curves_update_image();
 }

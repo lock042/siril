@@ -19,6 +19,23 @@ gboolean launch_clipboard_survey(gpointer user_data);
 // Region of Interest processing
 typedef void (*ROICallback)();
 int populate_roi();
+/**
+ * roi_stats_source:
+ * @cache: caller-owned fits used as scratch for the region snapshot.  Zeroed
+ *         on first use, reused thereafter, cleared by the caller on close.
+ *
+ * The image a dialog should compute its DISPLAYED statistics from: @gfit, or —
+ * when a ROI is active — a snapshot of just that region of the active layer.
+ *
+ * Statistics are a view of the region, not of the preview buffer that happens
+ * to hold it, so this hands back a snapshot rather than an alias.  That makes
+ * it the CALLER's job to re-take it immediately before reading pixels: a
+ * preview writes its result into gfit, so a snapshot held across a preview
+ * tick shows the previous one.  Returns gfit unchanged when no ROI is active,
+ * and also whenever the region cannot be taken — whole-image statistics are a
+ * better failure than none.
+ */
+fits *roi_stats_source(fits *cache);
 gpointer on_set_roi();
 gpointer on_clear_roi();
 void add_roi_callback(ROICallback func);
