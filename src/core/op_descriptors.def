@@ -5,8 +5,35 @@
  * (op_descriptor.c) via the X-macro idiom, so the two can never drift.  The
  * descriptor DEFINITIONS still live next to their hooks in the owning modules.
  *
- * To add an operation: add its definition in the owning .c, then add one line
- * here.  Keep this list ordered by id.
+ * To add an operation:
+ *
+ *  1. define the descriptor next to its hooks in the owning .c;
+ *  2. add one OP_DESC line here, ordered by id;
+ *  3. write serialize/deserialize so the op can be replayed by the edit
+ *     history — or add its id to opaque_by_design[] in
+ *     src/tests/test_op_descriptor.c with the reason it cannot be.  There is
+ *     no third option: a descriptor that is neither fails that test, which is
+ *     deliberate.  Without a serializer the op is recorded as an opaque
+ *     barrier and the user cannot edit any step before it;
+ *  4. add replay_pre only if the hook reads something outside its params
+ *     struct.  For an external file operand, pin it by path + size + SHA-256;
+ *  5. add a round-trip test to src/tests/test_nde_serializers.c;
+ *  6. if the hook can compute a sub-rectangle of the image, set
+ *     OP_ROI_CAPABLE so region previews can use it;
+ *  7. and then write roi_halo() — how much INPUT context it needs around that
+ *     rectangle.  This is a separate question from (6): 0 is the right answer
+ *     for a pixel-local op and does not mean "no region support";
+ *  8. and set roi_halo_exact, and add the op to src/tests/roi_halo_test.c.
+ *     TRUE means the test asserts the halo is a true bound on the op's
+ *     spatial support; FALSE means it only reports (iterative and non-local
+ *     ops have no such bound);
+ *  9. optionally register a native amend editor in gui-gtk4/nde_editors.c.
+ *     If it has a live preview, call roi_declare_op() at dialog startup and
+ *     pass the descriptor to nde_amend_note_update().
+ *
+ * Steps 3 and 6-8 are the ones most often forgotten, which is why each has a
+ * test that fails when it is.  See doc/NDE.rst and doc/WritingFeature.rst in
+ * siril-contrib-doc for the long form.
  */
 OP_DESC(op_desc_addmax)                  /* arith.addmax */
 OP_DESC(op_desc_fdiv)                    /* arith.fdiv */

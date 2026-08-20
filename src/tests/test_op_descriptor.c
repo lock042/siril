@@ -93,6 +93,131 @@ Test(op_descriptor, ids_unique) {
 	}
 }
 
+/* The exact set of ops that carry no serializer.
+ *
+ * This is the counterpart of the registry_invariants pairing assertion above.
+ * That one catches a HALF-written serializer (one slot set, the other not);
+ * this catches a MISSING one — an op added, or a params struct changed, where
+ * nobody wrote the serializer at all.  Nothing else catches that: the op runs,
+ * the record is captured, and the only symptom is that the user's edit history
+ * quietly stops being editable from that step backwards.
+ *
+ * "No serializer" is a supported outcome, not a bug — but it is supposed to be
+ * a DECISION.  Naming the whole set here is what makes it one: adding an op
+ * without a serializer fails this test, and the fix is either to write the
+ * serializer or to add the id below with its reason.
+ *
+ * The reason is recorded per entry rather than in a prose block, because the
+ * two kinds are NOT equivalent: only NOT_CAPTURED is free, and only TIER_B
+ * costs the user anything. */
+typedef enum {
+	/* Never reaches the NDE capture block at all, so there is no record and
+	 * therefore no barrier.  Every call site is measurement-only and sets
+	 * skip_generic_undo — or, for the deconvolution GUI's PSF estimate,
+	 * for_preview — and that is the SAME gate the capture uses (see "NDE
+	 * provenance capture" in processing.c).  A serializer here would be dead
+	 * code: there is nothing to attach it to.
+	 *
+	 * Caveat worth knowing: that property lives at the CALL SITE, not on the
+	 * descriptor, so this test cannot verify it — it can only pin the absent
+	 * serializer that follows from it.  Dropping skip_generic_undo from one of
+	 * these call sites would silently start capturing Tier-B barriers for an
+	 * op that does not even change pixels, and this test would still pass. */
+	OPAQUE_NOT_CAPTURED,
+	/* Genuinely captured, as a Tier-B barrier.  These are the ones that cost
+	 * the user editability, and each is a considered verdict. */
+	OPAQUE_TIER_B,
+} opaque_reason;
+
+static const struct {
+	const char    *id;
+	opaque_reason  why;
+} opaque_by_design[] = {
+	/* Analysis only — report a number, never touch pixels. */
+	{ "stats.bg",             OPAQUE_NOT_CAPTURED },
+	{ "stats.bgnoise",        OPAQUE_NOT_CAPTURED },
+	{ "stats.cdg",            OPAQUE_NOT_CAPTURED },
+	{ "stats.entropy",        OPAQUE_NOT_CAPTURED },
+	{ "stats.stat",           OPAQUE_NOT_CAPTURED },
+	{ "psf.estimate",         OPAQUE_NOT_CAPTURED },
+	/* Reaches the network, so its result is not reproducible — but it
+	 * annotates, it does not modify, so the question never arises. */
+	{ "catalog.search",       OPAQUE_NOT_CAPTURED },
+	/* Write NEW images out; they leave the loaded one alone. */
+	{ "cfa.split",            OPAQUE_NOT_CAPTURED },
+	{ "cfa.extract_green",    OPAQUE_NOT_CAPTURED },
+	{ "cfa.extract_ha",       OPAQUE_NOT_CAPTURED },
+	{ "cfa.extract_haoiii",   OPAQUE_NOT_CAPTURED },
+	{ "cfa.findhot",          OPAQUE_NOT_CAPTURED },
+
+	/* Their operands are files a SEPARATE earlier command left in the temp
+	 * directory, so a params blob cannot describe what they will consume.
+	 * Permanent, by maintainer verdict recorded in the descriptors (NDE.rst).
+	 * Note wavelets.wrecons is also OP_ROI_CAPABLE: it can compute a rectangle
+	 * for a live preview and still be unreplayable afterwards.  The two
+	 * properties are independent. */
+	{ "filters.fft",          OPAQUE_TIER_B },
+	{ "wavelets.wrecons",     OPAQUE_TIER_B },
+	/* Mask op: derives a mask from the image it is handed.  The mask worker
+	 * captures unconditionally — there is no skip_generic_undo on that path —
+	 * and OP_MASK_FROM_IMAGE pins the image so the mask chain re-derives the
+	 * mask instead of replaying it from parameters. */
+	{ "mask.mtf_autostretch", OPAQUE_TIER_B },
+};
+
+#define N_OPAQUE (sizeof(opaque_by_design) / sizeof(opaque_by_design[0]))
+
+static gboolean id_in_opaque_list(const char *id) {
+	for (size_t i = 0; i < N_OPAQUE; i++)
+		if (!strcmp(id, opaque_by_design[i].id))
+			return TRUE;
+	return FALSE;
+}
+
+Test(op_descriptor, every_descriptor_is_replayable_or_deliberately_opaque) {
+	size_t n = 0;
+	const op_descriptor *const *all = op_descriptor_all(&n);
+	size_t seen = 0;
+
+	for (size_t i = 0; i < n; i++) {
+		const gboolean replayable = all[i]->serialize != NULL;
+		const gboolean expected_opaque = id_in_opaque_list(all[i]->id);
+		cr_assert_eq(replayable, !expected_opaque,
+		             "'%s': %s, but the pinned list says it should be %s.  "
+		             "Write serialize/deserialize for it, or add it to "
+		             "opaque_by_design[] with the reason.",
+		             all[i]->id,
+		             replayable ? "it has a serializer" : "it has no serializer",
+		             expected_opaque ? "opaque" : "replayable");
+		if (!replayable)
+			seen++;
+	}
+
+	/* Catches an id removed from the registry, or given a serializer, but left
+	 * in the list above — which the per-descriptor loop alone would not see. */
+	cr_assert_eq(seen, N_OPAQUE,
+	             "%zu descriptors carry no serializer, list names %zu",
+	             seen, N_OPAQUE);
+}
+
+/* The Tier-B set is the part of the list that actually costs the user
+ * editability, so it is pinned separately and kept small on purpose.  An op
+ * moving from NOT_CAPTURED to TIER_B is a real regression in the edit history
+ * — and, because the difference lives at the call site, one the sweep above
+ * cannot see.  Asserting the count is what forces that move to be argued for
+ * in review rather than discovered later. */
+Test(op_descriptor, the_tier_b_barrier_set_stays_small) {
+	size_t barriers = 0;
+	for (size_t i = 0; i < N_OPAQUE; i++)
+		if (opaque_by_design[i].why == OPAQUE_TIER_B)
+			barriers++;
+	cr_assert_eq(barriers, 3,
+	             "%zu ops are opaque Tier-B barriers, expected 3.  Adding one "
+	             "means a step the user can no longer edit past: say why in the "
+	             "entry's comment and update this count.",
+	             barriers);
+}
+
 /* The exact set of ops that may be computed on a sub-rectangle.
  *
  * The flag is now what generic_image_worker consults to decide whether a
