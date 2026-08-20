@@ -22,9 +22,9 @@
 
 #include "core/siril.h"
 #include "core/siril_log.h"
-#include "core/nde_snapstore.h"
-#include "core/nde_checkpoint.h"
-#include "core/nde_retention.h"
+#include "core/nde/nde_snapstore.h"
+#include "core/nde/nde_checkpoint.h"
+#include "core/nde/nde_retention.h"
 
 static GMutex ret_mutex;                  /* serialises enforcement only */
 static nde_retention_stats_t ret_stats;

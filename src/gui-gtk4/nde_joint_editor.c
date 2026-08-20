@@ -22,9 +22,9 @@
 
 #include "core/siril.h"
 #include "core/siril_log.h"
-#include "core/nde_history.h"
-#include "core/nde_joint.h"
-#include "core/nde_replay.h"
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_joint.h"
+#include "core/nde/nde_replay.h"
 #include "core/op_descriptor.h"
 #include "gui-gtk4/nde_joint_editor.h"
 #include "gui-gtk4/photometric_cc.h"

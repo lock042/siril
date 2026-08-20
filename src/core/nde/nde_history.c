@@ -27,14 +27,14 @@
 #include "core/siril_log.h"
 #include "core/gui_iface.h"
 #include "core/op_descriptor.h"
-#include "core/nde_history.h"
-#include "core/nde_op_class.h"
-#include "core/nde_checkpoint.h"
-#include "core/nde_composite.h"
-#include "core/nde_snapstore.h"
-#include "core/nde_cat.h"
-#include "core/nde_joint.h"
-#include "core/nde_replay.h"    /* nde_item_is_retained_input() */
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_op_class.h"
+#include "core/nde/nde_checkpoint.h"
+#include "core/nde/nde_composite.h"
+#include "core/nde/nde_snapstore.h"
+#include "core/nde/nde_cat.h"
+#include "core/nde/nde_joint.h"
+#include "core/nde/nde_replay.h"    /* nde_item_is_retained_input() */
 #include "core/processing_thread.h"   /* processing_is_reserved_for_replay() */
 #include "io/image_format_flis.h"
 

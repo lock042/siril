@@ -23,7 +23,7 @@
 #include "core/siril.h"
 #include "core/processing.h"
 #include "core/op_descriptor.h"
-#include "core/nde_op_class.h"
+#include "core/nde/nde_op_class.h"
 
 cominfo com;	// the core data struct
 fits *gfit;	// currently loaded image (now a pointer)

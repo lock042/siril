@@ -28,7 +28,7 @@
 #include "io/image_format_fits.h"
 #include "rgradient.h"
 #include "core/op_descriptors.h"
-#include "core/nde_history.h"
+#include "core/nde/nde_history.h"
 
 /* NDE serializers for filters.rgradient.  apply_rgradient_filter reads the
  * centre (xc, yc), radial shift dR and angular shift da; fit is runtime

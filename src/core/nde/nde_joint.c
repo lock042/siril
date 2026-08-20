@@ -23,12 +23,12 @@
 #include <math.h>
 
 #include "core/siril.h"
-#include "core/nde_joint.h"
-#include "core/nde_history.h"
-#include "core/nde_op_class.h"
-#include "core/nde_checkpoint.h"     /* baseline offsets (register L2 anchor) */
-#include "core/nde_compositing.h"
-#include "core/nde_replay.h"
+#include "core/nde/nde_joint.h"
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_op_class.h"
+#include "core/nde/nde_checkpoint.h"     /* baseline offsets (register L2 anchor) */
+#include "core/nde/nde_compositing.h"
+#include "core/nde/nde_replay.h"
 #include "core/op_descriptors.h"
 #include "core/siril_log.h"
 #include "core/proto.h"          /* get_normalized_value */

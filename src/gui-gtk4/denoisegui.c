@@ -23,7 +23,7 @@
 #include "core/OS_utils.h"
 #include "core/processing.h"
 #include "core/undo.h"
-#include "core/nde_replay.h"
+#include "core/nde/nde_replay.h"
 #include "algos/statistics.h"
 #include "io/image_format_fits.h"
 #include "core/siril_log.h"

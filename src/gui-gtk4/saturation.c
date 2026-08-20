@@ -25,7 +25,7 @@
 #include "core/siril.h"
 #include "core/op_descriptors.h"
 #include "core/processing.h"
-#include "core/nde_replay.h"
+#include "core/nde/nde_replay.h"
 #include "filters/saturation.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/nde_editors.h"

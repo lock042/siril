@@ -33,7 +33,7 @@
 #include "opencv/opencv.h" // for mask functions that use OpenCV
 // (feathering, Gaussian blur and set_poly_in_mask())
 #include "core/op_descriptors.h"
-#include "core/nde_history.h"
+#include "core/nde/nde_history.h"
 
 /* ===========================================================================
  * NDE serializers for the mask ops (flis-nde-sketch.md §11-§12)

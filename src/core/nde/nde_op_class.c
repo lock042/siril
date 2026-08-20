@@ -19,10 +19,10 @@
  */
 
 #include "core/siril.h"
-#include "core/nde_op_class.h"
-#include "core/nde_history.h"
-#include "core/nde_composite.h"
-#include "core/nde_compositing.h"
+#include "core/nde/nde_op_class.h"
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_composite.h"
+#include "core/nde/nde_compositing.h"
 #include "core/processing.h"   /* destroy_any_args */
 
 /* The ids with no op_descriptor.  THIS IS THE ONLY PLACE THEY APPEAR: every

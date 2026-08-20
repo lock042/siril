@@ -41,7 +41,7 @@
 
 #include "banding.h"
 #include "core/op_descriptors.h"
-#include "core/nde_history.h"
+#include "core/nde/nde_history.h"
 
 /* NDE serializers for filters.banding.  BandingEngine reads sigma, amount,
  * protect_highlights and applyRotation; seq/seqEntry/fit are runtime context

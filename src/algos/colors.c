@@ -38,7 +38,7 @@
 #include "algos/statistics.h"
 #include "algos/extraction.h"
 #include "core/op_descriptors.h"
-#include "core/nde_history.h"
+#include "core/nde/nde_history.h"
 
 /* NDE serializers (flis-nde-sketch.md §11-§12).  ccm_process reads the 3x3
  * matrix and power; keys m00..m22 (row-major) + power.  fit/seq/seqEntry are

@@ -39,23 +39,23 @@
 #include "io/single_image.h"
 #include "core/op_descriptor.h"
 #include "core/fits_region.h"
-#include "core/nde_history.h"
-#include "core/nde_op_class.h"
-#include "core/nde_checkpoint.h"
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_op_class.h"
+#include "core/nde/nde_checkpoint.h"
 #include "core/masks.h"
-#include "core/nde_compositing.h"
-#include "core/nde_composite.h"
-#include "core/nde_joint.h"
-#include "core/nde_snapstore.h"
-#include "core/nde_replay.h"
-#include "core/nde_replay_internal.h"
+#include "core/nde/nde_compositing.h"
+#include "core/nde/nde_composite.h"
+#include "core/nde/nde_joint.h"
+#include "core/nde/nde_snapstore.h"
+#include "core/nde/nde_replay.h"
+#include "core/nde/nde_replay_internal.h"
 
 static void cascade_joint_targets(GArray *targets);
 #include "io/image_format_fits.h"
 #include "io/image_format_flis.h"
 #include "io/siril_pythonmodule.h"
 
-#include "core/nde_replay_internal.h"
+#include "core/nde/nde_replay_internal.h"
 
 static void cascade_joint_targets(GArray *targets);
 

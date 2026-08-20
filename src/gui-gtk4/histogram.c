@@ -41,9 +41,9 @@
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/siril_preview.h"
 #include "core/undo.h"
-#include "core/nde_history.h"
-#include "core/nde_checkpoint.h"
-#include "core/nde_replay.h"
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_checkpoint.h"
+#include "core/nde/nde_replay.h"
 #include "histogram.h"
 #include "histogram_utils.h"
 

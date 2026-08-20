@@ -28,8 +28,8 @@
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "core/undo.h"
-#include "core/nde_history.h"
-#include "core/nde_checkpoint.h"
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_checkpoint.h"
 #include "core/op_descriptors.h"
 #include "core/OS_utils.h"
 #include "io/image_format_flis.h"
@@ -51,7 +51,7 @@
 #include "gui-gtk4/colors.h"
 #include "gui-gtk4/siril_preview.h"
 #include "gui-gtk4/flis_gui.h"
-#include "core/nde_replay.h"
+#include "core/nde/nde_replay.h"
 
 /* Amend mode (convergence C5b): the CCM dialog edits a color.ccm history
  * record.  gfit holds the pre-record state installed by

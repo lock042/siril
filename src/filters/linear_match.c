@@ -27,7 +27,7 @@
 #include "io/image_format_fits.h"
 #include "linear_match.h"
 #include "core/op_descriptors.h"
-#include "core/nde_history.h"
+#include "core/nde/nde_history.h"
 
 /* NDE serializers (phase 4.5 Convention 1 — file operands).  low/high are POD;
  * the reference image is pinned by path (+hash/size at capture) and loaded by

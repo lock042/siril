@@ -48,14 +48,14 @@
 #include "core/proto.h"          /* gui_function */
 #include "core/processing.h"
 #include "core/undo.h"
-#include "core/nde_history.h"
-#include "core/nde_replay.h"   /* nde_record_amendable/deletable, amend/delete_start */
-#include "core/nde_graph.h"    /* nodes + edges behind the per-item step lists */
-#include "core/nde_joint.h"    /* joint records route to their own graph node */
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_replay.h"   /* nde_record_amendable/deletable, amend/delete_start */
+#include "core/nde/nde_graph.h"    /* nodes + edges behind the per-item step lists */
+#include "core/nde/nde_joint.h"    /* joint records route to their own graph node */
 #include "gui-gtk4/nde_graph_view.h"   /* the container that places them (#61) */
-#include "core/nde_op_class.h"     /* one question per family */
-#include "core/nde_compositing.h"  /* nde_compositing_is_op */
-#include "core/nde_composite.h"    /* the composite node's own editor */
+#include "core/nde/nde_op_class.h"     /* one question per family */
+#include "core/nde/nde_compositing.h"  /* nde_compositing_is_op */
+#include "core/nde/nde_composite.h"    /* the composite node's own editor */
 #include "gui-gtk4/nde_editors.h"
 #include "gui-gtk4/file_browser.h"  /* SirilFileBrowser: the chooser with the preview */
 #include "gui-gtk4/open_dialog.h"   /* FITS_EXTENSIONS */

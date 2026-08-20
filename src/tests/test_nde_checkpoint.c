@@ -25,7 +25,7 @@
 
 #include "core/siril.h"
 #include "io/image_format_fits.h"
-#include "core/nde_checkpoint.h"
+#include "core/nde/nde_checkpoint.h"
 
 cominfo com;
 fits *gfit;

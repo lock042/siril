@@ -45,7 +45,7 @@
 #include "opencv/opencv.h"
 #include "background_extraction.h"
 #include "core/op_descriptors.h"
-#include "core/nde_history.h"
+#include "core/nde/nde_history.h"
 
 /* NDE serializers (flis-nde-sketch.md §11, §15).  remove_gradient_image_hook
  * reads all the genuine params below plus the autograd sub-struct (flattened

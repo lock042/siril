@@ -29,7 +29,7 @@ void destroy_ght_data(void *args); /* forward decl */
 #include "algos/colors.h"
 #include "core/siril_log.h"
 #include "core/op_descriptors.h"
-#include "core/nde_history.h"
+#include "core/nde/nde_history.h"
 
 /* ---------------------------------------------------------------------- *
  *  NDE serializers (flis-nde-sketch.md §11-§12).  Shared by the GHS and   *

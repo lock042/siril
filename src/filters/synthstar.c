@@ -37,7 +37,7 @@
 #include "filters/synthstar.h"
 #include "opencv/opencv.h"
 #include "core/op_descriptors.h"
-#include "core/nde_history.h"
+#include "core/nde/nde_history.h"
 
 /* ---- captured effective star list (NDE phase 4.5 Convention 2) ------------
  *

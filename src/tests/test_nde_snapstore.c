@@ -20,7 +20,7 @@
 #include <criterion/criterion.h>
 #include <string.h>
 #include "flis_test_helpers.h"
-#include "core/nde_snapstore.h"
+#include "core/nde/nde_snapstore.h"
 
 cominfo com;
 fits *gfit;

@@ -25,9 +25,9 @@
 #include <unistd.h>
 #include <fitsio.h>
 #include "flis_test_helpers.h"
-#include "core/nde_history.h"
-#include "core/nde_checkpoint.h"
-#include "core/nde_cat.h"
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_checkpoint.h"
+#include "core/nde/nde_cat.h"
 #include "core/op_descriptor.h"
 #include "core/processing.h"
 

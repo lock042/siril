@@ -25,9 +25,9 @@
 
 #include "core/siril.h"
 #include "core/siril_log.h"
-#include "core/nde_history.h"
-#include "core/nde_checkpoint.h"
-#include "core/nde_script_scope.h"
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_checkpoint.h"
+#include "core/nde/nde_script_scope.h"
 
 /* A single global scope guarded by scope_mutex.  Mutations arrive from the
  * python-comm thread (set_pixeldata), the processing worker (cmd ops) and the

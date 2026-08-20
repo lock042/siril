@@ -43,9 +43,9 @@
 #include "io/image_format_flis.h"
 #include "gui-gtk4/flis_gui.h"
 #include "core/undo.h"
-#include "core/nde_history.h"
-#include "core/nde_joint.h"
-#include "core/nde_replay.h"
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_joint.h"
+#include "core/nde/nde_replay.h"
 #include "photometric_cc.h"
 
 #define MIN_PLOT 336.0

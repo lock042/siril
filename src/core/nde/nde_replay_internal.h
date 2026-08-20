@@ -19,9 +19,9 @@
  */
 
 #include "core/siril.h"
-#include "core/nde_state.h"
-#include "core/nde_history.h"
-#include "core/nde_replay.h"
+#include "core/nde/nde_state.h"
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_replay.h"
 
 /* ---- nde_chain.c -------------------------------------------------------- */
 

@@ -31,7 +31,7 @@
 #include "algos/wavelet_denoise.h"
 #include "wavelets.h"
 #include "core/op_descriptors.h"
-#include "core/nde_history.h"
+#include "core/nde/nde_history.h"
 #include "core/OS_utils.h"
 
 /* Op descriptors — single source of truth for the wavelet ops. The wrecons

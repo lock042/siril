@@ -26,9 +26,9 @@
 #include "core/processing_thread.h"
 #include "core/op_descriptors.h"
 #include "core/op_descriptor.h"
-#include "core/nde_history.h"
-#include "core/nde_checkpoint.h"
-#include "core/nde_graph.h"
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_checkpoint.h"
+#include "core/nde/nde_graph.h"
 #include "core/masks.h"
 #include "filters/asinh.h"
 

@@ -35,8 +35,8 @@
 #include "io/image_format_fits.h"
 #include "compositing/align_rgb.h"
 #include "core/op_descriptors.h"
-#include "core/nde_history.h"
-#include "core/nde_checkpoint.h"
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_checkpoint.h"
 #include "core/undo.h"
 
 #define REGLAYER 0

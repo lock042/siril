@@ -21,7 +21,7 @@
 /* See nde_cat.h for the model (stash → adopt → persist → replay). */
 
 #include "core/siril.h"
-#include "core/nde_cat.h"
+#include "core/nde/nde_cat.h"
 #include "core/siril_log.h"
 
 static GMutex cat_mutex;        /* leaf: nothing acquired while held */

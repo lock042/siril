@@ -26,7 +26,7 @@
 #include "core/op_descriptors.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
-#include "core/nde_replay.h"
+#include "core/nde/nde_replay.h"
 #include "algos/PSF.h"
 #include "filters/rgradient.h"
 #include "gui-gtk4/rgradient.h"

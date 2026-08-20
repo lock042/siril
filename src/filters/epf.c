@@ -31,7 +31,7 @@
 #include "core/fits_region.h"
 #include "filters/epf.h"
 #include "core/op_descriptors.h"
-#include "core/nde_history.h"
+#include "core/nde/nde_history.h"
 
 /* NDE serializers (phase 4.5 Convention 1 — file operands).
  *

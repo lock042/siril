@@ -39,8 +39,8 @@
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/siril_preview.h"
 #include "core/undo.h"
-#include "core/nde_replay.h"
-#include "core/nde_history.h"
+#include "core/nde/nde_replay.h"
+#include "core/nde/nde_history.h"
 #include "opencv/opencv.h"
 
 // Statics declarations

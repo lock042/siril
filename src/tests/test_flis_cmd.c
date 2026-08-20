@@ -33,7 +33,7 @@
 #include "core/command.h"
 #include "core/command_line_processor.h"
 #include "core/processing.h"
-#include "core/nde_history.h"
+#include "core/nde/nde_history.h"
 #include "core/undo.h"
 
 cominfo com;

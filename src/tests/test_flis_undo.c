@@ -27,8 +27,8 @@
 #include <criterion/criterion.h>
 #include "flis_test_helpers.h"
 #include "core/undo.h"
-#include "core/nde_history.h"
-#include "core/nde_snapstore.h"
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_snapstore.h"
 
 cominfo com;
 fits *gfit;

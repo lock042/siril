@@ -32,7 +32,7 @@
 #include "core/siril.h"
 #include "core/op_descriptor.h"
 #include "core/op_descriptors.h"
-#include "core/nde_history.h"
+#include "core/nde/nde_history.h"
 #include "algos/geometry.h"
 
 cominfo com;	// the core data struct

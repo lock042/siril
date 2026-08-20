@@ -25,11 +25,11 @@
 
 #include <criterion/criterion.h>
 #include "flis_test_helpers.h"
-#include "core/nde_history.h"
-#include "core/nde_joint.h"
-#include "core/nde_graph.h"
-#include "core/nde_replay.h"
-#include "core/nde_checkpoint.h"
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_joint.h"
+#include "core/nde/nde_graph.h"
+#include "core/nde/nde_replay.h"
+#include "core/nde/nde_checkpoint.h"
 #include "core/op_descriptor.h"
 #include "core/processing.h"
 

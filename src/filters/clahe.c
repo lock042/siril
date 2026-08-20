@@ -22,7 +22,7 @@
 #include "opencv/opencv.h"
 #include "clahe.h"
 #include "core/op_descriptors.h"
-#include "core/nde_history.h"
+#include "core/nde/nde_history.h"
 
 /* NDE serializers for filters.clahe.  The hook reads clip and tileSize
  * (cvClahe(fit, clip, tileSize)). */

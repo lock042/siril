@@ -41,8 +41,8 @@
 #endif
 
 #include "core/op_descriptors.h"
-#include "core/nde_history.h"
-#include "core/nde_checkpoint.h"
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_checkpoint.h"
 
 /* Op descriptor for ICC colour-space conversion, the one ICC op that still
  * rewrites pixels through generic_image_worker (non-FLIS path). The site flags

@@ -30,9 +30,9 @@
 #include "core/masks.h"
 #include "core/undo.h"
 #include "core/op_descriptor.h"
-#include "core/nde_history.h"
-#include "core/nde_replay.h"
-#include "core/nde_script_scope.h"
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_replay.h"
+#include "core/nde/nde_script_scope.h"
 #include "core/processing_thread.h"
 
 cominfo com;

@@ -20,7 +20,7 @@
 
 #include "gui-gtk4/nde_editors.h"
 #include "core/siril.h"
-#include "core/nde_replay.h"
+#include "core/nde/nde_replay.h"
 #include "core/op_descriptor.h"
 #include "gui-gtk4/asinh.h"
 #include "gui-gtk4/curves.h"

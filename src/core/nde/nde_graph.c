@@ -21,11 +21,11 @@
 /* See nde_graph.h for what this derives and why it is separate from the GUI. */
 
 #include "core/siril.h"
-#include "core/nde_history.h"
-#include "core/nde_op_class.h"
-#include "core/nde_graph.h"
-#include "core/nde_composite.h"
-#include "core/nde_joint.h"
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_op_class.h"
+#include "core/nde/nde_graph.h"
+#include "core/nde/nde_composite.h"
+#include "core/nde/nde_joint.h"
 #include "io/image_format_flis.h"
 
 static void node_free(gpointer p) {

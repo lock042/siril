@@ -900,7 +900,7 @@ typedef struct {
 
 struct historic_struct {
 	/* Main pixel snapshot — since convergence phase C2 this lives in the
-	 * shared refcounted snapshot store (core/nde_snapstore.h): the entry
+	 * shared refcounted snapshot store (core/nde/nde_snapstore.h): the entry
 	 * owns one reference; NULL means the flavour saved no pixels
 	 * (props-only, icc-only, reorder, pmask-only...).  Masks below and the
 	 * compound per-layer entries keep the legacy fd/filename swap files

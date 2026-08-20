@@ -23,7 +23,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/undo.h"
-#include "core/nde_history.h"
+#include "core/nde/nde_history.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "core/icc_profile.h"

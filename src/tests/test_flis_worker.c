@@ -30,7 +30,7 @@
 #include "core/processing.h"
 #include "core/undo.h"
 #include "core/op_descriptor.h"
-#include "core/nde_history.h"
+#include "core/nde/nde_history.h"
 
 cominfo com;
 fits *gfit;

@@ -32,7 +32,7 @@
 #include "core/siril_date.h"
 #include "core/siril_log.h"
 #include "core/arithm.h"
-#include "core/nde_history.h"
+#include "core/nde/nde_history.h"
 #include "io/image_format_fits.h"
 #include "io/image_format_flis.h"
 #include "io/path_parse.h"

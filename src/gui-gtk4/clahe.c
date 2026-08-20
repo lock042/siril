@@ -26,7 +26,7 @@
 #include "core/op_descriptors.h"
 #include "core/processing.h"
 #include "algos/statistics.h"
-#include "core/nde_replay.h"
+#include "core/nde/nde_replay.h"
 #include "filters/clahe.h"
 #include "gui-gtk4/clahe.h"
 #include "gui-gtk4/nde_editors.h"

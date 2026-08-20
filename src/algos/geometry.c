@@ -42,7 +42,7 @@
 
 #include "geometry.h"
 #include "core/op_descriptors.h"
-#include "core/nde_history.h"
+#include "core/nde/nde_history.h"
 
 /* ---------------------------------------------------------------------- *
  *  NDE serializers (flis-nde-sketch.md §11-§12).  Each pair serializes    *

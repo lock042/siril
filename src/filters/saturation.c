@@ -10,7 +10,7 @@
 #include "algos/statistics.h"
 #include "core/op_descriptors.h"
 
-#include "core/nde_history.h"
+#include "core/nde/nde_history.h"
 
 #include "saturation.h"
 

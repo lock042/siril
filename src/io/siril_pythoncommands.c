@@ -17,7 +17,7 @@
 #include "core/siril_log.h"
 #include "core/OS_utils.h"
 #include "core/proto.h"
-#include "core/nde_script_scope.h"
+#include "core/nde/nde_script_scope.h"
 #include "core/undo.h"
 #include "core/gui_iface.h"
 /* gui_calls.h removed: all former direct calls now route through gui_iface */

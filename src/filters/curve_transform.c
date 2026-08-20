@@ -27,7 +27,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "core/op_descriptors.h"
-#include "core/nde_history.h"
+#include "core/nde/nde_history.h"
 
 /* NDE serializers (flis-nde-sketch.md §11, §14).  apply_curve reads the
  * algorithm and, per channel, the points list plus its luminance range mask

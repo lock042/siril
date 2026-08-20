@@ -31,7 +31,7 @@
 #include "filters/unpurple.h"
 #include "core/gui_iface.h"
 #include "core/op_descriptors.h"
-#include "core/nde_history.h"
+#include "core/nde/nde_history.h"
 
 /* NDE serializers (phase 4.5 Convention 2 — captured effective star list).
  *

@@ -20,7 +20,7 @@
 
 #include <math.h>
 
-#include "core/nde_graph.h"
+#include "core/nde/nde_graph.h"
 #include "gui-gtk4/nde_graph_view.h"
 
 /* COL_GAP separates siblings across a band; ROW_GAP separates the bands, and

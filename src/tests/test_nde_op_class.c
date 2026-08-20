@@ -22,7 +22,7 @@
 #include <string.h>
 #include "core/siril.h"
 #include "core/op_descriptor.h"
-#include "core/nde_op_class.h"
+#include "core/nde/nde_op_class.h"
 
 cominfo com;
 fits *gfit;

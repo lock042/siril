@@ -25,9 +25,9 @@
 #include <string.h>
 #include "flis_test_helpers.h"
 #include "core/siril.h"
-#include "core/nde_history.h"
-#include "core/nde_compositing.h"
-#include "core/nde_replay.h"
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_compositing.h"
+#include "core/nde/nde_replay.h"
 #include "io/image_format_fits.h"
 
 cominfo com;

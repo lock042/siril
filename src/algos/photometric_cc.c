@@ -46,9 +46,9 @@
 #include "core/gui_iface.h"
 #include "photometric_cc.h"
 #include "core/op_descriptors.h"
-#include "core/nde_history.h"
-#include "core/nde_cat.h"
-#include "core/nde_replay.h"
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_cat.h"
+#include "core/nde/nde_replay.h"
 
 /* NDE serializers.
  * v1 (phase 4.5 Convention 3): the record carried only the COMPUTED kw/bg

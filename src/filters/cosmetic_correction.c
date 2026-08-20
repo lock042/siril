@@ -37,7 +37,7 @@
 
 #include "cosmetic_correction.h"
 #include "core/op_descriptors.h"
-#include "core/nde_history.h"
+#include "core/nde/nde_history.h"
 
 /* NDE serializers for filters.cosmetic (auto-detect path).  autoDetectThreaded
  * reads sigma[2], amount and is_cfa; fit/seq/seqEntry/threading are runtime
