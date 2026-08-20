@@ -28,6 +28,8 @@
 #include "core/nde_history.h"
 #include "core/nde_checkpoint.h"
 #include "core/nde_cat.h"
+#include "core/op_descriptor.h"
+#include "core/processing.h"
 
 cominfo com;
 fits *gfit;
@@ -229,6 +231,64 @@ Test(nde_persist, catalogue_stash_adopt_semantics) {
 	cr_assert_eq(back->nbitems, 2);
 	siril_catalog_free(back);
 	siril_catalog_free(cat);
+}
+
+/* The stand-in for op_desc_photometric_cc.  The capture reads only op->id,
+ * op->version and op->serialize, so a descriptor that shares the id is enough
+ * to exercise the handshake — and it keeps the test off the network and away
+ * from the WCS the real hook needs. */
+static int noop_image_hook(struct generic_img_args *args, fits *fit, int nb) {
+	(void)args; (void)fit; (void)nb;
+	return 0;
+}
+
+static const op_descriptor op_desc_fake_pcc = {
+	.id = "color.photometric_cc",
+	.version = 2,
+	.image_hook = noop_image_hook,
+	.description = "PCC",
+};
+
+/* The test above passes while the real thing is broken, because it captures
+ * through nde_capture_structural — a capture_finish path, and capture_finish is
+ * where the adopt lives.  Single-image PCC does NOT go that way: it runs
+ * through generic_image_worker (gui-gtk4/photometric_cc.c), whose capture block
+ * is a fourth, separate implementation that never adopted anything.  So the
+ * stash photometric_cc.c takes "so the record can recompute offline forever"
+ * was dropped on the floor for every non-group run, and replay silently fell
+ * back to a fresh network query. */
+Test(nde_persist, a_worker_captured_photometric_op_also_adopts_the_stash) {
+	flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "base");
+	gfit = flis_active_layer_fit();
+
+	nde_cat_stash_pending(make_test_catalogue(FALSE));
+
+	struct generic_img_args *args = calloc(1, sizeof(*args));
+	args->fit = gfit;
+	args->op = &op_desc_fake_pcc;
+	args->user = NULL;
+	args->command = TRUE;
+	args->command_updates_gfit = TRUE;
+	args->max_threads = 1;
+	args->mem_ratio = -1.0f;
+	gboolean prev = com.headless;
+	com.headless = TRUE;
+	cr_assert_eq(GPOINTER_TO_INT(generic_image_worker(args)), 0);
+	com.headless = prev;
+
+	gint64 rid = 0;
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	for (guint i = 0; i < snap->len; i++) {
+		const nde_record *r = g_ptr_array_index(snap, i);
+		if (!g_strcmp0(r->op_id, "color.photometric_cc"))
+			rid = r->record_id;
+	}
+	g_ptr_array_unref(snap);
+	cr_assert(rid > 0, "the worker must have captured a record");
+
+	cr_assert(nde_cat_has(rid),
+	          "a photometric record captured by the worker must adopt the "
+	          "pending catalogue, exactly as a dialog-captured one does");
 }
 
 Test(nde_persist, only_live_prefix_persists) {

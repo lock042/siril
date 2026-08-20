@@ -32,6 +32,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
+#include "core/nde_cat.h"
 #include "core/nde_history.h"
 #include "core/nde_op_class.h"
 #include "core/nde_replay.h"
@@ -2306,6 +2307,14 @@ the_end:;
 					                                 post_lay->position_y);
 			}
 		}
+		/* Claim (or discard as stale) a star catalogue the photometric pipeline
+		 * stashed for this capture (nde_cat.h) — the same call capture_finish()
+		 * makes for the dialog-driven captures.  Missing here, single-image
+		 * PCC/SPCC (which runs through THIS worker, not a dialog capture) lost
+		 * the stars it had just measured, and replaying the step re-queried the
+		 * network instead of recomputing offline from them.  op->id outlives the
+		 * append: it is the descriptor's static string, not rec's copy. */
+		nde_cat_adopt_pending(nde_rec_id, op ? op->id : NULL);
 		nde_history_notify_panel();
 	}
 
