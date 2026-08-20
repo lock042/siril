@@ -672,6 +672,24 @@ static void commit_layer_offset(gint item_id, gint pos_x, gint pos_y) {
 	gui_iface.flis_invalidate_composite();
 }
 
+/* What every successful history edit does once its own work is committed.
+ * @target is the fits whose pixels changed, or NULL when the edit changed no
+ * live pixels of its own (a mask value, or an item a composite consumed) —
+ * there are then no cached statistics to drop.  @done_msg is the caller's,
+ * already translated, because what was done differs and the user is told. */
+static void edit_finish(fits *target, const char *done_msg) {
+	/* No meta-undo (sketch §7): stale undo entries would restore pixels the
+	 * log no longer describes. */
+	undo_flush();
+	if (target)
+		invalidate_stats_from_fit(target);
+	gui_iface.invalidate_histogram();
+	if (is_current_image_flis())
+		gui_iface.flis_invalidate_composite();
+	edit_refresh_display();
+	gui_iface.set_progress(PROGRESS_DONE, done_msg);
+}
+
 static fits *resolve_item_state(gint item_id, gint64 upto_record_id, gchar **err);
 static fits *resolve_item_state_pos(gint item_id, gint64 upto_record_id,
                                     gint *pos_x, gint *pos_y,
@@ -1623,12 +1641,7 @@ static gboolean delete_retained_mask(gint64 record_id, gint mask_item, gchar **e
 	for (guint i = 0; i < layers->len; i++)
 		cascade_composite_consumers(g_array_index(layers, gint, i));
 	g_array_free(layers, TRUE);
-	undo_flush();
-	gui_iface.invalidate_histogram();
-	if (is_current_image_flis())
-		gui_iface.flis_invalidate_composite();
-	edit_refresh_display();
-	gui_iface.set_progress(PROGRESS_DONE, _("Edit history updated"));
+	edit_finish(NULL, _("Edit history updated"));
 	return TRUE;
 }
 
@@ -2062,6 +2075,103 @@ static void commit_restore_metadata(fits *target, fits *old) {
 	commit_unlock(target, quiesced);
 }
 
+/* ---- the shared tail of every history edit ------------------------------ */
+/*
+ * An edit that changed @item_id's pixels has three consequences, and they are
+ * taken in this order because each reads the results of the one before:
+ *
+ *   1. masks DERIVED from those pixels are rebuilt (they pinned a state the
+ *      edit moved),
+ *   2. composites that CONSUMED the item are recomputed (they resolve their
+ *      inputs by replay, so this picks the new pixels up),
+ *   3. joint records the item participates in re-derive their siblings'
+ *      factors (its contribution changed).
+ *
+ * @unchanged_upto is the last of the item's own records the edit left alone,
+ * measured BEFORE the log was touched.  @joint_targets is collected before the
+ * commit too — the participants of a deleted joint record are gone from the
+ * log afterwards — and stays the caller's to free.
+ *
+ * Runs AFTER the pixel and log commits: every step of it recomputes from the
+ * committed log.
+ */
+static void cascade_from(gint item_id, gint64 unchanged_upto,
+                         GArray *joint_targets, gboolean joint_reanchor) {
+	cascade_derived_masks(item_id, unchanged_upto);
+	cascade_composite_consumers(item_id);
+	joint_geometry_reanchor = joint_reanchor;
+	cascade_joint_targets(joint_targets);
+	joint_geometry_reanchor = FALSE;
+}
+
+/* The pixels a replay produced, and the log change that describes them.
+ * @result is consumed either way. */
+typedef struct {
+	gint      item_id;
+	fits     *target;        /* NULL when @retained */
+	fits     *result;        /* consumed */
+	gboolean  retained;      /* nde_item_is_retained_input(@item_id) */
+	gboolean  carry_offset;  /* the replay moved the layer */
+	gint      pos_x, pos_y;
+} nde_commit_ctx;
+
+/* Commit a replayed value: pixels first, then the log, and put the pixels back
+ * if the log refuses.  @log_commit is what the caller's kind of edit does to
+ * the history — amend, delete, reorder — or NULL when the log already says
+ * what these pixels are (an insertion's records are written as they run).
+ *
+ * On failure nothing is changed and @err is set.  Success leaves the cascade
+ * (cascade_from) and the display (edit_finish) to the caller, because what to
+ * cascade was collected before the commit and what to say afterwards differs.
+ */
+static gboolean commit_replayed(nde_commit_ctx *c,
+                                gboolean (*log_commit)(gpointer, gchar **),
+                                gpointer log_user, gchar **err) {
+	if (c->retained) {
+		/* A retained input has no layer to swap into: the replay was run to
+		 * prove the edited chain still applies, and its pixels are an
+		 * intermediate value only the composite consumes.  Commit the log and
+		 * let the cascade recompute the consumers — they resolve this item by
+		 * replaying it again, now from the amended log. */
+		clearfits(c->result);
+		free(c->result);
+		c->result = NULL;
+		return !log_commit || log_commit(log_user, err);
+	}
+	if (!c->target) {
+		*err = g_strdup(_("the record's target layer no longer exists"));
+		clearfits(c->result);
+		free(c->result);
+		c->result = NULL;
+		return FALSE;
+	}
+
+	/* Atomic commit: swap pixels, then the log.  `result` holds the OLD
+	 * pixels after the swap, so a log-commit failure can restore them. */
+	gboolean quiesced = commit_lock(c->target);
+	commit_pixels(c->target, c->result);
+	commit_unlock(c->target, quiesced);
+
+	if (log_commit && !log_commit(log_user, err)) {
+		/* Should be unreachable (everything was validated, we own the
+		 * slot); restore the old pixels so nothing is half-committed. */
+		quiesced = commit_lock(c->target);
+		commit_pixels(c->target, c->result);
+		commit_unlock(c->target, quiesced);
+		clearfits(c->result);
+		free(c->result);
+		c->result = NULL;
+		return FALSE;
+	}
+	commit_restore_metadata(c->target, c->result);
+	clearfits(c->result);   /* the pre-edit pixels — superseded */
+	free(c->result);
+	c->result = NULL;
+	if (c->carry_offset)
+		commit_layer_offset(c->item_id, c->pos_x, c->pos_y);
+	return TRUE;
+}
+
 /* Why a history edit is refused right now.  Both modes install a synthesized
  * state over the target's real pixels, so a second edit would compute against
  * something that is not the committed image. */
@@ -2071,9 +2181,24 @@ static const char *edit_in_progress_reason(void) {
 			_("another history step is being edited — close its dialog first");
 }
 
+/* The log change an amend or a delete makes: they differ only in whether there
+ * are new params to write, so both edits carry one of these to commit_replayed
+ * rather than repeating the choice at every commit point. */
+typedef struct {
+	gint64       record_id;
+	const gchar *new_params;   /* NULL = delete */
+} edit_log_change;
+
+static gboolean edit_log_commit(gpointer user, gchar **err) {
+	const edit_log_change *l = user;
+	return l->new_params ? nde_history_amend(l->record_id, l->new_params, err)
+	                     : nde_history_delete(l->record_id, err);
+}
+
 static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **err) {
 	g_return_val_if_fail(err != NULL, FALSE);
 	*err = NULL;
+	edit_log_change log_change = { record_id, new_params };
 
 	if (amend_preview_installed()) {
 		*err = g_strdup(edit_in_progress_reason());
@@ -2141,9 +2266,7 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 		 * derives, for ALL participants including this layer itself (whose
 		 * own chain this cheap path never replays). */
 		GArray *jt = joint_cascade_targets(item_id, record_id, TRUE);
-		gboolean log_ok = new_params ? nde_history_amend(record_id, new_params, err)
-		                             : nde_history_delete(record_id, err);
-		if (!log_ok) {
+		if (!edit_log_commit(&log_change, err)) {
 			g_array_unref(jt);
 			return FALSE;
 		}
@@ -2433,9 +2556,7 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 			gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
 			return FALSE;
 		}
-		gboolean log_ok = new_params ? nde_history_amend(record_id, new_params, err)
-		                             : nde_history_delete(record_id, err);
-		if (!log_ok) {
+		if (!edit_log_commit(&log_change, err)) {
 			gui_iface.set_progress(PROGRESS_RESET, _("The mask was rebuilt but the history could not be updated"));
 			return FALSE;
 		}
@@ -2443,12 +2564,7 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 		 * is now showing a result built from the old one.  Runs AFTER the
 		 * log commit, because the consumers are recomputed from the log. */
 		cascade_mask_consumers(item_id, mask_pos);
-		undo_flush();
-		gui_iface.invalidate_histogram();
-		if (is_current_image_flis())
-			gui_iface.flis_invalidate_composite();
-		edit_refresh_display();
-		gui_iface.set_progress(PROGRESS_DONE, _("Edit history updated"));
+		edit_finish(NULL, _("Edit history updated"));
 		return TRUE;
 	}
 
@@ -2514,102 +2630,36 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 		target = lay ? lay->fit : NULL;
 		retained = nde_item_is_retained_input(item_id);   /* implies !lay */
 	}
-	if (retained) {
-		/* A retained input has no layer to swap into: the replay above was
-		 * run to prove the edited chain still applies, and its pixels are an
-		 * intermediate value that only the composite consumes.  Commit the
-		 * log, then recompute the consumers — which resolve this item by
-		 * replaying it again, now from the amended log. */
-		clearfits(result);
-		free(result);
-		gboolean log_ok = new_params ? nde_history_amend(record_id, new_params, err)
-		                             : nde_history_delete(record_id, err);
-		if (!log_ok) {
-			g_array_unref(joint_targets);
-			gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
-			return FALSE;
-		}
-		cascade_derived_masks(item_id, unchanged_upto);
-		cascade_composite_consumers(item_id);
-		if (is_joint && new_params)
-			joint_merge_post_commit_targets(joint_targets, item_id, record_id);
-		/* Participants of a GEOMETRIC joint record are sitting where its warp
-		 * put them, so their recompute has to re-anchor from the baseline —
-		 * the chain it replays may no longer contain anything that moves
-		 * them (deleting the registration is exactly that case). */
-		joint_geometry_reanchor = is_joint_geometry;
-		cascade_joint_targets(joint_targets);
-		joint_geometry_reanchor = FALSE;
-		g_array_unref(joint_targets);
-		undo_flush();
-		gui_iface.invalidate_histogram();
-		if (is_current_image_flis())
-			gui_iface.flis_invalidate_composite();
-		edit_refresh_display();
-		gui_iface.set_progress(PROGRESS_DONE, _("Edit history updated"));
-		return TRUE;
-	}
-	if (!target) {
-		*err = g_strdup(_("the record's target layer no longer exists"));
-		clearfits(result);
-		free(result);
+	nde_commit_ctx commit = {
+		.item_id      = item_id,
+		.target       = target,
+		.result       = result,
+		.retained     = retained,
+		.carry_offset = carry,
+		.pos_x        = pos_x,
+		.pos_y        = pos_y,
+	};
+	if (!commit_replayed(&commit, edit_log_commit, &log_change, err)) {
 		g_array_unref(joint_targets);
 		gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
 		return FALSE;
 	}
 
-	/* Atomic commit: swap pixels, then the log.  `result` holds the OLD
-	 * pixels after the swap, so a log-commit failure can restore them. */
-	gboolean quiesced = commit_lock(target);
-	commit_pixels(target, result);
-	commit_unlock(target, quiesced);
-
-	gboolean log_ok = new_params ? nde_history_amend(record_id, new_params, err)
-	                             : nde_history_delete(record_id, err);
-	if (!log_ok) {
-		/* Should be unreachable (everything was validated, we own the
-		 * slot); restore the old pixels so nothing is half-committed. */
-		quiesced = commit_lock(target);
-		commit_pixels(target, result);
-		commit_unlock(target, quiesced);
-		clearfits(result);
-		free(result);
-		g_array_unref(joint_targets);
-		gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
-		return FALSE;
-	}
-	commit_restore_metadata(target, result);
-	clearfits(result);   /* the pre-edit pixels — superseded */
-	free(result);
-	if (carry)
-		commit_layer_offset(item_id, pos_x, pos_y);
-
-	/* Reverse invalidation: these pixels are what a mask built from them was
-	 * derived from.  After the log commit, so the re-derivation reads the
-	 * amended history. */
-	cascade_derived_masks(item_id, unchanged_upto);
-
-	/* And the joint records: the edit moved this participant's contribution,
-	 * so every sibling's scaling is now derived from stale factors.  A
-	 * subset amend may have ADDED participants the pre-commit collection
-	 * could not see — merge a post-commit pass. */
+	/* The edit moved this participant's contribution, so every sibling's
+	 * scaling is now derived from stale factors.  A subset amend may have
+	 * ADDED participants the pre-commit collection could not see — merge a
+	 * post-commit pass. */
 	if (is_joint && new_params)
 		joint_merge_post_commit_targets(joint_targets, item_id, record_id);
-	joint_geometry_reanchor = is_joint_geometry;   /* see above */
-	cascade_joint_targets(joint_targets);
-	joint_geometry_reanchor = FALSE;
+	/* Participants of a GEOMETRIC joint record are sitting where its warp put
+	 * them, so their recompute has to re-anchor from the baseline — the chain
+	 * it replays may no longer contain anything that moves them (deleting the
+	 * registration is exactly that case). */
+	cascade_from(item_id, unchanged_upto, joint_targets, is_joint_geometry);
 	g_array_unref(joint_targets);
 
-	/* No meta-undo (sketch §7): stale undo entries would restore pixels the
-	 * log no longer describes. */
-	undo_flush();
-
-	invalidate_stats_from_fit(target);
-	gui_iface.invalidate_histogram();
-	if (is_current_image_flis())
-		gui_iface.flis_invalidate_composite();
-	edit_refresh_display();
-	gui_iface.set_progress(PROGRESS_DONE, _("Edit history updated"));
+	/* NULL for a retained input — nothing live to drop statistics for. */
+	edit_finish(target, _("Edit history updated"));
 	return TRUE;
 }
 
@@ -2951,6 +3001,17 @@ gboolean nde_delete_execute(gint64 record_id, gchar **err) {
 	return edit_execute(record_id, NULL, err);
 }
 
+/* Where a reorder puts the moved record: before @before_id, or last when 0. */
+typedef struct {
+	gint64 record_id;
+	gint64 before_id;
+} reorder_log_change;
+
+static gboolean reorder_log_commit(gpointer user, gchar **err) {
+	const reorder_log_change *l = user;
+	return nde_history_reorder(l->record_id, l->before_id, err);
+}
+
 gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after, gchar **err) {
 	g_return_val_if_fail(err != NULL, FALSE);
 	*err = NULL;
@@ -3123,7 +3184,7 @@ gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after,
 	 * pre-commit, cascaded post-commit like every other joint disturbance. */
 	GArray *joint_targets = joint_cascade_targets(item_id, boundary_pre_id, FALSE);
 
-	/* Atomic commit — mirrors edit_execute's tail, including its retained
+	/* Atomic commit — the same tail as edit_execute, including its retained
 	 * branch: an item a merge consumed has no layer to swap into, and the
 	 * replay above was run to prove the reordered chain still applies rather
 	 * than to produce pixels anyone keeps.  Without this, reordering a step
@@ -3136,66 +3197,31 @@ gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after,
 		target = lay ? lay->fit : NULL;
 		retained = nde_item_is_retained_input(item_id);   /* implies !lay */
 	}
-	if (retained) {
-		clearfits(result);
-		free(result);
-		if (!nde_history_reorder(record_id, log_before_id, err)) {
-			nde_snapstore_invalidate_from(item_id, inval_min);
-			g_array_unref(joint_targets);
-			gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
-			return FALSE;
-		}
-		cascade_derived_masks(item_id, unchanged_upto);
-		cascade_composite_consumers(item_id);
-		cascade_joint_targets(joint_targets);
-		g_array_unref(joint_targets);
-		undo_flush();
-		gui_iface.invalidate_histogram();
-		gui_iface.set_progress(PROGRESS_RESET, _("History step moved"));
-		return TRUE;
-	}
-	if (!target) {
-		*err = g_strdup(_("the record's target layer no longer exists"));
-		clearfits(result);
-		free(result);
+	reorder_log_change log_change = { record_id, log_before_id };
+	nde_commit_ctx commit = {
+		.item_id      = item_id,
+		.target       = target,
+		.result       = result,
+		.retained     = retained,
+		.carry_offset = carry,
+		.pos_x        = pos_x,
+		.pos_y        = pos_y,
+	};
+	if (!commit_replayed(&commit, reorder_log_commit, &log_change, err)) {
+		/* The replay deposited states for the permuted order, which is not
+		 * what the log now says. */
+		nde_snapstore_invalidate_from(item_id, inval_min);
 		g_array_unref(joint_targets);
 		gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
 		return FALSE;
 	}
-	gboolean quiesced = commit_lock(target);
-	commit_pixels(target, result);
-	commit_unlock(target, quiesced);
 
-	gboolean log_ok = nde_history_reorder(record_id, log_before_id, err);
-	if (!log_ok) {
-		quiesced = commit_lock(target);
-		commit_pixels(target, result);
-		commit_unlock(target, quiesced);
-		clearfits(result);
-		free(result);
-		g_array_unref(joint_targets);
-		gui_iface.set_progress(PROGRESS_RESET, _("Edit failed — nothing was changed"));
-		return FALSE;
-	}
-	commit_restore_metadata(target, result);
-	clearfits(result);
-	free(result);
-	if (carry)
-		commit_layer_offset(item_id, pos_x, pos_y);
-
-	/* Reverse invalidation: a mask built from these pixels read a prefix the
-	 * move may have reordered (cascade_derived_masks). */
-	cascade_derived_masks(item_id, unchanged_upto);
-	cascade_joint_targets(joint_targets);
+	/* A mask built from these pixels read a prefix the move may have
+	 * reordered; a joint record reads the participant's changed prefix. */
+	cascade_from(item_id, unchanged_upto, joint_targets, FALSE);
 	g_array_unref(joint_targets);
 
-	undo_flush();   /* no meta-undo (sketch §7) */
-	invalidate_stats_from_fit(target);
-	gui_iface.invalidate_histogram();
-	if (is_current_image_flis())
-		gui_iface.flis_invalidate_composite();
-	edit_refresh_display();
-	gui_iface.set_progress(PROGRESS_DONE, _("Edit history updated"));
+	edit_finish(target, _("Edit history updated"));
 	return TRUE;
 }
 
@@ -4245,18 +4271,13 @@ gboolean nde_edit_at_end_execute(gboolean apply, gchar **err) {
 		clearfits(saved);
 		free(saved);
 		saved = NULL;
-		cascade_derived_masks(item_id, unchanged_upto);
-		cascade_composite_consumers(item_id);
-		{
-			/* Joint records after the insertion read this item's changed
-			 * prefix — their other participants need recomputing too. */
-			GArray *jt = joint_cascade_targets(item_id, first_inserted, FALSE);
-			cascade_joint_targets(jt);
-			g_array_unref(jt);
-		}
+		/* Joint records after the insertion read this item's changed prefix —
+		 * their other participants need recomputing too. */
+		GArray *jt = joint_cascade_targets(item_id, first_inserted, FALSE);
+		cascade_from(item_id, unchanged_upto, jt, FALSE);
+		g_array_unref(jt);
 		g_array_unref(inserted);
-		undo_flush();
-		gui_iface.set_progress(PROGRESS_RESET, _("Insertion applied"));
+		edit_finish(NULL, _("Insertion applied"));
 		return TRUE;
 	} else {
 		gui_iface.set_progress(0.f, _("Recomputing edit history..."));
@@ -4289,32 +4310,26 @@ gboolean nde_edit_at_end_execute(gboolean apply, gchar **err) {
 	}
 	g_array_unref(inserted);
 
-	gboolean quiesced = commit_lock(target);
-	commit_pixels(target, result);
-	commit_unlock(target, quiesced);
-	commit_restore_metadata(target, result);
-	clearfits(result);
-	free(result);
-
-	/* Reverse invalidation: a mask built from these pixels read a prefix the
-	 * inserted steps now sit inside (cascade_derived_masks). */
-	cascade_derived_masks(item_id, unchanged_upto);
-
-	/* And the joint records after the insertion point: this participant's
-	 * contribution changed, so their siblings' scalings are stale. */
-	{
-		GArray *jt = joint_cascade_targets(item_id, first_inserted, FALSE);
-		cascade_joint_targets(jt);
-		g_array_unref(jt);
+	/* No log commit: the inserted records were written to the log as they ran,
+	 * so it already says what these pixels are.  No offset either — a chain
+	 * that moves the layer is refused an insertion point (apv_begin_execute). */
+	nde_commit_ctx cc = {
+		.item_id = item_id,
+		.target  = target,
+		.result  = result,
+	};
+	if (!commit_replayed(&cc, NULL, NULL, err)) {
+		gui_iface.set_progress(PROGRESS_RESET, _("Insertion failed — nothing was changed"));
+		return FALSE;
 	}
 
-	undo_flush();
-	invalidate_stats_from_fit(target);
-	gui_iface.invalidate_histogram();
-	if (is_current_image_flis())
-		gui_iface.flis_invalidate_composite();
-	edit_refresh_display();
-	gui_iface.set_progress(PROGRESS_DONE, _("Edit history updated"));
+	/* A mask built from these pixels read a prefix the inserted steps now sit
+	 * inside; joint records after the insertion read the changed prefix. */
+	GArray *jt = joint_cascade_targets(item_id, first_inserted, FALSE);
+	cascade_from(item_id, unchanged_upto, jt, FALSE);
+	g_array_unref(jt);
+
+	edit_finish(target, _("Edit history updated"));
 	return TRUE;
 }
 
