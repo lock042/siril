@@ -39,14 +39,7 @@ static gchar *linear_match_serialize(gconstpointer user) {
 	nde_kv_add_double(kv, "low", d->low);
 	nde_kv_add_double(kv, "high", d->high);
 	nde_kv_add_bool(kv, "force_to_float", d->force_to_float);
-	nde_kv_add_str(kv, "operand_path", d->operand_path ? d->operand_path : "");
-	gint64 size = 0;
-	gchar *sha = nde_file_sha256(d->operand_path, &size);
-	if (sha) {
-		nde_kv_add_str(kv, "operand_sha256", sha);
-		nde_kv_add_int(kv, "operand_size", size);
-		g_free(sha);
-	}
+	nde_kv_add_operand(kv, d->operand_path);
 	return nde_kv_end(kv);
 }
 
@@ -82,11 +75,8 @@ static gpointer linear_match_deserialize(const gchar *blob, int version) {
 static int linear_match_replay_pre(gpointer user, GHashTable *kv, fits *target) {
 	(void)target;
 	struct linear_match_data *d = user;
-	const char *path = nde_kv_get_str(kv, "operand_path");
-	gint64 expect_size = 0;
-	nde_kv_get_int(kv, "operand_size", &expect_size);
-	const char *sha = nde_kv_get_str(kv, "operand_sha256");
-	if (!nde_operand_verify(path, expect_size, sha))
+	const char *path = nde_operand_get(kv);
+	if (!path)
 		return 1;
 	clearfits(&d->ref);
 	if (readfits(path, &d->ref, NULL, d->force_to_float))

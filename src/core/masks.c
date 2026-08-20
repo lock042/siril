@@ -154,16 +154,8 @@ static gpointer mask_from_stars_deserialize(const gchar *blob, int version) {
  * allocated), so both paths now copy and every site assigns
  * mask_from_channel_data_free / mask_from_lum_data_free. */
 static void mask_file_serialize_common(GString *kv, const gchar *filename) {
-	if (filename && *filename) {
-		nde_kv_add_str(kv, "operand_path", filename);
-		gint64 size = 0;
-		gchar *sha = nde_file_sha256(filename, &size);
-		if (sha) {
-			nde_kv_add_str(kv, "operand_sha256", sha);
-			nde_kv_add_int(kv, "operand_size", size);
-			g_free(sha);
-		}
-	}
+	if (filename && *filename)
+		nde_kv_add_operand(kv, filename);
 }
 
 /* Returns a freshly strdup'd copy of operand_path, or NULL when the key is

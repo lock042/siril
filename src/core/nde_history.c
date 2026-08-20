@@ -1600,3 +1600,22 @@ gboolean nde_operand_verify(const char *path, gint64 expect_size,
 		siril_log_error(_("operand file missing or changed: %s\n"), path);
 	return ok;
 }
+
+void nde_kv_add_operand(GString *kv, const char *path) {
+	nde_kv_add_str(kv, "operand_path", path ? path : "");
+	gint64 size = 0;
+	gchar *sha = nde_file_sha256(path, &size);
+	if (sha) {
+		nde_kv_add_str(kv, "operand_sha256", sha);
+		nde_kv_add_int(kv, "operand_size", size);
+		g_free(sha);
+	}
+}
+
+const char *nde_operand_get(GHashTable *kv) {
+	const char *path = nde_kv_get_str(kv, "operand_path");
+	gint64 expect_size = 0;
+	nde_kv_get_int(kv, "operand_size", &expect_size);
+	const char *sha = nde_kv_get_str(kv, "operand_sha256");
+	return nde_operand_verify(path, expect_size, sha) ? path : NULL;
+}

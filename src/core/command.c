@@ -1173,14 +1173,7 @@ static gchar *imoper_serialize(gconstpointer user) {
 	/* on-disk value: enum order is frozen by the NDE format — do not reorder */
 	nde_kv_add_int(kv, "oper", d->oper);
 	nde_kv_add_bool(kv, "force_to_float", d->force_to_float);
-	nde_kv_add_str(kv, "operand_path", d->filename ? d->filename : "");
-	gint64 size = 0;
-	gchar *sha = nde_file_sha256(d->filename, &size);
-	if (sha) {
-		nde_kv_add_str(kv, "operand_sha256", sha);
-		nde_kv_add_int(kv, "operand_size", size);
-		g_free(sha);
-	}
+	nde_kv_add_operand(kv, d->filename);
 	return nde_kv_end(kv);
 }
 
@@ -1214,11 +1207,7 @@ static gpointer imoper_deserialize(const gchar *blob, int version) {
  * itself reads data->filename, so nothing is loaded here. */
 static int imoper_replay_pre(gpointer user, GHashTable *kv, fits *target) {
 	(void)user; (void)target;
-	const char *path = nde_kv_get_str(kv, "operand_path");
-	gint64 expect_size = 0;
-	nde_kv_get_int(kv, "operand_size", &expect_size);
-	const char *sha = nde_kv_get_str(kv, "operand_sha256");
-	return nde_operand_verify(path, expect_size, sha) ? 0 : 1;
+	return nde_operand_get(kv) ? 0 : 1;
 }
 
 // Image processing hook for imoper
@@ -1402,14 +1391,7 @@ static gchar *addmax_serialize(gconstpointer user) {
 	const struct addmax_data *d = user;
 	GString *kv = nde_kv_start();
 	nde_kv_add_bool(kv, "force_to_float", d->force_to_float);
-	nde_kv_add_str(kv, "operand_path", d->operand_path ? d->operand_path : "");
-	gint64 size = 0;
-	gchar *sha = nde_file_sha256(d->operand_path, &size);
-	if (sha) {
-		nde_kv_add_str(kv, "operand_sha256", sha);
-		nde_kv_add_int(kv, "operand_size", size);
-		g_free(sha);
-	}
+	nde_kv_add_operand(kv, d->operand_path);
 	return nde_kv_end(kv);
 }
 
@@ -1437,11 +1419,8 @@ static gpointer addmax_deserialize(const gchar *blob, int version) {
 static int addmax_replay_pre(gpointer user, GHashTable *kv, fits *target) {
 	(void)target;
 	struct addmax_data *d = user;
-	const char *path = nde_kv_get_str(kv, "operand_path");
-	gint64 expect_size = 0;
-	nde_kv_get_int(kv, "operand_size", &expect_size);
-	const char *sha = nde_kv_get_str(kv, "operand_sha256");
-	if (!nde_operand_verify(path, expect_size, sha))
+	const char *path = nde_operand_get(kv);
+	if (!path)
 		return 1;
 	fits *operand_fit = calloc(1, sizeof(fits));
 	if (!operand_fit)
@@ -1571,14 +1550,7 @@ static gchar *fdiv_serialize(gconstpointer user) {
 	GString *kv = nde_kv_start();
 	nde_kv_add_float(kv, "norm", d->norm);
 	nde_kv_add_bool(kv, "force_to_float", d->force_to_float);
-	nde_kv_add_str(kv, "operand_path", d->operand_path ? d->operand_path : "");
-	gint64 size = 0;
-	gchar *sha = nde_file_sha256(d->operand_path, &size);
-	if (sha) {
-		nde_kv_add_str(kv, "operand_sha256", sha);
-		nde_kv_add_int(kv, "operand_size", size);
-		g_free(sha);
-	}
+	nde_kv_add_operand(kv, d->operand_path);
 	return nde_kv_end(kv);
 }
 
@@ -1609,11 +1581,8 @@ static gpointer fdiv_deserialize(const gchar *blob, int version) {
 static int fdiv_replay_pre(gpointer user, GHashTable *kv, fits *target) {
 	(void)target;
 	struct fdiv_data *d = user;
-	const char *path = nde_kv_get_str(kv, "operand_path");
-	gint64 expect_size = 0;
-	nde_kv_get_int(kv, "operand_size", &expect_size);
-	const char *sha = nde_kv_get_str(kv, "operand_sha256");
-	if (!nde_operand_verify(path, expect_size, sha))
+	const char *path = nde_operand_get(kv);
+	if (!path)
 		return 1;
 	fits *operand_fit = calloc(1, sizeof(fits));
 	if (!operand_fit)

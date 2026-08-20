@@ -56,14 +56,7 @@ static gchar *epf_serialize(gconstpointer user) {
 			nde_kv_add_str(kv, "guide", "self");
 		} else {
 			nde_kv_add_str(kv, "guide", "file");
-			nde_kv_add_str(kv, "operand_path", p->guide_path ? p->guide_path : "");
-			gint64 size = 0;
-			gchar *sha = nde_file_sha256(p->guide_path, &size);
-			if (sha) {
-				nde_kv_add_str(kv, "operand_sha256", sha);
-				nde_kv_add_int(kv, "operand_size", size);
-				g_free(sha);
-			}
+			nde_kv_add_operand(kv, p->guide_path);
 		}
 	}
 	return nde_kv_end(kv);
@@ -126,11 +119,8 @@ static int epf_replay_pre(gpointer user, GHashTable *kv, fits *target) {
 		p->guidefit = target;   /* not owned; guide_needs_freeing stays FALSE */
 		return 0;
 	}
-	const char *path = nde_kv_get_str(kv, "operand_path");
-	gint64 expect_size = 0;
-	nde_kv_get_int(kv, "operand_size", &expect_size);
-	const char *sha = nde_kv_get_str(kv, "operand_sha256");
-	if (!nde_operand_verify(path, expect_size, sha))
+	const char *path = nde_operand_get(kv);
+	if (!path)
 		return 1;
 	fits *guidefit = calloc(1, sizeof(fits));
 	if (!guidefit)

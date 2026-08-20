@@ -608,6 +608,25 @@ gchar *nde_file_sha256(const char *path, gint64 *size_out);
 gboolean nde_operand_verify(const char *path, gint64 expect_size,
                             const char *expect_sha256);
 
+/**
+ * Pin an external file operand (Convention 1): writes operand_path plus, when
+ * the file can be hashed, operand_sha256 and operand_size.  A NULL @path is
+ * written as the empty string, which is how deserialize spells "no operand
+ * recorded"; an unreadable file still records the path, so replay reports
+ * "missing or changed" rather than silently succeeding on a different file.
+ * Use this in serialize rather than writing the three keys by hand — the whole
+ * point of the convention is that every op spells them the same way.
+ */
+void nde_kv_add_operand(GString *kv, const char *path);
+
+/**
+ * The replay_pre counterpart: verify the pinned operand and hand back its
+ * path, or NULL if it is missing, resized or rehashed (nde_operand_verify has
+ * already logged which).  The returned string is owned by @kv and stays valid
+ * as long as it does.
+ */
+const char *nde_operand_get(GHashTable *kv);
+
 /** Lookup helpers; the typed variants return FALSE when absent/unparsable. */
 const char *nde_kv_get_str(GHashTable *kv, const char *key);
 gboolean    nde_kv_get_int(GHashTable *kv, const char *key, gint64 *out);

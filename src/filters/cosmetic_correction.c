@@ -99,14 +99,7 @@ static gchar *cosme_serialize(gconstpointer user) {
 	gchar *path = d->file ? g_file_get_path(d->file) : NULL;
 	GString *kv = nde_kv_start();
 	nde_kv_add_int(kv, "is_cfa", d->is_cfa);
-	nde_kv_add_str(kv, "operand_path", path ? path : "");
-	gint64 size = 0;
-	gchar *sha = nde_file_sha256(path, &size);
-	if (sha) {
-		nde_kv_add_str(kv, "operand_sha256", sha);
-		nde_kv_add_int(kv, "operand_size", size);
-		g_free(sha);
-	}
+	nde_kv_add_operand(kv, path);
 	g_free(path);
 	return nde_kv_end(kv);
 }
@@ -134,11 +127,8 @@ static gpointer cosme_deserialize(const gchar *blob, int version) {
 static int cosme_replay_pre(gpointer user, GHashTable *kv, fits *target) {
 	(void)target;
 	struct cosme_data *d = user;
-	const char *path = nde_kv_get_str(kv, "operand_path");
-	gint64 expect_size = 0;
-	nde_kv_get_int(kv, "operand_size", &expect_size);
-	const char *sha = nde_kv_get_str(kv, "operand_sha256");
-	if (!nde_operand_verify(path, expect_size, sha))
+	const char *path = nde_operand_get(kv);
+	if (!path)
 		return 1;
 	g_clear_object(&d->file);
 	d->file = g_file_new_for_path(path);
