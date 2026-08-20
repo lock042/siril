@@ -48,19 +48,6 @@
 #include "io/siril_pythonmodule.h"
 #include "yyjson.h"
 
-/* Destructor-first convention shared by every op params struct (the same
- * contract free_generic_img_args relies on). */
-typedef void (*user_destructor)(void *);
-static void destroy_user(gpointer user) {
-	if (!user)
-		return;
-	user_destructor d = *(user_destructor *)user;
-	if (d)
-		d(user);
-	else
-		free(user);
-}
-
 /* C4: TRUE while an amend preview holds pre-K pixels in a target fits —
  * every history edit must refuse then (a commit would swap pixels the
  * preview's restore path is about to overwrite).  Defined with the amend
@@ -388,7 +375,7 @@ static gchar *member_invalid_reason(const nde_record *rec) {
 	if (!user)
 		return g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s): parameters failed to parse"),
 		                       rec->record_id, rec->op_id);
-	destroy_user(user);
+	destroy_any_args(user);
 	return NULL;
 }
 
@@ -937,7 +924,7 @@ static fits *replay_apply_records(fits *scratch, const nde_chain *chain,
 			int rc = op->replay_pre(user, kv, scratch);
 			g_hash_table_unref(kv);
 			if (rc) {
-				destroy_user(user);
+				destroy_any_args(user);
 				*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s): replay preparation failed"),
 				                       rec->record_id, rec->op_id);
 				goto fail;
@@ -945,7 +932,7 @@ static fits *replay_apply_records(fits *scratch, const nde_chain *chain,
 		}
 		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 		if (!args) {
-			destroy_user(user);
+			destroy_any_args(user);
 			*err = g_strdup(_("out of memory"));
 			goto fail;
 		}
@@ -953,7 +940,7 @@ static fits *replay_apply_records(fits *scratch, const nde_chain *chain,
 		 * the op would run unmasked and the replay would claim to have
 		 * reproduced a record it did not. */
 		if (!mask_pin_install(scratch, rec, err)) {
-			destroy_user(user);
+			destroy_any_args(user);
 			free(args);
 			goto fail;
 		}
@@ -1273,7 +1260,7 @@ static fits *mask_chain_replay(const nde_chain *chain, guint upto, gchar **err) 
 		margs.max_threads = com.max_thread;
 		op_descriptor_fill_mask_args(&margs);
 		int rc = margs.mask_hook(&margs);
-		destroy_user(user);
+		destroy_any_args(user);
 		if (rc) {
 			*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) failed to apply"),
 			                       rec->record_id, rec->op_id ? rec->op_id : "?");
@@ -2507,7 +2494,7 @@ static gboolean edit_execute(gint64 record_id, const gchar *new_params, gchar **
 				nde_chain_free(chain);
 				return FALSE;
 			}
-			destroy_user(trial);
+			destroy_any_args(trial);
 		}
 		g_free(target_rec->params);
 		target_rec->params = g_strdup(new_params);
@@ -3898,7 +3885,7 @@ static gchar *region_tail_member_reason(const nde_record *rec, guint8 flags,
 	if (!user)
 		return g_strdup_printf(_("\"%s\": its settings could not be read"), name);
 	*halo_out = op_descriptor_roi_halo(op, user);
-	destroy_user(user);
+	destroy_any_args(user);
 	return NULL;
 }
 
@@ -4101,12 +4088,12 @@ gboolean nde_region_tail_apply(nde_region_tail *plan, fits *region,
 			break;
 		}
 		if (!region_mask_pin_install(region, rec, rect, &err)) {
-			destroy_user(user);
+			destroy_any_args(user);
 			break;
 		}
 		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 		if (!args) {
-			destroy_user(user);
+			destroy_any_args(user);
 			mask_pin_clear(region);
 			err = g_strdup(_("out of memory"));
 			break;

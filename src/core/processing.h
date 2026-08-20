@@ -276,6 +276,11 @@ struct generic_mask_args {
 };
 
 void free_generic_img_args(struct generic_img_args *args);
+/* Free an op's params struct through the destructor-first convention above:
+ * calls its destroy_fn, or plain-frees it when that is NULL.  NULL is a no-op.
+ * Anything that owns an `args->user` frees it with this — the workers, and the
+ * replay engine when it deserializes a record's params to try them out. */
+void destroy_any_args(void *obj);
 /* Blend @fit's processing mask result back over @orig's pixels, in place in
  * @fit: the exact operation generic_image_worker performs for a mask_aware
  * job.  Exported for the dialogs that apply an op synchronously outside the

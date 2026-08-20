@@ -73,7 +73,9 @@ void child_mutex_unlock() {
  * user_data fit this polymorphic pattern. If the destroy_fn is NULL we assume
  * there are no dynamically allocated members and the struct can just be freed.
  */
-static void destroy_any_args(void *obj) {
+void destroy_any_args(void *obj) {
+	if (!obj)
+		return;
     destructor *destroy_fn = obj; // first field assumed destroy
     if (*destroy_fn)
 		(*destroy_fn)(obj);
