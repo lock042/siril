@@ -199,7 +199,7 @@ const op_descriptor op_desc_photometric_cc = {
 	.log_hook = photometric_cc_log_hook,
 	.description = N_("PCC"),
 	.mem_ratio = 0.0f,
-	.flags = 0,
+	.flags = OP_REQ_RGB,
 	.serialize = photometric_cc_serialize, .deserialize = photometric_cc_deserialize,
 };
 

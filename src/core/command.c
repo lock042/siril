@@ -18707,7 +18707,8 @@ const op_descriptor op_desc_findhot = {
 /* fix_xtrans has no log_hook; paramless serializer */
 const op_descriptor op_desc_fix_xtrans = {
 	.id = "cfa.fix_xtrans", .version = 1, .image_hook = fix_xtrans_image_hook,
-	.description = N_("Fix X-Trans artefacts"), .mem_ratio = 1.0f, .flags = 0,
+	.description = N_("Fix X-Trans artefacts"), .mem_ratio = 1.0f,
+	.flags = OP_REQ_MONO,   /* a CFA pattern only exists before debayering */
 	.serialize = paramless_serialize, .deserialize = paramless_deserialize_v1,
 };
 const op_descriptor op_desc_limit = {

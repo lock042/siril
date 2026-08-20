@@ -298,6 +298,64 @@ Test(op_descriptor, roi_capable_set_is_exactly_the_expected_ops) {
 	             seen, sizeof(roi_capable_ids) / sizeof(roi_capable_ids[0]));
 }
 
+/* The exact set of ops that need a particular colour model.
+ *
+ * generic_image_worker refuses these BEFORE the hook, the undo save and the
+ * NDE capture, so the flag is the difference between "refused" and "logged a
+ * complaint, did nothing, and recorded a history step for it".  Pinning both
+ * sets means an op gaining or losing one fails here rather than in someone's
+ * history panel.
+ *
+ * The lists match the REQ_CMD_FOR_RGB / REQ_CMD_FOR_MONO declarations in
+ * command_list.h — the same question asked of the command surface — for every
+ * such command that has a descriptor.  The two are checked by hand because
+ * commands and descriptors are not in bijection: `split` and `rgbalign` are
+ * RGB-only commands with no descriptor at all. */
+static const char *const req_rgb_ids[] = {
+	"color.ccm",
+	"color.photometric_cc",
+	"color.saturation",
+	"filters.scnr",
+	"filters.unpurple",
+};
+
+static const char *const req_mono_ids[] = {
+	"cfa.fix_xtrans",
+};
+
+static gboolean id_in(const char *id, const char *const *list, size_t n) {
+	for (size_t i = 0; i < n; i++)
+		if (!strcmp(id, list[i]))
+			return TRUE;
+	return FALSE;
+}
+
+Test(op_descriptor, colour_model_requirements_are_exactly_the_expected_ops) {
+	const size_t n_rgb  = sizeof(req_rgb_ids) / sizeof(req_rgb_ids[0]);
+	const size_t n_mono = sizeof(req_mono_ids) / sizeof(req_mono_ids[0]);
+	size_t n = 0, seen_rgb = 0, seen_mono = 0;
+	const op_descriptor *const *all = op_descriptor_all(&n);
+
+	for (size_t i = 0; i < n; i++) {
+		const gboolean rgb  = (all[i]->flags & OP_REQ_RGB) != 0;
+		const gboolean mono = (all[i]->flags & OP_REQ_MONO) != 0;
+		cr_assert_eq(rgb, id_in(all[i]->id, req_rgb_ids, n_rgb),
+		             "'%s': OP_REQ_RGB is %s, the pinned list disagrees",
+		             all[i]->id, rgb ? "set" : "unset");
+		cr_assert_eq(mono, id_in(all[i]->id, req_mono_ids, n_mono),
+		             "'%s': OP_REQ_MONO is %s, the pinned list disagrees",
+		             all[i]->id, mono ? "set" : "unset");
+		cr_assert(!(rgb && mono),
+		          "'%s' cannot require both colour models at once", all[i]->id);
+		seen_rgb  += rgb  ? 1 : 0;
+		seen_mono += mono ? 1 : 0;
+	}
+	cr_assert_eq(seen_rgb, n_rgb,
+	             "%zu descriptors carry OP_REQ_RGB, list names %zu", seen_rgb, n_rgb);
+	cr_assert_eq(seen_mono, n_mono,
+	             "%zu descriptors carry OP_REQ_MONO, list names %zu", seen_mono, n_mono);
+}
+
 /* ------------------------------------------------------------------ *
  *  Fill semantics                                                    *
  * ------------------------------------------------------------------ */

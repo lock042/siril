@@ -1561,6 +1561,25 @@ void blend_fits_with_mask(fits* fit, fits* orig) {
 }
 FAST_MATH_POP
 
+/* The exit shared by generic_image_worker's pre-flight guards.  They all run
+ * before any lock is taken and before the hook, the undo save and the NDE
+ * capture, so refusing here leaves the image and its history untouched;
+ * finishing through the same idle the normal path uses is what hands `args`
+ * back to be freed.  Takes ownership of @desc. */
+static gpointer img_worker_refuse(struct generic_img_args *args,
+                                  gboolean use_swap, gchar *desc) {
+	args->retval = 1;
+	if (!com.script && !com.python_command && use_swap)
+		gui_iface.set_suppress_redraws(FALSE);
+	gui_iface.set_progress(PROGRESS_RESET, NULL);
+	if (args->idle_function)
+		siril_add_idle(args->idle_function, args);
+	else
+		siril_add_idle(end_generic_image_update_gfit, args);
+	g_free(desc);
+	return GINT_TO_POINTER(1);
+}
+
 /** Main generic image worker function
  * Works with a single image, optionally using multiple threads for processing
  */
@@ -1767,16 +1786,7 @@ gpointer generic_image_worker(gpointer p) {
 		              "Please select a single layer.")
 		          : _("This operation cannot be applied to a layer group.\n"
 		              "Please select an individual layer."));
-		args->retval = 1;
-		if (!com.script && !com.python_command && use_swap)
-			gui_iface.set_suppress_redraws(FALSE);
-		gui_iface.set_progress(PROGRESS_RESET, NULL);
-		if (args->idle_function)
-			siril_add_idle(args->idle_function, args);
-		else
-			siril_add_idle(end_generic_image_update_gfit, args);
-		g_free(desc);
-		return GINT_TO_POINTER(1);
+		return img_worker_refuse(args, use_swap, desc);
 	}
 
 	/* Same shape, different reason: canvas geometry on a layered document is
@@ -1785,16 +1795,34 @@ gpointer generic_image_worker(gpointer p) {
 	 * image, which would silently revert it (nde_replay.h). */
 	if (args->geometry_changing && !args->nde_replay && argfit == gfit
 	    && is_current_image_flis() && nde_edit_at_refuses_op(desc)) {
-		args->retval = 1;
-		if (!com.script && !com.python_command && use_swap)
-			gui_iface.set_suppress_redraws(FALSE);
-		gui_iface.set_progress(PROGRESS_RESET, NULL);
-		if (args->idle_function)
-			siril_add_idle(args->idle_function, args);
-		else
-			siril_add_idle(end_generic_image_update_gfit, args);
-		g_free(desc);
-		return GINT_TO_POINTER(1);
+		return img_worker_refuse(args, use_swap, desc);
+	}
+
+	/* Same shape again: the op declares a colour model it needs and this
+	 * image is the other one.  Without this the hooks answered for
+	 * themselves and disagreed — PCC logged "will do nothing for monochrome
+	 * images" and returned SUCCESS, so the worker went on to save undo and
+	 * record a history step for an operation that did nothing; SCNR,
+	 * saturation and unpurple had no check at all and would write through
+	 * the G/B plane aliases a mono fits carries, corrupting it silently.
+	 * Refusing here answers it once, before the hook, the undo save and the
+	 * capture — nothing runs and nothing is recorded.
+	 *
+	 * A replay is exempt: documents saved before this guard existed can
+	 * contain exactly the record it now prevents, and refusing mid-chain
+	 * would make them unopenable to punish a step that did nothing. */
+	if (args->op && !args->nde_replay) {
+		const gboolean rgb = isrgb(argfit);
+		if ((args->op->flags & OP_REQ_RGB) && !rgb) {
+			siril_log_error(_("%s can only be applied to a colour image\n"),
+			                desc ? desc : _("This operation"));
+			return img_worker_refuse(args, use_swap, desc);
+		}
+		if ((args->op->flags & OP_REQ_MONO) && rgb) {
+			siril_log_error(_("%s can only be applied to a monochrome image\n"),
+			                desc ? desc : _("This operation"));
+			return img_worker_refuse(args, use_swap, desc);
+		}
 	}
 
 	g_rw_lock_reader_lock(&com.pref_rwlock);

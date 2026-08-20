@@ -33,8 +33,15 @@ typedef enum {
 	OP_MASK_CAPABLE      = 1 << 0,  /* op supports mask-aware application */
 	OP_GEOMETRY_CHANGING = 1 << 1,  /* changes image dimensions (consumed by FLIS branch) */
 	OP_EXPENSIVE         = 1 << 2,  /* reserved: NDE checkpoint policy */
-	OP_REQ_RGB           = 1 << 3,  /* reserved: replay-time validation */
-	OP_REQ_MONO          = 1 << 4,  /* reserved */
+	OP_REQ_RGB           = 1 << 3,  /* op needs a 3-channel image; refused on
+	                                 * mono by generic_image_worker BEFORE the
+	                                 * hook, so nothing runs and nothing is
+	                                 * recorded.  Declare it here rather than
+	                                 * testing isrgb() inside the hook: a hook
+	                                 * that returns success after doing nothing
+	                                 * still gets an undo entry and a history
+	                                 * step for its trouble. */
+	OP_REQ_MONO          = 1 << 4,  /* the mirror: op needs 1 channel */
 	OP_MASK_FROM_IMAGE   = 1 << 5,  /* mask op that DERIVES from the image
 	                                 * (image -> MASK), as opposed to editing
 	                                 * an existing mask.  Its NDE record pins

@@ -49,7 +49,7 @@ const op_descriptor op_desc_saturation = {
 	.log_hook = satu_log_hook,
 	.description = N_("Saturation"),
 	.mem_ratio = 1.0f,
-	.flags = OP_MASK_CAPABLE | OP_ROI_CAPABLE,
+	.flags = OP_MASK_CAPABLE | OP_ROI_CAPABLE | OP_REQ_RGB,
 	.serialize = satu_serialize, .deserialize = satu_deserialize,
 };
 

@@ -138,7 +138,7 @@ const op_descriptor op_desc_unpurple = {
 	.log_hook = unpurple_log_hook,
 	.description = N_("Unpurple Filter"),
 	.mem_ratio = 2.0f,
-	.flags = OP_MASK_CAPABLE | OP_ROI_CAPABLE,
+	.flags = OP_MASK_CAPABLE | OP_ROI_CAPABLE | OP_REQ_RGB,
 	.serialize = unpurple_serialize, .deserialize = unpurple_deserialize,
 	.replay_pre = unpurple_replay_pre,
 };

@@ -87,7 +87,7 @@ const op_descriptor op_desc_ccm = {
 	.log_hook = ccm_log_hook,
 	.description = N_("Color Conversion Matrix"),
 	.mem_ratio = 1.5f,
-	.flags = 0,
+	.flags = OP_REQ_RGB,
 	.serialize = ccm_serialize, .deserialize = ccm_deserialize,
 };
 

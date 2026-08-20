@@ -60,6 +60,81 @@ static int undo_recording_hook(struct generic_layer_args *args) {
 	return 0;
 }
 
+/* ---- colour-model requirements, refused before anything happens --------- */
+
+/* A file-static counter, not args->user: the worker frees user through
+ * destroy_any_args(), which reads its first field as a destructor. */
+static int image_hook_runs;
+
+static int counting_image_hook(struct generic_img_args *args, fits *fit, int nb) {
+	(void)args; (void)fit; (void)nb;
+	image_hook_runs++;
+	return 0;
+}
+
+/* Not in op_descriptors.def, so the registry conformance tests do not see
+ * these two; they exist only to isolate the flag as the single difference. */
+static const op_descriptor op_desc_needs_rgb = {
+	.id = "test.needs_rgb", .version = 1,
+	.image_hook = counting_image_hook,
+	.description = N_("Needs colour"),
+	.flags = OP_REQ_RGB,
+};
+static const op_descriptor op_desc_needs_nothing = {
+	.id = "test.needs_nothing", .version = 1,
+	.image_hook = counting_image_hook,
+	.description = N_("Needs nothing"),
+	.flags = 0,
+};
+
+static int run_image_op(const op_descriptor *op) {
+	image_hook_runs = 0;
+	struct generic_img_args *args = calloc(1, sizeof(*args));
+	args->fit = gfit;
+	args->op = op;
+	args->command = TRUE;
+	args->command_updates_gfit = TRUE;
+	args->max_threads = 1;
+	args->mem_ratio = -1.0f;
+	gboolean prev = com.headless;
+	com.headless = TRUE;
+	int rv = GPOINTER_TO_INT(generic_image_worker(args));
+	com.headless = prev;
+	return rv;
+}
+
+/* The failure this replaces: PCC on a mono layer logged "will do nothing for
+ * monochrome images", returned SUCCESS, and so earned an undo entry and a
+ * history step for an operation that did nothing.  The refusal has to happen
+ * before the hook, not inside it, or the worker has already committed. */
+Test(flis_worker, an_rgb_only_op_is_refused_on_a_mono_image) {
+	flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "mono");
+	gfit = flis_active_layer_fit();
+
+	cr_assert_neq(run_image_op(&op_desc_needs_rgb), 0,
+	              "an RGB-only op must fail on a mono image");
+	cr_assert_eq(image_hook_runs, 0, "the hook must not have run at all");
+
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	for (guint i = 0; snap && i < snap->len; i++)
+		cr_assert(g_strcmp0(((nde_record *)g_ptr_array_index(snap, i))->op_id,
+		                    "test.needs_rgb"),
+		          "a refused op must leave no history step");
+	if (snap)
+		g_ptr_array_unref(snap);
+}
+
+/* The control: the same hook on the same image, with only the flag removed.
+ * Without this the test above would pass for any reason the worker failed. */
+Test(flis_worker, the_same_op_without_the_flag_runs_on_a_mono_image) {
+	flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "mono");
+	gfit = flis_active_layer_fit();
+
+	cr_assert_eq(run_image_op(&op_desc_needs_nothing), 0);
+	cr_assert_eq(image_hook_runs, 1,
+	             "the flag is the only thing that stopped the other one");
+}
+
 Test(flis_worker, hook_fires_and_returns_success) {
 	flis_layer_t *l = flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "x");
 
