@@ -32,7 +32,6 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
-#include "core/nde_cat.h"
 #include "core/nde_history.h"
 #include "core/nde_op_class.h"
 #include "core/nde_replay.h"
@@ -2232,90 +2231,41 @@ the_end:;
 		 * instead of at twenty call sites. */
 		g_warn_if_fail(nde_op_class_for(op ? op->id : NULL)->family
 		               != NDE_OPC_ANALYSIS);
-		gboolean tier_a = op && op->serialize;
-		nde_record *rec = nde_record_new();
-		rec->op_id = g_strdup(op ? op->id : "opaque.unknown");
-		rec->op_version = op ? op->version : 0;
-		rec->tier = tier_a ? NDE_TIER_A : NDE_TIER_B;
-		rec->params = tier_a ? op->serialize(args->user) : NULL;
-		rec->summary = args->log_hook ?
+		gchar *nde_summary = args->log_hook ?
 				args->log_hook(args->user, SUMMARY) : g_strdup(args->description);
-		rec->scope = (op && (op->flags & OP_GEOMETRY_CHANGING)) ?
-				NDE_SCOPE_CANVAS : NDE_SCOPE_LAYER;
-		rec->target_item_id = job_item_id;
-		rec->mask_active = using_mask;
-		/* The mask is a real INPUT, not a flag.  mask_active only ever said
-		 * "something was masking this"; the pin says WHICH mask and in what
-		 * state, which is what a replay needs to reproduce the op rather than
-		 * refuse it (nde_history.h).  The mask item is the one step 3
-		 * allocated; its state is whatever record last touched it — resolved
-		 * at job start (job_pmask_id), not from the live active layer. */
-		if (using_mask) {
-			gint mask_item = NDE_ITEM_PLAIN_MASK;
-			if (is_current_image_flis())
-				mask_item = job_pmask_id;
-			if (mask_item != 0)
-				nde_record_add_input(rec, "mask", mask_item,
-				                     nde_history_last_record_for_item(mask_item));
-		}
-		rec->timestamp = nde_iso8601_now();
-		rec->impl = nde_impl_string();
-		/* Baseline checkpoint (nde phase 2): after the swap, `orig` holds the
-		 * pre-op pixels — the baseline for replaying this item's chain.  Cheap
-		 * no-op if one already exists.  Prepared outside the leaf mutex. */
-		if (orig) {
-			nde_checkpoint_baseline_ensure(orig, rec->target_item_id);
-			/* A layer's replay value is its pixels AND its position: a
-			 * geometry record moves it relative to where it already was, so
-			 * without a starting position nothing downstream can be anchored
-			 * (nde_checkpoint.h).  Setting it is a no-op unless the ensure
-			 * above actually created the baseline. */
-			if (nde_have_pos)
-				nde_checkpoint_baseline_set_offset(rec->target_item_id,
-				                                   nde_pre_pos_x, nde_pre_pos_y);
-		}
-		/* Keep the pinned mask's pixels while we still have them — hook_fit
-		 * carries the mask the op actually ran under, and it is stored under
-		 * the pin's own coordinate, so operations sharing a mask state share
-		 * the stored copy (nde_replay.h).  Before append takes ownership. */
-		if (using_mask)
-			nde_mask_pin_store(rec, hook_fit);
-		/* Barrier detection BEFORE append takes ownership of rec.  A masked
-		 * record is only a barrier when its mask was NOT kept: with the pixels
-		 * pinned, the replay can put the mask back and reproduce the op. */
-		gboolean nde_barrier = rec->tier == NDE_TIER_B ||
-				(rec->tier == NDE_TIER_A && rec->mask_active
-				 && !nde_mask_pin_resolvable(rec));
-		gint nde_target = rec->target_item_id;
-		nde_rec_id = nde_history_append(rec);
-		/* Output checkpoint (nde phase 4 P4.3): a barrier record stores its
-		 * POST-op pixels as the restart point that keeps the tail editable.
-		 * The swap installed them into argfit — which still points at the
-		 * job's layer's fits even if a switch retargeted gfit since; the
-		 * global could already name another layer's pixels.  Stored OUTSIDE
-		 * the history leaf mutex (append has unlocked) and the stack writer
-		 * lock (released above). */
-		if (nde_rec_id > 0 && nde_barrier) {
-			nde_checkpoint_output_store(argfit, nde_rec_id, nde_target);
-			/* A restart point is a layer value too: record where the layer
-			 * ended up, so a tail replay starting here has its anchor. */
-			if (nde_target >= 0 && is_current_image_flis()) {
-				flis_layer_t *post_lay = flis_layer_get_by_id(nde_target);
-				if (post_lay)
-					nde_checkpoint_output_set_offset(nde_rec_id,
-					                                 post_lay->position_x,
-					                                 post_lay->position_y);
-			}
-		}
-		/* Claim (or discard as stale) a star catalogue the photometric pipeline
-		 * stashed for this capture (nde_cat.h) — the same call capture_finish()
-		 * makes for the dialog-driven captures.  Missing here, single-image
-		 * PCC/SPCC (which runs through THIS worker, not a dialog capture) lost
-		 * the stars it had just measured, and replaying the step re-queried the
-		 * network instead of recomputing offline from them.  op->id outlives the
-		 * append: it is the descriptor's static string, not rec's copy. */
-		nde_cat_adopt_pending(nde_rec_id, op ? op->id : NULL);
-		nde_history_notify_panel();
+		nde_capture_req req = {
+			.op          = op,
+			.user        = args->user,
+			.summary     = nde_summary,
+			.tier        = NDE_DERIVE,
+			.scope       = NDE_DERIVE,
+			.target_item = job_item_id,
+			/* After the swap, `orig` holds the pre-op pixels — the baseline
+			 * for replaying this item's chain — and nde_pre_pos_* where the
+			 * layer was standing when they were taken. */
+			.pre         = orig,
+			.have_pos    = nde_have_pos,
+			.pos_x       = nde_pre_pos_x,
+			.pos_y       = nde_pre_pos_y,
+			/* The swap installed the post-op pixels into argfit, which still
+			 * points at the job's layer's fits even if a switch retargeted
+			 * gfit since; the global could already name another layer's. */
+			.post        = argfit,
+			.post_offset_item = job_item_id,
+			.mask_active = using_mask,
+			/* The mask item is the one step 3 allocated, resolved at JOB START
+			 * (job_pmask_id) rather than from the live active layer, so a
+			 * mid-job layer switch cannot retarget the pin.  This is the one
+			 * place that differs from the dialog captures, which pass
+			 * NDE_MASK_LIVE. */
+			.mask_item   = is_current_image_flis() ? job_pmask_id
+			                                       : NDE_ITEM_PLAIN_MASK,
+			/* hook_fit carries the mask the op actually ran under — not
+			 * necessarily argfit, and not gfit. */
+			.mask_src    = hook_fit,
+		};
+		nde_rec_id = nde_capture(&req);
+		g_free(nde_summary);
 	}
 
 	/* Cairo buffers are up to date; re-enable full viewport redraws so the
@@ -2820,40 +2770,46 @@ the_end:
 			}
 		}
 		if (mask_item != 0 && !forget) {
-			nde_record *rec = nde_record_new();
-			gboolean tier_a = args->op->serialize != NULL;
-			rec->op_id      = g_strdup(args->op->id);
-			rec->op_version = args->op->version;
-			rec->tier       = tier_a ? NDE_TIER_A : NDE_TIER_B;
-			rec->params     = tier_a ? args->op->serialize(args->user) : NULL;
-			rec->summary    = args->log_hook ? args->log_hook(args->user, SUMMARY)
-			                                 : g_strdup(args->description);
-			rec->scope      = NDE_SCOPE_LAYER;   /* the mask IS the item */
-			rec->target_item_id = mask_item;
-			rec->mask_active    = FALSE;         /* a mask op has no mask input */
-			/* Only ops that DERIVE from the image need it; an edit of an
+			/* Serialized here rather than inside the capture, because the
+			 * input pin below is decided by looking INSIDE the blob. */
+			gchar *params = args->op->serialize ?
+					args->op->serialize(args->user) : NULL;
+			/* Only ops that DERIVE from the image need the pin; an edit of an
 			 * existing mask (blur, invert, threshold) reads the mask alone,
 			 * and pinning an image it never looked at would invent a
 			 * dependency.  An op reading an external file records that file
 			 * in its own params instead (Convention 1), so it needs no pin
 			 * either. */
 			gboolean from_image = (args->op->flags & OP_MASK_FROM_IMAGE) != 0;
-			if (from_image && rec->params) {
+			if (from_image && params) {
 				/* Convention 1: an operand file in the params means the
 				 * mask came from THAT, not from the loaded image. */
-				GHashTable *kv = nde_kv_parse(rec->params);
+				GHashTable *kv = nde_kv_parse(params);
 				const char *path = nde_kv_get_str(kv, "operand_path");
 				if (path && *path)
 					from_image = FALSE;
 				g_hash_table_unref(kv);
 			}
-			if (from_image && image_item != 0)
-				nde_record_add_input(rec, "image", image_item,
-				                     nde_history_last_record_for_item(image_item));
-			rec->timestamp  = nde_iso8601_now();
-			rec->impl       = nde_impl_string();
-			gint64 mask_rec_id = nde_history_append(rec);
-			nde_history_notify_panel();
+			gboolean pin_image = from_image && image_item != 0;
+			nde_pin_spec image_pin = { "image", image_item,
+			                           pin_image ?
+			                           nde_history_last_record_for_item(image_item) : 0 };
+			gchar *summary = args->log_hook ? args->log_hook(args->user, SUMMARY)
+			                                : g_strdup(args->description);
+			nde_capture_req req = {
+				.op          = args->op,
+				.params      = params,   /* ownership transferred */
+				.summary     = summary,
+				.tier        = args->op->serialize ? NDE_TIER_A : NDE_TIER_B,
+				.scope       = NDE_SCOPE_LAYER,   /* the mask IS the item */
+				.target_item = mask_item,
+				/* A mask op has no mask input, and no checkpoints: a mask
+				 * item's chain starts at the image it was derived from. */
+				.pins        = pin_image ? &image_pin : NULL,
+				.n_pins      = pin_image ? 1 : 0,
+			};
+			gint64 mask_rec_id = nde_capture(&req);
+			g_free(summary);
 			/* Couple the undo entry the worker saved above so undo/redo moves
 			 * live_count with the pixels — pushed_undo records the SAVE's own
 			 * decision, so save and tag cannot disagree (re-checking gfit here
@@ -3041,23 +2997,20 @@ gpointer generic_layer_worker(gpointer p) {
 		 * tint conversion a FLIS document undergoes, which must stay a full
 		 * blocker (phase-4 model).  Keeping it Tier B keeps the record honestly
 		 * opaque rather than carrying misleading, unreplayable params. */
-		gboolean tier_a = FALSE;
-		nde_record *rec = nde_record_new();
-		rec->op_id = g_strdup(op->id ? op->id : "opaque.unknown");
-		rec->op_version = op->version;
-		rec->tier = tier_a ? NDE_TIER_A : NDE_TIER_B;
-		rec->params = tier_a ? op->serialize(args->user) : NULL;
-		rec->summary = args->log_hook ?
+		gchar *summary = args->log_hook ?
 				args->log_hook(args->user, SUMMARY) : g_strdup(args->description);
-		/* Layer-worker ops act on the whole document. */
-		rec->scope = NDE_SCOPE_DOCUMENT;
-		rec->target_item_id = (args->invalidate_item_id > 0) ?
-				args->invalidate_item_id : -1;
-		rec->mask_active = FALSE;
-		rec->timestamp = nde_iso8601_now();
-		rec->impl = nde_impl_string();
-		nde_rec_id = nde_history_append(rec);
-		nde_history_notify_panel();
+		nde_capture_req req = {
+			.op          = op,
+			.summary     = summary,
+			/* NDE_TIER_B, not NDE_DERIVE: the descriptor's serializer must
+			 * not be used here, for the reason above. */
+			.tier        = NDE_TIER_B,
+			.scope       = NDE_SCOPE_DOCUMENT,
+			.target_item = (args->invalidate_item_id > 0) ?
+					args->invalidate_item_id : -1,
+		};
+		nde_rec_id = nde_capture(&req);
+		g_free(summary);
 		/* icc_convert_flis_layer_hook saved a multi-layer undo entry (gated on
 		 * com.script — verified); couple it so undo/redo moves live_count.
 		 * Same com.script guard the undo save used. */
