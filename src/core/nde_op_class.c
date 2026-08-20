@@ -104,23 +104,29 @@ static const nde_op_class descriptorless[] = {
 static const struct {
 	const char   *id;
 	nde_op_family family;
+	guint32       traits;
 } classified_descriptors[] = {
-	{ "flis.layers_match",       NDE_OPC_JOINT },
-	{ "flis.group_calibration",  NDE_OPC_JOINT },
-	{ "flis.register",           NDE_OPC_JOINT },
+	/* A joint record belongs to every participant's chain at ONE log position,
+	 * so there is no position an armed insertion could give it that is right
+	 * for all of them — the same reason canvas geometry cannot join one
+	 * (processing.c).  The three capture sites refuse it up front; this is the
+	 * backstop that makes an unguarded path abandon rather than lie. */
+	{ "flis.layers_match",       NDE_OPC_JOINT, NDE_OPT_INSERT_DISTURBS },
+	{ "flis.group_calibration",  NDE_OPC_JOINT, NDE_OPT_INSERT_DISTURBS },
+	{ "flis.register",           NDE_OPC_JOINT, NDE_OPT_INSERT_DISTURBS },
 
-	{ "stats.bg",                NDE_OPC_ANALYSIS },
-	{ "stats.bgnoise",           NDE_OPC_ANALYSIS },
-	{ "stats.cdg",               NDE_OPC_ANALYSIS },
-	{ "stats.entropy",           NDE_OPC_ANALYSIS },
-	{ "stats.stat",              NDE_OPC_ANALYSIS },
-	{ "psf.estimate",            NDE_OPC_ANALYSIS },
-	{ "catalog.search",          NDE_OPC_ANALYSIS },
-	{ "cfa.split",               NDE_OPC_ANALYSIS },
-	{ "cfa.extract_green",       NDE_OPC_ANALYSIS },
-	{ "cfa.extract_ha",          NDE_OPC_ANALYSIS },
-	{ "cfa.extract_haoiii",      NDE_OPC_ANALYSIS },
-	{ "cfa.findhot",             NDE_OPC_ANALYSIS },
+	{ "stats.bg",                NDE_OPC_ANALYSIS, 0 },
+	{ "stats.bgnoise",           NDE_OPC_ANALYSIS, 0 },
+	{ "stats.cdg",               NDE_OPC_ANALYSIS, 0 },
+	{ "stats.entropy",           NDE_OPC_ANALYSIS, 0 },
+	{ "stats.stat",              NDE_OPC_ANALYSIS, 0 },
+	{ "psf.estimate",            NDE_OPC_ANALYSIS, 0 },
+	{ "catalog.search",          NDE_OPC_ANALYSIS, 0 },
+	{ "cfa.split",               NDE_OPC_ANALYSIS, 0 },
+	{ "cfa.extract_green",       NDE_OPC_ANALYSIS, 0 },
+	{ "cfa.extract_ha",          NDE_OPC_ANALYSIS, 0 },
+	{ "cfa.extract_haoiii",      NDE_OPC_ANALYSIS, 0 },
+	{ "cfa.findhot",             NDE_OPC_ANALYSIS, 0 },
 };
 
 /* An id from a newer build, or a corrupt one.  No traits: every "is this
@@ -166,7 +172,8 @@ static gpointer class_table_init(gpointer unused) {
 			cls->traits |= NDE_OPT_GEOMETRIC;
 		for (guint k = 0; k < G_N_ELEMENTS(classified_descriptors); k++) {
 			if (!g_strcmp0(op->id, classified_descriptors[k].id)) {
-				cls->family = classified_descriptors[k].family;
+				cls->family  = classified_descriptors[k].family;
+				cls->traits |= classified_descriptors[k].traits;
 				break;
 			}
 		}

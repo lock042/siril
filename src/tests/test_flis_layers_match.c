@@ -559,6 +559,53 @@ Test(flis_layers_match, edit_at_insert_before_joint_rescales_all) {
 	cr_assert_float_eq(layer_value(2), 0.25f, 1e-4);
 }
 
+static guint count_joint_records(void) {
+	guint n = 0;
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	for (guint i = 0; snap && i < snap->len; i++)
+		if (!g_strcmp0(((nde_record *)g_ptr_array_index(snap, i))->op_id,
+		               "flis.layers_match"))
+			n++;
+	if (snap)
+		g_ptr_array_unref(snap);
+	return n;
+}
+
+/* A joint record belongs to every participant's chain at ONE log position, and
+ * an insertion armed on one participant has no position to give it that is
+ * right for the others: on the anchor it would be inserted mid-log for layers
+ * whose history has nothing to do with the insertion, and on any other
+ * participant the same operation would silently append instead.  So the
+ * operation is refused while a point is armed, and refused before it mutates
+ * anything. */
+Test(flis_layers_match, an_armed_insertion_refuses_a_second_match) {
+	make_recorded_triple();
+	cr_assert_eq(run_layers_match(), CMD_OK);
+	gint64 jid = find_joint_record();
+	cr_assert_eq(count_joint_records(), 1);
+	float before = layer_value(0);
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	gboolean opened = nde_edit_at_begin_execute(jid, &err);
+	unreserve_thread();
+	cr_assert(opened, "%s", err ? err : "?");
+	g_free(err);
+
+	cr_assert_neq(run_layers_match(), CMD_OK,
+	              "a joint op must be refused while a point is armed");
+	cr_assert_eq(count_joint_records(), 1, "nothing may be recorded");
+
+	/* Refused, not merely abandoned: the point is still usable afterwards. */
+	err = NULL;
+	cr_assert(reserve_thread());
+	gboolean done = nde_edit_at_end_execute(TRUE, &err);
+	unreserve_thread();
+	cr_assert(done, "the insertion must survive the refusal: %s", err ? err : "?");
+	g_free(err);
+	cr_assert_float_eq(layer_value(0), before, 1e-5);
+}
+
 /* The joint record's params, deserialized — the subset-amend tests edit the
  * participant list through the op's own structs rather than by hand. */
 static struct nde_joint_layers_match_data *joint_record_data(gint64 jid) {

@@ -5976,6 +5976,11 @@ int flis_layers_match_solve(const double *tints, const double *medians, int N,
  */
 int flis_background_neutralise_layers(GSList *layer_subset) {
     if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return 1;
+    /* One record across several layers' lineages cannot join an insertion
+     * point armed on one of them (nde_op_class.c).  A replay is exempt: it is
+     * reproducing a record that already exists and captures nothing. */
+    if (!processing_is_reserved_for_replay() &&
+        nde_edit_at_refuses_op(_("Matching layers"))) return 1;
     GSList *target = layer_subset ? layer_subset : com.uniq->layers;
 
     int total = g_slist_length(target);
@@ -6518,6 +6523,13 @@ struct flis_group_calib_args *new_flis_group_calib_args(void) {
 int flis_group_calibration_hook(struct generic_layer_args *args) {
     struct flis_group_calib_args *p = args->user;
     if (!p)
+        return 1;
+    /* One record across several layers' lineages cannot join an insertion
+     * point armed on one of them (nde_op_class.c).  Refused here rather than
+     * in the distribution step so a PCC run does not do its photometry first.
+     * A replay is exempt: it captures nothing. */
+    if (!processing_is_reserved_for_replay() &&
+        nde_edit_at_refuses_op(_("Calibrating a layer group")))
         return 1;
     flis_group_t *grp = flis_group_get_by_id(p->group_id);
     if (!grp) {

@@ -56,10 +56,11 @@ static const struct {
 	{ "image.origin",      NDE_OPC_STRUCTURAL, NDE_OPT_CHAIN_IGNORE },
 
 	/* ---- descriptors whose family is not readable off the descriptor ---- */
-	{ "flis.layers_match",      NDE_OPC_JOINT, 0 },
-	{ "flis.group_calibration", NDE_OPC_JOINT, 0 },
+	{ "flis.layers_match",      NDE_OPC_JOINT, NDE_OPT_INSERT_DISTURBS },
+	{ "flis.group_calibration", NDE_OPC_JOINT, NDE_OPT_INSERT_DISTURBS },
 	/* the only geometric joint op: it moves participants as well as warping */
-	{ "flis.register",          NDE_OPC_JOINT, NDE_OPT_GEOMETRIC },
+	{ "flis.register",          NDE_OPC_JOINT,
+	  NDE_OPT_GEOMETRIC | NDE_OPT_INSERT_DISTURBS },
 	{ "stats.bg",               NDE_OPC_ANALYSIS, 0 },
 	{ "psf.estimate",           NDE_OPC_ANALYSIS, 0 },
 	{ "cfa.split",              NDE_OPC_ANALYSIS, 0 },
@@ -164,6 +165,28 @@ Test(nde_op_class, destructive_implies_insert_disturbs) {
 			cr_assert_eq(cls->traits & NDE_OPT_DESTRUCTIVE, 0,
 			             "'%s' is both ignorable and destructive", expected[i].id);
 	}
+}
+
+/* A joint record is ONE record in several layers' chains at one log position,
+ * so an insertion armed on one participant has no position to give it that is
+ * right for the others.  Swept over the whole registry rather than over
+ * expected[], so a fourth joint op cannot be added without meeting this. */
+Test(nde_op_class, every_joint_op_disturbs_an_armed_insertion) {
+	size_t n = 0;
+	const op_descriptor *const *all = op_descriptor_all(&n);
+	int seen = 0;
+	for (size_t i = 0; i < n; i++) {
+		if (!all[i] || !all[i]->id)
+			continue;
+		const nde_op_class *cls = nde_op_class_for(all[i]->id);
+		if (cls->family != NDE_OPC_JOINT)
+			continue;
+		seen++;
+		cr_assert(cls->traits & NDE_OPT_INSERT_DISTURBS,
+		          "'%s' is joint but an armed insertion could survive it",
+		          all[i]->id);
+	}
+	cr_assert_eq(seen, 3, "expected three joint ops, found %d", seen);
 }
 
 /* ---- one validation question, whatever family the record belongs to ----- */

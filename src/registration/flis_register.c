@@ -54,6 +54,7 @@
 #include "core/nde_history.h"
 #include "core/nde_checkpoint.h"
 #include "core/nde_joint.h"
+#include "core/nde_replay.h"
 #include "core/nde_script_scope.h"
 #include "io/sequence.h"
 #include "io/image_format_flis.h"
@@ -217,6 +218,12 @@ int flis_register_layers(flis_layer_t *ref_lay,
 		siril_log_error(_("flis_register_layers: need at least two layers\n"));
 		return 1;
 	}
+	/* One record across several layers' lineages cannot join an insertion
+	 * point armed on one of them (nde_op_class.c).  A replay is exempt: it is
+	 * reproducing a record that already exists and captures nothing. */
+	if (!processing_is_reserved_for_replay() &&
+	    nde_edit_at_refuses_op(_("Registering layers")))
+		return 1;
 
 	/* Method defaults: single-pass global star alignment — the safest
 	 * choice for a freshly-loaded FLIS (no selection required, works on
