@@ -924,10 +924,14 @@ int flis_background_neutralise_layers(GSList *layer_subset);
  * balancing the channels where it has no tint — and is flagged in
  * @infeasible_out (optional, N bytes) so the caller can name it.
  * Returns 0 on success, 1 when the composite background level is zero,
- * 2 when the tint matrix is rank-deficient.  No logging, no layer access.
+ * 2 when the tints cannot carry a match — degenerate, or all pointing the
+ * same way, which is what an all-untinted set of layers looks like and which
+ * the pseudoinverse alone does NOT report.  Non-zero leaves a translated heap
+ * reason in @why (optional) as flis_group_distribute does; nothing partial is
+ * usable then.  No logging, no layer access.
  */
 int flis_layers_match_solve(const double *tints, const double *medians, int N,
-                            double *s_out, guint8 *infeasible_out);
+                            double *s_out, guint8 *infeasible_out, gchar **why);
 
 /** The per-layer affine x' = scale*x + offset, exported for the joint-record
  *  replay (the flis.layer_scale hook applies the same transform). */

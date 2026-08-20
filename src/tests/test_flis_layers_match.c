@@ -977,6 +977,150 @@ Test(flis_layers_match, group_calibration_insufficient_diversity_fails) {
 	cr_assert_float_eq(l2->fit->fdata[0], 0.3f, 1e-6, "layer mutated on failure");
 }
 
+/* A mono layer whose right half is brighter than its left, so a white/black
+ * selection pair has something to measure. */
+static flis_layer_t *add_split_mono(const char *name, float dark, float bright,
+                                    double tr, double tg, double tb) {
+	fits *f = flis_test_make_mono_fits(16, 16, dark);
+	for (int y = 0; y < 16; y++)
+		for (int x = 8; x < 16; x++)
+			f->fdata[y * 16 + x] = bright;
+	flis_layer_t *l = flis_test_add_layer(f, name);
+	flis_layer_set_tint(l, tr, tg, tb);
+	l->blend_mode = FLIS_BLEND_SCREEN;   /* the narrowband stack this is for */
+	return l;
+}
+
+/* Build a group of three tinted mono layers, optionally with a strongly red
+ * RGB layer alongside them, run the colour-calibration hook over it, and
+ * return the R layer's bright value afterwards — the number the whole
+ * calibration turns on. */
+static float run_group_cc(gboolean with_rgb_member) {
+	com.uniq->canvas_w = 16;
+	com.uniq->canvas_h = 16;
+	flis_layer_t *r = add_split_mono("R", 0.1f, 0.4f, 1.0, 0.0, 0.0);
+	flis_layer_t *g = add_split_mono("G", 0.1f, 0.5f, 0.0, 1.0, 0.0);
+	flis_layer_t *b = add_split_mono("B", 0.1f, 0.25f, 0.0, 0.0, 1.0);
+	flis_group_t *grp = flis_group_add("grp");
+	r->group_id = g->group_id = b->group_id = grp->item_id;
+	if (with_rgb_member) {
+		flis_layer_t *rgb = flis_test_add_layer(
+		    flis_test_make_rgb_fits(16, 16, 0.3f, 0.0f, 0.0f), "RGB");
+		rgb->group_id = grp->item_id;
+		rgb->blend_mode = FLIS_BLEND_SCREEN;
+	}
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+
+	struct flis_group_calib_args *p = new_flis_group_calib_args();
+	p->kind = FLIS_GROUP_CALIB_CC;
+	p->group_id = grp->item_id;
+	p->manual = FALSE;
+	p->white_sel = (rectangle){ .x = 8, .y = 0, .w = 8, .h = 16 };
+	p->black_sel = (rectangle){ .x = 0, .y = 0, .w = 8, .h = 16 };
+	p->low = 0.0;
+	p->high = 1.0;
+
+	struct generic_layer_args ga = { 0 };
+	ga.user = p;
+	int rv = flis_group_calibration_hook(&ga);
+	free_flis_group_calib_args(p);
+	cr_assert_eq(rv, 0, "group calibration hook failed");
+	return r->fit->fdata[15];   /* a bright (right-half) pixel of R */
+}
+
+/* The composite is what CC / PCC / SPCC derive their correction from, and the
+ * distribution reaches only the tinted mono layers.  Rendering it from the
+ * whole group therefore let an RGB member's light set a correction the mono
+ * layers absorbed on its behalf — over-correcting them by its share.  Measure
+ * exactly what will be corrected: adding a strongly red RGB layer to the group
+ * must not move the answer for the layers that are. */
+Test(flis_layers_match, an_rgb_member_does_not_set_the_group_calibration) {
+	float alone = run_group_cc(FALSE);
+	cr_assert(fabsf(alone - 0.4f) > 1e-3,
+	          "the fixture must actually calibrate something, got %f", alone);
+
+	flis_test_cleanup_com();
+	flis_test_init_com();
+
+	float with_rgb = run_group_cc(TRUE);
+	cr_assert_float_eq(with_rgb, alone, 1e-5,
+	    "an RGB member coloured the composite the calibration was derived from: "
+	    "%f with it, %f without", with_rgb, alone);
+}
+
+/* ---- what the match will and will not accept ---------------------------- */
+
+/* Rescaling a layer moves the composite along that layer's tint direction, so
+ * layers that all point the same way cannot be matched at all — there is no
+ * colour to move.  For UNTINTED layers (all 1/1/1) the pseudoinverse does not
+ * say so: the system is consistent, and its minimum-norm answer would quietly
+ * equalise the medians and pass that off as a colour match. */
+Test(flis_layers_match, untinted_layers_refuse_a_match) {
+	flis_test_add_layer(flis_test_make_mono_fits(16, 16, 0.2f), "A");
+	flis_test_add_layer(flis_test_make_mono_fits(16, 16, 0.3f), "B");
+	flis_test_add_layer(flis_test_make_mono_fits(16, 16, 0.4f), "C");
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+
+	cr_assert_neq(run_layers_match(), CMD_OK,
+	              "untinted layers have no colour to match");
+	cr_assert_float_eq(layer_value(0), 0.2f, 1e-6, "layer mutated on refusal");
+	cr_assert_float_eq(layer_value(1), 0.3f, 1e-6, "layer mutated on refusal");
+	cr_assert_float_eq(layer_value(2), 0.4f, 1e-6, "layer mutated on refusal");
+	cr_assert_eq(find_joint_record(), 0, "nothing may be recorded");
+}
+
+/* The same refusal for layers that share one real tint — the case the
+ * pseudoinverse does flag, kept alongside so both arrive at one message. */
+Test(flis_layers_match, identically_tinted_layers_refuse_a_match) {
+	flis_layer_t *a = flis_test_add_layer(
+	    flis_test_make_mono_fits(16, 16, 0.2f), "A");
+	flis_layer_set_tint(a, 1.0, 0.0, 0.0);
+	flis_layer_t *b = flis_test_add_layer(
+	    flis_test_make_mono_fits(16, 16, 0.3f), "B");
+	flis_layer_set_tint(b, 1.0, 0.0, 0.0);
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+
+	cr_assert_neq(run_layers_match(), CMD_OK);
+	cr_assert_float_eq(layer_value(0), 0.2f, 1e-6, "layer mutated on refusal");
+	cr_assert_float_eq(layer_value(1), 0.3f, 1e-6, "layer mutated on refusal");
+}
+
+/* An RGB layer carries its own colour and has no single tint to scale along,
+ * so the match skips it — but it still lights the composite, which is why the
+ * skip is announced rather than silent.  Pinned here so the eligibility rule
+ * cannot drift into scaling one. */
+Test(flis_layers_match, an_rgb_layer_is_skipped_and_left_alone) {
+	make_tinted_triple(0.2, 0.25, 0.4);
+	flis_layer_t *rgb = flis_test_add_layer(
+	    flis_test_make_rgb_fits(16, 16, 0.3f, 0.1f, 0.1f), "RGB");
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+
+	cr_assert_eq(run_layers_match(), CMD_OK);
+	cr_assert_float_eq(rgb->fit->fpdata[0][0], 0.3f, 1e-6,
+	                   "the RGB layer must not be scaled");
+	cr_assert_float_eq(rgb->fit->fpdata[1][0], 0.1f, 1e-6);
+
+	/* ...and it is not a participant of the record either, or a replay would
+	 * try to recompute a median for a layer with no tint to weight it by. */
+	gint64 jid = find_joint_record();
+	cr_assert(jid > 0);
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	for (guint i = 0; snap && i < snap->len; i++) {
+		nde_record *rec = g_ptr_array_index(snap, i);
+		if (rec->record_id != jid)
+			continue;
+		cr_assert_not_null(rec->inputs);
+		cr_assert_eq(rec->inputs->len, 3, "the RGB layer must not be pinned");
+		cr_assert(!nde_record_writes_item(rec, rgb->item_id),
+		          "the RGB layer must not be an output either");
+	}
+	g_ptr_array_unref(snap);
+}
+
 Test(flis_layers_match, layer_scale_hook_applies_affine) {
 	fits *f = flis_test_make_mono_fits(8, 8, 0.4f);
 	struct flis_layer_scale_data p = { .destroy_fn = NULL,

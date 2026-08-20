@@ -1589,12 +1589,12 @@ gboolean nde_joint_factors(const struct nde_record *rec, fits *self_scratch,
 		goto out;
 
 	analysis_runs++;
-	int rc = flis_layers_match_solve(tints, medians, (int)n, a, infeasible);
+	gchar *why = NULL;
+	int rc = flis_layers_match_solve(tints, medians, (int)n, a, infeasible, &why);
 	if (rc) {
-		*err = g_strdup_printf(rc == 1 ?
-			_("record %" G_GINT64_FORMAT " (%s): the composite background level is zero") :
-			_("record %" G_GINT64_FORMAT " (%s): the tint matrix is rank-deficient"),
-			rec->record_id, rec->op_id);
+		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s): %s"),
+		                       rec->record_id, rec->op_id, why ? why : "?");
+		g_free(why);
 		goto out;
 	}
 	for (guint k = 0; k < n; k++) {

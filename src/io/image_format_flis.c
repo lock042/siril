@@ -5930,14 +5930,19 @@ int flis_background_neutralise(void) {
  * global solve are always applied and any infeasible layer is merely
  * left unscaled (s = 1). */
 int flis_layers_match_solve(const double *tints, const double *medians, int N,
-                            double *s_out, guint8 *infeasible_out) {
-    if (N <= 0 || !tints || !medians || !s_out)
+                            double *s_out, guint8 *infeasible_out, gchar **why) {
+    if (why)
+        *why = NULL;
+    if (N <= 0 || !tints || !medians || !s_out) {
+        if (why) *why = g_strdup(_("there are no layers to match"));
         return 2;
+    }
     double *T = calloc(3 * N, sizeof(double));
     double *a = calloc(N, sizeof(double));
     if (!T || !a) {
         PRINT_ALLOC_ERR;
         free(T); free(a);
+        if (why) *why = g_strdup(_("out of memory"));
         return 2;
     }
     for (int c = 0; c < 3; c++)
@@ -5950,12 +5955,47 @@ int flis_layers_match_solve(const double *tints, const double *medians, int N,
     old_bg /= 3.0;
     if (old_bg <= 0.0) {
         free(T); free(a);
+        if (why) *why = g_strdup(_("the composite background level is zero"));
         return 1;
+    }
+
+    /* Rescaling a layer moves the composite along that layer's tint direction,
+     * so if every tint points the SAME way the composite's colour is fixed
+     * whatever the scales and there is no neutralisation to perform.  The
+     * pseudoinverse does not say so: for a neutral direction — which is what
+     * every untinted layer gets, 1/1/1 — the system is consistent, and the
+     * minimum-norm answer would silently equalise the medians and call it a
+     * colour match.  Check the directions before trusting the solve. */
+    double ref[3] = { 0.0, 0.0, 0.0 };
+    gboolean have_ref = FALSE, spans = FALSE;
+    for (int i = 0; i < N && !spans; i++) {
+        double v[3] = { T[i], T[N + i], T[2*N + i] };
+        double nrm = sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+        if (nrm <= 0.0)
+            continue;   /* a zero tint adds nothing to the composite */
+        for (int c = 0; c < 3; c++)
+            v[c] /= nrm;
+        if (!have_ref) {
+            ref[0] = v[0]; ref[1] = v[1]; ref[2] = v[2];
+            have_ref = TRUE;
+        } else if (fabs(v[0] - ref[0]) > 1e-6 || fabs(v[1] - ref[1]) > 1e-6 ||
+                   fabs(v[2] - ref[2]) > 1e-6) {
+            spans = TRUE;
+        }
+    }
+    if (!spans) {
+        free(T); free(a);
+        if (why)
+            *why = g_strdup(_("every layer carries the same tint, so rescaling "
+                    "them cannot change the composite's colour — assign "
+                    "different tints to the layers first"));
+        return 2;
     }
 
     const double b_unit[3] = { 1.0, 1.0, 1.0 };
     if (pseudoinverse_solve(T, N, b_unit, a)) {
         free(T); free(a);
+        if (why) *why = g_strdup(_("the tint matrix is degenerate"));
         return 2;
     }
 
@@ -5993,12 +6033,26 @@ int flis_background_neutralise_layers(GSList *layer_subset) {
         return 1;
     }
 
-    int N = 0;
+    int N = 0, n_skipped = 0;
     for (GSList *l = target; l; l = l->next) {
         flis_layer_t *lay = (flis_layer_t *)l->data;
         if (!lay || !lay->fit) continue;
-        if (lay->fit->naxes[2] != 1) continue;
+        /* The analysis is defined over tinted mono layers: an RGB layer
+         * carries its own colour and there is no single tint to scale it
+         * along.  Say so — it still lights the composite this is trying to
+         * neutralise, so the prediction below cannot account for it. */
+        if (lay->fit->naxes[2] != 1) {
+            siril_log_warning(_("FLIS: layers match — skipping RGB layer '%s' "
+                    "(only tinted mono layers are matched)\n"),
+                    lay->layer_name ? lay->layer_name : "?");
+            n_skipped++;
+            continue;
+        }
         if (!lay->fit->fdata && !lay->fit->data) continue;
+        if (!lay->has_tint)
+            siril_log_warning(_("FLIS: layers match — layer '%s' has no tint "
+                    "and is treated as neutral white\n"),
+                    lay->layer_name ? lay->layer_name : "?");
 
         tints[N * 3 + 0] = lay->has_tint ? lay->layer_tint.r : 1.0;
         tints[N * 3 + 1] = lay->has_tint ? lay->layer_tint.g : 1.0;
@@ -6028,11 +6082,11 @@ int flis_background_neutralise_layers(GSList *layer_subset) {
         free(layers_arr); free(medians); free(tints); free(s); free(infeasible);
         return 1;
     }
-    int rc = flis_layers_match_solve(tints, medians, N, s, infeasible);
+    gchar *why = NULL;
+    int rc = flis_layers_match_solve(tints, medians, N, s, infeasible, &why);
     if (rc) {
-        siril_log_warning(rc == 1 ?
-            _("FLIS: background neutralise — background level is zero\n") :
-            _("FLIS: background neutralise — tint matrix rank-deficient\n"));
+        siril_log_warning(_("FLIS: layers match — %s\n"), why ? why : "?");
+        g_free(why);
         free(layers_arr); free(medians); free(tints); free(s); free(infeasible);
         return 1;
     }
@@ -6125,6 +6179,23 @@ int flis_background_neutralise_layers(GSList *layer_subset) {
     }
     siril_log_info(
         _("FLIS: predicted composite background  R:%.5f  G:%.5f  B:%.5f  (target %.5f each)\n"), new_bg[0], new_bg[1], new_bg[2], old_bg);
+    if (n_skipped)
+        siril_log_warning(_("FLIS: layers match — the prediction covers the %d "
+                "matched layer(s) only; %d RGB layer(s) also light the "
+                "composite and were left alone\n"), N, n_skipped);
+    /* The tints span a plane, not necessarily all three channels: with no blue
+     * anywhere the solve balances what it can reach and leaves B where it is.
+     * The numbers above already show that; name it, so it reads as a property
+     * of the tints rather than as a failed match.  (An infeasible layer left
+     * unscaled lands here too, and has said so per-layer already.) */
+    for (int c = 0; c < 3; c++) {
+        if (fabs(new_bg[c] - old_bg) > 1e-4 * MAX(old_bg, 1e-6)) {
+            siril_log_warning(_("FLIS: layers match — the assigned tints could "
+                    "not carry the background to neutral in every channel; "
+                    "diversify the tints for a closer match\n"));
+            break;
+        }
+    }
 
     free(layers_arr); free(medians); free(tints); free(s); free(infeasible);
     gui_iface.flis_invalidate_composite();
@@ -6380,13 +6451,15 @@ int flis_group_apply_channel_calibration_full(GSList *members, const double K[3]
         tints[i * 3 + 0] = lay->has_tint ? lay->layer_tint.r : 1.0;
         tints[i * 3 + 1] = lay->has_tint ? lay->layer_tint.g : 1.0;
         tints[i * 3 + 2] = lay->has_tint ? lay->layer_tint.b : 1.0;
-        if (!lay->has_tint ||
-            (lay->layer_tint.r <= 0 && lay->layer_tint.g <= 0 && lay->layer_tint.b <= 0)) {
-            if (lay->has_tint)
-                siril_log_warning(_("Group calibration: layer '%s' has a zero "
-                        "tint — left unscaled\n"),
-                        lay->layer_name ? lay->layer_name : "?");
-        }
+        if (!lay->has_tint)
+            siril_log_warning(_("Group calibration: layer '%s' has no tint and "
+                    "is treated as neutral white\n"),
+                    lay->layer_name ? lay->layer_name : "?");
+        else if (lay->layer_tint.r <= 0 && lay->layer_tint.g <= 0 &&
+                 lay->layer_tint.b <= 0)
+            siril_log_warning(_("Group calibration: layer '%s' has a zero "
+                    "tint — left unscaled\n"),
+                    lay->layer_name ? lay->layer_name : "?");
         imstats *st = statistics(NULL, -1, lay->fit, 0, NULL, STATS_BASIC,
                                  SINGLE_THREADED);
         if (!st)
@@ -6539,6 +6612,18 @@ int flis_group_calibration_hook(struct generic_layer_args *args) {
     GSList *members = flis_group_get_layers(grp);
     if (!members) {
         siril_log_error(_("Group calibration: the group has no layers\n"));
+        return 1;
+    }
+    /* Measure exactly what will be corrected.  The composite is what the
+     * algorithm derives K/O from, and the distribution below reaches only the
+     * tinted mono layers — so rendering it from the whole group would let an
+     * RGB member's light set a correction the mono layers then absorb on its
+     * behalf, over-correcting them by that member's share. */
+    GSList *members_owned = members;
+    members = group_calib_eligible(members_owned);
+    g_slist_free(members_owned);
+    if (!members) {
+        siril_log_error(_("Group calibration: no eligible mono layers in the group\n"));
         return 1;
     }
 
