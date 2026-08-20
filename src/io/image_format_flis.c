@@ -1872,8 +1872,8 @@ static void write_nde_base_hdus(fitsfile *fptr, GPtrArray *records) {
         nde_record *rec = g_ptr_array_index(records, i);
         g_ptr_array_add(ids, GINT_TO_POINTER(rec->target_item_id));
         for (guint p = 0; rec->inputs && p < rec->inputs->len; p++) {
-            const nde_input_pin *pin = g_ptr_array_index(rec->inputs, p);
-            g_ptr_array_add(ids, GINT_TO_POINTER(pin->src_item_id));
+            const nde_pin *pin = g_ptr_array_index(rec->inputs, p);
+            g_ptr_array_add(ids, GINT_TO_POINTER(pin->item_id));
         }
     }
     GHashTable *seen = g_hash_table_new(g_direct_hash, g_direct_equal);
@@ -2450,8 +2450,8 @@ static GPtrArray *read_nde_base_hdus(fitsfile *fptr, int nhdus, nde_history *his
         nde_record *rec = g_ptr_array_index(hist->records, i);
         g_hash_table_add(live_ids, GINT_TO_POINTER(rec->target_item_id));
         for (guint p = 0; rec->inputs && p < rec->inputs->len; p++) {
-            const nde_input_pin *pin = g_ptr_array_index(rec->inputs, p);
-            g_hash_table_add(live_ids, GINT_TO_POINTER(pin->src_item_id));
+            const nde_pin *pin = g_ptr_array_index(rec->inputs, p);
+            g_hash_table_add(live_ids, GINT_TO_POINTER(pin->item_id));
         }
     }
 
@@ -6065,8 +6065,8 @@ int flis_background_neutralise_layers(GSList *layer_subset) {
             p->parts[i].diag_offset = 0.0;
             roles[i] = g_strdup_printf("in%d", i);
             pins[i].role = roles[i];
-            pins[i].src_item_id = lay->item_id;
-            pins[i].src_record_id = nde_history_last_record_for_item(lay->item_id);
+            pins[i].item_id = lay->item_id;
+            pins[i].record_id = nde_history_last_record_for_item(lay->item_id);
             if (lay->layer_name && *lay->layer_name) {
                 g_string_append(summary, sep);
                 g_string_append(summary, lay->layer_name);
@@ -6407,8 +6407,8 @@ int flis_group_apply_channel_calibration_full(GSList *members, const double K[3]
             p->parts[i].diag_offset = b[i];
             roles[i] = g_strdup_printf("in%d", i);
             pins[i].role = roles[i];
-            pins[i].src_item_id = lay->item_id;
-            pins[i].src_record_id = nde_history_last_record_for_item(lay->item_id);
+            pins[i].item_id = lay->item_id;
+            pins[i].record_id = nde_history_last_record_for_item(lay->item_id);
         }
         for (int c = 0; c < 3; c++) {
             p->diag_K[c] = K[c];

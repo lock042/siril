@@ -62,16 +62,15 @@ nde_record *nde_record_new(void) {
 	return rec;
 }
 
-nde_input_pin *nde_input_pin_new(const char *role, gint src_item_id,
-                                 gint64 src_record_id) {
-	nde_input_pin *pin = g_new0(nde_input_pin, 1);
+nde_pin *nde_pin_new(const char *role, gint item_id, gint64 record_id) {
+	nde_pin *pin = g_new0(nde_pin, 1);
 	pin->role = g_strdup(role);
-	pin->src_item_id = src_item_id;
-	pin->src_record_id = src_record_id;
+	pin->item_id = item_id;
+	pin->record_id = record_id;
 	return pin;
 }
 
-void nde_input_pin_free(nde_input_pin *pin) {
+void nde_pin_free(nde_pin *pin) {
 	if (!pin)
 		return;
 	g_free(pin->role);
@@ -79,42 +78,42 @@ void nde_input_pin_free(nde_input_pin *pin) {
 }
 
 static GPtrArray *pins_new(void) {
-	return g_ptr_array_new_with_free_func((GDestroyNotify)nde_input_pin_free);
+	return g_ptr_array_new_with_free_func((GDestroyNotify)nde_pin_free);
 }
 
 void nde_record_add_input(nde_record *rec, const char *role,
-                          gint src_item_id, gint64 src_record_id) {
+                          gint item_id, gint64 record_id) {
 	g_return_if_fail(rec != NULL && role != NULL);
 	if (!rec->inputs)
 		rec->inputs = pins_new();
 	for (guint i = 0; i < rec->inputs->len; i++) {
-		nde_input_pin *p = g_ptr_array_index(rec->inputs, i);
+		nde_pin *p = g_ptr_array_index(rec->inputs, i);
 		if (!g_strcmp0(p->role, role)) {
-			p->src_item_id = src_item_id;
-			p->src_record_id = src_record_id;
+			p->item_id = item_id;
+			p->record_id = record_id;
 			return;
 		}
 	}
-	g_ptr_array_add(rec->inputs, nde_input_pin_new(role, src_item_id, src_record_id));
+	g_ptr_array_add(rec->inputs, nde_pin_new(role, item_id, record_id));
 }
 
-const nde_input_pin *nde_record_input(const nde_record *rec, const char *role) {
+const nde_pin *nde_record_input(const nde_record *rec, const char *role) {
 	if (!rec || !rec->inputs || !role)
 		return NULL;
 	for (guint i = 0; i < rec->inputs->len; i++) {
-		const nde_input_pin *p = g_ptr_array_index(rec->inputs, i);
+		const nde_pin *p = g_ptr_array_index(rec->inputs, i);
 		if (!g_strcmp0(p->role, role))
 			return p;
 	}
 	return NULL;
 }
 
-const nde_input_pin *nde_record_input_by_item(const nde_record *rec, gint item_id) {
+const nde_pin *nde_record_input_by_item(const nde_record *rec, gint item_id) {
 	if (!rec || !rec->inputs)
 		return NULL;
 	for (guint i = 0; i < rec->inputs->len; i++) {
-		const nde_input_pin *p = g_ptr_array_index(rec->inputs, i);
-		if (p->src_item_id == item_id)
+		const nde_pin *p = g_ptr_array_index(rec->inputs, i);
+		if (p->item_id == item_id)
 			return p;
 	}
 	return NULL;
@@ -133,8 +132,8 @@ nde_record *nde_record_copy(const nde_record *rec) {
 	copy->mask_ref  = g_strdup(rec->mask_ref);
 	copy->inputs    = NULL;
 	for (guint i = 0; rec->inputs && i < rec->inputs->len; i++) {
-		const nde_input_pin *p = g_ptr_array_index(rec->inputs, i);
-		nde_record_add_input(copy, p->role, p->src_item_id, p->src_record_id);
+		const nde_pin *p = g_ptr_array_index(rec->inputs, i);
+		nde_record_add_input(copy, p->role, p->item_id, p->record_id);
 	}
 	return copy;
 }
@@ -161,14 +160,14 @@ gchar *nde_pins_serialize(GPtrArray *pins) {
 	GString *kv = nde_kv_start();
 	nde_kv_add_int(kv, "n", pins->len);
 	for (guint i = 0; i < pins->len; i++) {
-		const nde_input_pin *p = g_ptr_array_index(pins, i);
+		const nde_pin *p = g_ptr_array_index(pins, i);
 		gchar key[32];
 		g_snprintf(key, sizeof(key), "role%u", i);
 		nde_kv_add_str(kv, key, p->role ? p->role : "");
 		g_snprintf(key, sizeof(key), "item%u", i);
-		nde_kv_add_int(kv, key, p->src_item_id);
+		nde_kv_add_int(kv, key, p->item_id);
 		g_snprintf(key, sizeof(key), "rec%u", i);
-		nde_kv_add_int(kv, key, p->src_record_id);
+		nde_kv_add_int(kv, key, p->record_id);
 	}
 	return nde_kv_end(kv);
 }
@@ -196,7 +195,7 @@ GPtrArray *nde_pins_parse(const char *blob) {
 				continue;
 			if (!out)
 				out = pins_new();
-			g_ptr_array_add(out, nde_input_pin_new(role, (gint)item, src));
+			g_ptr_array_add(out, nde_pin_new(role, (gint)item, src));
 		}
 	}
 	g_hash_table_unref(kv);
@@ -208,16 +207,16 @@ gchar *nde_pins_to_string(GPtrArray *pins) {
 		return NULL;
 	GString *s = g_string_new(NULL);
 	for (guint i = 0; i < pins->len; i++) {
-		const nde_input_pin *p = g_ptr_array_index(pins, i);
+		const nde_pin *p = g_ptr_array_index(pins, i);
 		if (i)
 			g_string_append(s, ", ");
-		if (p->src_record_id)
+		if (p->record_id)
 			g_string_append_printf(s, "%s@%d:%" G_GINT64_FORMAT,
-			                       p->role ? p->role : "?", p->src_item_id,
-			                       p->src_record_id);
+			                       p->role ? p->role : "?", p->item_id,
+			                       p->record_id);
 		else
 			g_string_append_printf(s, "%s@%d:baseline",
-			                       p->role ? p->role : "?", p->src_item_id);
+			                       p->role ? p->role : "?", p->item_id);
 	}
 	return g_string_free(s, FALSE);
 }
@@ -523,8 +522,8 @@ gboolean nde_history_item_is_pinned(gint item_id) {
 	for (guint i = 0; !pinned && h && i < h->records->len; i++) {
 		const nde_record *rec = g_ptr_array_index(h->records, i);
 		for (guint k = 0; rec->inputs && k < rec->inputs->len; k++) {
-			const nde_input_pin *pin = g_ptr_array_index(rec->inputs, k);
-			if (pin->src_item_id == item_id) {
+			const nde_pin *pin = g_ptr_array_index(rec->inputs, k);
+			if (pin->item_id == item_id) {
 				pinned = TRUE;
 				break;
 			}
@@ -577,18 +576,18 @@ void nde_history_mask_pin_coords(GHashTable *record_ids, GHashTable *baseline_it
 		if (!rec->inputs)
 			continue;
 		for (guint k = 0; k < rec->inputs->len; k++) {
-			const nde_input_pin *pin = g_ptr_array_index(rec->inputs, k);
+			const nde_pin *pin = g_ptr_array_index(rec->inputs, k);
 			if (!pin->role || strncmp(pin->role, "mask", 4))
 				continue;
-			if (pin->src_record_id) {
+			if (pin->record_id) {
 				if (record_ids) {
 					gint64 *key = g_new(gint64, 1);
-					*key = pin->src_record_id;
+					*key = pin->record_id;
 					g_hash_table_add(record_ids, key);
 				}
 			} else if (baseline_items) {
 				g_hash_table_add(baseline_items,
-				                 GINT_TO_POINTER(pin->src_item_id));
+				                 GINT_TO_POINTER(pin->item_id));
 			}
 		}
 	}
@@ -644,9 +643,9 @@ gint nde_history_max_item_id(const nde_history *h) {
 		if (r->target_item_id > max)
 			max = r->target_item_id;
 		for (guint p = 0; r->inputs && p < r->inputs->len; p++) {
-			const nde_input_pin *pin = g_ptr_array_index(r->inputs, p);
-			if (pin->src_item_id > max)
-				max = pin->src_item_id;
+			const nde_pin *pin = g_ptr_array_index(r->inputs, p);
+			if (pin->item_id > max)
+				max = pin->item_id;
 		}
 	}
 	return max;
@@ -743,8 +742,8 @@ guint nde_history_drop_mask_input(gint64 record_id, gint mask_item_id) {
 			rec->params = new_params;   /* ownership transferred */
 			new_params = NULL;
 			for (guint p = 0; rec->inputs && p < rec->inputs->len; p++) {
-				const nde_input_pin *pin = g_ptr_array_index(rec->inputs, p);
-				if (pin->src_item_id == mask_item_id) {
+				const nde_pin *pin = g_ptr_array_index(rec->inputs, p);
+				if (pin->item_id == mask_item_id) {
 					g_ptr_array_remove_index(rec->inputs, p);
 					break;
 				}
@@ -911,7 +910,7 @@ gboolean nde_history_amend(gint64 record_id, const gchar *new_params, gchar **er
 				gchar role[16];
 				g_snprintf(role, sizeof(role), "in%u", k);
 				g_ptr_array_add(new_pins,
-				                nde_input_pin_new(role, jitems[k], src));
+				                nde_pin_new(role, jitems[k], src));
 			}
 			if (snap)
 				g_ptr_array_unref(snap);
@@ -1268,8 +1267,8 @@ gint64 nde_capture(const nde_capture_req *req) {
 			req->target_item : nde_capture_target_item();
 
 	for (guint i = 0; i < req->n_pins; i++)
-		nde_record_add_input(rec, req->pins[i].role, req->pins[i].src_item_id,
-		                     req->pins[i].src_record_id);
+		nde_record_add_input(rec, req->pins[i].role, req->pins[i].item_id,
+		                     req->pins[i].record_id);
 
 	/* The mask is a real INPUT, not a flag.  mask_active only ever said
 	 * "something was masking this"; the pin says WHICH mask and in what state,

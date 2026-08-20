@@ -411,22 +411,22 @@ static void cascade_mask_consumers(gint mask_item, guint from_pos) {
 		/* Matched by SOURCE, not by role: an op pins its mask as "mask", a
 		 * composite pins one per masked input as "mask0", "mask1", …  Both are
 		 * stored copies at the same kind of coordinate, so both refresh here. */
-		const nde_input_pin *pin = nde_record_input_by_item(rec, mask_item);
+		const nde_pin *pin = nde_record_input_by_item(rec, mask_item);
 		if (!pin)
 			continue;
-		gpointer p = g_hash_table_lookup(pos_of, &pin->src_record_id);
+		gpointer p = g_hash_table_lookup(pos_of, &pin->record_id);
 		if (!p)
 			continue;   /* pinned to a record that is no longer in the chain */
 		guint upto = GPOINTER_TO_UINT(p);
 		if (upto <= from_pos)
 			continue;   /* the edit is after this pin: its mask is unchanged */
-		if (!g_hash_table_contains(done_coords, &pin->src_record_id)) {
+		if (!g_hash_table_contains(done_coords, &pin->record_id)) {
 			gchar *err = NULL;
-			if (refresh_pinned_mask(mask_chain, upto, pin->src_record_id,
+			if (refresh_pinned_mask(mask_chain, upto, pin->record_id,
 			                        mask_item, &err)) {
 				refreshed++;
 				gint64 *k = g_new(gint64, 1);
-				*k = pin->src_record_id;
+				*k = pin->record_id;
 				g_hash_table_insert(done_coords, k, GINT_TO_POINTER(1));
 			} else {
 				siril_log_warning(_("Could not rebuild the mask used by step %" G_GINT64_FORMAT ": %s\n"),
@@ -545,13 +545,13 @@ static void cascade_derived_masks(gint item_id, gint64 unchanged_upto) {
 		/* An "image" pin is what a mask records its origin as, and nothing
 		 * else uses that role (processing.c).  Only a mask chain's FIRST
 		 * record carries one — an edit of an existing mask reads the mask. */
-		const nde_input_pin *pin = nde_record_input(rec, "image");
-		if (!pin || pin->src_item_id != item_id)
+		const nde_pin *pin = nde_record_input(rec, "image");
+		if (!pin || pin->item_id != item_id)
 			continue;
 		const gint mask_item = rec->target_item_id;
-		if (!pin->src_record_id)
+		if (!pin->record_id)
 			continue;   /* pinned to the BASELINE, which no edit can move */
-		const gint pinned = log_position_of(live, item_id, pin->src_record_id);
+		const gint pinned = log_position_of(live, item_id, pin->record_id);
 		if (pinned >= 0 && pinned <= safe_pos)
 			continue;   /* the edit lands after the state this mask read */
 		/* Claimed only once a record has actually asked for the rebuild.  A
@@ -1472,9 +1472,9 @@ gboolean nde_composite_undo_execute(gint64 record_id, gchar **err) {
 		}
 		nde_chain_free(c);
 		if (ok && in->mask_item_id) {
-			const nde_input_pin *mp = nde_record_input_by_item(rec, in->mask_item_id);
-			msk[i] = mp ? nde_state_release(nde_checkpoint_get_at(mp->src_item_id,
-			                                                      mp->src_record_id))
+			const nde_pin *mp = nde_record_input_by_item(rec, in->mask_item_id);
+			msk[i] = mp ? nde_state_release(nde_checkpoint_get_at(mp->item_id,
+			                                                      mp->record_id))
 			            : NULL;
 			if (!msk[i]) {
 				*err = g_strdup_printf(_("the stored layer mask of '%s' is no "

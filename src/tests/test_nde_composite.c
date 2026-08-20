@@ -143,15 +143,15 @@ Test(nde_composite, the_merge_records_both_inputs) {
 	const nde_record *merge = find_composite_record();
 	cr_assert_not_null(merge, "the merge must be recorded");
 
-	const nde_input_pin *base = nde_record_input(merge, NDE_COMPOSITE_ROLE_BASE);
-	const nde_input_pin *over = nde_record_input(merge, NDE_COMPOSITE_ROLE_OVERLAY);
+	const nde_pin *base = nde_record_input(merge, NDE_COMPOSITE_ROLE_BASE);
+	const nde_pin *over = nde_record_input(merge, NDE_COMPOSITE_ROLE_OVERLAY);
 	cr_assert_not_null(base, "the surviving layer is an input, not just a target");
 	cr_assert_not_null(over, "the merged-away layer is an input");
-	cr_assert_eq(base->src_item_id, bottom_item);
-	cr_assert_eq(over->src_item_id, top_item);
-	cr_assert_neq(base->src_record_id, 0,
+	cr_assert_eq(base->item_id, bottom_item);
+	cr_assert_eq(over->item_id, top_item);
+	cr_assert_neq(base->record_id, 0,
 	              "each pin names the input's state AT THE MERGE, not its baseline");
-	cr_assert_neq(over->src_record_id, 0);
+	cr_assert_neq(over->record_id, 0);
 
 	nde_composite_state *st = nde_composite_state_parse(merge->params);
 	cr_assert_not_null(st, "the per-input compositing state must round-trip");
@@ -361,9 +361,9 @@ Test(nde_composite, a_pin_may_name_a_record_the_pixel_chain_does_not_contain) {
 	gfit = ((flis_layer_t *)com.uniq->layers->data)->fit;
 
 	const nde_record *merge = find_composite_record();
-	const nde_input_pin *over = nde_record_input(merge, NDE_COMPOSITE_ROLE_OVERLAY);
+	const nde_pin *over = nde_record_input(merge, NDE_COMPOSITE_ROLE_OVERLAY);
 	cr_assert_not_null(over);
-	cr_assert_neq(over->src_record_id, record_for_item(top_item),
+	cr_assert_neq(over->record_id, record_for_item(top_item),
 	              "precondition: the pin names the opacity record, not the asinh");
 
 	float before = first_pixel();
@@ -429,9 +429,9 @@ Test(nde_composite, the_flatten_records_every_layer) {
 	for (guint i = 0; i < 3; i++) {
 		const nde_composite_input *in = &g_array_index(st->inputs, nde_composite_input, i);
 		cr_assert_eq(in->item_id, items[i]);
-		const nde_input_pin *pin = nde_record_input_by_item(flat, items[i]);
+		const nde_pin *pin = nde_record_input_by_item(flat, items[i]);
 		cr_assert_not_null(pin, "every input is pinned, not just the consumed ones");
-		cr_assert_neq(pin->src_record_id, 0);
+		cr_assert_neq(pin->record_id, 0);
 	}
 	const nde_composite_input *mid = &g_array_index(st->inputs, nde_composite_input, 1);
 	cr_assert_eq(mid->blend_mode, FLIS_BLEND_MULTIPLY);

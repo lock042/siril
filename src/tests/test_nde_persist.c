@@ -854,14 +854,14 @@ Test(nde_persist, input_pins_round_trip) {
 	const nde_record *pinned = g_ptr_array_index(snap, 1);
 	cr_assert_not_null(pinned->inputs);
 	cr_assert_eq(pinned->inputs->len, 2);
-	const nde_input_pin *m = nde_record_input(pinned, "mask");
+	const nde_pin *m = nde_record_input(pinned, "mask");
 	cr_assert_not_null(m);
-	cr_assert_eq(m->src_item_id, 7);
-	cr_assert_eq(m->src_record_id, 3);
-	const nde_input_pin *o = nde_record_input(pinned, "overlay");
+	cr_assert_eq(m->item_id, 7);
+	cr_assert_eq(m->record_id, 3);
+	const nde_pin *o = nde_record_input(pinned, "overlay");
 	cr_assert_not_null(o);
-	cr_assert_eq(o->src_item_id, -2);
-	cr_assert_eq(o->src_record_id, 0);
+	cr_assert_eq(o->item_id, -2);
+	cr_assert_eq(o->record_id, 0);
 	cr_assert_null(nde_record_input(pinned, "nosuchrole"));
 	g_ptr_array_unref(snap);
 }

@@ -145,22 +145,22 @@ static int tier_c_rerun(fits *scratch, const nde_record *rec, gchar **err) {
  * output.  Masks therefore need no store of their own — a mask is a mono
  * image, and its item and record ids come from the same sequences. */
 void nde_mask_pin_store(const nde_record *rec, const fits *fit) {
-	const nde_input_pin *pin = nde_record_input(rec, "mask");
+	const nde_pin *pin = nde_record_input(rec, "mask");
 	if (!pin || !fit || !fit->mask || !fit->mask->data)
 		return;
 	fits *mfit = mask_to_fits((fits *)fit);
 	if (!mfit)
 		return;
-	nde_checkpoint_store_at(mfit, pin->src_item_id, pin->src_record_id);
+	nde_checkpoint_store_at(mfit, pin->item_id, pin->record_id);
 	clearfits(mfit);
 	free(mfit);
 }
 
 gboolean nde_mask_pin_resolvable(const nde_record *rec) {
-	const nde_input_pin *pin = nde_record_input(rec, "mask");
+	const nde_pin *pin = nde_record_input(rec, "mask");
 	if (!pin)
 		return FALSE;
-	return nde_checkpoint_exists_at(pin->src_item_id, pin->src_record_id);
+	return nde_checkpoint_exists_at(pin->item_id, pin->record_id);
 }
 
 /* Install @rec's pinned mask on @scratch for the duration of one op.  Returns
@@ -168,12 +168,12 @@ gboolean nde_mask_pin_resolvable(const nde_record *rec) {
  * since running the op unmasked would produce different pixels while claiming
  * to have reproduced the record. */
 gboolean nde_mask_pin_install(fits *scratch, const nde_record *rec, gchar **err) {
-	const nde_input_pin *pin = nde_record_input(rec, "mask");
+	const nde_pin *pin = nde_record_input(rec, "mask");
 	if (!pin)
 		return TRUE;
 	/* A mask has no place on the canvas — only its pixels are wanted. */
-	fits *mfit = nde_state_release(nde_checkpoint_get_at(pin->src_item_id,
-	                                                     pin->src_record_id));
+	fits *mfit = nde_state_release(nde_checkpoint_get_at(pin->item_id,
+	                                                     pin->record_id));
 	if (!mfit) {
 		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s): its mask is no longer stored"),
 		                       rec->record_id, rec->op_id ? rec->op_id : "?");
@@ -375,10 +375,10 @@ static nde_state *composite_apply(nde_state *base, const nde_record *rec,
 		/* The mask is a stored copy, not a replay: it is read for every visible
 		 * masked input, including the one whose pixels are @base. */
 		if (in->visible && in->was_masked) {
-			const nde_input_pin *mp = in->mask_item_id ?
+			const nde_pin *mp = in->mask_item_id ?
 					nde_record_input_by_item(rec, in->mask_item_id) : NULL;
-			masks[i] = mp ? nde_state_release(nde_checkpoint_get_at(mp->src_item_id,
-			                                                        mp->src_record_id))
+			masks[i] = mp ? nde_state_release(nde_checkpoint_get_at(mp->item_id,
+			                                                        mp->record_id))
 			              : NULL;
 			if (!masks[i]) {
 				*err = g_strdup_printf(_("record %" G_GINT64_FORMAT ": the layer mask of '%s' is no longer stored"),
@@ -402,14 +402,14 @@ static nde_state *composite_apply(nde_state *base, const nde_record *rec,
 		}
 		if (!in->visible)
 			continue;   /* contributes nothing: not worth a replay */
-		const nde_input_pin *pin = nde_record_input_by_item(rec, in->item_id);
+		const nde_pin *pin = nde_record_input_by_item(rec, in->item_id);
 		if (!pin) {
 			*err = g_strdup_printf(_("record %" G_GINT64_FORMAT ": the layer '%s' it consumed is not recorded as an input"),
 			                       rec->record_id, in->name ? in->name : "?");
 			ok = FALSE;
 			break;
 		}
-		resolved[i] = resolve_item_state(pin->src_item_id, pin->src_record_id, err);
+		resolved[i] = resolve_item_state(pin->item_id, pin->record_id, err);
 		ok = resolved[i] != NULL;
 		if (!ok)
 			break;
@@ -705,7 +705,7 @@ void nde_commit_restore_metadata(fits *target, fits *old) {
 static nde_state *resolve_item_state_bound(gint item_id, gint64 upto_record_id,
                                            gboolean exclusive, gchar **err) {
 	nde_chain *c = nde_chain_build(item_id);
-	/* A pin's src_record_id of 0 means the item's BASELINE, not "all of it"
+	/* A pin's record_id of 0 means the item's BASELINE, not "all of it"
 	 * (nde_history.h) — the state before anything was recorded against it.
 	 * Reading it as "the whole chain" made a mask pinned to the untouched
 	 * image re-derive from a later state once the image gained records.
@@ -889,13 +889,13 @@ fits *nde_mask_chain_replay(const nde_chain *chain, guint upto, gchar **err) {
 		 * added after mask.from_channel — silently read the pixels the FIRST
 		 * record had named, and the replayed mask disagreed with the one the
 		 * user had actually built. */
-		const nde_input_pin *img = nde_record_input(rec, "image");
-		if (img && (!have_src || img->src_item_id != src_item ||
-		            img->src_record_id != src_rec)) {
+		const nde_pin *img = nde_record_input(rec, "image");
+		if (img && (!have_src || img->item_id != src_item ||
+		            img->record_id != src_rec)) {
 			/* A mask is built FROM an image; where that image sits on the
 			 * canvas is no part of the mask's own value. */
-			fits *next = nde_state_release(resolve_item_state(img->src_item_id,
-			                                                  img->src_record_id, err));
+			fits *next = nde_state_release(resolve_item_state(img->item_id,
+			                                                  img->record_id, err));
 			if (!next)
 				goto fail;
 			/* The chain rebuilds the mask from nothing: whatever the resolved
@@ -919,8 +919,8 @@ fits *nde_mask_chain_replay(const nde_chain *chain, guint upto, gchar **err) {
 				free(scratch);
 			}
 			scratch  = next;
-			src_item = img->src_item_id;
-			src_rec  = img->src_record_id;
+			src_item = img->item_id;
+			src_rec  = img->record_id;
 			have_src = TRUE;
 		}
 		if (!scratch) {

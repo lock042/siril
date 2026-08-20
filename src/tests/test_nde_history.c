@@ -842,19 +842,19 @@ Test(nde_history, input_pins_add_lookup_and_replace) {
 	nde_record_add_input(rec, "overlay", 5, 0);
 	cr_assert_eq(rec->inputs->len, 2);
 
-	const nde_input_pin *m = nde_record_input(rec, "mask");
+	const nde_pin *m = nde_record_input(rec, "mask");
 	cr_assert_not_null(m);
-	cr_assert_eq(m->src_item_id, 3);
-	cr_assert_eq(m->src_record_id, 7);
+	cr_assert_eq(m->item_id, 3);
+	cr_assert_eq(m->record_id, 7);
 
 	/* a record has at most one input per role: re-adding rewires it */
 	nde_record_add_input(rec, "mask", 9, 11);
 	cr_assert_eq(rec->inputs->len, 2, "re-adding a role must not append");
 	m = nde_record_input(rec, "mask");
-	cr_assert_eq(m->src_item_id, 9);
-	cr_assert_eq(m->src_record_id, 11);
+	cr_assert_eq(m->item_id, 9);
+	cr_assert_eq(m->record_id, 11);
 	/* the other role is untouched */
-	cr_assert_eq(nde_record_input(rec, "overlay")->src_item_id, 5);
+	cr_assert_eq(nde_record_input(rec, "overlay")->item_id, 5);
 	nde_record_free(rec);
 }
 
@@ -867,10 +867,10 @@ Test(nde_history, input_pins_survive_a_record_copy) {
 	nde_record_free(rec);
 	cr_assert_not_null(copy->inputs);
 	cr_assert_eq(copy->inputs->len, 1);
-	const nde_input_pin *m = nde_record_input(copy, "mask");
+	const nde_pin *m = nde_record_input(copy, "mask");
 	cr_assert_str_eq(m->role, "mask");
-	cr_assert_eq(m->src_item_id, 3);
-	cr_assert_eq(m->src_record_id, 7);
+	cr_assert_eq(m->item_id, 3);
+	cr_assert_eq(m->record_id, 7);
 	nde_record_free(copy);
 }
 
@@ -884,14 +884,14 @@ Test(nde_history, pins_codec_roundtrip) {
 	GPtrArray *back = nde_pins_parse(blob);
 	cr_assert_not_null(back);
 	cr_assert_eq(back->len, 2);
-	const nde_input_pin *a = g_ptr_array_index(back, 0);
+	const nde_pin *a = g_ptr_array_index(back, 0);
 	cr_assert_str_eq(a->role, "mask");
-	cr_assert_eq(a->src_item_id, 3);
-	cr_assert_eq(a->src_record_id, 7);
-	const nde_input_pin *b = g_ptr_array_index(back, 1);
+	cr_assert_eq(a->item_id, 3);
+	cr_assert_eq(a->record_id, 7);
+	const nde_pin *b = g_ptr_array_index(back, 1);
 	cr_assert_str_eq(b->role, "base");
-	cr_assert_eq(b->src_item_id, -2);
-	cr_assert_eq(b->src_record_id, 0);
+	cr_assert_eq(b->item_id, -2);
+	cr_assert_eq(b->record_id, 0);
 	g_ptr_array_unref(back);
 	g_free(blob);
 	nde_record_free(rec);
@@ -899,7 +899,7 @@ Test(nde_history, pins_codec_roundtrip) {
 
 Test(nde_history, pins_codec_edge_cases) {
 	cr_assert_null(nde_pins_serialize(NULL), "nothing to persist");
-	GPtrArray *empty = g_ptr_array_new_with_free_func((GDestroyNotify)nde_input_pin_free);
+	GPtrArray *empty = g_ptr_array_new_with_free_func((GDestroyNotify)nde_pin_free);
 	cr_assert_null(nde_pins_serialize(empty));
 	g_ptr_array_unref(empty);
 
@@ -912,7 +912,7 @@ Test(nde_history, pins_codec_edge_cases) {
 	/* an absent rec means "that item's baseline", which IS complete */
 	GPtrArray *base = nde_pins_parse("n=1;role0=mask;item0=4");
 	cr_assert_not_null(base);
-	cr_assert_eq(((nde_input_pin *)g_ptr_array_index(base, 0))->src_record_id, 0);
+	cr_assert_eq(((nde_pin *)g_ptr_array_index(base, 0))->record_id, 0);
 	g_ptr_array_unref(base);
 }
 
@@ -925,7 +925,7 @@ Test(nde_history, pins_codec_escapes_awkward_roles) {
 	GPtrArray *back = nde_pins_parse(blob);
 	cr_assert_not_null(back);
 	cr_assert_eq(back->len, 1);
-	cr_assert_str_eq(((nde_input_pin *)g_ptr_array_index(back, 0))->role, "od;d=role\\x");
+	cr_assert_str_eq(((nde_pin *)g_ptr_array_index(back, 0))->role, "od;d=role\\x");
 	g_ptr_array_unref(back);
 	g_free(blob);
 	nde_record_free(rec);

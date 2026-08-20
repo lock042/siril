@@ -842,11 +842,11 @@ void nde_region_tail_free(nde_region_tail *plan) {
  * exact — a masked record needs no halo of its own beyond the op's. */
 static gboolean region_mask_pin_install(fits *region, const nde_record *rec,
                                         const rectangle *rect, gchar **err) {
-	const nde_input_pin *pin = nde_record_input(rec, "mask");
+	const nde_pin *pin = nde_record_input(rec, "mask");
 	if (!pin)
 		return TRUE;
-	fits *mfit = nde_state_release(nde_checkpoint_get_at(pin->src_item_id,
-	                                                     pin->src_record_id));
+	fits *mfit = nde_state_release(nde_checkpoint_get_at(pin->item_id,
+	                                                     pin->record_id));
 	if (!mfit) {
 		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s): its mask is no longer stored"),
 		                       rec->record_id, rec->op_id ? rec->op_id : "?");

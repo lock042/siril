@@ -326,15 +326,15 @@ nde_graph *nde_graph_build(void) {
 		if (!rec->inputs)
 			continue;
 		for (guint p = 0; p < rec->inputs->len; p++) {
-			const nde_input_pin *pin = g_ptr_array_index(rec->inputs, p);
+			const nde_pin *pin = g_ptr_array_index(rec->inputs, p);
 			/* A pin to the node's own chain is the implicit image edge
 			 * restated, not a second node: drawing it would put a
 			 * self-loop on every mask-creation step. */
-			if (pin->src_item_id == rec->target_item_id)
+			if (pin->item_id == rec->target_item_id)
 				continue;
 			raw_edge re = {
-				.src_item = pin->src_item_id,
-				.src_rec  = pin->src_record_id,
+				.src_item = pin->item_id,
+				.src_rec  = pin->record_id,
 				.dst_node = n->item_id,
 				.dst_rec  = rec->record_id,
 				.role     = g_strdup(pin->role ? pin->role : ""),

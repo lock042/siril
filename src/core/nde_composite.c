@@ -502,9 +502,9 @@ gboolean nde_composite_record_replayable(const nde_record *rec) {
 		 * store is a cache under a budget, so this is a live question, not a
 		 * property of the record. */
 		if (in->was_masked) {
-			const nde_input_pin *mp = in->mask_item_id ?
+			const nde_pin *mp = in->mask_item_id ?
 					nde_record_input_by_item(rec, in->mask_item_id) : NULL;
-			if (!mp || !nde_checkpoint_exists_at(mp->src_item_id, mp->src_record_id))
+			if (!mp || !nde_checkpoint_exists_at(mp->item_id, mp->record_id))
 				ok = FALSE;
 		}
 	}
@@ -646,15 +646,15 @@ nde_composite_capture *nde_composite_capture_begin(GSList *layers,
 			                               : NDE_COMPOSITE_ROLE_OVERLAY);
 		else
 			cap->roles[p] = g_strdup_printf("in%u", i);
-		cap->pins[p].role          = cap->roles[p];
-		cap->pins[p].src_item_id   = in->item_id;
-		cap->pins[p].src_record_id = nde_history_last_record_for_item(in->item_id);
+		cap->pins[p].role      = cap->roles[p];
+		cap->pins[p].item_id   = in->item_id;
+		cap->pins[p].record_id = nde_history_last_record_for_item(in->item_id);
 		p++;
 		if (in->mask_item_id) {
 			cap->roles[p] = g_strdup_printf("mask%u", i);
-			cap->pins[p].role          = cap->roles[p];
-			cap->pins[p].src_item_id   = in->mask_item_id;
-			cap->pins[p].src_record_id = nde_history_last_record_for_item(in->mask_item_id);
+			cap->pins[p].role      = cap->roles[p];
+			cap->pins[p].item_id   = in->mask_item_id;
+			cap->pins[p].record_id = nde_history_last_record_for_item(in->mask_item_id);
 			p++;
 		}
 	}

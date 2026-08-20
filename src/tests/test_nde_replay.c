@@ -1303,9 +1303,9 @@ Test(nde_replay, masked_dialog_capture_pins_the_mask_instead_of_freezing) {
 	GPtrArray *snap = nde_history_snapshot(NULL);
 	const nde_record *rec = g_ptr_array_index(snap, snap->len - 1);
 	cr_assert(rec->mask_active);
-	const nde_input_pin *pin = nde_record_input(rec, "mask");
+	const nde_pin *pin = nde_record_input(rec, "mask");
 	cr_assert_not_null(pin, "the capture must say WHICH mask");
-	cr_assert_eq(pin->src_item_id, NDE_ITEM_PLAIN_MASK);
+	cr_assert_eq(pin->item_id, NDE_ITEM_PLAIN_MASK);
 	cr_assert(nde_mask_pin_resolvable(rec), "and keep its pixels");
 	cr_assert(!nde_checkpoint_output_exists(am),
 	          "with the mask kept there is nothing to freeze — not a barrier");
@@ -2462,9 +2462,9 @@ Test(nde_replay, masked_record_pins_its_mask_and_stays_replayable) {
 	cr_assert_eq(snap->len, 2);
 	const nde_record *masked = g_ptr_array_index(snap, 1);
 	cr_assert(masked->mask_active, "the capture must still note the mask");
-	const nde_input_pin *pin = nde_record_input(masked, "mask");
+	const nde_pin *pin = nde_record_input(masked, "mask");
 	cr_assert_not_null(pin, "and must pin WHICH mask");
-	cr_assert_eq(pin->src_item_id, NDE_ITEM_PLAIN_MASK, "plain image: the sentinel item");
+	cr_assert_eq(pin->item_id, NDE_ITEM_PLAIN_MASK, "plain image: the sentinel item");
 	cr_assert(nde_mask_pin_resolvable(masked), "its pixels must have been kept");
 	g_ptr_array_unref(snap);
 
@@ -2522,12 +2522,12 @@ Test(nde_replay, a_masked_record_whose_mask_was_dropped_is_a_barrier) {
 
 	GPtrArray *snap = nde_history_snapshot(NULL);
 	const nde_record *masked = g_ptr_array_index(snap, 1);
-	const nde_input_pin *pin = nde_record_input(masked, "mask");
+	const nde_pin *pin = nde_record_input(masked, "mask");
 	cr_assert_not_null(pin);
 	/* The mask had no records of its own here, so it was pinned at the
 	 * item's baseline; drop it the way a storage limit eventually will. */
-	cr_assert_eq(pin->src_record_id, 0);
-	nde_checkpoint_drop(pin->src_item_id);
+	cr_assert_eq(pin->record_id, 0);
+	nde_checkpoint_drop(pin->item_id);
 	cr_assert(!nde_mask_pin_resolvable(masked));
 	g_ptr_array_unref(snap);
 
@@ -2901,9 +2901,9 @@ Test(nde_replay, mask_chain_is_recognised_and_replayable) {
 	cr_assert_eq(snap->len, 2);
 	const nde_record *create = g_ptr_array_index(snap, 0);
 	cr_assert_eq(create->target_item_id, NDE_ITEM_PLAIN_MASK);
-	const nde_input_pin *img = nde_record_input(create, "image");
+	const nde_pin *img = nde_record_input(create, "image");
 	cr_assert_not_null(img, "a mask built from the image must say so");
-	cr_assert_eq(img->src_item_id, NDE_ITEM_IMAGE);
+	cr_assert_eq(img->item_id, NDE_ITEM_IMAGE);
 	cr_assert_null(nde_record_input(g_ptr_array_index(snap, 1), "image"),
 	               "editing a mask reads the mask, not the image");
 	g_ptr_array_unref(snap);
@@ -3114,9 +3114,9 @@ Test(nde_replay, a_pin_before_the_edit_is_not_disturbed) {
 	cr_assert_eq(apply_mask_op(&op_desc_mask_blur, blur_mask(1.f)), 0);   /* record 3 */
 
 	GPtrArray *snap = nde_history_snapshot(NULL);
-	const nde_input_pin *early = nde_record_input(g_ptr_array_index(snap, 1), "mask");
+	const nde_pin *early = nde_record_input(g_ptr_array_index(snap, 1), "mask");
 	cr_assert_not_null(early);
-	cr_assert_eq(early->src_record_id, 1, "the stretch used the unblurred mask");
+	cr_assert_eq(early->record_id, 1, "the stretch used the unblurred mask");
 	g_ptr_array_unref(snap);
 
 	/* the mask state that consumer pinned, as stored */
@@ -3406,9 +3406,9 @@ Test(nde_replay, a_mask_built_after_a_barrier_restarts_from_its_checkpoint) {
 	cr_assert_eq(apply_op_masked(&op_desc_asinh, asinh_beta(20.f)), 0);
 
 	GPtrArray *snap = nde_history_snapshot(NULL);
-	const nde_input_pin *img = nde_record_input(g_ptr_array_index(snap, 2), "image");
+	const nde_pin *img = nde_record_input(g_ptr_array_index(snap, 2), "image");
 	cr_assert_not_null(img);
-	cr_assert_eq(img->src_record_id, 2, "fixture: the mask derives from the barrier's output");
+	cr_assert_eq(img->record_id, 2, "fixture: the mask derives from the barrier's output");
 	g_ptr_array_unref(snap);
 
 	size_t n = 0;
@@ -3521,10 +3521,10 @@ Test(nde_replay, losing_a_pinned_mask_freezes_the_step_rather_than_lying) {
 	 * test_nde_retention; here it is the consequence that matters.) */
 	GPtrArray *snap = nde_history_snapshot(NULL);
 	const nde_record *masked = g_ptr_array_index(snap, snap->len - 1);
-	const nde_input_pin *pin = nde_record_input(masked, "mask");
+	const nde_pin *pin = nde_record_input(masked, "mask");
 	cr_assert_not_null(pin);
-	cr_assert_neq(pin->src_record_id, 0, "this mask has its own history");
-	gint64 pinned = pin->src_record_id;
+	cr_assert_neq(pin->record_id, 0, "this mask has its own history");
+	gint64 pinned = pin->record_id;
 	g_ptr_array_unref(snap);
 
 	nde_checkpoint_output_drop(pinned);

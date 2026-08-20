@@ -201,11 +201,11 @@ Test(flis_layers_match, captures_one_joint_record) {
 		cr_assert_not_null(rec->inputs);
 		cr_assert_eq(rec->inputs->len, 3, "every participant must be pinned");
 		for (guint k = 0; k < rec->inputs->len; k++) {
-			const nde_input_pin *pin = g_ptr_array_index(rec->inputs, k);
+			const nde_pin *pin = g_ptr_array_index(rec->inputs, k);
 			char role[16];
 			g_snprintf(role, sizeof(role), "in%u", k);
 			cr_assert_str_eq(pin->role, role);
-			cr_assert_eq(pin->src_item_id, (gint)k + 1);
+			cr_assert_eq(pin->item_id, (gint)k + 1);
 		}
 	}
 	cr_assert_eq(n_joint, 1, "expected ONE joint record, got %u", n_joint);

@@ -568,8 +568,8 @@ int flis_register_layers(flis_layer_t *ref_lay,
 						nde_joint_geometry_signature(lay->item_id, 0);
 				roles[k] = g_strdup_printf("in%d", k);
 				pins[k].role = roles[k];
-				pins[k].src_item_id = lay->item_id;
-				pins[k].src_record_id =
+				pins[k].item_id = lay->item_id;
+				pins[k].record_id =
 						nde_history_last_record_for_item(lay->item_id);
 			}
 			gchar *summary = g_strdup_printf("%s (%d %s)", _("Register layers"),
