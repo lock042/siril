@@ -112,6 +112,7 @@ src/core/nde/nde_composite.c
 src/core/nde/nde_compositing.c
 src/core/nde/nde_graph.c
 src/core/nde/nde_history.c
+src/core/nde/nde_joint.c
 src/core/nde/nde_op_class.c
 src/core/nde/nde_chain.c
 src/core/nde/nde_edit.c
