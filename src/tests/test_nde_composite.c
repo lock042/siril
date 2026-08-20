@@ -1137,6 +1137,61 @@ Test(nde_composite, a_dialog_captured_op_also_lands_in_the_borrowed_input) {
 	done();
 }
 
+static const nde_record *record_by_id(GPtrArray *snap, gint64 id) {
+	for (guint i = 0; snap && i < snap->len; i++) {
+		const nde_record *r = g_ptr_array_index(snap, i);
+		if (r->record_id == id)
+			return r;
+	}
+	return NULL;
+}
+
+/* The two sites above are the same operation recorded twice over, and the only
+ * thing that ever kept them saying the same thing was that someone remembered
+ * to change both.  They had drifted apart in thirteen ways by the time they
+ * were unified, three of which shipped as bugs first — a dialog op filed
+ * against the wrong layer, a masked dialog capture that pinned no mask, a
+ * worker capture that dropped a photometric run's stars.
+ *
+ * So: run one op both ways with identical parameters and require the records to
+ * describe the same operation.  Summary is excluded — the worker asks the op's
+ * log hook and a dialog passes its own line — and so is the timestamp.  A
+ * fifth capture site that reinvents any of this has a test to answer to. */
+Test(nde_composite, both_capture_paths_describe_an_op_the_same_way) {
+	flis_layer_t *base = flis_test_add_layer(
+	    flis_test_make_rgb_fits(4, 4, 0.5f, 0.5f, 0.5f), "base");
+	select_layer(base);
+
+	cr_assert_eq(run_op_on_active(&op_desc_asinh, asinh_beta(5.f)), 0);
+	gint64 from_worker = record_for_item(base->item_id);
+	cr_assert_neq(from_worker, 0);
+
+	asinh_params same = { .beta = 5.f, .clip_mode = RESCALE };
+	gint64 from_dialog = nde_capture_from_descriptor(&op_desc_asinh, &same,
+	                                                 "Asinh", NULL, FALSE);
+	cr_assert_neq(from_dialog, 0);
+
+	GPtrArray *snap = nde_history_snapshot(NULL);
+	const nde_record *w = record_by_id(snap, from_worker);
+	const nde_record *d = record_by_id(snap, from_dialog);
+	cr_assert_not_null(w);
+	cr_assert_not_null(d);
+
+	cr_assert_str_eq(w->op_id, d->op_id);
+	cr_assert_eq(w->op_version, d->op_version, "same op, same version");
+	cr_assert_eq(w->tier, d->tier, "tier is derived from the serializer, "
+	                               "so both must reach the same one");
+	cr_assert_eq(w->scope, d->scope, "scope is derived from the op's flags");
+	cr_assert_eq(w->target_item_id, d->target_item_id,
+	             "both must file against the item nde_capture_target_item names");
+	cr_assert_eq(w->mask_active, d->mask_active);
+	cr_assert_str_eq(w->params, d->params,
+	                 "identical parameters must serialize identically: this is "
+	                 "what makes a record replayable whichever path wrote it");
+	g_ptr_array_unref(snap);
+	done();
+}
+
 /* The checkpoint side of the same question: baselines seeded from dialog
  * commit-points go through nde_checkpoint_active_item_id(), which used to be
  * a borrowed-blind copy of the capture-target answer — so a baseline seeded
