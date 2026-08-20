@@ -136,9 +136,10 @@ void nde_chain_free(nde_chain *chain);
  * nde_delete_execute) is the authority on both.                             */
 struct nde_record;
 
-/** TRUE for a Tier-A record whose op has a registered deserializer (so its
- *  params can be parsed, edited and round-tripped), and for compositing-state
- *  records, which are validated by nde_compositing_validate() instead. */
+/** TRUE for a Tier-A record whose params can be read back, edited and
+ *  round-tripped.  For an ordinary op that means a registered deserializer;
+ *  the descriptor-less families check their own blobs, which the registry
+ *  knows how to ask (nde_op_class_params_valid). */
 gboolean nde_record_amendable(const struct nde_record *rec);
 
 /** TRUE unless the record is structural (DOCUMENT scope) — those cannot

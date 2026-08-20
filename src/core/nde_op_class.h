@@ -66,6 +66,25 @@ typedef struct {
  */
 const nde_op_class *nde_op_class_for(const char *op_id);
 
+/**
+ * Would @new_params be a valid replacement for @old_params on a record of
+ * @op_id, version @op_version?  FALSE with a translated heap message in @err.
+ *
+ * THE ONE QUESTION EVERY AMEND PATH ASKS, and it used to be answered by each of
+ * them separately: an ordinary op by round-tripping the blob through its
+ * descriptor's deserializer, a composite against its own recorded state, a
+ * compositing-state record by range-checking its single value.  Four sites
+ * carried that three-way dispatch — the history amend, the reorder/insert
+ * path, the region-preview commit and the generic History editor in the GUI —
+ * and each one had to know which module owns which family.  None of them does
+ * now.
+ *
+ * @old_params may be NULL for the families that do not compare against it.
+ */
+gboolean nde_op_class_params_valid(const char *op_id, int op_version,
+                                   const char *old_params,
+                                   const char *new_params, gchar **err);
+
 #ifdef __cplusplus
 }
 #endif

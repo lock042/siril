@@ -53,6 +53,7 @@
 #include "core/nde_graph.h"    /* nodes + edges behind the per-item step lists */
 #include "core/nde_joint.h"    /* joint records route to their own graph node */
 #include "gui-gtk4/nde_graph_view.h"   /* the container that places them (#61) */
+#include "core/nde_op_class.h"     /* one question per family */
 #include "core/nde_compositing.h"  /* nde_compositing_is_op */
 #include "core/nde_composite.h"    /* the composite node's own editor */
 #include "gui-gtk4/nde_editors.h"
@@ -1579,8 +1580,9 @@ static void on_hist_edit_cancel(GtkButton *b, gpointer u) {
 	gtk_window_destroy(GTK_WINDOW(ctx->window));
 }
 
-/* Round-trip the assembled blob through the record's op deserializer as a
- * client-side check (mirrors destroy_user in nde_replay.c). */
+/* Client-side check of the assembled blob before the edit is submitted, so the
+ * generic History editor refuses obvious nonsense without a round trip through
+ * the conductor.  Whatever family the record belongs to (nde_op_class.h). */
 static gboolean hist_params_valid(gint64 record_id, const gchar *blob) {
 	const nde_record *rec = NULL;
 	GPtrArray *snap = nde_history_snapshot(NULL);
@@ -1589,23 +1591,11 @@ static gboolean hist_params_valid(gint64 record_id, const gchar *blob) {
 		if (r->record_id == record_id) { rec = r; break; }
 	}
 	gboolean ok = FALSE;
-	if (rec && nde_compositing_is_op(rec->op_id)) {
-		/* Compositing records have no op descriptor; their validator is
-		 * the deserializer stand-in (nde_compositing.h). */
+	if (rec) {
 		gchar *why = NULL;
-		ok = nde_compositing_validate(rec->op_id, blob, &why);
+		ok = nde_op_class_params_valid(rec->op_id, rec->op_version,
+		                               rec->params, blob, &why);
 		g_free(why);
-	} else if (rec) {
-		const op_descriptor *op = op_descriptor_by_id(rec->op_id);
-		if (op && op->deserialize) {
-			gpointer user = op->deserialize(blob, rec->op_version);
-			if (user) {
-				/* destructor-first convention (see nde_replay.c) */
-				void (*d)(void *) = *(void (**)(void *))user;
-				if (d) d(user); else free(user);
-				ok = TRUE;
-			}
-		}
 	}
 	if (snap)
 		g_ptr_array_unref(snap);

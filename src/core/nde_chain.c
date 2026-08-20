@@ -119,8 +119,8 @@ static gboolean record_names_a_file(const nde_record *rec) {
 static gchar *member_invalid_reason(const nde_record *rec) {
 	if (rec->tier == NDE_TIER_C)
 		return nde_tier_c_invalid_reason(rec);
-	/* A composite node has no op descriptor: its "deserializer" is
-	 * nde_composite_params_decode, and chain membership already required it to
+	/* A composite node's params are read by nde_composite_state_parse rather
+	 * than by a descriptor, and chain membership already required that to
 	 * succeed (nde_composite_record_replayable). */
 	if (nde_composite_is_op(rec->op_id))
 		return NULL;
@@ -169,17 +169,21 @@ static gchar *member_invalid_reason(const nde_record *rec) {
 gboolean nde_record_amendable(const nde_record *rec) {
 	if (!rec || rec->tier != NDE_TIER_A)
 		return FALSE;
-	/* Compositing-state records carry editable params but no op descriptor:
-	 * nde_compositing_validate() is their deserializer (see nde_compositing.h). */
-	if (nde_compositing_is_op(rec->op_id))
+	const nde_op_class *cls = nde_op_class_for(rec->op_id);
+	switch (cls->family) {
+	case NDE_OPC_COMPOSITING:
+		/* Editable params, no descriptor: the registry validates them
+		 * (nde_op_class_params_valid), and nothing else gates the edit. */
 		return TRUE;
-	/* A composite node likewise: nde_composite_validate() is its deserializer.
-	 * Only while it is replayable, though — amending the opacity of a merge
-	 * nobody can re-run would change the log and not the image. */
-	if (nde_composite_is_op(rec->op_id))
+	case NDE_OPC_COMPOSITE:
+		/* The same, but only while the node is replayable — amending the
+		 * opacity of a merge nobody can re-run would change the log and not
+		 * the image. */
 		return nde_composite_record_replayable(rec);
-	const op_descriptor *op = op_descriptor_by_id(rec->op_id);
-	return op && op->deserialize;
+	default:
+		/* An op's params are editable exactly when they can be read back. */
+		return cls->desc && cls->desc->deserialize;
+	}
 }
 
 gboolean nde_record_deletable(const nde_record *rec) {

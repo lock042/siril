@@ -167,7 +167,9 @@ nde_composite_state *nde_composite_state_parse(const char *params);
 
 /**
  * Validate @new_params as a replacement for @old_params on a composite record.
- * A composite has no op descriptor, so this stands in for a deserializer.
+ * A composite has no op descriptor, so this is how its params are checked.
+ * Callers outside this module should ask nde_op_class_params_valid() instead,
+ * which routes to here without having to know that.
  *
  * What it accepts is the COMPOSITING state — each input's opacity, blend mode,
  * visibility, tint and offset, and the same for the groups.  Those are exactly

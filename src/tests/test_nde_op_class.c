@@ -165,3 +165,60 @@ Test(nde_op_class, destructive_implies_insert_disturbs) {
 			             "'%s' is both ignorable and destructive", expected[i].id);
 	}
 }
+
+/* ---- one validation question, whatever family the record belongs to ----- */
+
+/* Every amend path used to carry a three-way dispatch: an ordinary op's params
+ * round-tripped through its descriptor, a composite's checked against its own
+ * recorded state, a compositing record's range-checked.  Four sites knew that,
+ * and each one knew which module owned which family.  This is the question
+ * they ask now, so what matters is that it reaches the right checker. */
+
+Test(nde_op_class, compositing_params_are_range_checked) {
+	gchar *err = NULL;
+	cr_assert(nde_op_class_params_valid("layer.set_opacity", 1, NULL,
+	                                    "opacity=0.5", &err),
+	          "a valid opacity: %s", err ? err : "");
+	g_free(err);
+	err = NULL;
+	cr_assert_not(nde_op_class_params_valid("layer.set_opacity", 1, NULL,
+	                                        "opacity=7", &err),
+	              "an opacity of 7 is not a fraction");
+	cr_assert_not_null(err, "a refusal must say why");
+	g_free(err);
+}
+
+/* An ordinary op is validated by its own deserializer, and the registry finds
+ * it without the caller naming op_descriptor at all. */
+Test(nde_op_class, descriptor_params_round_trip) {
+	const nde_op_class *cls = nde_op_class_for("stretch.asinh");
+	cr_assert_not_null(cls->desc, "fixture op must have a descriptor");
+	cr_assert_eq(cls->family, NDE_OPC_PIXEL);
+	gchar *err = NULL;
+	cr_assert(nde_op_class_params_valid("stretch.asinh", cls->desc->version, NULL,
+	                                    "beta=10;offset=0;human=1;clip_mode=0", &err),
+	          "asinh params should parse: %s", err ? err : "");
+	g_free(err);
+	err = NULL;
+	/* Version newer than this build's descriptor: the deserializer refuses,
+	 * and that refusal is what "not valid" means here. */
+	cr_assert_not(nde_op_class_params_valid("stretch.asinh", cls->desc->version + 1,
+	                                        NULL, "beta=10;offset=0;human=1;clip_mode=0",
+	                                        &err));
+	cr_assert_not_null(err);
+	g_free(err);
+}
+
+/* A structural step is not a computation with settings, and an id from a newer
+ * build is not one this build can check.  Both refuse, with a message rather
+ * than a crash — the amend paths surface it to the user verbatim. */
+Test(nde_op_class, unvalidatable_families_refuse_with_a_reason) {
+	const char *ids[] = { "layer.add", "canvas.resize", "something.new" };
+	for (size_t i = 0; i < G_N_ELEMENTS(ids); i++) {
+		gchar *err = NULL;
+		cr_assert_not(nde_op_class_params_valid(ids[i], 1, NULL, "x=1", &err),
+		              "'%s' has no editable params", ids[i]);
+		cr_assert_not_null(err, "'%s' must say why", ids[i]);
+		g_free(err);
+	}
+}

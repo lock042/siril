@@ -23,10 +23,26 @@
 
 #include "core/nde_op_class.h"
 #include "core/nde_history.h"
+#include "core/nde_composite.h"
+#include "core/nde_compositing.h"
+#include "core/processing.h"   /* destroy_any_args */
 
 /* The ids with no op_descriptor.  THIS IS THE ONLY PLACE THEY APPEAR: every
  * other site asks nde_op_class_for() instead of comparing strings, which is
- * the whole point of the module. */
+ * the whole point of the module.
+ *
+ * These thirteen are not an op_descriptor's business and are not waiting to
+ * become one.  A descriptor is what the generic workers fill their args from —
+ * it exists to be RUN — and none of these is ever run by any worker: a
+ * structural record is never replayed at all, and the composite and
+ * compositing-state families have their own strategies in nde_composite.c and
+ * nde_compositing.c.  Giving them descriptors would mean thirteen entries with
+ * every hook NULL, and the conformance tests that protect the other 85 (at
+ * least one hook; serialize/deserialize paired or a recorded reason) would each
+ * grow an exemption list.  That is more for an op author to know, not less.
+ *
+ * What they DO share with descriptor-backed ops is asked through this module:
+ * see nde_op_class_params_valid(). */
 static const nde_op_class descriptorless[] = {
 	/* ---- composites: consume other items and replace this one's pixels --- */
 	{ "layer.merge_down",  NDE_OPC_COMPOSITE, NDE_OPT_DESTRUCTIVE |
@@ -171,4 +187,43 @@ const nde_op_class *nde_op_class_for(const char *op_id) {
 		return &unknown_class;
 	const nde_op_class *cls = g_hash_table_lookup(class_table, op_id);
 	return cls ? cls : &unknown_class;
+}
+
+gboolean nde_op_class_params_valid(const char *op_id, int op_version,
+                                   const char *old_params,
+                                   const char *new_params, gchar **err) {
+	const nde_op_class *cls = nde_op_class_for(op_id);
+	/* A switch, not a vtable.  There is a small closed set of ways to check a
+	 * params blob and they differ in what they need to see, not merely in
+	 * behaviour — the composite is the only one that compares against the
+	 * recorded blob — so a function pointer would buy an indirection with one
+	 * consumer to justify it. */
+	switch (cls->family) {
+	case NDE_OPC_COMPOSITE:
+		/* Against the RECORDED blob: the compositing state may change, what
+		 * the node consumed may not (nde_composite.h). */
+		return nde_composite_validate(old_params, new_params, err);
+	case NDE_OPC_COMPOSITING:
+		return nde_compositing_validate(op_id, new_params, err);
+	default:
+		break;
+	}
+	if (!cls->desc || !cls->desc->deserialize) {
+		/* Either a structural step, which describes something that happened to
+		 * the document rather than a computation with settings, or an id from a
+		 * build that knows more ops than this one. */
+		*err = g_strdup_printf(_("operation '%s' cannot be edited by this build"),
+		                       op_id ? op_id : "?");
+		return FALSE;
+	}
+	/* The round trip IS the validation: a blob the deserializer accepts is one
+	 * the replay can run. */
+	gpointer trial = cls->desc->deserialize(new_params, op_version);
+	if (!trial) {
+		*err = g_strdup_printf(_("the new parameters for '%s' failed to parse"),
+		                       op_id ? op_id : "?");
+		return FALSE;
+	}
+	destroy_any_args(trial);
+	return TRUE;
 }

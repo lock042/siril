@@ -859,10 +859,13 @@ gboolean nde_edit_execute(gint64 record_id, const gchar *new_params, gchar **err
 			is_joint = nde_joint_is_op(rec->op_id);
 			is_joint_geometry = nde_joint_is_geometric_op(rec->op_id);
 			if (new_params && is_compositing) {
-				/* Validated here rather than by an op descriptor — these
-				 * records have none (nde_compositing.h). */
+				/* These take the cheap path below and never reach the
+				 * amend's own validation, so check the params here.  The
+				 * registry knows how this family checks itself
+				 * (nde_op_class.h). */
 				gchar *why = NULL;
-				if (!nde_compositing_validate(rec->op_id, new_params, &why))
+				if (!nde_op_class_params_valid(rec->op_id, rec->op_version,
+				                               rec->params, new_params, &why))
 					*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s): %s"),
 					                       record_id, rec->op_id, why ? why : "?");
 				g_free(why);
@@ -1137,25 +1140,12 @@ gboolean nde_edit_execute(gint64 record_id, const gchar *new_params, gchar **err
 			nde_chain_free(chain);
 			return FALSE;
 		}
-		/* Validate the new params against the op before replaying.  A composite
-		 * node has none, and is checked against its own recorded blob instead:
-		 * the compositing state may change, what it consumed may not. */
-		if (nde_composite_is_op(target_rec->op_id)) {
-			if (!nde_composite_validate(target_rec->params, new_params, err)) {
-				nde_chain_free(chain);
-				return FALSE;
-			}
-		} else {
-			const op_descriptor *op = op_descriptor_by_id(target_rec->op_id);
-			gpointer trial = (op && op->deserialize) ?
-					op->deserialize(new_params, target_rec->op_version) : NULL;
-			if (!trial) {
-				*err = g_strdup_printf(_("the new parameters for '%s' failed to parse"),
-				                       target_rec->op_id ? target_rec->op_id : "?");
-				nde_chain_free(chain);
-				return FALSE;
-			}
-			destroy_any_args(trial);
+		/* Validate the new params before replaying — one question, whatever
+		 * family this record belongs to (nde_op_class.h). */
+		if (!nde_op_class_params_valid(target_rec->op_id, target_rec->op_version,
+		                               target_rec->params, new_params, err)) {
+			nde_chain_free(chain);
+			return FALSE;
 		}
 		g_free(target_rec->params);
 		target_rec->params = g_strdup(new_params);

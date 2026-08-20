@@ -30,7 +30,6 @@
 #include "core/nde_history.h"
 #include "core/nde_op_class.h"
 #include "core/nde_checkpoint.h"
-#include "core/nde_compositing.h"
 #include "core/nde_composite.h"
 #include "core/nde_snapstore.h"
 #include "core/nde_cat.h"
@@ -919,35 +918,21 @@ gboolean nde_history_amend(gint64 record_id, const gchar *new_params, gchar **er
 		return FALSE;
 	}
 
-	/* A composite node has no op descriptor either, and its params say what it
-	 * consumed as well as how: validation is against the RECORDED blob, so an
-	 * amend can change the compositing state and nothing else (nde_composite.h). */
-	if (nde_composite_is_op(op_id)) {
-		gboolean ok = nde_composite_validate(old_params, new_params, err);
+	/* An ordinary op's params are a STRUCT, and the amend deserializes them —
+	 * both to validate the blob and because the same struct regenerates the
+	 * summary further down.  The descriptor-less families have no struct: a
+	 * composite's blob IS its recorded state, a compositing record's is one
+	 * value, and neither has a summary that the values can stale.  So they are
+	 * validated by the registry, which knows how each family checks itself, and
+	 * their amend is the log change and nothing else. */
+	const op_descriptor *op = op_descriptor_by_id(op_id);
+	if (!op || !op->deserialize) {
+		gboolean ok = nde_op_class_params_valid(op_id, op_version, old_params,
+		                                        new_params, err);
 		g_free(op_id);
 		g_free(old_params);
 		return ok ? amend_commit(record_id, new_params, NULL, NULL, NULL, err)
 		          : FALSE;
-	}
-
-	/* Compositing-state records have no op descriptor: their params are
-	 * validated by range/enum instead, and their summary ("Set opacity", …)
-	 * is param-independent so it never goes stale.  See nde_compositing.h. */
-	if (nde_compositing_is_op(op_id)) {
-		gboolean ok = nde_compositing_validate(op_id, new_params, err);
-		g_free(op_id);
-		g_free(old_params);
-		if (!ok)
-			return FALSE;
-		return amend_commit(record_id, new_params, NULL, NULL, NULL, err);
-	}
-
-	const op_descriptor *op = op_descriptor_by_id(op_id);
-	if (!op || !op->deserialize) {
-		*err = g_strdup_printf(_("operation '%s' cannot be edited by this build"), op_id);
-		g_free(op_id);
-		g_free(old_params);
-		return FALSE;
 	}
 	gpointer trial = op->deserialize(new_params, op_version);
 	if (!trial) {
