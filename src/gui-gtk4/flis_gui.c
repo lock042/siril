@@ -388,6 +388,17 @@ static gboolean refresh_idle_cb(gpointer p) {
 		if (gtk_widget_get_visible(g_panel->window))
 			refresh_panel();
 	}
+	/* Action sensitivity is keyed to the DOCUMENT as well as to gfit, and
+	 * only the gfit half had a trigger.  uniq_set_active_layer() reconciles
+	 * when gfit moves or changes channel count; the colour-calibration items
+	 * additionally follow flis_panel_selected_colour_group(), which is a
+	 * property of the layer stack.  Flatten a group of untinted mono layers
+	 * and neither half fires — gfit stays the same mono pointer with the same
+	 * one channel — but the group has stopped compositing to colour, so PCC
+	 * and friends stayed enabled on a mono layer that they can do nothing
+	 * with.  Every FLIS state change arrives here, panel visible or not, so
+	 * this is where to ask again. */
+	update_MenuItem(NULL);
 	/* Same idle path repaints the canvas-properties dialog so it
 	 * reflects any FLIS state change that happened underneath it
 	 * (e.g. an undo / redo of a canvas op). */
