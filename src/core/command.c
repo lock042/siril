@@ -704,16 +704,13 @@ static gpointer denoise_deserialize(const gchar *blob, int version) {
 	float modulation, rho;
 	gint64 sos, da3d;
 	gboolean do_anscombe, do_cosme, suppress_artefacts;
-	if (!nde_kv_get_float(kv, "modulation", &modulation) ||
-	    !nde_kv_get_int(kv, "sos", &sos) ||
-	    !nde_kv_get_int(kv, "da3d", &da3d) ||
-	    !nde_kv_get_float(kv, "rho", &rho) ||
-	    !nde_kv_get_bool(kv, "do_anscombe", &do_anscombe) ||
-	    !nde_kv_get_bool(kv, "do_cosme", &do_cosme) ||
-	    !nde_kv_get_bool(kv, "suppress_artefacts", &suppress_artefacts)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_float(kv, "modulation", &modulation) &&
+	                   nde_kv_get_int(kv, "sos", &sos) &&
+	                   nde_kv_get_int(kv, "da3d", &da3d) &&
+	                   nde_kv_get_float(kv, "rho", &rho) &&
+	                   nde_kv_get_bool(kv, "do_anscombe", &do_anscombe) &&
+	                   nde_kv_get_bool(kv, "do_cosme", &do_cosme) &&
+	                   nde_kv_get_bool(kv, "suppress_artefacts", &suppress_artefacts));
 	struct denoise_args *d = new_denoise_args();
 	if (d) {
 		d->modulation = modulation;
@@ -1186,12 +1183,9 @@ static gpointer imoper_deserialize(const gchar *blob, int version) {
 	const char *path = nde_kv_get_str(kv, "operand_path");
 	/* records captured before phase 4.5 lack the operand keys → not
 	 * replayable (they stay honestly Tier B-flagged at capture time). */
-	if (!nde_kv_get_int(kv, "oper", &oper) ||
-	    !nde_kv_get_bool(kv, "force_to_float", &force_to_float) ||
-	    !path || !*path) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_int(kv, "oper", &oper) &&
+	                   nde_kv_get_bool(kv, "force_to_float", &force_to_float) &&
+	                   path && *path);
 	struct imoper_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destructor = free_imoper_data;
@@ -1401,11 +1395,7 @@ static gpointer addmax_deserialize(const gchar *blob, int version) {
 	GHashTable *kv = nde_kv_parse(blob);
 	gboolean force_to_float;
 	const char *path = nde_kv_get_str(kv, "operand_path");
-	if (!nde_kv_get_bool(kv, "force_to_float", &force_to_float) ||
-	    !path || !*path) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_bool(kv, "force_to_float", &force_to_float) && path && *path);
 	struct addmax_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destructor = addmax_destructor;
@@ -1561,12 +1551,9 @@ static gpointer fdiv_deserialize(const gchar *blob, int version) {
 	float norm;
 	gboolean force_to_float;
 	const char *path = nde_kv_get_str(kv, "operand_path");
-	if (!nde_kv_get_float(kv, "norm", &norm) ||
-	    !nde_kv_get_bool(kv, "force_to_float", &force_to_float) ||
-	    !path || !*path) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_float(kv, "norm", &norm) &&
+	                   nde_kv_get_bool(kv, "force_to_float", &force_to_float) &&
+	                   path && *path);
 	struct fdiv_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destructor = fdiv_destructor;
@@ -1733,10 +1720,7 @@ static gpointer fmul_deserialize(const gchar *blob, int version) {
 		return NULL;
 	GHashTable *kv = nde_kv_parse(blob);
 	float coeff;
-	if (!nde_kv_get_float(kv, "coeff", &coeff)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_float(kv, "coeff", &coeff));
 	struct fmul_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destructor = free;
@@ -1839,10 +1823,7 @@ static gpointer gauss_deserialize(const gchar *blob, int version) {
 		return NULL;
 	GHashTable *kv = nde_kv_parse(blob);
 	double sigma;
-	if (!nde_kv_get_double(kv, "sigma", &sigma)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_double(kv, "sigma", &sigma));
 	struct gauss_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destructor = free;
@@ -3053,11 +3034,8 @@ static gpointer unsharp_deserialize(const gchar *blob, int version) {
 		return NULL;
 	GHashTable *kv = nde_kv_parse(blob);
 	double sigma, multi;
-	if (!nde_kv_get_double(kv, "sigma", &sigma) ||
-	    !nde_kv_get_double(kv, "multi", &multi)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_double(kv, "sigma", &sigma) &&
+	                   nde_kv_get_double(kv, "multi", &multi));
 	struct unsharp_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destructor = free;
@@ -4200,15 +4178,12 @@ static gpointer autoghs_unlinked_deserialize(const gchar *blob, int version) {
 	GHashTable *kv = nde_kv_parse(blob);
 	struct autoghs_unlinked_data tmp = { 0 };
 	gint64 clip_mode;
-	if (!nde_kv_get_float(kv, "shadows_clipping", &tmp.shadows_clipping) ||
-	    !nde_kv_get_float(kv, "amount", &tmp.amount) ||
-	    !nde_kv_get_float(kv, "b", &tmp.b) ||
-	    !nde_kv_get_float(kv, "hp", &tmp.hp) ||
-	    !nde_kv_get_float(kv, "lp", &tmp.lp) ||
-	    !nde_kv_get_int(kv, "clip_mode", &clip_mode)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_float(kv, "shadows_clipping", &tmp.shadows_clipping) &&
+	                   nde_kv_get_float(kv, "amount", &tmp.amount) &&
+	                   nde_kv_get_float(kv, "b", &tmp.b) &&
+	                   nde_kv_get_float(kv, "hp", &tmp.hp) &&
+	                   nde_kv_get_float(kv, "lp", &tmp.lp) &&
+	                   nde_kv_get_int(kv, "clip_mode", &clip_mode));
 	struct autoghs_unlinked_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		*d = tmp;
@@ -7551,12 +7526,9 @@ static gpointer thresh_deserialize(const gchar *blob, int version) {
 		return NULL;
 	GHashTable *kv = nde_kv_parse(blob);
 	gint64 type, lo, hi;
-	if (!nde_kv_get_int(kv, "type", &type) ||
-	    !nde_kv_get_int(kv, "lo", &lo) ||
-	    !nde_kv_get_int(kv, "hi", &hi)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_int(kv, "type", &type) &&
+	                   nde_kv_get_int(kv, "lo", &lo) &&
+	                   nde_kv_get_int(kv, "hi", &hi));
 	struct thresh_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destructor = free;
@@ -7768,10 +7740,7 @@ static gpointer nozero_deserialize(const gchar *blob, int version) {
 		return NULL;
 	GHashTable *kv = nde_kv_parse(blob);
 	gint64 level;
-	if (!nde_kv_get_int(kv, "level", &level)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_int(kv, "level", &level));
 	struct nozero_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destructor = free;
@@ -7864,12 +7833,9 @@ static gpointer ddp_deserialize(const gchar *blob, int version) {
 		return NULL;
 	GHashTable *kv = nde_kv_parse(blob);
 	float level, coeff, sigma;
-	if (!nde_kv_get_float(kv, "level", &level) ||
-	    !nde_kv_get_float(kv, "coeff", &coeff) ||
-	    !nde_kv_get_float(kv, "sigma", &sigma)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_float(kv, "level", &level) &&
+	                   nde_kv_get_float(kv, "coeff", &coeff) &&
+	                   nde_kv_get_float(kv, "sigma", &sigma));
 	struct ddp_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destructor = free;
@@ -8061,12 +8027,11 @@ static gpointer ffill_deserialize(const gchar *blob, int version) {
 		return NULL;
 	GHashTable *kv = nde_kv_parse(blob);
 	gint64 level, x, y, w, h;
-	if (!nde_kv_get_int(kv, "level", &level) ||
-	    !nde_kv_get_int(kv, "x", &x) || !nde_kv_get_int(kv, "y", &y) ||
-	    !nde_kv_get_int(kv, "w", &w) || !nde_kv_get_int(kv, "h", &h)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_int(kv, "level", &level) &&
+	                   nde_kv_get_int(kv, "x", &x) &&
+	                   nde_kv_get_int(kv, "y", &y) &&
+	                   nde_kv_get_int(kv, "w", &w) &&
+	                   nde_kv_get_int(kv, "h", &h));
 	struct ffill_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destructor = free;
@@ -8774,12 +8739,11 @@ static gpointer fill_deserialize(const gchar *blob, int version) {
 		return NULL;
 	GHashTable *kv = nde_kv_parse(blob);
 	gint64 level, x, y, w, h;
-	if (!nde_kv_get_int(kv, "level", &level) ||
-	    !nde_kv_get_int(kv, "x", &x) || !nde_kv_get_int(kv, "y", &y) ||
-	    !nde_kv_get_int(kv, "w", &w) || !nde_kv_get_int(kv, "h", &h)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_int(kv, "level", &level) &&
+	                   nde_kv_get_int(kv, "x", &x) &&
+	                   nde_kv_get_int(kv, "y", &y) &&
+	                   nde_kv_get_int(kv, "w", &w) &&
+	                   nde_kv_get_int(kv, "h", &h));
 	struct fill_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destructor = free;
@@ -8913,10 +8877,7 @@ static gpointer offset_deserialize(const gchar *blob, int version) {
 		return NULL;
 	GHashTable *kv = nde_kv_parse(blob);
 	float level;
-	if (!nde_kv_get_float(kv, "level", &level)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_float(kv, "level", &level));
 	struct offset_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destructor = free;
@@ -15289,10 +15250,7 @@ static gpointer limit_deserialize(const gchar *blob, int version) {
 		return NULL;
 	GHashTable *kv = nde_kv_parse(blob);
 	gint64 method;
-	if (!nde_kv_get_int(kv, "method", &method)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_int(kv, "method", &method));
 	struct limit_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destroy_fn = free;

@@ -68,11 +68,10 @@ static gpointer crop_deserialize(const gchar *blob, int version) {
 		return NULL;
 	GHashTable *kv = nde_kv_parse(blob);
 	gint64 x, y, w, h;
-	if (!nde_kv_get_int(kv, "x", &x) || !nde_kv_get_int(kv, "y", &y) ||
-	    !nde_kv_get_int(kv, "w", &w) || !nde_kv_get_int(kv, "h", &h)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_int(kv, "x", &x) &&
+	                   nde_kv_get_int(kv, "y", &y) &&
+	                   nde_kv_get_int(kv, "w", &w) &&
+	                   nde_kv_get_int(kv, "h", &h));
 	struct crop_args *p = new_crop_args();
 	if (p) {
 		p->area.x = (int)x; p->area.y = (int)y;
@@ -106,15 +105,14 @@ static gpointer rotation_deserialize(const gchar *blob, int version) {
 	gint64 x, y, w, h, interp, cropped;
 	double angle;
 	gboolean clamp;
-	if (!nde_kv_get_int(kv, "x", &x) || !nde_kv_get_int(kv, "y", &y) ||
-	    !nde_kv_get_int(kv, "w", &w) || !nde_kv_get_int(kv, "h", &h) ||
-	    !nde_kv_get_double(kv, "angle", &angle) ||
-	    !nde_kv_get_int(kv, "interp", &interp) ||
-	    !nde_kv_get_int(kv, "cropped", &cropped) ||
-	    !nde_kv_get_bool(kv, "clamp", &clamp)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_int(kv, "x", &x) &&
+	                   nde_kv_get_int(kv, "y", &y) &&
+	                   nde_kv_get_int(kv, "w", &w) &&
+	                   nde_kv_get_int(kv, "h", &h) &&
+	                   nde_kv_get_double(kv, "angle", &angle) &&
+	                   nde_kv_get_int(kv, "interp", &interp) &&
+	                   nde_kv_get_int(kv, "cropped", &cropped) &&
+	                   nde_kv_get_bool(kv, "clamp", &clamp));
 	struct rotation_args *p = new_rotation_args();
 	if (p) {
 		p->area.x = (int)x; p->area.y = (int)y;
@@ -144,10 +142,7 @@ static gpointer mirror_deserialize(const gchar *blob, int version) {
 		return NULL;
 	GHashTable *kv = nde_kv_parse(blob);
 	gboolean x_axis;
-	if (!nde_kv_get_bool(kv, "x_axis", &x_axis)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_bool(kv, "x_axis", &x_axis));
 	struct mirror_args *p = new_mirror_args();
 	if (p)
 		p->x_axis = x_axis;
@@ -170,11 +165,8 @@ static gpointer binning_deserialize(const gchar *blob, int version) {
 	GHashTable *kv = nde_kv_parse(blob);
 	gint64 factor;
 	gboolean mean;
-	if (!nde_kv_get_int(kv, "factor", &factor) ||
-	    !nde_kv_get_bool(kv, "mean", &mean)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_int(kv, "factor", &factor) &&
+	                   nde_kv_get_bool(kv, "mean", &mean));
 	struct binning_args *p = new_binning_args();
 	if (p) {
 		p->factor = (int)factor;
@@ -203,13 +195,11 @@ static gpointer resample_deserialize(const gchar *blob, int version) {
 	GHashTable *kv = nde_kv_parse(blob);
 	gint64 toX, toY, interp;
 	gboolean clamp, update_wcs;
-	if (!nde_kv_get_int(kv, "toX", &toX) || !nde_kv_get_int(kv, "toY", &toY) ||
-	    !nde_kv_get_int(kv, "interp", &interp) ||
-	    !nde_kv_get_bool(kv, "clamp", &clamp) ||
-	    !nde_kv_get_bool(kv, "update_wcs", &update_wcs)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_int(kv, "toX", &toX) &&
+	                   nde_kv_get_int(kv, "toY", &toY) &&
+	                   nde_kv_get_int(kv, "interp", &interp) &&
+	                   nde_kv_get_bool(kv, "clamp", &clamp) &&
+	                   nde_kv_get_bool(kv, "update_wcs", &update_wcs));
 	struct resample_args *p = new_resample_args();
 	if (p) {
 		p->toX = (int)toX;

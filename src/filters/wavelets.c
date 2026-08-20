@@ -120,10 +120,7 @@ static gpointer atrous_deserialize(const gchar *blob, int version) {
 		g_snprintf(key, sizeof key, "dn_f%d", i);
 		ok = nde_kv_get_float(kv, key, &dn_f[i]);
 	}
-	if (!ok) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, ok);
 	struct atrous_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destroy_fn = free;

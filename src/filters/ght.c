@@ -70,22 +70,19 @@ static gpointer ght_deserialize(const gchar *blob, int version) {
 	ght_params p = { 0 };
 	gint64 stretchtype, colourmodel, clip_mode;
 	gboolean adc;
-	if (!nde_kv_get_float(kv, "B", &p.B) ||
-	    !nde_kv_get_float(kv, "D", &p.D) ||
-	    !nde_kv_get_float(kv, "LP", &p.LP) ||
-	    !nde_kv_get_float(kv, "SP", &p.SP) ||
-	    !nde_kv_get_float(kv, "HP", &p.HP) ||
-	    !nde_kv_get_float(kv, "BP", &p.BP) ||
-	    !nde_kv_get_int(kv, "stretchtype", &stretchtype) ||
-	    !nde_kv_get_int(kv, "colourmodel", &colourmodel) ||
-	    !nde_kv_get_bool(kv, "do_red", &p.do_red) ||
-	    !nde_kv_get_bool(kv, "do_green", &p.do_green) ||
-	    !nde_kv_get_bool(kv, "do_blue", &p.do_blue) ||
-	    !nde_kv_get_int(kv, "clip_mode", &clip_mode) ||
-	    !nde_kv_get_bool(kv, "adc", &adc)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_float(kv, "B", &p.B) &&
+	                   nde_kv_get_float(kv, "D", &p.D) &&
+	                   nde_kv_get_float(kv, "LP", &p.LP) &&
+	                   nde_kv_get_float(kv, "SP", &p.SP) &&
+	                   nde_kv_get_float(kv, "HP", &p.HP) &&
+	                   nde_kv_get_float(kv, "BP", &p.BP) &&
+	                   nde_kv_get_int(kv, "stretchtype", &stretchtype) &&
+	                   nde_kv_get_int(kv, "colourmodel", &colourmodel) &&
+	                   nde_kv_get_bool(kv, "do_red", &p.do_red) &&
+	                   nde_kv_get_bool(kv, "do_green", &p.do_green) &&
+	                   nde_kv_get_bool(kv, "do_blue", &p.do_blue) &&
+	                   nde_kv_get_int(kv, "clip_mode", &clip_mode) &&
+	                   nde_kv_get_bool(kv, "adc", &adc));
 	p.stretchtype = (int)stretchtype;
 	p.payne_colourstretchmodel = (int)colourmodel;
 	p.clip_mode = (clip_mode_t)clip_mode;

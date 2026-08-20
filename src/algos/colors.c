@@ -67,16 +67,10 @@ static gpointer ccm_deserialize(const gchar *blob, int version) {
 		for (int c = 0; c < 3; c++) {
 			char key[8];
 			g_snprintf(key, sizeof key, "m%d%d", r, c);
-			if (!nde_kv_get_float(kv, key, &matrix[r][c])) {
-				g_hash_table_unref(kv);
-				return NULL;
-			}
+			NDE_KV_REQUIRE(kv, nde_kv_get_float(kv, key, &matrix[r][c]));
 		}
 	}
-	if (!nde_kv_get_float(kv, "power", &power)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_float(kv, "power", &power));
 	struct ccm_data *p = new_ccm_data();
 	if (p) {
 		memcpy(p->matrix, matrix, sizeof(ccm));
@@ -1291,12 +1285,12 @@ static gpointer bkg_neutral_deserialize(const gchar *blob, int version) {
 		return NULL;
 	GHashTable *kv = nde_kv_parse(blob);
 	gint64 x, y, w, h;
-	if (!nde_kv_get_int(kv, "bkg_x", &x) || !nde_kv_get_int(kv, "bkg_y", &y) ||
-	    !nde_kv_get_int(kv, "bkg_w", &w) || !nde_kv_get_int(kv, "bkg_h", &h) ||
-	    w < 1 || h < 1) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_int(kv, "bkg_x", &x) &&
+	                   nde_kv_get_int(kv, "bkg_y", &y) &&
+	                   nde_kv_get_int(kv, "bkg_w", &w) &&
+	                   nde_kv_get_int(kv, "bkg_h", &h) &&
+	                   w >= 1 &&
+	                   h >= 1);
 	struct bkg_neutral_data *p = new_bkg_neutral_data();
 	if (p) {
 		p->black_selection.x = (int)x;
@@ -1420,15 +1414,9 @@ static gpointer color_calib_deserialize(const gchar *blob, int version) {
 	for (int i = 0; i < 3; i++) {
 		char key[8];
 		g_snprintf(key, sizeof key, "kw%d", i);
-		if (!nde_kv_get_double(kv, key, &kw[i])) {
-			g_hash_table_unref(kv);
-			return NULL;
-		}
+		NDE_KV_REQUIRE(kv, nde_kv_get_double(kv, key, &kw[i]));
 		g_snprintf(key, sizeof key, "bg%d", i);
-		if (!nde_kv_get_double(kv, key, &bg[i])) {
-			g_hash_table_unref(kv);
-			return NULL;
-		}
+		NDE_KV_REQUIRE(kv, nde_kv_get_double(kv, key, &bg[i]));
 	}
 	struct color_calib_data *p = new_color_calib_data();
 	if (p) {

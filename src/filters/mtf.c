@@ -100,19 +100,13 @@ static gpointer mtf_deserialize(const gchar *blob, int version) {
 	GHashTable *kv = nde_kv_parse(blob);
 	gboolean linked, adc;
 	struct mtf_params params, uparams[3] = { { 0 } };
-	if (!nde_kv_get_bool(kv, "linked", &linked) ||
-	    !mtf_params_deserialize(kv, "p_", &params) ||
-	    !nde_kv_get_bool(kv, "adc", &adc)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_bool(kv, "linked", &linked) &&
+	                   mtf_params_deserialize(kv, "p_", &params) &&
+	                   nde_kv_get_bool(kv, "adc", &adc));
 	if (!linked) {
-		if (!mtf_params_deserialize(kv, "u0_", &uparams[0]) ||
-		    !mtf_params_deserialize(kv, "u1_", &uparams[1]) ||
-		    !mtf_params_deserialize(kv, "u2_", &uparams[2])) {
-			g_hash_table_unref(kv);
-			return NULL;
-		}
+		NDE_KV_REQUIRE(kv, mtf_params_deserialize(kv, "u0_", &uparams[0]) &&
+		                   mtf_params_deserialize(kv, "u1_", &uparams[1]) &&
+		                   mtf_params_deserialize(kv, "u2_", &uparams[2]));
 	}
 	struct mtf_data *d = create_mtf_data();
 	if (d) {

@@ -84,10 +84,7 @@ static gpointer icc_convert_deserialize(const gchar *blob, int version) {
 	GHashTable *kv = nde_kv_parse(blob);
 	const char *source = nde_kv_get_str(kv, "profile_source");
 	gint64 intent = 0;
-	if (!source || !*source || !nde_kv_get_int(kv, "intent", &intent)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, source && *source && nde_kv_get_int(kv, "intent", &intent));
 	const char *sha = nde_kv_get_str(kv, "profile_sha256");
 	cmsHPROFILE profile = icc_profile_from_source(source, sha);
 	if (!profile) {

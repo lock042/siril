@@ -113,13 +113,10 @@ static gpointer mask_from_stars_deserialize(const gchar *blob, int version) {
 	float r, feather;
 	gboolean invert;
 	gint64 bitdepth;
-	if (!nde_kv_get_float(kv, "r", &r) ||
-	    !nde_kv_get_float(kv, "feather", &feather) ||
-	    !nde_kv_get_bool(kv, "invert", &invert) ||
-	    !nde_kv_get_int(kv, "bitdepth", &bitdepth)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_float(kv, "r", &r) &&
+	                   nde_kv_get_float(kv, "feather", &feather) &&
+	                   nde_kv_get_bool(kv, "invert", &invert) &&
+	                   nde_kv_get_int(kv, "bitdepth", &bitdepth));
 	mask_from_stars_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destroy_fn = free;
@@ -182,13 +179,10 @@ static gpointer mask_from_channel_deserialize(const gchar *blob, int version) {
 	GHashTable *kv = nde_kv_parse(blob);
 	gint64 channel, bitpix;
 	gboolean autostretch, invert;
-	if (!nde_kv_get_int(kv, "channel", &channel) ||
-	    !nde_kv_get_bool(kv, "autostretch", &autostretch) ||
-	    !nde_kv_get_bool(kv, "invert", &invert) ||
-	    !nde_kv_get_int(kv, "bitpix", &bitpix)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_int(kv, "channel", &channel) &&
+	                   nde_kv_get_bool(kv, "autostretch", &autostretch) &&
+	                   nde_kv_get_bool(kv, "invert", &invert) &&
+	                   nde_kv_get_int(kv, "bitpix", &bitpix));
 	mask_from_channel_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destroy_fn = mask_from_channel_data_free;
@@ -225,17 +219,14 @@ static gpointer mask_from_lum_deserialize(const gchar *blob, int version) {
 	float rw, gw, bw;
 	gboolean autostretch, invert, use_human, use_even;
 	gint64 bitpix;
-	if (!nde_kv_get_float(kv, "rw", &rw) ||
-	    !nde_kv_get_float(kv, "gw", &gw) ||
-	    !nde_kv_get_float(kv, "bw", &bw) ||
-	    !nde_kv_get_bool(kv, "autostretch", &autostretch) ||
-	    !nde_kv_get_bool(kv, "invert", &invert) ||
-	    !nde_kv_get_bool(kv, "use_human", &use_human) ||
-	    !nde_kv_get_bool(kv, "use_even", &use_even) ||
-	    !nde_kv_get_int(kv, "bitpix", &bitpix)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_float(kv, "rw", &rw) &&
+	                   nde_kv_get_float(kv, "gw", &gw) &&
+	                   nde_kv_get_float(kv, "bw", &bw) &&
+	                   nde_kv_get_bool(kv, "autostretch", &autostretch) &&
+	                   nde_kv_get_bool(kv, "invert", &invert) &&
+	                   nde_kv_get_bool(kv, "use_human", &use_human) &&
+	                   nde_kv_get_bool(kv, "use_even", &use_even) &&
+	                   nde_kv_get_int(kv, "bitpix", &bitpix));
 	mask_from_lum_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destroy_fn = mask_from_lum_data_free;
@@ -268,12 +259,9 @@ static gpointer mask_thresh_deserialize(const gchar *blob, int version) {
 		return NULL;
 	GHashTable *kv = nde_kv_parse(blob);
 	float min_val, max_val, range;
-	if (!nde_kv_get_float(kv, "min_val", &min_val) ||
-	    !nde_kv_get_float(kv, "max_val", &max_val) ||
-	    !nde_kv_get_float(kv, "range", &range)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_float(kv, "min_val", &min_val) &&
+	                   nde_kv_get_float(kv, "max_val", &max_val) &&
+	                   nde_kv_get_float(kv, "range", &range));
 	mask_thresh_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destroy_fn = free;
@@ -297,10 +285,7 @@ static gpointer mask_blur_deserialize(const gchar *blob, int version) {
 		return NULL;
 	GHashTable *kv = nde_kv_parse(blob);
 	float radius;
-	if (!nde_kv_get_float(kv, "radius", &radius)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_float(kv, "radius", &radius));
 	mask_blur_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destroy_fn = free;
@@ -325,11 +310,8 @@ static gpointer mask_feather_deserialize(const gchar *blob, int version) {
 	GHashTable *kv = nde_kv_parse(blob);
 	float distance;
 	gint64 mode;
-	if (!nde_kv_get_float(kv, "distance", &distance) ||
-	    !nde_kv_get_int(kv, "mode", &mode)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_float(kv, "distance", &distance) &&
+	                   nde_kv_get_int(kv, "mode", &mode));
 	mask_feather_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destroy_fn = free;
@@ -352,10 +334,7 @@ static gpointer mask_fmul_deserialize(const gchar *blob, int version) {
 		return NULL;
 	GHashTable *kv = nde_kv_parse(blob);
 	float factor;
-	if (!nde_kv_get_float(kv, "factor", &factor)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_float(kv, "factor", &factor));
 	mask_fmul_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destroy_fn = free;
@@ -377,10 +356,7 @@ static gpointer mask_bitpix_deserialize(const gchar *blob, int version) {
 		return NULL;
 	GHashTable *kv = nde_kv_parse(blob);
 	gint64 bitpix;
-	if (!nde_kv_get_int(kv, "bitpix", &bitpix)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_int(kv, "bitpix", &bitpix));
 	mask_bitpix_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destroy_fn = free;
@@ -413,19 +389,16 @@ static gpointer mask_from_color_deserialize(const gchar *blob, int version) {
 	float cr, cg, cb, tol, lmin, lmax;
 	gint64 feather_radius, bitpix;
 	gboolean invert, cleanup;
-	if (!nde_kv_get_float(kv, "chrom_center_r", &cr) ||
-	    !nde_kv_get_float(kv, "chrom_center_g", &cg) ||
-	    !nde_kv_get_float(kv, "chrom_center_b", &cb) ||
-	    !nde_kv_get_float(kv, "chrom_tolerance", &tol) ||
-	    !nde_kv_get_float(kv, "lum_min", &lmin) ||
-	    !nde_kv_get_float(kv, "lum_max", &lmax) ||
-	    !nde_kv_get_int(kv, "feather_radius", &feather_radius) ||
-	    !nde_kv_get_bool(kv, "invert", &invert) ||
-	    !nde_kv_get_int(kv, "bitpix", &bitpix) ||
-	    !nde_kv_get_bool(kv, "cleanup", &cleanup)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_float(kv, "chrom_center_r", &cr) &&
+	                   nde_kv_get_float(kv, "chrom_center_g", &cg) &&
+	                   nde_kv_get_float(kv, "chrom_center_b", &cb) &&
+	                   nde_kv_get_float(kv, "chrom_tolerance", &tol) &&
+	                   nde_kv_get_float(kv, "lum_min", &lmin) &&
+	                   nde_kv_get_float(kv, "lum_max", &lmax) &&
+	                   nde_kv_get_int(kv, "feather_radius", &feather_radius) &&
+	                   nde_kv_get_bool(kv, "invert", &invert) &&
+	                   nde_kv_get_int(kv, "bitpix", &bitpix) &&
+	                   nde_kv_get_bool(kv, "cleanup", &cleanup));
 	mask_from_color_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destroy_fn = free;

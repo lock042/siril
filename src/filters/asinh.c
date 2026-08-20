@@ -37,13 +37,10 @@ static gpointer asinh_deserialize(const gchar *blob, int version) {
 	float beta, offset;
 	gboolean human;
 	gint64 clip_mode;
-	if (!nde_kv_get_float(kv, "beta", &beta) ||
-	    !nde_kv_get_float(kv, "offset", &offset) ||
-	    !nde_kv_get_bool(kv, "human", &human) ||
-	    !nde_kv_get_int(kv, "clip_mode", &clip_mode)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_float(kv, "beta", &beta) &&
+	                   nde_kv_get_float(kv, "offset", &offset) &&
+	                   nde_kv_get_bool(kv, "human", &human) &&
+	                   nde_kv_get_int(kv, "clip_mode", &clip_mode));
 	asinh_params *p = calloc(1, sizeof(asinh_params));
 	if (p) {
 		p->destroy_fn = free;

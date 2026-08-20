@@ -337,10 +337,7 @@ static gpointer rgb_align_deserialize(const gchar *blob, int version) {
 		return NULL;
 	GHashTable *kv = nde_kv_parse(blob);
 	gint64 method = 0;
-	if (!nde_kv_get_int(kv, "method", &method) || method < 0 || method > 3) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_int(kv, "method", &method) && method >= 0 && method <= 3);
 	gint64 x, y, w, h;
 	gboolean have_area = nde_kv_get_int(kv, "sel_x", &x) &&
 	                     nde_kv_get_int(kv, "sel_y", &y) &&

@@ -40,11 +40,8 @@ static gpointer clahe_deserialize(const gchar *blob, int version) {
 	GHashTable *kv = nde_kv_parse(blob);
 	double clip;
 	gint64 tileSize;
-	if (!nde_kv_get_double(kv, "clip", &clip) ||
-	    !nde_kv_get_int(kv, "tileSize", &tileSize)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_double(kv, "clip", &clip) &&
+	                   nde_kv_get_int(kv, "tileSize", &tileSize));
 	clahe_params *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destroy_fn = free;

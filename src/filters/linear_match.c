@@ -50,13 +50,10 @@ static gpointer linear_match_deserialize(const gchar *blob, int version) {
 	double low, high;
 	gboolean force_to_float;
 	const char *path = nde_kv_get_str(kv, "operand_path");
-	if (!nde_kv_get_double(kv, "low", &low) ||
-	    !nde_kv_get_double(kv, "high", &high) ||
-	    !nde_kv_get_bool(kv, "force_to_float", &force_to_float) ||
-	    !path || !*path) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_double(kv, "low", &low) &&
+	                   nde_kv_get_double(kv, "high", &high) &&
+	                   nde_kv_get_bool(kv, "force_to_float", &force_to_float) &&
+	                   path && *path);
 	struct linear_match_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destroy_fn = free_linear_match_data;

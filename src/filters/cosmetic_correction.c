@@ -59,13 +59,10 @@ static gpointer cosmetic_deserialize(const gchar *blob, int version) {
 	GHashTable *kv = nde_kv_parse(blob);
 	double sigma0, sigma1, amount;
 	gboolean is_cfa;
-	if (!nde_kv_get_double(kv, "sigma0", &sigma0) ||
-	    !nde_kv_get_double(kv, "sigma1", &sigma1) ||
-	    !nde_kv_get_double(kv, "amount", &amount) ||
-	    !nde_kv_get_bool(kv, "is_cfa", &is_cfa)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_double(kv, "sigma0", &sigma0) &&
+	                   nde_kv_get_double(kv, "sigma1", &sigma1) &&
+	                   nde_kv_get_double(kv, "amount", &amount) &&
+	                   nde_kv_get_bool(kv, "is_cfa", &is_cfa));
 	struct cosmetic_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destroy_fn = free;
@@ -110,11 +107,7 @@ static gpointer cosme_deserialize(const gchar *blob, int version) {
 	GHashTable *kv = nde_kv_parse(blob);
 	gint64 is_cfa;
 	const char *path = nde_kv_get_str(kv, "operand_path");
-	if (!nde_kv_get_int(kv, "is_cfa", &is_cfa) ||
-	    !path || !*path) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_int(kv, "is_cfa", &is_cfa) && path && *path);
 	struct cosme_data *d = new_cosme_data();
 	if (d) {
 		d->is_cfa = (int)is_cfa;

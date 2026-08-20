@@ -62,13 +62,10 @@ static gpointer banding_deserialize(const gchar *blob, int version) {
 	GHashTable *kv = nde_kv_parse(blob);
 	double sigma, amount;
 	gboolean protect_highlights, applyRotation;
-	if (!nde_kv_get_double(kv, "sigma", &sigma) ||
-	    !nde_kv_get_double(kv, "amount", &amount) ||
-	    !nde_kv_get_bool(kv, "protect_highlights", &protect_highlights) ||
-	    !nde_kv_get_bool(kv, "applyRotation", &applyRotation)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_double(kv, "sigma", &sigma) &&
+	                   nde_kv_get_double(kv, "amount", &amount) &&
+	                   nde_kv_get_bool(kv, "protect_highlights", &protect_highlights) &&
+	                   nde_kv_get_bool(kv, "applyRotation", &applyRotation));
 	struct banding_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destroy_fn = free;

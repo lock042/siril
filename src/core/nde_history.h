@@ -634,6 +634,20 @@ gboolean    nde_kv_get_bool(GHashTable *kv, const char *key, gboolean *out);
 gboolean    nde_kv_get_float(GHashTable *kv, const char *key, float *out);
 gboolean    nde_kv_get_double(GHashTable *kv, const char *key, double *out);
 
+/**
+ * Abandon a deserializer when a required field is absent or unparsable: unrefs
+ * @kv and returns NULL, which is how a deserializer says "this record is not
+ * replayable".  Only valid inside a function that returns a pointer and owns
+ * @kv.
+ *
+ * State the requirement positively — "all of these parsed" — and let the macro
+ * own the failure path.  Spelling that path out per field is where the one leak
+ * a new op can introduce comes from: the early return is easy to write and the
+ * unref in front of it is easy to forget.
+ */
+#define NDE_KV_REQUIRE(kv, cond) \
+	do { if (!(cond)) { g_hash_table_unref(kv); return NULL; } } while (0)
+
 #ifdef __cplusplus
 }
 #endif

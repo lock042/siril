@@ -140,10 +140,7 @@ static gpointer curves_deserialize(const gchar *blob, int version) {
 		return NULL;
 	GHashTable *kv = nde_kv_parse(blob);
 	gint64 algorithm;
-	if (!nde_kv_get_int(kv, "algorithm", &algorithm)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_int(kv, "algorithm", &algorithm));
 
 	GList *points[CHAN_COUNT] = { NULL };
 	curve_channel_config masks[CHAN_COUNT] = { { 0 } };

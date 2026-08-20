@@ -68,29 +68,20 @@ static gpointer epf_deserialize(const gchar *blob, int version) {
 	GHashTable *kv = nde_kv_parse(blob);
 	double d, sigma_col, sigma_space, mod;
 	gint64 filter;
-	if (!nde_kv_get_double(kv, "d", &d) ||
-	    !nde_kv_get_double(kv, "sigma_col", &sigma_col) ||
-	    !nde_kv_get_double(kv, "sigma_space", &sigma_space) ||
-	    !nde_kv_get_double(kv, "mod", &mod) ||
-	    !nde_kv_get_int(kv, "filter", &filter)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_double(kv, "d", &d) &&
+	                   nde_kv_get_double(kv, "sigma_col", &sigma_col) &&
+	                   nde_kv_get_double(kv, "sigma_space", &sigma_space) &&
+	                   nde_kv_get_double(kv, "mod", &mod) &&
+	                   nde_kv_get_int(kv, "filter", &filter));
 	const char *guide = nde_kv_get_str(kv, "guide");
 	/* A guided record must carry a guide token (self/file); a file guide must
 	 * carry a path.  A record without these (pre-phase-4.5 guided capture) is
 	 * not replayable. */
 	if (filter == EP_GUIDED) {
-		if (!guide) {
-			g_hash_table_unref(kv);
-			return NULL;
-		}
+		NDE_KV_REQUIRE(kv, guide);
 		if (!strcmp(guide, "file")) {
 			const char *path = nde_kv_get_str(kv, "operand_path");
-			if (!path || !*path) {
-				g_hash_table_unref(kv);
-				return NULL;
-			}
+			NDE_KV_REQUIRE(kv, path && *path);
 		}
 	}
 	struct epfargs *p = new_epf_args();

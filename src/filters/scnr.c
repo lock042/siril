@@ -49,12 +49,9 @@ static gpointer scnr_deserialize(const gchar *blob, int version) {
 	gint64 type;
 	double amount;
 	gboolean preserve;
-	if (!nde_kv_get_int(kv, "type", &type) ||
-	    !nde_kv_get_double(kv, "amount", &amount) ||
-	    !nde_kv_get_bool(kv, "preserve", &preserve)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_int(kv, "type", &type) &&
+	                   nde_kv_get_double(kv, "amount", &amount) &&
+	                   nde_kv_get_bool(kv, "preserve", &preserve));
 	struct scnr_data *p = new_scnr_data();
 	if (p) {
 		p->type = (scnr_type)type;

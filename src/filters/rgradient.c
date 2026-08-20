@@ -48,13 +48,10 @@ static gpointer rgradient_deserialize(const gchar *blob, int version) {
 		return NULL;
 	GHashTable *kv = nde_kv_parse(blob);
 	double xc, yc, dR, da;
-	if (!nde_kv_get_double(kv, "xc", &xc) ||
-	    !nde_kv_get_double(kv, "yc", &yc) ||
-	    !nde_kv_get_double(kv, "dR", &dR) ||
-	    !nde_kv_get_double(kv, "da", &da)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_double(kv, "xc", &xc) &&
+	                   nde_kv_get_double(kv, "yc", &yc) &&
+	                   nde_kv_get_double(kv, "dR", &dR) &&
+	                   nde_kv_get_double(kv, "da", &da));
 	struct rgradient_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destroy_fn = free;

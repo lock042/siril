@@ -53,12 +53,9 @@ static gpointer median_deserialize(const gchar *blob, int version) {
 	GHashTable *kv = nde_kv_parse(blob);
 	gint64 ksize, iterations;
 	double amount;
-	if (!nde_kv_get_int(kv, "ksize", &ksize) ||
-	    !nde_kv_get_double(kv, "amount", &amount) ||
-	    !nde_kv_get_int(kv, "iterations", &iterations)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_int(kv, "ksize", &ksize) &&
+	                   nde_kv_get_double(kv, "amount", &amount) &&
+	                   nde_kv_get_int(kv, "iterations", &iterations));
 	struct median_filter_data *p = calloc(1, sizeof(*p));
 	if (p) {
 		p->destroy_fn = free;

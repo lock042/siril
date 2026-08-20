@@ -135,10 +135,7 @@ static gpointer photometric_cc_deserialize(const gchar *blob, int version) {
 	    nde_kv_get_float(kv, "bg2", &bg[2]);
 	/* A v1 record without kw/bg predates Convention 3 and has nothing to
 	 * replay; a v2 record replays from its analysis inputs regardless. */
-	if (!auto_replay && !have_eff) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, auto_replay || have_eff);
 	struct photometric_cc_data *d = calloc(1, sizeof(*d));
 	if (d) {
 		d->destroy_fn = free_photometric_cc_data;

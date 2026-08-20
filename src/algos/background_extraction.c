@@ -138,30 +138,27 @@ static gpointer remove_gradient_deserialize(const gchar *blob, int version) {
 	struct background_data tmp = { 0 };
 	gint64 method, nb_of_samples, correction, interpolation_method, degree,
 	       ag_degree, ag_downsample;
-	if (!nde_kv_get_int(kv, "method", &method) ||
-	    !nde_kv_get_int(kv, "nb_of_samples", &nb_of_samples) ||
-	    !nde_kv_get_double(kv, "tolerance", &tmp.tolerance) ||
-	    !nde_kv_get_int(kv, "correction", &correction) ||
-	    !nde_kv_get_int(kv, "interpolation_method", &interpolation_method) ||
-	    !nde_kv_get_int(kv, "degree", &degree) ||
-	    !nde_kv_get_double(kv, "smoothing", &tmp.smoothing) ||
-	    !nde_kv_get_bool(kv, "dither", &tmp.dither) ||
-	    !nde_kv_get_bool(kv, "is_cfa", &tmp.is_cfa) ||
-	    !nde_kv_get_bool(kv, "randomize", &tmp.randomize) ||
-	    !nde_kv_get_bool(kv, "grad_descent", &tmp.grad_descent) ||
-	    !nde_kv_get_double(kv, "border_value", &tmp.border_value) ||
-	    !nde_kv_get_bool(kv, "border_is_percent", &tmp.border_is_percent) ||
-	    !nde_kv_get_double(kv, "ag_scale", &tmp.autograd.scale) ||
-	    !nde_kv_get_double(kv, "ag_smoothness", &tmp.autograd.smoothness) ||
-	    !nde_kv_get_bool(kv, "ag_protect", &tmp.autograd.protect) ||
-	    !nde_kv_get_double(kv, "ag_protect_threshold", &tmp.autograd.protect_threshold) ||
-	    !nde_kv_get_double(kv, "ag_protect_amount", &tmp.autograd.protect_amount) ||
-	    !nde_kv_get_bool(kv, "ag_simplified", &tmp.autograd.simplified) ||
-	    !nde_kv_get_int(kv, "ag_degree", &ag_degree) ||
-	    !nde_kv_get_int(kv, "ag_downsample", &ag_downsample)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_int(kv, "method", &method) &&
+	                   nde_kv_get_int(kv, "nb_of_samples", &nb_of_samples) &&
+	                   nde_kv_get_double(kv, "tolerance", &tmp.tolerance) &&
+	                   nde_kv_get_int(kv, "correction", &correction) &&
+	                   nde_kv_get_int(kv, "interpolation_method", &interpolation_method) &&
+	                   nde_kv_get_int(kv, "degree", &degree) &&
+	                   nde_kv_get_double(kv, "smoothing", &tmp.smoothing) &&
+	                   nde_kv_get_bool(kv, "dither", &tmp.dither) &&
+	                   nde_kv_get_bool(kv, "is_cfa", &tmp.is_cfa) &&
+	                   nde_kv_get_bool(kv, "randomize", &tmp.randomize) &&
+	                   nde_kv_get_bool(kv, "grad_descent", &tmp.grad_descent) &&
+	                   nde_kv_get_double(kv, "border_value", &tmp.border_value) &&
+	                   nde_kv_get_bool(kv, "border_is_percent", &tmp.border_is_percent) &&
+	                   nde_kv_get_double(kv, "ag_scale", &tmp.autograd.scale) &&
+	                   nde_kv_get_double(kv, "ag_smoothness", &tmp.autograd.smoothness) &&
+	                   nde_kv_get_bool(kv, "ag_protect", &tmp.autograd.protect) &&
+	                   nde_kv_get_double(kv, "ag_protect_threshold", &tmp.autograd.protect_threshold) &&
+	                   nde_kv_get_double(kv, "ag_protect_amount", &tmp.autograd.protect_amount) &&
+	                   nde_kv_get_bool(kv, "ag_simplified", &tmp.autograd.simplified) &&
+	                   nde_kv_get_int(kv, "ag_degree", &ag_degree) &&
+	                   nde_kv_get_int(kv, "ag_downsample", &ag_downsample));
 	/* The "samples" key (§15) is intentionally ignored here: struct
 	 * background_data has no field for it.  It survives verbatim in the blob
 	 * and phase 2's replay driver will load it into com.grad_samples. */

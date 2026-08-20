@@ -67,12 +67,9 @@ static gpointer unpurple_deserialize(const gchar *blob, int version) {
 	GHashTable *kv = nde_kv_parse(blob);
 	double mod_b, thresh;
 	gboolean withstarmask;
-	if (!nde_kv_get_double(kv, "mod_b", &mod_b) ||
-	    !nde_kv_get_double(kv, "thresh", &thresh) ||
-	    !nde_kv_get_bool(kv, "withstarmask", &withstarmask)) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, nde_kv_get_double(kv, "mod_b", &mod_b) &&
+	                   nde_kv_get_double(kv, "thresh", &thresh) &&
+	                   nde_kv_get_bool(kv, "withstarmask", &withstarmask));
 	gboolean auto_d = FALSE;
 	nde_kv_get_bool(kv, "stars_auto", &auto_d);
 	const char *stars = nde_kv_get_str(kv, "stars");
@@ -82,10 +79,7 @@ static gpointer unpurple_deserialize(const gchar *blob, int version) {
 	 * pre-feature record) stays honestly non-replayable. */
 	if (withstarmask) {
 		if (auto_d) {
-			if (!synthstar_conf_from_kv(kv, &conf)) {
-				g_hash_table_unref(kv);
-				return NULL;
-			}
+			NDE_KV_REQUIRE(kv, synthstar_conf_from_kv(kv, &conf));
 		} else if (!stars || !*stars) {
 			g_hash_table_unref(kv);
 			return NULL;

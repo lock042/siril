@@ -111,13 +111,12 @@ static gpointer deconvolve_deserialize(const gchar *blob, int version) {
 	GHashTable *kv = nde_kv_parse(blob);
 	gint64 ks = 0, kc = 0, orient = 0;
 	const char *b64 = nde_kv_get_str(kv, "kernel");
-	if (!b64 || !*b64 ||
-	    !nde_kv_get_int(kv, "kernel_ks", &ks) ||
-	    !nde_kv_get_int(kv, "kernel_kchans", &kc) ||
-	    ks < 1 || kc < 1) {
-		g_hash_table_unref(kv);
-		return NULL;
-	}
+	NDE_KV_REQUIRE(kv, b64 &&
+	                   *b64 &&
+	                   nde_kv_get_int(kv, "kernel_ks", &ks) &&
+	                   nde_kv_get_int(kv, "kernel_kchans", &kc) &&
+	                   ks >= 1 &&
+	                   kc >= 1);
 	nde_kv_get_int(kv, "kernel_orientation", &orient);
 	gsize len = 0;
 	guchar *bytes = g_base64_decode(b64, &len);
