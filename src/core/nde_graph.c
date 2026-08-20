@@ -22,6 +22,7 @@
 
 #include "core/siril.h"
 #include "core/nde_history.h"
+#include "core/nde_op_class.h"
 #include "core/nde_graph.h"
 #include "core/nde_composite.h"
 #include "core/nde_joint.h"
@@ -489,12 +490,12 @@ nde_graph *nde_graph_build(void) {
 	 * consumed layer is where the surviving image CAME FROM and belongs among
 	 * the live columns with the composite below it; a deleted one is a dead
 	 * end, kept only so the deletion can be undone.  The record says which:
-	 * layer.remove is written for a deletion and for nothing else. */
+	 * NDE_OPT_DELETES_ITEM is written for a deletion and for nothing else. */
 	for (guint i = 0; i < g->nodes->len; i++) {
 		nde_graph_node *n = g_ptr_array_index(g->nodes, i);
 		for (guint r = 0; r < snap->len && !n->deleted; r++) {
 			const nde_record *rec = g_ptr_array_index(snap, r);
-			n->deleted = !g_strcmp0(rec->op_id, "layer.remove") &&
+			n->deleted = (nde_op_class_for(rec->op_id)->traits & NDE_OPT_DELETES_ITEM) &&
 			             rec->target_item_id == n->real_item;
 		}
 	}

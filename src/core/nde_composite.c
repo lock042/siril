@@ -24,6 +24,7 @@
 #include "core/proto.h"
 #include "core/masks.h"
 #include "core/nde_history.h"
+#include "core/nde_op_class.h"
 #include "core/nde_checkpoint.h"
 #include "core/nde_compositing.h"
 #include "core/nde_composite.h"
@@ -62,8 +63,7 @@ static nde_composite_state *state_new(void) {
 }
 
 gboolean nde_composite_is_op(const char *op_id) {
-	return !g_strcmp0(op_id, "layer.merge_down") ||
-	       !g_strcmp0(op_id, "document.flatten");
+	return nde_op_class_for(op_id)->family == NDE_OPC_COMPOSITE;
 }
 
 /* ---- encoding ----------------------------------------------------------- */

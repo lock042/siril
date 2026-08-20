@@ -23,6 +23,7 @@
 #include "core/siril.h"
 #include "core/nde_compositing.h"
 #include "core/nde_history.h"
+#include "core/nde_op_class.h"
 #include "core/gui_iface.h"
 #include "io/image_format_flis.h"
 
@@ -38,10 +39,7 @@
 #define COMP_DEFAULT_VISIBLE TRUE
 
 gboolean nde_compositing_is_op(const char *op_id) {
-	return op_id && (!g_strcmp0(op_id, OP_SET_OPACITY) ||
-	                 !g_strcmp0(op_id, OP_SET_BLEND) ||
-	                 !g_strcmp0(op_id, OP_SET_VISIBLE) ||
-	                 !g_strcmp0(op_id, OP_SET_TINT));
+	return nde_op_class_for(op_id)->family == NDE_OPC_COMPOSITING;
 }
 
 /* Every layer blend mode.  PASS_THROUGH is excluded on purpose: it is a group
@@ -176,8 +174,7 @@ void nde_compositing_fold_upto(gint item_id, gint64 upto_record_id,
 
 		/* Reset points: after these the layer provably sits at the defaults,
 		 * so everything recorded earlier is superseded. */
-		if (!g_strcmp0(rec->op_id, "document.flatten") ||
-		    !g_strcmp0(rec->op_id, "layer.add")) {
+		if (nde_op_class_for(rec->op_id)->traits & NDE_OPT_COMPOSITING_RESET) {
 			opacity = COMP_DEFAULT_OPACITY;
 			blend   = COMP_DEFAULT_BLEND;
 			visible = COMP_DEFAULT_VISIBLE;

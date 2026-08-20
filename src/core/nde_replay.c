@@ -35,6 +35,7 @@
 #include "core/op_descriptor.h"
 #include "core/fits_region.h"
 #include "core/nde_history.h"
+#include "core/nde_op_class.h"
 #include "core/nde_checkpoint.h"
 #include "core/masks.h"
 #include "core/nde_compositing.h"
@@ -445,9 +446,8 @@ static nde_chain *chain_build_excluding(gint item_id, gint64 exclude_record_id) 
 			 * carrying geometry even though the step itself is gone —
 			 * without this the pixels revert and the offset does not, and
 			 * the layer ends up correct-but-misplaced. */
-			const op_descriptor *dop = op_descriptor_by_id(rec->op_id);
-			gboolean geometric = (dop && (dop->flags & OP_GEOMETRY_CHANGING)) ||
-			                     nde_joint_is_geometric_op(rec->op_id);
+			gboolean geometric = nde_op_class_for(rec->op_id)->traits &
+			                     NDE_OPT_GEOMETRIC;
 			gboolean mine = rec->target_item_id == item_id ||
 			                (nde_joint_is_op(rec->op_id) &&
 			                 nde_joint_record_names_item(rec, item_id));
@@ -508,17 +508,8 @@ static nde_chain *chain_build_excluding(gint item_id, gint64 exclude_record_id) 
 			 * target -1) move positions, not this item's pixels: ignore. */
 			break;
 		case NDE_SCOPE_DOCUMENT: {
-			gboolean destructive = !g_strcmp0(rec->op_id, "layer.merge_down") ||
-			                       !g_strcmp0(rec->op_id, "document.flatten");
-			gboolean structural = destructive ||
-			                      !g_strcmp0(rec->op_id, "layer.add") ||
-			                      !g_strcmp0(rec->op_id, "layer.duplicate") ||
-			                      !g_strcmp0(rec->op_id, "layer.remove") ||
-			                      !g_strcmp0(rec->op_id, "layer.reorder") ||
-			                      /* Says where the BASELINE came from, which is
-			                       * where a replay already starts; running it
-			                       * would mean re-opening the file. */
-			                      !g_strcmp0(rec->op_id, NDE_OP_IMAGE_ORIGIN);
+			const nde_op_class *cls = nde_op_class_for(rec->op_id);
+			gboolean destructive = cls->traits & NDE_OPT_DESTRUCTIVE;
 			if (destructive && rec->target_item_id == item_id) {
 				if (nde_composite_record_replayable(rec)) {
 					/* A composite node (graph step 7): its inputs are
@@ -537,12 +528,18 @@ static nde_chain *chain_build_excluding(gint item_id, gint64 exclude_record_id) 
 				           rec->record_id, rec->op_id);
 				chain->tail_start = chain->records->len;
 				tail_possible = FALSE;
-			} else if (!structural) {
-				/* FAIL CLOSED: a non-structural DOCUMENT-scope record
-				 * mutated pixels document-wide (icc.convert via the layer
-				 * worker today; unknown ops from newer builds tomorrow).
-				 * Every layer's chain spans it, so no layer chain that
-				 * contains records on both sides can replay without it. */
+			} else if (!(cls->traits & NDE_OPT_CHAIN_IGNORE) && !destructive) {
+				/* FAIL CLOSED: a DOCUMENT-scope record that is not known to
+				 * be ignorable mutated pixels document-wide (icc.convert via
+				 * the layer worker today; unknown ops from newer builds
+				 * tomorrow — NDE_OPC_UNKNOWN carries no traits precisely so
+				 * that it lands here).  Every layer's chain spans it, so no
+				 * layer chain with records on both sides can replay without
+				 * it.
+				 *
+				 * !destructive is not redundant: a merge or flatten targeting
+				 * ANOTHER item falls through to here, and it consumed someone
+				 * else's pixels, not ours. */
 				add_reason(chain, _("record %" G_GINT64_FORMAT " (%s) applies to the whole document — not replayable"),
 				           rec->record_id, rec->op_id ? rec->op_id : "?");
 				chain->tail_start = chain->records->len;
@@ -819,6 +816,7 @@ static fits *replay_apply_records(fits *scratch, const nde_chain *chain,
 			*err = g_strdup(_("cancelled"));
 			goto fail;
 		}
+		const nde_op_class *cls = nde_op_class_for(rec->op_id);
 		/* A NULL scratch is legal for exactly one kind of record: the
 		 * composite that gives an item born of a merge its origin, which
 		 * renders its own inputs and wants no prior state.  Anything else
@@ -826,7 +824,7 @@ static fits *replay_apply_records(fits *scratch, const nde_chain *chain,
 		 * far as scratch->mask.  Callers guard their own restart points; this
 		 * is the last one, so that a gap upstream is a failed replay and not
 		 * a lost session. */
-		if (!scratch && !nde_composite_is_op(rec->op_id)) {
+		if (!scratch && cls->family != NDE_OPC_COMPOSITE) {
 			*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) has no "
 			                         "image to run on — the history has no "
 			                         "starting state before it"),
@@ -849,7 +847,11 @@ static fits *replay_apply_records(fits *scratch, const nde_chain *chain,
 			nde_snapstore_deposit(scratch, chain->item_id, rec->record_id);
 			continue;
 		}
-		if (nde_joint_is_op(rec->op_id)) {
+		/* Every family is listed so that adding one is a compiler warning
+		 * here rather than a record that silently takes the descriptor
+		 * path below and does the wrong thing. */
+		switch (cls->family) {
+		case NDE_OPC_JOINT: {
 			/* A joint record (nde_joint.h): recompute the multi-layer
 			 * analysis — siblings resolved positionally, this chain's state
 			 * supplied by the accumulated scratch — and apply only this
@@ -877,7 +879,7 @@ static fits *replay_apply_records(fits *scratch, const nde_chain *chain,
 			nde_snapstore_deposit(scratch, chain->item_id, rec->record_id);
 			continue;
 		}
-		if (nde_composite_is_op(rec->op_id)) {
+		case NDE_OPC_COMPOSITE: {
 			fits *merged = composite_apply(scratch, rec, chain->item_id,
 			                               pos_x, pos_y, err);
 			if (!merged)
@@ -891,6 +893,19 @@ static fits *replay_apply_records(fits *scratch, const nde_chain *chain,
 			scratch = merged;
 			nde_snapstore_deposit(scratch, chain->item_id, rec->record_id);
 			continue;
+		}
+		/* Everything else runs its descriptor's hook below.  The families that
+		 * never become chain members (compositing state, structural, analysis)
+		 * were filtered long before this loop; they are listed to keep the
+		 * switch exhaustive, not because they can arrive here. */
+		case NDE_OPC_PIXEL:
+		case NDE_OPC_MASK:
+		case NDE_OPC_DOCUMENT:
+		case NDE_OPC_COMPOSITING:
+		case NDE_OPC_STRUCTURAL:
+		case NDE_OPC_ANALYSIS:
+		case NDE_OPC_UNKNOWN:
+			break;
 		}
 		const op_descriptor *op = op_descriptor_by_id(rec->op_id);
 		gpointer user = op->deserialize(rec->params, rec->op_version);
@@ -3825,22 +3840,24 @@ struct nde_region_tail {
  * clicked, whereas "colors.asinh" is what we called it. */
 static gchar *region_tail_member_reason(const nde_record *rec, guint8 flags,
                                         int *halo_out) {
-	const op_descriptor *op = rec->op_id ? op_descriptor_by_id(rec->op_id) : NULL;
-	const gchar *name = (op && op->description) ? _(op->description)
+	const nde_op_class *cls = nde_op_class_for(rec->op_id);
+	const op_descriptor *op = cls->desc;
+	const gchar *name = cls->label ? _(cls->label)
 	                  : (rec->op_id ? rec->op_id : "?");
 
 	if (flags & NDE_CHAIN_MEMBER_BARRIER)
 		return g_strdup_printf(_("\"%s\" cannot be recomputed"), name);
 	if (rec->tier != NDE_TIER_A)
 		return g_strdup_printf(_("\"%s\" is not a replayable step"), name);
-	/* Composites and joint records read OTHER items, at full size.  They are
-	 * excluded by the descriptor test below too (neither has one), but naming
-	 * them separately is what makes the banner's reason useful. */
-	if (nde_composite_is_op(rec->op_id) || nde_joint_is_op(rec->op_id))
+	/* Composites and joint records read OTHER items, at full size.  A
+	 * composite would also be caught by the descriptor test below (it has
+	 * none), but naming both separately is what makes the banner's reason
+	 * useful. */
+	if (cls->family == NDE_OPC_COMPOSITE || cls->family == NDE_OPC_JOINT)
 		return g_strdup_printf(_("\"%s\" combines several images"), name);
 	if (!op || !op->deserialize)
 		return g_strdup_printf(_("\"%s\" is not a known operation"), name);
-	if (op->flags & OP_GEOMETRY_CHANGING)
+	if (cls->traits & NDE_OPT_GEOMETRIC)
 		return g_strdup_printf(_("\"%s\" changes the image geometry"), name);
 	if (!op_descriptor_is_roi_capable(op))
 		return g_strdup_printf(_("\"%s\" cannot be computed on a region"), name);

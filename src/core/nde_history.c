@@ -28,6 +28,7 @@
 #include "core/gui_iface.h"
 #include "core/op_descriptor.h"
 #include "core/nde_history.h"
+#include "core/nde_op_class.h"
 #include "core/nde_checkpoint.h"
 #include "core/nde_compositing.h"
 #include "core/nde_composite.h"
@@ -295,16 +296,16 @@ static gboolean insert_qualifies_locked(const nde_history *h, const nde_record *
  * (nde_edit_at_refuses_op); this flag is the backstop for a path that does
  * not, and it makes the insertion abandon rather than lie.  Mutex held. */
 static gboolean insert_disturbs(const nde_history *h, const nde_record *rec) {
+	const nde_op_class *cls = nde_op_class_for(rec->op_id);
 	return (rec->scope == NDE_SCOPE_CANVAS && h->ins_item >= 0) ||
-	       !g_strcmp0(rec->op_id, "document.flatten") ||
-	       !g_strcmp0(rec->op_id, "layer.merge_down") ||
+	       (cls->traits & NDE_OPT_INSERT_DISTURBS) ||
 	       /* Removing the insertion's own item deletes the image the armed
 	        * insertion describes — the end path would have nothing to restore
 	        * into.  The GUI refuses it up front (op_hook); this is the
 	        * backstop.  Other structural ops (add / duplicate / reorder, and
 	        * removing an UNRELATED layer) stay harmless appends, as the
 	        * qualification tests document. */
-	       (!g_strcmp0(rec->op_id, "layer.remove") &&
+	       ((cls->traits & NDE_OPT_DELETES_ITEM) &&
 	        rec->target_item_id == h->ins_item);
 }
 

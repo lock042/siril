@@ -25,6 +25,7 @@
 #include "core/siril.h"
 #include "core/nde_joint.h"
 #include "core/nde_history.h"
+#include "core/nde_op_class.h"
 #include "core/nde_checkpoint.h"     /* baseline offsets (register L2 anchor) */
 #include "core/nde_compositing.h"
 #include "core/nde_replay.h"
@@ -54,13 +55,16 @@
 #define NDE_JOINT_MAX_DIM 200000
 
 gboolean nde_joint_is_op(const char *op_id) {
-	return op_id && (!g_strcmp0(op_id, OP_LAYERS_MATCH) ||
-	                 !g_strcmp0(op_id, OP_GROUP_CALIBRATION) ||
-	                 !g_strcmp0(op_id, OP_REGISTER));
+	return nde_op_class_for(op_id)->family == NDE_OPC_JOINT;
 }
 
+/* Registration warps its participants AND moves them on the canvas; the other
+ * two joint ops only rescale pixels.  The trait comes from the descriptor's
+ * OP_GEOMETRY_CHANGING, so this stays in step with the flag that
+ * nde_joint_geometry_signature already reads. */
 gboolean nde_joint_is_geometric_op(const char *op_id) {
-	return op_id && !g_strcmp0(op_id, OP_REGISTER);
+	const nde_op_class *cls = nde_op_class_for(op_id);
+	return cls->family == NDE_OPC_JOINT && (cls->traits & NDE_OPT_GEOMETRIC);
 }
 
 /* ======================================================================= */

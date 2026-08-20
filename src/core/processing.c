@@ -33,6 +33,7 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/nde_history.h"
+#include "core/nde_op_class.h"
 #include "core/nde_replay.h"
 #include "core/nde_checkpoint.h"
 #include "core/nde_snapstore.h"
@@ -2221,6 +2222,15 @@ the_end:;
 		nde_script_scope_mark_pixels_dirty();
 	} else if (!retval && use_swap && !arg_skip_undo && !argpreview) {
 		const op_descriptor *op = args->op;
+		/* An analysis op measures the image and reports; it must never write a
+		 * record, and today that holds only because every one of its call sites
+		 * remembers to pass skip_generic_undo (or for_preview).  A site that
+		 * forgets would put a step in the user's history that changed nothing
+		 * and, lacking a serializer, would freeze every earlier step behind it.
+		 * The family says what the op IS, so the guarantee can live here once
+		 * instead of at twenty call sites. */
+		g_warn_if_fail(nde_op_class_for(op ? op->id : NULL)->family
+		               != NDE_OPC_ANALYSIS);
 		gboolean tier_a = op && op->serialize;
 		nde_record *rec = nde_record_new();
 		rec->op_id = g_strdup(op ? op->id : "opaque.unknown");

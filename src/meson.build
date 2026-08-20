@@ -100,6 +100,7 @@ src_files = [
   'core/nde_cat.c',
   'core/nde_history.c',
   'core/nde_joint.c',
+  'core/nde_op_class.c',
   'core/nde_replay.c',
   'core/nde_script_scope.c',
   'core/nde_graph.c',

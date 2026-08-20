@@ -23,6 +23,7 @@
 #include "core/siril.h"
 #include "core/processing.h"
 #include "core/op_descriptor.h"
+#include "core/nde_op_class.h"
 
 cominfo com;	// the core data struct
 fits *gfit;	// currently loaded image (now a pointer)
@@ -118,11 +119,11 @@ typedef enum {
 	 * provenance capture" in processing.c).  A serializer here would be dead
 	 * code: there is nothing to attach it to.
 	 *
-	 * Caveat worth knowing: that property lives at the CALL SITE, not on the
-	 * descriptor, so this test cannot verify it — it can only pin the absent
-	 * serializer that follows from it.  Dropping skip_generic_undo from one of
-	 * these call sites would silently start capturing Tier-B barriers for an
-	 * op that does not even change pixels, and this test would still pass. */
+	 * That property lives at the CALL SITE, not on the descriptor, so this
+	 * test cannot check it directly.  What it can do is require every id here
+	 * to be declared NDE_OPC_ANALYSIS in the op-class registry, which is what
+	 * the capture block asserts against — so the two lists cannot drift, and
+	 * a call site that drops skip_generic_undo trips the warning there. */
 	OPAQUE_NOT_CAPTURED,
 	/* Genuinely captured, as a Tier-B barrier.  These are the ones that cost
 	 * the user editability, and each is a considered verdict. */
@@ -216,6 +217,28 @@ Test(op_descriptor, the_tier_b_barrier_set_stays_small) {
 	             "means a step the user can no longer edit past: say why in the "
 	             "entry's comment and update this count.",
 	             barriers);
+}
+
+/* The cross-check this file could not write on its own: every OPAQUE_NOT_
+ * CAPTURED id must be declared NDE_OPC_ANALYSIS in the op-class registry, and
+ * nothing else here may be.  The capture block warns when an NDE_OPC_ANALYSIS
+ * op reaches it, so this is what connects "has no serializer because it never
+ * captures" to a statement the running code actually enforces. */
+Test(op_descriptor, analysis_ops_agree_with_the_op_class_registry) {
+	for (size_t i = 0; i < N_OPAQUE; i++) {
+		nde_op_family fam = nde_op_class_for(opaque_by_design[i].id)->family;
+		if (opaque_by_design[i].why == OPAQUE_NOT_CAPTURED)
+			cr_assert_eq(fam, NDE_OPC_ANALYSIS,
+			             "'%s' is pinned as never-captured here, but the op-class "
+			             "registry does not call it NDE_OPC_ANALYSIS — so nothing "
+			             "checks that its call sites still skip the capture",
+			             opaque_by_design[i].id);
+		else
+			cr_assert_neq(fam, NDE_OPC_ANALYSIS,
+			              "'%s' is a Tier-B barrier, so it IS captured, but the "
+			              "registry calls it an analysis op",
+			              opaque_by_design[i].id);
+	}
 }
 
 /* The exact set of ops that may be computed on a sub-rectangle.

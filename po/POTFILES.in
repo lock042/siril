@@ -112,6 +112,7 @@ src/core/nde_composite.c
 src/core/nde_compositing.c
 src/core/nde_graph.c
 src/core/nde_history.c
+src/core/nde_op_class.c
 src/core/nde_replay.c
 src/core/nde_retention.c
 src/core/nde_script_scope.c
