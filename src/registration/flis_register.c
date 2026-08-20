@@ -323,12 +323,8 @@ int flis_register_layers(flis_layer_t *ref_lay,
 	 * that first needs the baseline, and ensure() is a no-op if it exists. */
 	const gboolean nde_replaying = processing_is_reserved_for_replay();
 	if (!nde_replaying) {
-		for (int k = 0; k < n_parts; k++) {
+		for (int k = 0; k < n_parts; k++)
 			nde_checkpoint_baseline_ensure(parts[k].lay->fit, parts[k].lay->item_id);
-			nde_checkpoint_baseline_set_offset(parts[k].lay->item_id,
-			                                   parts[k].lay->position_x,
-			                                   parts[k].lay->position_y);
-		}
 	}
 
 	/* Registration arguments. */

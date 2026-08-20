@@ -48,16 +48,11 @@
  */
 
 #include <glib.h>
+#include "core/nde_state.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/* The image type is `fits` (typedef of `struct ffit` in siril.h).  Forward-
- * declare the tag so this header stays light; the includers all pull in
- * siril.h for the full definition. */
-struct ffit;
-typedef struct ffit fits;
 
 /**
  * Snapshot @pre (PRE-op pixels) as the baseline for @item_id if none is
@@ -66,26 +61,49 @@ typedef struct ffit fits;
  * this may be called from a worker thread while other locks are held.
  * @pre must be a fully-populated single image (DATA_USHORT or DATA_FLOAT).
  * A NULL @pre or a fits with no pixel buffer is ignored.
+ *
+ * A layer's value includes where it sits (nde_state.h), and this records the
+ * position @item_id's layer has AT THE MOMENT OF THE CALL — which is the
+ * position the pre-op pixels go with, because the operation that will move the
+ * layer has not run yet.  So there is nothing extra for a caller to pass, and
+ * nothing to forget: seed the baseline before you operate and the position
+ * comes with it.
  */
 void nde_checkpoint_baseline_ensure(const fits *pre, gint item_id);
 
 /**
- * Load the baseline for @item_id into a freshly allocated, fully-owned fits
- * (caller clearfits()+frees it), or NULL when none is recorded.  Pixel-exact
- * with the buffer passed to ensure()/adopt() — baselines round-trip losslessly.
+ * Same, for pixels whose position was snapshotted EARLIER.  Provenance capture
+ * runs after the hook, by which time a geometry op has already moved the
+ * layer, so it carries the pre-op state (pixels and position together) from
+ * job start and hands the whole of it over here.
  */
-fits *nde_checkpoint_baseline_get(gint item_id);
+void nde_checkpoint_baseline_ensure_at(const nde_state *pre, gint item_id);
+
+/**
+ * Load @item_id's baseline value (caller nde_state_free()s), or NULL when none
+ * is recorded.  Pixel-exact with what was passed to ensure()/adopt() —
+ * baselines round-trip losslessly.
+ */
+nde_state *nde_checkpoint_baseline_get(gint item_id);
 
 /** TRUE when a baseline is recorded for @item_id. */
 gboolean nde_checkpoint_baseline_exists(gint item_id);
 
+/** Where @item_id's baseline says the layer was, without reading its pixels
+ *  back.  A geometry chain cannot be replayed without one — see nde_state.h.
+ *  @pos_x / @pos_y may be NULL; the predicate spelling reads better where only
+ *  the answer is wanted. */
+gboolean nde_checkpoint_baseline_position(gint item_id, gint *pos_x, gint *pos_y);
+gboolean nde_checkpoint_baseline_has_position(gint item_id);
+
 /**
  * Adopt @src as the baseline for @item_id, replacing any existing one.  Used
- * by the FLIS loader to install persisted NDE_BASE HDUs.  Deep-copies @src
- * to a swap file; @src is NOT taken over (caller keeps ownership).  Unlike
- * ensure(), adopt overwrites — the on-disk baseline is authoritative on load.
+ * by the FLIS loader to install persisted NDE_BASE HDUs, which carry the
+ * position they were saved with.  Deep-copies @src to a swap file; @src is NOT
+ * taken over (caller keeps ownership).  Unlike ensure(), adopt overwrites —
+ * the on-disk baseline is authoritative on load.
  */
-void nde_checkpoint_baseline_adopt(const fits *src, gint item_id);
+void nde_checkpoint_baseline_adopt(const nde_state *src, gint item_id);
 
 /** Drop the baseline AND output checkpoints for @item_id (layer removed). */
 void nde_checkpoint_drop(gint item_id);
@@ -100,7 +118,9 @@ void nde_checkpoint_purge(void);
  * (delete, dead-tail truncation), its layer (drop) or the document
  * (purge).                                                                */
 
-/** Store @post as the output checkpoint of @record_id (overwrites). */
+/** Store @post as the output checkpoint of @record_id (overwrites), together
+ *  with where @item_id's layer is standing — which, this being the POST-op
+ *  state, is where the operation just left it. */
 void nde_checkpoint_output_store(const fits *post, gint64 record_id, gint item_id);
 
 /**
@@ -109,10 +129,10 @@ void nde_checkpoint_output_store(const fits *post, gint64 record_id, gint item_i
  * NDE_CKPT HDUs.  Deep-copies @src to a swap file; @src is NOT taken over
  * (caller keeps ownership).  Mirrors nde_checkpoint_baseline_adopt.
  */
-void nde_checkpoint_output_adopt(const fits *src, gint64 record_id, gint item_id);
+void nde_checkpoint_output_adopt(const nde_state *src, gint64 record_id, gint item_id);
 
-/** Load a copy of @record_id's output checkpoint (caller clears+frees). */
-fits *nde_checkpoint_output_get(gint64 record_id);
+/** Load a copy of @record_id's output checkpoint (caller nde_state_free()s). */
+nde_state *nde_checkpoint_output_get(gint64 record_id);
 
 gboolean nde_checkpoint_output_exists(gint64 record_id);
 
@@ -125,36 +145,9 @@ void nde_checkpoint_output_drop(gint64 record_id);
  * These three wrap the choice so the convention lives in one place rather
  * than at every pin-resolving site.                                        */
 
-void     nde_checkpoint_store_at(const fits *f, gint item_id, gint64 record_id);
-fits    *nde_checkpoint_get_at(gint item_id, gint64 record_id);
-gboolean nde_checkpoint_exists_at(gint item_id, gint64 record_id);
-
-/* ---- layer offsets (graph step 5) --------------------------------------
- * A checkpoint stores pixels, but the replay unit for a FLIS layer is not
- * pixels alone: geometry operations (crop, resample, rotate, mirror, binning)
- * move the layer on the canvas as well as changing its pixels, and the
- * offset helpers evolve position_x/position_y from their previous value.  So
- * a chain that contains one cannot be replayed from pixels alone — the
- * restart point has to say where the layer WAS.
- *
- * The offset is attached beside the snapshot rather than inside it, so every
- * existing call site keeps its signature and a checkpoint with no offset
- * recorded (a plain image, or a file written before this) simply reports
- * none.  It persists on the NDE_BASE / NDE_CKPT HDU as FLIS_POSX/FLIS_POSY.
- */
-
-/** Record the layer offset that goes with @item_id's baseline.  First value
- *  wins, exactly as the baseline itself does — the baseline is the pre-FIRST-op
- *  state, so its position is the one the layer had then.  Ignored when no
- *  baseline exists for @item_id. */
-void nde_checkpoint_baseline_set_offset(gint item_id, gint pos_x, gint pos_y);
-
-/** FALSE when no offset is recorded (plain image, or an older file). */
-gboolean nde_checkpoint_baseline_get_offset(gint item_id, gint *pos_x, gint *pos_y);
-
-/** Same, for a record's output checkpoint. */
-void     nde_checkpoint_output_set_offset(gint64 record_id, gint pos_x, gint pos_y);
-gboolean nde_checkpoint_output_get_offset(gint64 record_id, gint *pos_x, gint *pos_y);
+void       nde_checkpoint_store_at(const fits *f, gint item_id, gint64 record_id);
+nde_state *nde_checkpoint_get_at(gint item_id, gint64 record_id);
+gboolean   nde_checkpoint_exists_at(gint item_id, gint64 record_id);
 
 /* Plain → FLIS promote: move the baseline and every output checkpoint
  * tagged for @from_item onto @to_item (see flis_promote_from_gfit). */

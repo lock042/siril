@@ -1885,23 +1885,20 @@ static void write_nde_base_hdus(fitsfile *fptr, GPtrArray *records) {
         g_hash_table_add(seen, GINT_TO_POINTER(id));
         if (!nde_checkpoint_baseline_exists(id))
             continue;   /* no baseline captured for this item — chain not replayable */
-        fits *base = nde_checkpoint_baseline_get(id);
+        nde_state *base = nde_checkpoint_baseline_get(id);
         if (!base)
             continue;
         if (!wrote_any) {
             if (nde_base_set_lossless(fptr)) {
-                clearfits(base);
-                free(base);
+                nde_state_free(base);
                 break;
             }
             wrote_any = TRUE;
         }
-        gint bpx = 0, bpy = 0;
-        gboolean has_pos = nde_checkpoint_baseline_get_offset(id, &bpx, &bpy);
-        if (write_nde_base_hdu(fptr, base, id, has_pos, bpx, bpy))
+        if (write_nde_base_hdu(fptr, base->pix, id, base->has_pos,
+                               base->pos_x, base->pos_y))
             siril_log_warning(_("FLIS: failed to write NDE baseline for item %d\n"), id);
-        clearfits(base);
-        free(base);
+        nde_state_free(base);
     }
     if (wrote_any)
         nde_base_restore_compression(fptr);
@@ -1922,7 +1919,8 @@ static void write_nde_base_hdus(fitsfile *fptr, GPtrArray *records) {
 
 /* Write @f as one NDE_CKPT image HDU tagged with @record_id / @item_id.  @f
  * must carry a valid pixel buffer.  Compression is assumed already lossless. */
-static int write_nde_ckpt_hdu(fitsfile *fptr, fits *f, gint64 record_id, gint item_id) {
+static int write_nde_ckpt_hdu(fitsfile *fptr, const nde_state *st, gint64 record_id, gint item_id) {
+    fits *f = st->pix;
     int status = 0;
     f->naxes[0] = f->rx;
     f->naxes[1] = f->ry;
@@ -1947,13 +1945,10 @@ static int write_nde_ckpt_hdu(fitsfile *fptr, fits *f, gint64 record_id, gint it
     int id = item_id;
     fits_write_key(fptr, TLONGLONG, "RECORD_ID", &rid, "NDE record ID",  &status);
     fits_write_key(fptr, TINT,      "FLIS_ID",   &id,  "FLIS item ID",   &status);
-    {   /* the restart point's layer position, when one was recorded */
-        gint cpx = 0, cpy = 0;
-        if (nde_checkpoint_output_get_offset(record_id, &cpx, &cpy)) {
-            int px = cpx, py = cpy;
-            fits_write_key(fptr, TINT, "FLIS_POSX", &px, "Layer X at checkpoint", &status);
-            fits_write_key(fptr, TINT, "FLIS_POSY", &py, "Layer Y at checkpoint", &status);
-        }
+    if (st->has_pos) {   /* the restart point's layer position */
+        int px = st->pos_x, py = st->pos_y;
+        fits_write_key(fptr, TINT, "FLIS_POSX", &px, "Layer X at checkpoint", &status);
+        fits_write_key(fptr, TINT, "FLIS_POSY", &py, "Layer Y at checkpoint", &status);
     }
     write_orig_bitpix_key(fptr, f, &status);
     fits_write_key(fptr, TSTRING,   "FLIS_TYPE", (void *)"NDE_CKPT", "FLIS HDU type", &status);
@@ -1977,13 +1972,12 @@ static void write_nde_ckpt_hdus(fitsfile *fptr, GPtrArray *records) {
         nde_record *rec = g_ptr_array_index(records, i);
         if (!nde_checkpoint_output_exists(rec->record_id))
             continue;
-        fits *ck = nde_checkpoint_output_get(rec->record_id);
+        nde_state *ck = nde_checkpoint_output_get(rec->record_id);
         if (!ck)
             continue;
         if (!wrote_any) {
             if (nde_base_set_lossless(fptr)) {
-                clearfits(ck);
-                free(ck);
+                nde_state_free(ck);
                 break;
             }
             wrote_any = TRUE;
@@ -1991,8 +1985,7 @@ static void write_nde_ckpt_hdus(fitsfile *fptr, GPtrArray *records) {
         if (write_nde_ckpt_hdu(fptr, ck, rec->record_id, rec->target_item_id))
             siril_log_warning(_("FLIS: failed to write NDE checkpoint for record %" G_GINT64_FORMAT "\n"),
                               rec->record_id);
-        clearfits(ck);
-        free(ck);
+        nde_state_free(ck);
     }
     if (wrote_any)
         nde_base_restore_compression(fptr);
@@ -3304,9 +3297,9 @@ int load_flis(const gchar *filename) {
     if (nde_baselines) {
         for (guint i = 0; i < nde_baselines->len; i++) {
             nde_base_load_t *b = g_ptr_array_index(nde_baselines, i);
-            nde_checkpoint_baseline_adopt(b->fit, b->item_id);
-            if (b->has_pos)
-                nde_checkpoint_baseline_set_offset(b->item_id, b->pos_x, b->pos_y);
+            nde_state st = { .pix = b->fit, .pos_x = b->pos_x,
+                             .pos_y = b->pos_y, .has_pos = b->has_pos };
+            nde_checkpoint_baseline_adopt(&st, b->item_id);
         }
         g_ptr_array_unref(nde_baselines);
     }
@@ -3317,9 +3310,9 @@ int load_flis(const gchar *filename) {
     if (nde_ckpts) {
         for (guint i = 0; i < nde_ckpts->len; i++) {
             nde_ckpt_load_t *c = g_ptr_array_index(nde_ckpts, i);
-            nde_checkpoint_output_adopt(c->fit, c->record_id, c->item_id);
-            if (c->has_pos)
-                nde_checkpoint_output_set_offset(c->record_id, c->pos_x, c->pos_y);
+            nde_state st = { .pix = c->fit, .pos_x = c->pos_x,
+                             .pos_y = c->pos_y, .has_pos = c->has_pos };
+            nde_checkpoint_output_adopt(&st, c->record_id, c->item_id);
         }
         g_ptr_array_unref(nde_ckpts);
     }

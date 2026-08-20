@@ -75,7 +75,7 @@ Test(nde_checkpoint, roundtrip_float_exact) {
 	nde_checkpoint_baseline_ensure(src, 4);
 	cr_assert(nde_checkpoint_baseline_exists(4));
 
-	fits *got = nde_checkpoint_baseline_get(4);
+	fits *got = nde_state_release(nde_checkpoint_baseline_get(4));
 	cr_assert_not_null(got);
 	cr_assert_eq(got->rx, src->rx);
 	cr_assert_eq(got->ry, src->ry);
@@ -94,7 +94,7 @@ Test(nde_checkpoint, roundtrip_ushort_exact) {
 	nde_checkpoint_baseline_ensure(src, -1);   /* plain image key */
 	cr_assert(nde_checkpoint_baseline_exists(-1));
 
-	fits *got = nde_checkpoint_baseline_get(-1);
+	fits *got = nde_state_release(nde_checkpoint_baseline_get(-1));
 	cr_assert_not_null(got);
 	cr_assert_eq(got->type, DATA_USHORT);
 	size_t n = (size_t)src->rx * src->ry * src->naxes[2];
@@ -111,7 +111,7 @@ Test(nde_checkpoint, ensure_is_idempotent) {
 	nde_checkpoint_baseline_ensure(first, 7);   /* wins */
 	nde_checkpoint_baseline_ensure(later, 7);   /* ignored */
 
-	fits *got = nde_checkpoint_baseline_get(7);
+	fits *got = nde_state_release(nde_checkpoint_baseline_get(7));
 	cr_assert_not_null(got);
 	/* Baseline must reflect the FIRST ensure's pixels. */
 	cr_assert_eq(got->fdata[0], first->fdata[0]);
@@ -125,9 +125,9 @@ Test(nde_checkpoint, adopt_overwrites) {
 	fits *a = make_float(8, 8, 1, 0.1f);
 	fits *b = make_float(8, 8, 1, 0.9f);
 	nde_checkpoint_baseline_ensure(a, 3);
-	nde_checkpoint_baseline_adopt(b, 3);   /* load-path: overwrite */
+	nde_checkpoint_baseline_adopt(&(nde_state){ .pix = b }, 3);   /* load path */
 
-	fits *got = nde_checkpoint_baseline_get(3);
+	fits *got = nde_state_release(nde_checkpoint_baseline_get(3));
 	cr_assert_not_null(got);
 	cr_assert_eq(got->fdata[0], b->fdata[0]);
 	free_fit(got);
@@ -149,14 +149,14 @@ Test(nde_checkpoint, drop_and_purge) {
 
 	nde_checkpoint_purge();
 	cr_assert_not(nde_checkpoint_baseline_exists(2));
-	cr_assert_null(nde_checkpoint_baseline_get(2));
+	cr_assert_null(nde_state_release(nde_checkpoint_baseline_get(2)));
 	free_fit(f1);
 	free_fit(f2);
 }
 
 Test(nde_checkpoint, get_absent_is_null) {
 	cr_assert_not(nde_checkpoint_baseline_exists(42));
-	cr_assert_null(nde_checkpoint_baseline_get(42));
+	cr_assert_null(nde_state_release(nde_checkpoint_baseline_get(42)));
 }
 
 /* Ordering: ensure captures the pre-FIRST-op pixels even though the source
@@ -171,7 +171,7 @@ Test(nde_checkpoint, captures_pre_first_op_state) {
 	for (size_t i = 0; i < n; i++)
 		pre->fdata[i] = 0.99f;
 
-	fits *got = nde_checkpoint_baseline_get(5);
+	fits *got = nde_state_release(nde_checkpoint_baseline_get(5));
 	cr_assert_not_null(got);
 	cr_assert_eq(got->fdata[0], saved0);
 	cr_assert_neq(got->fdata[0], pre->fdata[0]);

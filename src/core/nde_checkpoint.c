@@ -40,6 +40,7 @@
 
 #include "core/siril.h"
 #include "core/siril_log.h"
+#include "core/nde_state.h"
 #include "core/nde_snapstore.h"
 #include "core/nde_checkpoint.h"
 #include "core/nde_history.h"
@@ -54,13 +55,6 @@ static GMutex      cp_mutex;
 static GHashTable *cp_table;    /* item_id (GINT_TO_POINTER) -> nde_snap* (ref held) */
 static GHashTable *out_table;   /* gint64* (owned key) -> nde_snap* (ref held) */
 
-/* Layer offsets, kept BESIDE the snapshots rather than inside them so every
- * existing call site keeps its signature (nde_checkpoint.h).  Same keys as
- * the tables above; an entry is present only when an offset was recorded. */
-typedef struct { gint x, y; } cp_offset;
-static GHashTable *cp_pos;      /* item_id  -> cp_offset* (owned) */
-static GHashTable *out_pos;     /* gint64*  -> cp_offset* (owned) */
-
 static void cp_tables_ensure_locked(void) {
 	if (!cp_table)
 		cp_table = g_hash_table_new_full(g_direct_hash, g_direct_equal,
@@ -68,71 +62,26 @@ static void cp_tables_ensure_locked(void) {
 	if (!out_table)
 		out_table = g_hash_table_new_full(g_int64_hash, g_int64_equal,
 		                                  g_free, NULL /* values unref'd manually */);
-	if (!cp_pos)
-		cp_pos = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, g_free);
-	if (!out_pos)
-		out_pos = g_hash_table_new_full(g_int64_hash, g_int64_equal, g_free, g_free);
 }
 
-/* ---- layer offsets ----------------------------------------------------- */
-
-void nde_checkpoint_baseline_set_offset(gint item_id, gint pos_x, gint pos_y) {
-	cp_offset *o = g_new(cp_offset, 1);
-	o->x = pos_x;
-	o->y = pos_y;
-	g_mutex_lock(&cp_mutex);
-	cp_tables_ensure_locked();
-	/* First writer wins, exactly as the baseline itself does: the baseline is
-	 * the pre-FIRST-op state, so the position that goes with it is the one
-	 * the layer had then — not wherever a later capture found it.  And only
-	 * meaningful alongside stored pixels: an offset for a baseline we do not
-	 * have would outlive what it describes. */
-	if (g_hash_table_contains(cp_table, GINT_TO_POINTER(item_id)) &&
-	    !g_hash_table_contains(cp_pos, GINT_TO_POINTER(item_id)))
-		g_hash_table_insert(cp_pos, GINT_TO_POINTER(item_id), o);
-	else
-		g_clear_pointer(&o, g_free);
-	g_mutex_unlock(&cp_mutex);
-}
-
-gboolean nde_checkpoint_baseline_get_offset(gint item_id, gint *pos_x, gint *pos_y) {
-	g_mutex_lock(&cp_mutex);
-	const cp_offset *o = cp_pos ? g_hash_table_lookup(cp_pos, GINT_TO_POINTER(item_id)) : NULL;
-	if (o) {
-		if (pos_x) *pos_x = o->x;
-		if (pos_y) *pos_y = o->y;
+/* @pix as the value of @item_id AS THINGS STAND: where the layer is right now
+ * is where these pixels belong.  True of every caller here — a baseline is
+ * seeded before the operation that will move the layer runs, and an output
+ * checkpoint is stored after it, when the layer has already arrived.  The one
+ * caller for which it is not true is provenance capture, which happens after
+ * the hook but describes the state before it; that one snapshots the position
+ * itself and passes the whole value to _ensure_at.
+ *
+ * A borrowing state (nde_state.h): the pixels stay the caller's. */
+static nde_state state_here(const fits *pix, gint item_id) {
+	nde_state st = { .pix = (fits *)pix };
+	flis_layer_t *lay = (pix && item_id >= 0) ? flis_layer_get_by_id(item_id) : NULL;
+	if (lay) {
+		st.pos_x   = lay->position_x;
+		st.pos_y   = lay->position_y;
+		st.has_pos = TRUE;
 	}
-	g_mutex_unlock(&cp_mutex);
-	return o != NULL;
-}
-
-void nde_checkpoint_output_set_offset(gint64 record_id, gint pos_x, gint pos_y) {
-	cp_offset *o = g_new(cp_offset, 1);
-	o->x = pos_x;
-	o->y = pos_y;
-	gint64 *key = g_new(gint64, 1);
-	*key = record_id;
-	g_mutex_lock(&cp_mutex);
-	cp_tables_ensure_locked();
-	if (g_hash_table_contains(out_table, &record_id)) {
-		g_hash_table_insert(out_pos, key, o);
-		key = NULL;
-		o = NULL;
-	}
-	g_mutex_unlock(&cp_mutex);
-	g_free(key);
-	g_free(o);
-}
-
-gboolean nde_checkpoint_output_get_offset(gint64 record_id, gint *pos_x, gint *pos_y) {
-	g_mutex_lock(&cp_mutex);
-	const cp_offset *o = out_pos ? g_hash_table_lookup(out_pos, &record_id) : NULL;
-	if (o) {
-		if (pos_x) *pos_x = o->x;
-		if (pos_y) *pos_y = o->y;
-	}
-	g_mutex_unlock(&cp_mutex);
-	return o != NULL;
+	return st;
 }
 
 /* ======================================================================= */
@@ -140,7 +89,12 @@ gboolean nde_checkpoint_output_get_offset(gint64 record_id, gint *pos_x, gint *p
 /* ======================================================================= */
 
 void nde_checkpoint_baseline_ensure(const fits *pre, gint item_id) {
-	if (!pre)
+	nde_state st = state_here(pre, item_id);
+	nde_checkpoint_baseline_ensure_at(&st, item_id);
+}
+
+void nde_checkpoint_baseline_ensure_at(const nde_state *pre, gint item_id) {
+	if (!pre || !pre->pix)
 		return;
 	/* Fast path: bail without any copy if a baseline already exists. */
 	g_mutex_lock(&cp_mutex);
@@ -186,13 +140,6 @@ void nde_checkpoint_rebind_item(gint from_item, gint to_item) {
 			g_hash_table_steal(cp_table, GINT_TO_POINTER(from_item));
 			g_hash_table_insert(cp_table, GINT_TO_POINTER(to_item), s);
 			g_ptr_array_add(retag, s);
-			if (cp_pos) {
-				gpointer o = g_hash_table_lookup(cp_pos, GINT_TO_POINTER(from_item));
-				if (o) {
-					g_hash_table_steal(cp_pos, GINT_TO_POINTER(from_item));
-					g_hash_table_insert(cp_pos, GINT_TO_POINTER(to_item), o);
-				}
-			}
 		}
 	}
 	if (out_table) {
@@ -215,8 +162,8 @@ void nde_checkpoint_rebind_item(gint from_item, gint to_item) {
 	g_ptr_array_unref(retag);
 }
 
-void nde_checkpoint_baseline_adopt(const fits *src, gint item_id) {
-	if (!src)
+void nde_checkpoint_baseline_adopt(const nde_state *src, gint item_id) {
+	if (!src || !src->pix)
 		return;
 	nde_snap *s = nde_snap_create(src);   /* outside the lock */
 	if (!s)
@@ -233,7 +180,7 @@ void nde_checkpoint_baseline_adopt(const fits *src, gint item_id) {
 	nde_snap_unref(old);   /* on-disk baseline is authoritative on load */
 }
 
-fits *nde_checkpoint_baseline_get(gint item_id) {
+nde_state *nde_checkpoint_baseline_get(gint item_id) {
 	g_mutex_lock(&cp_mutex);
 	nde_snap *s = cp_table ?
 	    g_hash_table_lookup(cp_table, GINT_TO_POINTER(item_id)) : NULL;
@@ -242,9 +189,26 @@ fits *nde_checkpoint_baseline_get(gint item_id) {
 	g_mutex_unlock(&cp_mutex);
 	if (!s)
 		return NULL;
-	fits *out = nde_snap_read(s);   /* I/O outside the lock */
+	nde_state *out = nde_snap_read(s);   /* I/O outside the lock */
 	nde_snap_unref(s);
 	return out;
+}
+
+/* Where the baseline says the layer was, WITHOUT reading its pixels back off
+ * the swap file — the chain builder asks this of every geometry record, and it
+ * wants the answer, not several megabytes.  A projection of the one stored
+ * value, not a second thing to keep in step with it. */
+gboolean nde_checkpoint_baseline_position(gint item_id, gint *pos_x, gint *pos_y) {
+	g_mutex_lock(&cp_mutex);
+	nde_snap *s = cp_table ?
+	    g_hash_table_lookup(cp_table, GINT_TO_POINTER(item_id)) : NULL;
+	gboolean has = s && nde_snap_position(s, pos_x, pos_y);
+	g_mutex_unlock(&cp_mutex);
+	return has;
+}
+
+gboolean nde_checkpoint_baseline_has_position(gint item_id) {
+	return nde_checkpoint_baseline_position(item_id, NULL, NULL);
 }
 
 gboolean nde_checkpoint_baseline_exists(gint item_id) {
@@ -259,8 +223,8 @@ gboolean nde_checkpoint_baseline_exists(gint item_id) {
 /* Output checkpoints (phase-4 barriers)                                   */
 /* ======================================================================= */
 
-static void output_insert(const fits *src, gint64 record_id, gint item_id) {
-	if (!src || record_id <= 0)
+static void output_insert(const nde_state *src, gint64 record_id, gint item_id) {
+	if (!src || !src->pix || record_id <= 0)
 		return;
 	nde_snap *s = nde_snap_create(src);   /* outside the lock */
 	if (!s)
@@ -284,14 +248,15 @@ static void output_insert(const fits *src, gint64 record_id, gint item_id) {
 }
 
 void nde_checkpoint_output_store(const fits *post, gint64 record_id, gint item_id) {
-	output_insert(post, record_id, item_id);
+	nde_state st = state_here(post, item_id);
+	output_insert(&st, record_id, item_id);
 }
 
-void nde_checkpoint_output_adopt(const fits *src, gint64 record_id, gint item_id) {
+void nde_checkpoint_output_adopt(const nde_state *src, gint64 record_id, gint item_id) {
 	output_insert(src, record_id, item_id);
 }
 
-fits *nde_checkpoint_output_get(gint64 record_id) {
+nde_state *nde_checkpoint_output_get(gint64 record_id) {
 	g_mutex_lock(&cp_mutex);
 	nde_snap *s = out_table ? g_hash_table_lookup(out_table, &record_id) : NULL;
 	if (s)
@@ -299,7 +264,7 @@ fits *nde_checkpoint_output_get(gint64 record_id) {
 	g_mutex_unlock(&cp_mutex);
 	if (!s)
 		return NULL;
-	fits *out = nde_snap_read(s);
+	nde_state *out = nde_snap_read(s);
 	nde_snap_unref(s);
 	return out;
 }
@@ -320,7 +285,7 @@ void nde_checkpoint_store_at(const fits *f, gint item_id, gint64 record_id) {
 		nde_checkpoint_baseline_ensure(f, item_id);
 }
 
-fits *nde_checkpoint_get_at(gint item_id, gint64 record_id) {
+nde_state *nde_checkpoint_get_at(gint item_id, gint64 record_id) {
 	return record_id ? nde_checkpoint_output_get(record_id)
 	                 : nde_checkpoint_baseline_get(item_id);
 }
@@ -336,8 +301,6 @@ void nde_checkpoint_output_drop(gint64 record_id) {
 	g_mutex_lock(&cp_mutex);
 	if (out_table)
 		g_hash_table_steal_extended(out_table, &record_id, &old_key, (gpointer *)&old);
-	if (out_pos)
-		g_hash_table_remove(out_pos, &record_id);   /* the offset describes those pixels */
 	g_mutex_unlock(&cp_mutex);
 	g_free(old_key);
 	nde_snap_unref(old);
@@ -394,14 +357,10 @@ void nde_checkpoint_drop(gint item_id) {
 			if (nde_snap_tag_get(s, &tag_item, NULL, NULL) && tag_item == item_id) {
 				g_ptr_array_add(doomed, s);
 				g_ptr_array_add(doomed_keys, k);
-				if (out_pos)
-					g_hash_table_remove(out_pos, k);
 				g_hash_table_iter_steal(&it);
 			}
 		}
 	}
-	if (cp_pos)
-		g_hash_table_remove(cp_pos, GINT_TO_POINTER(item_id));
 	g_mutex_unlock(&cp_mutex);
 	for (guint i = 0; i < doomed->len; i++)
 		nde_snap_unref(g_ptr_array_index(doomed, i));
@@ -419,12 +378,7 @@ void nde_checkpoint_purge(void) {
 	cp_table = NULL;
 	t2 = out_table;
 	out_table = NULL;
-	GHashTable *p1 = cp_pos, *p2 = out_pos;
-	cp_pos = NULL;
-	out_pos = NULL;
 	g_mutex_unlock(&cp_mutex);
-	if (p1) g_hash_table_destroy(p1);
-	if (p2) g_hash_table_destroy(p2);
 	if (t1) {
 		GHashTableIter it;
 		gpointer k, v;

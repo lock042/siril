@@ -55,21 +55,20 @@
  */
 
 #include <glib.h>
+#include "core/nde_state.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct ffit;
-typedef struct ffit fits;
-
 typedef struct nde_snap nde_snap;
 
 /* ---- snapshot lifecycle ------------------------------------------------ */
 
-/** Deep-copy @src's pixels (+ geometry/WCS) into a fresh snapshot, ref 1.
- *  NULL on error.  Swap I/O only — safe while other locks are held. */
-nde_snap *nde_snap_create(const fits *src);
+/** Deep-copy @st's pixels (+ geometry/WCS) and its canvas position into a
+ *  fresh snapshot, ref 1.  NULL on error.  Swap I/O only — safe while other
+ *  locks are held.  @st is only read; it is not taken over. */
+nde_snap *nde_snap_create(const nde_state *st);
 
 nde_snap *nde_snap_ref(nde_snap *s);
 
@@ -78,9 +77,9 @@ nde_snap *nde_snap_ref(nde_snap *s);
  *  another NDE leaf lock. */
 void nde_snap_unref(nde_snap *s);
 
-/** Reconstruct a fully-owned fits (caller clearfits()+frees).  The caller
- *  must hold a reference across the call. */
-fits *nde_snap_read(const nde_snap *s);
+/** Reconstruct the stored value (caller nde_state_free()s).  The caller must
+ *  hold a reference across the call. */
+nde_state *nde_snap_read(const nde_snap *s);
 
 /**
  * Read the snapshot's pixels INTO @dst, undo-restore style: buffers are
@@ -106,19 +105,23 @@ void nde_snap_set_tag(nde_snap *s, gint item_id, gint64 record_id, gboolean post
 /** TRUE when a live snapshot is indexed at this position. */
 gboolean nde_snapstore_has(gint item_id, gint64 record_id, gboolean post);
 
+/** Where the stored value sits on the canvas, without reading its pixels back.
+ *  FALSE when it has none.  @pos_x / @pos_y may be NULL. */
+gboolean nde_snap_position(const nde_snap *s, gint *pos_x, gint *pos_y);
+
 /** Read @s's tag (immutable once set).  FALSE when untagged. */
 gboolean nde_snap_tag_get(const nde_snap *s, gint *item_id, gint64 *record_id, gboolean *post);
 
-/** Fresh fits of the indexed state (caller clearfits()+frees), or NULL.
+/** Fresh copy of the indexed state (caller nde_state_free()s), or NULL.
  *  Counts as a lookup (and a hit) in the stats; touches pool LRU. */
-fits *nde_snapstore_lookup(gint item_id, gint64 record_id, gboolean post);
+nde_state *nde_snapstore_lookup(gint item_id, gint64 record_id, gboolean post);
 
 /* ---- LRU cache pool ---------------------------------------------------- */
 
 /** Deposit @state as POST(@record_id) for @item_id into the pool (replaces
  *  any same-tag pool entry; evicts LRU over budget; no-op when the budget
  *  pref is 0).  Failures are silent — the pool is cache, not correctness. */
-void nde_snapstore_deposit(const fits *state, gint item_id, gint64 record_id);
+void nde_snapstore_deposit(const nde_state *state, gint item_id, gint64 record_id);
 
 /** Invalidation rule for an edit at position @record_id of @item_id:
  *  evict pool entries POST(K >= record_id) and PRE(K > record_id). */

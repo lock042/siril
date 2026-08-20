@@ -19,6 +19,7 @@
  */
 
 #include "core/siril.h"
+#include "core/nde_state.h"
 #include "core/nde_history.h"
 #include "core/nde_replay.h"
 
@@ -35,25 +36,25 @@ gchar *nde_tier_c_invalid_reason(const nde_record *rec);
 
 /* ---- nde_replay.c: running records ------------------------------------- */
 
-/* Apply chain members [@from, @upto) to @scratch (consumed), returning a new
- * fits.  @pos_x / @pos_y carry the layer position through geometry members, or
- * are NULL when the chain moves nothing. */
-fits *nde_replay_apply_records(fits *scratch, const nde_chain *chain,
-                               guint from, guint upto,
-                               gint *pos_x, gint *pos_y, gchar **err);
+/* Apply chain members [@from, @upto) to @state (consumed), returning the state
+ * they produced.  Pixels and canvas position travel together, so a geometry
+ * member moves the value as well as changing it (nde_state.h). */
+nde_state *nde_replay_apply_records(nde_state *state, const nde_chain *chain,
+                                    guint from, guint upto, gchar **err);
 
-/* Where a replay's layer starts: @restart_id 0 means the baseline, anything
- * else that record's output checkpoint.  FALSE when the chain carries no
- * geometry member, in which case the hooks are handed NULL and move nothing. */
-gboolean nde_replay_start_offset(const nde_chain *chain, gint64 restart_id,
-                                 gint *pos_x, gint *pos_y);
+/* Decide whether @start's position is live for a replay of @chain, before
+ * handing it to nde_replay_apply_records: a chain with no geometry member
+ * moves nothing, so its result must not carry a position and overwrite one the
+ * user chose by dragging.  NULL-safe (a composite-born chain restarts from no
+ * state at all). */
+void nde_replay_arm_position(nde_state *start, const nde_chain *chain);
 
 /* Replay a MASK item's chain up to member @upto, returning a fits carrying the
  * mask (a mask is a mono image with its own item id and its own history). */
 fits *nde_mask_chain_replay(const nde_chain *chain, guint upto, gchar **err);
 
 /* The phase-4 restart point: the state the chain's editable tail begins from. */
-fits *nde_replay_chain_restart_state(const nde_chain *chain, gchar **err);
+nde_state *nde_replay_chain_restart_state(const nde_chain *chain, gchar **err);
 
 /* Install / remove @rec's pinned mask on a scratch fits for one op. */
 gboolean nde_mask_pin_install(fits *scratch, const nde_record *rec, gchar **err);
@@ -61,7 +62,7 @@ void nde_mask_pin_clear(fits *scratch);
 
 /* Set while an edit to a GEOMETRIC joint record cascades to its participants,
  * which have to re-anchor from the baseline — see the definition for why this
- * is not the general rule.  Owned here because nde_replay_start_offset reads
+ * is not the general rule.  Owned here because nde_replay_arm_position reads
  * it; set by the cascade in nde_edit.c. */
 void nde_replay_set_joint_reanchor(gboolean on);
 
@@ -79,8 +80,9 @@ gboolean nde_commit_lock(fits *fit);
 void nde_commit_pixels(fits *target, fits *result);
 void nde_commit_unlock(fits *fit, gboolean quiesced);
 
-/* Move @item_id's layer to where the replay left it. */
-void nde_commit_layer_offset(gint item_id, gint pos_x, gint pos_y);
+/* Move @item_id's layer to where the replay left it.  A result with no
+ * position leaves it alone. */
+void nde_commit_layer_position(gint item_id, const nde_state *result);
 
 /* Carry the pre-edit metadata (keywords, header text, FITS HISTORY) back onto
  * @target after a swap, keeping a WCS the replay produced. */
@@ -97,19 +99,17 @@ void nde_edit_finish(fits *target, const char *done_msg);
 gboolean nde_edit_execute(gint64 record_id, const gchar *new_params, gchar **err);
 
 /* The state to restart an edited chain from, at or before member @e. */
-fits *nde_edit_restart_state(const nde_chain *chain, guint e,
-                             gint64 boundary_pre_id,
-                             guint *start_idx, gchar **err);
+nde_state *nde_edit_restart_state(const nde_chain *chain, guint e,
+                                  gint64 boundary_pre_id,
+                                  guint *start_idx, gchar **err);
 
-/* The pixels a replay produced, and the log change that describes them.
+/* The value a replay produced, and the log change that describes it.
  * @result is consumed either way. */
 typedef struct {
-	gint      item_id;
-	fits     *target;        /* NULL when @retained */
-	fits     *result;        /* consumed */
-	gboolean  retained;      /* nde_item_is_retained_input(@item_id) */
-	gboolean  carry_offset;  /* the replay moved the layer */
-	gint      pos_x, pos_y;
+	gint       item_id;
+	fits      *target;     /* NULL when @retained */
+	nde_state *result;     /* consumed */
+	gboolean   retained;   /* nde_item_is_retained_input(@item_id) */
 } nde_commit_ctx;
 
 /* Commit a replayed value: pixels first, then the log, and put the pixels back

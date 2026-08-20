@@ -453,7 +453,7 @@ Test(flis_undo_gui, snapstore_pre_post_tags_follow_undo_redo) {
 	          "the redo counterpart must register POST(record)");
 
 	/* the POST snapshot holds the mutated (post-op) pixels */
-	fits *post = nde_snapstore_lookup(item, id, TRUE);
+	fits *post = nde_state_release(nde_snapstore_lookup(item, id, TRUE));
 	cr_assert_not_null(post);
 	cr_assert_float_eq(post->fdata[0], 0.9f, 1e-6,
 	                   "POST must hold the state after the record");
@@ -465,7 +465,7 @@ Test(flis_undo_gui, snapstore_pre_post_tags_follow_undo_redo) {
 	cr_assert(!nde_snapstore_has(item, id, TRUE));
 	cr_assert(nde_snapstore_has(item, id, FALSE),
 	          "redo's undo-stack counterpart must register PRE(record)");
-	fits *pre = nde_snapstore_lookup(item, id, FALSE);
+	fits *pre = nde_state_release(nde_snapstore_lookup(item, id, FALSE));
 	cr_assert_not_null(pre);
 	cr_assert_float_eq(pre->fdata[0], 0.25f, 1e-6,
 	                   "PRE must hold the state before the record");

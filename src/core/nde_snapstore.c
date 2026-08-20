@@ -37,6 +37,7 @@
 
 #include "core/siril.h"
 #include "core/siril_log.h"
+#include "core/nde_state.h"
 #include "core/nde_snapstore.h"
 #include "io/image_format_fits.h"
 #include "algos/statistics.h"
@@ -61,6 +62,11 @@ struct nde_snap {
 	wcs_info   wcsdata;
 	wcsprm_t  *wcslib;        /* deep copy; freed with the snapshot */
 	double     focal_length;
+	/* Where the pixels sat on the canvas.  Inside the snapshot, not beside it:
+	 * a stored value and its position have exactly one lifetime, so nothing has
+	 * to keep two tables in step (nde_state.h). */
+	gint       pos_x, pos_y;
+	gboolean   has_pos;
 	gboolean   tagged;
 	snap_tag   tag;
 };
@@ -124,7 +130,8 @@ static void swap_mark_delete_on_close(int fd, const gchar *path) {
 #endif
 }
 
-nde_snap *nde_snap_create(const fits *src) {
+nde_snap *nde_snap_create(const nde_state *st) {
+	const fits *src = st ? st->pix : NULL;
 	if (!src)
 		return NULL;
 	if (src->type != DATA_USHORT && src->type != DATA_FLOAT)
@@ -183,6 +190,9 @@ nde_snap *nde_snap_create(const fits *src) {
 			siril_log_debug("nde snapstore: could not copy wcslib struct\n");
 	}
 	s->focal_length = src->keywords.focal_length;
+	s->pos_x        = st->pos_x;
+	s->pos_y        = st->pos_y;
+	s->has_pos      = st->has_pos;
 
 	g_mutex_lock(&store_mutex);
 	live_bytes += s->bytes;
@@ -214,7 +224,7 @@ void nde_snap_unref(nde_snap *s) {
 	g_free(s);
 }
 
-fits *nde_snap_read(const nde_snap *s) {
+nde_state *nde_snap_read(const nde_snap *s) {
 	if (!s)
 		return NULL;
 	fits *out = NULL;
@@ -249,7 +259,8 @@ fits *nde_snap_read(const nde_snap *s) {
 		reset_wcsdata(out);
 	}
 	out->keywords.focal_length = s->focal_length;
-	return out;
+	return s->has_pos ? nde_state_new_at(out, s->pos_x, s->pos_y)
+	                  : nde_state_new(out);
 }
 
 int nde_snap_read_into(const nde_snap *s, fits *dst) {
@@ -333,6 +344,16 @@ void nde_snap_set_tag(nde_snap *s, gint item_id, gint64 record_id, gboolean post
 	g_mutex_unlock(&store_mutex);
 }
 
+/* Where the stored value sits, without reading its pixels back.  FALSE when it
+ * has no canvas position — see nde_state.h for what that means. */
+gboolean nde_snap_position(const nde_snap *s, gint *pos_x, gint *pos_y) {
+	if (!s || !s->has_pos)
+		return FALSE;
+	if (pos_x) *pos_x = s->pos_x;
+	if (pos_y) *pos_y = s->pos_y;
+	return TRUE;
+}
+
 gboolean nde_snap_tag_get(const nde_snap *s, gint *item_id, gint64 *record_id, gboolean *post) {
 	if (!s || !s->tagged)
 		return FALSE;
@@ -359,7 +380,7 @@ static void pool_touch_locked(nde_snap *s) {
 	}
 }
 
-fits *nde_snapstore_lookup(gint item_id, gint64 record_id, gboolean post) {
+nde_state *nde_snapstore_lookup(gint item_id, gint64 record_id, gboolean post) {
 	snap_tag t = { item_id, record_id, post };
 	g_mutex_lock(&store_mutex);
 	stats.lookups++;
@@ -372,7 +393,7 @@ fits *nde_snapstore_lookup(gint item_id, gint64 record_id, gboolean post) {
 	g_mutex_unlock(&store_mutex);
 	if (!s)
 		return NULL;
-	fits *out = nde_snap_read(s);   /* outside the lock */
+	nde_state *out = nde_snap_read(s);   /* outside the lock */
 	nde_snap_unref(s);
 	return out;
 }
@@ -430,7 +451,7 @@ static gboolean pick_invalidated(nde_snap *s, gpointer user) {
 	                   : (s->tag.record_id >  edit->record_id);
 }
 
-void nde_snapstore_deposit(const fits *state, gint item_id, gint64 record_id) {
+void nde_snapstore_deposit(const nde_state *state, gint item_id, gint64 record_id) {
 	if (!state || record_id <= 0 || com.pref.nde_cache_mb <= 0)
 		return;
 	nde_snap *s = nde_snap_create(state);   /* I/O outside the lock */

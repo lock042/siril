@@ -448,7 +448,7 @@ Test(nde_persist, baseline_roundtrip_float_exact) {
 	cr_assert_eq(load_flis(tmppath), 0);
 
 	cr_assert(nde_checkpoint_baseline_exists(lid), "baseline must be adopted on load");
-	fits *got = nde_checkpoint_baseline_get(lid);
+	fits *got = nde_state_release(nde_checkpoint_baseline_get(lid));
 	assert_float_exact(got, seed);
 	clearfits(got); free(got);
 	clearfits(seed); free(seed);
@@ -469,7 +469,7 @@ Test(nde_persist, baseline_roundtrip_ushort_exact) {
 	cr_assert_eq(load_flis(tmppath), 0);
 
 	cr_assert(nde_checkpoint_baseline_exists(lid));
-	fits *got = nde_checkpoint_baseline_get(lid);
+	fits *got = nde_state_release(nde_checkpoint_baseline_get(lid));
 	cr_assert_not_null(got);
 	cr_assert_eq(got->type, DATA_USHORT);
 	size_t n = (size_t)seed->rx * seed->ry * seed->naxes[2];
@@ -503,7 +503,7 @@ Test(nde_persist, baseline_lossless_under_user_compression) {
 	cr_assert_eq(load_flis(tmppath), 0);
 
 	cr_assert(nde_checkpoint_baseline_exists(lid));
-	fits *got = nde_checkpoint_baseline_get(lid);
+	fits *got = nde_state_release(nde_checkpoint_baseline_get(lid));
 	/* Bit-exact despite fits_enabled — GZIP + quantize 0.0 on NDE_BASE. */
 	assert_float_exact(got, seed);
 	clearfits(got); free(got);
@@ -618,7 +618,7 @@ Test(nde_persist, ckpt_roundtrip_float_exact) {
 	cr_assert_eq(load_flis(tmppath), 0);
 
 	cr_assert(nde_checkpoint_output_exists(bid), "checkpoint must be adopted on load");
-	fits *got = nde_checkpoint_output_get(bid);
+	fits *got = nde_state_release(nde_checkpoint_output_get(bid));
 	assert_float_exact(got, post);
 	clearfits(got); free(got);
 	clearfits(post); free(post);
@@ -641,7 +641,7 @@ Test(nde_persist, ckpt_roundtrip_ushort_exact) {
 	cr_assert_eq(load_flis(tmppath), 0);
 
 	cr_assert(nde_checkpoint_output_exists(bid));
-	fits *got = nde_checkpoint_output_get(bid);
+	fits *got = nde_state_release(nde_checkpoint_output_get(bid));
 	cr_assert_not_null(got);
 	cr_assert_eq(got->type, DATA_USHORT);
 	size_t n = (size_t)post->rx * post->ry * post->naxes[2];
@@ -671,7 +671,7 @@ Test(nde_persist, an_eight_bit_checkpoint_reloads_as_eight_bit) {
 	nde_history_attach(NULL);
 	cr_assert_eq(load_flis(tmppath), 0);
 
-	fits *got = nde_checkpoint_output_get(bid);
+	fits *got = nde_state_release(nde_checkpoint_output_get(bid));
 	cr_assert_not_null(got);
 	cr_assert_eq(got->orig_bitpix, BYTE_IMG,
 	             "an 8-bit mask must not come back as a 16-bit one");
@@ -701,7 +701,7 @@ Test(nde_persist, ckpt_lossless_under_user_compression) {
 	cr_assert_eq(load_flis(tmppath), 0);
 
 	cr_assert(nde_checkpoint_output_exists(bid));
-	fits *got = nde_checkpoint_output_get(bid);
+	fits *got = nde_state_release(nde_checkpoint_output_get(bid));
 	assert_float_exact(got, post);   /* bit-exact despite fits_enabled */
 	clearfits(got); free(got);
 	clearfits(post); free(post);
@@ -950,7 +950,7 @@ Test(nde_persist, checkpoints_of_non_barrier_records_persist) {
 	cr_assert_eq(load_flis(tmppath), 0);
 	cr_assert(nde_checkpoint_output_exists(id),
 	          "a stored checkpoint must survive the save, barrier or not");
-	fits *got = nde_checkpoint_output_get(id);
+	fits *got = nde_state_release(nde_checkpoint_output_get(id));
 	cr_assert_not_null(got);
 	assert_float_exact(got, state);
 	clearfits(got); free(got);
@@ -966,18 +966,21 @@ Test(nde_persist, baseline_layer_offset_round_trips) {
 	append_full("geometry.crop", 1, "x=1;y=2;w=4;h=4", "crop", NDE_TIER_A,
 	            NDE_SCOPE_CANVAS, lid, FALSE);
 	fits *seed = ramp_float(8, 8, 1, 0.5f);
+	/* Where the layer stands when the baseline is taken IS the baseline's
+	 * position — there is nothing separate to record. */
+	l->position_x = 17;
+	l->position_y = 23;
 	nde_checkpoint_baseline_ensure(seed, lid);
-	nde_checkpoint_baseline_set_offset(lid, 17, 23);
 
 	cr_assert_eq(save_flis(tmppath), 0);
 	flis_free_layers(com.uniq);
 	nde_history_attach(NULL);
 	nde_checkpoint_purge();
-	cr_assert(!nde_checkpoint_baseline_get_offset(lid, NULL, NULL));
+	cr_assert(!nde_checkpoint_baseline_has_position(lid));
 
 	cr_assert_eq(load_flis(tmppath), 0);
 	gint x = 0, y = 0;
-	cr_assert(nde_checkpoint_baseline_get_offset(lid, &x, &y),
+	cr_assert(nde_checkpoint_baseline_position(lid, &x, &y),
 	          "the baseline's position must survive the save");
 	cr_assert_eq(x, 17);
 	cr_assert_eq(y, 23);
@@ -991,8 +994,10 @@ Test(nde_persist, checkpoint_layer_offset_round_trips) {
 	gint64 id = append_full("filters.gauss", 1, "sigma=2", "blur", NDE_TIER_A,
 	                        NDE_SCOPE_LAYER, lid, FALSE);
 	fits *state = ramp_float(8, 8, 1, 0.125f);
+	/* Post-op pixels go with wherever the op left the layer. */
+	l->position_x = 5;
+	l->position_y = 11;
 	nde_checkpoint_output_store(state, id, lid);
-	nde_checkpoint_output_set_offset(id, 5, 11);
 
 	cr_assert_eq(save_flis(tmppath), 0);
 	flis_free_layers(com.uniq);
@@ -1000,28 +1005,35 @@ Test(nde_persist, checkpoint_layer_offset_round_trips) {
 	nde_checkpoint_purge();
 
 	cr_assert_eq(load_flis(tmppath), 0);
-	gint x = 0, y = 0;
-	cr_assert(nde_checkpoint_output_get_offset(id, &x, &y));
-	cr_assert_eq(x, 5);
-	cr_assert_eq(y, 11);
+	nde_state *back = nde_checkpoint_output_get(id);
+	cr_assert_not_null(back);
+	cr_assert(back->has_pos, "the restart point's position must survive the save");
+	cr_assert_eq(back->pos_x, 5);
+	cr_assert_eq(back->pos_y, 11);
+	nde_state_free(back);
 	clearfits(state); free(state);
 }
 
-/* An offset is only meaningful alongside stored pixels, and the two die
- * together — a position for a baseline we no longer have would outlive what
- * it describes and silently mis-anchor a later replay. */
-Test(nde_persist, an_offset_without_a_baseline_is_not_kept) {
-	flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.25f), "base");
-	nde_checkpoint_baseline_set_offset(42, 1, 2);
-	cr_assert(!nde_checkpoint_baseline_get_offset(42, NULL, NULL),
-	          "no baseline for item 42, so no position either");
+/* A position is part of a stored value, so the two cannot come apart: there is
+ * no way to record one for a baseline that does not exist, and dropping the
+ * pixels takes the position with them.  A position outliving what it describes
+ * would silently mis-anchor a later replay. */
+Test(nde_persist, a_position_cannot_outlive_its_baseline) {
+	flis_layer_t *l = flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.25f), "base");
+	gint lid = l->item_id;
+	l->position_x = 1;
+	l->position_y = 2;
+	cr_assert(!nde_checkpoint_baseline_has_position(lid),
+	          "no baseline for this item, so no position either");
 
 	fits *seed = ramp_float(8, 8, 1, 0.5f);
-	nde_checkpoint_baseline_ensure(seed, 42);
-	nde_checkpoint_baseline_set_offset(42, 1, 2);
-	cr_assert(nde_checkpoint_baseline_get_offset(42, NULL, NULL));
-	nde_checkpoint_drop(42);
-	cr_assert(!nde_checkpoint_baseline_get_offset(42, NULL, NULL),
+	nde_checkpoint_baseline_ensure(seed, lid);
+	gint x = 0, y = 0;
+	cr_assert(nde_checkpoint_baseline_position(lid, &x, &y));
+	cr_assert_eq(x, 1);
+	cr_assert_eq(y, 2);
+	nde_checkpoint_drop(lid);
+	cr_assert(!nde_checkpoint_baseline_has_position(lid),
 	          "dropping the pixels must drop the position with them");
 	clearfits(seed); free(seed);
 }

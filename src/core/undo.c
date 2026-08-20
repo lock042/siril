@@ -568,7 +568,10 @@ static void undo_free_item(historic *h) {
  * FLIS_UNDO_LAYER_NONE. */
 static int undo_push_to(GList **stack, fits *fit, const char *label,
                         gint layer_id) {
-	nde_snap *snap = nde_snap_create(fit);
+	/* Undo restores pixels into an existing fits and never moves a layer, so
+	 * the snapshot it takes carries no canvas position (nde_state.h). */
+	nde_state pixels = { .pix = fit };
+	nde_snap *snap = nde_snap_create(&pixels);
 	if (!snap)
 		return 1;
 
@@ -1485,7 +1488,8 @@ static int undo_push_counterpart_to(GList **stack, fits *fit, const historic *to
 		h->icc_profile  = NULL;
 		h->mask_bitpix  = (lay->fit->mask && lay->fit->mask->data)
 		                  ? lay->fit->mask->bitpix : 0;
-		h->snap = nde_snap_create(lay->fit);
+		nde_state pixels = { .pix = lay->fit };
+		h->snap = nde_snap_create(&pixels);
 		if (!h->snap) { undo_free_item(h); return 1; }
 		int mfd = undo_build_mask_swapfile(lay->fit);
 		if (mfd == -2) { undo_free_item(h); return 1; }
@@ -1821,7 +1825,8 @@ int undo_save_flis_layer_full(fits *fit_snapshot,
 
 	/* Pixels via the snapshot store so undo_restore_plain can read them;
 	 * pmask keeps the legacy fd path. */
-	h->snap = nde_snap_create(fit_snapshot);
+	nde_state pixels = { .pix = fit_snapshot };
+	h->snap = nde_snap_create(&pixels);
 	if (!h->snap) { undo_free_item(h); return 1; }
 	int mfd = undo_build_mask_swapfile(fit_snapshot);
 	if (mfd == -2) { undo_free_item(h); return 1; }

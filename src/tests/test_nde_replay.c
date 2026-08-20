@@ -833,7 +833,7 @@ Test(nde_replay, delete_execute_removes_step_from_pixels_and_log) {
 	}
 
 	/* expected pixels after deleting the asinh step: mirrorx(baseline) */
-	fits *expected = nde_checkpoint_baseline_get(-1);
+	fits *expected = nde_state_release(nde_checkpoint_baseline_get(-1));
 	cr_assert_not_null(expected);
 	mirrorx(expected, FALSE);
 
@@ -926,7 +926,7 @@ Test(nde_replay, deleting_opaque_record_regains_editability) {
 	nde_chain_free(chain);
 
 	/* expected post-delete pixels: mirrorx(asinh(baseline)) */
-	fits *expected = nde_checkpoint_baseline_get(-1);
+	fits *expected = nde_state_release(nde_checkpoint_baseline_get(-1));
 	cr_assert_not_null(expected);
 	{
 		asinh_params *eu = calloc(1, sizeof(*eu));
@@ -1132,7 +1132,7 @@ Test(nde_replay, barrier_checkpoint_enables_tail_editing) {
 	gboolean ok = nde_amend_execute(a2_id, "beta=50;offset=0;human=0;clip_mode=1", &err);
 	unreserve_thread();
 	cr_assert(ok, "tail amend failed: %s", err ? err : "?");
-	fits *expected = nde_checkpoint_output_get(b_id);
+	fits *expected = nde_state_release(nde_checkpoint_output_get(b_id));
 	cr_assert_not_null(expected);
 	{
 		asinh_params *eu = calloc(1, sizeof(*eu));
@@ -1148,7 +1148,7 @@ Test(nde_replay, barrier_checkpoint_enables_tail_editing) {
 	ok = nde_delete_execute(b_id, &err);
 	unreserve_thread();
 	cr_assert(ok, "barrier delete failed: %s", err ? err : "?");
-	expected = nde_checkpoint_baseline_get(-1);
+	expected = nde_state_release(nde_checkpoint_baseline_get(-1));
 	cr_assert_not_null(expected);
 	{
 		asinh_params *e1 = calloc(1, sizeof(*e1));
@@ -1254,7 +1254,7 @@ Test(nde_replay, capture_opaque_wires_output_checkpoint) {
 	cr_assert(nde_checkpoint_output_exists(b),
 	          "a Tier-B capture with a post fits must store an output checkpoint");
 	/* the stored pixels are the ones we passed */
-	fits *ck = nde_checkpoint_output_get(b);
+	fits *ck = nde_state_release(nde_checkpoint_output_get(b));
 	cr_assert_not_null(ck);
 	assert_pixels_bit_exact(ck, f, "opaque-checkpoint");
 	clearfits(ck); free(ck);
@@ -1372,7 +1372,7 @@ Test(nde_replay, worker_block_stores_checkpoint_for_serializerless_op) {
 	/* the worker capture block stored the post-op pixels (== gfit now) */
 	cr_assert(nde_checkpoint_output_exists(rid),
 	          "the worker block must checkpoint a serializer-less barrier op");
-	fits *ck = nde_checkpoint_output_get(rid);
+	fits *ck = nde_state_release(nde_checkpoint_output_get(rid));
 	cr_assert_not_null(ck);
 	assert_pixels_bit_exact(ck, gfit, "worker-bg-checkpoint");
 	clearfits(ck); free(ck);
@@ -1670,7 +1670,7 @@ Test(nde_replay, second_amend_restarts_from_cached_deposit) {
 	             "restarting at the edit means exactly ONE record replayed (one deposit)");
 
 	/* cache-restart result must equal a from-baseline computation */
-	fits *expected = nde_checkpoint_baseline_get(-1);
+	fits *expected = nde_state_release(nde_checkpoint_baseline_get(-1));
 	cr_assert_not_null(expected);
 	{
 		asinh_params *e1 = calloc(1, sizeof(*e1));
@@ -1711,7 +1711,7 @@ Test(nde_replay, upstream_amend_invalidates_stale_deposits) {
 	cr_assert(nde_amend_execute(2, "beta=40;offset=0;human=0;clip_mode=1", &err));
 	unreserve_thread();
 
-	fits *expected = nde_checkpoint_baseline_get(-1);
+	fits *expected = nde_state_release(nde_checkpoint_baseline_get(-1));
 	{
 		asinh_params *e1 = calloc(1, sizeof(*e1));
 		e1->beta = 15.0f; e1->clip_mode = RESCALE;
@@ -1817,7 +1817,7 @@ Test(nde_replay, reorder_replays_in_new_order) {
 	g_ptr_array_unref(snap);
 
 	/* pixels equal mtf-then-asinh applied from the baseline */
-	fits *expected = nde_checkpoint_baseline_get(-1);
+	fits *expected = nde_state_release(nde_checkpoint_baseline_get(-1));
 	cr_assert_not_null(expected);
 	reorder_expected_mtf_then_asinh(expected, 15.0f);
 	assert_pixels_bit_exact(gfit, expected, "reorder");
@@ -1833,7 +1833,7 @@ Test(nde_replay, reorder_replays_in_new_order) {
 	ok = nde_amend_execute(1, "beta=40;offset=0.0199999996;human=0;clip_mode=1", &err);
 	unreserve_thread();
 	cr_assert(ok, "post-reorder amend failed: %s", err ? err : "?");
-	expected = nde_checkpoint_baseline_get(-1);
+	expected = nde_state_release(nde_checkpoint_baseline_get(-1));
 	reorder_expected_mtf_then_asinh(expected, 40.0f);
 	assert_pixels_bit_exact(gfit, expected, "post-reorder-amend");
 	clearfits(expected); free(expected);
@@ -1893,7 +1893,7 @@ Test(nde_replay, amend_preview_installs_pre_state_and_restores_bit_exact) {
 	u2->beta = 20.0f; u2->clip_mode = RESCALE;
 	cr_assert_eq(apply_op_real(&op_desc_asinh, u2), 0);
 
-	fits *expected_pre_k = nde_checkpoint_baseline_get(-1);
+	fits *expected_pre_k = nde_state_release(nde_checkpoint_baseline_get(-1));
 	cr_assert_not_null(expected_pre_k);
 	{
 		asinh_params *e1 = calloc(1, sizeof(*e1));
@@ -1974,7 +1974,7 @@ Test(nde_replay, amend_preview_apply_uses_deposited_restart) {
 	             "restarting at the edit means exactly ONE record replayed");
 
 	/* result equals a from-baseline computation with the new params */
-	fits *expected = nde_checkpoint_baseline_get(-1);
+	fits *expected = nde_state_release(nde_checkpoint_baseline_get(-1));
 	cr_assert_not_null(expected);
 	{
 		asinh_params *e1 = calloc(1, sizeof(*e1));
@@ -2026,7 +2026,7 @@ Test(nde_replay, region_tail_replay_matches_a_full_recompute) {
 	cr_assert_eq(apply_op_real(&op_desc_asinh, u3), 0);
 
 	/* The truth: the whole chain, full-image, with record 1 amended. */
-	fits *truth = nde_checkpoint_baseline_get(-1);
+	fits *truth = nde_state_release(nde_checkpoint_baseline_get(-1));
 	cr_assert_not_null(truth);
 	{
 		asinh_params *e1 = calloc(1, sizeof(*e1));
@@ -2264,7 +2264,7 @@ Test(nde_replay, edit_at_inserts_a_step_and_replays_forward) {
 	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(20.f)), 0);
 
 	/* what the image must become: the inserted step runs BETWEEN the two */
-	fits *expected = nde_checkpoint_baseline_get(-1);
+	fits *expected = nde_state_release(nde_checkpoint_baseline_get(-1));
 	cr_assert_not_null(expected);
 	apply_direct(&op_desc_asinh, asinh_beta(10.f), expected);
 	apply_direct(&op_desc_asinh, asinh_beta(30.f), expected);
@@ -2605,7 +2605,7 @@ Test(nde_replay, flis_geometry_chain_replays_and_lands_the_layer) {
 	cr_assert_eq(lay->position_y, 36);
 	/* and the baseline kept where it started, not where the crop left it */
 	gint bx = 0, by = 0;
-	cr_assert(nde_checkpoint_baseline_get_offset(item, &bx, &by));
+	cr_assert(nde_checkpoint_baseline_position(item, &bx, &by));
 	cr_assert_eq(bx, 20, "the baseline's position is the PRE-first-op one");
 	cr_assert_eq(by, 30);
 
@@ -2660,6 +2660,58 @@ Test(nde_replay, amending_a_crop_moves_the_layer) {
 	cr_assert_eq(lay->position_y, 32);
 	cr_assert_eq(lay->fit->rx, 16u);
 	cr_assert_eq(lay->fit->ry, 12u);
+
+	nde_history_attach(NULL);
+	gfit = NULL;
+}
+
+/* A chain that moves the layer can restart from a CACHED state, now that a
+ * cached state is a whole value — pixels and canvas position together.  While
+ * the cache held pixels alone, a geometry chain had to replay from the
+ * baseline every time, because nothing else could say where the layer had got
+ * to; every layer the user had ever cropped paid for that on every edit. */
+Test(nde_replay, a_geometry_chain_restarts_from_the_cache) {
+	com.pref.nde_cache_mb = 256;
+	flis_layer_t *lay = flis_test_add_layer(
+	    flis_test_make_mono_fits(64, 48, 0.f), "base");
+	lay->position_x = 20;
+	lay->position_y = 30;
+	uniq_set_active_layer(com.uniq, 0);
+	gfit = flis_active_layer_fit();
+	fill_mono_gradient(gfit);
+	gint item = lay->item_id;
+
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(10.f)), 0);   /* 1 */
+	struct crop_args *ca = calloc(1, sizeof(*ca));
+	ca->area = (rectangle){ .x = 8, .y = 6, .w = 32, .h = 24 };
+	cr_assert_eq(apply_op_real(&op_desc_crop, ca), 0);                  /* 2 */
+	cr_assert_eq(apply_op_real(&op_desc_asinh, asinh_beta(5.f)), 0);    /* 3 */
+	cr_assert_eq(lay->position_x, 28);
+	cr_assert_eq(lay->position_y, 36);
+
+	gchar *err = NULL;
+	cr_assert(reserve_thread());
+	/* Nothing is cached yet — live ops deposit nothing — so this one replays
+	 * from the baseline, depositing the intermediate states as it goes. */
+	cr_assert(nde_amend_execute(3, "beta=15;offset=0;human=0;clip_mode=1", &err),
+	          "first amend failed: %s", err ? err : "?");
+	cr_assert(nde_snapstore_has(item, 2, TRUE),
+	          "the replay must have deposited the state after the crop");
+
+	nde_snapstore_stats_reset();
+	cr_assert(nde_amend_execute(3, "beta=25;offset=0;human=0;clip_mode=1", &err),
+	          "second amend failed: %s", err ? err : "?");
+	unreserve_thread();
+
+	nde_snapstore_stats_t st;
+	nde_snapstore_stats(&st);
+	cr_assert(st.hits > 0, "the second amend must restart from the cached state");
+	/* And the layer stays where the crop put it: the cached state carried the
+	 * position, so nothing had to re-anchor to the baseline's (20,30). */
+	cr_assert_eq(lay->position_x, 28, "the cached restart must carry the position");
+	cr_assert_eq(lay->position_y, 36);
+	cr_assert_eq(lay->fit->rx, 32u);
+	cr_assert_eq(lay->fit->ry, 24u);
 
 	nde_history_attach(NULL);
 	gfit = NULL;
@@ -2757,18 +2809,19 @@ Test(nde_replay, flis_geometry_without_a_start_position_is_a_blocker) {
 	struct crop_args *ca = calloc(1, sizeof(*ca));
 	ca->area = (rectangle){ .x = 8, .y = 6, .w = 32, .h = 24 };
 	cr_assert_eq(apply_op_real(&op_desc_crop, ca), 0);
-	cr_assert(nde_checkpoint_baseline_get_offset(item, NULL, NULL));
+	cr_assert(nde_checkpoint_baseline_has_position(item));
 
-	/* Drop just the position, the way an older file arrives: pixels present,
-	 * no FLIS_POSX/Y.  nde_checkpoint_drop would take the baseline too, so
-	 * re-adopt the pixels afterwards. */
-	fits *base = nde_checkpoint_baseline_get(item);
+	/* Re-adopt the pixels with no position, the way an older file arrives:
+	 * NDE_BASE present, no FLIS_POSX/Y.  nde_checkpoint_drop would take the
+	 * baseline with it, so put the pixels back afterwards. */
+	nde_state *base = nde_checkpoint_baseline_get(item);
 	cr_assert_not_null(base);
+	base->has_pos = FALSE;
 	nde_checkpoint_drop(item);
 	nde_checkpoint_baseline_adopt(base, item);
-	clearfits(base); free(base);
+	nde_state_free(base);
 	cr_assert(nde_checkpoint_baseline_exists(item));
-	cr_assert(!nde_checkpoint_baseline_get_offset(item, NULL, NULL));
+	cr_assert(!nde_checkpoint_baseline_has_position(item));
 
 	nde_chain *chain = nde_chain_build(item);
 	cr_assert(!chain->replayable);
@@ -3067,7 +3120,7 @@ Test(nde_replay, a_pin_before_the_edit_is_not_disturbed) {
 	g_ptr_array_unref(snap);
 
 	/* the mask state that consumer pinned, as stored */
-	fits *pinned_before = nde_checkpoint_output_get(1);
+	fits *pinned_before = nde_state_release(nde_checkpoint_output_get(1));
 	cr_assert_not_null(pinned_before);
 	size_t mn = (size_t)pinned_before->rx * pinned_before->ry;
 	guint8 *keep = g_malloc(mn * sizeof(WORD));
@@ -3079,7 +3132,7 @@ Test(nde_replay, a_pin_before_the_edit_is_not_disturbed) {
 	cr_assert(nde_amend_execute(3, "radius=5", &err), "amend failed: %s", err ? err : "?");
 	unreserve_thread();
 
-	fits *pinned_after = nde_checkpoint_output_get(1);
+	fits *pinned_after = nde_state_release(nde_checkpoint_output_get(1));
 	cr_assert_not_null(pinned_after, "the earlier pin must still resolve");
 	cr_assert_eq(memcmp(pinned_after->data, keep, mn * sizeof(WORD)), 0,
 	             "editing a LATER mask step must not touch an earlier pin");

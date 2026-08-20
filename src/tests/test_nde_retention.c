@@ -83,8 +83,8 @@ Test(nde_retention, the_budget_counts_pins_as_well_as_cache) {
  * single budget: pool_bytes alone would have let the two grow independently. */
 Test(nde_retention, the_cache_yields_to_pins) {
 	fits *a = quarter_mb(0.1f), *b = quarter_mb(0.2f);
-	nde_snapstore_deposit(a, 1, 101);
-	nde_snapstore_deposit(b, 1, 102);
+	nde_snapstore_deposit(&(nde_state){ .pix = a }, 1, 101);
+	nde_snapstore_deposit(&(nde_state){ .pix = b }, 1, 102);
 	cr_assert_eq(nde_snapstore_pool_bytes(), 2 * 256 * 256 * 4);
 
 	/* Two pins push the total to 1 MB; the next one must cost the cache. */
@@ -139,8 +139,8 @@ Test(nde_retention, reconstruction_data_is_never_evicted_even_over_budget) {
  * and it must be given up before the overshoot is declared. */
 Test(nde_retention, the_cache_is_spent_before_the_budget_is_broken) {
 	fits *c1 = quarter_mb(0.1f), *c2 = quarter_mb(0.2f);
-	nde_snapstore_deposit(c1, 1, 101);
-	nde_snapstore_deposit(c2, 1, 102);
+	nde_snapstore_deposit(&(nde_state){ .pix = c1 }, 1, 101);
+	nde_snapstore_deposit(&(nde_state){ .pix = c2 }, 1, 102);
 
 	/* Four pins = 1 MB on their own; with the cache the total is 1.5 MB. */
 	fits *p[4];
@@ -278,7 +278,7 @@ Test(nde_retention, a_zero_budget_suppresses_the_cache_and_keeps_pins) {
 	com.pref.nde_cache_mb = 0;
 
 	fits *a = quarter_mb(0.1f);
-	nde_snapstore_deposit(a, 1, 101);
+	nde_snapstore_deposit(&(nde_state){ .pix = a }, 1, 101);
 	cr_assert_eq(nde_snapstore_pool_bytes(), 0, "no cache at a zero budget");
 
 	fits *pin = quarter_mb(0.2f);

@@ -171,7 +171,9 @@ gboolean nde_mask_pin_install(fits *scratch, const nde_record *rec, gchar **err)
 	const nde_input_pin *pin = nde_record_input(rec, "mask");
 	if (!pin)
 		return TRUE;
-	fits *mfit = nde_checkpoint_get_at(pin->src_item_id, pin->src_record_id);
+	/* A mask has no place on the canvas — only its pixels are wanted. */
+	fits *mfit = nde_state_release(nde_checkpoint_get_at(pin->src_item_id,
+	                                                     pin->src_record_id));
 	if (!mfit) {
 		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s): its mask is no longer stored"),
 		                       rec->record_id, rec->op_id ? rec->op_id : "?");
@@ -262,11 +264,6 @@ void nde_commit_unlock(fits *fit, gboolean quiesced) {
 		gui_iface.set_suppress_redraws(FALSE);
 }
 
-/* Where a replay's layer starts.  @restart_id 0 means the baseline; anything
- * else is that record's output checkpoint.  FALSE when the chain carries no
- * geometry member (a plain image, or a layer nothing ever moved), in which
- * case the hooks are handed NULL and move nothing. */
-
 /* Set while an edit to a GEOMETRIC joint record (flis.register) cascades to
  * its participants.  Those layers are sitting where the record's warp put
  * them, so the recompute has to re-anchor them from the baseline even when
@@ -280,29 +277,43 @@ void nde_replay_set_joint_reanchor(gboolean on) {
 	joint_geometry_reanchor = on;
 }
 
-gboolean nde_replay_start_offset(const nde_chain *chain, gint64 restart_id,
-                                    gint *pos_x, gint *pos_y) {
-	if (!chain->has_geometry && !joint_geometry_reanchor)
-		return FALSE;
-	if (joint_geometry_reanchor && !chain->has_geometry)
-		return nde_checkpoint_baseline_get_offset(chain->item_id, pos_x, pos_y);
-	if (restart_id > 0 &&
-	    nde_checkpoint_output_get_offset(restart_id, pos_x, pos_y))
-		return TRUE;
-	return nde_checkpoint_baseline_get_offset(chain->item_id, pos_x, pos_y);
+void nde_replay_arm_position(nde_state *start, const nde_chain *chain) {
+	if (!start)
+		return;
+	/* A chain with no geometry member does not move the layer, so its result
+	 * has no position of its own — whatever position the layer has is the
+	 * user's, and committing the stored one back would undo a drag.  Drop the
+	 * position the restart state came with rather than carry it. */
+	if (!chain->has_geometry && !joint_geometry_reanchor) {
+		start->has_pos = FALSE;
+		return;
+	}
+	/* Two ways to end up wanting the baseline's position instead of the one
+	 * the restart state came with:
+	 *   - re-anchoring a joint participant whose chain no longer moves it, the
+	 *     layer being sat where the deleted registration put it, so that the
+	 *     baseline is the only position that means anything;
+	 *   - a restart state carrying none at all — one saved before positions
+	 *     were stored with pixels, or from a chain that had not moved anything
+	 *     yet. */
+	if ((joint_geometry_reanchor && !chain->has_geometry) || !start->has_pos)
+		start->has_pos = nde_checkpoint_baseline_position(chain->item_id,
+		                                                  &start->pos_x,
+		                                                  &start->pos_y);
 }
 
 /* Move the layer to where the replay left it.  The pixels are committed by
  * the caller's swap; without this the layer would keep the position its
- * pre-edit geometry produced, which the new pixels no longer match. */
-void nde_commit_layer_offset(gint item_id, gint pos_x, gint pos_y) {
-	if (item_id < 0)
+ * pre-edit geometry produced, which the new pixels no longer match.  A state
+ * with no position leaves the layer alone — see nde_state.h. */
+void nde_commit_layer_position(gint item_id, const nde_state *result) {
+	if (item_id < 0 || !result || !result->has_pos)
 		return;
 	flis_layer_t *lay = flis_layer_get_by_id(item_id);
 	if (!lay)
 		return;
-	lay->position_x = pos_x;
-	lay->position_y = pos_y;
+	lay->position_x = result->pos_x;
+	lay->position_y = result->pos_y;
 	gui_iface.flis_invalidate_composite();
 }
 
@@ -324,14 +335,10 @@ void nde_edit_finish(fits *target, const char *done_msg) {
 	gui_iface.set_progress(PROGRESS_DONE, done_msg);
 }
 
-static fits *resolve_item_state(gint item_id, gint64 upto_record_id, gchar **err);
-static fits *resolve_item_state_pos(gint item_id, gint64 upto_record_id,
-                                    gint *pos_x, gint *pos_y,
-                                    gboolean *pos_valid, gchar **err);
-static fits *resolve_item_state_pos_bound(gint item_id, gint64 upto_record_id,
-                                          gboolean exclusive,
-                                          gint *pos_x, gint *pos_y,
-                                          gboolean *pos_valid, gchar **err);
+static nde_state *resolve_item_state(gint item_id, gint64 upto_record_id,
+                                     gchar **err);
+static nde_state *resolve_item_state_bound(gint item_id, gint64 upto_record_id,
+                                           gboolean exclusive, gchar **err);
 
 /* Run one composite member (graph step 7, nde_composite.h) — merge-down with
  * two inputs, flatten with all of them.
@@ -347,8 +354,8 @@ static fits *resolve_item_state_pos_bound(gint item_id, gint64 upto_record_id,
  * the composite is canvas-sized and canvas-aligned — the same reset the live
  * merge and flatten perform.
  */
-static fits *composite_apply(fits *base, const nde_record *rec, gint item_id,
-                             gint *pos_x, gint *pos_y, gchar **err) {
+static nde_state *composite_apply(nde_state *base, const nde_record *rec,
+                                  gint item_id, gchar **err) {
 	nde_composite_state *st = nde_composite_state_parse(rec->params);
 	if (!st) {
 		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT ": the composite's inputs were not recorded"),
@@ -358,7 +365,10 @@ static fits *composite_apply(fits *base, const nde_record *rec, gint item_id,
 	guint n = st->inputs->len;
 	fits **pixels = g_new0(fits *, n);
 	fits **masks = g_new0(fits *, n);
-	gboolean *owned = g_new0(gboolean, n);
+	/* The inputs this call resolved for itself, and so has to free.  @base is
+	 * not among them — it is the accumulated replay state and stays the
+	 * caller's. */
+	nde_state **resolved = g_new0(nde_state *, n);
 	gboolean ok = TRUE;
 	for (guint i = 0; i < n && ok; i++) {
 		nde_composite_input *in = &g_array_index(st->inputs, nde_composite_input, i);
@@ -367,7 +377,9 @@ static fits *composite_apply(fits *base, const nde_record *rec, gint item_id,
 		if (in->visible && in->was_masked) {
 			const nde_input_pin *mp = in->mask_item_id ?
 					nde_record_input_by_item(rec, in->mask_item_id) : NULL;
-			masks[i] = mp ? nde_checkpoint_get_at(mp->src_item_id, mp->src_record_id) : NULL;
+			masks[i] = mp ? nde_state_release(nde_checkpoint_get_at(mp->src_item_id,
+			                                                        mp->src_record_id))
+			              : NULL;
 			if (!masks[i]) {
 				*err = g_strdup_printf(_("record %" G_GINT64_FORMAT ": the layer mask of '%s' is no longer stored"),
 				                       rec->record_id, in->name ? in->name : "?");
@@ -376,15 +388,15 @@ static fits *composite_apply(fits *base, const nde_record *rec, gint item_id,
 			}
 		}
 		if (in->item_id == item_id) {
-			pixels[i] = base;
+			pixels[i] = base ? base->pix : NULL;
 			/* Reached only if a composite record ever sits mid-chain on its
 			 * own item.  The current capture reissues the survivor's identity
 			 * before committing (image_format_flis.c), so today no recorded
 			 * input matches the target and base is always NULL — resolved
 			 * inputs are re-anchored below instead. */
-			if (pos_x && pos_y) {
-				in->position_x = *pos_x;
-				in->position_y = *pos_y;
+			if (base && base->has_pos) {
+				in->position_x = base->pos_x;
+				in->position_y = base->pos_y;
 			}
 			continue;
 		}
@@ -397,28 +409,24 @@ static fits *composite_apply(fits *base, const nde_record *rec, gint item_id,
 			ok = FALSE;
 			break;
 		}
-		gint rpx = 0, rpy = 0;
-		gboolean rpos = FALSE;
-		pixels[i] = resolve_item_state_pos(pin->src_item_id, pin->src_record_id,
-		                                   &rpx, &rpy, &rpos, err);
-		owned[i] = TRUE;
-		ok = pixels[i] != NULL;
-		if (ok && rpos) {
+		resolved[i] = resolve_item_state(pin->src_item_id, pin->src_record_id, err);
+		ok = resolved[i] != NULL;
+		if (!ok)
+			break;
+		pixels[i] = resolved[i]->pix;
+		if (resolved[i]->has_pos) {
 			/* A geometry member owns this input's position — the same rule
-			 * nde_commit_layer_offset applies to a live layer's replay — so an
-			 * amended geometry step (a crop moved to a new origin) moves
+			 * nde_commit_layer_position applies to a live layer's replay — so
+			 * an amended geometry step (a crop moved to a new origin) moves
 			 * where the input lands in the composite.  The recorded position
 			 * stays authoritative only for chains that never moved. */
-			in->position_x = rpx;
-			in->position_y = rpy;
+			in->position_x = resolved[i]->pos_x;
+			in->position_y = resolved[i]->pos_y;
 		}
 	}
 	fits *out = ok ? nde_composite_render(st, pixels, masks, err) : NULL;
 	for (guint i = 0; i < n; i++) {
-		if (owned[i] && pixels[i]) {
-			clearfits(pixels[i]);
-			free(pixels[i]);
-		}
+		nde_state_free(resolved[i]);
 		if (masks[i]) {
 			clearfits(masks[i]);
 			free(masks[i]);
@@ -426,21 +434,24 @@ static fits *composite_apply(fits *base, const nde_record *rec, gint item_id,
 	}
 	g_free(pixels);
 	g_free(masks);
-	g_free(owned);
+	g_free(resolved);
 	nde_composite_state_free(st);
-	if (out && pos_x && pos_y)
-		*pos_x = *pos_y = 0;
-	return out;
+	if (!out)
+		return NULL;
+	/* Canvas-sized and canvas-aligned: the same origin reset the live merge and
+	 * flatten perform.  Only meaningful for a chain that carries a position at
+	 * all — one that does not leaves the layer where the user put it. */
+	return (base && base->has_pos) ? nde_state_new_at(out, 0, 0)
+	                               : nde_state_new(out);
 }
 
 /* Apply members [from..upto) to @scratch (consumed on failure).  Returns
  * @scratch on success, NULL + @err on failure.
  *
- * @pos_x / @pos_y carry the LAYER VALUE's other half (graph step 5): a
- * geometry member moves the layer as well as changing its pixels, and each
- * move is relative to the previous position, so the driver threads the
- * position through the run and hands it to the hooks.  NULL for a plain
- * image, which has no position, and for chains with no geometry member. */
+ * @scratch is a STATE, not pixels: a geometry member moves the layer as well
+ * as changing its pixels, and each move is relative to the previous position,
+ * so both halves travel together through the run (nde_state.h).  A state with
+ * no position hands the hooks NULL and they move nothing. */
 /* The record currently being applied by the replay driver, for hooks whose
  * recompute needs record-scoped side data — the photometric pipeline reads
  * its embedded star catalogue (nde_cat.h) under this id.  0 outside a
@@ -455,10 +466,12 @@ void nde_replay_set_current_record(gint64 record_id) {
 	replay_current_record = record_id;
 }
 
-fits *nde_replay_apply_records(fits *scratch, const nde_chain *chain,
-                                  guint from, guint upto,
-                                  gint *pos_x, gint *pos_y, gchar **err) {
+nde_state *nde_replay_apply_records(nde_state *state, const nde_chain *chain,
+                                    guint from, guint upto, gchar **err) {
 	for (guint i = from; i < upto; i++) {
+		fits *scratch = state ? state->pix : NULL;
+		gint *pos_x = (state && state->has_pos) ? &state->pos_x : NULL;
+		gint *pos_y = (state && state->has_pos) ? &state->pos_y : NULL;
 		const nde_record *rec = g_ptr_array_index(chain->records, i);
 		replay_current_record = rec->record_id;
 		if (!processing_should_continue()) {
@@ -493,7 +506,7 @@ fits *nde_replay_apply_records(fits *scratch, const nde_chain *chain,
 			 * of them cleared the conductor's.  Take it back: there may be
 			 * many records still to replay after this one. */
 			gui_iface.set_busy(TRUE);
-			nde_snapstore_deposit(scratch, chain->item_id, rec->record_id);
+			nde_snapstore_deposit(state, chain->item_id, rec->record_id);
 			continue;
 		}
 		/* Every family is listed so that adding one is a compiler warning
@@ -513,10 +526,9 @@ fits *nde_replay_apply_records(fits *scratch, const nde_chain *chain,
 			 * nde_joint_factor_for_item would multiply the layer by a
 			 * meaningless number and leave it the wrong size. */
 			if (nde_joint_is_geometric_op(rec->op_id)) {
-				if (!nde_joint_register_apply(rec, scratch, chain->item_id,
-				                              pos_x, pos_y, err))
+				if (!nde_joint_register_apply(rec, state, chain->item_id, err))
 					goto fail;
-				nde_snapstore_deposit(scratch, chain->item_id, rec->record_id);
+				nde_snapstore_deposit(state, chain->item_id, rec->record_id);
 				continue;
 			}
 			double s = 1.0, o = 0.0;
@@ -525,22 +537,18 @@ fits *nde_replay_apply_records(fits *scratch, const nde_chain *chain,
 				goto fail;
 			flis_affine_layer_pixels(scratch, s, o);
 			invalidate_stats_from_fit(scratch);
-			nde_snapstore_deposit(scratch, chain->item_id, rec->record_id);
+			nde_snapstore_deposit(state, chain->item_id, rec->record_id);
 			continue;
 		}
 		case NDE_OPC_COMPOSITE: {
-			fits *merged = composite_apply(scratch, rec, chain->item_id,
-			                               pos_x, pos_y, err);
+			nde_state *merged = composite_apply(state, rec, chain->item_id, err);
 			if (!merged)
-				goto fail;   /* scratch untouched — the fail path frees it */
+				goto fail;   /* state untouched — the fail path frees it */
 			/* NULL when this composite is the item's origin: an item born of
 			 * a merge has no prior state for the composite to replace. */
-			if (scratch) {
-				clearfits(scratch);
-				free(scratch);
-			}
-			scratch = merged;
-			nde_snapstore_deposit(scratch, chain->item_id, rec->record_id);
+			nde_state_free(state);
+			state = merged;
+			nde_snapstore_deposit(state, chain->item_id, rec->record_id);
 			continue;
 		}
 		/* Everything else runs its descriptor's hook below.  The families that
@@ -607,15 +615,14 @@ fits *nde_replay_apply_records(fits *scratch, const nde_chain *chain,
 		/* Convergence C3: deposit the intermediate state so the NEXT edit
 		 * restarts here instead of the baseline.  Pure cache — silent when
 		 * the budget pref is 0 or the write fails. */
-		nde_snapstore_deposit(scratch, chain->item_id, rec->record_id);
+		nde_snapstore_deposit(state, chain->item_id, rec->record_id);
 	}
 	replay_current_record = 0;
-	return scratch;
+	return state;
 
 fail:
 	replay_current_record = 0;
-	clearfits(scratch);
-	free(scratch);
+	nde_state_free(state);
 	return NULL;
 }
 
@@ -686,27 +693,17 @@ void nde_commit_restore_metadata(fits *target, fits *old) {
 	nde_commit_unlock(target, quiesced);
 }
 
-/* As resolve_item_state, additionally reporting where the replayed chain left
- * the input's layer.  *pos_valid is set TRUE only when the chain carries an
- * offset (a geometry member with a stored start offset — the same condition
- * nde_replay_start_offset applies everywhere else); otherwise the recorded
- * capture-time position remains the only truth and the outs are untouched. */
-static fits *resolve_item_state_pos(gint item_id, gint64 upto_record_id,
-                                    gint *pos_x, gint *pos_y,
-                                    gboolean *pos_valid, gchar **err) {
-	return resolve_item_state_pos_bound(item_id, upto_record_id, FALSE,
-	                                    pos_x, pos_y, pos_valid, err);
-}
-
 /* The bound-aware core.  @exclusive says which side of the anchor the prefix
  * ends on: FALSE replays up to AND INCLUDING the anchor's log position (a
  * pin's "state after this record"), TRUE stops JUST BEFORE it (a joint
  * record resolving a sibling's pre-record state, nde_joint.h — inclusive
- * would replay the joint record itself and recurse forever). */
-static fits *resolve_item_state_pos_bound(gint item_id, gint64 upto_record_id,
-                                          gboolean exclusive,
-                                          gint *pos_x, gint *pos_y,
-                                          gboolean *pos_valid, gchar **err) {
+ * would replay the joint record itself and recurse forever).
+ *
+ * The result carries a position only when this chain moves the layer; a
+ * consumer that finds none must keep whatever position it already had, since
+ * the recorded capture-time one is then the only truth. */
+static nde_state *resolve_item_state_bound(gint item_id, gint64 upto_record_id,
+                                           gboolean exclusive, gchar **err) {
 	nde_chain *c = nde_chain_build(item_id);
 	/* A pin's src_record_id of 0 means the item's BASELINE, not "all of it"
 	 * (nde_history.h) — the state before anything was recorded against it.
@@ -793,7 +790,7 @@ static fits *resolve_item_state_pos_bound(gint item_id, gint64 upto_record_id,
 		}
 	}
 	if (prefix_restart) {
-		fits *start = nde_checkpoint_output_get(prefix_restart);
+		nde_state *start = nde_checkpoint_output_get(prefix_restart);
 		if (!start) {
 			*err = g_strdup_printf(_("the source of this input cannot be rebuilt: "
 			                         "the stored pixels of step %" G_GINT64_FORMAT
@@ -801,17 +798,8 @@ static fits *resolve_item_state_pos_bound(gint item_id, gint64 upto_record_id,
 			nde_chain_free(c);
 			return NULL;
 		}
-		gint px = 0, py = 0;
-		gboolean carry = nde_replay_start_offset(c, prefix_restart, &px, &py);
-		fits *out = nde_replay_apply_records(start, c, prefix_start, upto,
-		                                 carry ? &px : NULL, carry ? &py : NULL,
-		                                 err);
-		if (out && carry && pos_x && pos_y) {
-			*pos_x = px;
-			*pos_y = py;
-			if (pos_valid)
-				*pos_valid = TRUE;
-		}
+		nde_replay_arm_position(start, c);
+		nde_state *out = nde_replay_apply_records(start, c, prefix_start, upto, err);
 		nde_chain_free(c);
 		return out;
 	}
@@ -828,58 +816,50 @@ static fits *resolve_item_state_pos_bound(gint item_id, gint64 upto_record_id,
 			nde_chain_free(c);
 			return NULL;
 		}
-		fits *out = nde_replay_apply_records(NULL, c, 0, upto, NULL, NULL, err);
+		nde_state *out = nde_replay_apply_records(NULL, c, 0, upto, err);
 		nde_chain_free(c);
 		return out;
 	}
-	fits *start = nde_checkpoint_baseline_get(item_id);
+	nde_state *start = nde_checkpoint_baseline_get(item_id);
 	if (!start && c->records->len == 0) {
 		/* Nothing was ever recorded against this item, so no baseline was
 		 * ever taken — and none is needed: with no operations to undo, its
 		 * current pixels ARE its original state.  This is the ordinary case
 		 * for a mask built as the very first thing done to an image. */
 		fits *live = nde_edit_target_fits(item_id);
-		if (live) {
-			start = calloc(1, sizeof(fits));
-			if (start) {
-				g_rw_lock_reader_lock(&live->rwlock);
-				int rc = copyfits(live, start, CP_DEEPCOPY | CP_ALLOC, -1);
-				g_rw_lock_reader_unlock(&live->rwlock);
-				if (rc) {
-					free(start);
-					start = NULL;
-				}
+		fits *copy = live ? calloc(1, sizeof(fits)) : NULL;
+		if (copy) {
+			g_rw_lock_reader_lock(&live->rwlock);
+			int rc = copyfits(live, copy, CP_DEEPCOPY | CP_ALLOC, -1);
+			g_rw_lock_reader_unlock(&live->rwlock);
+			if (rc) {
+				free(copy);
+				copy = NULL;
 			}
 		}
+		start = nde_state_new(copy);
 	}
 	if (!start) {
 		*err = g_strdup(_("failed to load the baseline checkpoint"));
 		nde_chain_free(c);
 		return NULL;
 	}
-	gint px = 0, py = 0;
-	gboolean carry = nde_replay_start_offset(c, 0, &px, &py);
-	fits *out = nde_replay_apply_records(start, c, 0, upto,
-	                                 carry ? &px : NULL, carry ? &py : NULL,
-	                                 err);
-	if (out && carry && pos_x && pos_y) {
-		*pos_x = px;
-		*pos_y = py;
-		if (pos_valid)
-			*pos_valid = TRUE;
-	}
+	nde_replay_arm_position(start, c);
+	nde_state *out = nde_replay_apply_records(start, c, 0, upto, err);
 	nde_chain_free(c);
 	return out;
 }
 
-static fits *resolve_item_state(gint item_id, gint64 upto_record_id, gchar **err) {
-	return resolve_item_state_pos(item_id, upto_record_id, NULL, NULL, NULL, err);
+static nde_state *resolve_item_state(gint item_id, gint64 upto_record_id,
+                                     gchar **err) {
+	return resolve_item_state_bound(item_id, upto_record_id, FALSE, err);
 }
 
 fits *nde_replay_resolve_before(gint item_id, gint64 before_record_id, gchar **err) {
 	g_return_val_if_fail(before_record_id != 0, NULL);
-	return resolve_item_state_pos_bound(item_id, before_record_id, TRUE,
-	                                    NULL, NULL, NULL, err);
+	/* The caller wants a sibling's pixels to measure, not to place. */
+	return nde_state_release(resolve_item_state_bound(item_id, before_record_id,
+	                                                  TRUE, err));
 }
 
 /* Replay members [0..upto) of a MASK chain.  The result is a fits carrying
@@ -912,7 +892,10 @@ fits *nde_mask_chain_replay(const nde_chain *chain, guint upto, gchar **err) {
 		const nde_input_pin *img = nde_record_input(rec, "image");
 		if (img && (!have_src || img->src_item_id != src_item ||
 		            img->src_record_id != src_rec)) {
-			fits *next = resolve_item_state(img->src_item_id, img->src_record_id, err);
+			/* A mask is built FROM an image; where that image sits on the
+			 * canvas is no part of the mask's own value. */
+			fits *next = nde_state_release(resolve_item_state(img->src_item_id,
+			                                                  img->src_record_id, err));
 			if (!next)
 				goto fail;
 			/* The chain rebuilds the mask from nothing: whatever the resolved
@@ -993,16 +976,19 @@ fits *nde_chain_replay(const nde_chain *chain, gchar **err) {
 		return nde_mask_chain_replay(chain, chain->records->len, err);
 	/* Born of a merge: there is no baseline to start from, and none is
 	 * wanted — the first member renders the inputs it was given. */
-	fits *scratch = chain->from_composite ?
+	nde_state *start = chain->from_composite ?
 			NULL : nde_checkpoint_baseline_get(chain->item_id);
-	if (!scratch && !chain->from_composite) {
+	if (!start && !chain->from_composite) {
 		*err = g_strdup(_("failed to load the baseline checkpoint"));
 		return NULL;
 	}
-	/* Verification path: the offset does not affect a single pixel (it is a
-	 * pure side output of the geometry hooks), so there is nothing to carry. */
-	return nde_replay_apply_records(scratch, chain, 0, chain->records->len,
-	                            NULL, NULL, err);
+	/* Verification path: the position does not affect a single pixel (it is a
+	 * pure side output of the geometry hooks), so it is not armed and the
+	 * caller gets the pixels alone. */
+	if (start)
+		start->has_pos = FALSE;
+	return nde_state_release(nde_replay_apply_records(start, chain, 0,
+	                                                  chain->records->len, err));
 }
 
 /* The state a chain's tail restarts from: the barrier checkpoint when there is
@@ -1010,19 +996,19 @@ fits *nde_chain_replay(const nde_chain *chain, gchar **err) {
  * its tail begins at that composite — its origin IS the first member, so the
  * restart state is legitimately NULL and *err is left unset.  Callers must
  * therefore test @err, not the return value. */
-fits *nde_replay_chain_restart_state(const nde_chain *chain, gchar **err) {
+nde_state *nde_replay_chain_restart_state(const nde_chain *chain, gchar **err) {
 	if (chain->restart_ckpt_id > 0) {
-		fits *f = nde_checkpoint_output_get(chain->restart_ckpt_id);
-		if (!f)
+		nde_state *s = nde_checkpoint_output_get(chain->restart_ckpt_id);
+		if (!s)
 			*err = g_strdup(_("failed to load the barrier checkpoint"));
-		return f;
+		return s;
 	}
 	if (chain->from_composite && chain->tail_start == 0)
 		return NULL;
-	fits *f = nde_checkpoint_baseline_get(chain->item_id);
-	if (!f)
+	nde_state *s = nde_checkpoint_baseline_get(chain->item_id);
+	if (!s)
 		*err = g_strdup(_("failed to load the baseline checkpoint"));
-	return f;
+	return s;
 }
 
 fits *nde_chain_replay_tail(const nde_chain *chain, gchar **err) {
@@ -1033,9 +1019,12 @@ fits *nde_chain_replay_tail(const nde_chain *chain, gchar **err) {
 		*err = g_strdup(_("the editable tail is not replayable"));
 		return NULL;
 	}
-	fits *start = nde_replay_chain_restart_state(chain, err);
+	nde_state *start = nde_replay_chain_restart_state(chain, err);
 	if (!start && *err)
 		return NULL;
-	return nde_replay_apply_records(start, chain, chain->tail_start, chain->records->len,
-	                            NULL, NULL, err);
+	if (start)
+		start->has_pos = FALSE;   /* verification path, as nde_chain_replay */
+	return nde_state_release(nde_replay_apply_records(start, chain,
+	                                                  chain->tail_start,
+	                                                  chain->records->len, err));
 }

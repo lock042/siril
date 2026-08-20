@@ -575,8 +575,6 @@ Test(flis_register_nde, geometry_amend_takes_l2_and_stretch_stays_l1) {
 	make_shifted_pair();
 	flis_layer_t *lay = layer_nth(1);
 	nde_checkpoint_baseline_ensure(lay->fit, lay->item_id);
-	nde_checkpoint_baseline_set_offset(lay->item_id, lay->position_x,
-	                                   lay->position_y);
 
 	/* A pixel-only step and a (currently no-op, full-frame) geometry step,
 	 * both UPSTREAM of the registration. */
@@ -628,8 +626,6 @@ Test(flis_register_nde, one_solve_per_edit) {
 	make_shifted_triple();
 	flis_layer_t *lay = layer_nth(2);
 	nde_checkpoint_baseline_ensure(lay->fit, lay->item_id);
-	nde_checkpoint_baseline_set_offset(lay->item_id, lay->position_x,
-	                                   lay->position_y);
 
 	cr_assert_eq(run_register(), 0);
 	gint64 rid = find_register_record();

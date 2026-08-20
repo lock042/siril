@@ -54,6 +54,7 @@
 
 #include "core/siril.h"   /* fits, destructor */
 #include <glib.h>
+#include "core/nde_state.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -223,15 +224,14 @@ gboolean nde_joint_is_geometric_op(const char *op_id);
 gchar *nde_joint_geometry_signature(gint item_id, gint64 before_record_id);
 
 /**
- * Replay one participant of a "flis.register" record: warp @scratch in place
- * (L1 with the stored transform, L2 with a freshly solved one) and report
- * where the layer lands via @pos_x / @pos_y.  @item_id is the chain being
+ * Replay one participant of a "flis.register" record: warp @state in place
+ * (L1 with the stored transform, L2 with a freshly solved one), moving it to
+ * where the registration lands the layer.  @item_id is the chain being
  * replayed; it must be one of the record's participants.  FALSE + heap @err
  * when the record does not parse or the warp fails.
  */
 gboolean nde_joint_register_apply(const struct nde_record *rec,
-                                  fits *scratch, gint item_id,
-                                  gint *pos_x, gint *pos_y, gchar **err);
+                                  nde_state *state, gint item_id, gchar **err);
 
 /** TRUE when @rec is a joint record and @item_id is one of its recorded
  *  participants (parsed from params).  The chain-membership extension. */

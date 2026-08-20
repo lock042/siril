@@ -543,7 +543,12 @@ static gboolean apv_begin_execute(gint64 record_id, gboolean insert, gchar **err
 	 * for the CURRENT chain (nothing has been edited yet) and make the
 	 * eventual amend's tail replay restart adjacent to K. */
 	guint start_idx = 0;
-	fits *start = nde_edit_restart_state(chain, (guint)e, record_id, &start_idx, err);
+	nde_state *start = nde_edit_restart_state(chain, (guint)e, record_id,
+	                                          &start_idx, err);
+	/* Preview only: the true pixels — and the layer's real position — come
+	 * back untouched on exit, so nothing is committed and nothing is carried. */
+	if (start)
+		start->has_pos = FALSE;
 	/* A NULL restart with no error means the item was born of a composite and
 	 * starts from no state at all — the same convention nde_edit_execute and
 	 * nde_reorder_execute follow.  At K == 0 that leaves nothing to synthesize:
@@ -552,11 +557,9 @@ static gboolean apv_begin_execute(gint64 record_id, gboolean insert, gchar **err
 	if (!start && !*err && e == 0)
 		*err = g_strdup(_("this step is what produced this image — there is no "
 		                  "earlier state of it to edit against"));
-	/* Preview only: the true pixels (and the layer's real position) come back
-	 * untouched on exit, so nothing is committed and nothing is carried. */
 	fits *pre_k = (!start && *err) ? NULL :
-			nde_replay_apply_records(start, chain, start_idx, (guint)e,
-			                     NULL, NULL, err);
+			nde_state_release(nde_replay_apply_records(start, chain, start_idx,
+			                                           (guint)e, err));
 	nde_chain_free(chain);
 	if (!pre_k) {
 		if (!*err)
@@ -842,7 +845,8 @@ static gboolean region_mask_pin_install(fits *region, const nde_record *rec,
 	const nde_input_pin *pin = nde_record_input(rec, "mask");
 	if (!pin)
 		return TRUE;
-	fits *mfit = nde_checkpoint_get_at(pin->src_item_id, pin->src_record_id);
+	fits *mfit = nde_state_release(nde_checkpoint_get_at(pin->src_item_id,
+	                                                     pin->src_record_id));
 	if (!mfit) {
 		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s): its mask is no longer stored"),
 		                       rec->record_id, rec->op_id ? rec->op_id : "?");
@@ -1072,7 +1076,7 @@ gboolean nde_edit_at_end_execute(gboolean apply, gchar **err) {
 			break;
 		}
 	}
-	fits *result = NULL;
+	nde_state *result = NULL;
 	if (k < 0) {
 		*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " is no longer part of this image's history"),
 		                       anchor_id);
@@ -1105,12 +1109,12 @@ gboolean nde_edit_at_end_execute(gboolean apply, gchar **err) {
 		/* Cached states at or after the insertion describe the pre-insert
 		 * lineage; the replay re-deposits fresh ones as it goes. */
 		nde_snapstore_invalidate_from(item_id, first_inserted);
-		/* No offset to carry: a chain that moves the layer is refused an
-		 * insertion point in the first place (apv_begin_execute) — the
-		 * position to restart from is not the layer's current one, which
-		 * already embodies every record after the anchor. */
-		result = nde_replay_apply_records(saved, chain, (guint)k, chain->records->len,
-		                              NULL, NULL, err);
+		/* A positionless state: a chain that moves the layer is refused an
+		 * insertion point in the first place (apv_begin_execute), so there is
+		 * no position to restart from — and the layer's current one is not it,
+		 * embodying as it does every record after the anchor. */
+		result = nde_replay_apply_records(nde_state_new(saved), chain, (guint)k,
+		                                  chain->records->len, err);
 		saved = NULL;   /* consumed either way */
 	}
 	nde_chain_free(chain);
@@ -1132,8 +1136,7 @@ gboolean nde_edit_at_end_execute(gboolean apply, gchar **err) {
 	g_array_unref(inserted);
 
 	/* No log commit: the inserted records were written to the log as they ran,
-	 * so it already says what these pixels are.  No offset either — a chain
-	 * that moves the layer is refused an insertion point (apv_begin_execute). */
+	 * so it already says what these pixels are. */
 	nde_commit_ctx cc = {
 		.item_id = item_id,
 		.target  = target,

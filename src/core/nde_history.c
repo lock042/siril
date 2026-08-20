@@ -1209,7 +1209,7 @@ static gboolean record_is_barrier(const nde_record *rec) {
  * record's output checkpoint (nde-phase4 P4.3) — done AFTER append so the id
  * is assigned, and OUTSIDE the history mutex (append has already unlocked). */
 static gint64 capture_finish(nde_record *rec, const char *summary,
-                             const fits *post, gint post_offset_item) {
+                             const fits *post) {
 	rec->summary   = g_strdup(summary);
 	rec->timestamp = nde_iso8601_now();
 	rec->impl      = nde_impl_string();
@@ -1217,17 +1217,11 @@ static gint64 capture_finish(nde_record *rec, const char *summary,
 	gint     target_id = rec->target_item_id;
 	gchar   *op_copy   = g_strdup(rec->op_id);
 	gint64 id = nde_history_append(rec);   /* takes ownership */
-	if (id > 0 && barrier && post) {
+	/* A restart point is a layer VALUE, not pixels: the store records where
+	 * @target_id's layer is standing along with them, so a tail replay
+	 * starting here has its anchor (nde_state.h). */
+	if (id > 0 && barrier && post)
 		nde_checkpoint_output_store(post, id, target_id);
-		/* A restart point is a layer value too: record where the layer ended
-		 * up, so a tail replay starting here has its anchor. */
-		if (post_offset_item > 0 && is_current_image_flis()) {
-			flis_layer_t *post_lay = flis_layer_get_by_id(post_offset_item);
-			if (post_lay)
-				nde_checkpoint_output_set_offset(id, post_lay->position_x,
-				                                 post_lay->position_y);
-		}
-	}
 	/* Claim (or discard as stale) any star catalogue the photometric
 	 * pipeline stashed for this capture (nde_cat.h). */
 	nde_cat_adopt_pending(id, op_copy);
@@ -1302,13 +1296,9 @@ gint64 nde_capture(const nde_capture_req *req) {
 	/* Baseline checkpoint (nde phase 2): the pre-op pixels are what replaying
 	 * this item's chain starts from.  Cheap no-op if one already exists, and
 	 * the offset below is a no-op unless this call actually created it. */
-	if (req->pre) {
-		nde_checkpoint_baseline_ensure(req->pre, rec->target_item_id);
-		if (req->have_pos)
-			nde_checkpoint_baseline_set_offset(rec->target_item_id,
-			                                   req->pos_x, req->pos_y);
-	}
-	return capture_finish(rec, req->summary, req->post, req->post_offset_item);
+	if (req->pre)
+		nde_checkpoint_baseline_ensure_at(req->pre, rec->target_item_id);
+	return capture_finish(rec, req->summary, req->post);
 }
 
 gint64 nde_capture_structural(const char *op_id, gint scope,
@@ -1403,9 +1393,6 @@ gint64 nde_capture_from_descriptor(const op_descriptor *op,
 		.scope       = NDE_DERIVE,
 		.target_item = NDE_TARGET_AUTO,
 		.post        = post,
-		/* No output-checkpoint offset: the worker records one, this path never
-		 * has — see the plan's S2.6. */
-		.post_offset_item = 0,
 		.mask_active = mask_aware && gfit && gfit->mask && gfit->mask_active,
 		.mask_item   = NDE_MASK_LIVE,
 		.mask_src    = gfit,

@@ -43,6 +43,7 @@
  */
 
 #include <glib.h>
+#include "core/nde_state.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -597,21 +598,20 @@ typedef struct {
 	gint          target_item;  /* or NDE_TARGET_AUTO */
 
 	/* ---- checkpoints ----------------------------------------------------- *
-	 * @pre are the pre-op pixels: passing them seeds this item's replay
-	 * baseline if it has none yet (first writer wins, so it is usually a
-	 * no-op).  A layer's replay value is its pixels AND its position, so pass
-	 * @have_pos/@pos_x/@pos_y too when the item is a layer.
+	 * @pre is the PRE-op state: passing it seeds this item's replay baseline if
+	 * it has none yet (first writer wins, so it is usually a no-op).  A state,
+	 * not a fits, because a layer's value is its pixels AND its position
+	 * (nde_state.h) and by the time a capture happens the hook has already
+	 * moved the layer — so both halves have to be snapshotted together, before
+	 * the operation runs.
 	 *
 	 * @post are the post-op pixels, stored as an output checkpoint when the
 	 * record turns out to be a barrier — the restart point that keeps
-	 * everything after an unreplayable step editable.  Ignored otherwise.
-	 * @post_offset_item is whose live position to record alongside it; <= 0
-	 * records no position. */
-	const fits   *pre;
-	gboolean      have_pos;
-	gint          pos_x, pos_y;
-	const fits   *post;
-	gint          post_offset_item;
+	 * everything after an unreplayable step editable.  Ignored otherwise.  The
+	 * position stored with them is the target layer's, read as they are
+	 * stored, which is where the operation has just left it. */
+	const nde_state *pre;
+	const fits      *post;
 
 	/* ---- the processing mask -------------------------------------------- *
 	 * @mask_active is the CALLER's decision that its run blended through the

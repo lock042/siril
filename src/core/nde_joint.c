@@ -1063,7 +1063,7 @@ static gboolean register_resolve(const struct nde_record *rec,
 	 * the base layer keeps whatever offset it already had. */
 	flis_layer_t *ref_lay = flis_layer_get_by_id(p->ref_item);
 	gint ref_pos_x = 0, ref_pos_y = 0;
-	if (nde_checkpoint_baseline_get_offset(p->ref_item, &ref_pos_x, &ref_pos_y)) {
+	if (nde_checkpoint_baseline_position(p->ref_item, &ref_pos_x, &ref_pos_y)) {
 		/* recorded starting position — the anchor the live path used */
 	} else if (ref_lay) {
 		ref_pos_x = ref_lay->position_x;
@@ -1093,10 +1093,11 @@ out:
 	return ok;
 }
 
-gboolean nde_joint_register_apply(const struct nde_record *rec, fits *scratch,
-                                  gint item_id, gint *pos_x, gint *pos_y,
-                                  gchar **err) {
-	g_return_val_if_fail(rec != NULL && scratch != NULL && err != NULL, FALSE);
+gboolean nde_joint_register_apply(const struct nde_record *rec, nde_state *state,
+                                  gint item_id, gchar **err) {
+	g_return_val_if_fail(rec != NULL && err != NULL, FALSE);
+	g_return_val_if_fail(state != NULL && state->pix != NULL, FALSE);
+	fits *scratch = state->pix;
 	struct nde_joint_register_data *p =
 			register_deserialize(rec->params, rec->op_version);
 	if (!p) {
@@ -1152,8 +1153,13 @@ gboolean nde_joint_register_apply(const struct nde_record *rec, fits *scratch,
 		return FALSE;
 	}
 	invalidate_stats_from_fit(scratch);
-	if (pos_x) *pos_x = s->pos_x;
-	if (pos_y) *pos_y = s->pos_y;
+	/* Registration moves the layer as well as warping it, so the value it
+	 * produces is the warped pixels AT the new position — only if this replay
+	 * is carrying one, though; the verification path is not (nde_state.h). */
+	if (state->has_pos) {
+		state->pos_x = s->pos_x;
+		state->pos_y = s->pos_y;
+	}
 	g_free(sol);
 	nde_joint_register_data_free(p);
 	return TRUE;

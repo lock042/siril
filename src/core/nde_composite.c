@@ -665,8 +665,6 @@ nde_composite_capture *nde_composite_capture_begin(GSList *layers,
 		if (!lay)
 			continue;
 		nde_checkpoint_baseline_ensure(lay->fit, lay->item_id);
-		nde_checkpoint_baseline_set_offset(lay->item_id, lay->position_x,
-		                                   lay->position_y);
 		/* The mask is stored, not re-derived: a painted or loaded one has no
 		 * chain to replay.  The coordinate is its pin's, so the mask cascade
 		 * refreshes this copy when the mask IS built by ops and one of them is

@@ -214,7 +214,7 @@ nde_chain *nde_chain_build_excluding(gint item_id, gint64 exclude_record_id) {
 			                (nde_joint_is_op(rec->op_id) &&
 			                 nde_joint_record_names_item(rec, item_id));
 			if (geometric && mine && is_flis &&
-			    nde_checkpoint_baseline_get_offset(item_id, NULL, NULL))
+			    nde_checkpoint_baseline_has_position(item_id))
 				chain->has_geometry = TRUE;
 			continue;
 		}
@@ -237,7 +237,7 @@ nde_chain *nde_chain_build_excluding(gint item_id, gint64 exclude_record_id) {
 			 * layer position through it, and that needs a recorded starting
 			 * position exactly as an ordinary geometry step does. */
 			if (member && nde_joint_is_geometric_op(rec->op_id) && is_flis) {
-				if (nde_checkpoint_baseline_get_offset(item_id, NULL, NULL)) {
+				if (nde_checkpoint_baseline_has_position(item_id)) {
 					chain->has_geometry = TRUE;
 				} else {
 					member = FALSE;
@@ -258,7 +258,7 @@ nde_chain *nde_chain_build_excluding(gint item_id, gint64 exclude_record_id) {
 				 * known position: with one recorded against the baseline
 				 * this is an ordinary member, without one there is nothing
 				 * to anchor to (graph step 5). */
-				if (nde_checkpoint_baseline_get_offset(item_id, NULL, NULL)) {
+				if (nde_checkpoint_baseline_has_position(item_id)) {
 					member = TRUE;
 					chain->has_geometry = TRUE;
 				} else {

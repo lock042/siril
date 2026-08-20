@@ -72,15 +72,9 @@ static void cascade_joint_targets(GArray *targets);
  * itself (its own PRE) covers both edit kinds.  Falls back to the chain's
  * phase-4 restart (barrier checkpoint or baseline) at tail_start.
  * Returns the restart state (caller owns) and *start_idx, or NULL+@err. */
-fits *nde_edit_restart_state(const nde_chain *chain, guint e,
+nde_state *nde_edit_restart_state(const nde_chain *chain, guint e,
                                   gint64 boundary_pre_id,
                                   guint *start_idx, gchar **err) {
-	/* The pool is a PIXEL cache: its states carry no layer position, so a
-	 * chain that moves the layer cannot restart from one — there would be
-	 * nothing to anchor the geometry to.  Fall straight through to the
-	 * checkpoint restart, which does record a position (graph step 5). */
-	if (chain->has_geometry)
-		e = chain->tail_start;
 	/* @e is the POSITIONAL edit boundary in @chain (callers know it: the
 	 * amended member's index, the deleted member's former index, or the
 	 * earliest affected index of a reorder).  Position, not id — after a
@@ -91,18 +85,31 @@ fits *nde_edit_restart_state(const nde_chain *chain, guint e,
 	for (guint j = e; j > chain->tail_start; j--) {
 		gint64 pre_id = (j == e) ? boundary_pre_id :
 				((const nde_record *)g_ptr_array_index(chain->records, j))->record_id;
-		fits *state = nde_snapstore_lookup(chain->item_id, pre_id, FALSE);
+		nde_state *state = nde_snapstore_lookup(chain->item_id, pre_id, FALSE);
 		if (!state) {
 			const nde_record *prev = g_ptr_array_index(chain->records, j - 1);
 			state = nde_snapstore_lookup(chain->item_id, prev->record_id, TRUE);
 		}
 		if (state) {
+			/* A cached entry is a whole value, position included, so a chain
+			 * that moves the layer can restart from one — it could not while
+			 * the cache held pixels alone and geometry had nothing to anchor
+			 * to.  But only from one that DOES say where the layer was: undo's
+			 * PRE-states carry no position, and neither does anything
+			 * deposited before this chain gained a geometry member.  Restarting
+			 * from those would anchor the moves that follow to the baseline
+			 * position, which is where the layer was before the FIRST op, not
+			 * before this one.  Keep looking further back. */
+			if (chain->has_geometry && !state->has_pos) {
+				nde_state_free(state);
+				continue;
+			}
 			*start_idx = j;
 			return state;
 		}
 	}
 	/* Fall back to the phase-4 restart point. */
-	fits *start = nde_replay_chain_restart_state(chain, err);
+	nde_state *start = nde_replay_chain_restart_state(chain, err);
 	if (!start && *err)
 		return NULL;
 	*start_idx = chain->tail_start;
@@ -184,22 +191,20 @@ static gboolean recompute_item(gint item_id, gchar **err) {
 		nde_chain_free(chain);
 		return FALSE;
 	}
-	gint pos_x = 0, pos_y = 0;
-	gboolean carry = nde_replay_start_offset(chain, 0, &pos_x, &pos_y);
 	/* An item born of a merge or flatten has no baseline: its first record IS
 	 * its origin, and the replay starts by rendering that composite's inputs
 	 * (nde_chain_replay does the same). */
-	fits *start = chain->from_composite ?
+	nde_state *start = chain->from_composite ?
 			NULL : nde_checkpoint_baseline_get(item_id);
 	if (!start && !chain->from_composite) {
 		*err = g_strdup(_("failed to load the baseline checkpoint"));
 		nde_chain_free(chain);
 		return FALSE;
 	}
+	nde_replay_arm_position(start, chain);
 	nde_snapstore_invalidate_from(item_id, 0);
-	fits *result = nde_replay_apply_records(start, chain, 0, chain->records->len,
-	                                    carry ? &pos_x : NULL,
-	                                    carry ? &pos_y : NULL, err);
+	nde_state *result = nde_replay_apply_records(start, chain, 0,
+	                                             chain->records->len, err);
 	nde_chain_free(chain);
 	if (!result)
 		return FALSE;
@@ -207,18 +212,15 @@ static gboolean recompute_item(gint item_id, gchar **err) {
 	fits *target = nde_edit_target_fits(item_id);
 	if (!target) {
 		*err = g_strdup(_("the target layer no longer exists"));
-		clearfits(result);
-		free(result);
+		nde_state_free(result);
 		return FALSE;
 	}
 	gboolean quiesced = nde_commit_lock(target);
-	nde_commit_pixels(target, result);
+	nde_commit_pixels(target, result->pix);
 	nde_commit_unlock(target, quiesced);
-	nde_commit_restore_metadata(target, result);
-	clearfits(result);
-	free(result);
-	if (carry)
-		nde_commit_layer_offset(item_id, pos_x, pos_y);
+	nde_commit_restore_metadata(target, result->pix);
+	nde_commit_layer_position(item_id, result);
+	nde_state_free(result);
 	invalidate_stats_from_fit(target);
 	return TRUE;
 }
@@ -778,42 +780,33 @@ gboolean nde_commit_replayed(nde_commit_ctx *c,
 		 * intermediate value only the composite consumes.  Commit the log and
 		 * let the cascade recompute the consumers — they resolve this item by
 		 * replaying it again, now from the amended log. */
-		clearfits(c->result);
-		free(c->result);
-		c->result = NULL;
+		g_clear_pointer(&c->result, nde_state_free);
 		return !log_commit || log_commit(log_user, err);
 	}
 	if (!c->target) {
 		*err = g_strdup(_("the record's target layer no longer exists"));
-		clearfits(c->result);
-		free(c->result);
-		c->result = NULL;
+		g_clear_pointer(&c->result, nde_state_free);
 		return FALSE;
 	}
 
 	/* Atomic commit: swap pixels, then the log.  `result` holds the OLD
 	 * pixels after the swap, so a log-commit failure can restore them. */
 	gboolean quiesced = nde_commit_lock(c->target);
-	nde_commit_pixels(c->target, c->result);
+	nde_commit_pixels(c->target, c->result->pix);
 	nde_commit_unlock(c->target, quiesced);
 
 	if (log_commit && !log_commit(log_user, err)) {
 		/* Should be unreachable (everything was validated, we own the
 		 * slot); restore the old pixels so nothing is half-committed. */
 		quiesced = nde_commit_lock(c->target);
-		nde_commit_pixels(c->target, c->result);
+		nde_commit_pixels(c->target, c->result->pix);
 		nde_commit_unlock(c->target, quiesced);
-		clearfits(c->result);
-		free(c->result);
-		c->result = NULL;
+		g_clear_pointer(&c->result, nde_state_free);
 		return FALSE;
 	}
-	nde_commit_restore_metadata(c->target, c->result);
-	clearfits(c->result);   /* the pre-edit pixels — superseded */
-	free(c->result);
-	c->result = NULL;
-	if (c->carry_offset)
-		nde_commit_layer_offset(c->item_id, c->pos_x, c->pos_y);
+	nde_commit_restore_metadata(c->target, c->result->pix);
+	nde_commit_layer_position(c->item_id, c->result);
+	g_clear_pointer(&c->result, nde_state_free);   /* pre-edit pixels — superseded */
 	return TRUE;
 }
 
@@ -1233,17 +1226,15 @@ gboolean nde_edit_execute(gint64 record_id, const gchar *new_params, gchar **err
 	if (!new_params)
 		boundary = (guint)pos_idx;   /* the deleted member's former index */
 	guint start_idx = 0;
-	fits *start = nde_edit_restart_state(chain, boundary, record_id, &start_idx, err);
-	gint pos_x = 0, pos_y = 0;
-	gboolean carry = nde_replay_start_offset(chain, chain->restart_ckpt_id, &pos_x, &pos_y);
+	nde_state *start = nde_edit_restart_state(chain, boundary, record_id, &start_idx, err);
+	nde_replay_arm_position(start, chain);
 	/* A NULL restart state is not always a failure: an item born of a merge
 	 * restarts from no state at all, its first member rendering its own
 	 * inputs.  nde_edit_restart_state distinguishes the two by whether it set
 	 * @err, and only returns NULL-without-error at start_idx 0. */
-	fits *result = (!start && *err) ? NULL :
-			nde_replay_apply_records(start, chain, start_idx, chain->records->len,
-			                     carry ? &pos_x : NULL,
-			                     carry ? &pos_y : NULL, err);
+	nde_state *result = (!start && *err) ? NULL :
+			nde_replay_apply_records(start, chain, start_idx,
+			                         chain->records->len, err);
 	nde_chain_free(chain);
 	if (!result) {
 		/* Deposits made by a failed replay describe an uncommitted chain —
@@ -1276,13 +1267,10 @@ gboolean nde_edit_execute(gint64 record_id, const gchar *new_params, gchar **err
 		retained = nde_item_is_retained_input(item_id);   /* implies !lay */
 	}
 	nde_commit_ctx commit = {
-		.item_id      = item_id,
-		.target       = target,
-		.result       = result,
-		.retained     = retained,
-		.carry_offset = carry,
-		.pos_x        = pos_x,
-		.pos_y        = pos_y,
+		.item_id  = item_id,
+		.target   = target,
+		.result   = result,
+		.retained = retained,
 	};
 	if (!nde_commit_replayed(&commit, edit_log_commit, &log_change, err)) {
 		g_array_unref(joint_targets);
@@ -1475,7 +1463,7 @@ gboolean nde_composite_undo_execute(gint64 record_id, gchar **err) {
 		/* A layer that was never edited has no chain, only the baseline the
 		 * merge took of it — which is exactly its pixels at that moment. */
 		pix[i] = c->records->len ? nde_chain_replay(c, err)
-		                         : nde_checkpoint_baseline_get(in->item_id);
+		                         : nde_state_release(nde_checkpoint_baseline_get(in->item_id));
 		if (!pix[i]) {
 			if (!*err)
 				*err = g_strdup_printf(_("'%s' could not be rebuilt"),
@@ -1485,7 +1473,8 @@ gboolean nde_composite_undo_execute(gint64 record_id, gchar **err) {
 		nde_chain_free(c);
 		if (ok && in->mask_item_id) {
 			const nde_input_pin *mp = nde_record_input_by_item(rec, in->mask_item_id);
-			msk[i] = mp ? nde_checkpoint_get_at(mp->src_item_id, mp->src_record_id)
+			msk[i] = mp ? nde_state_release(nde_checkpoint_get_at(mp->src_item_id,
+			                                                      mp->src_record_id))
 			            : NULL;
 			if (!msk[i]) {
 				*err = g_strdup_printf(_("the stored layer mask of '%s' is no "
@@ -1804,17 +1793,16 @@ gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after,
 	nde_snapstore_invalidate_from(item_id, inval_min);
 	nde_joint_cache_invalidate();
 	guint start_idx = 0;
-	fits *start = nde_edit_restart_state(chain, min_idx, boundary_pre_id, &start_idx, err);
-	gint pos_x = 0, pos_y = 0;
-	gboolean carry = nde_replay_start_offset(chain, chain->restart_ckpt_id, &pos_x, &pos_y);
+	nde_state *start = nde_edit_restart_state(chain, min_idx, boundary_pre_id,
+	                                          &start_idx, err);
+	nde_replay_arm_position(start, chain);
 	/* A NULL restart state is not always a failure: an item born of a merge
 	 * restarts from no state at all, its first member rendering its own
 	 * inputs.  nde_edit_restart_state distinguishes the two by whether it set
 	 * @err, and only returns NULL-without-error at start_idx 0. */
-	fits *result = (!start && *err) ? NULL :
-			nde_replay_apply_records(start, chain, start_idx, chain->records->len,
-			                     carry ? &pos_x : NULL,
-			                     carry ? &pos_y : NULL, err);
+	nde_state *result = (!start && *err) ? NULL :
+			nde_replay_apply_records(start, chain, start_idx,
+			                         chain->records->len, err);
 	nde_chain_free(chain);
 	if (!result) {
 		nde_snapstore_invalidate_from(item_id, inval_min);
@@ -1844,13 +1832,10 @@ gboolean nde_reorder_execute(gint64 record_id, gint64 anchor_id, gboolean after,
 	}
 	reorder_log_change log_change = { record_id, log_before_id };
 	nde_commit_ctx commit = {
-		.item_id      = item_id,
-		.target       = target,
-		.result       = result,
-		.retained     = retained,
-		.carry_offset = carry,
-		.pos_x        = pos_x,
-		.pos_y        = pos_y,
+		.item_id  = item_id,
+		.target   = target,
+		.result   = result,
+		.retained = retained,
 	};
 	if (!nde_commit_replayed(&commit, reorder_log_commit, &log_change, err)) {
 		/* The replay deposited states for the permuted order, which is not

@@ -1643,18 +1643,19 @@ gpointer generic_image_worker(gpointer p) {
 	flis_layer_props_t geom_pre_props  = { 0 };
 	layermask_t       *geom_pre_lmask  = NULL;
 
-	/* Pre-op layer position for the NDE baseline (graph step 5).  Captured
-	 * here because the hook is what moves it, and NOT gated on the undo
-	 * policy the way geom_pre_props is: a replay needs the starting position
-	 * whether or not this run saved an undo entry, scripts included. */
-	gint     nde_pre_pos_x = 0, nde_pre_pos_y = 0;
-	gboolean nde_have_pos  = FALSE;
+	/* Where the layer is standing BEFORE the hook runs — half of the pre-op
+	 * state the NDE baseline is seeded from (nde_state.h).  Captured here
+	 * because the hook is what moves it, and NOT gated on the undo policy the
+	 * way geom_pre_props is: a replay needs the starting position whether or
+	 * not this run saved an undo entry, scripts included.  Its pixels are
+	 * attached at capture time, below, once `orig` holds them. */
+	nde_state nde_pre = { 0 };
 	if (argfit == gfit && !for_roi && !args->nde_replay && is_current_image_flis()) {
 		flis_layer_t *pos_lay = flis_active_layer();
 		if (pos_lay) {
-			nde_pre_pos_x = pos_lay->position_x;
-			nde_pre_pos_y = pos_lay->position_y;
-			nde_have_pos  = TRUE;
+			nde_pre.pos_x   = pos_lay->position_x;
+			nde_pre.pos_y   = pos_lay->position_y;
+			nde_pre.has_pos = TRUE;
 		}
 	}
 
@@ -2235,6 +2236,9 @@ the_end:;
 		               != NDE_OPC_ANALYSIS);
 		gchar *nde_summary = args->log_hook ?
 				args->log_hook(args->user, SUMMARY) : g_strdup(args->description);
+		/* The swap put the pre-op pixels in `orig`; the position half was taken
+		 * at job start.  A borrowing state — `orig` stays the caller's. */
+		nde_pre.pix = orig;
 		nde_capture_req req = {
 			.op          = op,
 			.user        = args->user,
@@ -2243,17 +2247,13 @@ the_end:;
 			.scope       = NDE_DERIVE,
 			.target_item = job_item_id,
 			/* After the swap, `orig` holds the pre-op pixels — the baseline
-			 * for replaying this item's chain — and nde_pre_pos_* where the
-			 * layer was standing when they were taken. */
-			.pre         = orig,
-			.have_pos    = nde_have_pos,
-			.pos_x       = nde_pre_pos_x,
-			.pos_y       = nde_pre_pos_y,
+			 * for replaying this item's chain — completing the pre-op state
+			 * whose position was taken at job start. */
+			.pre         = &nde_pre,
 			/* The swap installed the post-op pixels into argfit, which still
 			 * points at the job's layer's fits even if a switch retargeted
 			 * gfit since; the global could already name another layer's. */
 			.post        = argfit,
-			.post_offset_item = job_item_id,
 			.mask_active = using_mask,
 			/* The mask item is the one step 3 allocated, resolved at JOB START
 			 * (job_pmask_id) rather than from the live active layer, so a
