@@ -1658,16 +1658,20 @@ static gint layer_order_cmp(gconstpointer a, gconstpointer b) {
  * FLIS_HIST — NDE provenance table (nde sketch §14)
  * ===================================================================== */
 
-/* Column count WRITTEN.  Column 13 (INPUTS, graph step 4) is newer than the
- * rest, and the reader resolves columns BY NAME — so a file written before it
- * existed must still load.  Readers therefore look INPUTS up optionally and
- * tolerate its absence, and we keep writing an (always empty) MASKREF, which
- * the pin list superseded, so that an older build still finds every column it
- * expects.  FLISHVER goes to 2 to say the table gained a column; an older
- * build reads it best-effort and says so. */
-#define FLIS_HIST_NCOLS 13
+/* Column count WRITTEN.  The table grows by appending, and the reader resolves
+ * columns BY NAME — so a file written before a column existed must still load,
+ * and every column past the v1 set is looked up optionally.  We also keep
+ * writing an (always empty) MASKREF, which the pin list superseded, so that an
+ * older build still finds every column it expects.  FLISHVER says how many
+ * there are; a build meeting a higher one reads it best-effort and says so.
+ *
+ * A v3 file read by a v2 build sees TARGET and no OUTPUTS, so a multi-output
+ * record degrades to its primary output — the same graceful degradation
+ * INPUTS already relies on. */
+#define FLIS_HIST_NCOLS 14
 #define FLIS_HIST_NCOLS_V1 12   /* what a version-1 table has */
-#define FLIS_HIST_VER 2         /* 1 = the original 12 columns; 2 = + INPUTS */
+#define FLIS_HIST_VER 3         /* 1 = the original 12 columns; 2 = + INPUTS;
+                                 * 3 = + OUTPUTS */
 
 /*
  * Write the FLIS_HIST binary table from a history snapshot.  Appended after
@@ -1677,7 +1681,8 @@ static gint layer_order_cmp(gconstpointer a, gconstpointer b) {
  */
 static int write_flis_hist_hdu(fitsfile *fptr, GPtrArray *records, gint64 next_id) {
     int status = 0;
-    size_t w_op = 1, w_par = 1, w_sum = 1, w_ts = 1, w_impl = 1, w_mref = 1, w_in = 1;
+    size_t w_op = 1, w_par = 1, w_sum = 1, w_ts = 1, w_impl = 1, w_mref = 1,
+           w_in = 1, w_out = 1;
     for (guint i = 0; i < records->len; i++) {
         nde_record *rec = g_ptr_array_index(records, i);
         if (rec->op_id)     w_op   = MAX(w_op,   strlen(rec->op_id));
@@ -1689,8 +1694,12 @@ static int write_flis_hist_hdu(fitsfile *fptr, GPtrArray *records, gint64 next_i
         gchar *pins = nde_pins_serialize(rec->inputs);
         if (pins) w_in = MAX(w_in, strlen(pins));
         g_free(pins);
+        gchar *outs = nde_pins_serialize(rec->outputs);
+        if (outs) w_out = MAX(w_out, strlen(outs));
+        g_free(outs);
     }
-    char f_op[24], f_par[24], f_sum[24], f_ts[24], f_impl[24], f_mref[24], f_in[24];
+    char f_op[24], f_par[24], f_sum[24], f_ts[24], f_impl[24], f_mref[24],
+         f_in[24], f_out[24];
     g_snprintf(f_op,   sizeof(f_op),   "%zuA", w_op);
     g_snprintf(f_par,  sizeof(f_par),  "%zuA", w_par);
     g_snprintf(f_sum,  sizeof(f_sum),  "%zuA", w_sum);
@@ -1698,14 +1707,16 @@ static int write_flis_hist_hdu(fitsfile *fptr, GPtrArray *records, gint64 next_i
     g_snprintf(f_impl, sizeof(f_impl), "%zuA", w_impl);
     g_snprintf(f_mref, sizeof(f_mref), "%zuA", w_mref);
     g_snprintf(f_in,   sizeof(f_in),   "%zuA", w_in);
+    g_snprintf(f_out,  sizeof(f_out),  "%zuA", w_out);
 
     const char *names[FLIS_HIST_NCOLS] = {
         "RECORD_ID", "OP_ID", "OP_VER", "SCOPE", "TARGET", "TIER",
-        "MASKACT", "PARAMS", "SUMMARY", "TSTAMP", "IMPL", "MASKREF", "INPUTS"
+        "MASKACT", "PARAMS", "SUMMARY", "TSTAMP", "IMPL", "MASKREF", "INPUTS",
+        "OUTPUTS"
     };
     const char *fmts[FLIS_HIST_NCOLS] = {
         "1K", f_op, "1J", "1J", "1J", "1J",
-        "1L", f_par, f_sum, f_ts, f_impl, f_mref, f_in
+        "1L", f_par, f_sum, f_ts, f_impl, f_mref, f_in, f_out
     };
 
     if (fits_create_tbl(fptr, BINARY_TBL, records->len, FLIS_HIST_NCOLS,
@@ -1749,6 +1760,13 @@ static int write_flis_hist_hdu(fitsfile *fptr, GPtrArray *records, gint64 next_i
         char *s_in = pins ? pins : (char *)"";
         fits_write_col(fptr, TSTRING,   13, row, 1, 1, &s_in,   &status);
         g_free(pins);
+        /* Empty for the ~95% of records that write their target and nothing
+         * else: an output list is only written down when it says something
+         * TARGET does not (nde_history.h). */
+        gchar *outs = nde_pins_serialize(rec->outputs);
+        char *s_out = outs ? outs : (char *)"";
+        fits_write_col(fptr, TSTRING,   14, row, 1, 1, &s_out,  &status);
+        g_free(outs);
     }
     if (status) { report_fits_error(status); return 1; }
     return 0;
@@ -1861,12 +1879,13 @@ static int write_nde_base_hdu(fitsfile *fptr, fits *f, gint item_id,
  * The lossless compression settings are applied here and restored after, so
  * baselines round-trip bit-exactly whatever the user's compression pref. */
 static void write_nde_base_hdus(fitsfile *fptr, GPtrArray *records) {
-    /* Every item the history mentions: as a record's target, and as the SOURCE
-     * of an input pin.  The second is not redundant — a layer merged away
-     * without ever having been edited has no records of its own, only a
-     * baseline and an edge to the composite that consumed it, and dropping
-     * that baseline on save would make the merge unreplayable after a
-     * round-trip (nde_composite.h). */
+    /* Every item the history mentions, at either end of any of its edges.
+     * Neither direction is redundant.  A layer merged away without ever having
+     * been edited has no records of its own, only a baseline and an edge to the
+     * composite that consumed it, and dropping that baseline on save would make
+     * the merge unreplayable after a round-trip (nde_composite.h).  A SECONDARY
+     * output is the mirror case: it is written by a record that TARGETS another
+     * item, so if it was never separately edited nothing else here names it. */
     GPtrArray *ids = g_ptr_array_new();
     for (guint i = 0; i < records->len; i++) {
         nde_record *rec = g_ptr_array_index(records, i);
@@ -1874,6 +1893,11 @@ static void write_nde_base_hdus(fitsfile *fptr, GPtrArray *records) {
         for (guint p = 0; rec->inputs && p < rec->inputs->len; p++) {
             const nde_pin *pin = g_ptr_array_index(rec->inputs, p);
             g_ptr_array_add(ids, GINT_TO_POINTER(pin->item_id));
+        }
+        for (guint p = 0; p < nde_record_output_count(rec); p++) {
+            const nde_pin *pin = nde_record_output(rec, p);
+            if (pin)
+                g_ptr_array_add(ids, GINT_TO_POINTER(pin->item_id));
         }
     }
     GHashTable *seen = g_hash_table_new(g_direct_hash, g_direct_equal);
@@ -2340,7 +2364,8 @@ static nde_history *read_flis_hist(fitsfile *fptr, int nhdus) {
     long widths[FLIS_HIST_NCOLS] = { 0 };
     static const char *colnames[FLIS_HIST_NCOLS] = {
         "RECORD_ID", "OP_ID", "OP_VER", "SCOPE", "TARGET", "TIER",
-        "MASKACT", "PARAMS", "SUMMARY", "TSTAMP", "IMPL", "MASKREF", "INPUTS"
+        "MASKACT", "PARAMS", "SUMMARY", "TSTAMP", "IMPL", "MASKREF", "INPUTS",
+        "OUTPUTS"
     };
     /* Columns beyond the v1 set are OPTIONAL: a table written before they
      * existed is not malformed, it is older.  Their absence leaves cols[c]
@@ -2392,6 +2417,11 @@ static nde_history *read_flis_hist(fitsfile *fptr, int nhdus) {
             gchar *pins = hist_read_str_cell(fptr, cols[12], r, widths[12], &status);
             rec->inputs = nde_pins_parse(pins);
             g_free(pins);
+        }
+        if (cols[13] > 0) {
+            gchar *outs = hist_read_str_cell(fptr, cols[13], r, widths[13], &status);
+            rec->outputs = nde_pins_parse(outs);
+            g_free(outs);
         }
         if (status) {
             nde_record_free(rec);

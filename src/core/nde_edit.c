@@ -653,7 +653,7 @@ GArray *nde_edit_joint_targets(gint item_id, gint64 from_record_id,
 			 * Propagated items carry no position — their whole value moved. */
 			if (src == item_id && from_pos >= 0 && (gint)i < from_pos)
 				continue;
-			if (!nde_joint_record_names_item(rec, src))
+			if (!nde_record_writes_item(rec, src))
 				continue;
 			if (src == item_id)
 				self_named = TRUE;
@@ -877,6 +877,16 @@ gboolean nde_edit_execute(gint64 record_id, const gchar *new_params, gchar **err
 				/* Structural (DOCUMENT scope) steps cannot resurrect what
 				 * they destroyed or un-create a layer. */
 				*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) is a structural step and cannot be deleted"),
+				                       record_id, rec->op_id ? rec->op_id : "?");
+			} else if (!is_joint && nde_record_output_count(rec) > 1) {
+				/* Everything below resolves ONE item and replays ONE chain.
+				 * A record with several outputs would need all of them
+				 * replayed and committed together or not at all, which is a
+				 * larger change than the model this step landed — and one
+				 * worth designing against a real operation rather than a
+				 * hypothetical one.  Joint records already have their own
+				 * working multi-participant edit path and keep it. */
+				*err = g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) produces more than one image; editing it is not supported yet"),
 				                       record_id, rec->op_id ? rec->op_id : "?");
 			}
 			break;

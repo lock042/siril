@@ -119,6 +119,56 @@ const nde_pin *nde_record_input_by_item(const nde_record *rec, gint item_id) {
 	return NULL;
 }
 
+void nde_record_add_output(nde_record *rec, const char *role, gint item_id) {
+	g_return_if_fail(rec != NULL && role != NULL);
+	if (!rec->outputs) {
+		rec->outputs = pins_new();
+		/* Output 0 is the target, always (nde_history.h).  Seeding it here
+		 * rather than asking callers to list it first means a caller can name
+		 * its outputs in whatever order reads best at the call site and still
+		 * cannot break the invariant every older reader depends on. */
+		if (item_id != rec->target_item_id)
+			g_ptr_array_add(rec->outputs, nde_pin_new(NDE_OUT_ROLE_PRIMARY,
+			                                          rec->target_item_id, 0));
+	}
+	for (guint i = 0; i < rec->outputs->len; i++) {
+		nde_pin *p = g_ptr_array_index(rec->outputs, i);
+		if (p->item_id == item_id) {
+			/* At most one output per item: this is the seeded primary being
+			 * given the name its producer actually calls it by. */
+			g_free(p->role);
+			p->role = g_strdup(role);
+			return;
+		}
+	}
+	g_ptr_array_add(rec->outputs, nde_pin_new(role, item_id, 0));
+}
+
+gboolean nde_record_writes_item(const nde_record *rec, gint item_id) {
+	if (!rec)
+		return FALSE;
+	if (!rec->outputs || !rec->outputs->len)
+		return rec->target_item_id == item_id;
+	for (guint i = 0; i < rec->outputs->len; i++) {
+		const nde_pin *p = g_ptr_array_index(rec->outputs, i);
+		if (p->item_id == item_id)
+			return TRUE;
+	}
+	return FALSE;
+}
+
+guint nde_record_output_count(const nde_record *rec) {
+	if (!rec)
+		return 0;
+	return (rec->outputs && rec->outputs->len) ? rec->outputs->len : 1;
+}
+
+const nde_pin *nde_record_output(const nde_record *rec, guint i) {
+	if (!rec || !rec->outputs || i >= rec->outputs->len)
+		return NULL;
+	return g_ptr_array_index(rec->outputs, i);
+}
+
 nde_record *nde_record_copy(const nde_record *rec) {
 	if (!rec)
 		return NULL;
@@ -131,9 +181,14 @@ nde_record *nde_record_copy(const nde_record *rec) {
 	copy->impl      = g_strdup(rec->impl);
 	copy->mask_ref  = g_strdup(rec->mask_ref);
 	copy->inputs    = NULL;
+	copy->outputs   = NULL;
 	for (guint i = 0; rec->inputs && i < rec->inputs->len; i++) {
 		const nde_pin *p = g_ptr_array_index(rec->inputs, i);
 		nde_record_add_input(copy, p->role, p->item_id, p->record_id);
+	}
+	for (guint i = 0; rec->outputs && i < rec->outputs->len; i++) {
+		const nde_pin *p = g_ptr_array_index(rec->outputs, i);
+		nde_record_add_output(copy, p->role, p->item_id);
 	}
 	return copy;
 }
@@ -149,6 +204,8 @@ void nde_record_free(nde_record *rec) {
 	g_free(rec->mask_ref);
 	if (rec->inputs)
 		g_ptr_array_unref(rec->inputs);
+	if (rec->outputs)
+		g_ptr_array_unref(rec->outputs);
 	g_free(rec);
 }
 
@@ -310,6 +367,10 @@ static gboolean insert_disturbs(const nde_history *h, const nde_record *rec) {
 
 gint64 nde_history_append(nde_record *rec) {
 	g_return_val_if_fail(rec != NULL, 0);
+	/* A joint record's participants are its outputs; turn them into edges here,
+	 * so that the three capture sites that build one say it once, in the params
+	 * they were already writing, and nothing downstream re-reads that blob. */
+	nde_joint_sync_outputs(rec);
 	if (!com.uniq) {
 		/* No single image (sequence frame or nothing loaded): provenance
 		 * has no document to attach to. */
@@ -596,21 +657,19 @@ void nde_history_mask_pin_coords(GHashTable *record_ids, GHashTable *baseline_it
 
 gint64 nde_history_last_record_for_item(gint item_id) {
 	gint64 id = 0;
-	/* Over a snapshot, not under the leaf mutex: the joint-participation
-	 * test below parses the record's params (allocates), which §6a forbids
-	 * while the mutex is held. */
+	/* Over a snapshot rather than under the leaf mutex: §6a forbids
+	 * allocating while it is held, and the snapshot is what iterating a
+	 * record's outputs is safe over. */
 	GPtrArray *live = nde_history_snapshot(NULL);
 	for (guint i = 0; live && i < live->len; i++) {
 		const nde_record *rec = g_ptr_array_index(live, i);
-		/* A JOINT record (nde_joint.h) targets its anchor but rescales
-		 * every participant: it is the participant's latest state too.
-		 * Without this, a composite or mask captured after a joint
-		 * calibration pinned each non-anchor input BEFORE the joint
-		 * record, and the positional replay of that pin resolved the
-		 * input without the rescale. */
-		if (rec->target_item_id == item_id ||
-		    (nde_joint_is_op(rec->op_id) &&
-		     nde_joint_record_names_item(rec, item_id)))
+		/* WRITES, not targets.  A JOINT record (nde_joint.h) targets its
+		 * anchor but rescales every participant: it is the participant's
+		 * latest state too.  Without this, a composite or mask captured
+		 * after a joint calibration pinned each non-anchor input BEFORE
+		 * the joint record, and the positional replay of that pin
+		 * resolved the input without the rescale. */
+		if (nde_record_writes_item(rec, item_id))
 			id = rec->record_id;   /* last one wins: records are in order */
 	}
 	if (live)
@@ -664,6 +723,12 @@ void nde_history_attach(nde_history *h) {
 		nde_history_free(h);
 		return;
 	}
+	/* A joint record written before OUTPUTS existed says who it wrote in its
+	 * params and nowhere else.  Derive the edges once, here, so the runtime
+	 * never meets a joint record without them and the legacy case lives in one
+	 * line rather than in every membership test. */
+	for (guint i = 0; h && h->records && i < h->records->len; i++)
+		nde_joint_sync_outputs(g_ptr_array_index(h->records, i));
 	nde_history *old;
 	g_mutex_lock(&nde_mutex);
 	nde_generation++;
@@ -761,11 +826,12 @@ guint nde_history_drop_mask_input(gint64 record_id, gint mask_item_id) {
 
 static gboolean amend_commit(gint64 record_id, const gchar *new_params,
                              gchar *new_summary, GPtrArray *new_pins,
-                             gchar **err) {
-	/* Strings prepared before locking (§6a discipline).  @new_pins (owned by
-	 * this function, may be NULL = keep) replaces the record's input pins —
-	 * the JOINT subset amend re-derives them alongside the params so the
-	 * graph edges and provenance track the new participant list. */
+                             GPtrArray *new_outputs, gchar **err) {
+	/* Strings prepared before locking (§6a discipline).  @new_pins and
+	 * @new_outputs (owned by this function, NULL = keep) replace the record's
+	 * edges — the JOINT subset amend re-derives both alongside the params, so
+	 * that chain membership, the graph and provenance all track the new
+	 * participant list. */
 	gchar *params_copy = g_strdup(new_params);
 	gchar *ts = nde_iso8601_now();
 	gchar *impl = nde_impl_string();
@@ -796,6 +862,12 @@ static gboolean amend_commit(gint64 record_id, const gchar *new_params,
 				rec->inputs = new_pins;   /* ownership transferred */
 				new_pins = NULL;
 			}
+			if (new_outputs) {
+				if (rec->outputs)
+					g_ptr_array_unref(rec->outputs);
+				rec->outputs = new_outputs;   /* ownership transferred */
+				new_outputs = NULL;
+			}
 			truncate_dead_locked(h, dropped);
 			ok = TRUE;
 		}
@@ -804,6 +876,8 @@ static gboolean amend_commit(gint64 record_id, const gchar *new_params,
 	drop_output_checkpoints(dropped);
 	if (new_pins)
 		g_ptr_array_unref(new_pins);
+	if (new_outputs)
+		g_ptr_array_unref(new_outputs);
 	if (!ok) {
 		g_free(params_copy);
 		g_free(ts);
@@ -827,6 +901,7 @@ gboolean nde_history_amend(gint64 record_id, const gchar *new_params, gchar **er
 	 * allocate freely).  The op id is read under the mutex first. */
 	gchar *op_id = NULL, *old_params = NULL;
 	int op_version = 0;
+	gint target_item = -1;
 	g_mutex_lock(&nde_mutex);
 	{
 		gint idx = find_mutable_locked(com.uniq->nde_history, record_id, TRUE, err);
@@ -835,6 +910,7 @@ gboolean nde_history_amend(gint64 record_id, const gchar *new_params, gchar **er
 			op_id = g_strdup(rec->op_id);
 			old_params = g_strdup(rec->params);
 			op_version = rec->op_version;
+			target_item = rec->target_item_id;
 		}
 	}
 	g_mutex_unlock(&nde_mutex);
@@ -850,7 +926,8 @@ gboolean nde_history_amend(gint64 record_id, const gchar *new_params, gchar **er
 		gboolean ok = nde_composite_validate(old_params, new_params, err);
 		g_free(op_id);
 		g_free(old_params);
-		return ok ? amend_commit(record_id, new_params, NULL, NULL, err) : FALSE;
+		return ok ? amend_commit(record_id, new_params, NULL, NULL, NULL, err)
+		          : FALSE;
 	}
 
 	/* Compositing-state records have no op descriptor: their params are
@@ -862,7 +939,7 @@ gboolean nde_history_amend(gint64 record_id, const gchar *new_params, gchar **er
 		g_free(old_params);
 		if (!ok)
 			return FALSE;
-		return amend_commit(record_id, new_params, NULL, NULL, err);
+		return amend_commit(record_id, new_params, NULL, NULL, NULL, err);
 	}
 
 	const op_descriptor *op = op_descriptor_by_id(op_id);
@@ -880,13 +957,17 @@ gboolean nde_history_amend(gint64 record_id, const gchar *new_params, gchar **er
 		return FALSE;
 	}
 
-	/* A JOINT amend that changes the participant list re-derives the input
-	 * pins alongside the params (nde_joint.h): each new participant pinned
-	 * at its last record BEFORE the joint record's log position, the same
-	 * coordinate the original capture used.  NULL for every other amend. */
-	GPtrArray *new_pins = NULL;
+	/* A JOINT amend that changes the participant list re-derives its edges
+	 * alongside the params (nde_joint.h): each new participant pinned as an
+	 * INPUT at its last record BEFORE the joint record's log position — the
+	 * same coordinate the original capture used — and as an OUTPUT, since the
+	 * operation writes every layer it reads.  Both prepared here rather than
+	 * in amend_commit because §6a forbids allocating under the history mutex.
+	 * NULL for every other amend. */
+	GPtrArray *new_pins = NULL, *new_outputs = NULL;
 	if (nde_joint_is_op(op_id) &&
 	    !nde_joint_params_same_participants(old_params, new_params)) {
+		new_outputs = nde_joint_output_pins(op_id, new_params, target_item);
 		guint jn = 0;
 		gint *jitems = nde_joint_params_participants(new_params, &jn);
 		if (jitems) {
@@ -934,7 +1015,8 @@ gboolean nde_history_amend(gint64 record_id, const gchar *new_params, gchar **er
 		free(trial);
 	g_free(op_id);
 
-	return amend_commit(record_id, new_params, new_summary, new_pins, err);
+	return amend_commit(record_id, new_params, new_summary, new_pins,
+	                    new_outputs, err);
 }
 
 gboolean nde_history_delete(gint64 record_id, gchar **err) {
@@ -1269,6 +1351,9 @@ gint64 nde_capture(const nde_capture_req *req) {
 	for (guint i = 0; i < req->n_pins; i++)
 		nde_record_add_input(rec, req->pins[i].role, req->pins[i].item_id,
 		                     req->pins[i].record_id);
+	for (guint i = 0; i < req->n_outputs; i++)
+		nde_record_add_output(rec, req->outputs[i].role,
+		                      req->outputs[i].item_id);
 
 	/* The mask is a real INPUT, not a flag.  mask_active only ever said
 	 * "something was masking this"; the pin says WHICH mask and in what state,

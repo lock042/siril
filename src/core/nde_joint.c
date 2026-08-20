@@ -204,6 +204,42 @@ gint *nde_joint_record_participants(const struct nde_record *rec, guint *n_out) 
 	return nde_joint_params_participants(rec->params, n_out);
 }
 
+GPtrArray *nde_joint_output_pins(const char *op_id, const char *params,
+                                 gint target_item_id) {
+	if (!nde_joint_is_op(op_id))
+		return NULL;
+	guint n = 0;
+	gint *items = nde_joint_params_participants(params, &n);
+	if (!items)
+		return NULL;
+	/* A bare record to collect into, so the "output 0 is the target" invariant
+	 * is maintained by the one function that knows it (nde_history.h) rather
+	 * than restated here. */
+	nde_record tmp = { .target_item_id = target_item_id };
+	for (guint k = 0; k < n; k++) {
+		gchar role[16];
+		g_snprintf(role, sizeof(role), "in%u", k);
+		nde_record_add_output(&tmp, role, items[k]);
+	}
+	g_free(items);
+	return tmp.outputs;
+}
+
+void nde_joint_sync_outputs(struct nde_record *rec) {
+	if (!rec)
+		return;
+	GPtrArray *outs = nde_joint_output_pins(rec->op_id, rec->params,
+	                                        rec->target_item_id);
+	/* Unreadable params, or not a joint record at all: keep whatever output
+	 * list is already there.  One loaded from a file wrote its outputs down,
+	 * and a blob this build cannot parse is no reason to forget them. */
+	if (!outs)
+		return;
+	if (rec->outputs)
+		g_ptr_array_unref(rec->outputs);
+	rec->outputs = outs;
+}
+
 gboolean nde_joint_params_same_participants(const char *a, const char *b) {
 	if (!a || !b)
 		return FALSE;
@@ -223,16 +259,6 @@ gboolean nde_joint_params_same_participants(const char *a, const char *b) {
 	return same;
 }
 
-gboolean nde_joint_record_names_item(const struct nde_record *rec, gint item_id) {
-	guint n = 0;
-	gint *items = nde_joint_record_participants(rec, &n);
-	gboolean found = FALSE;
-	for (guint i = 0; items && i < n; i++)
-		found = found || items[i] == item_id;
-	g_free(items);
-	return found;
-}
-
 /* ======================================================================= */
 /* Geometry signature (the L1/L2 discriminator for flis.register)          */
 /* ======================================================================= */
@@ -247,9 +273,7 @@ gchar *nde_joint_geometry_signature(gint item_id, gint64 before_record_id) {
 		 * pixels see that decides what geometry it reaches the record with. */
 		if (before_record_id && rec->record_id == before_record_id)
 			break;
-		if (rec->target_item_id != item_id &&
-		    !(nde_joint_is_op(rec->op_id) &&
-		      nde_joint_record_names_item(rec, item_id)))
+		if (!nde_record_writes_item(rec, item_id))
 			continue;
 		const op_descriptor *op = op_descriptor_by_id(rec->op_id);
 		if (!op || !(op->flags & OP_GEOMETRY_CHANGING))

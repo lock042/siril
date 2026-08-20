@@ -125,6 +125,8 @@ typedef struct nde_record {
 	                           * they look up by name. */
 	GPtrArray *inputs;        /* of nde_pin*, or NULL when the record
 	                           * consumes only its chain's implicit image */
+	GPtrArray *outputs;       /* of nde_pin*, or NULL/empty when the record
+	                           * writes target_item_id and nothing else */
 } nde_record;
 
 /* Attach an input edge.  @role and the ids are copied; the record owns the
@@ -141,6 +143,47 @@ const nde_pin *nde_record_input(const nde_record *rec, const char *role);
  *  and an item appears at most once among a record's inputs. */
 const nde_pin *nde_record_input_by_item(const nde_record *rec, gint item_id);
 
+/* ---- output edges --------------------------------------------------------
+ *
+ * WHICH ITEMS A RECORD WRITES.  Every record writes target_item_id; most write
+ * nothing else, and for them @outputs stays empty and costs nothing.  A record
+ * that writes several — a joint calibration adjusting all its participants,
+ * later a star-removal step producing a starless image and a star mask — lists
+ * them here.
+ *
+ * "One record, N written items" already existed before this list did, encoded
+ * as indexed keys inside a joint record's params and decoded by parsing that
+ * blob once per membership test, once per chain build.  A second family
+ * arriving would have been a second private encoding of the same idea.  It is
+ * a property of the record now, and asking is an array scan.
+ *
+ * Output 0 is ALWAYS target_item_id.  That is what keeps the TARGET column,
+ * the graph's node placement and every reader written before this list still
+ * pointing at the right item; nde_record_add_output() maintains it for you.
+ * An item appears at most once.
+ */
+
+/** The role of output 0 when the caller did not name it. */
+#define NDE_OUT_ROLE_PRIMARY "out"
+
+/**
+ * Declare that @rec also writes @item_id, under the label @role.  Seeds
+ * output 0 from target_item_id on the first call so the invariant above holds
+ * however the caller orders its outputs; naming an item already listed just
+ * relabels it.
+ */
+void nde_record_add_output(nde_record *rec, const char *role, gint item_id);
+
+/** Does @rec write @item_id?  The chain-membership question. */
+gboolean nde_record_writes_item(const nde_record *rec, gint item_id);
+
+/** How many items @rec writes; 1 when it never said, which means its target. */
+guint nde_record_output_count(const nde_record *rec);
+
+/** Output pin @i, or NULL when @rec has no explicit list — in which case its
+ *  one output is target_item_id and there is no pin to describe it. */
+const nde_pin *nde_record_output(const nde_record *rec, guint i);
+
 /**
  * Stop @record_id from consuming the layer mask @mask_item_id: clears the flag
  * in its params and drops the pin.  Returns the number of records changed (0
@@ -155,7 +198,12 @@ guint nde_history_drop_mask_input(gint64 record_id, gint mask_item_id);
 
 /* ---- pin list codec ------------------------------------------------------
  * Encoded with the ordinary kv codec so the escaping rules are shared:
- * "n=2;role0=mask;item0=3;rec0=7;role1=base;item1=1;rec1=0".              */
+ * "n=2;role0=mask;item0=3;rec0=7;role1=base;item1=1;rec1=0".
+ *
+ * ONE codec, for both the input and the output list.  An output list spends
+ * three bytes a pin on a "rec0=0" it does not use; that is the price of not
+ * having a second near-identical codec to keep in step with this one, and it
+ * is the right way round.                                                   */
 
 /** Serialize @pins; NULL for a NULL/empty list (nothing to persist). */
 gchar *nde_pins_serialize(GPtrArray *pins);
@@ -169,9 +217,10 @@ GPtrArray *nde_pins_parse(const char *blob);
 gchar *nde_pins_to_string(GPtrArray *pins);
 
 /**
- * Record id of the last LIVE record AFFECTING @item_id — one targeting it,
- * or a joint record it participates in (nde_joint.h) — or 0 when the item
- * has no history yet.  This is the "as it stood now" end of a fresh pin.
+ * Record id of the last LIVE record that WRITES @item_id — one targeting it,
+ * or one listing it among its outputs, which is how a joint record counts as
+ * its participants' latest state (nde_joint.h) — or 0 when the item has no
+ * history yet.  This is the "as it stood now" end of a fresh pin.
  */
 gint64 nde_history_last_record_for_item(gint item_id);
 
@@ -634,6 +683,16 @@ typedef struct {
 	/* ---- input pins ------------------------------------------------------ */
 	const nde_pin_spec *pins;
 	guint               n_pins;
+
+	/* ---- output pins ----------------------------------------------------- *
+	 * Only for an operation that writes MORE than @target_item — a star
+	 * removal producing a starless image and a star mask.  Leave empty
+	 * otherwise: a record with no output list writes its target, which is what
+	 * almost every operation does.  The record_id half of each spec is unused
+	 * (nde_history.h).  A joint record needs nothing here — its participants
+	 * are derived from its params when it is appended (nde_joint.h). */
+	const nde_pin_spec *outputs;
+	guint               n_outputs;
 } nde_capture_req;
 
 /**

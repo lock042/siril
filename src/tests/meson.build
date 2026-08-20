@@ -447,6 +447,14 @@ if criterion_dep.found()
                                 cpp_args : siril_cpp_flag)
      test('test_nde_persist', test_nde_persist_exec, suite: 'flis')
 
+     test_nde_outputs_exec = executable('test_nde_outputs',
+                                'test_nde_outputs.c',
+                                dependencies : [siril_dep, criterion_dep],
+                                link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                c_args : siril_c_flag,
+                                cpp_args : siril_cpp_flag)
+     test('test_nde_outputs', test_nde_outputs_exec, suite: 'flis')
+
      test_flis_undo_exec = executable('test_flis_undo',
                                 'test_flis_undo.c',
                                 dependencies : [siril_dep, criterion_dep],

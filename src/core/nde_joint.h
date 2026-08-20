@@ -233,9 +233,26 @@ gchar *nde_joint_geometry_signature(gint item_id, gint64 before_record_id);
 gboolean nde_joint_register_apply(const struct nde_record *rec,
                                   nde_state *state, gint item_id, gchar **err);
 
-/** TRUE when @rec is a joint record and @item_id is one of its recorded
- *  participants (parsed from params).  The chain-membership extension. */
-gboolean nde_joint_record_names_item(const struct nde_record *rec, gint item_id);
+/**
+ * Make @rec's output list its participant list: a joint record writes every
+ * layer it read, so each one is an output (nde_history.h).
+ *
+ * This is where a participant list stops being a params blob and becomes the
+ * record's own edges — once, wherever a joint record's params are set, instead
+ * of on every chain-membership test.  Call it after appending, amending or
+ * loading one; nde_history does, so no capture site has to.
+ *
+ * A no-op for anything that is not a joint record, and for params this build
+ * cannot parse.
+ */
+void nde_joint_sync_outputs(struct nde_record *rec);
+
+/** The output pin list nde_joint_sync_outputs() would install, built from a
+ *  params blob alone — for an amend, which has to prepare it before taking the
+ *  history mutex (§6a: no allocation under the leaf lock).  NULL when @op_id is
+ *  not a joint op or @params do not parse.  Caller owns the array. */
+GPtrArray *nde_joint_output_pins(const char *op_id, const char *params,
+                                 gint target_item_id);
 
 /** TRUE when two params blobs name the same participants in the same order.
  *  An amend that changes the list takes the subset-amend path (nde_replay.c):

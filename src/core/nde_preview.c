@@ -705,6 +705,13 @@ static gchar *region_tail_member_reason(const nde_record *rec, guint8 flags,
 	 * useful. */
 	if (cls->family == NDE_OPC_COMPOSITE || cls->family == NDE_OPC_JOINT)
 		return g_strdup_printf(_("\"%s\" combines several images"), name);
+	/* A multi-output step run on a crop would produce N region results and the
+	 * tail would keep one, silently — so the tail would be replaying a
+	 * different computation than the full chain does.  The honest version
+	 * carries all N region states forward, which is only worth building
+	 * against a real multi-output operation (nde-simplify-plan S5.10). */
+	if (nde_record_output_count(rec) > 1)
+		return g_strdup_printf(_("\"%s\" produces more than one image"), name);
 	if (!op || !op->deserialize)
 		return g_strdup_printf(_("\"%s\" is not a known operation"), name);
 	if (cls->traits & NDE_OPT_GEOMETRIC)
@@ -950,7 +957,15 @@ gboolean nde_region_tail_apply(nde_region_tail *plan, fits *region,
 		nde_mask_pin_clear(region);
 		/* NO nde_snapstore_deposit here, deliberately: these are region-sized
 		 * intermediates and depositing one would let a later FULL replay
-		 * restart from a rectangle. */
+		 * restart from a rectangle.
+		 *
+		 * The rule for whoever teaches the replay to carry N results: a
+		 * multi-output record's secondary outputs get deposited so a later
+		 * replay of THAT item hits the cache — and that deposit belongs on the
+		 * full-image path only, for the same reason as this one.  Today the
+		 * question cannot arise, because a multi-output record is refused from
+		 * a tail outright (region_tail_member_reason).  That refusal is the
+		 * temporary half; this rule is the permanent one. */
 		if (rc) {
 			/* A hook that polls the cancel flag reports failure when a newer
 			 * tick supersedes this one; same routine cancellation, one layer

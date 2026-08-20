@@ -136,6 +136,16 @@ static gchar *member_invalid_reason(const nde_record *rec) {
 	if (rec->mask_active && !nde_mask_pin_resolvable(rec))
 		return g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) ran with a mask whose pixels were not kept — not replayable"),
 		                       rec->record_id, rec->op_id);
+	/* Several outputs, and no way to produce them.  An ordinary op's hook
+	 * returns ONE image, so replaying a record that wrote two would reproduce
+	 * one of them and claim to have reproduced the step.  Joint records are
+	 * exempt because theirs is a solved case: the hook applies one
+	 * participant's share per replay of that participant's chain, which is why
+	 * a joint record can be a member of several chains at once.  Refuse the
+	 * rest until the apply path can carry N results (nde-simplify-plan S5.7). */
+	if (nde_record_output_count(rec) > 1 && !nde_joint_is_op(rec->op_id))
+		return g_strdup_printf(_("record %" G_GINT64_FORMAT " (%s) produces more than one image — replaying that is not supported yet"),
+		                       rec->record_id, rec->op_id ? rec->op_id : "?");
 	const op_descriptor *op = op_descriptor_by_id(rec->op_id);
 	if (!op)
 		return g_strdup_printf(_("record %" G_GINT64_FORMAT ": unknown operation '%s'"),
@@ -210,9 +220,7 @@ nde_chain *nde_chain_build_excluding(gint item_id, gint64 exclude_record_id) {
 			 * the layer ends up correct-but-misplaced. */
 			gboolean geometric = nde_op_class_for(rec->op_id)->traits &
 			                     NDE_OPT_GEOMETRIC;
-			gboolean mine = rec->target_item_id == item_id ||
-			                (nde_joint_is_op(rec->op_id) &&
-			                 nde_joint_record_names_item(rec, item_id));
+			gboolean mine = nde_record_writes_item(rec, item_id);
 			if (geometric && mine && is_flis &&
 			    nde_checkpoint_baseline_has_position(item_id))
 				chain->has_geometry = TRUE;
@@ -224,12 +232,12 @@ nde_chain *nde_chain_build_excluding(gint item_id, gint64 exclude_record_id) {
 			continue;
 		switch (rec->scope) {
 		case NDE_SCOPE_LAYER:
-			/* A JOINT record (nde_joint.h) targets its anchor participant
-			 * but scales every participant, so it is a member of each of
-			 * their chains — one record at one log position, shared. */
-			member = (rec->target_item_id == item_id) ||
-			         (nde_joint_is_op(rec->op_id) &&
-			          nde_joint_record_names_item(rec, item_id));
+			/* Membership is "this record writes that item".  Usually that
+			 * is its target and nothing else; a JOINT record (nde_joint.h)
+			 * targets its anchor participant but writes every one of them,
+			 * so it is a member of each of their chains — one record at one
+			 * log position, shared. */
+			member = nde_record_writes_item(rec, item_id);
 			/* Registration is a joint op that MOVES its participants as well
 			 * as warping them.  It is scope LAYER (its target is an anchor
 			 * participant, not the canvas), so the NDE_SCOPE_CANVAS branch

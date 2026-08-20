@@ -262,6 +262,21 @@ static void assign_levels(nde_graph *g, GHashTable *by_id) {
 	}
 }
 
+/* The columns a joint band spans: the items the record writes.  That used to
+ * mean parsing the participant list back out of its params here; it is the
+ * record's output list now (nde_history.h).  Caller g_free()s. */
+static gint *joint_span_items(const nde_record *rec, guint *n_out) {
+	*n_out = 0;
+	if (!rec->outputs || !rec->outputs->len)
+		return NULL;
+	guint n = rec->outputs->len;
+	gint *items = g_new0(gint, n);
+	for (guint i = 0; i < n; i++)
+		items[i] = nde_record_output(rec, i)->item_id;
+	*n_out = n;
+	return items;
+}
+
 nde_graph *nde_graph_build(void) {
 	nde_graph *g = g_new0(nde_graph, 1);
 	g->nodes = g_ptr_array_new_with_free_func(node_free);
@@ -296,7 +311,7 @@ nde_graph *nde_graph_build(void) {
 			/* The band spans its PARTICIPANTS' columns, not the whole
 			 * graph — a layer the operation never read stays visually
 			 * outside it. */
-			jn->span_items = nde_joint_record_participants(rec, &jn->n_span_items);
+			jn->span_items = joint_span_items(rec, &jn->n_span_items);
 			jn->real_item = rec->target_item_id;
 			jn->stage = ++stage;
 			jn->label = g_strdup(rec->summary && *rec->summary ?
@@ -322,6 +337,38 @@ nde_graph *nde_graph_build(void) {
 		gint64 *rid = g_new(gint64, 1);
 		*rid = rec->record_id;
 		g_ptr_array_add(n->record_ids, rid);
+
+		/* Each SECONDARY output is an ordinary outgoing edge: the record is
+		 * listed under its primary output's node, and the other item it wrote
+		 * hangs off that node in a column of its own, where its subsequent
+		 * history goes.  Deliberately NOT a spanning band like a joint record:
+		 * a band is one op across N columns that already existed and continue
+		 * afterwards, whereas a multi-output op CREATES columns — which is what
+		 * edges plus column_item already draw.  (A joint record never reaches
+		 * this loop; it took the band branch above.) */
+		for (guint o = 1; o < nde_record_output_count(rec); o++) {
+			const nde_pin *out = nde_record_output(rec, o);
+			if (!out || out->item_id == rec->target_item_id)
+				continue;
+			nde_graph_node *dn = g_hash_table_lookup(cur_of,
+					GINT_TO_POINTER(out->item_id));
+			if (!dn) {
+				/* The produced item's column starts HERE, at the step that
+				 * made it — and in cur_of, so its own later records extend
+				 * this node instead of opening a second one beside it. */
+				dn = node_new_for_item(g, by_id, first_of, out->item_id,
+				                       stage, &next_seg);
+				g_hash_table_insert(cur_of, GINT_TO_POINTER(out->item_id), dn);
+			}
+			raw_edge re = {
+				.src_item = rec->target_item_id,
+				.src_rec  = rec->record_id,
+				.dst_node = dn->item_id,
+				.dst_rec  = rec->record_id,
+				.role     = g_strdup(out->role ? out->role : ""),
+			};
+			g_array_append_val(raw, re);
+		}
 
 		if (!rec->inputs)
 			continue;
