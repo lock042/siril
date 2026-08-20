@@ -20,6 +20,9 @@ struct scale_sequence_data {
 	int retvalue;
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 int fits_binning(fits *fit, int factor, gboolean mean);
 
 int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation interpolation, gboolean clamp);
@@ -37,5 +40,8 @@ gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data);
 gpointer scale_sequence(struct scale_sequence_data *scale_sequence_data);
 
 const char *interp_to_str(opencv_interpolation interpolation);
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SRC_ALGOS_GEOMETRY_H_ */

@@ -106,7 +106,7 @@ static BYTE *fits8_to_bgrbgr(fits *image) {
 
 /* this prepares input and output images, but lets the input in a non-usable state, beware!
  * the memory consumption of the combination of this and Mat_to_image is O(n) */
-static int image_to_Mat(fits *image, Mat *in, Mat *out, void **bgr, int target_rx, int target_ry) {
+int image_to_Mat(fits *image, Mat *in, Mat *out, void **bgr, int target_rx, int target_ry) {
 	if (image->naxes[2] != 1 && image->naxes[2] != 3) {
 		siril_log_message(_("Images with %ld channels are not supported\n"), image->naxes[2]);
 		return -1;
@@ -157,7 +157,7 @@ static int image_to_Mat(fits *image, Mat *in, Mat *out, void **bgr, int target_r
 	return 0;
 }
 
-static int Mat_to_image(fits *image, Mat *in, Mat *out, void *bgr, int target_rx, int target_ry) {
+int Mat_to_image(fits *image, Mat *in, Mat *out, void *bgr, int target_rx, int target_ry) {
 	in->release();
 	if (bgr) free(bgr);
 	if (image->naxes[2] == 1) {
@@ -241,7 +241,7 @@ static int Mat_to_image(fits *image, Mat *in, Mat *out, void *bgr, int target_rx
 }
 
 // int guide image for clamping
-static void init_guide(fits *image, unsigned int target_rx, unsigned int target_ry, Mat *guide) {
+void init_guide(fits *image, unsigned int target_rx, unsigned int target_ry, Mat *guide) {
 	if (image->type == DATA_USHORT) {
 		*guide = Mat(target_ry, target_rx, (image->naxes[2] == 1) ? CV_16UC1 : CV_16UC3, Scalar(0));
 	} else {

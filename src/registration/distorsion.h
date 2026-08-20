@@ -25,6 +25,9 @@ typedef struct {
 	float *xmap, *ymap;
 } disto_data;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 int disto_correct_stars(psf_star **stars, disto_data *disto);
 int init_disto_map(int rx, int ry, disto_data *disto);
 void map_undistortion_D2S(disto_data *disto, int rx, int ry, float *xmap, float *ymap);
@@ -35,9 +38,6 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 void free_disto_args(disto_data *disto);
 void copy_disto(disto_data *disto_in, disto_data *disto_out);
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 void prepare_H_with_disto_4remap(double *H, int rx_in, int ry_in, int rx_out, int ry_out, disto_data *disto, float *xmap, float *ymap);
 #ifdef __cplusplus
 }
