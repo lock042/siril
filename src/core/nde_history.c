@@ -1209,7 +1209,7 @@ static gboolean record_is_barrier(const nde_record *rec) {
  * record's output checkpoint (nde-phase4 P4.3) — done AFTER append so the id
  * is assigned, and OUTSIDE the history mutex (append has already unlocked). */
 static gint64 capture_finish(nde_record *rec, const char *summary,
-                             const fits *post) {
+                             const fits *post, gint post_offset_item) {
 	rec->summary   = g_strdup(summary);
 	rec->timestamp = nde_iso8601_now();
 	rec->impl      = nde_impl_string();
@@ -1217,8 +1217,17 @@ static gint64 capture_finish(nde_record *rec, const char *summary,
 	gint     target_id = rec->target_item_id;
 	gchar   *op_copy   = g_strdup(rec->op_id);
 	gint64 id = nde_history_append(rec);   /* takes ownership */
-	if (id > 0 && barrier && post)
+	if (id > 0 && barrier && post) {
 		nde_checkpoint_output_store(post, id, target_id);
+		/* A restart point is a layer value too: record where the layer ended
+		 * up, so a tail replay starting here has its anchor. */
+		if (post_offset_item > 0 && is_current_image_flis()) {
+			flis_layer_t *post_lay = flis_layer_get_by_id(post_offset_item);
+			if (post_lay)
+				nde_checkpoint_output_set_offset(id, post_lay->position_x,
+				                                 post_lay->position_y);
+		}
+	}
 	/* Claim (or discard as stale) any star catalogue the photometric
 	 * pipeline stashed for this capture (nde_cat.h). */
 	nde_cat_adopt_pending(id, op_copy);
@@ -1241,6 +1250,65 @@ gint nde_capture_target_item(void) {
 		return -1;
 	flis_layer_t *lay = flis_active_layer();
 	return lay ? lay->item_id : -1;
+}
+
+gint64 nde_capture(const nde_capture_req *req) {
+	g_return_val_if_fail(req != NULL, 0);
+	const op_descriptor *op = req->op;
+	nde_record *rec = nde_record_new();
+
+	rec->op_id      = g_strdup(op ? op->id : (req->op_id ? req->op_id
+	                                                     : "opaque.unknown"));
+	rec->op_version = op ? op->version : req->version;
+	rec->tier       = req->tier != NDE_DERIVE ? req->tier
+	                : (op && op->serialize   ? NDE_TIER_A : NDE_TIER_B);
+	/* A pre-serialized blob wins over the descriptor's serializer: the caller
+	 * that has one needed to look inside it before capturing. */
+	rec->params     = req->params ? req->params
+	                : (rec->tier == NDE_TIER_A && op && op->serialize
+	                   ? op->serialize(req->user) : NULL);
+	rec->scope      = req->scope != NDE_DERIVE ? req->scope
+	                : ((op && (op->flags & OP_GEOMETRY_CHANGING))
+	                   ? NDE_SCOPE_CANVAS : NDE_SCOPE_LAYER);
+	rec->target_item_id = req->target_item != NDE_TARGET_AUTO ?
+			req->target_item : nde_capture_target_item();
+
+	for (guint i = 0; i < req->n_pins; i++)
+		nde_record_add_input(rec, req->pins[i].role, req->pins[i].src_item_id,
+		                     req->pins[i].src_record_id);
+
+	/* The mask is a real INPUT, not a flag.  mask_active only ever said
+	 * "something was masking this"; the pin says WHICH mask and in what state,
+	 * which is what a replay needs to reproduce the op rather than refuse it. */
+	rec->mask_active = req->mask_active;
+	if (rec->mask_active) {
+		gint mask_item = req->mask_item;
+		if (mask_item == NDE_MASK_LIVE)
+			mask_item = is_current_image_flis() ?
+					flis_layer_pmask_id(flis_active_layer()) :
+					NDE_ITEM_PLAIN_MASK;
+		if (mask_item != 0) {
+			nde_record_add_input(rec, "mask", mask_item,
+			                     nde_history_last_record_for_item(mask_item));
+			/* Keep the pinned mask's pixels while we still have them, and
+			 * before append takes ownership of rec.  Stored under the pin's own
+			 * coordinate, so operations sharing a mask state share the stored
+			 * copy (nde_replay.h). */
+			if (req->mask_src)
+				nde_mask_pin_store(rec, req->mask_src);
+		}
+	}
+
+	/* Baseline checkpoint (nde phase 2): the pre-op pixels are what replaying
+	 * this item's chain starts from.  Cheap no-op if one already exists, and
+	 * the offset below is a no-op unless this call actually created it. */
+	if (req->pre) {
+		nde_checkpoint_baseline_ensure(req->pre, rec->target_item_id);
+		if (req->have_pos)
+			nde_checkpoint_baseline_set_offset(rec->target_item_id,
+			                                   req->pos_x, req->pos_y);
+	}
+	return capture_finish(rec, req->summary, req->post, req->post_offset_item);
 }
 
 gint64 nde_capture_structural(const char *op_id, gint scope,
@@ -1267,82 +1335,82 @@ gint64 nde_capture_structural_pinned(const char *op_id, gint scope,
                                      gint target_item_id, gchar *params,
                                      const char *summary,
                                      const nde_pin_spec *pins, guint n_pins) {
-	nde_record *rec = nde_record_new();
-	rec->op_id          = g_strdup(op_id);
-	rec->op_version     = 1;
-	rec->scope          = scope;
-	rec->target_item_id = target_item_id;
-	rec->tier           = NDE_TIER_A;
-	rec->params         = params;   /* ownership transferred */
-	for (guint i = 0; i < n_pins; i++)
-		nde_record_add_input(rec, pins[i].role, pins[i].src_item_id,
-		                     pins[i].src_record_id);
 	/* Structural records are not barriers and take no output checkpoint
 	 * (post == NULL): an unpinned one is not a chain member at all, and a
 	 * pinned composite re-runs from its inputs rather than from a stored
 	 * copy of its result (nde_composite.h). */
-	return capture_finish(rec, summary, NULL);
+	nde_capture_req req = {
+		.op_id       = op_id,
+		.version     = 1,
+		.params      = params,      /* ownership transferred */
+		.summary     = summary,
+		.tier        = NDE_TIER_A,
+		.scope       = scope,
+		.target_item = target_item_id,
+		.pins        = pins,
+		.n_pins      = n_pins,
+	};
+	return nde_capture(&req);
 }
 
 gint64 nde_capture_opaque(const char *op_id, gint scope,
                           gint target_item_id, const char *summary,
                           const fits *post) {
-	nde_record *rec = nde_record_new();
-	rec->op_id          = g_strdup(op_id);
-	rec->op_version     = 1;
-	rec->scope          = scope;
-	rec->target_item_id = target_item_id;
-	rec->tier           = NDE_TIER_B;
-	rec->params         = NULL;
-	return capture_finish(rec, summary, post);
+	nde_capture_req req = {
+		.op_id       = op_id,
+		.version     = 1,
+		.summary     = summary,
+		.tier        = NDE_TIER_B,
+		.scope       = scope,
+		.target_item = target_item_id,
+		.post        = post,
+	};
+	return nde_capture(&req);
 }
 
 gint64 nde_capture_script(const char *op_id, gint scope,
                           gint target_item_id, gchar *params,
                           const char *summary, const fits *post) {
-	nde_record *rec = nde_record_new();
-	rec->op_id          = g_strdup(op_id);
-	rec->op_version     = 1;
-	rec->scope          = scope;
-	rec->target_item_id = target_item_id;
-	rec->tier           = NDE_TIER_C;
-	rec->params         = params;   /* ownership transferred (may be NULL) */
-	return capture_finish(rec, summary, post);
+	nde_capture_req req = {
+		.op_id       = op_id,
+		.version     = 1,
+		.params      = params,      /* ownership transferred (may be NULL) */
+		.summary     = summary,
+		.tier        = NDE_TIER_C,
+		.scope       = scope,
+		.target_item = target_item_id,
+		.post        = post,
+	};
+	return nde_capture(&req);
 }
 
 gint64 nde_capture_from_descriptor(const op_descriptor *op,
                                    gconstpointer params, const char *summary,
                                    const fits *post, gboolean mask_aware) {
 	g_return_val_if_fail(op != NULL, 0);
-	nde_record *rec = nde_record_new();
-	gboolean tier_a = op->serialize != NULL;
-	rec->op_id      = g_strdup(op->id);
-	rec->op_version = op->version;
-	rec->tier       = tier_a ? NDE_TIER_A : NDE_TIER_B;
-	rec->params     = tier_a ? op->serialize(params) : NULL;
-	rec->scope      = (op->flags & OP_GEOMETRY_CHANGING) ?
-	                  NDE_SCOPE_CANVAS : NDE_SCOPE_LAYER;
-	rec->target_item_id = nde_capture_target_item();
-	/* The caller says whether its worker run blended through the mask
-	 * (missedasinh.png).  This used to read the flag off gfit alone, which
-	 * was wrong twice over: a dialog whose op IGNORED the mask captured
+	/* @mask_aware is the caller saying whether its worker run blended through
+	 * the mask (missedasinh.png).  This used to read the flag off gfit alone,
+	 * which was wrong twice over: a dialog whose op IGNORED the mask captured
 	 * mask_active anyway — freezing its chain over a mask that never touched
 	 * the pixels — and a dialog whose op USED it recorded neither WHICH mask
 	 * nor its pixels, so the record was an unreplayable barrier and the graph
-	 * showed no mask edge.  A masked capture now pins the mask and keeps its
-	 * state, exactly like the generic worker's own capture (processing.c). */
-	rec->mask_active = mask_aware && gfit && gfit->mask && gfit->mask_active;
-	if (rec->mask_active) {
-		gint mask_item = NDE_ITEM_PLAIN_MASK;
-		if (is_current_image_flis())
-			mask_item = flis_layer_pmask_id(flis_active_layer());
-		if (mask_item != 0) {
-			nde_record_add_input(rec, "mask", mask_item,
-			                     nde_history_last_record_for_item(mask_item));
-			nde_mask_pin_store(rec, gfit);
-		}
-	}
-	return capture_finish(rec, summary, post);
+	 * showed no mask edge. */
+	nde_capture_req req = {
+		.op          = op,
+		.user        = params,
+		.summary     = summary,
+		.tier        = NDE_DERIVE,
+		.scope       = NDE_DERIVE,
+		.target_item = NDE_TARGET_AUTO,
+		.post        = post,
+		/* No output-checkpoint offset: the worker records one, this path never
+		 * has — see the plan's S2.6. */
+		.post_offset_item = 0,
+		.mask_active = mask_aware && gfit && gfit->mask && gfit->mask_active,
+		.mask_item   = NDE_MASK_LIVE,
+		.mask_src    = gfit,
+	};
+	return nde_capture(&req);
 }
 
 gint64 nde_capture_from_descriptor_for_item(const op_descriptor *op,
@@ -1360,19 +1428,18 @@ gint64 nde_capture_from_descriptor_pinned(const op_descriptor *op,
                                           const nde_pin_spec *pins,
                                           guint n_pins) {
 	g_return_val_if_fail(op != NULL, 0);
-	nde_record *rec = nde_record_new();
-	gboolean tier_a = op->serialize != NULL;
-	rec->op_id      = g_strdup(op->id);
-	rec->op_version = op->version;
-	rec->tier       = tier_a ? NDE_TIER_A : NDE_TIER_B;
-	rec->params     = tier_a ? op->serialize(params) : NULL;
-	rec->scope      = NDE_SCOPE_LAYER;
-	rec->target_item_id = item_id;
-	rec->mask_active = FALSE;
-	for (guint i = 0; i < n_pins; i++)
-		nde_record_add_input(rec, pins[i].role, pins[i].src_item_id,
-		                     pins[i].src_record_id);
-	return capture_finish(rec, summary, post);
+	nde_capture_req req = {
+		.op          = op,
+		.user        = params,
+		.summary     = summary,
+		.tier        = NDE_DERIVE,
+		.scope       = NDE_SCOPE_LAYER,   /* explicit: a per-layer record */
+		.target_item = item_id,
+		.post        = post,
+		.pins        = pins,
+		.n_pins      = n_pins,
+	};
+	return nde_capture(&req);
 }
 
 gchar *nde_iso8601_now(void) {

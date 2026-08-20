@@ -556,6 +556,86 @@ gint64 nde_capture_from_descriptor_pinned(const struct op_descriptor *op,
                                           const nde_pin_spec *pins,
                                           guint n_pins);
 
+/* ---- the one capture entry point ---------------------------------------- *
+ *
+ * IF YOU ARE ADDING AN IMAGE OPERATION YOU DO NOT NEED THIS.  Call one of the
+ * helpers above; they are all thin wrappers over nde_capture().  This is for
+ * adding a new KIND of capture site — there are four (the three workers in
+ * processing.c and the helpers above), and before this struct existed each one
+ * built its record by hand.  They had drifted apart in thirteen separate ways,
+ * three of which had already been shipped as bugs, so a fifth site written the
+ * same way was a bug waiting to happen.
+ *
+ * Everything a record needs, stated once.  Fill what applies, leave the rest
+ * zero, and note the three sentinels: the zero value of a field is a real
+ * value, not "unset".                                                        */
+
+/** target_item: resolve it via nde_capture_target_item() at capture time. */
+#define NDE_TARGET_AUTO  G_MININT
+/** mask_item: resolve it from the live document at capture time. */
+#define NDE_MASK_LIVE    G_MININT
+/** tier / scope: read it off the descriptor rather than being told. */
+#define NDE_DERIVE       (-1)
+
+typedef struct {
+	/* ---- identity.  With @op set, id and version come from it. ---------- */
+	const struct op_descriptor *op;
+	const char   *op_id;        /* used when op == NULL */
+	gint          version;      /* used when op == NULL */
+
+	/* ---- params.  Give ONE of these. ------------------------------------ *
+	 * @user is handed to op->serialize().  @params is an already-serialized
+	 * blob whose ownership is taken, and it OVERRIDES op->serialize even when
+	 * @op is set — the mask worker needs the blob before it can decide its
+	 * input pin, so it serializes first and hands the result over. */
+	gconstpointer user;
+	gchar        *params;
+
+	const char   *summary;      /* copied */
+	gint          tier;         /* NDE_DERIVE = op->serialize ? Tier A : Tier B */
+	gint          scope;        /* NDE_DERIVE = OP_GEOMETRY_CHANGING ? CANVAS : LAYER */
+	gint          target_item;  /* or NDE_TARGET_AUTO */
+
+	/* ---- checkpoints ----------------------------------------------------- *
+	 * @pre are the pre-op pixels: passing them seeds this item's replay
+	 * baseline if it has none yet (first writer wins, so it is usually a
+	 * no-op).  A layer's replay value is its pixels AND its position, so pass
+	 * @have_pos/@pos_x/@pos_y too when the item is a layer.
+	 *
+	 * @post are the post-op pixels, stored as an output checkpoint when the
+	 * record turns out to be a barrier — the restart point that keeps
+	 * everything after an unreplayable step editable.  Ignored otherwise.
+	 * @post_offset_item is whose live position to record alongside it; <= 0
+	 * records no position. */
+	const fits   *pre;
+	gboolean      have_pos;
+	gint          pos_x, pos_y;
+	const fits   *post;
+	gint          post_offset_item;
+
+	/* ---- the processing mask -------------------------------------------- *
+	 * @mask_active is the CALLER's decision that its run blended through the
+	 * mask — not re-derived here, because the worker decides it before the
+	 * hook runs and the dialogs decide it after.  When set, the mask is pinned
+	 * as a real input and its pixels are kept from @mask_src, so the step stays
+	 * replayable instead of becoming a barrier. */
+	gboolean      mask_active;
+	gint          mask_item;    /* or NDE_MASK_LIVE */
+	const fits   *mask_src;     /* the fits carrying the mask to keep */
+
+	/* ---- input pins ------------------------------------------------------ */
+	const nde_pin_spec *pins;
+	guint               n_pins;
+} nde_capture_req;
+
+/**
+ * Build and append one record from @req, returning its id (0 = nothing
+ * recorded, e.g. no document loaded).  Takes ownership of @req->params.
+ * Same success-only discipline as every helper above: call it only once the
+ * mutation has actually happened, never on a failure path.
+ */
+gint64 nde_capture(const nde_capture_req *req);
+
 /** Heap ISO 8601 UTC timestamp, matching FLIS layer CREATED/MODIFIED style. */
 gchar *nde_iso8601_now(void);
 
