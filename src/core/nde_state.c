@@ -22,6 +22,7 @@
 
 #include "core/siril.h"
 #include "core/nde_state.h"
+#include "io/image_format_fits.h"   /* clearfits */
 
 nde_state *nde_state_new(fits *pix_taken) {
 	if (!pix_taken)

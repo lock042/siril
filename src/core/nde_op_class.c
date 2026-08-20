@@ -18,9 +18,7 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <glib.h>
-#include <glib/gi18n.h>
-
+#include "core/siril.h"
 #include "core/nde_op_class.h"
 #include "core/nde_history.h"
 #include "core/nde_composite.h"
