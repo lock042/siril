@@ -268,71 +268,117 @@ gchar *nde_joint_geometry_signature(gint item_id, gint64 before_record_id) {
 }
 
 /* ======================================================================= */
-/* Factor cache: record_id -> {history generation, factors}                */
+/* Generation-keyed memo: record_id -> one opaque blob                     */
 /* ======================================================================= */
 
+/* Each joint op caches its analysis against the history generation it was
+ * computed under, because one edit must cost ONE analysis however many
+ * participants replay it: without this, an edit upstream of a five-layer
+ * registration would re-solve the registration five times.  A generation bump
+ * invalidates everything — there is no finer-grained invalidation, and the
+ * analyses are cheap enough relative to a replay that there need not be.
+ *
+ * The value is an opaque blob; callers pack and unpack it.  Storing bytes
+ * rather than a typed value is what lets one memo serve both the scalar ops'
+ * pair of double arrays and the register op's array of solutions. */
 typedef struct {
-	guint64 generation;
-	guint   n;
-	double *a;
-	double *b;
-} joint_cache_entry;
+	guint64  generation;
+	gsize    size;
+	gpointer blob;
+} nde_memo_entry;
 
-static GMutex joint_cache_mutex;   /* leaf: nothing acquired while held */
-static GHashTable *joint_cache;    /* gint64* -> joint_cache_entry* */
+typedef struct {
+	GMutex      mutex;   /* leaf: nothing acquired while held */
+	GHashTable *table;   /* gint64* -> nde_memo_entry*, created on first put */
+} nde_memo;
 
-static void joint_cache_entry_free(gpointer ptr) {
-	joint_cache_entry *e = ptr;
+static void nde_memo_entry_free(gpointer ptr) {
+	nde_memo_entry *e = ptr;
 	if (!e)
 		return;
-	g_free(e->a);
-	g_free(e->b);
+	g_free(e->blob);
 	g_free(e);
 }
 
-static void register_cache_invalidate(void);
-
-void nde_joint_cache_invalidate(void) {
-	g_mutex_lock(&joint_cache_mutex);
-	if (joint_cache)
-		g_hash_table_remove_all(joint_cache);
-	g_mutex_unlock(&joint_cache_mutex);
-	register_cache_invalidate();
-}
-
-/* Cache lookup: copies out on a generation hit.  Caller g_free()s. */
-static gboolean joint_cache_get(gint64 record_id, guint64 generation,
-                                guint *n_out, double **a_out, double **b_out) {
-	gboolean hit = FALSE;
-	g_mutex_lock(&joint_cache_mutex);
-	if (joint_cache) {
-		joint_cache_entry *e = g_hash_table_lookup(joint_cache, &record_id);
+/* Copies the blob out on a generation hit, NULL on a miss.  Caller g_free()s.
+ * *size_out is the stored size, which a caller that knows what it expects
+ * should check: a same-generation entry of the wrong length is a bug it can
+ * catch for free. */
+static gpointer nde_memo_get(nde_memo *m, gint64 record_id, guint64 generation,
+                             gsize *size_out) {
+	gpointer out = NULL;
+	g_mutex_lock(&m->mutex);
+	if (m->table) {
+		nde_memo_entry *e = g_hash_table_lookup(m->table, &record_id);
 		if (e && e->generation == generation) {
-			*n_out = e->n;
-			*a_out = g_memdup2(e->a, e->n * sizeof(double));
-			*b_out = g_memdup2(e->b, e->n * sizeof(double));
-			hit = TRUE;
+			out = g_memdup2(e->blob, e->size);
+			if (size_out)
+				*size_out = e->size;
 		}
 	}
-	g_mutex_unlock(&joint_cache_mutex);
-	return hit;
+	g_mutex_unlock(&m->mutex);
+	return out;
 }
 
-static void joint_cache_put(gint64 record_id, guint64 generation, guint n,
-                            const double *a, const double *b) {
-	joint_cache_entry *e = g_new0(joint_cache_entry, 1);
+static void nde_memo_put(nde_memo *m, gint64 record_id, guint64 generation,
+                         gconstpointer blob, gsize size) {
+	nde_memo_entry *e = g_new0(nde_memo_entry, 1);
 	e->generation = generation;
-	e->n = n;
-	e->a = g_memdup2(a, n * sizeof(double));
-	e->b = g_memdup2(b, n * sizeof(double));
+	e->size = size;
+	e->blob = g_memdup2(blob, size);
 	gint64 *key = g_new(gint64, 1);
 	*key = record_id;
-	g_mutex_lock(&joint_cache_mutex);
-	if (!joint_cache)
-		joint_cache = g_hash_table_new_full(g_int64_hash, g_int64_equal,
-		                                    g_free, joint_cache_entry_free);
-	g_hash_table_replace(joint_cache, key, e);
-	g_mutex_unlock(&joint_cache_mutex);
+	g_mutex_lock(&m->mutex);
+	if (!m->table)
+		m->table = g_hash_table_new_full(g_int64_hash, g_int64_equal,
+		                                 g_free, nde_memo_entry_free);
+	g_hash_table_replace(m->table, key, e);
+	g_mutex_unlock(&m->mutex);
+}
+
+static void nde_memo_invalidate(nde_memo *m) {
+	g_mutex_lock(&m->mutex);
+	if (m->table)
+		g_hash_table_remove_all(m->table);
+	g_mutex_unlock(&m->mutex);
+}
+
+/* ======================================================================= */
+/* Factor memo: record_id -> the per-participant factors {a[n], b[n]}      */
+/* ======================================================================= */
+
+static nde_memo joint_factors_memo;
+static nde_memo register_solution_memo;
+
+void nde_joint_cache_invalidate(void) {
+	nde_memo_invalidate(&joint_factors_memo);
+	nde_memo_invalidate(&register_solution_memo);
+}
+
+/* The two arrays go in as one 2n-double blob, a then b, so n comes back out of
+ * the stored size — which matters because the lookup happens before the
+ * record's params are parsed, i.e. before n is known. */
+static gboolean joint_factors_get(gint64 record_id, guint64 generation,
+                                  double **a_out, double **b_out) {
+	gsize size = 0;
+	double *blob = nde_memo_get(&joint_factors_memo, record_id, generation, &size);
+	if (!blob)
+		return FALSE;
+	gsize n = size / (2 * sizeof(double));
+	*a_out = g_memdup2(blob, n * sizeof(double));
+	*b_out = g_memdup2(blob + n, n * sizeof(double));
+	g_free(blob);
+	return TRUE;
+}
+
+static void joint_factors_put(gint64 record_id, guint64 generation, guint n,
+                              const double *a, const double *b) {
+	double *blob = g_new(double, 2 * (gsize)n);
+	memcpy(blob, a, n * sizeof(double));
+	memcpy(blob + n, b, n * sizeof(double));
+	nde_memo_put(&joint_factors_memo, record_id, generation,
+	             blob, 2 * (gsize)n * sizeof(double));
+	g_free(blob);
 }
 
 /* ======================================================================= */
@@ -895,64 +941,34 @@ static gboolean resolve_participants_ids(const struct nde_record *rec,
                                          gboolean require_mono,
                                          fits **pixels, gboolean *owned,
                                          gchar **err);
+
+/* How many times an analysis has actually run (cache misses), across all three
+ * joint ops.  A test counter: each generation cache's whole point is that one
+ * edit costs one analysis however many participants replay, and only this can
+ * prove it.  Shared deliberately — the tests measure deltas around a single
+ * op, so one counter reads the same as three. */
 static guint analysis_runs;
 
-/* Solution cache: record_id -> {history generation, n solutions}.  Same
- * contract and the same reason as the factor cache above — the L2 re-solve
- * runs a whole registration, so N participant replays of one edit must share
- * ONE solve or an edit upstream of a five-layer registration would run it
- * five times. */
-typedef struct {
-	guint64 generation;
-	guint   n;
-	flis_reg_solution *sol;
-} register_cache_entry;
-
-static GMutex register_cache_mutex;   /* leaf: nothing acquired while held */
-static GHashTable *register_cache;    /* gint64* -> register_cache_entry* */
-
-static void register_cache_entry_free(gpointer ptr) {
-	register_cache_entry *e = ptr;
-	if (!e)
-		return;
-	g_free(e->sol);
-	g_free(e);
-}
-
-static flis_reg_solution *register_cache_get(gint64 record_id, guint64 generation,
-                                             guint n) {
-	flis_reg_solution *out = NULL;
-	g_mutex_lock(&register_cache_mutex);
-	if (register_cache) {
-		register_cache_entry *e = g_hash_table_lookup(register_cache, &record_id);
-		if (e && e->generation == generation && e->n == n)
-			out = g_memdup2(e->sol, n * sizeof(*e->sol));
+/* The solutions memo (declared with the factor memo above) exists for the same
+ * reason: the L2 re-solve runs a whole registration, so N participant replays
+ * of one edit must share ONE solve.  Unlike the factors, n is known before the
+ * lookup, so the stored size is checked against it. */
+static flis_reg_solution *register_solution_get(gint64 record_id, guint64 generation,
+                                                guint n) {
+	gsize size = 0;
+	flis_reg_solution *sol = nde_memo_get(&register_solution_memo, record_id,
+	                                      generation, &size);
+	if (sol && size != n * sizeof(*sol)) {
+		g_free(sol);
+		sol = NULL;
 	}
-	g_mutex_unlock(&register_cache_mutex);
-	return out;
+	return sol;
 }
 
-static void register_cache_invalidate(void) {
-	g_mutex_lock(&register_cache_mutex);
-	if (register_cache)
-		g_hash_table_remove_all(register_cache);
-	g_mutex_unlock(&register_cache_mutex);
-}
-
-static void register_cache_put(gint64 record_id, guint64 generation, guint n,
-                               const flis_reg_solution *sol) {
-	register_cache_entry *e = g_new0(register_cache_entry, 1);
-	e->generation = generation;
-	e->n = n;
-	e->sol = g_memdup2(sol, n * sizeof(*sol));
-	gint64 *key = g_new(gint64, 1);
-	*key = record_id;
-	g_mutex_lock(&register_cache_mutex);
-	if (!register_cache)
-		register_cache = g_hash_table_new_full(g_int64_hash, g_int64_equal,
-		                                       g_free, register_cache_entry_free);
-	g_hash_table_replace(register_cache, key, e);
-	g_mutex_unlock(&register_cache_mutex);
+static void register_solution_put(gint64 record_id, guint64 generation, guint n,
+                                  const flis_reg_solution *sol) {
+	nde_memo_put(&register_solution_memo, record_id, generation,
+	             sol, n * sizeof(*sol));
 }
 
 /* TRUE when EVERY participant reaches the record with the geometry it had at
@@ -1096,7 +1112,7 @@ gboolean nde_joint_register_apply(const struct nde_record *rec, fits *scratch,
 	}
 
 	guint64 generation = nde_history_generation();
-	flis_reg_solution *sol = register_cache_get(rec->record_id, generation, p->n);
+	flis_reg_solution *sol = register_solution_get(rec->record_id, generation, p->n);
 	if (!sol) {
 		sol = g_new0(flis_reg_solution, p->n);
 		register_solutions_from_record(p, sol);
@@ -1112,7 +1128,7 @@ gboolean nde_joint_register_apply(const struct nde_record *rec, fits *scratch,
 				g_free(fresh);   /* L3: the recorded transforms, warned about */
 			}
 		}
-		register_cache_put(rec->record_id, generation, p->n, sol);
+		register_solution_put(rec->record_id, generation, p->n, sol);
 	}
 
 	const flis_reg_solution *s = &sol[idx];
@@ -1266,11 +1282,6 @@ static gboolean participant_medians(const struct nde_record *rec,
 	}
 	return TRUE;
 }
-
-/* How many times the analysis has actually run (cache misses).  A test
- * counter: the generation cache's whole point is that one edit costs one
- * analysis however many participants replay, and only this can prove it. */
-static guint analysis_runs;
 
 guint nde_joint_analysis_runs(void) {
 	return analysis_runs;
@@ -1479,7 +1490,7 @@ static gboolean group_factors_compute(const struct nde_record *rec,
 			b[k] = p->parts[k].diag_offset;
 		}
 	}
-	joint_cache_put(rec->record_id, generation, n, a, b);
+	joint_factors_put(rec->record_id, generation, n, a, b);
 	*a_out = a;
 	*b_out = b;
 	a = b = NULL;
@@ -1507,8 +1518,7 @@ gboolean nde_joint_factors(const struct nde_record *rec, fits *self_scratch,
 	g_return_val_if_fail(rec != NULL && a_out != NULL && b_out != NULL && err != NULL, FALSE);
 	*err = NULL;
 	guint64 generation = nde_history_generation();
-	guint cached_n = 0;
-	if (joint_cache_get(rec->record_id, generation, &cached_n, a_out, b_out))
+	if (joint_factors_get(rec->record_id, generation, a_out, b_out))
 		return TRUE;
 
 	if (!g_strcmp0(rec->op_id, OP_GROUP_CALIBRATION))
@@ -1558,7 +1568,7 @@ gboolean nde_joint_factors(const struct nde_record *rec, fits *self_scratch,
 			siril_log_warning(_("Layers match: layer '%s' left unscaled — tint infeasible\n"),
 			                  p->parts[k].name ? p->parts[k].name : "?");
 	}
-	joint_cache_put(rec->record_id, generation, n, a, b);
+	joint_factors_put(rec->record_id, generation, n, a, b);
 	*a_out = a;
 	*b_out = b;
 	a = b = NULL;   /* transferred */
