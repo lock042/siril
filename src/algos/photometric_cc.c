@@ -172,15 +172,92 @@ int make_selection_around_a_star(cat_item *star, rectangle *area, fits *fit, str
 	return 0;
 }
 
-static gchar *generate_title(const gchar *type, double arg, double br, double sig, gchar *wr, int nb_stars, int nb_excl, float *kw) {
-	return g_strdup_printf(_("White Balance summary\n"
-			"<span size=\"small\">"
-			"%s SPCC Linear Fit: y = %f + %f·x, &#x03C3; = %f\n"
-			"White reference: %s\n"
-			"Number of stars: %d (removed %d outliers)\n"
-			"White balance factors: %.3f %.3f %.3f"
-			"</span>"),
-			type, arg, br, sig, wr, nb_stars, nb_excl, kw[RLAYER], kw[GLAYER], kw[BLAYER]);
+// the heading shown once above both fits; the figures it used to carry are in
+// the summary tiles, and reach the exports through the plots' notes
+static gchar *generate_caption(void) {
+	return g_strdup(_("White Balance summary"));
+}
+
+// the name of one fit, shown above its own plot
+static gchar *generate_title(const gchar *type) {
+	return g_strdup_printf(_("%s SPCC Linear Fit"), type);
+}
+
+// the details of one fit, shown below its name
+static gchar *generate_subtitle(double arg, double br, double sig, int nb_stars, int nb_excl) {
+	return g_strdup_printf(_("y = %f + %f·x   &#x03C3; = %f\n"
+			"Number of stars: %d (removed %d outliers)"),
+			arg, br, sig, nb_stars, nb_excl);
+}
+
+// coefficient of determination of the fit over the points it kept
+static double compute_r2(const double *x, const double *y, int n, double a, double b) {
+	if (n < 2)
+		return 0.;
+	double mean = gsl_stats_mean(y, 1, n);
+	double ssres = 0., sstot = 0.;
+	for (int i = 0; i < n; i++) {
+		double residual = y[i] - (a + b * x[i]);
+		ssres += residual * residual;
+		sstot += (y[i] - mean) * (y[i] - mean);
+	}
+	return (sstot > 0.) ? 1. - ssres / sstot : 0.;
+}
+
+// the key figures shown in the strip below a fit plot
+static void add_fit_metrics(siril_plot_data *spl_data, const double *x, const double *y, int n,
+		double a, double b, double sig) {
+	gchar *value = g_strdup_printf("%.3f", gsl_stats_mean(x, 1, n));
+	siril_plot_add_metric(spl_data, _("X mean"), value);
+	g_free(value);
+	value = g_strdup_printf("%.3f", gsl_stats_mean(y, 1, n));
+	siril_plot_add_metric(spl_data, _("Y mean"), value);
+	g_free(value);
+	value = g_strdup_printf("%.3f", compute_r2(x, y, n, a, b));
+	siril_plot_add_metric(spl_data, "R²", value);
+	g_free(value);
+	value = g_strdup_printf("%.4f", b);
+	siril_plot_add_metric(spl_data, _("Slope"), value);
+	g_free(value);
+	value = g_strdup_printf("%.4f", a);
+	siril_plot_add_metric(spl_data, _("Intercept"), value);
+	g_free(value);
+	value = g_strdup_printf("%.4f", sig);
+	siril_plot_add_metric(spl_data, "σ", value);
+	g_free(value);
+}
+
+// the tiles summarizing the whole run, above both plots
+static void add_summary_tiles(siril_plot_group *grp, int nb_stars, int ngood, int ngoodrg, int ngoodbg,
+		const gchar *white_ref, float *kw) {
+	gchar *value = g_strdup_printf("%d", nb_stars);
+	gchar *subvalue = g_strdup_printf(_("%d (%d excluded)"), ngood, nb_stars - ngood);
+	siril_plot_group_add_tile(grp, "starred-symbolic", _("Stars measured"), value,
+			_("Photometrically valid"), subvalue);
+	g_free(value);
+	g_free(subvalue);
+
+	value = g_strdup_printf("%d", ngoodrg);
+	subvalue = g_strdup_printf("%d", ngoodbg);
+	siril_plot_group_add_tile(grp, "emblem-ok-symbolic", _("Inliers, R/G fit"), value,
+			_("Inliers, B/G fit"), subvalue);
+	g_free(value);
+	g_free(subvalue);
+
+	siril_plot_group_add_tile(grp, "utilities-system-monitor-symbolic", _("Fit type"),
+			_("Linear (y = a + b·x)"), _("Method"), _("Repeated median (robust)"));
+
+	value = g_strdup_printf("R %.3f   G %.3f   B %.3f", kw[RLAYER], kw[GLAYER], kw[BLAYER]);
+	siril_plot_group_add_tile(grp, "preferences-color-symbolic", _("White balance factors"), value,
+			_("White reference"), white_ref);
+	g_free(value);
+
+	GDateTime *now = g_date_time_new_now_local();
+	value = g_date_time_format(now, "%Y-%m-%d %H:%M");
+	siril_plot_group_add_tile(grp, "document-open-recent-symbolic", _("Generated"), value,
+			_("Version"), PACKAGE_VERSION);
+	g_free(value);
+	g_date_time_unref(now);
 }
 
 int filterArrays(double *x, double *y, int n) {
@@ -506,10 +583,12 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	if (args->do_plot) {
 		double stat_min, stat_max;
 		spcc_object *object = (spcc_object*) selected_white->data;
+		gchar *caption = generate_caption();
+		int ngoodrg = 0, ngoodbg = 0;
 		siril_plot_group *spl_group = siril_plot_group_new();
 		siril_plot_group_set_title(spl_group, _("SPCC Linear Fits"));
 		if (plotrg) {
-			int ngoodrg = filtermaskArrays(crg, irg, maskrg, ngood);
+			ngoodrg = filtermaskArrays(crg, irg, maskrg, ngood);
 			gsl_stats_minmax(&stat_min, &stat_max, crg, 1, ngoodrg);
 			double best_fit_rgx[2] = {stat_min, stat_max};
 			double best_fit_rgy[2] = {arg + brg * best_fit_rgx[0], arg + brg * best_fit_rgx[1]};
@@ -518,9 +597,14 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 			if (spl_datarg) {
 				siril_plot_set_xlabel(spl_datarg, _("Catalog R/G (flux)"));
 				siril_plot_set_savename(spl_datarg, "SPCC_RG_fit");
-				gchar *title1 = generate_title("R/G", arg, brg, deviation[0], object->name, ngoodrg, ngood - ngoodrg, kw);
+				gchar *title1 = generate_title("R/G");
 				siril_plot_set_title(spl_datarg, title1);
 				g_free(title1);
+				gchar *subtitle1 = generate_subtitle(arg, brg, deviation[0], ngoodrg, ngood - ngoodrg);
+				siril_plot_set_subtitle(spl_datarg, subtitle1);
+				g_free(subtitle1);
+				siril_plot_set_caption(spl_datarg, caption);
+				add_fit_metrics(spl_datarg, crg, irg, ngoodrg, arg, brg, deviation[0]);
 				siril_plot_set_ylabel(spl_datarg, _("Image R/G (flux)"));
 				siril_plot_add_xydata(spl_datarg, _("R/G"), ngoodrg, crg, irg, NULL, NULL);
 				siril_plot_add_xydata(spl_datarg, _("Best fit"), 2, best_fit_rgx, best_fit_rgy, NULL, NULL);
@@ -535,7 +619,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		}
 
 		if (plotbg) {
-			int ngoodbg = filtermaskArrays(cbg, ibg, maskbg, ngood);
+			ngoodbg = filtermaskArrays(cbg, ibg, maskbg, ngood);
 			gsl_stats_minmax(&stat_min, &stat_max, cbg, 1, ngoodbg);
 			double best_fit_bgx[2] = {stat_min, stat_max};
 			double best_fit_bgy[2] = {abg + bbg * best_fit_bgx[0], abg + bbg * best_fit_bgx[1]};
@@ -543,9 +627,14 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 			if (spl_databg) {
 				siril_plot_set_xlabel(spl_databg, _("Catalog B/G (flux)"));
 				siril_plot_set_savename(spl_databg, "SPCC_BG_fit");
-				gchar *title2 = generate_title("B/G", abg, bbg, deviation[1], object->name, ngoodbg, ngood - ngoodbg, kw);
+				gchar *title2 = generate_title("B/G");
 				siril_plot_set_title(spl_databg, title2);
 				g_free(title2);
+				gchar *subtitle2 = generate_subtitle(abg, bbg, deviation[1], ngoodbg, ngood - ngoodbg);
+				siril_plot_set_subtitle(spl_databg, subtitle2);
+				g_free(subtitle2);
+				siril_plot_set_caption(spl_databg, caption);
+				add_fit_metrics(spl_databg, cbg, ibg, ngoodbg, abg, bbg, deviation[1]);
 				siril_plot_set_ylabel(spl_databg, _("Image B/G (flux)"));
 				gchar *spl_legendbg = _("B/G");
 				siril_plot_add_xydata(spl_databg, spl_legendbg, ngoodbg, cbg, ibg, NULL, NULL);
@@ -560,6 +649,8 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 			}
 		}
 
+		g_free(caption);
+		add_summary_tiles(spl_group, nb_stars, ngood, ngoodrg, ngoodbg, object->name, kw);
 		if (spl_group->items)
 			gui_iface.show_siril_plot_group(spl_group);
 		else

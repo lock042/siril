@@ -193,6 +193,25 @@ static int comparex(const void *a, const void *b) {
 // 	return subbkg;
 // }
 
+static void free_metric(splmetric *metric) {
+	if (!metric)
+		return;
+	g_free(metric->label);
+	g_free(metric->value);
+	free(metric);
+}
+
+static void free_tile(spltile *tile) {
+	if (!tile)
+		return;
+	g_free(tile->icon);
+	g_free(tile->label);
+	g_free(tile->value);
+	g_free(tile->sublabel);
+	g_free(tile->subvalue);
+	free(tile);
+}
+
 // init/free spl_data
 
 siril_plot_data* init_siril_plot_data() {
@@ -204,6 +223,10 @@ siril_plot_data* init_siril_plot_data() {
 	spl_data->plot = NULL;
 	spl_data->plots = NULL;
 	spl_data->title = NULL;
+	spl_data->caption = NULL;
+	spl_data->subtitle = NULL;
+	spl_data->metrics = NULL;
+	spl_data->logy = FALSE;
 	spl_data->xlabel = NULL;
 	spl_data->ylabel = NULL;
 	spl_data->xfmt = NULL;
@@ -259,6 +282,9 @@ void free_siril_plot_data(siril_plot_data *spl_data) {
 		return;
 	// freeing gchars
 	g_free(spl_data->title);
+	g_free(spl_data->caption);
+	g_free(spl_data->subtitle);
+	g_list_free_full(spl_data->metrics, (GDestroyNotify)free_metric);
 	g_free(spl_data->xlabel);
 	g_free(spl_data->ylabel);
 	g_free(spl_data->xfmt);
@@ -284,6 +310,7 @@ siril_plot_group *siril_plot_group_new() {
 	}
 	grp->items = NULL;
 	grp->title = NULL;
+	grp->tiles = NULL;
 	return grp;
 }
 
@@ -304,6 +331,7 @@ void free_siril_plot_group(siril_plot_group *grp) {
 	if (!grp)
 		return;
 	g_list_free_full(grp->items, (GDestroyNotify)free_siril_plot_data);
+	g_list_free_full(grp->tiles, (GDestroyNotify)free_tile);
 	g_free(grp->title);
 	free(grp);
 }
@@ -313,6 +341,89 @@ void siril_plot_set_title(siril_plot_data *spl_data, const gchar *title) {
 	if (spl_data->title)
 		g_free(spl_data->title);
 	spl_data->title = g_strdup(title);
+}
+
+// sets the header shared with the other plots of the same group, if any. It is
+// drawn above the title, except when the group window displays it itself
+void siril_plot_set_caption(siril_plot_data *spl_data, const gchar *caption) {
+	g_free(spl_data->caption);
+	spl_data->caption = g_strdup(caption);
+}
+
+void siril_plot_set_subtitle(siril_plot_data *spl_data, const gchar *subtitle) {
+	g_free(spl_data->subtitle);
+	spl_data->subtitle = g_strdup(subtitle);
+}
+
+void siril_plot_add_metric(siril_plot_data *spl_data, const gchar *label, const gchar *value) {
+	if (!spl_data || !label || !value)
+		return;
+	splmetric *metric = calloc(1, sizeof(splmetric));
+	if (!metric) {
+		PRINT_ALLOC_ERR;
+		return;
+	}
+	metric->label = g_strdup(label);
+	metric->value = g_strdup(value);
+	spl_data->metrics = g_list_append(spl_data->metrics, metric);
+}
+
+gchar *siril_plot_metrics_to_string(siril_plot_data *spl_data, const gchar *separator) {
+	if (!spl_data || !spl_data->metrics)
+		return NULL;
+	GString *str = g_string_new(NULL);
+	for (GList *l = spl_data->metrics; l; l = l->next) {
+		splmetric *metric = (splmetric *)l->data;
+		if (str->len)
+			g_string_append(str, (separator) ? separator : "  ");
+		g_string_append_printf(str, "%s: %s", metric->label, metric->value);
+	}
+	return g_string_free(str, FALSE);
+}
+
+void siril_plot_group_add_tile(siril_plot_group *grp, const gchar *icon, const gchar *label,
+		const gchar *value, const gchar *sublabel, const gchar *subvalue) {
+	if (!grp || !label || !value)
+		return;
+	spltile *tile = calloc(1, sizeof(spltile));
+	if (!tile) {
+		PRINT_ALLOC_ERR;
+		return;
+	}
+	tile->icon = g_strdup(icon);
+	tile->label = g_strdup(label);
+	tile->value = g_strdup(value);
+	tile->sublabel = g_strdup(sublabel);
+	tile->subvalue = g_strdup(subvalue);
+	grp->tiles = g_list_append(grp->tiles, tile);
+}
+
+void siril_plot_free_tiles(GList *tiles) {
+	g_list_free_full(tiles, (GDestroyNotify)free_tile);
+}
+
+gboolean siril_plot_can_logscale(siril_plot_data *spl_data) {
+	if (!spl_data || !spl_data->plot)
+		return FALSE;
+	// error bars hold magnitudes, not ordinates: they cannot be mapped to log
+	if (spl_data->plots)
+		return FALSE;
+	return (spl_data->logy) ? TRUE : spl_data->datamin.y > 0.;
+}
+
+void siril_plot_set_logscale(siril_plot_data *spl_data, gboolean logy) {
+	if (!spl_data || spl_data->logy == logy)
+		return;
+	if (logy && spl_data->datamin.y <= 0.)
+		return;
+	spl_data->logy = logy;
+	// the bounds are kept in the displayed space, so that the zoom/pan math
+	// and the selection rectangle need not know about the scale
+	spl_data->datamin.y = (logy) ? log10(spl_data->datamin.y) : pow(10., spl_data->datamin.y);
+	spl_data->datamax.y = (logy) ? log10(spl_data->datamax.y) : pow(10., spl_data->datamax.y);
+	spl_data->pdd.datamin.y = spl_data->datamin.y;
+	spl_data->pdd.datamax.y = spl_data->datamax.y;
+	spl_data->autotic = TRUE;
 }
 
 void siril_plot_set_xlabel(siril_plot_data *spl_data, const gchar *xlabel) {
@@ -517,8 +628,85 @@ void siril_plot_sort_x(siril_plot_data *spl_data) {
 	}
 }
 
-// draw the data contained in spl_data to the cairo context cr
+static gboolean siril_plot_draw_internal(cairo_t *cr, siril_plot_data *spl_data, double width, double height, gboolean for_svg, spl_draw_flags flags);
+
+// draw the data contained in spl_data to the cairo context cr, with all of its
+// header (caption, title and metrics): this is what exports need
 gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, double height, gboolean for_svg) {
+	return siril_plot_draw_internal(cr, spl_data, width, height, for_svg, SPL_DRAW_HEADER);
+}
+
+// same, drawing only the parts of the header selected by flags: the GUI passes
+// SPL_DRAW_CANVAS as it renders the header as widgets around the canvas
+gboolean siril_plot_draw_with(cairo_t *cr, siril_plot_data *spl_data, double width, double height, gboolean for_svg, spl_draw_flags flags) {
+	return siril_plot_draw_internal(cr, spl_data, width, height, for_svg, flags);
+}
+
+/* Assembles the header text (pango markup) drawn above the plot: what the plot
+ * is, and nothing more. The key figures and the group summary stay in the
+ * window, where they have room; crammed on top of an export they took a quarter
+ * of the image. */
+static gchar *build_header_markup(siril_plot_data *spl_data, spl_draw_flags flags) {
+	GString *header = g_string_new(NULL);
+	if (flags & SPL_DRAW_HEADER) {
+		if (spl_data->caption)
+			g_string_append(header, spl_data->caption);
+		if (spl_data->title) {
+			if (header->len) g_string_append_c(header, '\n');
+			g_string_append(header, spl_data->title);
+		}
+		if (spl_data->subtitle) {
+			if (header->len) g_string_append_c(header, '\n');
+			g_string_append(header, spl_data->subtitle);
+		}
+	}
+	if (!header->len) {
+		g_string_free(header, TRUE);
+		return NULL;
+	}
+	return g_string_free(header, FALSE);
+}
+
+static void rounded_rect(cairo_t *cr, double x, double y, double w, double h, double r) {
+	cairo_new_sub_path(cr);
+	cairo_arc(cr, x + w - r, y + r,     r, -G_PI_2, 0.);
+	cairo_arc(cr, x + w - r, y + h - r, r, 0.,      G_PI_2);
+	cairo_arc(cr, x + r,     y + h - r, r, G_PI_2,  G_PI);
+	cairo_arc(cr, x + r,     y + r,     r, G_PI,    1.5 * G_PI);
+	cairo_close_path(cr);
+}
+
+// y tic labels of a log10 axis: the tic value is an exponent, the label shows
+// the value it stands for
+static void log_ticlabel_fmt(double v, char *buf, size_t sz) {
+	snprintf(buf, sz, "%.3g", pow(10., v));
+}
+
+// copies the points with their ordinate in log10, dropping those that cannot be
+// mapped. Returns NULL (and leaves *nb untouched) if nothing is left to draw
+static struct kpair *log_points(const struct kpair *src, int nb, int *out_nb) {
+	struct kpair *dst = malloc(nb * sizeof(struct kpair));
+	if (!dst) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	int n = 0;
+	for (int i = 0; i < nb; i++) {
+		if (src[i].y <= 0.)
+			continue;
+		dst[n].x = src[i].x;
+		dst[n].y = log10(src[i].y);
+		n++;
+	}
+	if (!n) {
+		free(dst);
+		return NULL;
+	}
+	*out_nb = n;
+	return dst;
+}
+
+static gboolean siril_plot_draw_internal(cairo_t *cr, siril_plot_data *spl_data, double width, double height, gboolean for_svg, spl_draw_flags flags) {
 	struct kdata *d1 = NULL, *d2[3];
 	double color = 1.0;
 	if (spl_data->xlabel)
@@ -577,6 +765,24 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 			}
 		}
 	}
+	if (spl_data->logy) {
+		/* The bounds are already held in log space. Snapping them to whole
+		 * decades gives tics right on the powers of ten; below one decade
+		 * that would leave the data crammed in a corner, so the computed
+		 * bounds are kept and the tics fall where they may. */
+		double lymin = spl_data->cfgplot.extrema_ymin, lymax = spl_data->cfgplot.extrema_ymax;
+		if (lymax - lymin >= 1.) {
+			lymin = floor(lymin);
+			lymax = ceil(lymax);
+			int nbtics = (int)(lymax - lymin) + 1;
+			spl_data->cfgplot.ytics = (nbtics > 11) ? 6 : nbtics;
+			spl_data->cfgplot.extrema_ymin = lymin;
+			spl_data->cfgplot.extrema_ymax = lymax;
+			spl_data->pdd.pdatamin.y = lymin;
+			spl_data->pdd.pdatamax.y = lymax;
+		}
+	}
+
 	// if the formats are forced by caller, they are passed
 	if (spl_data->xfmt) {
 		g_free(spl_data->cfgplot.xticlabelfmtstr);
@@ -585,6 +791,14 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	if (spl_data->yfmt) {
 		g_free(spl_data->cfgplot.yticlabelfmtstr);
 		spl_data->cfgplot.yticlabelfmtstr = g_strdup(spl_data->yfmt);
+	}
+	if (spl_data->logy) {
+		// kplot gives the format string precedence over the callback
+		g_free(spl_data->cfgplot.yticlabelfmtstr);
+		spl_data->cfgplot.yticlabelfmtstr = NULL;
+		spl_data->cfgplot.yticlabelfmt = log_ticlabel_fmt;
+	} else {
+		spl_data->cfgplot.yticlabelfmt = NULL;
 	}
 
 	struct kplot *p = kplot_alloc(&spl_data->cfgplot);
@@ -597,7 +811,10 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	// xylines
 	for (GList *list = spl_data->plot; list; list = list->next) {
 		splxydata *plot = (splxydata *)list->data;
-		d1 = kdata_array_alloc(plot->data, plot->nb);
+		int nb = plot->nb;
+		struct kpair *logpts = (spl_data->logy) ? log_points(plot->data, plot->nb, &nb) : NULL;
+		d1 = kdata_array_alloc((logpts) ? logpts : plot->data, nb);
+		free(logpts); // kdata_array_alloc keeps its own copy
 		enum kplottype plottype = (plot->pl_type == KPLOT_UNDEFINED) ? spl_data->plottype : plot->pl_type;
 		kplot_attach_data(p, d1, plottype, &spl_data->cfgdata);
 		if (spl_data->show_legend) {
@@ -649,15 +866,16 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	cairo_rectangle(cr, 0.0, 0.0, width, height);
 	cairo_fill(cr);
 
-	// writing the title if any and booking space
-	if (spl_data->title) {
+	// writing the header if any and booking space
+	gchar *header = build_header_markup(spl_data, flags);
+	if (header) {
 		cairo_save(cr);
 		PangoLayout *layout;
 		PangoFontDescription *desc;
 		int pw, ph;
 		layout = pango_cairo_create_layout(cr);
 		pango_layout_set_alignment(layout, PANGO_ALIGN_CENTER);
-		pango_layout_set_markup(layout, spl_data->title, -1);
+		pango_layout_set_markup(layout, header, -1);
 		// set max width to wrap title if required
 		pango_layout_set_width(layout, (width - 2 * SIRIL_PLOT_MARGIN) * PANGO_SCALE);
 		pango_layout_set_wrap(layout,PANGO_WRAP_WORD);
@@ -671,6 +889,7 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		cairo_move_to(cr, (double)SIRIL_PLOT_MARGIN, (double)SIRIL_PLOT_MARGIN);
 		pango_cairo_show_layout(cr, layout);
 		g_object_unref(layout);
+		g_free(header);
 		cairo_restore(cr); // restore the orginal context
 		top = (double)SIRIL_PLOT_MARGIN + (double)ph / PANGO_SCALE;
 		drawheight = height - top;
@@ -722,14 +941,29 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 
 		pango_layout_set_markup(layout, legend_text->str, -1);
 		pango_layout_get_size(layout, &pw, &ph);
-		cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
 		double px0 = spl_data->pdd.offset.x - (double)SIRIL_PLOT_MARGIN + spl_data->pdd.range.x - (double)pw / PANGO_SCALE;
 		double py0 = spl_data->pdd.offset.y + (double)SIRIL_PLOT_MARGIN;
+
+		/* An opaque plate under the legend: it is drawn over the plot, so
+		 * without it any curve reaching the top right corner runs straight
+		 * through the labels. */
+		double mark_x0 = px0 - 6. * SIRIL_PLOT_MARGIN;
+		double pad = 0.6 * (double)SIRIL_PLOT_MARGIN;
+		rounded_rect(cr, mark_x0 - pad, py0 - pad,
+				px0 + (double)pw / PANGO_SCALE - mark_x0 + 2. * pad,
+				(double)ph / PANGO_SCALE + 2. * pad, 0.8 * (double)SIRIL_PLOT_MARGIN);
+		cairo_set_source_rgb(cr, color, color, color);
+		cairo_fill_preserve(cr);
+		cairo_set_source_rgb(cr, 0.8, 0.8, 0.8);
+		cairo_set_line_width(cr, 1.);
+		cairo_stroke(cr);
+
+		cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
 		cairo_move_to(cr, px0, py0);
 		pango_cairo_show_layout(cr, layout);
 		cairo_stroke(cr);
 
-		px0 -= 6. * SIRIL_PLOT_MARGIN;
+		px0 = mark_x0;
 		PangoLayoutIter *iter = pango_layout_get_iter(layout);
 		int y0;
 		guint index = 0;

@@ -59,6 +59,29 @@ typedef struct siril_plot_legend_struct {
 	double color[3];
 } spllegend;
 
+// a key figure displayed in the strip below a plot (label "R²", value "0.76")
+typedef struct siril_plot_metric_struct {
+	gchar *label;
+	gchar *value;
+} splmetric;
+
+// a tile of the summary strip displayed above a group of plots
+typedef struct siril_plot_tile_struct {
+	gchar *icon;     // themed icon name, may be NULL
+	gchar *label;
+	gchar *value;
+	gchar *sublabel; // secondary line, may be NULL
+	gchar *subvalue;
+} spltile;
+
+// what siril_plot_draw_with() renders on top of the plot itself. The GUI draws
+// the header as widgets around the canvas and asks for the canvas alone;
+// exports ask for the header too, so that a saved plot names what it shows
+typedef enum {
+	SPL_DRAW_CANVAS = 0,
+	SPL_DRAW_HEADER = 1 << 0 // caption, title and subtitle
+} spl_draw_flags;
+
 typedef struct siril_plot_bkg_struct {
 	gchar *bkgfilepath;
 	cairo_surface_t *img;
@@ -69,6 +92,10 @@ typedef struct siril_plot_data_struct {
 	GList *plot; // a list of splxydata structures to hold simple data plot (only data)
 	GList *plots; // a list of splxydata structures to hold data plots (data and errors)
 	gchar *title; // title
+	gchar *caption; // optional header (markup) shared by several plots, drawn above the title
+	gchar *subtitle; // optional detail lines (markup) below the title
+	GList *metrics; // a list of splmetric structures, the key figures of the plot
+	gboolean logy; // y axis displayed in log10 scale
 	gchar *xlabel; //xlabel
 	gchar *ylabel; //ylabel
 	gchar *xfmt; // x axis number format
@@ -101,14 +128,29 @@ void siril_plot_sort_x(siril_plot_data *spl_data);
 typedef struct siril_plot_group_struct {
 	GList *items; // list of siril_plot_data* to be displayed together
 	gchar *title; // optional title for the window holding the group
+	GList *tiles; // a list of spltile structures, summarizing the whole group
 } siril_plot_group;
 
 siril_plot_group *siril_plot_group_new();
 void siril_plot_group_add(siril_plot_group *grp, siril_plot_data *spl_data);
 void siril_plot_group_set_title(siril_plot_group *grp, const gchar *title);
+void siril_plot_group_add_tile(siril_plot_group *grp, const gchar *icon, const gchar *label,
+		const gchar *value, const gchar *sublabel, const gchar *subvalue);
+void siril_plot_free_tiles(GList *tiles);
 void free_siril_plot_group(siril_plot_group *grp);
 
 void siril_plot_set_title(siril_plot_data *spl_data, const gchar *title);
+void siril_plot_set_caption(siril_plot_data *spl_data, const gchar *caption);
+void siril_plot_set_subtitle(siril_plot_data *spl_data, const gchar *subtitle);
+void siril_plot_add_metric(siril_plot_data *spl_data, const gchar *label, const gchar *value);
+// joins the metrics into one line, e.g. for the clipboard or a plot header
+gchar *siril_plot_metrics_to_string(siril_plot_data *spl_data, const gchar *separator);
+// log scale only makes sense for strictly positive data, and is not supported
+// for series carrying error bars
+gboolean siril_plot_can_logscale(siril_plot_data *spl_data);
+// switches the y axis to/from log10, converting the stored bounds so that
+// zoom and pan keep working in the displayed space
+void siril_plot_set_logscale(siril_plot_data *spl_data, gboolean logy);
 void siril_plot_set_xlabel(siril_plot_data *spl_data, const gchar *xlabel);
 void siril_plot_set_ylabel(siril_plot_data *spl_data, const gchar *ylabel);
 void siril_plot_set_xfmt(siril_plot_data *spl_data, const gchar *xfmt);
@@ -121,6 +163,7 @@ gboolean siril_plot_set_background(siril_plot_data *spl_data, const gchar *bkgfi
 
 gboolean siril_plot_add_xydata(siril_plot_data *spl_data, const gchar *label, size_t nb, const double *x, const double *y, const double *errp, const double *errm);
 gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, double height, gboolean for_svg);
+gboolean siril_plot_draw_with(cairo_t *cr, siril_plot_data *spl_data, double width, double height, gboolean for_svg, spl_draw_flags flags);
 cairo_surface_t *siril_plot_draw_to_image_surface(siril_plot_data *spl_data, int width, int height);
 gboolean siril_plot_save_png(siril_plot_data *spl_data, char *pngfilename, int width, int height);
 gboolean siril_plot_save_svg(siril_plot_data *spl_data, char *svgfilename, int width, int height);
