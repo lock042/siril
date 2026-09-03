@@ -8695,7 +8695,7 @@ int process_subsky(int nb) {
 		struct autograd_data ag = {
 			.scale = 5.0, .smoothness = 1.0, .protect = TRUE,
 			.protect_threshold = 0.05, .protect_amount = 0.5,
-			.simplified = FALSE, .degree = 2, .downsample = 4,
+			.simplified = FALSE, .degree = 1, .downsample = 4,
 		};
 		background_correction mode = BACKGROUND_CORRECTION_SUBTRACT;
 		arg_index++;
