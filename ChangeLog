@@ -10,6 +10,7 @@ siril-1.5.0
 * Fixed pyscript failing with "python not ready yet" in scripts run with -s: the python venv initialisation was ordered after script execution and could never be reached (#1976)
 * Fixed a crash when closing a large image: the pixel data was freed without the gfit writer lock, and the display's tile grid without the mutex guarding it, while the tile-materialisation threads were still reading both (#1975)
 * Fixed a race in the Python venv initialisation: the shared initialisation handle was read and cleared without a lock, and pyscript could launch python before the virtual environment's variables had been exported (#1977)
+* Fixed the FITS extension preference being truncated to a trailing dot (like ".fit.") when a compressed FITS sequence with a different extension was opened, which then broke the name of every file written afterwards, e.g. "foo.fit..fit..fz". An invalid extension is now refused by `setext`, by `set core.extension` and when reading the configuration file, so a setting saved by a previous version is dropped instead of being reused (#1984)
 
 **Improvements**
 * Vectorized rejection stacking hotspot with portable SIMD, ~13% cold / ~22% warm stacking speedup (!1032)
