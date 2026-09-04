@@ -26,7 +26,7 @@ siril-1.5.0
 * Improved management of the processing thread and separation of image data processing and GUI update code (!998)
 * Improved locking of data structs that may be accessed by multiple threads (!1014)
 * Added background sample optimization, random sample placement and sample constraint by area (!1017)
-* Added an automatic, sample-free background/gradient removal model to Background Extraction and the `subsky` command (`-auto`): the background is fitted on every pixel surviving an iterative robust rejection of structures, using a multiscale surface with structure protection or a simplified polynomial
+* Added an automatic, sample-free background/gradient removal model to Background Extraction and the `subsky` command (`-auto`): the background is fitted on every pixel surviving an iterative robust rejection of structures, using a multiscale surface with structure protection, optionally preceded by a simplified model (`-simplified`): a stiff polynomial fitted and removed first, the multiscale surface then working on what it leaves, which helps on strong gradients whose amplitude rivals the objects of interest
 * Background Extraction: replaced the press-and-hold "show original" button with a view selector to switch the display between the processed image, the removed background model and the original
 * Parallelize min/max stacking algorithms (#194)
 * Update astrometry solution when resampling or binning instead of deleting it
@@ -62,6 +62,9 @@ xx/xx/xx
 * Fixed constellation names in annotations (#1055)
 * Fixed opening JPEG XL files wrapped in an ISO/IEC 18181-2 container (#1961)
 * Fixed compilation when the version of opencv is >= 5
+* Fixed an invalid EQUINOX value written in the FITS header when the astrometric solution came from a solver that does not write an EQUINOX card (#1979)
+* Fixed FITS extension truncation (e.g., .fit.) causing corrupted filenames like foo.fit..fit..fz; invalid extensions are now rejected (#1984)
+* Fixed garbage characters in the save dialog file name when a sequence is loaded and the displayed image is not one of its frames (#1980)
 
 **Improvements**
 * Allowed editing FITS keywords of a whole sequence from the UI
