@@ -115,6 +115,13 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 				g_free(strval);
 				return 1;
 			}
+			/* versions up to 1.4.2 could store a truncated extension like
+			 * ".fit." here, which then broke the name of every file written */
+			if (desc->data == &com.pref.ext && !is_valid_fits_extension(strval)) {
+				siril_log_warning(_("`%s' is not a valid FITS extension for config key %s.%s, not using it.\n"), strval, desc->group, desc->key);
+				g_free(strval);
+				return 1;
+			}
 			gchar *old_value = *((gchar**)desc->data);
 			if (old_value)
 				g_free(old_value);
