@@ -63,8 +63,7 @@ xx/xx/xx
 * Fixed opening JPEG XL files wrapped in an ISO/IEC 18181-2 container (#1961)
 * Fixed compilation when the version of opencv is >= 5
 * Fixed an invalid EQUINOX value written in the FITS header when the astrometric solution came from a solver that does not write an EQUINOX card (#1979)
-* Fixed the FITS extension preference being truncated to a trailing dot (like ".fit.") when a compressed FITS sequence with a different extension was opened, which then broke the name of every file written afterwards, e.g. "foo.fit..fit..fz". An invalid extension is now refused by `setext`, by `set core.extension` and when reading the configuration file, so a setting saved by a previous version is dropped instead of being reused (#1984)
-
+Fix FITS extension truncation (e.g., .fit.) causing corrupted filenames like foo.fit..fit..fz; invalid extensions are now rejected (#1984)
 **Improvements**
 * Allowed editing FITS keywords of a whole sequence from the UI
 
