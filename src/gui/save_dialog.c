@@ -282,16 +282,20 @@ static void close_dialog() {
 }
 
 static gchar *get_filename_and_replace_ext() {
-	gchar *basename;
+	gchar *basename = NULL;
 
-	if (sequence_is_loaded() && com.seq.current != RESULT_IMAGE) {
-		char fname[256];
+	/* com.seq.current is negative for anything that is not a frame of the sequence
+	 * (RESULT_IMAGE, UNRELATED_IMAGE, SCALED_IMAGE); seq_get_image_filename() then
+	 * returns NULL without writing into the buffer */
+	if (sequence_is_loaded() && com.seq.current >= 0) {
+		char fname[256] = "";
 		/* set the output file name default as the current image.jpg */
-		seq_get_image_filename(&com.seq, com.seq.current, fname);
-		basename = g_path_get_basename(fname);
-	} else {
-		basename = g_path_get_basename(com.uniq->filename);
+		if (seq_get_image_filename(&com.seq, com.seq.current, fname))
+			basename = g_path_get_basename(fname);
 	}
+	if (!basename)
+		basename = g_path_get_basename(com.uniq && com.uniq->filename ?
+				com.uniq->filename : "image");
 
 	gboolean is_format_valid = get_type_from_filename(basename)
 			& (TYPEFITS | TYPEBMP | TYPETIFF | TYPEPNG | TYPEJPG | TYPEPNM);
@@ -716,10 +720,11 @@ static gpointer mini_save_dialog(gpointer p) {
 
 void set_entry_filename() {
 	if (sequence_is_loaded() && !single_image_is_loaded()) {
-		char filename[256];
+		char filename[256] = "";
 		/* set the output file name default as the current image.jpg */
 		GtkEntry *entry = GTK_ENTRY(lookup_widget("savetxt"));
-		seq_get_image_filename(&com.seq, com.seq.current, filename);
+		if (!seq_get_image_filename(&com.seq, com.seq.current, filename))
+			return;
 		char *file_no_ext = remove_ext_from_filename(filename);
 		gtk_entry_set_text(entry, file_no_ext);
 		free(file_no_ext);
