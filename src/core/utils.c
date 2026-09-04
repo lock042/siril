@@ -1336,14 +1336,27 @@ gchar * siril_any_to_utf8 (const gchar *str, gssize len, const gchar *warning_fo
 * @param fz flag to know if the fz extension must be appended.
 * @return a string that must not be freed
 */
-static const gchar *ext[] = { ".fit.fz", ".fits.fz", ".fts.fz" };
+static const gchar *ext_fz[] = { ".fit.fz", ".fits.fz", ".fts.fz" };
 const gchar *get_com_ext(gboolean fz) {
 	if (fz) {
-		for (int i = 0; i < G_N_ELEMENTS(ext); i++) {
-			if (g_str_has_prefix(ext[i], com.pref.ext)) return ext[i];
+		for (int i = 0; i < G_N_ELEMENTS(ext_fz); i++) {
+			if (g_str_has_prefix(ext_fz[i], com.pref.ext)) return ext_fz[i];
 		}
 	}
 	return com.pref.ext;
+}
+
+/* com.pref.ext ends up in the name of every FITS file we write, it can only be
+ * one of the extensions we know how to read back, in lower case and with its
+ * leading dot */
+gboolean is_valid_fits_extension(const gchar *extension) {
+	static const gchar *ext[] = { ".fit", ".fits", ".fts" };
+	if (!extension)
+		return FALSE;
+	for (int i = 0; i < G_N_ELEMENTS(ext); i++) {
+		if (!strcmp(extension, ext[i])) return TRUE;
+	}
+	return FALSE;
 }
 
 /*

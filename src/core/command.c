@@ -3664,7 +3664,8 @@ int process_set(int nb) {
 		int filelen = snprintf(fakefile, 1024, "[%s]\n%s\n", input, input+sep+1);
 		GKeyFile *kf = g_key_file_new();
 		g_key_file_load_from_data(kf, fakefile, filelen, G_KEY_FILE_NONE, NULL);
-		return read_keyfile(kf) == 0;
+		int nb_read = read_keyfile(kf);
+		return nb_read == 0 ? CMD_ARG_ERROR : CMD_OK;
 	}
 	return 0;
 }
@@ -3920,17 +3921,17 @@ int process_set_mag_seq(int nb) {
 
 int process_set_ext(int nb) {
 	if (word[1]) {
-		if ((g_ascii_strncasecmp(word[1], "fit", 3))
-				&& (g_ascii_strncasecmp(word[1], "fts", 3))
-				&& (g_ascii_strncasecmp(word[1], "fits", 4))) {
+		gchar *lower = g_ascii_strdown(word[1], -1);
+		gchar *new_ext = g_strconcat(lower[0] == '.' ? "" : ".", lower, NULL);
+		g_free(lower);
+		if (!is_valid_fits_extension(new_ext)) {
 			siril_log_message(_("FITS extension unknown: %s\n"), word[1]);
+			g_free(new_ext);
 			return CMD_ARG_ERROR;
 		}
 
 		g_free(com.pref.ext);
-		gchar *lower = g_ascii_strdown(word[1], strlen(word[1]));
-		com.pref.ext = g_strdup_printf(".%s", lower);
-		g_free(lower);
+		com.pref.ext = new_ext;
 		writeinitfile();
 	}
 
