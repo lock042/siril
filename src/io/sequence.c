@@ -424,12 +424,15 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 		 * subsequent reads use the correct extension.  Write under pref_rwlock
 		 * since workers may be reading com.pref.ext concurrently. */
 		if (strcasecmp(ext, com_ext + 1)) {
-			gchar *new_ext = g_strdup_printf(".%s", ext);
-			if (is_fz) new_ext[strlen(new_ext) - 2] = '\0';
+			/* ext holds the compression suffix too (like "fit.fz"), com.pref.ext must not */
+			gchar *base = g_ascii_strdown(ext, is_fz ? (gssize)strlen(ext) - 3 : -1);
+			gchar *new_ext = g_strconcat(".", base, NULL);
+			g_free(base);
 			g_rw_lock_writer_lock(&com.pref_rwlock);
 			g_free(com.pref.ext);
 			com.pref.ext = new_ext;
 			g_rw_lock_writer_unlock(&com.pref_rwlock);
+			com_ext = get_com_ext(is_fz);	// com.pref.ext was reallocated
 		}
 
 		fitseq *fitseq_file = malloc(sizeof(fitseq));
