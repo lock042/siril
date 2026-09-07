@@ -38,7 +38,9 @@ static GtkWidget *emag_entry = NULL;
 static GtkWidget *target_entry = NULL;
 static GtkWidget *manu_target_entry = NULL;
 static GtkWidget *apass_radio = NULL;
+static GtkWidget *band_combo = NULL;
 static GtkWidget *check_narrow = NULL;
+static GtkWidget *labelmag = NULL, *labelcolor = NULL;
 static GtkWidget *auto_mode, *mode_grp, *manual_mode, *sub_manu_box;
 static GtkWidget *auto_data_grp;
 
@@ -86,6 +88,61 @@ static gboolean end_compstars(gpointer p) {
 static void output_state(GtkToggleButton *source, gpointer user_data) {
     gtk_widget_set_sensitive(auto_data_grp, siril_toggle_get_active(GTK_WIDGET(auto_mode)));
 	gtk_widget_set_sensitive(sub_manu_box, siril_toggle_get_active(GTK_WIDGET(manual_mode)));
+}
+
+/* The band dropdown only lists what the selected catalogue can supply, and the
+ * two range labels name the band and the colour index that go with it. */
+static void fill_band_combo(siril_cat_index cat, phot_band selected) {
+	int index = 0, to_select = 0;
+	siril_drop_down_clear_strings(GTK_DROP_DOWN(band_combo));
+	for (int band = 0; band < PHOT_NB_BANDS; band++) {
+		if (!catalogue_has_band(cat, band))
+			continue;
+		gchar *label = g_strdup_printf("%s (%s)", phot_band_to_str(band), phot_band_description(band));
+		siril_drop_down_append_text(GTK_DROP_DOWN(band_combo), label);
+		g_free(label);
+		if (band == selected)
+			to_select = index;
+		index++;
+	}
+	gtk_drop_down_set_selected(GTK_DROP_DOWN(band_combo), to_select);
+}
+
+// the dropdown only holds the bands of the current catalogue, map back to phot_band
+static phot_band get_selected_band(siril_cat_index cat) {
+	guint selected = gtk_drop_down_get_selected(GTK_DROP_DOWN(band_combo));
+	guint index = 0;
+	for (int band = 0; band < PHOT_NB_BANDS; band++) {
+		if (!catalogue_has_band(cat, band))
+			continue;
+		if (index == selected)
+			return (phot_band)band;
+		index++;
+	}
+	return PHOT_BAND_V;
+}
+
+static void update_band_labels() {
+	siril_cat_index cat = siril_toggle_get_active(GTK_WIDGET(apass_radio)) ? CAT_APASS : CAT_NOMAD;
+	phot_band band = get_selected_band(cat);
+	gchar *text = g_strdup_printf(_("Allowed %s magnitude range:"), phot_band_to_str(band));
+	gtk_label_set_text(GTK_LABEL(labelmag), text);
+	g_free(text);
+	text = g_strdup_printf(_("Allowed %s index range:"), phot_band_color_to_str(band));
+	gtk_label_set_text(GTK_LABEL(labelcolor), text);
+	g_free(text);
+}
+
+static void on_band_changed(GObject *self, GParamSpec *pspec, gpointer user_data) {
+	update_band_labels();
+}
+
+static void on_catalogue_changed(GtkToggleButton *source, gpointer user_data) {
+	siril_cat_index cat = siril_toggle_get_active(GTK_WIDGET(apass_radio)) ? CAT_APASS : CAT_NOMAD;
+	// keep the band across the change when the new catalogue also provides it
+	phot_band band = get_selected_band(cat == CAT_APASS ? CAT_NOMAD : CAT_APASS);
+	fill_band_combo(cat, catalogue_has_band(cat, band) ? band : PHOT_BAND_V);
+	update_band_labels();
 }
 
 static void build_the_dialog() {
@@ -171,32 +228,50 @@ static void build_the_dialog() {
 	gtk_widget_set_margin_bottom(GTK_WIDGET(check_narrow), 0);
 	gtk_box_append(GTK_BOX(auto_data_grp), check_narrow);
 
-	GtkWidget *labelvmag = gtk_label_new(_("Allowed visual magnitude range:"));
-	gtk_widget_set_halign(labelvmag, GTK_ALIGN_START);
-	gtk_widget_set_margin_start(GTK_WIDGET(labelvmag), 15);
-	gtk_widget_set_margin_top(GTK_WIDGET(labelvmag), 0);
-	gtk_widget_set_margin_bottom(GTK_WIDGET(labelvmag), 0);
-	gtk_box_append(GTK_BOX(auto_data_grp), labelvmag);
+	GtkWidget *band_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	gtk_widget_set_tooltip_text(band_box, _("Photometric band the comparison stars are selected in, "
+				"named after the AAVSO filter designations. Choose the one matching the filter "
+				"used for the observation"));
+	GtkWidget *labelband = gtk_label_new(_("Photometric band:"));
+	gtk_widget_set_halign(labelband, GTK_ALIGN_START);
+	gtk_box_append(GTK_BOX(band_box), labelband);
+	band_combo = gtk_drop_down_new(NULL, NULL);
+	gtk_widget_set_hexpand(band_combo, TRUE);
+	g_signal_connect(band_combo, "notify::selected", G_CALLBACK(on_band_changed), NULL);
+	gtk_box_append(GTK_BOX(band_box), band_combo);
+	gtk_widget_set_margin_start(GTK_WIDGET(band_box), 15);
+	gtk_widget_set_margin_end(GTK_WIDGET(band_box), 15);
+	gtk_widget_set_margin_top(GTK_WIDGET(band_box), 0);
+	gtk_widget_set_margin_bottom(GTK_WIDGET(band_box), 0);
+	gtk_box_append(GTK_BOX(auto_data_grp), band_box);
+
+	labelmag = gtk_label_new(NULL);	// text set by update_band_labels()
+	gtk_widget_set_halign(labelmag, GTK_ALIGN_START);
+	gtk_widget_set_margin_start(GTK_WIDGET(labelmag), 15);
+	gtk_widget_set_margin_top(GTK_WIDGET(labelmag), 0);
+	gtk_widget_set_margin_bottom(GTK_WIDGET(labelmag), 0);
+	gtk_box_append(GTK_BOX(auto_data_grp), labelmag);
 
 	delta_vmag_entry = gtk_entry_new();
 	gtk_editable_set_text(GTK_EDITABLE(delta_vmag_entry), "3.0");
-	gtk_widget_set_tooltip_text(delta_vmag_entry, _("Allowed range of visual magnitude between the target star and the comparison stars"));
+	gtk_widget_set_tooltip_text(delta_vmag_entry, _("Allowed range of magnitude, in the selected band, between the target star and the comparison stars"));
 	gtk_widget_set_margin_start(GTK_WIDGET(delta_vmag_entry), 15);
 	gtk_widget_set_margin_end(GTK_WIDGET(delta_vmag_entry), 15);
 	gtk_widget_set_margin_top(GTK_WIDGET(delta_vmag_entry), 0);
 	gtk_widget_set_margin_bottom(GTK_WIDGET(delta_vmag_entry), 0);
 	gtk_box_append(GTK_BOX(auto_data_grp), delta_vmag_entry);
 
-	GtkWidget *labelbv = gtk_label_new(_("Allowed B-V index range:"));
-	gtk_widget_set_halign(labelbv, GTK_ALIGN_START);
-	gtk_widget_set_margin_start(GTK_WIDGET(labelbv), 15);
-	gtk_widget_set_margin_top(GTK_WIDGET(labelbv), 10);
-	gtk_widget_set_margin_bottom(GTK_WIDGET(labelbv), 0);
-	gtk_box_append(GTK_BOX(auto_data_grp), labelbv);
+	labelcolor = gtk_label_new(NULL);	// text set by update_band_labels()
+	gtk_widget_set_halign(labelcolor, GTK_ALIGN_START);
+	gtk_widget_set_margin_start(GTK_WIDGET(labelcolor), 15);
+	gtk_widget_set_margin_top(GTK_WIDGET(labelcolor), 10);
+	gtk_widget_set_margin_bottom(GTK_WIDGET(labelcolor), 0);
+	gtk_box_append(GTK_BOX(auto_data_grp), labelcolor);
 
 	delta_bv_entry = gtk_entry_new();
 	gtk_editable_set_text(GTK_EDITABLE(delta_bv_entry), "0.5");
-	gtk_widget_set_tooltip_text(delta_bv_entry, _("Allowed range of B-V index (color) between the target star and the comparison stars"));
+	gtk_widget_set_tooltip_text(delta_bv_entry, _("Allowed range of color index between the target star and the comparison stars. "
+				"The index is the one of the standard transformation equation for the selected band"));
 	gtk_widget_set_margin_start(GTK_WIDGET(delta_bv_entry), 15);
 	gtk_widget_set_margin_end(GTK_WIDGET(delta_bv_entry), 15);
 	gtk_widget_set_margin_top(GTK_WIDGET(delta_bv_entry), 0);
@@ -212,7 +287,7 @@ static void build_the_dialog() {
 
 	emag_entry = gtk_entry_new();
 	gtk_editable_set_text(GTK_EDITABLE(emag_entry), "0.03");
-	gtk_widget_set_tooltip_text(emag_entry, _("Allowed catalogue magnitude error for comparison stars"));
+	gtk_widget_set_tooltip_text(emag_entry, _("Allowed catalogue magnitude error for comparison stars, for catalogues supplying it"));
 	gtk_widget_set_margin_start(GTK_WIDGET(emag_entry), 15);
 	gtk_widget_set_margin_end(GTK_WIDGET(emag_entry), 15);
 	gtk_widget_set_margin_top(GTK_WIDGET(emag_entry), 0);
@@ -228,6 +303,8 @@ static void build_the_dialog() {
 	apass_radio = gtk_check_button_new_with_label(_("APASS catalogue"));
 	nomad_radio = gtk_check_button_new_with_label(_("NOMAD catalogue"));
 	gtk_check_button_set_group(GTK_CHECK_BUTTON(nomad_radio), GTK_CHECK_BUTTON(apass_radio));
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(apass_radio), TRUE);
+	g_signal_connect(apass_radio, "toggled", G_CALLBACK(on_catalogue_changed), NULL);
 	gtk_box_append(GTK_BOX(cat_choice_box), apass_radio);
 	gtk_box_append(GTK_BOX(cat_choice_box), nomad_radio);
 	gtk_box_append(GTK_BOX(auto_data_grp), cat_choice_box);
@@ -258,6 +335,9 @@ static void build_the_dialog() {
 	gtk_window_set_default_widget(GTK_WINDOW(dialog), compstars_ok_button);
 
 	gtk_window_set_child(GTK_WINDOW(dialog), content_area);
+
+	fill_band_combo(CAT_APASS, PHOT_BAND_V);
+	update_band_labels();
 }
 
 // The process to perform a **Manual** Compstar List
@@ -328,8 +408,8 @@ static void manual_photometry_data (sequence *seq) {
 	args->comp_stars = comp_sta;
 	args->nina_file = g_strdup(target_name);
 	args->target_star = &result[0];
-	args->delta_Vmag = 0.0;		// Explicitely set these three variables
-	args->delta_BV = 0.0;
+	args->delta_mag = 0.0;		// Explicitely set these three variables
+	args->delta_color = 0.0;
 	args->max_emag = 0.0;
 	args->cat = CAT_COMPSTARS;
 	// Finally create the csv file
@@ -377,6 +457,7 @@ static void auto_photometry_data () {
 	}
 
 	gboolean use_apass = siril_toggle_get_active(GTK_WIDGET(apass_radio));
+	siril_cat_index cat = use_apass ? CAT_APASS : CAT_NOMAD;
 	gboolean narrow = siril_toggle_get_active(GTK_WIDGET(check_narrow));
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
@@ -385,9 +466,10 @@ static void auto_photometry_data () {
 	args->target_name = g_strdup(target_name);
 	g_free(target_name);
 	args->narrow_fov = narrow;
-	args->cat = use_apass ? CAT_APASS : CAT_NOMAD;
-	args->delta_Vmag = delta_Vmag;
-	args->delta_BV = delta_BV;
+	args->cat = cat;
+	args->band = get_selected_band(cat);
+	args->delta_mag = delta_Vmag;
+	args->delta_color = delta_BV;
 	args->max_emag = emag;
 	args->nina_file = g_strdup("auto");
 	args->notify_done = end_compstars;

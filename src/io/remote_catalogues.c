@@ -51,7 +51,44 @@ static const gchar *catcodefmt = "%02d", *rafmt = "%08.4f", *decfmt = "%+08.4f",
 // - the required query fields, catalogue code and server need to be added
 // - it needs to be added to the siril_cat_index enum
 // Warning: For Vizier, the catcode needs to be enclosed between ", hence the %22 chars
-static cat_tap_query_fields *catalog_to_tap_fields(siril_cat_index cat) {
+enum { BANDCOLS_NOMAD, BANDCOLS_APASS, BANDCOLS_NB };
+
+// Vizier column names of the magnitude and its error, per catalogue and per band.
+// The apostrophe of the Sloan columns makes them delimited identifiers, hence the
+// %22 (double quote) and %27 (apostrophe) escapes. NULL when the catalogue does
+// not carry that band, see catalogue_has_band().
+static const struct {
+	const char *mag, *e_mag;
+} band_columns[BANDCOLS_NB][PHOT_NB_BANDS] = {
+	[BANDCOLS_NOMAD] = {
+		[PHOT_BAND_V]  = { "Vmag", NULL },
+		[PHOT_BAND_B]  = { "Bmag", NULL },
+		[PHOT_BAND_R]  = { "Rmag", NULL }
+	},
+	[BANDCOLS_APASS] = {
+		[PHOT_BAND_V]  = { "Vmag", "e_Vmag" },
+		[PHOT_BAND_B]  = { "Bmag", "e_Bmag" },
+		[PHOT_BAND_SG] = { "%22g%27mag%22", "%22e_g%27mag%22" },
+		[PHOT_BAND_SR] = { "%22r%27mag%22", "%22e_r%27mag%22" },
+		[PHOT_BAND_SI] = { "%22i%27mag%22", "%22e_i%27mag%22" }
+	}
+};
+
+/* Fills the magnitude columns of a band-aware catalogue: CAT_FIELD_MAG gets the
+ * requested band and CAT_FIELD_BMAG the band forming its colour index, so that
+ * cat_item_color_index() can be applied to the results. The caller must have
+ * checked the band with catalogue_has_band(). */
+static void fill_tap_band_columns(cat_tap_query_fields *tap, int cat_row, phot_band band) {
+	phot_band companion = phot_band_companion(band);
+	tap->tap_columns[CAT_FIELD_MAG] = g_strdup(band_columns[cat_row][band].mag);
+	tap->tap_columns[CAT_FIELD_BMAG] = g_strdup(band_columns[cat_row][companion].mag);
+	if (band_columns[cat_row][band].e_mag) {
+		tap->tap_columns[CAT_FIELD_E_MAG] = g_strdup(band_columns[cat_row][band].e_mag);
+		tap->tap_columns[CAT_FIELD_E_BMAG] = g_strdup(band_columns[cat_row][companion].e_mag);
+	}
+}
+
+static cat_tap_query_fields *catalog_to_tap_fields(siril_cat_index cat, phot_band band) {
 	cat_tap_query_fields *tap = calloc(1, sizeof(cat_tap_query_fields));
 	switch (cat) {
 		case CAT_TYCHO2:
@@ -71,8 +108,7 @@ static cat_tap_query_fields *catalog_to_tap_fields(siril_cat_index cat) {
 			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("DEJ2000");
 			tap->tap_columns[CAT_FIELD_PMRA] = g_strdup("pmRA");
 			tap->tap_columns[CAT_FIELD_PMDEC] = g_strdup("pmDE");
-			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("Vmag");
-			tap->tap_columns[CAT_FIELD_BMAG] = g_strdup("Bmag");
+			fill_tap_band_columns(tap, BANDCOLS_NOMAD, band);
 			break;
 		case CAT_GAIADR3:
 			tap->catcode = g_strdup("%22I/355/gaiadr3%22");
@@ -121,10 +157,7 @@ static cat_tap_query_fields *catalog_to_tap_fields(siril_cat_index cat) {
 			tap->tap_server = g_strdup(VIZIER_TAP_QUERY);
 			tap->tap_columns[CAT_FIELD_RA] = g_strdup("RAJ2000");
 			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("DEJ2000");
-			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("Vmag");
-			tap->tap_columns[CAT_FIELD_BMAG] = g_strdup("Bmag");
-			tap->tap_columns[CAT_FIELD_E_MAG] = g_strdup("e_Vmag");
-			tap->tap_columns[CAT_FIELD_E_BMAG] = g_strdup("e_Bmag");
+			fill_tap_band_columns(tap, BANDCOLS_APASS, band);
 			break;
 		case CAT_GCVS:
 			tap->catcode = g_strdup("%22B/gcvs/gcvs_cat%22");
@@ -207,7 +240,7 @@ static gchar *siril_catalog_conesearch_get_url(siril_catalogue *siril_cat) {
 		// TAP QUERY to csv - preferred way as it requires no parsing
 		/////////////////////////////////////////////////////////////
 		case CAT_TYCHO2 ... CAT_EXOPLANETARCHIVE:;
-			cat_tap_query_fields *fields = catalog_to_tap_fields(siril_cat->cat_index);
+			cat_tap_query_fields *fields = catalog_to_tap_fields(siril_cat->cat_index, siril_cat->band);
 			uint32_t catcols = siril_catalog_columns(siril_cat->cat_index);
 			url = g_string_new(fields->tap_server);
 			gboolean first = TRUE;
@@ -471,14 +504,21 @@ static gchar *parse_remote_catalogue_filename(siril_catalogue *siril_cat, retrie
 		ext = g_strdup_printf("_%d.fit", datalink_product);
 	}
 	switch (siril_cat->cat_index) {
-		case CAT_TYCHO2 ... CAT_AAVSO_CHART:
-			fmtstr = g_strdup_printf("cat_%s_%s_%s_%s_%s%s", catcodefmt, rafmt, decfmt, radiusfmt, limitmagfmt, ext);
+		case CAT_TYCHO2 ... CAT_AAVSO_CHART:;
+			/* the same catalogue, field and limit magnitude give different
+			 * columns in each photometric band, so they cannot share a cache
+			 * entry. Johnson V is left unsuffixed, it is what every query used
+			 * before bands could be selected. */
+			gchar *band = (siril_cat->band == PHOT_BAND_V) ? g_strdup("") :
+				g_strdup_printf("_%s", phot_band_to_str(siril_cat->band));
+			fmtstr = g_strdup_printf("cat_%s_%s_%s_%s_%s%s%s", catcodefmt, rafmt, decfmt, radiusfmt, limitmagfmt, band, ext);
 			filename = g_strdup_printf(fmtstr,
 				(int)siril_cat->cat_index,
 				siril_cat->center_ra,
 				siril_cat->center_dec,
 				siril_cat->radius,
 				siril_cat->limitmag);
+			g_free(band);
 			g_free(fmtstr);
 			g_free(ext);
 			return filename;

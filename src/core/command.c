@@ -13880,7 +13880,7 @@ int process_catsearch(int nb) {
 }
 
 int process_findcompstars(int nb) {
-	// findcompstars star_name [-narrow] [-catalog={nomad|apass}] [-dvmag=3] [-dbv=0.5] [-emag=0.03] [-out=nina_file.csv]
+	// findcompstars star_name [-narrow] [-catalog={nomad|apass}] [-band=V] [-dvmag=3] [-dbv=0.5] [-emag=0.03] [-out=nina_file.csv]
 	if (!has_wcs(gfit)) {
 		siril_log_error(_("This command only works on plate solved images\n"));
 		return CMD_FOR_PLATE_SOLVED;
@@ -13888,6 +13888,7 @@ int process_findcompstars(int nb) {
 	const char *target = word[1];
 	gboolean narrow = FALSE;
 	siril_cat_index used_cat = CAT_APASS;
+	phot_band band = PHOT_BAND_V;
 	double delta_Vmag = 3.0, delta_BV = 0.5, emag = 0.03;
 	const char *nina_file = NULL;
 
@@ -13902,6 +13903,13 @@ int process_findcompstars(int nb) {
 			else if (!g_ascii_strcasecmp(cat, "apass"))
 				used_cat = CAT_APASS;
 			else {
+				siril_log_error(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[arg_idx], "-band=")) {
+			band = phot_band_from_str(word[arg_idx] + 6);
+			if (band == PHOT_NB_BANDS) {
 				siril_log_error(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
 				return CMD_ARG_ERROR;
 			}
@@ -13947,13 +13955,20 @@ int process_findcompstars(int nb) {
 		arg_idx++;
 	}
 
+	if (!catalogue_has_band(used_cat, band)) {
+		siril_log_error(_("%s does not provide magnitudes in the %s band, aborting.\n"),
+				catalog_to_str(used_cat), phot_band_to_str(band));
+		return CMD_ARG_ERROR;
+	}
+
 	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
 	args->fit = gfit;
 	args->target_name = g_strdup(target);
 	args->narrow_fov = narrow;
 	args->cat = used_cat;
-	args->delta_Vmag = delta_Vmag;
-	args->delta_BV = delta_BV;
+	args->band = band;
+	args->delta_mag = delta_Vmag;
+	args->delta_color = delta_BV;
 	args->max_emag = emag;
 	args->nina_file = g_strdup(nina_file);
 

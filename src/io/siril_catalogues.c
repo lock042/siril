@@ -73,6 +73,89 @@ const gchar **get_cat_colums_names() {
 	return cat_columns;
 }
 
+/* Photometric bands usable to pick comparison stars.
+ * name is the AAVSO filter designation. Each band is paired with the band that
+ * forms its standard colour index, the one appearing in the colour term of the
+ * AAVSO transformation equation for that band, so that matching comparison
+ * stars on that index minimises the residual colour error:
+ * B and V use B-V, R uses V-R, g' and r' use g'-r' and i' uses r'-i'.
+ * companion_is_bluer tells on which side of the subtraction the companion sits,
+ * the colour index always being the bluer band minus the redder one. */
+static const struct {
+	const char *name;
+	const char *description;
+	const char *color;
+	phot_band companion;
+	gboolean companion_is_bluer;
+} phot_bands[PHOT_NB_BANDS] = {
+	[PHOT_BAND_V]  = { "V",  N_("Johnson V"),          "B-V",   PHOT_BAND_B,  TRUE },
+	[PHOT_BAND_B]  = { "B",  N_("Johnson B"),          "B-V",   PHOT_BAND_V,  FALSE },
+	[PHOT_BAND_R]  = { "R",  N_("photographic red"),   "V-R",   PHOT_BAND_V,  TRUE },
+	[PHOT_BAND_SG] = { "SG", N_("Sloan g'"),           "g'-r'", PHOT_BAND_SR, FALSE },
+	[PHOT_BAND_SR] = { "SR", N_("Sloan r'"),           "g'-r'", PHOT_BAND_SG, TRUE },
+	[PHOT_BAND_SI] = { "SI", N_("Sloan i'"),           "r'-i'", PHOT_BAND_SR, TRUE }
+};
+
+const char *phot_band_to_str(phot_band band) {
+	if (band < 0 || band >= PHOT_NB_BANDS)
+		return "";
+	return phot_bands[band].name;
+}
+
+const char *phot_band_description(phot_band band) {
+	if (band < 0 || band >= PHOT_NB_BANDS)
+		return "";
+	return _(phot_bands[band].description);
+}
+
+// the standard colour index used to match comparison stars observed in this band
+const char *phot_band_color_to_str(phot_band band) {
+	if (band < 0 || band >= PHOT_NB_BANDS)
+		return "";
+	return phot_bands[band].color;
+}
+
+// returns PHOT_NB_BANDS if the designation is not one we support
+phot_band phot_band_from_str(const char *str) {
+	for (int i = 0; i < PHOT_NB_BANDS; i++) {
+		if (!g_ascii_strcasecmp(str, phot_bands[i].name))
+			return (phot_band)i;
+	}
+	return PHOT_NB_BANDS;
+}
+
+// the band forming the standard colour index together with the given one
+phot_band phot_band_companion(phot_band band) {
+	if (band < 0 || band >= PHOT_NB_BANDS)
+		return PHOT_BAND_V;
+	return phot_bands[band].companion;
+}
+
+/* Which bands each catalogue can provide, both for the band itself and for its
+ * colour index companion. APASS gives Johnson B and V plus Sloan g', r' and i',
+ * NOMAD gives B, V and a red magnitude. */
+gboolean catalogue_has_band(siril_cat_index cat, phot_band band) {
+	switch (cat) {
+		case CAT_APASS:
+			return band == PHOT_BAND_V || band == PHOT_BAND_B ||
+				band == PHOT_BAND_SG || band == PHOT_BAND_SR || band == PHOT_BAND_SI;
+		case CAT_NOMAD:
+			return band == PHOT_BAND_V || band == PHOT_BAND_B || band == PHOT_BAND_R;
+		default:
+			return band == PHOT_BAND_V || band == PHOT_BAND_B;
+	}
+}
+
+/* Colour index of an item whose mag was queried in the given band and whose
+ * bmag holds the companion band of that index. */
+double cat_item_color_index(const cat_item *item, phot_band band) {
+	if (band < 0 || band >= PHOT_NB_BANDS)
+		return 0.0;
+	return phot_bands[band].companion_is_bluer ?
+		(double)item->bmag - (double)item->mag :
+		(double)item->mag - (double)item->bmag;
+}
+
 // This function returns the column index from a string
 static int get_column_index(gchar *field) {
 	for (int i = 0; i < MAX_CAT_COLUMNS; i++) {

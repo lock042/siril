@@ -115,14 +115,27 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 			if (g_str_has_prefix(tokens[i], "# Siril: ")) {
 				args->metadata = calloc(1, sizeof(struct compstars_arg));
 				/* parse the siril header */
-				int nb = sscanf(tokens[i], "# Siril: %d stars, dVmag %lf, dBV %lf, max e_mag %lf",
-						&args->metadata->nb_comp_stars,
-						&args->metadata->delta_Vmag,
-						&args->metadata->delta_BV,
+				char band[8] = "";
+				int nb = sscanf(tokens[i], "# Siril: %d stars, band %7[^,], dmag %lf, dcolor %lf, max e_mag %lf",
+						&args->metadata->nb_comp_stars, band,
+						&args->metadata->delta_mag,
+						&args->metadata->delta_color,
 						&args->metadata->max_emag);
-				if (nb != 4) {
-					free(args->metadata);
-					args->metadata = NULL;
+				if (nb == 5) {
+					args->metadata->band = phot_band_from_str(band);
+					if (args->metadata->band == PHOT_NB_BANDS)
+						args->metadata->band = PHOT_BAND_V;
+				} else {
+					// lists written before band selection existed are all Johnson V
+					nb = sscanf(tokens[i], "# Siril: %d stars, dVmag %lf, dBV %lf, max e_mag %lf",
+							&args->metadata->nb_comp_stars,
+							&args->metadata->delta_mag,
+							&args->metadata->delta_color,
+							&args->metadata->max_emag);
+					if (nb != 4) {
+						free(args->metadata);
+						args->metadata = NULL;
+					}
 				}
 			}
 		}
@@ -177,8 +190,9 @@ void write_nina_file(struct compstars_arg *args) {
 		return;
 	if (!g_strcmp0(args->nina_file, "auto")) {
 		g_free(args->nina_file);
-		args->nina_file = g_strdup_printf("%s_SirilstarList_%1.2lf_%1.2lf_%1.2lf_%s.csv",
-				args->target_star->name, args->delta_Vmag, args->delta_BV, args->max_emag,
+		args->nina_file = g_strdup_printf("%s_SirilstarList_%s_%1.2lf_%1.2lf_%1.2lf_%s.csv",
+				args->target_star->name, phot_band_to_str(args->band),
+				args->delta_mag, args->delta_color, args->max_emag,
 				catalog_to_str(args->cat));
 	}
 	replace_spaces_from_str(args->nina_file, '_');
@@ -195,11 +209,12 @@ void write_nina_file(struct compstars_arg *args) {
 	// 			args->AAVSO_chartid, args->AAVSO_uri);
 	// }
 
-	if (args->delta_Vmag <= 0.0 && args->delta_BV <= 0.0 && args->max_emag <= 0.0)
+	if (args->delta_mag <= 0.0 && args->delta_color <= 0.0 && args->max_emag <= 0.0)
 		g_string_append_printf(header_lines, "# No criteria applied");
 	else
-		g_string_append_printf(header_lines, "# Siril: %d stars, dVmag %.2f, dBV %.2f, max e_mag %.2f",
-			args->nb_comp_stars, args->delta_Vmag, args->delta_BV, args->max_emag);
+		g_string_append_printf(header_lines, "# Siril: %d stars, band %s, dmag %.2f, dcolor %.2f, max e_mag %.2f",
+			args->nb_comp_stars, phot_band_to_str(args->band),
+			args->delta_mag, args->delta_color, args->max_emag);
 	args->comp_stars->header = g_string_free(header_lines, FALSE);
 	if (!siril_catalog_write_to_file(args->comp_stars, args->nina_file))
 		siril_log_error(_("Problem writing the comparison stars file\n"));
@@ -256,17 +271,24 @@ int sort_compstars(struct compstars_arg *args) {
 		return 1;
 	}
 	siril_catalogue *siril_cat = args->cat_stars;
-	siril_log_message(_("Filtering parameters: delta_Vmag: %1.2lf, delta_BV: %1.2lf, max e_Vmag: %1.3lf\n"),
-			args->delta_Vmag, args->delta_BV, args->max_emag);
-	siril_log_message(_("Target star: Vmag = %2.2lf, B-V = %+2.2lf\n"),
-			args->target_star->mag, args->target_star->bmag - args->target_star->mag);
+	const char *band = phot_band_to_str(args->band), *color = phot_band_color_to_str(args->band);
+	// the magnitude error criterion only applies to catalogues that supply errors
+	gboolean has_emag = has_field(siril_cat, E_MAG);
+	if (has_emag)
+		siril_log_message(_("Filtering parameters in band %s: delta_mag: %1.2lf, delta_color (%s): %1.2lf, max e_mag: %1.3lf\n"),
+				band, args->delta_mag, color, args->delta_color, args->max_emag);
+	else
+		siril_log_message(_("Filtering parameters in band %s: delta_mag: %1.2lf, delta_color (%s): %1.2lf (%s supplies no magnitude error)\n"),
+				band, args->delta_mag, color, args->delta_color, catalog_to_str(args->cat));
+	siril_log_message(_("Target star: %s = %2.2lf, %s = %+2.2lf\n"),
+			band, args->target_star->mag, color, cat_item_color_index(args->target_star, args->band));
 
 	// we will just measure distance to center, we will copy them later
 	compstar_dist *sorter = calloc(args->cat_stars->nbincluded, sizeof(compstar_dist));
 	int nb_phot_stars = 0;
 
 	// prepare the reference values
-	double BV0 = args->target_star->bmag - args->target_star->mag;	// B-V of the target star
+	double color0 = cat_item_color_index(args->target_star, args->band);	// colour index of the target star
 	double xmin, xmax, ymin, ymax; // borders boundaries
 
 	xmin = (double)args->fit->rx * BORDER_RATIO;
@@ -277,24 +299,36 @@ int sort_compstars(struct compstars_arg *args) {
 	const gchar *startype = (args->cat == CAT_NOMAD || args->cat == CAT_APASS) ? "Comp1" : "Comp2";
 	gboolean cat2discard = args->var_stars_cat != NULL;
 	int nb_disc[MAX_VAR_CAT] = { 0 };
+	int nb_no_emag = 0;
 	for (int i = 0; i < args->cat_stars->nbitems; i++) {
 		cat_item *item = &siril_cat->cat_items[i];
 		if (!item->included || is_same_star(args->target_star, item)) // included means inside the image after wcs projection
 			continue;
 		double d_mag = fabs(item->mag - args->target_star->mag);
-		double BVi = item->bmag - item->mag; // B-V index
+		double colori = cat_item_color_index(item, args->band);
 
 		// Criteria #0: the star has to be within the image and far from the borders
 		// (discards BORDER_RATIO of the width/height on both borders)
 		if ((item->x > xmin && item->x < xmax && item->y > ymin && item->y < ymax) &&
-				d_mag <= args->delta_Vmag &&		// Criteria #1: nearly same V magnitude
-				fabs(BVi - BV0) <= args->delta_BV &&	// Criteria #2: nearly same colors
-				((args->cat == CAT_APASS) ? (item->e_mag > 0. && item->e_mag <= args->max_emag) : TRUE) &&	// Criteria #3: e_mag smaller than threshold, for catalogues that have the info
-				(!cat2discard || !is_var_star(item, args->var_stars_cat, nb_disc))) {// Criteria #4: not a variable star - we search here to avoid comparing long lists to long lists
+				d_mag <= args->delta_mag &&		// Criteria #1: nearly same magnitude in the selected band
+				fabs(colori - color0) <= args->delta_color &&	// Criteria #2: nearly same colors
+				(!cat2discard || !is_var_star(item, args->var_stars_cat, nb_disc))) {// Criteria #3: not a variable star - we search here to avoid comparing long lists to long lists
+			// Criteria #4: e_mag smaller than threshold, for catalogues that have the info
+			if (has_emag && item->e_mag <= 0.) {
+				nb_no_emag++;
+				continue;
+			}
+			if (has_emag && item->e_mag > args->max_emag)
+				continue;
 			sorter[nb_phot_stars] = (compstar_dist){i, compute_coords_distance(siril_cat->center_ra, siril_cat->center_dec, item->ra, item->dec)};
 			nb_phot_stars++;
 		}
 	}
+	// the Sloan bands of APASS often come without an error, which can silently rule
+	// out every star of the field: say so rather than just reporting no result
+	if (nb_no_emag > 0)
+		siril_log_message(_("-> %d stars matching the other criteria have no %s magnitude error in %s and were discarded\n"),
+				nb_no_emag, band, catalog_to_str(args->cat));
 
 	if (cat2discard) {
 		GList *siril_cats = args->var_stars_cat;
@@ -325,18 +359,19 @@ int sort_compstars(struct compstars_arg *args) {
 		// write the target star
 		fill_compstar_item(&result[0], args->target_star->ra, args->target_star->dec, args->target_star->mag, args->target_star->name, "Target");
 		// and write the stars sorted by radius
-		siril_log_message("d_mag and d_BV are discrepancies from Vmag and B-V of the target star\n");
-		siril_log_message(_("e_Vmag and e_Bmag are photometric errors supplied from %s\n"), catalog_to_str(args->cat));
-		siril_log_message("Index_nbr        V     B-V   d_mag    d_BV  e_Vmag e_Bmag   Dist\n");
+		siril_log_message(_("d_mag and d_col are discrepancies from the %s magnitude and the %s index of the target star\n"), band, color);
+		if (has_emag)
+			siril_log_message(_("e_mag and e_col are photometric errors supplied from %s\n"), catalog_to_str(args->cat));
+		siril_log_message("Index_nbr      %3s   %5s   d_mag   d_col   e_mag  e_col   Dist\n", band, color);
 		for (int i = 0; i < nb_phot_stars; i++) {
 			cat_item *item = &siril_cat->cat_items[sorter[i].index];
 			gchar *name = (item->name) ? g_strdup((item->name)) : g_strdup_printf("%d", i + 1);
 			fill_compstar_item(&result[i + 1], item->ra, item->dec, item->mag, name, startype);
 			g_free(name);
 			siril_log_message(_("Comp star %3d: %4.2lf, %+4.2lf, %+5.3lf, %+5.3lf, %4.3lf, %4.3lf, %5.2lf\n"),
-					i + 1, item->mag, item->bmag - item->mag,
+					i + 1, item->mag, cat_item_color_index(item, args->band),
 					item->mag - args->target_star->mag,
-					item->bmag - item->mag - BV0,
+					cat_item_color_index(item, args->band) - color0,
 					item->e_mag,
 					item->e_bmag,
 					sorter[i].dist * 60.);
@@ -390,6 +425,7 @@ static siril_catalogue *get_catstars(struct compstars_arg *args, siril_cat_index
 	siril_catalogue *siril_cat = siril_catalog_fill_from_fit(args->fit, cat_index, max(args->target_star->mag + 6.0, 17.0));
 	siril_cat->radius = radius * 60.; // overwriting to account for narrow argument
 	siril_cat->phot = !is_variable;
+	siril_cat->band = is_variable ? PHOT_BAND_V : args->band; // variable star catalogues have a single magnitude
 
 	// and retrieving its results
 	if (siril_catalog_conesearch(siril_cat) <= 0) {// returns the nb of stars
@@ -409,6 +445,24 @@ static siril_catalogue *get_catstars(struct compstars_arg *args, siril_cat_index
 	}
 }
 
+/* Takes the target star photometry from the field catalogue, matching it by
+ * position. Target and comparison stars then come from the same catalogue, so
+ * their magnitudes and colour index are on a single photometric system, which
+ * is what the differential photometry that follows needs. */
+static gboolean get_target_photometry_from_catstars(struct compstars_arg *args) {
+	for (int i = 0; i < args->cat_stars->nbitems; i++) {
+		cat_item *item = &args->cat_stars->cat_items[i];
+		if (is_same_star(args->target_star, item) && item->mag != 0.f && item->bmag != 0.f) {
+			args->target_star->mag = item->mag;
+			args->target_star->bmag = item->bmag;
+			args->target_star->e_mag = item->e_mag;
+			args->target_star->e_bmag = item->e_bmag;
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
 gpointer compstars_worker(gpointer p) {
 	int retval;
 	siril_log_info(_("Comparison stars: processing...\n"));
@@ -422,6 +476,16 @@ gpointer compstars_worker(gpointer p) {
 		goto end;
 	}
 	g_assert(args->cat == CAT_APASS || args->cat == CAT_NOMAD);
+	if (!catalogue_has_band(args->cat, args->band)) {
+		siril_log_error(_("%s does not provide magnitudes in the %s band, aborting\n"),
+				catalog_to_str(args->cat), phot_band_to_str(args->band));
+		retval = 1;
+		goto end;
+	}
+	if (args->cat == CAT_NOMAD && args->band == PHOT_BAND_R)
+		siril_log_warning(_("NOMAD red magnitudes come from photographic plates: they are not standard Cousins R "
+					"and the V-R index built from them is unreliable, so widen the color range or select on V "
+					"and B-V instead if too few comparison stars come out\n"));
 
 	// 1. search for the variable star
 	query_args = init_sky_object_query(); // for the reference star
@@ -431,18 +495,22 @@ gpointer compstars_worker(gpointer p) {
 	retval = cached_object_lookup(query_args);
 	if (retval)
 		goto end;
-	if (query_args->item->mag == 0.0 || query_args->item->bmag == 0.0) {
-		siril_log_error(_("Target star photometric information not available.\n"));
-		retval = 1;
-		goto end;
-	}
 	args->target_star = calloc(1, sizeof(cat_item));
-	siril_catalogue_copy_item(query_args->item, args->target_star);
 	if (!args->target_star) {
-		siril_log_warning(_("No variable star selected\n"));
+		PRINT_ALLOC_ERR;
 		retval = 1;
 		goto end;
 	}
+	siril_catalogue_copy_item(query_args->item, args->target_star);
+	/* the local annotation catalogues only store V and B, so seed those two from
+	 * the item to give a cached object the same result as a fresh SIMBAD answer */
+	if (query_args->fluxes[PHOT_BAND_V] == 0.0)
+		query_args->fluxes[PHOT_BAND_V] = query_args->item->mag;
+	if (query_args->fluxes[PHOT_BAND_B] == 0.0)
+		query_args->fluxes[PHOT_BAND_B] = query_args->item->bmag;
+	args->target_star->mag = query_args->fluxes[args->band];
+	args->target_star->bmag = query_args->fluxes[phot_band_companion(args->band)];
+
 	// 2. get a catalogue of stars for the field
 	double radius;
 	args->cat_stars = get_catstars(args, args->cat, &radius);
@@ -450,6 +518,19 @@ gpointer compstars_worker(gpointer p) {
 		retval = 1;
 		siril_log_error(_("No comparison stars found in the image, aborting\n"));
 		goto end;
+	}
+	// 2b. fall back to the field catalogue when the reference source has no
+	// magnitude for the band we work in (SIMBAD has none for most exoplanet
+	// hosts, which it resolves to the planet, and none of the Sloan bands for many stars)
+	if (args->target_star->mag == 0.0 || args->target_star->bmag == 0.0) {
+		if (!get_target_photometry_from_catstars(args)) {
+			siril_log_error(_("No %s magnitude available for the target star, neither from SIMBAD "
+						"nor from %s: try another band or another catalogue\n"),
+					phot_band_to_str(args->band), catalog_to_str(args->cat));
+			retval = 1;
+			goto end;
+		}
+		siril_log_message(_("Target star photometry taken from %s\n"), catalog_to_str(args->cat));
 	}
 	// and check the target star is relatively well centered - warn if not
 	double dist = compute_coords_distance(args->cat_stars->center_ra, args->cat_stars->center_dec, args->target_star->ra, args->target_star->dec); // in degrees
@@ -496,13 +577,14 @@ gchar *generate_lc_subtitle(struct compstars_arg *metadata, gboolean for_plot) {
 		return g_strdup("");
 	GString *str = g_string_new("");
 	gboolean first = TRUE;
-	if (metadata->nb_comp_stars > 0 && metadata->delta_Vmag != 0.0 && metadata->delta_BV != 0.0 && metadata->max_emag != 0.0) {
+	if (metadata->nb_comp_stars > 0 && metadata->delta_mag != 0.0 && metadata->delta_color != 0.0 && metadata->max_emag != 0.0) {
+		const char *band = phot_band_to_str(metadata->band), *color = phot_band_color_to_str(metadata->band);
 		if (for_plot)
 			g_string_append_printf(str,
-				"\n<span size=\"small\">%d %s &#x03B4;<sub>Vmag</sub> = %.2f, &#x03B4;<sub>BV</sub> = %.2f, max e_mag = %.2f</span>",
-				metadata->nb_comp_stars, _("stars within"), metadata->delta_Vmag, metadata->delta_BV, metadata->max_emag);
-		else g_string_append_printf(str, "#%d %s delta Vmag = %.2f, delta BV = %.2f, max e_mag = %.2f",
-					metadata->nb_comp_stars, _("stars within"), metadata->delta_Vmag, metadata->delta_BV, metadata->max_emag);
+				"\n<span size=\"small\">%d %s %s: &#x03B4;<sub>mag</sub> = %.2f, &#x03B4;<sub>%s</sub> = %.2f, max e_mag = %.2f</span>",
+				metadata->nb_comp_stars, _("stars within"), band, metadata->delta_mag, color, metadata->delta_color, metadata->max_emag);
+		else g_string_append_printf(str, "#%d %s %s: delta mag = %.2f, delta %s = %.2f, max e_mag = %.2f",
+					metadata->nb_comp_stars, _("stars within"), band, metadata->delta_mag, color, metadata->delta_color, metadata->max_emag);
 		first = FALSE;
 	}
 	if (metadata->AAVSO_chartid) {

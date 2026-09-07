@@ -129,6 +129,21 @@ typedef enum {
 	CAT_PROJ_WCS
 } cat_proj;
 
+/* Photometric bands that can be used to select comparison stars. The names are
+ * the AAVSO filter designations, so that what Siril writes in a comparison star
+ * list matches what is reported in the FILT field of an AAVSO extended file.
+ * PHOT_BAND_V must stay first so that a zeroed structure keeps the historical
+ * Johnson V behaviour. */
+typedef enum {
+	PHOT_BAND_V, // Johnson V
+	PHOT_BAND_B, // Johnson B
+	PHOT_BAND_R, // red band
+	PHOT_BAND_SG, // Sloan g'
+	PHOT_BAND_SR, // Sloan r'
+	PHOT_BAND_SI, // Sloan i'
+	PHOT_NB_BANDS
+} phot_band;
+
 // the 16-byte struct
 // this is the struct we effectively use, units are the correct ones
 typedef struct {
@@ -190,6 +205,7 @@ typedef struct {
 	GDateTime *dateobs;
 	gchar *IAUcode; // observatory code
 	gboolean phot; // TRUE if can be used for photometry
+	phot_band band; // the photometric band to fetch in CAT_FIELD_MAG (defaults to Johnson V)
 	/* output */
 	cat_item *cat_items;
 	int nbitems; // the number of items stored
@@ -214,6 +230,9 @@ typedef struct {
 	// query result
 	int retval;
 	cat_item *item;
+	// magnitudes read from a QUERY_SERVER_SIMBAD_PHOTO answer, 0.0 when the
+	// server has no value for that band
+	double fluxes[PHOT_NB_BANDS];
 } sky_object_query_args;
 
 typedef struct {
@@ -261,6 +280,13 @@ void free_conesearch_params(void *p);
 conesearch_params *init_conesearch_params();
 
 uint32_t siril_catalog_columns(siril_cat_index cat);
+const char *phot_band_to_str(phot_band band);
+const char *phot_band_description(phot_band band);
+const char *phot_band_color_to_str(phot_band band);
+phot_band phot_band_from_str(const char *str);
+phot_band phot_band_companion(phot_band band);
+gboolean catalogue_has_band(siril_cat_index cat, phot_band band);
+double cat_item_color_index(const cat_item *item, phot_band band);
 void sort_cat_items_by_mag(siril_catalogue *siril_cat);
 const char *catalog_to_str(siril_cat_index cat);
 const gchar **get_cat_colums_names();

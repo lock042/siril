@@ -13,7 +13,9 @@ struct compstars_arg {
 	gchar *target_name;	// star name to be looked-up on online sources
 	gboolean narrow_fov;	// limit to image height as diameter
 	siril_cat_index cat;	// the catalogue where comparison stars will be queried
-	double delta_Vmag, delta_BV, max_emag;	// comparison stars filtering criteria
+	phot_band band;		// the photometric band the comparison stars are selected in
+	double delta_mag, delta_color, max_emag;	// comparison stars filtering criteria,
+			// on the magnitude in that band and on its standard colour index
 	gchar *nina_file;	// optional output NINA-type file name
 
 	// for internal use

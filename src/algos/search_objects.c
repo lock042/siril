@@ -43,6 +43,16 @@ const op_descriptor op_desc_catsearch = {
 };
 
 
+// the letter naming each band in the "Flux X : ..." lines of a SIMBAD ASCII answer
+static const char *simbad_flux_key[PHOT_NB_BANDS] = {
+	[PHOT_BAND_V] = "V",
+	[PHOT_BAND_B] = "B",
+	[PHOT_BAND_R] = "R",
+	[PHOT_BAND_SG] = "g",
+	[PHOT_BAND_SR] = "r",
+	[PHOT_BAND_SI] = "i"
+};
+
 /* parse response from online catalogue lookups (search_in_online_catalogs()
  * for QUERY_SERVER_EPHEMCC and QUERY_SERVER_SIMBAD_PHOTO) and stores the
  * result in the local annotation catalogues and returns it in the argument if
@@ -58,7 +68,7 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 	token = g_strsplit(buffer, "\n", -1);
 	nargs = g_strv_length(token);
 	double ra = 0.0, dec = 0.0, pmra = 0.0, pmdec = 0.0;
-	double Vmag = 0.0, Bmag = 0.0, mag = 0.0;
+	double mag = 0.0;
 	double vra = 0.0, vdec = 0.0;
 	cat_item *item = NULL;
 
@@ -102,17 +112,18 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 				simbad_id = g_strdup(g_strstrip(fields[0]));
 				g_strfreev(fields);
 			}
-			// Finally, retrieve the B and V magnitudes
-			else if (g_str_has_prefix(token[rank], "Flux B")){
+			// Finally, retrieve the magnitudes of the bands we can use for photometry
+			else if (g_str_has_prefix(token[rank], "Flux ")){
 				gchar **fields = g_strsplit(token[rank], " ", -1);
-				if (g_strv_length(fields) > 3 && fields[3][0] != '~')
-					sscanf(fields[3], "%lf", &Bmag);
-				g_strfreev(fields);
-			}
-			else if (g_str_has_prefix(token[rank], "Flux V")){
-				gchar **fields = g_strsplit(token[rank], " ", -1);
-				if (g_strv_length(fields) > 3 && fields[3][0] != '~')
-					sscanf(fields[3], "%lf", &Vmag);
+				if (g_strv_length(fields) > 3 && fields[3][0] != '~') {
+					for (int b = 0; b < PHOT_NB_BANDS; b++) {
+						// case sensitive: SIMBAD names the Sloan bands with lowercase letters
+						if (!g_strcmp0(fields[1], simbad_flux_key[b])) {
+							sscanf(fields[3], "%lf", &args->fluxes[b]);
+							break;
+						}
+					}
+				}
 				g_strfreev(fields);
 			}
 			else if (g_str_has_prefix(token[rank], "Proper motions")){
@@ -126,8 +137,9 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 			rank++;
 		}
 		item = calloc(1, sizeof(cat_item));
-		item->mag = Vmag;
-		item->bmag = Bmag;
+		// the annotation catalogues keep the historical V and B pair
+		item->mag = args->fluxes[PHOT_BAND_V];
+		item->bmag = args->fluxes[PHOT_BAND_B];
 		item->ra = ra;
 		item->dec = dec;
 		item->pmra = pmra;
