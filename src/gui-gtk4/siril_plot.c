@@ -828,45 +828,57 @@ static GtkWidget *create_siril_plot_window_shell(const gchar *title) {
 	GtkWidget *window = gtk_window_new();
 	gtk_window_set_title(GTK_WINDOW(window), (title) ? title : "Siril plot");
 
-	/* Uniform plot-window background.  Class-scoped to avoid styling
-	 * other windows; provider registered display-wide once. */
 	/* The window is a light grey board on which the plots sit as white
 	 * cards; sizes are in pt to match the text drawn inside the plots,
-	 * which pango renders in points too. */
+	 * which pango renders in points too.
+	 *
+	 * Only the frame background is set on the window: everything else is
+	 * scoped to the content class, which the title bar is not part of, so
+	 * its buttons keep the platform look (theme decorations on Linux,
+	 * native controls on macOS). A blanket `window.siril-plot button` rule
+	 * used to repaint the window controls and fight the theme on hover. */
 	siril_register_css_for_display("siril-plot-window",
-		"window.siril-plot { color: #303030; background: #f2f2f4; font-size: 12px; }"
-		"window.siril-plot label.siril-plot-caption { font-size: 13pt; font-weight: bold; color: #303030; }"
-		"window.siril-plot .siril-plot-card,"
-		"window.siril-plot .siril-plot-tile { background: white; border: 1px solid #dcdcdc; border-radius: 8px; padding: 8px; }"
-		"window.siril-plot .siril-plot-pane-title { font-size: 12pt; font-weight: bold; color: #303030; }"
-		"window.siril-plot .siril-plot-pane-subtitle { font-size: 10pt; color: #707070; }"
-		"window.siril-plot .siril-plot-tile-label { font-size: 9pt; color: #808080; }"
-		"window.siril-plot .siril-plot-tile-value { font-size: 13pt; font-weight: bold; color: #303030; }"
-		"window.siril-plot .siril-plot-tile-subvalue { color: #505050; }"
-		"window.siril-plot .siril-plot-metrics { border-top: 1px solid #ececec; padding-top: 4px; }"
-		"window.siril-plot .siril-plot-metric-label { font-size: 9pt; color: #808080; }"
-		"window.siril-plot .siril-plot-metric-value { font-weight: bold; color: #303030; }"
-		"window.siril-plot .siril-plot-actionbar { padding-top: 4px; }"
-		/* The window forces a light background, so the controls have to be
+		"window.siril-plot { background: #f2f2f4; }"
+		".siril-plot-content { color: #303030; background: #f2f2f4; font-size: 12px; }"
+		".siril-plot-content label.siril-plot-caption { font-size: 13pt; font-weight: bold; color: #303030; }"
+		".siril-plot-content .siril-plot-card,"
+		".siril-plot-content .siril-plot-tile { background: white; border: 1px solid #dcdcdc; border-radius: 8px; padding: 8px; }"
+		".siril-plot-content .siril-plot-pane-title { font-size: 12pt; font-weight: bold; color: #303030; }"
+		".siril-plot-content .siril-plot-pane-subtitle { font-size: 10pt; color: #707070; }"
+		".siril-plot-content .siril-plot-tile-label { font-size: 9pt; color: #808080; }"
+		".siril-plot-content .siril-plot-tile-value { font-size: 13pt; font-weight: bold; color: #303030; }"
+		".siril-plot-content .siril-plot-tile-subvalue { color: #505050; }"
+		".siril-plot-content .siril-plot-metrics { border-top: 1px solid #ececec; padding-top: 4px; }"
+		".siril-plot-content .siril-plot-metric-label { font-size: 9pt; color: #808080; }"
+		".siril-plot-content .siril-plot-metric-value { font-weight: bold; color: #303030; }"
+		".siril-plot-content .siril-plot-actionbar { padding-top: 4px; }"
+		/* The content forces a light background, so the controls have to be
 		 * dressed for it too: left to the theme they would come out dark. */
-		"window.siril-plot button { background-image: none; background-color: #fbfbfb; color: #303030; border: 1px solid #d0d0d0; }"
-		"window.siril-plot button:hover { background-color: #f0f0f0; }"
-		"window.siril-plot button:active, window.siril-plot button:checked { background-color: #e2e2e6; }"
-		"window.siril-plot button.flat { background-color: transparent; border-color: transparent; }"
-		"window.siril-plot button.flat:hover { background-color: #ececee; }"
-		"window.siril-plot switch { background-color: #d0d0d6; border: 1px solid #c0c0c6; }"
-		"window.siril-plot switch:checked { background-color: #3584e4; border-color: #2b6fc4; }"
-		"window.siril-plot switch > slider { background-color: white; border: 1px solid #c8c8ce; }"
-		"window.siril-plot popover > contents { background-color: white; color: #303030; }"
-		"window.siril-plot popover > arrow { background-color: white; border: 1px solid #dcdcdc; }"
-		"window.siril-plot check { background-color: white; border: 1px solid #b4b4ba; color: #303030; }"
-		"window.siril-plot check:checked { background-color: #3584e4; border-color: #2b6fc4; color: white; }");
+		".siril-plot-content button { background-image: none; background-color: #fbfbfb; color: #303030; border: 1px solid #d0d0d0; }"
+		".siril-plot-content button:hover { background-color: #f0f0f0; }"
+		".siril-plot-content button:active, .siril-plot-content button:checked { background-color: #e2e2e6; }"
+		".siril-plot-content button.flat { background-color: transparent; border-color: transparent; }"
+		".siril-plot-content button.flat:hover { background-color: #ececee; }"
+		".siril-plot-content switch { background-color: #d0d0d6; border: 1px solid #c0c0c6; }"
+		".siril-plot-content switch:checked { background-color: #3584e4; border-color: #2b6fc4; }"
+		".siril-plot-content switch > slider { background-color: white; border: 1px solid #c8c8ce; }"
+		".siril-plot-content popover > contents { background-color: white; color: #303030; }"
+		".siril-plot-content popover > arrow { background-color: white; border: 1px solid #dcdcdc; }"
+		".siril-plot-content check { background-color: white; border: 1px solid #b4b4ba; color: #303030; }"
+		".siril-plot-content check:checked { background-color: #3584e4; border-color: #2b6fc4; color: white; }");
 	gtk_widget_add_css_class(GTK_WIDGET(window), "siril-plot");
 	// connect the delete-event signal, triggered when the window is closed
 	// the callback frees every spl_data displayed in the window
 	g_signal_connect(G_OBJECT(window), "close-request", G_CALLBACK(on_siril_plot_window_closed), NULL);
 	gtk_widget_set_margin_start(GTK_WIDGET(window), 5); gtk_widget_set_margin_end(GTK_WIDGET(window), 5); gtk_widget_set_margin_top(GTK_WIDGET(window), 5); gtk_widget_set_margin_bottom(GTK_WIDGET(window), 5);
 	return window;
+}
+
+// sets the window content, tagging it with the class the plot styling is
+// scoped to. The title bar is not part of it and stays platform-native.
+static void set_siril_plot_window_content(GtkWidget *window, GtkWidget *content) {
+	gtk_widget_add_css_class(content, "siril-plot-content");
+	gtk_window_set_child(GTK_WINDOW(window), content);
 }
 
 // builds one interactive plot pane (drawing area + coordinate label + its
@@ -1058,7 +1070,7 @@ gboolean create_new_siril_plot_window(gpointer p) {
 	// what the snapshot export captures: everything but the action bar
 	g_object_set_data(G_OBJECT(window), "report_widget", pane);
 	gtk_box_append(GTK_BOX(content), build_action_bar(window));
-	gtk_window_set_child(GTK_WINDOW(window), content);
+	set_siril_plot_window_content(window, content);
 
 	gtk_window_present(GTK_WINDOW(window));
 	gtk_widget_set_visible(window, TRUE);
@@ -1157,7 +1169,7 @@ gboolean create_new_siril_plot_group_window(gpointer p) {
 	gtk_box_append(GTK_BOX(report), scroller);
 	gtk_box_append(GTK_BOX(content), report);
 	gtk_box_append(GTK_BOX(content), build_action_bar(window));
-	gtk_window_set_child(GTK_WINDOW(window), content);
+	set_siril_plot_window_content(window, content);
 
 	// what the snapshot export captures
 	g_object_set_data(G_OBJECT(window), "report_widget", report);
