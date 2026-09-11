@@ -1499,6 +1499,26 @@ void flis_layer_free(flis_layer_t *layer) {
 
 void flis_free_layers(single *uniq) {
     if (!uniq) return;
+    /* Detach gfit before the stack goes.  Every OTHER path that frees a layer
+     * — flis_layer_remove, flis_merge_down_layer, flis_flatten — retargets
+     * gfit at a surviving layer first, which is the contract flis_retire_fits
+     * enforces.  Here there is no survivor to retarget to, so the caller
+     * cannot honour it and retiring the active layer's fits would hit the
+     * guard and leak the buffer instead.  NULL is the honest answer; the
+     * caller installs a valid gfit before anything dereferences it again
+     * (close_single_image allocates a fresh empty fits, load_flis repoints via
+     * uniq_set_active_layer once the new stack is in place).
+     *
+     * Atomic for the same reason as the store in uniq_set_active_layer: gfit
+     * is read off other threads.  It is not a synchronisation point — callers
+     * that free pixels under a live display drain the tile pool around this,
+     * and flis_retire_fits defers the free itself. */
+    for (GSList *l = uniq->layers; l; l = l->next) {
+        if (((flis_layer_t *)l->data)->fit == (fits *)g_atomic_pointer_get(&gfit)) {
+            g_atomic_pointer_set(&gfit, NULL);
+            break;
+        }
+    }
     g_slist_free_full(uniq->layers, (GDestroyNotify)flis_layer_free);
     uniq->layers = NULL;
     uniq->fit    = NULL;

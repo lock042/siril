@@ -49,6 +49,11 @@ static inline void flis_test_init_com(void) {
 /* Tear down everything allocated by flis_test_init_com plus any layers /
  * groups that were added. */
 static inline void flis_test_cleanup_com(void) {
+	/* Detach gfit BEFORE the layers go — it points at the active layer's fits
+	 * (uniq_set_active_layer).  flis_free_layers() does this itself, so this
+	 * is belt and braces; it is here so a suite that tears down without ever
+	 * reaching that call still leaves the global clean for the next test. */
+	gfit = NULL;
 	if (com.uniq) {
 		if (com.uniq->layers) flis_free_layers(com.uniq);
 		if (com.uniq->groups) flis_free_groups(com.uniq);
@@ -61,7 +66,6 @@ static inline void flis_test_cleanup_com(void) {
 		g_free(com.pref.swap_dir);
 		com.pref.swap_dir = NULL;
 	}
-	gfit = NULL;
 }
 
 /* Build a fresh constant-colour float fits.  For mono pass chans=1; for RGB

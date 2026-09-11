@@ -608,6 +608,51 @@ Test(nde_serializers, bkg_remove_gradient_roundtrip) {
 	com.grad_samples = NULL;
 }
 
+/* v1 -> v2: `ag_simplified` changed meaning under the same key — in v1 it
+ * selected a stiff polynomial INSTEAD of the multiscale surface, from v2 the
+ * polynomial is fitted and removed before it — so a v1 record that used it
+ * would replay to different pixels than the ones it recorded.  The
+ * deserializer must refuse exactly those, and keep accepting the rest. */
+Test(nde_serializers, bkg_remove_gradient_v1_simplified_refused) {
+	struct background_data in = { 0 };
+	in.method = BACKGROUND_METHOD_AUTO;
+	in.autograd.scale = 5.0;
+	in.autograd.smoothness = 1.0;
+	in.autograd.protect = TRUE;
+	in.autograd.protect_threshold = 0.05;
+	in.autograd.protect_amount = 0.5;
+	in.autograd.degree = 2;
+	in.autograd.downsample = 4;
+	in.autograd.simplified = TRUE;
+
+	gchar *blob = op_desc_remove_gradient.serialize(&in);
+	cr_assert_not_null(blob);
+	cr_assert_null(op_desc_remove_gradient.deserialize(blob, 1),
+	               "a v1 record using the simplified automatic model must be refused");
+	struct background_data *out = op_desc_remove_gradient.deserialize(blob, 2);
+	cr_assert_not_null(out, "the same parameters at v2 must still load");
+	FREE_VIA_DESTRUCTOR(out);
+	g_free(blob);
+
+	/* the v1 automatic-model records that did not use it replay unchanged */
+	in.autograd.simplified = FALSE;
+	blob = op_desc_remove_gradient.serialize(&in);
+	out = op_desc_remove_gradient.deserialize(blob, 1);
+	cr_assert_not_null(out, "a v1 record without the simplified model must still load");
+	FREE_VIA_DESTRUCTOR(out);
+	g_free(blob);
+
+	/* and neither does the flag matter to a sample-based record: the automatic
+	 * model is the only consumer of `autograd` */
+	in.method = BACKGROUND_METHOD_SAMPLES;
+	in.autograd.simplified = TRUE;
+	blob = op_desc_remove_gradient.serialize(&in);
+	out = op_desc_remove_gradient.deserialize(blob, 1);
+	cr_assert_not_null(out, "a v1 sample-based record must be unaffected");
+	FREE_VIA_DESTRUCTOR(out);
+	g_free(blob);
+}
+
 /* ------------------------------------------------------------------ *
  *  Registry: the set of ops with serializers is exactly phase 1.     *
  *  Keeps the set deliberate — a new serializer without an entry here *

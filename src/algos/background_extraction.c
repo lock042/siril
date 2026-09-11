@@ -169,6 +169,25 @@ static gpointer remove_gradient_deserialize(const gchar *blob, int version) {
 	tmp.degree = (poly_order)degree;
 	tmp.autograd.degree = (int)ag_degree;
 	tmp.autograd.downsample = (int)ag_downsample;
+	/* v1 -> v2: `ag_simplified` changed meaning under the same key.  In v1 it
+	 * selected a stiff polynomial INSTEAD of the multiscale surface, and
+	 * `ag_smoothness` applied to whichever of the two was fitted; from v2 the
+	 * polynomial is fitted and removed first, the multiscale surface is fitted
+	 * on what it leaves, the sum of the two is removed, and `ag_smoothness`
+	 * applies to the multiscale stage only.  Replaying a v1 record through the
+	 * v2 model reproduces different pixels from the ones it recorded, so refuse
+	 * it rather than diverge silently: the chain reports the record as
+	 * unreplayable and the document keeps its stored result.  Only the
+	 * automatic model fills `autograd`, and only `simplified` is affected, so
+	 * every other v1 record still replays unchanged. */
+	if (version < 2 && tmp.autograd.simplified
+			&& tmp.method == BACKGROUND_METHOD_AUTO) {
+		siril_log_warning(_("bkg.remove_gradient: this step was recorded with an "
+				"older, incompatible version of the simplified automatic model "
+				"and cannot be replayed by this build.\n"));
+		g_hash_table_unref(kv);
+		return NULL;
+	}
 	struct background_data *p = calloc(1, sizeof(*p));
 	if (p) {
 		*p = tmp;
@@ -215,7 +234,10 @@ static int remove_gradient_replay_pre(gpointer user, GHashTable *kv, fits *targe
 }
 
 const op_descriptor op_desc_remove_gradient = {
-	.id = "bkg.remove_gradient", .version = 1,
+	/* v2: the automatic model's `simplified` stage changed meaning — see the
+	 * version note in remove_gradient_deserialize, which refuses the v1
+	 * records that used it. */
+	.id = "bkg.remove_gradient", .version = 2,
 	.image_hook = remove_gradient_image_hook,
 	.log_hook = remove_gradient_log_hook,
 	.description = N_("Background extraction"),
