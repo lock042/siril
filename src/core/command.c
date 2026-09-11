@@ -5758,9 +5758,9 @@ int process_set(int nb) {
 		GKeyFile *kf = g_key_file_new();
 		g_key_file_load_from_data(kf, fakefile, filelen, G_KEY_FILE_NONE, NULL);
 		g_rw_lock_writer_lock(&com.pref_rwlock);
-		int retval = read_keyfile(kf) == 0;
+		int nb_read = read_keyfile(kf);
 		g_rw_lock_writer_unlock(&com.pref_rwlock);
-		return retval;
+		return nb_read == 0 ? CMD_ARG_ERROR : CMD_OK;
 	}
 	return 0;
 }
@@ -6026,20 +6026,20 @@ int process_set_mag_seq(int nb) {
 
 int process_set_ext(int nb) {
 	if (word[1]) {
-		if ((g_ascii_strncasecmp(word[1], "fit", 3))
-				&& (g_ascii_strncasecmp(word[1], "fts", 3))
-				&& (g_ascii_strncasecmp(word[1], "fits", 4))) {
+		gchar *lower = g_ascii_strdown(word[1], -1);
+		gchar *new_ext = g_strconcat(lower[0] == '.' ? "" : ".", lower, NULL);
+		g_free(lower);
+		if (!is_valid_fits_extension(new_ext)) {
 			siril_log_message(_("FITS extension unknown: %s\n"), word[1]);
+			g_free(new_ext);
 			return CMD_ARG_ERROR;
 		}
 
-		gchar *lower = g_ascii_strdown(word[1], strlen(word[1]));
 		g_rw_lock_writer_lock(&com.pref_rwlock);
 		g_free(com.pref.ext);
-		com.pref.ext = g_strdup_printf(".%s", lower);
+		com.pref.ext = new_ext;
 		writeinitfile();
 		g_rw_lock_writer_unlock(&com.pref_rwlock);
-		g_free(lower);
 	}
 
 	return CMD_OK;
@@ -9258,7 +9258,7 @@ int process_subsky(int nb) {
 		struct autograd_data ag = {
 			.scale = 5.0, .smoothness = 1.0, .protect = TRUE,
 			.protect_threshold = 0.05, .protect_amount = 0.5,
-			.simplified = FALSE, .degree = 2, .downsample = 4,
+			.simplified = FALSE, .degree = 1, .downsample = 4,
 		};
 		background_correction mode = BACKGROUND_CORRECTION_SUBTRACT;
 		arg_index++;

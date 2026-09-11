@@ -135,6 +135,7 @@ void replace_char_from_str(gchar *s, gchar in, gchar out);
 gchar *build_string_from_words(char **words);
 void append_elements_to_array(char **array, char **elements);
 const gchar *get_com_ext(gboolean fz);
+gboolean is_valid_fits_extension(const gchar *extension);
 gchar *siril_any_to_utf8 (const gchar  *str, gssize len, const gchar *warning_format, ...);
 
 int siril_to_display(double fx, double fy, double *dx, double *dy, int ry);

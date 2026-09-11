@@ -37,8 +37,8 @@ struct autograd_data {
 	gboolean protect;         /* structure protection on/off */
 	double protect_threshold; /* brightness above model treated as a structure */
 	double protect_amount;    /* how far the protection mask grows */
-	gboolean simplified;      /* use the stiff polynomial instead of the multiscale model */
-	int degree;               /* polynomial degree of the simplified model */
+	gboolean simplified;      /* fit a stiff polynomial first and remove it, before the multiscale model */
+	int degree;               /* polynomial degree of that first model */
 	int downsample;           /* internal working scale factor (1, 2, 4, 8) */
 };
 
