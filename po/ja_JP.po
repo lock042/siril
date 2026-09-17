@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-18 17:15+0200\n"
-"PO-Revision-Date: 2026-07-26 12:05+0000\n"
-"Last-Translator: Tomoya Maeda <yumyum.ytm6020@gmail.com>\n"
+"PO-Revision-Date: 2026-09-17 13:10+0000\n"
+"Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/ja/>\n"
 "Language: ja_JP\n"
@@ -15932,6 +15932,8 @@ msgstr ""
 #, c-format
 msgid "Error opening image %s: file not found or not supported.\n"
 msgstr ""
+"画像 %s を開く際にエラーが発生しました: ファイルが見つからない、もしくは、"
+"サポートされていない形式です。\n"
 
 #: src/core/command.c:4732
 msgid ""
@@ -16398,7 +16400,7 @@ msgstr "Background Extraction…"
 #: src/core/command.c:7010
 #, c-format
 msgid "The file %s has been created for the %s layer.\n"
-msgstr ""
+msgstr "ファイル %s が %s レイヤー用に作成されました。\n"
 
 #: src/core/command.c:7049
 #, fuzzy
@@ -21451,18 +21453,16 @@ msgid "invalid input sequence"
 msgstr "無効な入力シーケンス"
 
 #: src/core/command_line_processor.c:69
-#, fuzzy
 msgid "invalid input image"
-msgstr "ファイル: %s を開けない\n"
+msgstr "無効な入力画像"
 
 #: src/core/command_line_processor.c:71
 msgid "load an image or sequence first"
 msgstr "まずは画像またはシーケンスを読み込んでください"
 
 #: src/core/command_line_processor.c:73
-#, fuzzy
 msgid "command is only for a loaded single image"
-msgstr "このコマンドはスクリプト: %s では使用不可能\n"
+msgstr "このコマンドは、読み込まれた単一の画像に対してのみ使用できます"
 
 #: src/core/command_line_processor.c:75
 msgid "command is only for a sequence"
@@ -23382,7 +23382,7 @@ msgstr "不明な設定変数 %s.%s\n"
 
 #: src/core/siril.c:174
 msgid "Unsharp: processing...\n"
-msgstr ""
+msgstr "ぼかし: 処理中...\n"
 
 #: src/core/siril.c:275
 msgid "ddp level argument must be [0, 65535]\n"
@@ -27515,13 +27515,15 @@ msgstr "Cosmetic Correction"
 #: src/gui-gtk4/open_dialog.c:382 src/io/single_image.c:257
 #: src/io/single_image.c:291
 msgid "Error opening file"
-msgstr ""
+msgstr "ファイルを開く際にエラーが発生しました"
 
 #: src/gui-gtk4/open_dialog.c:383 src/io/single_image.c:258
 #: src/io/single_image.c:292
 msgid ""
 "There was an error when opening this image. See the log for more information."
 msgstr ""
+"この画像を開こうとした際にエラーが発生しました。詳細についてはログを見てくだ"
+"さい。"
 
 #: src/gui-gtk4/open_dialog.c:497
 msgid "Format not supported."
@@ -30137,6 +30139,8 @@ msgid ""
 "Conversion succeeded, %d file(s) created for %d input file(s) (%d image(s) "
 "converted, %d failed)\n"
 msgstr ""
+"変換に成功しました、%d 個のファイルが作成されました (%d 個の入力ファイル。%d "
+"個の画像が変換され、%d 個が失敗しました)\n"
 
 #: src/io/conversion.c:750
 #, c-format
@@ -30728,6 +30732,8 @@ msgstr ""
 msgid ""
 "The file %s is not a FITS file or doesn't exists with FITS extensions.\n"
 msgstr ""
+"ファイル %s は FITS ファイルではありません。あるいは、FITS 拡張がありません"
+"。\n"
 
 #: src/io/image_format_fits.c:1438
 #, c-format

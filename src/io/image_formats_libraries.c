@@ -1303,6 +1303,8 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 	}
 
 	fits_flip_top_to_bottom(fit);
+	siril_log_warning(_("XISF is supported in read-only mode for compatibility; "
+					 "for interoperability and long-term preservation, FITS remains recommended.\n"));
 	siril_log_message(_("Reading XISF: file %s, %ld layer(s), %ux%u pixels\n"),
 			name, fit->naxes[2], fit->rx, fit->ry);
 
