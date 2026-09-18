@@ -43,6 +43,13 @@
 #include "algos/siril_wcs.h"
 #include "io/sequence_export.h"
 
+/* film outputs expect as many channels as the sequence: mono frames must use
+ * the gray sRGB profile, the RGB one would turn them into 3-channel images */
+static void convert_to_srgb(fits *fit) {
+	cmsHPROFILE srgb = (fit->naxes[2] == 1) ? gray_srgbtrc() : srgb_trc();
+	siril_colorspace_transform(fit, srgb);
+	cmsCloseProfile(srgb);
+}
 
 /* Used for avi exporter, creates buffer as BGRBGR from ushort FITS */
 static uint8_t *fits_to_uint8(fits *fit) {
@@ -536,9 +543,8 @@ static gpointer export_sequence(gpointer ptr) {
 				retval = ser_write_frame_from_fit(ser_file, destfit, i - skipped);
 				break;
 			case EXPORT_AVI:
-				if (ref_icc) {
-					siril_colorspace_transform(destfit, srgb_trc());
-				}
+				if (ref_icc)
+					convert_to_srgb(destfit);
 				data = fits_to_uint8(destfit);
 				retval = avi_file_write_frame(0, data);
 				break;
@@ -547,9 +553,8 @@ static gpointer export_sequence(gpointer ptr) {
 			case EXPORT_MP4_H265:
 			case EXPORT_WEBM_VP9:
 				// an equivalent to fits_to_uint8 is called in there (fill_rgb_image)...
-				if (ref_icc) {
-					siril_colorspace_transform(destfit, srgb_trc());
-				}
+				if (ref_icc)
+					convert_to_srgb(destfit);
 				retval = mp4_add_frame(mp4_file, destfit);
 				break;
 #endif
