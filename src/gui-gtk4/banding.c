@@ -33,10 +33,10 @@
 #include "io/single_image.h"
 #include "io/sequence.h"
 
-static GtkRange *banding_scale_amount = NULL, *banding_scale_invsigma = NULL;
+static GtkRange *banding_scale_amount = NULL, *banding_scale_ksigma = NULL;
 static GtkCheckButton *banding_protect_highlights = NULL, *banding_vertical = NULL, *banding_seq = NULL;
 static GtkEntry *banding_seq_entry = NULL;
-static GtkWidget *banding_spin_invsigma = NULL;
+static GtkWidget *banding_spin_ksigma = NULL;
 
 /* Exposed so the activate handler can cache the widget pointers before
  * the dialog is shown — previously init only ran from Apply/processing
@@ -45,12 +45,12 @@ void banding_dialog_init_statics(void);
 void banding_dialog_init_statics(void) {
 	if (banding_scale_amount) return;
 	banding_scale_amount = GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_fixbanding_amount"));
-	banding_scale_invsigma = GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_fixbanding_invsigma"));
+	banding_scale_ksigma = GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_fixbanding_ksigma"));
 	banding_protect_highlights = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_fixbanding"));
 	banding_vertical = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "checkBandingVertical"));
 	banding_seq = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "checkBandingSeq"));
 	banding_seq_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entryBandingSeq"));
-	banding_spin_invsigma = GTK_WIDGET(gtk_builder_get_object(gui.builder, "spin_fixbanding_invsigma"));
+	banding_spin_ksigma = GTK_WIDGET(gtk_builder_get_object(gui.builder, "spin_fixbanding_ksigma"));
 }
 
 static gboolean banding_single_idle(gpointer p) {
@@ -77,7 +77,7 @@ gboolean banding_hide_on_delete(GtkWidget *widget) {
 void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
-	double amount, invsigma;
+	double amount, ksigma;
 	gboolean protect_highlights;
 
 	if (processing_is_job_active()) {
@@ -87,7 +87,7 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 
 	banding_dialog_init_statics();
 	amount = gtk_range_get_value(banding_scale_amount);
-	invsigma = gtk_range_get_value(banding_scale_invsigma);
+	ksigma = gtk_range_get_value(banding_scale_ksigma);
 	protect_highlights = siril_toggle_get_active(GTK_WIDGET(banding_protect_highlights));
 	gboolean applyRotation = siril_toggle_get_active(GTK_WIDGET(banding_vertical));
 
@@ -105,7 +105,7 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 		seq_args->seqEntry = strdup((entry_text && entry_text[0] != '\0') ? entry_text : "unband_");
 		seq_args->protect_highlights = protect_highlights;
 		seq_args->amount = amount;
-		seq_args->sigma = invsigma;
+		seq_args->sigma = ksigma;
 		seq_args->applyRotation = applyRotation;
 		seq_args->seq = &com.seq;
 		seq_args->fit = NULL;
@@ -122,7 +122,7 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 
 		params->protect_highlights = protect_highlights;
 		params->amount = amount;
-		params->sigma = invsigma;
+		params->sigma = ksigma;
 		params->applyRotation = applyRotation;
 		params->seqEntry = NULL;
 		params->seq = NULL;
@@ -159,6 +159,6 @@ void on_checkbutton_fixbanding_toggled(GtkCheckButton *togglebutton,
 		gpointer user_data) {
 	banding_dialog_init_statics();
 	gboolean is_active = siril_toggle_get_active(GTK_WIDGET(togglebutton));
-	gtk_widget_set_sensitive(GTK_WIDGET(banding_scale_invsigma), is_active);
-	gtk_widget_set_sensitive(banding_spin_invsigma, is_active);
+	gtk_widget_set_sensitive(GTK_WIDGET(banding_scale_ksigma), is_active);
+	gtk_widget_set_sensitive(banding_spin_ksigma, is_active);
 }
