@@ -289,9 +289,8 @@ endif
 # checking required opencv modules
 opencv_calib_module = opencv_dep.version().version_compare('>= 5.0.0') ? 'HAVE_OPENCV_GEOMETRY' : 'HAVE_OPENCV_CALIB3D'
 opencv_symbols = ['HAVE_OPENCV_CORE', 'HAVE_OPENCV_IMGPROC', opencv_calib_module, 'HAVE_OPENCV_STITCHING']
-opencv_incdir = '-I'+opencv_dep.get_variable(pkgconfig : 'includedir')
 foreach s : opencv_symbols
-  cpp.has_header_symbol('opencv2/opencv_modules.hpp', s, args: [opencv_incdir], required : true)
+  cpp.has_header_symbol('opencv2/opencv_modules.hpp', s, dependencies: [opencv_dep], required : true)
 endforeach
 
 rtprocess_dep = dependency('rtprocess', required : false)
