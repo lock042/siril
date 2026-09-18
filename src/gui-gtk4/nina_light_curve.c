@@ -28,6 +28,7 @@
 #include "io/sequence.h"
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/plot.h"
 #include "gui-gtk4/utils.h"
 
@@ -45,6 +46,12 @@ static double radius_value = 0.;
 const char *radius_label = NULL;
 
 static void on_nina_lc_response(GtkWindow *self, gint response_id, gpointer user_data);
+
+// drops the file stashed on the chooser button and restores its prompt label
+static void clear_chosen_file() {
+	g_object_set_data(G_OBJECT(file_chooser), "siril-path", NULL);
+	gtk_button_set_label(GTK_BUTTON(file_chooser), _("Select the comparison star list file"));
+}
 
 static GtkWidget *nina_ok_button = NULL;
 
@@ -65,9 +72,12 @@ static void build_the_dialog() {
 	gtk_window_set_hide_on_close(GTK_WINDOW(dialog), TRUE);
 	g_signal_connect(G_OBJECT(dialog), "close-request", G_CALLBACK(siril_widget_hide_on_delete), NULL);
 
-	/* Phase 14: GtkFileChooserButton removed in GTK4.  Use a placeholder
-	 * GtkButton until Phase 18 routes this through GtkFileDialog. */
+	/* GtkFileChooserButton is gone in GTK4: a plain button opening the file
+	 * browser, which stashes the path for siril_file_chooser_get_filename(). */
 	file_chooser = gtk_button_new_with_label(_("Select the comparison star list file"));
+	siril_image_button_init(file_chooser, _("Select the comparison star list file"),
+			_("Comparison star lists"), "*.csv;*.CSV", NULL, NULL);
+	gtk_widget_set_tooltip_text(file_chooser, _("List of comparison stars, as created by Siril or the NINA exoplanet plugin. It must be in the current working directory"));
 	gtk_widget_set_margin_start(GTK_WIDGET(file_chooser), 15);
 	gtk_widget_set_margin_end(GTK_WIDGET(file_chooser), 15);
 	gtk_widget_set_margin_top(GTK_WIDGET(file_chooser), 15);
@@ -254,8 +264,8 @@ static void on_nina_lc_response(GtkWindow *self, gint response_id, gpointer user
 	gchar *dirname = g_path_get_dirname(nina_file);
 	if (g_strcmp0(dirname, com.wd) != 0) {	// Tests if the file is in the CWD
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("The current comparison stars file is not located in the CWD"));
+		clear_chosen_file();
 		siril_file_chooser_set_current_folder_path(file_chooser, com.wd);
-		/* GTK4: gtk_file_chooser_unselect_all removed */;
 		g_free(dirname);
 		g_free(nina_file);
 		return;
