@@ -24,6 +24,7 @@
 #include "core/siril.h"
 #include "io/siril_plot.h"
 gboolean create_new_siril_plot_window(gpointer p);
+gboolean create_new_siril_plot_group_window(gpointer p);
 gchar* build_save_filename(gchar *prepend, gchar *ext, gboolean forsequence, gboolean add_time_stamp);
 gboolean save_siril_plot_to_clipboard(siril_plot_data *spl_data, int width, int height);
 
