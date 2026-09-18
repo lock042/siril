@@ -52,7 +52,7 @@ const op_descriptor op_desc_banding = {
 	.flags = 0,
 };
 
-static int BandingEngine(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation, threading_type threading);
+static int BandingEngine(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean vertical, threading_type threading);
 
 /*****************************************************************************
  *      B A N D I N G      A L L O C A T O R   A N D   D E S T R U C T O R  *
@@ -97,7 +97,7 @@ void free_banding_data(void *ptr) {
 int banding_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	struct banding_data *banding_args = (struct banding_data *)args->user;
 	return BandingEngine(fit, banding_args->sigma, banding_args->amount,
-			banding_args->protect_highlights, banding_args->applyRotation, SINGLE_THREADED);
+			banding_args->protect_highlights, banding_args->vertical, SINGLE_THREADED);
 }
 
 /* Hook for single image processing - uses generic_img_args */
@@ -107,7 +107,7 @@ int banding_single_image_hook(struct generic_img_args *args, fits *fit, int nb_t
 		return 1;
 
 	return BandingEngine(fit, params->sigma, params->amount,
-			params->protect_highlights, params->applyRotation, MULTI_THREADED);
+			params->protect_highlights, params->vertical, MULTI_THREADED);
 }
 
 gchar *banding_log_hook(gpointer p, log_hook_detail detail) {
@@ -424,11 +424,11 @@ static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean 
 	return retval;
 }
 
-static int BandingEngine(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation, threading_type threading) {
+static int BandingEngine(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean vertical, threading_type threading) {
 	if (fit->type == DATA_FLOAT)
-		return BandingEngine_float(fit, sigma, amount, protect_highlights, applyRotation, threading);
+		return BandingEngine_float(fit, sigma, amount, protect_highlights, vertical, threading);
 	if (fit->type == DATA_USHORT)
-		return BandingEngine_ushort(fit, sigma, amount, protect_highlights, applyRotation, threading);
+		return BandingEngine_ushort(fit, sigma, amount, protect_highlights, vertical, threading);
 	return -1;
 }
 

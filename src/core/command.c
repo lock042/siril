@@ -8526,13 +8526,13 @@ int process_fixbanding(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
-	gboolean applyRotation = FALSE;
+	gboolean vertical = FALSE;
 	if (nb > 3) {
 		int arg_index = 3;
 		while (arg_index < nb && word[arg_index]) {
 			char *arg = word[arg_index];
 			if (!g_strcmp0(arg, "-vert") || !g_strcmp0(arg, "-vertical")) {
-				applyRotation = TRUE;
+				vertical = TRUE;
 			} else {
 				siril_log_error(_("Unknown parameter %s, aborting.\n"), arg);
 				return CMD_ARG_ERROR;
@@ -8553,7 +8553,7 @@ int process_fixbanding(int nb) {
 	params->protect_highlights = sigma > 0;
 	params->amount = amount;
 	params->sigma = sigma;
-	params->applyRotation = applyRotation;
+	params->vertical = vertical;
 	params->seqEntry = NULL;
 	params->seq = NULL;
 	params->fit = NULL;
@@ -8617,7 +8617,7 @@ int process_seq_fixbanding(int nb) {
 	}
 	// settings default optional values
 	args->protect_highlights = TRUE;
-	args->applyRotation = FALSE;
+	args->vertical = FALSE;
 	args->fit = NULL;
 
 	if (nb > 4) {
@@ -8636,7 +8636,7 @@ int process_seq_fixbanding(int nb) {
 				}
 				args->seqEntry = strdup(value);
 			} else if (!g_strcmp0(arg, "-vertical")) {
-				args->applyRotation = TRUE;
+				args->vertical = TRUE;
 			} else {
 				siril_log_error(_("Unknown parameter %s, aborting.\n"), arg);
 				free((char*) args->seqEntry);

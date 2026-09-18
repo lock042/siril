@@ -89,7 +89,7 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 	amount = gtk_range_get_value(banding_scale_amount);
 	ksigma = gtk_range_get_value(banding_scale_ksigma);
 	protect_highlights = siril_toggle_get_active(GTK_WIDGET(banding_protect_highlights));
-	gboolean applyRotation = siril_toggle_get_active(GTK_WIDGET(banding_vertical));
+	gboolean vertical = siril_toggle_get_active(GTK_WIDGET(banding_vertical));
 
 	set_cursor_waiting(TRUE);
 
@@ -106,7 +106,7 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 		seq_args->protect_highlights = protect_highlights;
 		seq_args->amount = amount;
 		seq_args->sigma = ksigma;
-		seq_args->applyRotation = applyRotation;
+		seq_args->vertical = vertical;
 		seq_args->seq = &com.seq;
 		seq_args->fit = NULL;
 
@@ -123,7 +123,7 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 		params->protect_highlights = protect_highlights;
 		params->amount = amount;
 		params->sigma = ksigma;
-		params->applyRotation = applyRotation;
+		params->vertical = vertical;
 		params->seqEntry = NULL;
 		params->seq = NULL;
 		params->fit = NULL;
