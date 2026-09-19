@@ -60,6 +60,7 @@
 #include "core/siril_update.h"
 #include "core/undo.h"
 #include "io/Astro-TIFF.h"
+#include "io/annotation_catalogues.h"
 #include "io/conversion.h"
 #include "io/image_format_fits.h"
 #include "io/path_parse.h"
@@ -13837,6 +13838,265 @@ static conesearch_params* parse_conesearch_args(int nb) {
 	}
 
 	return params;
+}
+
+// catquery command related structures: a low-profile, headless equivalent of
+// conesearch, querying a catalogue around given coordinates and radius (rather
+// than the loaded image's field) and only ever saving the raw result to a file.
+
+typedef struct {
+	siril_catalogue *siril_cat;
+	gchar *outfilename;
+} catquery_args;
+
+static void free_catquery_args(catquery_args *args) {
+	if (!args)
+		return;
+	siril_catalog_free(args->siril_cat);
+	g_free(args->outfilename);
+	free(args);
+}
+
+static gpointer catquery_worker(gpointer p) {
+	catquery_args *args = (catquery_args *) p;
+	siril_catalogue *siril_cat = args->siril_cat;
+
+	siril_log_message(_("Querying the %s catalogue at RA: %.5f, Dec: %.5f, radius: %.3f deg, limit mag: %.2f\n"),
+			catalog_to_str(siril_cat->cat_index), siril_cat->center_ra, siril_cat->center_dec,
+			siril_cat->radius / 60.0, siril_cat->limitmag);
+
+	int nbstars = siril_catalog_conesearch(siril_cat);
+	if (!nbstars) {
+		siril_log_error(_("Catalogue query failed\n"));
+	} else if (nbstars == -1) {
+		siril_log_message(_("Catalogue query returned no object\n"));
+	} else {
+		siril_log_message(_("%d objects returned by the %s catalogue\n"),
+				siril_cat->nbitems, catalog_to_str(siril_cat->cat_index));
+		if (siril_catalog_write_to_file(siril_cat, args->outfilename))
+			siril_log_message(_("List saved to %s\n"), args->outfilename);
+		else
+			siril_log_error(_("Failed to save list to %s\n"), args->outfilename);
+	}
+
+	free_catquery_args(args);
+	end_generic(NULL);
+	return GINT_TO_POINTER(0);
+}
+
+int process_catquery(int nb) {
+	// catquery [limit_magnitude] [-cat=] [-ra=] [-dec=] [-radius=] [-obscode=] -out=filename
+	gboolean local_gaia = local_gaia_available();
+	siril_cat_index cat = CAT_AUTO;
+	float limit_mag = -1.0f;
+	gboolean have_limit_mag = FALSE;
+	double ra = 0.0, dec = 0.0, radius = 0.0;
+	gboolean have_ra = FALSE, have_dec = FALSE, have_radius = FALSE;
+	gchar *outfilename = NULL;
+	gchar *obscode = com.pref.astrometry.default_obscode ? g_strdup(com.pref.astrometry.default_obscode) : NULL;
+	gboolean default_obscode_used = obscode != NULL;
+
+	int arg_idx = 1;
+	while (arg_idx < nb) {
+		if (g_str_has_prefix(word[arg_idx], "-cat=")) {
+			char *arg = word[arg_idx] + 5;
+			if (!g_strcmp0(arg, "tycho2"))
+				cat = CAT_TYCHO2;
+			else if (!g_strcmp0(arg, "nomad"))
+				cat = CAT_NOMAD;
+			else if (!g_strcmp0(arg, "gaia"))
+				cat = CAT_GAIADR3;
+			else if (!g_strcmp0(arg, "localgaia"))
+				cat = CAT_LOCAL_GAIA_ASTRO;
+			else if (!g_strcmp0(arg, "ppmxl"))
+				cat = CAT_PPMXL;
+			else if (!g_strcmp0(arg, "bsc"))
+				cat = CAT_BSC;
+			else if (!g_strcmp0(arg, "apass"))
+				cat = CAT_APASS;
+			else if (!g_strcmp0(arg, "gcvs"))
+				cat = CAT_GCVS;
+			else if (!g_strcmp0(arg, "vsx"))
+				cat = CAT_VSX;
+			else if (!g_strcmp0(arg, "varisum"))
+				cat = CAT_VARISUM;
+			else if (!g_strcmp0(arg, "simbad"))
+				cat = CAT_SIMBAD;
+			else if (!g_strcmp0(arg, "exo"))
+				cat = CAT_EXOPLANETARCHIVE;
+			else if (!g_strcmp0(arg, "pgc"))
+				cat = CAT_PGC;
+			else if (!g_strcmp0(arg, "aavso_chart"))
+				cat = CAT_AAVSO_CHART;
+			else if (!g_strcmp0(arg, "solsys"))
+				cat = CAT_IMCCE;
+			else {
+				siril_log_error(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				g_free(obscode);
+				g_free(outfilename);
+				return CMD_ARG_ERROR;
+			}
+		} else if (g_str_has_prefix(word[arg_idx], "-obscode=")) {
+			char *arg = word[arg_idx] + 9;
+			if (strlen(arg) != 3) {
+				siril_log_error(_("The observatory should be coded as a 3-letter word\n"));
+				g_free(obscode);
+				g_free(outfilename);
+				return CMD_ARG_ERROR;
+			}
+			g_free(obscode);
+			obscode = g_strdup(arg);
+			default_obscode_used = FALSE;
+		} else if (g_str_has_prefix(word[arg_idx], "-ra=")) {
+			gchar *end;
+			ra = g_ascii_strtod(word[arg_idx] + 4, &end);
+			if (end == word[arg_idx] + 4 || ra < 0.0 || ra >= 360.0) {
+				siril_log_error(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				g_free(obscode);
+				g_free(outfilename);
+				return CMD_ARG_ERROR;
+			}
+			have_ra = TRUE;
+		} else if (g_str_has_prefix(word[arg_idx], "-dec=")) {
+			gchar *end;
+			dec = g_ascii_strtod(word[arg_idx] + 5, &end);
+			if (end == word[arg_idx] + 5 || dec < -90.0 || dec > 90.0) {
+				siril_log_error(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				g_free(obscode);
+				g_free(outfilename);
+				return CMD_ARG_ERROR;
+			}
+			have_dec = TRUE;
+		} else if (g_str_has_prefix(word[arg_idx], "-radius=")) {
+			gchar *end;
+			radius = g_ascii_strtod(word[arg_idx] + 8, &end);
+			if (end == word[arg_idx] + 8 || radius <= 0.0) {
+				siril_log_error(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				g_free(obscode);
+				g_free(outfilename);
+				return CMD_ARG_ERROR;
+			}
+			have_radius = TRUE;
+		} else if (g_str_has_prefix(word[arg_idx], "-out=")) {
+			char *arg = word[arg_idx] + 5;
+			if (arg[0] == '\0') {
+				siril_log_error(_("Missing argument to %s, aborting.\n"), word[arg_idx]);
+				g_free(obscode);
+				g_free(outfilename);
+				return CMD_ARG_ERROR;
+			}
+			g_free(outfilename);
+			outfilename = g_strdup(arg);
+		} else {
+			gchar *end;
+			limit_mag = g_ascii_strtod(word[arg_idx], &end);
+			if (end == word[arg_idx]) {
+				siril_log_error(_("Invalid argument %s, aborting.\n"), word[arg_idx]);
+				g_free(obscode);
+				g_free(outfilename);
+				return CMD_ARG_ERROR;
+			}
+			have_limit_mag = TRUE;
+		}
+		arg_idx++;
+	}
+
+	if (!outfilename)
+		outfilename = g_strdup("cat.csv");
+
+	if (have_ra != have_dec) {
+		siril_log_error(_("-ra= and -dec= must be provided together, aborting.\n"));
+		g_free(obscode);
+		g_free(outfilename);
+		return CMD_ARG_ERROR;
+	}
+
+	gboolean has_image = (single_image_is_loaded() || (sequence_is_loaded() && com.seq.current >= 0))
+			&& gfit->rx > 0 && gfit->ry > 0;
+
+	if (!have_ra && has_image &&
+			(gfit->keywords.wcsdata.ra > DEFAULT_DOUBLE_VALUE || strlen(gfit->keywords.wcsdata.objctra) > 0) &&
+			(gfit->keywords.wcsdata.dec > DEFAULT_DOUBLE_VALUE || strlen(gfit->keywords.wcsdata.objctdec) > 0)) {
+		if (strlen(gfit->keywords.wcsdata.objctra) > 0 && strlen(gfit->keywords.wcsdata.objctdec) > 0) {
+			ra = parse_hms(gfit->keywords.wcsdata.objctra);
+			dec = parse_dms(gfit->keywords.wcsdata.objctdec);
+		} else {
+			ra = gfit->keywords.wcsdata.ra;
+			dec = gfit->keywords.wcsdata.dec;
+		}
+		have_ra = have_dec = TRUE;
+	}
+
+	if (!have_radius && has_image) {
+		double resolution = get_wcs_image_resolution(gfit) * 3600.0; // arcsec/px
+		if (resolution > 0.0) {
+			radius = get_radius_deg(resolution, gfit->rx, gfit->ry);
+			have_radius = TRUE;
+		}
+	}
+
+	if (!have_ra) {
+		siril_log_error(_("No RA/Dec provided and none could be determined from the loaded image, use -ra= and -dec=, aborting.\n"));
+		g_free(obscode);
+		g_free(outfilename);
+		return CMD_ARG_ERROR;
+	}
+	if (!have_radius) {
+		siril_log_error(_("No radius provided and none could be computed from the loaded image (needs a plate solve, or a focal length and pixel size), use -radius=, aborting.\n"));
+		g_free(obscode);
+		g_free(outfilename);
+		return CMD_ARG_ERROR;
+	}
+
+	if (cat == CAT_AUTO)
+		cat = local_gaia ? CAT_LOCAL_GAIA_ASTRO : CAT_NOMAD;
+
+	if (cat == CAT_IMCCE && !(has_image && gfit->keywords.date_obs)) {
+		siril_log_error(_("The solsys catalogue requires observation date information from a loaded image, aborting.\n"));
+		g_free(obscode);
+		g_free(outfilename);
+		return CMD_ARG_ERROR;
+	}
+
+	if (!have_limit_mag)
+		limit_mag = siril_catalog_get_default_limit_mag(cat);
+	else if (limit_mag == -1.0f)
+		limit_mag = (float) compute_mag_limit_from_position_and_fov(ra, dec, radius * 2.0, BRIGHTEST_STARS);
+
+	siril_catalogue *siril_cat = siril_catalog_new(cat);
+	siril_cat->center_ra = ra;
+	siril_cat->center_dec = dec;
+	siril_cat->radius = radius * 60.0; // degrees to arcmin
+	siril_cat->limitmag = limit_mag;
+	if (cat == CAT_IMCCE) {
+		siril_cat->dateobs = gfit->keywords.date_obs;
+		if (obscode) {
+			siril_cat->IAUcode = obscode;
+			obscode = NULL;
+			if (default_obscode_used)
+				siril_log_message(_("Using default observatory code %s\n"), siril_cat->IAUcode);
+		} else {
+			siril_cat->IAUcode = g_strdup("500");
+			siril_log_warning(_("Did not specify an observatory code, using geocentric by default, positions may not be accurate\n"));
+		}
+	}
+	g_free(obscode);
+
+	catquery_args *args = calloc(1, sizeof(catquery_args));
+	if (!args) {
+		siril_catalog_free(siril_cat);
+		g_free(outfilename);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->siril_cat = siril_cat;
+	args->outfilename = outfilename;
+
+	if (!start_in_new_thread(catquery_worker, args)) {
+		free_catquery_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK;
 }
 
 int process_conesearch(int nb) {
