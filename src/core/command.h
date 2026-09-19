@@ -34,6 +34,7 @@ extern char *word[MAX_COMMAND_WORDS];  // NULL terminated
 gboolean image_cfa_warning_check();
 
 int	process_addmax(int nb);
+int	process_addwcs(int nb);
 int	process_autostretch(int nb);
 int	process_autostretch_mask(int nb);
 int	process_autoghs(int nb);

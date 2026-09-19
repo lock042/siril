@@ -12,6 +12,7 @@
 static command commands[] = {
 	/* name, nbarg, usage, function pointer, description, scriptable, requirements */
 	{"addmax", 1, "addmax filename [-mask]", process_addmax, STR_ADDMAX, FALSE, REQ_CMD_SINGLE_IMAGE},
+	{"addwcs", 0, "addwcs [filename [-flip]]", process_addwcs, STR_ADDWCS, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"asinh", 1, "asinh [-human] stretch { [offset] [-clipmode=] } [-mask]", process_asinh, STR_ASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"atrous", 2, "atrous nbr_layers type [c1 c2 c3 ...] [-anscombe] [-denoise] [-bishrink|-threshold] [-soft|-hard] [-perband] [-k=value] [-f1=value ... -f6=value]", process_atrous, STR_ATROUS, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"autoghs", 2, "autoghs [-linked] shadowsclip stretchamount [-b=] [-hp=] [-lp=] [-clipmode=] [-mask]", process_autoghs, STR_AUTOGHS, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},

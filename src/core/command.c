@@ -14561,6 +14561,75 @@ int process_spcc_list(int nb) {
 	return CMD_OK;
 }
 
+int process_addwcs(int nb) {
+	if (nb > 3)
+		return CMD_WRONG_N_ARG;
+
+	if (nb == 1) {
+		if (!has_wcs(gfit)) {
+			siril_log_message(_("Image is not plate solved, nothing to remove\n"));
+			return CMD_OK;
+		}
+		free_wcs(gfit);
+		reset_wcsdata(gfit);
+		refresh_annotations(TRUE);
+		gui_iface.update_menu_state();
+		gui_iface.redraw_image_async(REDRAW_OVERLAY);
+		siril_log_message(_("WCS solution removed\n"));
+		return CMD_OK;
+	}
+
+	char *filename = word[1];
+	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
+		siril_log_error(_("File [%s] does not exist.\n"), filename);
+		return CMD_FILE_NOT_FOUND;
+	}
+
+	gboolean flip = FALSE;
+	if (nb > 2) {
+		if (!g_strcmp0(word[2], "-flip")) {
+			flip = TRUE;
+		} else {
+			siril_log_error(_("Unknown parameter %s, aborting.\n"), word[2]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	fits result = { 0 };
+	if (read_fits_metadata_from_path_first_HDU(filename, &result)) {
+		siril_log_error(_("Could not read the WCS solution from %s\n"), filename);
+		clearfits(&result);
+		return CMD_FILE_NOT_FOUND;
+	}
+	if (!result.keywords.wcslib) {
+		siril_log_error(_("No WCS solution found in %s\n"), filename);
+		clearfits(&result);
+		return CMD_ARG_ERROR;
+	}
+	if (flip) {
+		flip_bottom_up_astrometry_data(&result);
+	}
+
+	free_wcs(gfit);
+	gfit->keywords.wcslib = result.keywords.wcslib;
+	wcsset(gfit->keywords.wcslib);
+	result.keywords.wcslib = NULL;
+	clearfits(&result);
+
+	if (has_wcsdata(gfit))
+		reset_wcsdata(gfit);
+	gfit->keywords.wcsdata.pltsolvd = TRUE;
+	g_snprintf(gfit->keywords.wcsdata.pltsolvd_comment, FLEN_COMMENT, "WCS loaded from file");
+	update_wcsdata_from_wcs(gfit);
+	update_fits_header(gfit);
+	gfit_modified_update_gui();
+	refresh_annotations(TRUE);
+	gui_iface.update_menu_state();
+	gui_iface.redraw_image_async(REDRAW_OVERLAY);
+	siril_log_message(_("WCS solution loaded from %s\n"), filename);
+	return CMD_OK;
+}
+
 int process_disto(int nb) {
 	if (!has_wcs(gfit) || !gfit->keywords.wcslib->lin.dispre) {
 		siril_log_error(_("This command only works on plate solved images with distortions included\n"));
