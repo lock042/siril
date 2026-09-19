@@ -51,6 +51,32 @@ static void convert_to_srgb(fits *fit) {
 	cmsCloseProfile(srgb);
 }
 
+/* crop() replaces the image buffer with a smaller one, give it back the full
+ * frame size so that destfit can be reused for the next frame */
+static int restore_uncropped_size(fits *fit, int rx, int ry) {
+	size_t nbpix = (size_t)rx * ry;
+	int nlayers = fit->naxes[2];
+	gboolean is_float = fit->type == DATA_FLOAT;
+	void *buf = realloc(is_float ? (void *)fit->fdata : (void *)fit->data,
+			nbpix * nlayers * (is_float ? sizeof(float) : sizeof(WORD)));
+	if (!buf) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+	if (is_float)
+		fit->fdata = buf;
+	else fit->data = buf;
+	for (int layer = 0; layer < 3; layer++) {
+		size_t offset = nlayers == 3 ? layer * nbpix : 0;
+		if (is_float)
+			fit->fpdata[layer] = fit->fdata + offset;
+		else fit->pdata[layer] = fit->data + offset;
+	}
+	fit->rx = fit->naxes[0] = rx;
+	fit->ry = fit->naxes[1] = ry;
+	return 0;
+}
+
 /* Used for avi exporter, creates buffer as BGRBGR from ushort FITS */
 static uint8_t *fits_to_uint8(fits *fit) {
 	size_t i, j;
@@ -397,29 +423,15 @@ static gpointer export_sequence(gpointer ptr) {
 		}
 		else {
 			/* we don't have a seq writer or it's not the first frame, we can reuse destfit */
-			if (destfit->type == DATA_FLOAT) {
-				memset(destfit->fdata, 0, nbpix * fit.naxes[2] * sizeof(float));
-				if (args->crop) {
-					/* reset destfit damaged by the crop function */
-					if (fit.naxes[2] == 3) {
-						destfit->fpdata[1] = destfit->fdata + nbpix;
-						destfit->fpdata[2] = destfit->fdata + nbpix * 2;
-					}
-					destfit->rx = destfit->naxes[0] = fit.rx;
-					destfit->ry = destfit->naxes[1] = fit.ry;
-				}
-			} else {
-				memset(destfit->data, 0, nbpix * fit.naxes[2] * sizeof(WORD));
-				if (args->crop) {
-					/* reset destfit damaged by the crop function */
-					if (fit.naxes[2] == 3) {
-						destfit->pdata[1] = destfit->data + nbpix;
-						destfit->pdata[2] = destfit->data + nbpix * 2;
-					}
-					destfit->rx = destfit->naxes[0] = fit.rx;
-					destfit->ry = destfit->naxes[1] = fit.ry;
-				}
+			if (args->crop && restore_uncropped_size(destfit, fit.rx, fit.ry)) {
+				retval = -1;
+				clearfits(&fit);
+				seqwriter_release_memory();
+				goto free_and_reset_progress_bar;
 			}
+			if (destfit->type == DATA_FLOAT)
+				memset(destfit->fdata, 0, nbpix * fit.naxes[2] * sizeof(float));
+			else memset(destfit->data, 0, nbpix * fit.naxes[2] * sizeof(WORD));
 		}
 
 		// Copy the ICC profile from fit if available
