@@ -745,19 +745,13 @@ int save_wcs_keywords(fits *fit) {
 	}
 	status = 0;
 
-	if (fit->keywords.wcslib) {
+if (fit->keywords.wcslib) {
 		gboolean has_sip = fit->keywords.wcslib->lin.dispre != NULL; // we don't handle the disseq terms for now
-		if (!has_sip) {// no distortions
-			fits_update_key(fit->fptr, TSTRING, "CTYPE1", "RA---TAN", "TAN (gnomic) projection", &status);
-			status = 0;
-			fits_update_key(fit->fptr, TSTRING, "CTYPE2", "DEC--TAN", "TAN (gnomic) projection", &status);
-			status = 0;
-		} else {
-			fits_update_key(fit->fptr, TSTRING, "CTYPE1", "RA---TAN-SIP", "TAN (gnomic) projection + SIP distortions", &status);
-			status = 0;
-			fits_update_key(fit->fptr, TSTRING, "CTYPE2", "DEC--TAN-SIP", "TAN (gnomic) projection + SIP distortions", &status);
-			status = 0;
-		}
+		fits_update_key(fit->fptr, TSTRING, "CTYPE1", fit->keywords.wcslib->ctype[0],
+						has_sip ? "WCS projection + SIP distortions" : "WCS projection", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TSTRING, "CTYPE2", fit->keywords.wcslib->ctype[1],
+						has_sip ? "WCS projection + SIP distortions" : "WCS projection", &status);
 		status = 0;
 		fits_update_key(fit->fptr, TSTRING, "CUNIT1", "deg","Unit of coordinates", &status);
 		status = 0;
