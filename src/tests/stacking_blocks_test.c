@@ -76,6 +76,8 @@ int check_that_blocks_cover_the_image(const long naxes[3], struct _image_block *
  *  10     3      not enough for 2      8
  *  11     3      not enough for 1      8
  *  12     3      not enough for 2     12
+ *  13     1      enough (16 rows)     22
+ *  14     3      enough (5 rows)      22
  *
  */
 
@@ -342,6 +344,35 @@ int test12() {
 	return 0;
 }
 
+static int check_small_image(long naxes[3], int nb_threads, int test_nb) {
+	long max_rows = 1000000L;
+	struct _image_block *blocks = NULL;
+	int retval, nb_blocks = -1;
+	long largest_block = -1;
+
+	/* fewer rows than threads: unused candidate blocks must not be returned */
+	retval = stack_compute_parallel_blocks(&blocks, max_rows, naxes, nb_threads, &largest_block, &nb_blocks);
+	CHECK(!retval, "retval indicates function failed\n");
+	CHECK(blocks, "blocks is null\n");
+	CHECK(nb_blocks <= naxes[1] * naxes[2], "number of blocks returned is %d (expected at most %ld)\n", nb_blocks, naxes[1] * naxes[2]);
+	for (int i = 0; i < nb_blocks; i++)
+		CHECK(blocks[i].height > 0, "block %d is empty\n", i);
+	CHECK(check_that_blocks_cover_the_image(naxes, blocks, nb_blocks), "blocks don't cover the whole image\n");
+	free(blocks);
+	fprintf(stdout, "* test %d passed *\n", test_nb);
+	return 0;
+}
+
+int test13() {
+	long naxes[] = { 256L, 16L, 1L };
+	return check_small_image(naxes, 22, 13);
+}
+
+int test14() {
+	long naxes[] = { 256L, 5L, 3L };
+	return check_small_image(naxes, 22, 14);
+}
+
 #ifdef WITH_MAIN
 int main() {
 	int retval = 0;
@@ -357,6 +388,8 @@ int main() {
 	retval |= test10();
 	retval |= test11();
 	retval |= test12();
+	retval |= test13();
+	retval |= test14();
 	if (retval)
 		fprintf(stderr, "TESTS FAILED\n");
 	else fprintf(stderr, "ALL TESTS PASSED\n");
@@ -376,5 +409,7 @@ Test(stacking_blocks, test9) { cr_assert(!test9()); }
 Test(stacking_blocks, test10) { cr_assert(!test10()); }
 Test(stacking_blocks, test11) { cr_assert(!test11()); }
 Test(stacking_blocks, test12) { cr_assert(!test12()); }
+Test(stacking_blocks, test13) { cr_assert(!test13()); }
+Test(stacking_blocks, test14) { cr_assert(!test14()); }
 
 #endif
