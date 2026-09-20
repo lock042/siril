@@ -68,40 +68,19 @@ static float calculate_critical_value(int size, float alpha) {
 	return numerator / denominator;
 }
 
-static float ESD_test(float *stack, int size, float alpha, int max_outliers) {
-	struct ESD_outliers *out = malloc(max_outliers * sizeof(struct ESD_outliers));
-
+static float ESD_test(float *stack, int size, float alpha, int max_outliers,
+		struct ESD_outliers *out, int count[2]) {
 	quicksort_f(stack, size);
 	double median = gsl_stats_float_median_from_sorted_data(stack, 1, size);
 	float *w_stack = duplicate(stack, size);
 	int *rejected = calloc(size, sizeof(int));
-	int w_size = size;
-	int cold = 0;
+	float *critical_value = malloc(max_outliers * sizeof(float));
+	for (int iter = 0; iter < max_outliers; iter++)
+		critical_value[iter] = calculate_critical_value(size - iter, alpha);
 
-	for (int iter = 0; iter < max_outliers; iter++) {
-		float Gstat, Gcritical;
-		int max_index = 0;
-
-		Gcritical = calculate_critical_value(w_size, alpha);
-		grubbs_stat(w_stack, w_size, &Gstat, &max_index);
-		out[iter].out = check_G_values(Gstat, Gcritical);
-		out[iter].x = w_stack[max_index];
-		out[iter].i = (max_index == 0) ? cold++ : max_index;
-		remove_element(w_stack, max_index, w_size);
-		w_size--;
-	}
-	int count[2] = { 0, 0 };
+	find_ESD_candidates(w_stack, size, max_outliers, critical_value, out);
 	confirm_outliers(out, max_outliers, median, rejected, count);
 	//print_outliers(out, max_outliers);
-
-	cr_expect_eq(count[0], 2);
-	cr_expect_eq(count[1], 3);
-
-	cr_expect_float_eq(out[0].x, 440.0f, 1e-6);
-	cr_expect_float_eq(out[1].x, 410.0f, 1e-6);
-	cr_expect_float_eq(out[2].x, 350.0f, 1e-6);
-	cr_expect_float_eq(out[3].x, 3.000f, 1e-6);
-	cr_expect_float_eq(out[4].x, 40.00f, 1e-6);
 
 	int kept = 0;
 	double sum = 0.0;
@@ -112,15 +91,52 @@ static float ESD_test(float *stack, int size, float alpha, int max_outliers) {
 		}
 		//else printf("rejected %f\n", stack[frame]);
 	}
+	free(w_stack);
+	free(rejected);
+	free(critical_value);
 	return sum / kept;
 }
 
 void test_GESDT_float() {
-	float mean = ESD_test(set1, G_N_ELEMENTS(set1), 0.05, 7);
+	struct ESD_outliers out[7];
+	int count[2] = { 0, 0 };
+	float mean = ESD_test(set1, G_N_ELEMENTS(set1), 0.05, 7, out, count);
+	cr_expect_eq(count[0], 2);
+	cr_expect_eq(count[1], 3);
+
+	cr_expect_float_eq(out[0].x, 440.0f, 1e-6);
+	cr_expect_float_eq(out[1].x, 410.0f, 1e-6);
+	cr_expect_float_eq(out[2].x, 350.0f, 1e-6);
+	cr_expect_float_eq(out[3].x, 3.000f, 1e-6);
+	cr_expect_float_eq(out[4].x, 40.00f, 1e-6);
 	cr_expect_float_eq(mean, 167.352936, 1e-6);
 }
 
+/* evenly spaced values contain no outlier (#1993) */
+void test_GESDT_no_outlier() {
+	float set[] = { 0.40f, 0.41f, 0.42f, 0.43f, 0.44f, 0.45f, 0.46f, 0.47f, 0.48f, 0.49f };
+	struct ESD_outliers out[3];
+	int count[2] = { 0, 0 };
+	float mean = ESD_test(set, G_N_ELEMENTS(set), 0.05, 3, out, count);
+	cr_expect_eq(count[0], 0);
+	cr_expect_eq(count[1], 0);
+	cr_expect_float_eq(mean, 0.445f, 1e-6);
+}
+
+/* a high outlier found after a low one must be rejected, not its neighbour (#1993) */
+void test_GESDT_low_then_high() {
+	float set[] = { 0.05f, 0.500f, 0.501f, 0.502f, 0.503f, 0.504f, 0.505f, 0.506f, 0.507f, 0.70f };
+	struct ESD_outliers out[3];
+	int count[2] = { 0, 0 };
+	float mean = ESD_test(set, G_N_ELEMENTS(set), 0.05, 3, out, count);
+	cr_expect_eq(count[0], 1);
+	cr_expect_eq(count[1], 1);
+	cr_expect_float_eq(mean, 0.5035f, 1e-6);
+}
+
 Test(rejection, GESDT) { test_GESDT_float(); }
+Test(rejection, GESDT_no_outlier) { test_GESDT_no_outlier(); }
+Test(rejection, GESDT_low_then_high) { test_GESDT_low_then_high(); }
 
 /* NO_REJEC, PERCENTILE, SIGMA, MAD, SIGMEDIAN, WINSORIZED, LINEARFIT, GESDT */
 

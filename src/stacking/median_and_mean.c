@@ -303,8 +303,7 @@ int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_numb
 	*nb_blocks = candidate;
 	long height_of_blocks = naxes[1] * naxes[2] / candidate;
 	int remainder = naxes[1] % (candidate / naxes[2]);
-	siril_log_message(_("We have %d parallel blocks of size %d (+%d) for stacking.\n"),
-			*nb_blocks, height_of_blocks, remainder);
+	int first_remainder = remainder;
 
 	*largest_block_height = 0;
 	long channel = 0, row = 0, j = 0;
@@ -350,6 +349,11 @@ int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_numb
 		j++;
 
 	} while (channel < naxes[2]) ;
+
+	/* images with fewer rows than candidate blocks leave some unused */
+	*nb_blocks = j;
+	siril_log_message(_("We have %d parallel blocks of size %d (+%d) for stacking.\n"),
+			*nb_blocks, height_of_blocks, first_remainder);
 
 	return ST_OK;
 }
@@ -684,7 +688,8 @@ int check_G_values(float Gs, float Gc) {
 void confirm_outliers(struct ESD_outliers *out, int N, double median, int *rejected, int rej[2]) {
 	int i = N - 1;
 
-	while (i > 1 && !out[i].out) {
+	/* number of outliers is the largest i for which R_i > lambda_i, or none */
+	while (i >= 0 && !out[i].out) {
 		i--;
 	}
 	for (int j = i; j >= 0; j--) {
@@ -929,7 +934,8 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 				grubbs_stat(w_stack, size, &Gstat, &max_index);
 				out[iter].out = check_G_values(Gstat, args->critical_value[iter + removed]);
 				out[iter].x = w_stack[max_index];
-				out[iter].i = (max_index == 0) ? cold++ : max_index;
+				/* w_stack has lost the cold values already removed from its head */
+				out[iter].i = (max_index == 0) ? cold++ : max_index + cold;
 				remove_element(w_stack, max_index, size);
 			}
 			confirm_outliers(out, max_outliers, median, rejected, rej);
@@ -1389,9 +1395,19 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			bufferSize += ielem_size * nb_frames; // for w_frame
 		} else if (args->type_of_rejection == GESDT) {
 			bufferSize += ielem_size * nb_frames; // for w_frame
-			bufferSize += sizeof(float) * (int) floor(nb_frames * args->sig[0]); //and GCritical
 		} else if (args->type_of_rejection == LINEARFIT) {
 			bufferSize += 2 * sizeof(float) * nb_frames; // for xc and yc
+		}
+	}
+	if (is_mean && args->type_of_rejection == GESDT) {
+		/* critical values are shared by all threads */
+		int max_outliers = (int) floor(nb_frames * args->sig[0]);
+		args->critical_value = malloc(max_outliers * sizeof(float));
+		for (int j = 0, size = nb_frames; j < max_outliers; j++, size--) {
+			float t_dist = gsl_cdf_tdist_Pinv(1 - args->sig[1] / (2 * size), size - 2);
+			float numerator = (size - 1) * t_dist;
+			float denominator = sqrtf(size) * sqrtf(size - 2 + (t_dist * t_dist));
+			args->critical_value[j] = numerator / denominator;
 		}
 	}
 	for (i = 0; i < pool_size; i++) {
@@ -1445,14 +1461,6 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 				data_pool[i].w_stack = (void*)((char*)data_pool[i].o_stack + ielem_size * nb_frames);
 			} else if (args->type_of_rejection == GESDT) {
 				data_pool[i].w_stack = (void*)((char*)data_pool[i].o_stack + ielem_size * nb_frames);
-				int max_outliers = (int) floor(nb_frames * args->sig[0]);
-				args->critical_value = malloc(max_outliers * sizeof(float)); // why do we malloc here? space has already been booked in tmp
-				for (int j = 0, size = nb_frames; j < max_outliers; j++, size--) {
-					float t_dist = gsl_cdf_tdist_Pinv(1 - args->sig[1] / (2 * size), size - 2);
-					float numerator = (size - 1) * t_dist;
-					float denominator = sqrtf(size) * sqrtf(size - 2 + (t_dist * t_dist));
-					args->critical_value[j] = numerator / denominator;
-				}
 			} else if (args->type_of_rejection == LINEARFIT) {
 				data_pool[i].xf = (float (*)) ((char*)data_pool[i].o_stack + ielem_size * nb_frames);
 				data_pool[i].yf = data_pool[i].xf + nb_frames;

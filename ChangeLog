@@ -10,6 +10,9 @@ xx/xx/xx
 * Fixed an invalid EQUINOX value written in the FITS header when the astrometric solution came from a solver that does not write an EQUINOX card (#1979)
 * Fixed FITS extension truncation (e.g., .fit.) causing corrupted filenames like foo.fit..fit..fz; invalid extensions are now rejected (#1984)
 * Fixed garbage characters in the save dialog file name when a sequence is loaded and the displayed image is not one of its frames (#1980)
+* Fixed GESDT rejection always rejecting the two most extreme samples of each pixel whatever the significance, and rejecting the neighbour of a high outlier instead of the outlier itself when a low outlier had been found first (#1993)
+* Fixed the `stack` command refusing rejection parameters written in scientific notation, such as 1e-8 (#1993)
+* Fixed stacking of images having fewer rows than threads, which processed uninitialized blocks (#1993)
 
 **Improvements**
 * Allowed editing FITS keywords of a whole sequence from the UI
