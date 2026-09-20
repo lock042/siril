@@ -187,7 +187,6 @@ static gboolean on_siril_plot_window_closed(GtkWidget *widget, GdkEvent *event, 
 	for (GList *l = menu_list; l; l = l->next)
 		gtk_widget_unparent(GTK_WIDGET(l->data));
 	g_list_free(menu_list);
-	g_list_free((GList *)g_object_get_data(G_OBJECT(widget), "da_list")); // widgets go with the window
 	gtk_window_destroy(GTK_WINDOW(widget));
 	return TRUE;
 }
@@ -724,7 +723,7 @@ static void on_export_snapshot_clicked(GtkWidget *button, gpointer user_data) {
 	if (!report)
 		return;
 	control_window_switch_to_tab(OUTPUT_LOGS);
-	gchar *filename = build_save_filename("plots", ".png", FALSE, TRUE);
+	gchar *filename = build_save_filename("report", ".png", FALSE, TRUE);
 	gchar *outname = save_siril_plot_dialog(window, filename, _("PNG files (*.png)"), "*.png");
 	if (outname) {
 		if (snapshot_widget_to_png(report, outname))
@@ -736,88 +735,19 @@ static void on_export_snapshot_clicked(GtkWidget *button, gpointer user_data) {
 	g_free(outname);
 }
 
-// two panes of a group may share a savename, and the timestamp only goes down
-// to the second: make sure a plot never overwrites the one saved just before
-static gchar *unique_plot_path(const gchar *folder, const gchar *name) {
-	gchar *path = g_build_filename(folder, name, NULL);
-	if (!g_file_test(path, G_FILE_TEST_EXISTS))
-		return path;
-	gchar *base = g_strdup(name);
-	gchar *dot = g_strrstr(base, ".");
-	gchar *ext = g_strdup((dot) ? dot : "");
-	if (dot)
-		*dot = '\0';
-	for (int i = 2; i < 100; i++) {
-		g_free(path);
-		gchar *candidate = g_strdup_printf("%s_%d%s", base, i, ext);
-		path = g_build_filename(folder, candidate, NULL);
-		g_free(candidate);
-		if (!g_file_test(path, G_FILE_TEST_EXISTS))
-			break;
-	}
-	g_free(base);
-	g_free(ext);
-	return path;
-}
-
-// saves every pane of the window as a png in a folder chosen by the user
-static void on_save_plots_clicked(GtkButton *button, gpointer user_data) {
-	(void)button;
-	GtkWindow *window = GTK_WINDOW(user_data);
-	GList *das = (GList *)g_object_get_data(G_OBJECT(window), "da_list");
-	if (!das)
-		return;
-
-	SirilFileChooser *fc = siril_fc_open(window, GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER);
-	siril_fc_set_current_folder_path(fc, com.wd);
-	gchar *folder = NULL;
-	if (siril_fc_run(fc) == GTK_RESPONSE_ACCEPT)
-		folder = siril_fc_get_filename(fc);
-	siril_fc_destroy(fc);
-	if (!folder)
-		return;
-
-	control_window_switch_to_tab(OUTPUT_LOGS);
-	int saved = 0;
-	for (GList *l = das; l; l = l->next) {
-		GtkWidget *da = (GtkWidget *)l->data;
-		siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(da), "spl_data");
-		if (!spl_data)
-			continue;
-		gchar *name = build_save_filename((spl_data->savename) ? spl_data->savename : "plot",
-				".png", spl_data->forsequence, TRUE);
-		gchar *path = unique_plot_path(folder, name);
-		if (siril_plot_save_png(spl_data, path, gtk_widget_get_width(da), gtk_widget_get_height(da)))
-			saved++;
-		g_free(name);
-		g_free(path);
-	}
-	siril_log_message(_("%d plot(s) saved in %s\n"), saved, folder);
-	g_free(folder);
-}
-
-// the bar at the bottom of every siril-plot window
+/* The bar at the bottom of a window holding more than one plot: it offers the
+ * only export the per-plot menus cannot give, the whole report (summary,
+ * tiles and every plot) as one image. A window showing a single plot does
+ * without it, everything it could offer being in that plot's own menu. */
 static GtkWidget *build_action_bar(GtkWidget *window) {
 	GtkWidget *bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
 	gtk_widget_add_css_class(bar, "siril-plot-actionbar");
+	gtk_widget_set_halign(bar, GTK_ALIGN_END);
 
-	// exports the summary and every plot as one image, as displayed
-	GtkWidget *export = gtk_button_new_with_label(_("Export PNG"));
+	GtkWidget *export = gtk_button_new_with_label(_("Save report…"));
 	gtk_widget_set_tooltip_text(export, _("Save the whole window as a PNG image"));
 	g_signal_connect(export, "clicked", G_CALLBACK(on_export_snapshot_clicked), window);
 	gtk_box_append(GTK_BOX(bar), export);
-
-	GtkWidget *spacer = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-	gtk_widget_set_hexpand(spacer, TRUE);
-	gtk_box_append(GTK_BOX(bar), spacer);
-
-	GtkWidget *save = gtk_button_new_with_label(_("Save plots"));
-	g_signal_connect(save, "clicked", G_CALLBACK(on_save_plots_clicked), window);
-	gtk_box_append(GTK_BOX(bar), save);
-
-	GtkWidget *close = gtk_button_new_with_label(_("Close"));
-	g_signal_connect_swapped(close, "clicked", G_CALLBACK(gtk_window_close), window);
-	gtk_box_append(GTK_BOX(bar), close);
 	return bar;
 }
 
@@ -923,10 +853,6 @@ static GtkWidget *build_siril_plot_pane(GtkWidget *window, siril_plot_data *spl_
 
 	// attach the spl_data to its own drawing area, so several panes can coexist in one window
 	g_object_set_data(G_OBJECT(da), "spl_data", spl_data);
-	// the window keeps its panes in order, for "save plots" and the reports
-	GList *da_list = (GList *)g_object_get_data(G_OBJECT(window), "da_list");
-	da_list = g_list_append(da_list, da);
-	g_object_set_data(G_OBJECT(window), "da_list", da_list);
 
 	gtk_box_append(GTK_BOX(vbox), build_pane_header(spl_data, da, vbox, with_caption, with_expand));
 	gtk_box_append(GTK_BOX(vbox), da);
@@ -1067,9 +993,6 @@ gboolean create_new_siril_plot_window(gpointer p) {
 	GtkWidget *content = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
 	GtkWidget *pane = build_siril_plot_pane(window, spl_data, TRUE, FALSE);
 	gtk_box_append(GTK_BOX(content), pane);
-	// what the snapshot export captures: everything but the action bar
-	g_object_set_data(G_OBJECT(window), "report_widget", pane);
-	gtk_box_append(GTK_BOX(content), build_action_bar(window));
 	set_siril_plot_window_content(window, content);
 
 	gtk_window_present(GTK_WINDOW(window));
@@ -1168,7 +1091,9 @@ gboolean create_new_siril_plot_group_window(gpointer p) {
 	grp->tiles = NULL;
 	gtk_box_append(GTK_BOX(report), scroller);
 	gtk_box_append(GTK_BOX(content), report);
-	gtk_box_append(GTK_BOX(content), build_action_bar(window));
+	// a lone plot without a summary has nothing to report that its own menu misses
+	if (multi || tiles)
+		gtk_box_append(GTK_BOX(content), build_action_bar(window));
 	set_siril_plot_window_content(window, content);
 
 	// what the snapshot export captures
