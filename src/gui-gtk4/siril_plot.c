@@ -845,7 +845,7 @@ static GtkWidget *build_siril_plot_pane(GtkWidget *window, siril_plot_data *spl_
 	// add the drawing area
 	da = gtk_drawing_area_new();
 	int width = (!spl_data->width) ? SIRIL_PLOT_DISPLAY_WIDTH : spl_data->width;
-	int height = (!spl_data->height) ? SIRIL_PLOT_DISPLAY_WIDTH : spl_data->height;
+	int height = (!spl_data->height) ? SIRIL_PLOT_DISPLAY_HEIGHT : spl_data->height;
 	gtk_widget_set_size_request(da, width, height);
 	gtk_widget_set_hexpand(da, TRUE);
 	gtk_widget_set_vexpand(da, TRUE);
@@ -1048,7 +1048,7 @@ gboolean create_new_siril_plot_group_window(gpointer p) {
 	}
 
 	GtkWidget *scroller = gtk_scrolled_window_new();
-	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroller), GTK_POLICY_AUTOMATIC, GTK_POLICY_NEVER);
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroller), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_widget_set_hexpand(scroller, TRUE);
 	gtk_widget_set_vexpand(scroller, TRUE);
 	/* A GtkScrolledWindow normally reports a small minimum/natural size of
