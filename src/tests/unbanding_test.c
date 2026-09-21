@@ -25,6 +25,7 @@
 #include "core/processing_thread.h"
 #include "core/processing.h"
 #include "filters/banding.h"
+#include "filters/cosmetic_correction.h"
 #include "core/op_descriptors.h"
 #include "algos/statistics.h"
 #include "download_files.h"
@@ -66,7 +67,6 @@ void test_banding_ushort() {
 	processing_system_init();
 	fits fit = {0};
 	gchar *file_path = check_or_download_test_file("banding_example.fit");
-	// this image could also be used to test cosmetic correction for column 750
 	cr_assert(file_path);
 	cr_assert(readfits(file_path, &fit, NULL, FALSE) == 0);
 	g_free(file_path);
@@ -120,7 +120,39 @@ void test_banding_float() {
 	clearfits(&fit);
 }
 
+void test_dead_column_cosmetic_correction() {
+	initialize_default_settings();
+	processing_system_init();
+	fits fit = {0};
+	gchar *file_path = check_or_download_test_file("banding_example.fit");
+	cr_assert(file_path);
+	cr_assert(readfits(file_path, &fit, NULL, TRUE) == 0);
+	g_free(file_path);
+
+	GFileIOStream *stream;
+	GFile *file = g_file_new_tmp("cosme_XXXXXX.lst", &stream, NULL);
+	cr_assert(file);
+	const gchar *lst = "C 750 0\n";
+	cr_assert(g_output_stream_write(g_io_stream_get_output_stream(G_IO_STREAM(stream)), lst, strlen(lst), NULL, NULL) > 0);
+	cr_assert(g_io_stream_close(G_IO_STREAM(stream), NULL, NULL));
+
+	imstats *stats = statistics(NULL, -1, &fit, 0, NULL, STATS_BASIC, MULTI_THREADED);
+	double original_sigma = stats->sigma;
+	double original_mean = stats->mean;
+	free_stats(stats);
+
+	cr_assert(!apply_cosme_to_image(&fit, file, FALSE));
+
+	stats = statistics(NULL, -1, &fit, 0, NULL, STATS_BASIC, MULTI_THREADED);
+	cr_assert(stats->sigma < original_sigma);
+	cr_assert(stats->mean > original_mean);
+	free_stats(stats);
+	g_object_unref(file);
+	clearfits(&fit);
+}
 
 TestSuite(banding, .init = init_download);
 Test(banding, remove_ushort) { test_banding_ushort(); }
 Test(banding, remove_float) { test_banding_float(); }
+TestSuite(cosme, .init = init_download);
+Test(cosme, remove_column) { test_dead_column_cosmetic_correction(); }
