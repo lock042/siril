@@ -8600,8 +8600,8 @@ int process_seq_fixbanding(int nb) {
 	}
 	args->seq = seq;
 	args->amount = g_ascii_strtod(word[2], &end1);
-	if (end1 == word[2] || args->amount < 0 || args->amount > 4) {
-		siril_log_message(_("Amount value must be in the [0, 4] range.\n"));
+	if (end1 == word[2] || args->amount <= 0 || args->amount > 4) {
+		siril_log_message(_("Amount value must be in the ]0, 4] range.\n"));
 		if (!check_seq_is_comseq(args->seq))
 			free_sequence(args->seq, TRUE);
 		free(args);
@@ -8616,9 +8616,9 @@ int process_seq_fixbanding(int nb) {
 		return CMD_ARG_ERROR;
 	}
 	// settings default optional values
-	args->protect_highlights = TRUE;
 	args->vertical = FALSE;
 	args->fit = NULL;
+	args->protect_highlights = args->sigma > 0;
 
 	if (nb > 4) {
 		int arg_index = 4;
@@ -8635,7 +8635,7 @@ int process_seq_fixbanding(int nb) {
 					return CMD_ARG_ERROR;
 				}
 				args->seqEntry = strdup(value);
-			} else if (!g_strcmp0(arg, "-vertical")) {
+			} else if (!g_strcmp0(arg, "-vert") || !g_strcmp0(arg, "-vertical")) {
 				args->vertical = TRUE;
 			} else {
 				siril_log_error(_("Unknown parameter %s, aborting.\n"), arg);

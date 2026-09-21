@@ -218,7 +218,7 @@ static command commands[] = {
 	{"seqfind_cosme", 3, "seqfind_cosme sequencename cold_sigma hot_sigma [-prefix=]", process_findcosme, STR_SEQFIND_COSME CMD_CAT(FIND_COSME) STR_FIND_COSME, TRUE, REQ_CMD_NONE},
 	{"seqfind_cosme_cfa", 3, "seqfind_cosme_cfa sequencename cold_sigma hot_sigma [-prefix=]", process_findcosme, STR_SEQFIND_COSME_CFA CMD_CAT(FIND_COSME_CFA) STR_FIND_COSME_CFA, TRUE, REQ_CMD_NONE},
 	{"seqfindstar", 1, "seqfindstar sequencename [-layer=] [-maxstars=]", process_seq_findstar, STR_SEQFINDSTAR CMD_CAT(FINDSTAR) STR_FINDSTAR, TRUE, REQ_CMD_NONE},
-	{"seqfixbanding", 3, "seqfixbanding sequencename amount sigma [-prefix=] [-vertical]", process_seq_fixbanding, STR_SEQFIXBANDING CMD_CAT(FIXBANDING) STR_FIXBANDING, TRUE, REQ_CMD_NONE},
+	{"seqfixbanding", 3, "seqfixbanding sequencename amount sigma [-prefix=] [-vert[ical]]", process_seq_fixbanding, STR_SEQFIXBANDING CMD_CAT(FIXBANDING) STR_FIXBANDING, TRUE, REQ_CMD_NONE},
 	{"seqght", 2, "seqght sequence -D= [-B=] [-LP=] [-SP=] [-HP=] [-clipmode=] [-human | -even | -independent | -sat] [channels] [-prefix=]", process_seq_ght, STR_SEQGHT CMD_CAT(GHT) STR_GHT, TRUE, REQ_CMD_NONE},
 	{"seqgps", 1, "seqgps sequencename [-crop=]", process_seq_gps_extract, STR_SEQGPS, TRUE, REQ_CMD_NO_THREAD},
 	{"seqheader", 2, "seqheader sequencename keyword [keyword2 ...] [-sel] [-out=file.csv]", process_seq_header, STR_SEQHEADER, TRUE, REQ_CMD_NONE},
