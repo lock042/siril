@@ -769,7 +769,11 @@ static GtkWidget *create_siril_plot_window_shell(const gchar *title) {
 	 * used to repaint the window controls and fight the theme on hover. */
 	siril_register_css_for_display("siril-plot-window",
 		"window.siril-plot { background: #f2f2f4; }"
-		".siril-plot-content { color: #303030; background: #f2f2f4; font-size: 12px; }"
+		/* The breathing room around the content is padding, not a margin on
+		 * the window: a margin sits outside the window's CSS box, so the band
+		 * it leaves is never painted and shows through as transparent edges
+		 * under client-side decorations (macOS, Wayland). */
+		".siril-plot-content { color: #303030; background: #f2f2f4; font-size: 12px; padding: 5px; }"
 		".siril-plot-content label.siril-plot-caption { font-size: 13pt; font-weight: bold; color: #303030; }"
 		".siril-plot-content .siril-plot-card,"
 		".siril-plot-content .siril-plot-tile { background: white; border: 1px solid #dcdcdc; border-radius: 8px; padding: 8px; }"
@@ -800,7 +804,6 @@ static GtkWidget *create_siril_plot_window_shell(const gchar *title) {
 	// connect the delete-event signal, triggered when the window is closed
 	// the callback frees every spl_data displayed in the window
 	g_signal_connect(G_OBJECT(window), "close-request", G_CALLBACK(on_siril_plot_window_closed), NULL);
-	gtk_widget_set_margin_start(GTK_WIDGET(window), 5); gtk_widget_set_margin_end(GTK_WIDGET(window), 5); gtk_widget_set_margin_top(GTK_WIDGET(window), 5); gtk_widget_set_margin_bottom(GTK_WIDGET(window), 5);
 	return window;
 }
 
