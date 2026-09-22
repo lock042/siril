@@ -372,7 +372,7 @@ static AVFrame *get_video_frame(struct mp4_struct *ost, fits *input_image)
 	if (c->pix_fmt != AV_PIX_FMT_RGB24) {
 		if (input_image->rx != ost->src_w || input_image->ry != ost->src_h ||
 				src_format != ost->tmp_frame->format) {
-			siril_log_error(_("Image does not match the film input format\n"));
+			siril_log_color_message(_("Image does not match the film input format\n"), "red");
 			return NULL;
 		}
 		if (!ost->sws_ctx) {
