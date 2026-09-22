@@ -69,6 +69,7 @@ xx/xx/xx
 * Fixed GESDT rejection always rejecting the two most extreme samples of each pixel whatever the significance, and rejecting the neighbour of a high outlier instead of the outlier itself when a low outlier had been found first (#1993)
 * Fixed the `stack` command refusing rejection parameters written in scientific notation, such as 1e-8 (#1993)
 * Fixed stacking of images having fewer rows than threads, which processed uninitialized blocks (#1993)
+* Fixed crash when exporting monochrome sequence as mp4 (#1992)
 
 **Improvements**
 * Allowed editing FITS keywords of a whole sequence from the UI
