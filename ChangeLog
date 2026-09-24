@@ -14,6 +14,7 @@ xx/xx/xx
 * Fixed the `stack` command refusing rejection parameters written in scientific notation, such as 1e-8 (#1993)
 * Fixed stacking of images having fewer rows than threads, which processed uninitialized blocks (#1993)
 * Fixed crash when exporting monochrome sequence as mp4 (#1992)
+* Fixed a selection dragged past the right or bottom edge of the image losing its last column and row, which made the crop one pixel smaller than expected (#1996)
 
 **Improvements**
 * Allowed editing FITS keywords of a whole sequence from the UI
