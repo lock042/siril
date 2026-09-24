@@ -338,7 +338,7 @@ gboolean is_inside_of_sel(pointi zoomed, double zoom) {
 	return FALSE;
 }
 
-/* Clamp given coordinates to image boundaries.
+/* Clamp given coordinates to [0, rx] x [0, ry] (selection ends are exclusive).
    Returns true if point was inside, false otherwise.
 */
 static gboolean clamp2image(pointi* pt) {
@@ -346,7 +346,7 @@ static gboolean clamp2image(pointi* pt) {
 	if (pt->x < 0) {
 		pt->x = 0;
 	} else if (pt->x > gfit->rx) {
-		pt->x = gfit->rx - 1;
+		pt->x = gfit->rx;
 	} else {
 		x_inside = pt->x < gfit->rx;
 	}
@@ -355,7 +355,7 @@ static gboolean clamp2image(pointi* pt) {
 	if (pt->y < 0) {
 		pt->y = 0;
 	} else if (pt->y > gfit->ry) {
-		pt->y = gfit->ry - 1;
+		pt->y = gfit->ry;
 	} else {
 		y_inside = pt->y < gfit->ry;
 	}
@@ -427,8 +427,9 @@ void enforce_ratio_and_clamp() {
 	}
 
 	// clamp the selection inside the image (needed when enforcing a ratio or moving)
-	com.selection.x = set_int_in_interval(com.selection.x, 0, gfit->rx - com.selection.w);
-	com.selection.y = set_int_in_interval(com.selection.y, 0, gfit->ry - com.selection.h);
+	// keep the origin inside the image even when a side is empty
+	com.selection.x = set_int_in_interval(com.selection.x, 0, gfit->rx - max(com.selection.w, 1));
+	com.selection.y = set_int_in_interval(com.selection.y, 0, gfit->ry - max(com.selection.h, 1));
 
 	// If the image is CFA ensure the selection is aligned to a Bayer repeat
 	// This ensures CFA statistics (for Bayer patterns) will be valid
@@ -461,6 +462,9 @@ void enforce_ratio_and_clamp() {
 			com.selection.w = 2;
 		if (com.selection.h < 2)
 			com.selection.h = 2;
+		// the rounding above can grow the selection past the image edge
+		com.selection.x = set_int_in_interval(com.selection.x, 0, ((int) gfit->rx - com.selection.w) & ~1);
+		com.selection.y = set_int_in_interval(com.selection.y, 0, ((int) gfit->ry - com.selection.h) & ~1);
 	}
 }
 
