@@ -275,11 +275,9 @@ void zoom_out_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 }
 
 void zoom_one_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	point center = get_center_of_vport();
 	update_zoom_fit_button();
-	gui.zoom_value = ZOOM_NONE;
-	reset_display_offset();
-	update_zoom_label();
-	redraw(REDRAW_IMAGE);
+	set_zoom_at(center.x, center.y, ZOOM_NONE);
 }
 
 void negative_view_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
