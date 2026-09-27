@@ -1024,10 +1024,22 @@ gboolean update_zoom_label_idle(gpointer user_data) {
 	return FALSE;
 }
 
-gboolean update_zoom(gdouble x, gdouble y, double scale) {
+/* set the zoom to value while keeping the point (x, y) of the widget fixed */
+void set_zoom_at(gdouble x, gdouble y, double value) {
 	// event position in image coordinates before changing the zoom value
 	point evpos = { x, y };
 	cairo_matrix_transform_point(&gui.image_matrix, &evpos.x, &evpos.y);
+	gui.zoom_value = value;
+	update_zoom_label();
+	adjust_vport_size_to_image();
+	cairo_matrix_transform_point(&gui.display_matrix, &evpos.x, &evpos.y);
+	gui.display_offset.x += x - evpos.x;
+	gui.display_offset.y += y - evpos.y;
+	adjust_vport_size_to_image();
+	redraw(REDRAW_IMAGE);
+}
+
+gboolean update_zoom(gdouble x, gdouble y, double scale) {
 	gdouble factor;
 	gboolean zoomed = FALSE;
 
@@ -1055,14 +1067,7 @@ gboolean update_zoom(gdouble x, gdouble y, double scale) {
 
 	if (factor >= min_zoom && factor <= ZOOM_MAX) {
 		zoomed = TRUE;
-		gui.zoom_value = factor;
-		update_zoom_label();
-		adjust_vport_size_to_image();
-		cairo_matrix_transform_point(&gui.display_matrix, &evpos.x, &evpos.y);
-		gui.display_offset.x += x - evpos.x;
-		gui.display_offset.y += y - evpos.y;
-		adjust_vport_size_to_image();
-		redraw(REDRAW_IMAGE);
+		set_zoom_at(x, y, factor);
 	}
 	return zoomed;
 }
