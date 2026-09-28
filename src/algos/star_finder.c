@@ -977,7 +977,7 @@ int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbsta
 		HANDLE_WRITE_ERR;
 	}
 	len = snprintf(buffer, 320,
-			"# star#\tlayer\tB\tA\tbeta\tX\tY\tFWHMx [px]\tFWHMy [px]\tFWHMx [\"]\tFWHMy [\"]\tangle\tRMSE\tmag\tSat\tProfile\tRA\tDec%s",
+			"# star#\tlayer\tB\tA\tbeta\tX\tY\tFWHMx [px]\tFWHMy [px]\tFWHMx [\"]\tFWHMy [\"]\tangle\tRMSE\tmag\tSat\tProfile\tRA\tDec\tr%s",
 			SIRIL_EOL);
 	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
 		HANDLE_WRITE_ERR;
@@ -992,12 +992,13 @@ int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbsta
 				starprof = N_(moffstr);
 			}
 			len = snprintf(buffer, 320,
-					"%d\t%d\t%10.6f\t%10.6f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%3.2f\t%10.3e\t%10.2f\t%d\t%s\t%f\t%f%s",
+					"%d\t%d\t%10.6f\t%10.6f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%3.2f\t%10.3e\t%10.2f\t%d\t%s\t%f\t%f\t%3.2f%s",
 					i + 1, stars[i]->layer, stars[i]->B, stars[i]->A, beta,
 					stars[i]->xpos, stars[i]->ypos, stars[i]->fwhmx,
 					stars[i]->fwhmy, stars[i]->fwhmx_arcsec ,stars[i]->fwhmy_arcsec,
 					stars[i]->angle, stars[i]->rmse, stars[i]->mag + com.magOffset,
-					stars[i]->has_saturated, starprof, stars[i]->ra, stars[i]->dec, SIRIL_EOL);
+					stars[i]->has_saturated, starprof, stars[i]->ra, stars[i]->dec,
+					stars[i]->fwhmx > 0.0 ? stars[i]->fwhmy / stars[i]->fwhmx : 0.0, SIRIL_EOL);
 			if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
 				HANDLE_WRITE_ERR;
 			}
