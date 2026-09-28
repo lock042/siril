@@ -53,6 +53,7 @@ siril-1.5.0
 * Opaque operations in an FLIS edit history (ICC conversions, Python pixel edits and the like) now store a restart checkpoint so later steps stay editable instead of freezing the whole history; deleting the most recent opaque step unlocks the steps before it. Saved .flis files grow by one embedded image per opaque step (!tbc)
 * History steps can be edited in their original dialogs: editing a recorded stretch, curve, SCNR, median or saturation step reopens its dialog pre-filled with the recorded parameters and previews live against the state just before that step; later steps are hidden during editing and recomputed on Apply. Background extraction steps open form-only. Editing history is much faster thanks to cached intermediate states (disk budget configurable with the core.nde_cache_mb setting) (!tbc)
 * History steps can be reordered: Move up/Move down in the History panel, or the new `flis_hist_move` command. Like other history edits this recomputes the image and clears the undo history (!tbc)
+* Improved plot windows: SPCC fits grouped in a single window with summary tiles and key figures, y-axis log scale and whole-window PNG export
 
 **Fixes**
 * Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
@@ -70,6 +71,10 @@ xx/xx/xx
 * Fixed an invalid EQUINOX value written in the FITS header when the astrometric solution came from a solver that does not write an EQUINOX card (#1979)
 * Fixed FITS extension truncation (e.g., .fit.) causing corrupted filenames like foo.fit..fit..fz; invalid extensions are now rejected (#1984)
 * Fixed garbage characters in the save dialog file name when a sequence is loaded and the displayed image is not one of its frames (#1980)
+* Fixed GESDT rejection always rejecting the two most extreme samples of each pixel whatever the significance, and rejecting the neighbour of a high outlier instead of the outlier itself when a low outlier had been found first (#1993)
+* Fixed the `stack` command refusing rejection parameters written in scientific notation, such as 1e-8 (#1993)
+* Fixed stacking of images having fewer rows than threads, which processed uninitialized blocks (#1993)
+* Fixed crash when exporting monochrome sequence as mp4 (#1992)
 
 **Improvements**
 * Allowed editing FITS keywords of a whole sequence from the UI

@@ -1056,22 +1056,12 @@ void remove_trailing_eol(char *str) {
 }
 
 gboolean string_is_a_number(const char *str) {
-	if (str[0] != '-' && str[0] != '.' && (str[0] < '0' || str[0] > '9'))
+	/* the first character check rejects leading spaces, inf and nan */
+	if (!str || (str[0] != '-' && str[0] != '+' && str[0] != '.' && !g_ascii_isdigit(str[0])))
 		return FALSE;
-	int i = 0;
-	gboolean had_a_dot = FALSE;
-	while (str[i] != '\0') {
-		if (str[i] == '.') {
-			if (had_a_dot)
-				return FALSE;
-			had_a_dot = TRUE;
-			i++;
-		}
-		else if (str[i] >= '0' && str[i] <= '9')
-			i++;
-		else return FALSE;
-	}
-	return TRUE;
+	gchar *end;
+	double value = g_ascii_strtod(str, &end);
+	return end != str && *end == '\0' && isfinite(value);
 }
 
 #if !GLIB_CHECK_VERSION(2,68,0)
