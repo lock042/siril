@@ -76,6 +76,7 @@ xx/xx/xx
 
 **Improvements**
 * Allowed editing FITS keywords of a whole sequence from the UI
+* Added 2 commands addwcs and catquery (!1103)
 
 siril-1.4.4
 06/17/26
