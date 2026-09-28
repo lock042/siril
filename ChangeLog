@@ -10,6 +10,7 @@ siril-1.5.0
 * Fixed pyscript failing with "python not ready yet" in scripts run with -s: the python venv initialisation was ordered after script execution and could never be reached (#1976)
 * Fixed a crash when closing a large image: the pixel data was freed without the gfit writer lock, and the display's tile grid without the mutex guarding it, while the tile-materialisation threads were still reading both (#1975)
 * Fixed a race in the Python venv initialisation: the shared initialisation handle was read and cleared without a lock, and pyscript could launch python before the virtual environment's variables had been exported (#1977)
+* Fixed crash when using PCC in a scipt with siril-cli. (!1100)
 
 **Improvements**
 * Added the roundness (r) column to the star list written by findstar -out (#1989)
