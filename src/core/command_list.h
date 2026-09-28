@@ -104,7 +104,7 @@ static command commands[] = {
 	{"light_curve", 3, "light_curve sequencename channel [-autoring] { -at=x,y | -wcs=ra,dec } { -refat=x,y | -refwcs=ra,dec } ...\n"
 				"light_curve sequencename channel [-autoring] -ninastars=file", process_light_curve, STR_LIGHTCURVE, TRUE, REQ_CMD_NO_THREAD},
 	{"limit", 1, "limit { -clip | -posrescale | -rescale }", process_limit, STR_LIMIT, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"linear_match", 2, "linear_match reference low high", process_linear_match, STR_LMATCH, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"linear_match", 3, "linear_match reference low high", process_linear_match, STR_LMATCH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"link", 1, "link basename [-date] [-start=index] [-out=]", process_link, STR_LINK, TRUE, REQ_CMD_NO_THREAD},
 	{"linstretch", 1, "linstretch -BP= [-sat] [-clipmode=] [channels] [-clipmode=] [-mask]", process_linstretch, STR_LINSTRETCH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"livestack", 1, "livestack filename", process_livestack, STR_LIVESTACK, TRUE, REQ_CMD_NONE},
@@ -242,7 +242,7 @@ static command commands[] = {
 #ifdef HAVE_LIBTIFF
 #endif
 	{"seqstat", 2, "seqstat sequencename output_file [option] [-cfa]", process_seq_stat, STR_SEQSTAT, TRUE, REQ_CMD_NO_THREAD},
-	{"seqsubsky", 2, "seqsubsky sequencename { -rbf | degree | -auto } [-nodither] [-samples=20] [-tolerance=1.0] [-smooth=0.5] [-prefix=] [-random] [-gradient] [-border=<pixels|percent%>] [-scale=5] [-smoothness=1] [-noprotect] [-protect_threshold=0.05] [-protect_amount=0.5] [-simplified] [-degree=2] [-downsample=4] [-mode=subtract|divide]", process_subsky, STR_SEQSUBSKY CMD_CAT(SUBSKY) STR_SUBSKY, TRUE, REQ_CMD_NONE},
+	{"seqsubsky", 2, "seqsubsky sequencename { -rbf | degree | -auto } [-nodither] [-samples=20] [-tolerance=1.0] [-smooth=0.5] [-prefix=] [-random] [-gradient] [-border=<pixels|percent%>] [-scale=5] [-smoothness=1] [-noprotect] [-protect_threshold=0.05] [-protect_amount=0.5] [-simplified] [-degree=1] [-downsample=4] [-mode=subtract|divide]", process_subsky, STR_SEQSUBSKY CMD_CAT(SUBSKY) STR_SUBSKY, TRUE, REQ_CMD_NONE},
 	{"seqtilt", 1, "seqtilt sequencename", process_seq_tilt, STR_SEQTILT CMD_CAT(TILT) STR_TILT, TRUE, REQ_CMD_NO_THREAD},
 	{"sequnsetmag", 0, "sequnsetmag", process_unset_mag_seq, STR_SEQUNSETMAG, FALSE, REQ_CMD_SEQUENCE },
 	{"sequpdate_key", 2, "sequpdate_key sequencename key value [keycomment]\n"
@@ -283,7 +283,7 @@ static command commands[] = {
 	{"start_ls", 0, "start_ls [-dark=filename] [-flat=filename] [-rotate] [-32bits]", process_start_ls, STR_START_LS, TRUE, REQ_CMD_NO_THREAD},
 	{"stat", 0, "stat [-cfa] [main]", process_stat, STR_STAT, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"stop_ls", 0, "stop_ls", process_stop_ls, STR_STOP_LS, TRUE, REQ_CMD_NONE},
-	{"subsky", 1, "subsky { -rbf | degree | -auto } [-dither] [-samples=20] [-tolerance=1.0] [-smooth=0.5] [-existing] [-random] [-gradient] [-border=<pixels|percent%>] [-scale=5] [-smoothness=1] [-noprotect] [-protect_threshold=0.05] [-protect_amount=0.5] [-simplified] [-degree=2] [-downsample=4] [-mode=subtract|divide]", process_subsky, STR_SUBSKY, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
+	{"subsky", 1, "subsky { -rbf | degree | -auto } [-dither] [-samples=20] [-tolerance=1.0] [-smooth=0.5] [-existing] [-random] [-gradient] [-border=<pixels|percent%>] [-scale=5] [-smoothness=1] [-noprotect] [-protect_threshold=0.05] [-protect_amount=0.5] [-simplified] [-degree=1] [-downsample=4] [-mode=subtract|divide]", process_subsky, STR_SUBSKY, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
 	{"synthstar", 0, "synthstar", process_synthstar, STR_SYNTHSTAR, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"threshlo", 1, "threshlo level [-mask]", process_thresh, STR_THRESHLO, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -305,7 +305,7 @@ static command commands[] = {
 	{"visu", 2, "visu low high", process_visu, STR_VISU, FALSE, REQ_CMD_SINGLE_IMAGE},
 
 	/* wavelet transform in nbr_plan plans */
-	{"wavelet", 1, "wavelet nbr_layers type [-anscombe]", process_wavelet, STR_WAVELET, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"wavelet", 2, "wavelet nbr_layers type [-anscombe]", process_wavelet, STR_WAVELET, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"wiener", 0, "wiener [-loadpsf=] [-alpha=] [-mask]", process_wiener, STR_WIENER, TRUE, REQ_CMD_SINGLE_IMAGE},
 	/* reconstruct from wavelet transform and weighs plans with c1, c2, c3... */
 	{"wrecons", 2, "wrecons c1 c2 c3 ... [-denoise] [-bishrink|-threshold] [-soft|-hard] [-perband] [-anscombe] [-k=value] [-f1=value ... -f6=value]", process_wrecons, STR_WRECONS, TRUE, REQ_CMD_SINGLE_IMAGE},

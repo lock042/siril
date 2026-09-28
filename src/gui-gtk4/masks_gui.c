@@ -673,7 +673,7 @@ void mask_color_handle_image_click(int x, int y) {
 
 	if (x < 0 || x >= gfit->rx || y < 0 || y >= gfit->ry) return;
 
-	size_t pixel_index = (gfit->ry - y) * gfit->rx + x;
+	size_t pixel_index = (gfit->ry - 1 - y) * gfit->rx + x;
 	float r, g, b;
 
 	if (gfit->type == DATA_USHORT) {

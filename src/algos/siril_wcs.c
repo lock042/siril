@@ -291,6 +291,11 @@ int *wcs2pix_array(fits *fit, int n, double *world, double *x, double *y) {
 			if (!status[i]) {
 				double xx = pixcrd[c++];
 				double yy = pixcrd[c++];
+				// can happen with SIP for points far from the field
+				if (isnan(xx) || isnan(yy)) {
+					status[i] = WCSERR_NO_SOLUTION;
+					continue;
+				}
 				// return values even if outside (required for celestial grid display)
 				// In WCS convention, origin of the grid is at (-0.5, -0.5) wrt siril grid
 				if (x) x[i] = xx - 0.5;

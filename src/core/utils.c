@@ -1056,22 +1056,12 @@ void remove_trailing_eol(char *str) {
 }
 
 gboolean string_is_a_number(const char *str) {
-	if (str[0] != '-' && str[0] != '.' && (str[0] < '0' || str[0] > '9'))
+	/* the first character check rejects leading spaces, inf and nan */
+	if (!str || (str[0] != '-' && str[0] != '+' && str[0] != '.' && !g_ascii_isdigit(str[0])))
 		return FALSE;
-	int i = 0;
-	gboolean had_a_dot = FALSE;
-	while (str[i] != '\0') {
-		if (str[i] == '.') {
-			if (had_a_dot)
-				return FALSE;
-			had_a_dot = TRUE;
-			i++;
-		}
-		else if (str[i] >= '0' && str[i] <= '9')
-			i++;
-		else return FALSE;
-	}
-	return TRUE;
+	gchar *end;
+	double value = g_ascii_strtod(str, &end);
+	return end != str && *end == '\0' && isfinite(value);
 }
 
 #if !GLIB_CHECK_VERSION(2,68,0)
@@ -1325,14 +1315,27 @@ gchar * siril_any_to_utf8 (const gchar *str, gssize len, const gchar *warning_fo
 * @param fz flag to know if the fz extension must be appended.
 * @return a string that must not be freed
 */
-static const gchar *ext[] = { ".fit.fz", ".fits.fz", ".fts.fz" };
+static const gchar *ext_fz[] = { ".fit.fz", ".fits.fz", ".fts.fz" };
 const gchar *get_com_ext(gboolean fz) {
 	if (fz) {
-		for (int i = 0; i < G_N_ELEMENTS(ext); i++) {
-			if (g_str_has_prefix(ext[i], com.pref.ext)) return ext[i];
+		for (int i = 0; i < G_N_ELEMENTS(ext_fz); i++) {
+			if (g_str_has_prefix(ext_fz[i], com.pref.ext)) return ext_fz[i];
 		}
 	}
 	return com.pref.ext;
+}
+
+/* com.pref.ext ends up in the name of every FITS file we write, it can only be
+ * one of the extensions we know how to read back, in lower case and with its
+ * leading dot */
+gboolean is_valid_fits_extension(const gchar *extension) {
+	static const gchar *ext[] = { ".fit", ".fits", ".fts" };
+	if (!extension)
+		return FALSE;
+	for (int i = 0; i < G_N_ELEMENTS(ext); i++) {
+		if (!strcmp(extension, ext[i])) return TRUE;
+	}
+	return FALSE;
 }
 
 /*

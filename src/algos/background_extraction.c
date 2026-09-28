@@ -1183,95 +1183,6 @@ int generate_background_samples(int nb_of_samples, double tolerance, gboolean ra
 
 gboolean end_background(gpointer p);	// in gui/background_extraction.c
 
-/* uses samples from com.grad_samples */
-#if 0 /* dead code — no call sites; superseded by remove_gradient_image_hook */
-gpointer remove_gradient_from_image(gpointer p) {
-	struct background_data *args = (struct background_data *)p;
-	gchar *error = NULL;
-	double *background = malloc(gfit->ry * gfit->rx * sizeof(double));
-
-	if (!background) {
-		PRINT_ALLOC_ERR;
-		if (!com.script) {
-			gui_iface.set_busy(FALSE);
-		}
-		return GINT_TO_POINTER(1);
-	}
-
-	const size_t n = gfit->naxes[0] * gfit->naxes[1];
-	double *image = malloc(n * sizeof(double));
-	if (!image) {
-		free(background);
-		PRINT_ALLOC_ERR;
-		return GINT_TO_POINTER(1);
-	}
-
-	/* Make sure to update local median. Useful if undo is pressed */
-	g_mutex_lock(&bgsamples_mutex);
-	update_median_samples(com.grad_samples, gfit);
-	g_mutex_unlock(&bgsamples_mutex);
-
-	double background_mean = get_background_mean(com.grad_samples, gfit->naxes[2]);
-	struct timeval t_start, t_end;
-	gettimeofday(&t_start, NULL);
-	for (int channel = 0; channel < gfit->naxes[2]; channel++) {
-		/* compute background */
-		gboolean interpolation_worked = TRUE;
-		if (args->interpolation_method == BACKGROUND_INTER_POLY) {
-			interpolation_worked = computeBackground_Polynom(com.grad_samples, background, channel,
-					gfit->rx, gfit->ry, args->degree, &error);
-		} else {
-			interpolation_worked = computeBackground_RBF(com.grad_samples, background, channel,
-					gfit->rx, gfit->ry, args->smoothing, &error, args->threads);
-		}
-
-		if (!interpolation_worked) {
-			free(image);
-			free(background);
-			gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Not enough samples."), error ? error : _("Insufficient samples"));
-			if (!args->from_ui) {
-				g_mutex_lock(&bgsamples_mutex);
-				free_background_sample_list(com.grad_samples);
-				com.grad_samples = NULL;
-				g_mutex_unlock(&bgsamples_mutex);
-			}
-			free(args);
-			notify_gfit_data_modified();
-			siril_add_idle(end_background, NULL);
-			return GINT_TO_POINTER(1);
-		}
-		/* remove background */
-		const char *c_name;
-		if (gfit->naxes[2] > 1)
-			c_name = channel_number_to_name(channel);
-		else
-			c_name = _("monochrome");
-		siril_log_message(_("Background extraction from %s channel.\n"), c_name);
-		convert_fits_to_img(gfit, image, channel, args->dither);
-		remove_gradient(image, background, background_mean, n, args->correction, MULTI_THREADED);
-		convert_img_to_fits(image, gfit, channel);
-
-	}
-	siril_log_message(_("Background with %s interpolation computed.\n"),
-			(args->interpolation_method == BACKGROUND_INTER_POLY) ? "polynomial" : "RBF");
-	gettimeofday(&t_end, NULL);
-	show_time(t_start, t_end);
-	/* free memory */
-	free(image);
-	free(background);
-	invalidate_stats_from_fit(gfit);
-	if (!args->from_ui) {
-		g_mutex_lock(&bgsamples_mutex);
-		free_background_sample_list(com.grad_samples);
-		com.grad_samples = NULL;
-		g_mutex_unlock(&bgsamples_mutex);
-	}
-	notify_gfit_data_modified();
-	siril_add_idle(end_background, args);
-	return GINT_TO_POINTER(0);
-}
-#endif /* dead code */
-
 static GSList* rescale_sample_list_for_cfa(GSList *original_list, fits *fit) {
 	GSList *new_list = NULL;
 	GSList *current = original_list;
@@ -1306,145 +1217,6 @@ static GSList* rescale_sample_list_for_cfa(GSList *original_list, fits *fit) {
 	return new_list;
 }
 
-/* uses samples from com.grad_samples */
-#if 0 /* dead code — no call sites; superseded by remove_gradient_image_hook */
-gpointer remove_gradient_from_cfa_image(gpointer p) {
-	struct background_data *args = (struct background_data *)p;
-	sensor_pattern pattern = get_validated_cfa_pattern(gfit, FALSE, FALSE);
-	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
-		siril_log_error(_("Error: unsupported CFA pattern for this operation.\n"));
-		return GINT_TO_POINTER(1);
-	}
-	gchar *error = NULL;
-	struct timeval t_start, t_end;
-	gettimeofday(&t_start, NULL);
-
-	// Allocate an array of fits* and the fits objects themselves. These will hold the subchannels
-	fits** cfachans = calloc(4, sizeof(fits*));
-	for (int i = 0 ; i < 4 ; i++) {
-		cfachans[i] = calloc(1, sizeof(fits));
-	}
-
-	// Split the FITS into the 4 subchannels
-	int ret = 1;
-	if (gfit->type == DATA_USHORT) {
-		ret = split_cfa_ushort(gfit, cfachans[0], cfachans[1], cfachans[2], cfachans[3]);
-	}
-	else if (gfit->type == DATA_FLOAT) {
-		ret = split_cfa_float(gfit, cfachans[0], cfachans[1], cfachans[2], cfachans[3]);
-	}
-	if (ret) {
-		siril_log_error(_("Error splitting into CFA subchannels, aborting...\n"));
-		cfachans_cleanup(cfachans);
-		return GINT_TO_POINTER(1);
-	}
-
-	// Check subchannel medians are OK
-	for (int i = 0 ; i < 4 ; i++) {
-		imstats* stat = statistics(NULL, -1, cfachans[i], 0, NULL, STATS_BASIC, MULTI_THREADED);
-		if (!stat) {
-			siril_log_error(_("Error: statistics computation failed.\n"));
-			cfachans_cleanup(cfachans);
-			return GINT_TO_POINTER(1);
-		}
-		float median = (float) stat->median;
-		free_stats(stat);
-
-		if (median <= 0.0f) {
-			siril_log_error(_("Subchannel with negative median detected: removing the gradient on negative images is not supported\n"));
-			cfachans_cleanup(cfachans);
-			return GINT_TO_POINTER(1);
-		}
-	}
-
-	for (int i = 0; i < 4; i++) {
-		fits *subchannel = cfachans[i];
-
-		GSList *samples = rescale_sample_list_for_cfa(com.grad_samples, subchannel);
-
-		if (!samples) {
-			siril_log_error(_("Failed to adapt background samples for CFA image\n"));
-			cfachans_cleanup(cfachans);
-			return GINT_TO_POINTER(1);
-		}
-
-		double *background = (double*)malloc(subchannel->naxes[0] * subchannel->naxes[1] * sizeof(double));
-		if (!background) {
-			PRINT_ALLOC_ERR;
-			siril_log_error(_("Out of memory - aborting"));
-			cfachans_cleanup(cfachans);
-			return GINT_TO_POINTER(1);
-		}
-
-		const size_t n = subchannel->naxes[0] * subchannel->naxes[1];
-		double *image = malloc(n * sizeof(double));
-		if (!image) {
-			free(background);
-			free_background_sample_list(samples);
-			PRINT_ALLOC_ERR;
-			cfachans_cleanup(cfachans);
-			return GINT_TO_POINTER(1);
-		}
-
-		double background_mean = get_background_mean(samples, 1);
-		/* compute background */
-		gboolean interpolation_worked = TRUE;
-		if (args->interpolation_method == BACKGROUND_INTER_POLY) {
-			interpolation_worked = computeBackground_Polynom(samples, background, 0,
-					subchannel->rx, subchannel->ry, args->degree, &error);
-		} else {
-			interpolation_worked = computeBackground_RBF(samples, background, 0,
-					subchannel->rx, subchannel->ry, args->smoothing, &error, args->threads);
-		}
-
-		if (!interpolation_worked) {
-			free(image);
-			free(background);
-			gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Not enough samples."), error);
-			if (!args->from_ui) {
-				g_mutex_lock(&bgsamples_mutex);
-				free_background_sample_list(com.grad_samples);
-				com.grad_samples = NULL;
-				g_mutex_unlock(&bgsamples_mutex);
-			}
-			cfachans_cleanup(cfachans);
-			free(args);
-			notify_gfit_data_modified();
-			siril_add_idle(end_background, NULL);
-			return GINT_TO_POINTER(1);
-		}
-		/* remove background */
-		convert_fits_to_img(subchannel, image, 0, args->dither);
-		remove_gradient(image, background, background_mean, n, args->correction, MULTI_THREADED);
-		convert_img_to_fits(image, subchannel, 0);
-		free(image);
-		free(background);
-		free_background_sample_list(samples);
-
-	}
-	fits *out = merge_cfa(cfachans[0], cfachans[1], cfachans[2], cfachans[3], pattern);
-	fits_swap_image_data(out, gfit); // Efficiently move the merged pixeldata from out to gfit
-	clearfits(out);
-	free(out);
-	siril_log_message(_("Background with %s interpolation computed for CFA image.\n"),
-			(args->interpolation_method == BACKGROUND_INTER_POLY) ? "polynomial" : "RBF");
-	gettimeofday(&t_end, NULL);
-	show_time(t_start, t_end);
-	/* free memory */
-	cfachans_cleanup(cfachans);
-	invalidate_stats_from_fit(gfit);
-	if (!args->from_ui) {
-		g_mutex_lock(&bgsamples_mutex);
-		free_background_sample_list(com.grad_samples);
-		com.grad_samples = NULL;
-		g_mutex_unlock(&bgsamples_mutex);
-	}
-	notify_gfit_data_modified();
-	siril_add_idle(end_background, args);
-	return GINT_TO_POINTER(0);
-}
-#endif /* dead code */
-
 void free_background_data(void *p) {
 	struct background_data *args = (struct background_data *)p;
 	if (!args) return;
@@ -1458,7 +1230,7 @@ void free_background_data(void *p) {
 gchar *remove_gradient_log_hook(gpointer p, log_hook_detail detail) {
 	struct background_data *args = (struct background_data *)p;
 	if (args->method == BACKGROUND_METHOD_AUTO) {
-		const gchar *model = args->autograd.simplified ? _("simplified") : _("multiscale");
+		const gchar *model = args->autograd.simplified ? _("simplified + multiscale") : _("multiscale");
 		return g_strdup_printf(_("Automatic gradient removal (%s)"), model);
 	}
 	const gchar *interp = (args->interpolation_method == BACKGROUND_INTER_POLY) ? _("polynomial") : _("RBF");
@@ -1470,8 +1242,10 @@ gchar *remove_gradient_log_hook(gpointer p, log_hook_detail detail) {
 /* Automatic (sample-free) background model
  *
  * The background is fitted on every pixel that survives an iterative robust rejection of
- * structures (stars, nebulae). Two models: a multiscale smooth surface with
- * structure protection (default) or a stiff low-degree polynomial (simplified).
+ * structures (stars, nebulae). The model is a multiscale smooth surface with
+ * structure protection, optionally preceded by a stiff low-degree polynomial that
+ * is fitted and removed first, the multiscale surface then working on what it
+ * leaves behind (the "simplified model" stage).
  * The estimation path works on planar float buffers of size width*height and
  * uses RawTherapee's fast separable Gaussian (rt/gauss.cc) for every low-pass. */
 
@@ -1690,7 +1464,7 @@ static gboolean ag_poly_fit(const float *ch, const gboolean *mask, int w, int h,
 /* Iterative robust background model for one channel of size w*h. `model`
  * receives the fitted background. Returns FALSE on allocation/fit failure. */
 static gboolean ag_estimate_background(const float *ch, int w, int h, int radius,
-		const struct autograd_data *p, float *model, int threads,
+		const struct autograd_data *p, gboolean use_poly, float *model, int threads,
 		double prog_base, double prog_span, const char *prog_msg) {
 	const size_t n = (size_t)w * h;
 	if (radius < 1) radius = 1;
@@ -1710,7 +1484,7 @@ static gboolean ag_estimate_background(const float *ch, int w, int h, int radius
 	if (!keep || !new_keep || !smask || !residual || !ref || !sortbuf ||
 			!s0 || !s1 || !s2) { ok = FALSE; goto cleanup; }
 
-	if (p->simplified) {
+	if (use_poly) {
 		xn = malloc(w * sizeof(double));
 		yn = malloc(h * sizeof(double));
 		if (!xn || !yn) { ok = FALSE; goto cleanup; }
@@ -1720,7 +1494,7 @@ static gboolean ag_estimate_background(const float *ch, int w, int h, int radius
 
 #define AG_FIT(mask)                                                        \
 	do {                                                                    \
-		if (p->simplified) {                                                \
+		if (use_poly) {                                                     \
 			if (!ag_poly_fit(ch, (mask), w, h, p->degree, xn, yn, model)) { \
 				ok = FALSE; goto cleanup;                                   \
 			}                                                               \
@@ -1787,7 +1561,9 @@ static gboolean ag_estimate_background(const float *ch, int w, int h, int radius
 	}
 #undef AG_FIT
 
-	if (p->smoothness > 0.0) {
+	/* a Gaussian of a low-degree polynomial is that same polynomial, so the extra
+	 * smoothing only ever applies to the multiscale surface */
+	if (!use_poly && p->smoothness > 0.0) {
 		int sr = (int)lround(radius * p->smoothness);
 		if (sr < 1) sr = 1;
 		ag_gauss(model, s0, w, h, ag_sigma(sr, AG_PASSES), threads);
@@ -1872,8 +1648,36 @@ static gboolean auto_gradient_channel(double *image, int w, int h,
 	}
 
 	/* keep a little of the slice for the final resize/correction step */
-	gboolean ok = ag_estimate_background(small, sw, sh, radius, p, model_small,
-			threads, prog_base, prog_span * 0.9, prog_msg);
+	gboolean ok;
+	if (p->simplified) {
+		/* Two stages. The polynomial is stiff enough that a nebula filling the
+		 * frame cannot be absorbed into it, so removing it first takes out the
+		 * bulk of a gradient whose amplitude rivals the objects themselves, which
+		 * the rejection of a single multiscale pass cannot separate: both the
+		 * sigma it clips on and the absolute threshold of the structure mask are
+		 * then measured on a flattened image instead of on the gradient. */
+		float *poly = malloc((size_t)sw * sh * sizeof(float));
+		if (!poly) {
+			free(small); free(model_small); free(bg); free(sortbuf);
+			PRINT_ALLOC_ERR; return FALSE;
+		}
+		ok = ag_estimate_background(small, sw, sh, radius, p, TRUE, poly, threads,
+				prog_base, prog_span * 0.35, prog_msg);
+		if (ok) {
+			const size_t ns = (size_t)sw * sh;
+			for (size_t i = 0; i < ns; i++)     /* fit stage 2 on what stage 1 leaves */
+				small[i] -= poly[i];
+			ok = ag_estimate_background(small, sw, sh, radius, p, FALSE, model_small,
+					threads, prog_base + prog_span * 0.35, prog_span * 0.55, prog_msg);
+			if (ok)
+				for (size_t i = 0; i < ns; i++)
+					model_small[i] += poly[i];
+		}
+		free(poly);
+	} else {
+		ok = ag_estimate_background(small, sw, sh, radius, p, FALSE, model_small,
+				threads, prog_base, prog_span * 0.9, prog_msg);
+	}
 	if (ok) {
 		ag_resize_bilinear(model_small, sw, sh, w, h, bg, threads);
 		const size_t n = (size_t)w * h;

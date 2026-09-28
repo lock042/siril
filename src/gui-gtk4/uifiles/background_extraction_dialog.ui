@@ -56,7 +56,7 @@
     <property name="upper">6</property>
     <property name="step-increment">1</property>
     <property name="page-increment">1</property>
-    <property name="value">2</property>
+    <property name="value">1</property>
   </object>
   <object class="GtkWindow" id="background_extraction_dialog">
     <property name="child">
@@ -379,7 +379,7 @@
                           <object class="GtkLabel">
                             <property name="halign">start</property>
                             <property name="label" translatable="yes">Scale</property>
-                            <property name="tooltip-text" translatable="yes">Relative scale of the multiscale model. Higher = smoother (large-scale only); lower follows more complex / local gradients.</property>
+                            <property name="tooltip-text" translatable="yes">Relative scale of the multiscale surface. Higher = smoother (large-scale only); lower follows more complex / local gradients.</property>
                           </object>
                         </child>
                         <child>
@@ -405,10 +405,10 @@
                     <child>
                       <object class="GtkBox">
                         <child>
-                          <object class="GtkLabel">
+                          <object class="GtkLabel" id="label_ag_smoothness">
                             <property name="halign">start</property>
                             <property name="label" translatable="yes">Smoothness</property>
-                            <property name="tooltip-text" translatable="yes">Extra smoothing of the final model. Higher gives a softer, more gradual background; 0 leaves the fitted model untouched.</property>
+                            <property name="tooltip-text" translatable="yes">Extra smoothing of the multiscale surface. Higher gives a softer, more gradual background; 0 leaves the fitted model untouched.</property>
                           </object>
                         </child>
                         <child>
@@ -425,10 +425,42 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkScale">
+                      <object class="GtkScale" id="scale_ag_smoothness">
                         <property name="adjustment">adj_ag_smoothness</property>
                         <property name="digits">1</property>
                         <property name="focusable">1</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="bkg_ag_simplified_check">
+                        <property name="focusable">1</property>
+                        <property name="label" translatable="yes">Simplified model</property>
+                        <property name="tooltip-text" translatable="yes">Fit a stiff polynomial and remove it before the multiscale model, which is then fitted on what it leaves; the sum of the two is removed.
+Helps on strong, complex gradients whose amplitude rivals or exceeds the objects of interest, where a single pass cannot separate them and the model locks onto the objects.
+It can overcorrect when the frame holds a large bright object, which the polynomial may partly absorb: keep the degree low. Off by default.</property>
+                        <signal name="toggled" handler="on_bkg_ag_simplified_toggled"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="spacing">6</property>
+                        <child>
+                          <object class="GtkLabel" id="label_ag_degree">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">    Model degree</property>
+                            <property name="tooltip-text" translatable="yes">Degree of the simplified model. Lower = stiffer (degree 1 = plane). Raise it for a gradient with real curvature, but a large bright object is then more easily absorbed by it.</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="spin_ag_degree">
+                            <property name="adjustment">adj_ag_degree</property>
+                            <property name="focusable">1</property>
+                            <property name="halign">end</property>
+                            <property name="hexpand">1</property>
+                            <property name="numeric">1</property>
+                            <property name="width-chars">6</property>
+                          </object>
+                        </child>
                       </object>
                     </child>
                     <child>
@@ -436,7 +468,7 @@
                         <property name="focusable">1</property>
                         <property name="label" translatable="yes">Structure protection</property>
                         <property name="active">1</property>
-                        <property name="tooltip-text" translatable="yes">Mask extended bright structures (nebulae) so they are not absorbed into the model.</property>
+                        <property name="tooltip-text" translatable="yes">Mask extended bright structures (nebulae) so they are not absorbed into the model. Applies to the simplified model too, when it is enabled.</property>
                         <signal name="toggled" handler="on_bkg_ag_protect_toggled"/>
                       </object>
                     </child>
@@ -477,36 +509,6 @@
                           <object class="GtkSpinButton" id="spin_ag_protect_amount">
                             <property name="adjustment">adj_ag_protect_amount</property>
                             <property name="digits">2</property>
-                            <property name="focusable">1</property>
-                            <property name="halign">end</property>
-                            <property name="hexpand">1</property>
-                            <property name="numeric">1</property>
-                            <property name="width-chars">6</property>
-                          </object>
-                        </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkCheckButton" id="bkg_ag_simplified_check">
-                        <property name="focusable">1</property>
-                        <property name="label" translatable="yes">Simplified model</property>
-                        <property name="tooltip-text" translatable="yes">Replace the multiscale model with a stiff polynomial. Use it when a nebula fills the frame and the default model hollows it out.</property>
-                        <signal name="toggled" handler="on_bkg_ag_simplified_toggled"/>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkBox">
-                        <property name="spacing">6</property>
-                        <child>
-                          <object class="GtkLabel" id="label_ag_degree">
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">    Model degree</property>
-                            <property name="tooltip-text" translatable="yes">Polynomial degree of the simplified model. Lower = stiffer (degree 1 = plane).</property>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkSpinButton" id="spin_ag_degree">
-                            <property name="adjustment">adj_ag_degree</property>
                             <property name="focusable">1</property>
                             <property name="halign">end</property>
                             <property name="hexpand">1</property>
