@@ -213,8 +213,8 @@ static gpointer resample_deserialize(const gchar *blob, int version) {
 }
 
 /* Op descriptors — single source of truth for the geometry operations.
- * All change image dimensions, hence OP_GEOMETRY_CHANGING (consumed by the
- * FLIS branch; the master worker ignores it). */
+ * All change image dimensions, hence OP_GEOMETRY_CHANGING (the master worker
+ * uses it to reproject annotations, the FLIS branch for more). */
 const op_descriptor op_desc_crop = {
 	.id = "geometry.crop", .version = 1,
 	.image_hook = crop_image_hook_single,
@@ -1009,7 +1009,6 @@ int fits_binning(fits *fit, int factor, gboolean mean) {
 		cvApplyFlips(&H, old_ry, fit->ry);
 		reframe_astrometry_data(fit, &H);
 		update_fits_header(fit);
-		refresh_annotations(FALSE);
 	}
 
 	return 0;
@@ -1104,11 +1103,9 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation 
 			cvApplyFlips(&H, old_ry, toY);
 			reframe_astrometry_data(image, &H);
 			update_fits_header(image);
-			refresh_annotations(FALSE);
 		} else {
 			free_wcs(image);
 			reset_wcsdata(image);
-			refresh_annotations(TRUE);
 		}
 	}
 
@@ -1189,7 +1186,6 @@ int verbose_rotate_fast(fits *image, int angle) {
 		reframe_astrometry_data(image, &H);
 		update_wcsdata_from_wcs(image);
 		update_fits_header(image);
-		refresh_annotations(FALSE);
 	}
 	return 0;
 }
@@ -1230,7 +1226,6 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 		reframe_astrometry_data(image, &H);
 		update_wcsdata_from_wcs(image);
 		update_fits_header(image);
-		refresh_annotations(FALSE);
 	}
 	return 0;
 }
@@ -1277,7 +1272,6 @@ void mirrorx(fits *fit, gboolean verbose) {
 		reframe_astrometry_data(fit, &H);
 		update_wcsdata_from_wcs(fit);
 		update_fits_header(fit);
-		refresh_annotations(FALSE);
 	}
 }
 
@@ -1323,7 +1317,6 @@ void mirrory(fits *fit, gboolean verbose) {
 		reframe_astrometry_data(fit, &H);
 		update_wcsdata_from_wcs(fit);
 		update_fits_header(fit);
-		refresh_annotations(FALSE);
 	}
 }
 
@@ -1532,7 +1525,6 @@ int crop(fits *fit, rectangle *bounds) {
 		reframe_astrometry_data(fit, &H);
 		update_wcsdata_from_wcs(fit);
 		update_fits_header(fit);
-		refresh_annotations(FALSE);
 	}
 	return 0;
 }

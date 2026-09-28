@@ -47,6 +47,7 @@
 #include "core/OS_utils.h"
 #include "core/undo.h"
 #include "core/gui_iface.h"
+#include "io/annotation_catalogues.h"
 #include "io/single_image.h"
 #include "io/image_format_flis.h"
 #include "io/sequence.h"
@@ -54,6 +55,7 @@
 #include "io/seqwriter.h"
 #include "io/fits_sequence.h"
 #include "io/image_format_fits.h"
+#include "algos/siril_wcs.h"
 #include "algos/statistics.h"
 #include "registration/registration.h"
 
@@ -2213,6 +2215,14 @@ the_end:;
 	}
 	/* A replay is never a region run (asserted at entry), so roi_work is
 	 * necessarily NULL above. */
+
+	/* Geometry hooks reframe the WCS of their private copy, so annotations
+	 * can only be reprojected once the swap has installed it in gfit.
+	 * After the swap, orig holds the pre-op image. */
+	if (use_swap && !retval && args->op && (args->op->flags & OP_GEOMETRY_CHANGING)
+			&& has_wcs(orig)) {
+		refresh_annotations(!has_wcs(gfit));
+	}
 
 	/* Carry out data updates (statistics, histograms, update Cairo
 	 * buffers in GUI mode).  Only invoke on success; on failure gfit

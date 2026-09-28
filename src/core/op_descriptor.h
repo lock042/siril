@@ -31,7 +31,7 @@ struct generic_layer_args;
 
 typedef enum {
 	OP_MASK_CAPABLE      = 1 << 0,  /* op supports mask-aware application */
-	OP_GEOMETRY_CHANGING = 1 << 1,  /* changes image dimensions (consumed by FLIS branch) */
+	OP_GEOMETRY_CHANGING = 1 << 1,  /* changes image dimensions/WCS (annotations refresh, FLIS branch) */
 	OP_EXPENSIVE         = 1 << 2,  /* reserved: NDE checkpoint policy */
 	OP_REQ_RGB           = 1 << 3,  /* op needs a 3-channel image; refused on
 	                                 * mono by generic_image_worker BEFORE the

@@ -8,6 +8,7 @@
 typedef void (*selection_update_callback)();
 typedef void (*star_selection_callback)(pointi);
 
+void set_zoom_at(gdouble x, gdouble y, double value);
 gboolean update_zoom(gdouble x, gdouble y, double scale);
 void update_zoom_fit_button();
 

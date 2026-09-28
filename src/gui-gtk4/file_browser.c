@@ -1813,13 +1813,37 @@ static GtkWidget *sidebar_make_row(const char *icon_name, const char *label,
 	return row;
 }
 
-static void sidebar_add_location(GtkListBox *box, const char *icon_name,
+static void sidebar_add_path_row(GtkListBox *box, const char *icon_name,
                                  const char *label, const char *path) {
-	if (!path || !*path) return;
-	if (!g_file_test(path, G_FILE_TEST_IS_DIR)) return;
 	GtkWidget *row = sidebar_make_row(icon_name, label, NULL);
 	g_object_set_data_full(G_OBJECT(row), "siril-path", g_strdup(path), g_free);
 	gtk_list_box_append(box, row);
+}
+
+/* Paths served by gvfsd-fuse or the document portal: a stat there can block
+ * uninterruptibly when the backend is stale, so trust them unchecked. */
+static gboolean path_on_fuse_bridge(const char *path) {
+	const char *rt = g_get_user_runtime_dir();
+	const char *subdirs[] = { "gvfs", "doc", NULL };
+	for (int i = 0; subdirs[i]; i++) {
+		gchar *dir = g_build_filename(rt, subdirs[i], NULL);
+		gsize n = strlen(dir);
+		gboolean hit = !strncmp(path, dir, n) && (path[n] == '\0' || path[n] == G_DIR_SEPARATOR);
+		g_free(dir);
+		if (hit) return TRUE;
+	}
+	return FALSE;
+}
+
+static gboolean sidebar_dir_exists(const char *path) {
+	return path_on_fuse_bridge(path) || g_file_test(path, G_FILE_TEST_IS_DIR);
+}
+
+static void sidebar_add_location(GtkListBox *box, const char *icon_name,
+                                 const char *label, const char *path) {
+	if (!path || !*path) return;
+	if (!sidebar_dir_exists(path)) return;
+	sidebar_add_path_row(box, icon_name, label, path);
 }
 
 static void sidebar_add_recent_entry(GtkListBox *box) {
@@ -1886,6 +1910,10 @@ gboolean siril_file_browser_prewarm(gpointer user_data) {
 	return G_SOURCE_REMOVE;
 }
 
+static void sidebar_add_gfile(GtkListBox *box, const char *icon_name,
+                              const char *label, GFile *gf);
+static const char *first_themed_icon_name(GIcon *gicon, const char *fallback);
+
 static int sidebar_populate_volumes(GtkListBox *box) {
 	GVolumeMonitor *monitor = browser_get_volume_monitor();
 	if (!monitor) return 0;
@@ -1894,23 +1922,25 @@ static int sidebar_populate_volumes(GtkListBox *box) {
 	for (GList *l = mounts; l; l = l->next) {
 		GMount *mount = G_MOUNT(l->data);
 		if (g_mount_is_shadowed(mount)) continue;
-		gchar *name = g_mount_get_name(mount);
 		GFile *root = g_mount_get_root(mount);
-		gchar *path = root ? g_file_get_path(root) : NULL;
-		if (path && g_file_test(path, G_FILE_TEST_IS_DIR)) {
-			GIcon *gicon = g_mount_get_icon(mount);
-			const char *icon_name = "drive-harddisk-symbolic";
-			if (G_IS_THEMED_ICON(gicon)) {
-				const gchar * const *names = g_themed_icon_get_names(G_THEMED_ICON(gicon));
-				if (names && names[0]) icon_name = names[0];
-			}
-			sidebar_add_location(box, icon_name, name, path);
-			count++;
-			if (gicon) g_object_unref(gicon);
-		}
+		if (!root) continue;
+		/* Never stat a mount root here: this runs on the main thread, and
+		 * for gvfs mounts (sftp, smb, MTP...) the path goes through the
+		 * gvfsd-fuse bridge, which blocks uninterruptibly when the backend
+		 * is stale.  Remote mounts are browsed through their GFile. */
+		gchar *name = g_mount_get_name(mount);
+		GIcon *gicon = g_mount_get_icon(mount);
+		const char *icon_name = first_themed_icon_name(gicon, "drive-harddisk-symbolic");
+		gchar *path = g_file_is_native(root) ? g_file_get_path(root) : NULL;
+		if (path)
+			sidebar_add_path_row(box, icon_name, name, path);
+		else
+			sidebar_add_gfile(box, icon_name, name, root);
+		count++;
+		if (gicon) g_object_unref(gicon);
 		g_free(path);
 		g_free(name);
-		if (root) g_object_unref(root);
+		g_object_unref(root);
 	}
 	g_list_free_full(mounts, g_object_unref);
 	/* monitor is the shared, process-warm singleton — do not unref. */
@@ -2148,7 +2178,7 @@ static int sidebar_populate_bookmarks(GtkListBox *box) {
 			gboolean ok = TRUE;
 			if (g_file_is_native(gf)) {
 				gchar *p = g_file_get_path(gf);
-				if (!p || !g_file_test(p, G_FILE_TEST_IS_DIR)) ok = FALSE;
+				if (!p || !sidebar_dir_exists(p)) ok = FALSE;
 				g_free(p);
 			}
 			if (ok) {
@@ -2252,7 +2282,7 @@ static void sidebar_repopulate(SirilFileBrowser *fb) {
 		                  _("Trash"), trash);
 		g_object_unref(trash);
 	}
-	if (com.wd && *com.wd && g_file_test(com.wd, G_FILE_TEST_IS_DIR))
+	if (com.wd && *com.wd)
 		sidebar_add_location(list, "folder-symbolic",
 		                     _("Working Directory"), com.wd);
 

@@ -438,8 +438,9 @@ void enforce_ratio_and_clamp() {
 	}
 
 	// clamp the selection inside the image (needed when enforcing a ratio or moving)
-	com.selection.x = set_int_in_interval(com.selection.x, 0, gfit->rx - com.selection.w);
-	com.selection.y = set_int_in_interval(com.selection.y, 0, gfit->ry - com.selection.h);
+	// keep the origin inside the image even when a side is empty
+	com.selection.x = set_int_in_interval(com.selection.x, 0, gfit->rx - max(com.selection.w, 1));
+	com.selection.y = set_int_in_interval(com.selection.y, 0, gfit->ry - max(com.selection.h, 1));
 
 	// If the image is CFA ensure the selection is aligned to a Bayer repeat
 	// This ensures CFA statistics (for Bayer patterns) will be valid
@@ -472,6 +473,9 @@ void enforce_ratio_and_clamp() {
 			com.selection.w = 2;
 		if (com.selection.h < 2)
 			com.selection.h = 2;
+		// the rounding above can grow the selection past the image edge
+		com.selection.x = set_int_in_interval(com.selection.x, 0, ((int) gfit->rx - com.selection.w) & ~1);
+		com.selection.y = set_int_in_interval(com.selection.y, 0, ((int) gfit->ry - com.selection.h) & ~1);
 	}
 }
 
@@ -1058,10 +1062,22 @@ gboolean update_zoom_label_idle(gpointer user_data) {
 	return FALSE;
 }
 
-gboolean update_zoom(gdouble x, gdouble y, double scale) {
+/* set the zoom to value while keeping the point (x, y) of the widget fixed */
+void set_zoom_at(gdouble x, gdouble y, double value) {
 	// event position in image coordinates before changing the zoom value
 	point evpos = { x, y };
 	cairo_matrix_transform_point(&gui.image_matrix, &evpos.x, &evpos.y);
+	gui.zoom_value = value;
+	update_zoom_label();
+	adjust_vport_size_to_image();
+	cairo_matrix_transform_point(&gui.display_matrix, &evpos.x, &evpos.y);
+	gui.display_offset.x += x - evpos.x;
+	gui.display_offset.y += y - evpos.y;
+	adjust_vport_size_to_image();
+	redraw(REDRAW_IMAGE);
+}
+
+gboolean update_zoom(gdouble x, gdouble y, double scale) {
 	gdouble factor;
 	gboolean zoomed = FALSE;
 
@@ -1089,14 +1105,7 @@ gboolean update_zoom(gdouble x, gdouble y, double scale) {
 
 	if (factor >= min_zoom && factor <= ZOOM_MAX) {
 		zoomed = TRUE;
-		gui.zoom_value = factor;
-		update_zoom_label();
-		adjust_vport_size_to_image();
-		cairo_matrix_transform_point(&gui.display_matrix, &evpos.x, &evpos.y);
-		gui.display_offset.x += x - evpos.x;
-		gui.display_offset.y += y - evpos.y;
-		adjust_vport_size_to_image();
-		redraw(REDRAW_IMAGE);
+		set_zoom_at(x, y, factor);
 	}
 	return zoomed;
 }
