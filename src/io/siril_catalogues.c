@@ -1009,7 +1009,9 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 	} else {
 		int j = 0;
 		for (int i = 0; i < siril_cat->nbitems; i++) {
-			if (!status[j] || !status[j + 1]) {
+			// one end inside, the other at least projected (10: outside the image)
+			gboolean solved = (!status[j] || status[j] == 10) && (!status[j + 1] || status[j + 1] == 10);
+			if (solved && (!status[j] || !status[j + 1])) {
 				siril_cat->cat_items[i].x = x[j];
 				siril_cat->cat_items[i].y = y[j];
 				siril_cat->cat_items[i].x1 = x[j + 1];

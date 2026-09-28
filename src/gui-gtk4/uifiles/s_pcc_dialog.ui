@@ -194,6 +194,11 @@
                         <child>
                           <object class="GtkDropDown" id="combo_spcc_sensors_osc">
                             <property name="tooltip-text" translatable="yes">Select an OSC sensor</property>
+                            <property name="enable-search">1</property>
+                            <property name="search-match-mode">substring</property>
+                            <property name="expression">
+                              <lookup name="string" type="GtkStringObject"/>
+                            </property>
                             <signal name="notify::selected" handler="on_spcc_combo_changed"/>
                             <layout>
                               <property name="column">1</property>
@@ -205,6 +210,11 @@
                         <child>
                           <object class="GtkDropDown" id="combo_spcc_sensors_mono">
                             <property name="tooltip-text" translatable="yes">Select a mono sensor</property>
+                            <property name="enable-search">1</property>
+                            <property name="search-match-mode">substring</property>
+                            <property name="expression">
+                              <lookup name="string" type="GtkStringObject"/>
+                            </property>
                             <signal name="notify::selected" handler="on_spcc_combo_changed"/>
                             <layout>
                               <property name="column">1</property>
@@ -216,6 +226,11 @@
                         <child>
                           <object class="GtkDropDown" id="combo_spcc_filters_osc">
                             <property name="tooltip-text" translatable="yes">Select an OSC filter (e.g. a broadband light pollution filter)</property>
+                            <property name="enable-search">1</property>
+                            <property name="search-match-mode">substring</property>
+                            <property name="expression">
+                              <lookup name="string" type="GtkStringObject"/>
+                            </property>
                             <signal name="notify::selected" handler="on_spcc_combo_changed"/>
                             <layout>
                               <property name="column">1</property>
@@ -227,6 +242,11 @@
                         <child>
                           <object class="GtkDropDown" id="combo_spcc_filters_r">
                             <property name="tooltip-text" translatable="yes">Select a red filter used with composited mono images</property>
+                            <property name="enable-search">1</property>
+                            <property name="search-match-mode">substring</property>
+                            <property name="expression">
+                              <lookup name="string" type="GtkStringObject"/>
+                            </property>
                             <signal name="notify::selected" handler="on_spcc_combo_changed"/>
                             <layout>
                               <property name="column">1</property>
@@ -238,6 +258,11 @@
                         <child>
                           <object class="GtkDropDown" id="combo_spcc_filters_g">
                             <property name="tooltip-text" translatable="yes">Select a green filter used with composited mono images</property>
+                            <property name="enable-search">1</property>
+                            <property name="search-match-mode">substring</property>
+                            <property name="expression">
+                              <lookup name="string" type="GtkStringObject"/>
+                            </property>
                             <signal name="notify::selected" handler="on_spcc_combo_changed"/>
                             <layout>
                               <property name="column">1</property>
@@ -249,6 +274,11 @@
                         <child>
                           <object class="GtkDropDown" id="combo_spcc_filters_b">
                             <property name="tooltip-text" translatable="yes">Select a blue filter used with composited mono images</property>
+                            <property name="enable-search">1</property>
+                            <property name="search-match-mode">substring</property>
+                            <property name="expression">
+                              <lookup name="string" type="GtkStringObject"/>
+                            </property>
                             <signal name="notify::selected" handler="on_spcc_combo_changed"/>
                             <layout>
                               <property name="column">1</property>
@@ -361,6 +391,11 @@
                         <child>
                           <object class="GtkDropDown" id="combo_spcc_filters_lpf">
                             <property name="tooltip-text" translatable="yes">For unmodified DSLRs, select the LPF most closely matching your model (many Canon LPFs are almost identical so there may not be an exact match for your model). For modified DSLRs, select the replacement LPF (if there isn't an exact match the Baader BCF is probably close).</property>
+                            <property name="enable-search">1</property>
+                            <property name="search-match-mode">substring</property>
+                            <property name="expression">
+                              <lookup name="string" type="GtkStringObject"/>
+                            </property>
                             <signal name="notify::selected" handler="on_spcc_combo_changed"/>
                             <layout>
                               <property name="column">1</property>
