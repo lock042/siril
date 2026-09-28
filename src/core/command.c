@@ -13840,53 +13840,11 @@ static conesearch_params* parse_conesearch_args(int nb) {
 	return params;
 }
 
-// catquery command related structures: a low-profile, headless equivalent of
-// conesearch, querying a catalogue around given coordinates and radius (rather
-// than the loaded image's field) and only ever saving the raw result to a file.
-
-typedef struct {
-	siril_catalogue *siril_cat;
-	gchar *outfilename;
-} catquery_args;
-
-static void free_catquery_args(catquery_args *args) {
-	if (!args)
-		return;
-	siril_catalog_free(args->siril_cat);
-	g_free(args->outfilename);
-	free(args);
-}
-
-static gpointer catquery_worker(gpointer p) {
-	catquery_args *args = (catquery_args *) p;
-	siril_catalogue *siril_cat = args->siril_cat;
-
-	siril_log_message(_("Querying the %s catalogue at RA: %.5f, Dec: %.5f, radius: %.3f deg, limit mag: %.2f\n"),
-			catalog_to_str(siril_cat->cat_index), siril_cat->center_ra, siril_cat->center_dec,
-			siril_cat->radius / 60.0, siril_cat->limitmag);
-
-	int nbstars = siril_catalog_conesearch(siril_cat);
-	if (!nbstars) {
-		siril_log_error(_("Catalogue query failed\n"));
-	} else if (nbstars == -1) {
-		siril_log_message(_("Catalogue query returned no object\n"));
-	} else {
-		siril_log_message(_("%d objects returned by the %s catalogue\n"),
-				siril_cat->nbitems, catalog_to_str(siril_cat->cat_index));
-		if (siril_catalog_write_to_file(siril_cat, args->outfilename))
-			siril_log_message(_("List saved to %s\n"), args->outfilename);
-		else
-			siril_log_error(_("Failed to save list to %s\n"), args->outfilename);
-	}
-
-	free_catquery_args(args);
-	end_generic(NULL);
-	return GINT_TO_POINTER(0);
-}
 
 int process_catquery(int nb) {
 	// catquery [limit_magnitude] [-cat=] [-ra=] [-dec=] [-radius=] [-obscode=] -out=filename
 	gboolean local_gaia = local_gaia_available();
+	gboolean local_kstars = local_kstars_available();
 	siril_cat_index cat = CAT_AUTO;
 	float limit_mag = -1.0f;
 	gboolean have_limit_mag = FALSE;
@@ -14049,7 +14007,7 @@ int process_catquery(int nb) {
 	}
 
 	if (cat == CAT_AUTO)
-		cat = local_gaia ? CAT_LOCAL_GAIA_ASTRO : CAT_NOMAD;
+		cat = local_gaia ? CAT_LOCAL_GAIA_ASTRO : local_kstars ? CAT_LOCAL_KSTARS : CAT_NOMAD;
 
 	if (cat == CAT_IMCCE && !(has_image && gfit->keywords.date_obs)) {
 		siril_log_error(_("The solsys catalogue requires observation date information from a loaded image, aborting.\n"));
@@ -14058,10 +14016,12 @@ int process_catquery(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
+	if (limit_mag == -1.0f && (cat == CAT_GAIADR3 || cat == CAT_LOCAL_KSTARS || cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_NOMAD)) {
+		limit_mag = (float) compute_mag_limit_from_position_and_fov(ra, dec, radius * 2.0, BRIGHTEST_STARS);
+		have_limit_mag = TRUE;
+	}
 	if (!have_limit_mag)
 		limit_mag = siril_catalog_get_default_limit_mag(cat);
-	else if (limit_mag == -1.0f)
-		limit_mag = (float) compute_mag_limit_from_position_and_fov(ra, dec, radius * 2.0, BRIGHTEST_STARS);
 
 	siril_catalogue *siril_cat = siril_catalog_new(cat);
 	siril_cat->center_ra = ra;
