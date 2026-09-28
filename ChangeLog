@@ -72,6 +72,7 @@ xx/xx/xx
 * Fixed crash when exporting monochrome sequence as mp4 (#1992)
 * Fixed a selection dragged past the right or bottom edge of the image losing its last column and row, which made the crop one pixel smaller than expected (#1996)
 * Fixed the 100% zoom button jumping to the top-left corner of the image instead of keeping the current view center (#1997)
+* Fixed crash when the `wavelet` or `linear_match` commands were called with too few arguments (#1998)
 
 **Improvements**
 * Allowed editing FITS keywords of a whole sequence from the UI
