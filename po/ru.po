@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-18 17:15+0200\n"
-"PO-Revision-Date: 2026-08-13 12:14+0000\n"
+"PO-Revision-Date: 2026-09-28 08:49+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/ru/>\n"
@@ -32854,9 +32854,8 @@ msgstr ""
 "сценарии из надёжного источника."
 
 #: src/gui-gtk4/script_menu.c:175
-#, fuzzy
 msgid "Search scripts…"
-msgstr "Радиус поиска:"
+msgstr "Поиск сценариев…"
 
 #: src/gui-gtk4/script_menu.c:304
 msgid "Please read me before using scripts"
