@@ -97,7 +97,7 @@ static command commands[] = {
 	{"light_curve", 3, "light_curve sequencename channel [-autoring] { -at=x,y | -wcs=ra,dec } { -refat=x,y | -refwcs=ra,dec } ...\n"
 				"light_curve sequencename channel [-autoring] -ninastars=file", process_light_curve, STR_LIGHTCURVE, TRUE, REQ_CMD_NO_THREAD},
 	{"limit", 1, "limit { -clip | -posrescale | -rescale }", process_limit, STR_LIMIT, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"linear_match", 2, "linear_match reference low high", process_linear_match, STR_LMATCH, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"linear_match", 3, "linear_match reference low high", process_linear_match, STR_LMATCH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"link", 1, "link basename [-date] [-start=index] [-out=]", process_link, STR_LINK, TRUE, REQ_CMD_NO_THREAD},
 	{"linstretch", 1, "linstretch -BP= [-sat] [-clipmode=] [channels] [-clipmode=]", process_linstretch, STR_LINSTRETCH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"livestack", 1, "livestack filename", process_livestack, STR_LIVESTACK, TRUE, REQ_CMD_NONE},
@@ -278,7 +278,7 @@ static command commands[] = {
 	{"visu", 2, "visu low high", process_visu, STR_VISU, FALSE, REQ_CMD_SINGLE_IMAGE},
 
 	/* wavelet transform in nbr_plan plans */
-	{"wavelet", 1, "wavelet nbr_layers type", process_wavelet, STR_WAVELET, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"wavelet", 2, "wavelet nbr_layers type", process_wavelet, STR_WAVELET, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"wiener", 0, "wiener [-loadpsf=] [-alpha=]", process_wiener, STR_WIENER, TRUE, REQ_CMD_SINGLE_IMAGE},
 	/* reconstruct from wavelet transform and weighs plans with c1, c2, c3... */
 	{"wrecons", 2, "wrecons c1 c2 c3 ...", process_wrecons, STR_WRECONS, TRUE, REQ_CMD_SINGLE_IMAGE},
