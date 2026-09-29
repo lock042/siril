@@ -63,6 +63,7 @@
 #include "core/siril_log.h"
 #include "core/exif.h"
 #include "io/fits_keywords.h"
+#include "io/gps_parser.h"
 #include "algos/geometry.h"
 #include "algos/demosaicing.h"
 #include "core/gui_iface.h"
@@ -1279,7 +1280,10 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 	}
 	free(xdata->icc_buffer);
 
-	/* let's do it before header parsing. */
+	/* XISF rasters are always stored top-down: the first row of the data
+	 * block is the top row of the image. Set it before header parsing so
+	 * that the keyword handlers see a consistent value; it is re-asserted
+	 * below once the buffer has been flipped. */
 	g_snprintf(fit->keywords.row_order, FLEN_VALUE, "%s", "TOP-DOWN");
 
 	// Format the header to ensure it's properly structured
@@ -1291,7 +1295,7 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 		if (ret) {
 			siril_log_debug("XISF Header cannot be read despite formatting.\n");
 		}
-	} else {
+	} else if (xdata->fitsHeader) {
 		// If formatting fails, use the original header
 		fit->header = strdup(xdata->fitsHeader);
 		siril_log_debug("Failed to format XISF header, using original.\n");
@@ -1301,8 +1305,27 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 			siril_log_debug("XISF Header cannot be read.\n");
 		}
 	}
+	/* nothing to do when the file carries no FITS keywords at all:
+	 * format_fits_header_for_xisf() returns NULL for a NULL input and
+	 * fit->header legitimately stays NULL */
+
+	/* If the file ships no BAYERPAT keyword, fall back to the native XISF
+	 * <ColorFilterArray> element. Both describe the mosaic in the top-down
+	 * raster frame, so this must happen before the flip below. */
+	if (fit->keywords.bayer_pattern[0] == '\0' && xdata->cfa_pattern[0] != '\0') {
+		g_strlcpy(fit->keywords.bayer_pattern, xdata->cfa_pattern, FLEN_VALUE);
+		siril_log_debug("Using XISF ColorFilterArray pattern %s\n", xdata->cfa_pattern);
+	}
 
 	fits_flip_top_to_bottom(fit);
+	/* The buffer is now bottom-up. Any ROWORDER keyword carried in the
+	 * embedded FITS keyword list describes the FITS file the image was
+	 * originally converted from, not the XISF raster, so it must not be
+	 * allowed to describe our buffer: debayering derives the CFA
+	 * orientation from this value and a stale one flips the pattern
+	 * vertically, swapping the red and blue channels for green. */
+	g_snprintf(fit->keywords.row_order, FLEN_VALUE, "%s", "BOTTOM-UP");
+	apply_flip_to_gps_data(fit);
 	siril_log_warning(_("XISF is supported in read-only mode for compatibility; "
 					 "for interoperability and long-term preservation, FITS remains recommended.\n"));
 	siril_log_message(_("Reading XISF: file %s, %ld layer(s), %ux%u pixels\n"),
