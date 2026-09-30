@@ -12536,7 +12536,7 @@ int process_set_mem(int nb) {
 		return CMD_ARG_ERROR;
 	}
 	if (ratio > 1.0) {
-		siril_log_message(_("Setting the ratio of memory used for stacking above 1 will require the use of on-disk memory, which can be very slow and is unrecommended (%g requested)\n"), ratio);
+		siril_log_message(_("Setting the ratio of memory used for stacking above 1 will require the use of on-disk memory, which can be very slow and is not recommended (%g requested)\n"), ratio);
 	}
 	g_rw_lock_writer_lock(&com.pref_rwlock);
 	com.pref.memory_ratio = ratio;

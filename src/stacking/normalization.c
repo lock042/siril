@@ -652,7 +652,7 @@ static int normalization_overlap_get_max_number_of_threads(struct stacking_args 
 	fprintf(stdout, "Memory per pair: %u MB. Max memory: %d MB\n", memory_per_pair_MB, max_memory_MB);
 
 	if (memory_per_pair_MB > max_memory_MB) {
-		siril_log_error(_("Your system does not have enough memory to normalize images overlaps for stacking operation (%d MB free for %d MB required)\n"), max_memory_MB, memory_per_pair_MB);
+		siril_log_error(_("Your system does not have enough memory to normalize image overlaps for stacking operation (%d MB free for %d MB required)\n"), max_memory_MB, memory_per_pair_MB);
 		return 0;
 	}
 
