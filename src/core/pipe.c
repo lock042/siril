@@ -270,6 +270,8 @@ int enqueue_command(char *command) {
 		if (get_thread_run()) {
 			pipe_send_message(PIPE_STATUS, PIPE_BUSY, NULL);
 			request_processing_thread_stop();
+		} else {
+			pipe_send_message(PIPE_STATUS, PIPE_SUCCESS, "cancel\n");
 		}
 		free(command);
 		return 0;
