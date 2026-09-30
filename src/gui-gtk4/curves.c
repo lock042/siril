@@ -1439,6 +1439,17 @@ void curves_reset_after_undo() {
 	fit = gfit;
 	copy_gfit_to_backup();
 
+	/* The undone / redone image becomes the new reference: otherwise the next
+	 * Apply or stage rebuild would restore the pre-undo pixels and ICC profile. */
+	free_stage_stack();
+	if (original_fit_copy) { clearfits(original_fit_copy); free(original_fit_copy); }
+	original_fit_copy = calloc(1, sizeof(fits));
+	copyfits(gfit, original_fit_copy, CP_ALLOC | CP_FORMAT | CP_COPYA, 0);
+	if (original_icc)
+		cmsCloseProfile(original_icc);
+	original_icc = copyICCProfile(gfit->icc_profile);
+	update_stage_buttons();
+
 	clear_display_histogram();
 	refresh_display_histogram_from_fit();
 
@@ -1796,12 +1807,19 @@ void toggle_curves_window_visibility() {
 		siril_close_dialog("curves_dialog");
 	} else {
 		single_image_stretch_applied = FALSE;
+		// When opening the dialog with a single image loaded, we cache the original ICC
+		// profile (may be NULL): it is restored on cancel and stored in the undo state.
 		if (single_image_is_loaded()) {
+			if (original_icc)
+				cmsCloseProfile(original_icc);
+			original_icc = copyICCProfile(gfit->icc_profile);
+			icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_STRETCH);
+			// If the image had a profile it may just have been converted: the pixels
+			// saved for undo / cancel are now in that space, so cache the new profile.
 			if (original_icc) {
 				cmsCloseProfile(original_icc);
 				original_icc = copyICCProfile(gfit->icc_profile);
 			}
-			icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_STRETCH);
 		} else {
 			if (original_icc) { cmsCloseProfile(original_icc); original_icc = NULL; }
 		}
