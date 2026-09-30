@@ -263,6 +263,8 @@ int enqueue_command(char *command) {
 		if (processing_is_job_active()) {
 			pipe_send_message(PIPE_STATUS, PIPE_BUSY, NULL);
 			stop_processing_thread();
+		} else {
+			pipe_send_message(PIPE_STATUS, PIPE_SUCCESS, "cancel\n");
 		}
 		free(command);
 		return 0;
@@ -271,9 +273,7 @@ int enqueue_command(char *command) {
 		if (processing_is_job_active())
 			pipe_send_message(PIPE_STATUS, PIPE_BUSY, NULL);
 		else {
-			gchar *str = g_strdup_printf("%s\n", command);
-			pipe_send_message(PIPE_STATUS, PIPE_SUCCESS, str);
-			g_free(str);
+			pipe_send_message(PIPE_STATUS, PIPE_SUCCESS, "ping\n");
 		}
 		free(command);
 		return 0;
