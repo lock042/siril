@@ -166,7 +166,7 @@ int restore_roi() {
 }
 
 void copy_gfit_to_backup() {
-	guint64 gfit_size = gfit->rx * gfit->ry * gfit->naxes[2] * gfit->type == DATA_FLOAT ? 4 : 2;
+	guint64 gfit_size = (guint64) gfit->rx * gfit->ry * gfit->naxes[2] * (gfit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD));
 	if (!preview_is_active && (get_available_memory() < (gfit_size * 2))) {
 		siril_log_warning(_("Warning: insufficient memory available to create a preview.\n"));
 		return;
