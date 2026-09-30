@@ -8563,7 +8563,6 @@ int process_fixbanding(int nb) {
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		free_banding_data(params);
-		free(params);
 		return CMD_GENERIC_ERROR;
 	}
 
@@ -8580,7 +8579,6 @@ int process_fixbanding(int nb) {
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_banding_data(params);
-		free(params);
 		free(args);
 		return CMD_GENERIC_ERROR;
 	}

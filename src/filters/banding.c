@@ -213,7 +213,7 @@ void apply_banding_to_sequence(struct banding_data *banding_args) {
 }
 
 static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean vertical_banding, threading_type threads) {
-	limit_threading(&threads, 10000000, (size_t)fit->ry * fit->rx);
+	threads = limit_threading(&threads, 10000000, (size_t)fit->ry * fit->rx);
 	if (vertical_banding) {
 		siril_log_debug("rotating image for vertical banding removal\n");
 		if (cvRotateImage(fit, 90)) return 1;
@@ -244,6 +244,10 @@ static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean
 	else if (fit->rx < 10) {
 		siril_log_error(_("Unsupported operation for very small images\n"));
 		// because of histogram_median calling sortnet
+		free(row_value);
+		clearfits(fiximage);
+		free(fiximage);
+		return 1;
 	}
 
 	int retval = 0;
@@ -280,7 +284,9 @@ static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean
 					if (row_pixels[i] < reject)
 						break;
 				}
-				row_median = gsl_stats_ushort_median_from_sorted_data(row_pixels, 1, i+1);
+				if (i < 0)
+					row_median = image_background;
+				else row_median = gsl_stats_ushort_median_from_sorted_data(row_pixels, 1, i+1);
 			} else {
 				// bad design: histogram_median doesn't modify input data UNLESS size < 10
 				row_median = histogram_median(line, fit->rx, SINGLE_THREADED);
@@ -319,7 +325,7 @@ static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean
 }
 
 static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean vertical_banding, threading_type threads) {
-	limit_threading(&threads, 10000000, (size_t)fit->ry * fit->rx);
+	threads = limit_threading(&threads, 10000000, (size_t)fit->ry * fit->rx);
 	if (vertical_banding) {
 		siril_log_debug("rotating image for vertical banding removal\n");
 		if (cvRotateImage(fit, 90)) return 1;
@@ -350,6 +356,10 @@ static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean 
 	else if (fit->rx < 10) {
 		siril_log_error(_("Unsupported operation for very small images\n"));
 		// because of histogram_median calling sortnet
+		free(row_value);
+		clearfits(fiximage);
+		free(fiximage);
+		return 1;
 	}
 
 	int retval = 0;
@@ -386,7 +396,9 @@ static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean 
 					if (row_pixels[i] < reject)
 						break;
 				}
-				row_median = gsl_stats_float_median_from_sorted_data(row_pixels, 1, i+1);
+				if (i < 0)
+					row_median = image_background;
+				else row_median = gsl_stats_float_median_from_sorted_data(row_pixels, 1, i+1);
 			} else {
 				// bad design: histogram_median doesn't modify input data UNLESS size < 10
 				row_median = histogram_median_float(line, fit->rx, SINGLE_THREADED);
