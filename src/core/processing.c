@@ -941,6 +941,12 @@ static void set_thread_run(gboolean b) {
 	g_mutex_unlock(&com.mutex);
 }
 
+/* Asks the processing thread to stop without joining it, from any thread and
+ * also in headless mode, where stop_processing_thread() does nothing. */
+void request_processing_thread_stop() {
+	set_thread_run(FALSE);
+}
+
 gboolean get_thread_run() {
 	gboolean retval;
 	g_mutex_lock(&com.mutex);
