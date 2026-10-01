@@ -5882,27 +5882,28 @@ int process_fixbanding(int nb) {
 	gchar *end1, *end2;
 
 	args->amount = g_ascii_strtod(word[1], &end1);
-	if (end1 == word[1] || args->amount < 0 || args->amount > 4) {
-		siril_log_message(_("Amount value must be in the [0, 4] range.\n"));
+	if (end1 == word[1] || args->amount <= 0 || args->amount > 4) {
+		siril_log_message(_("Amount value must be in the ]0, 4] range.\n"));
 		free(args);
 		return CMD_ARG_ERROR;
 	}
 	args->sigma = g_ascii_strtod(word[2], &end2);
 	if (end2 == word[2] || args->sigma < 0 || args->sigma > 5) {
-		siril_log_message(_("1/sigma value must be in the [0, 5] range.\n"));
+		siril_log_message(_("1/sigma value must be in the [0, 5] range, 0 for disabled.\n"));
 		free(args);
 		return CMD_ARG_ERROR;
 	}
 
-	args->protect_highlights = TRUE;
-	args->applyRotation = FALSE;
+	args->protect_highlights = args->sigma > 0;
+	args->vertical = FALSE;
 	args->fit = &gfit;
+
 	if (nb > 3) {
 		int arg_index = 3;
 		while (arg_index < nb && word[arg_index]) {
 			char *arg = word[arg_index];
-			if (!g_strcmp0(arg, "-vertical")) {
-				args->applyRotation = TRUE;
+			if (!g_strcmp0(arg, "-vert") || !g_strcmp0(arg, "-vertical")) {
+				args->vertical = TRUE;
 			} else {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
 				free(args);
@@ -5931,8 +5932,8 @@ int process_seq_fixbanding(int nb) {
 	}
 	args->seq = seq;
 	args->amount = g_ascii_strtod(word[2], &end1);
-	if (end1 == word[2] || args->amount < 0 || args->amount > 4) {
-		siril_log_message(_("Amount value must be in the [0, 4] range.\n"));
+	if (end1 == word[2] || args->amount <= 0 || args->amount > 4) {
+		siril_log_message(_("Amount value must be in the ]0, 4] range.\n"));
 		if (!check_seq_is_comseq(args->seq))
 			free_sequence(args->seq, TRUE);
 		free(args);
@@ -5947,9 +5948,9 @@ int process_seq_fixbanding(int nb) {
 		return CMD_ARG_ERROR;
 	}
 	// settings default optional values
-	args->protect_highlights = TRUE;
-	args->applyRotation = FALSE;
+	args->vertical = FALSE;
 	args->fit = NULL;
+	args->protect_highlights = args->sigma > 0;
 
 	if (nb > 4) {
 		int arg_index = 4;
@@ -5966,8 +5967,8 @@ int process_seq_fixbanding(int nb) {
 					return CMD_ARG_ERROR;
 				}
 				args->seqEntry = strdup(value);
-			} else if (!g_strcmp0(arg, "-vertical")) {
-				args->applyRotation = TRUE;
+			} else if (!g_strcmp0(arg, "-vert") || !g_strcmp0(arg, "-vertical")) {
+				args->vertical = TRUE;
 			} else {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
 				free((char*) args->seqEntry);
