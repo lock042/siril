@@ -1310,7 +1310,7 @@ static void select_image(int nb) {
 						gchar *name = g_path_get_basename(filename);
 						gchar *str = g_strdup_printf("%s will not be added in the pixel math tool because its size is different from the other loaded images"
 								" (width, height or number of channels).", name);
-						siril_message_dialog(GTK_MESSAGE_ERROR, _("Image must have same dimension"), str);
+						siril_message_dialog(GTK_MESSAGE_ERROR, _("Image must have same dimension"), _(str));
 						g_free(name);
 						g_free(str);
 
