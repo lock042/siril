@@ -1734,27 +1734,25 @@ msgid "Scale"
 msgstr "Échelle"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:382
-#, fuzzy
 msgid ""
 "Relative scale of the multiscale surface. Higher = smoother (large-scale "
 "only); lower follows more complex / local gradients."
 msgstr ""
-"Échelle relative du modèle multi-échelle. Plus la valeur est élevée, plus le "
-"résultat est lisse (grande échelle uniquement) ; plus elle est basse, plus "
-"le modèle suit des gradients complexes / locaux."
+"Échelle relative de la surface multi-échelle. Plus la valeur est élevée, "
+"plus le résultat est lisse (grande échelle uniquement) ; plus elle est "
+"basse, plus le modèle suit des gradients complexes / locaux."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:410
 msgid "Smoothness"
 msgstr "Lissage"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:411
-#, fuzzy
 msgid ""
 "Extra smoothing of the multiscale surface. Higher gives a softer, more "
 "gradual background; 0 leaves the fitted model untouched."
 msgstr ""
-"Lissage supplémentaire du modèle final. Une valeur plus élevée donne un fond "
-"plus doux et progressif ; 0 laisse le modèle ajusté inchangé."
+"Lissage supplémentaire de la surface multi-échelle. Une valeur plus élevée "
+"donne un fond plus doux et progressif ; 0 laisse le modèle ajusté inchangé."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:437
 msgid "Simplified model"
@@ -1770,6 +1768,14 @@ msgid ""
 "It can overcorrect when the frame holds a large bright object, which the "
 "polynomial may partly absorb: keep the degree low. Off by default."
 msgstr ""
+"Ajuste un polynôme rigide et le retire avant le modèle multi-échelle, qui "
+"est ensuite ajusté sur le résidu ; la somme des deux est soustraite.\n"
+"Utile pour les gradients forts et complexes dont l'amplitude égale ou "
+"dépasse celle des objets d'intérêt, lorsqu'une seule passe ne peut pas les "
+"séparer et que le modèle s'accroche aux objets.\n"
+"Peut surcorriger lorsque l'image contient un grand objet lumineux, que le "
+"polynôme risque d'absorber en partie : gardez un degré faible. Désactivé par "
+"défaut."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:450
 msgid "    Model degree"
@@ -1781,19 +1787,22 @@ msgid ""
 "for a gradient with real curvature, but a large bright object is then more "
 "easily absorbed by it."
 msgstr ""
+"Degré du modèle simplifié. Plus il est bas, plus le modèle est rigide (degré "
+"1 = plan). Augmentez-le pour un gradient réellement courbé, mais un grand "
+"objet lumineux sera alors plus facilement absorbé."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:469
 msgid "Structure protection"
 msgstr "Protection des structures"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:471
-#, fuzzy
 msgid ""
 "Mask extended bright structures (nebulae) so they are not absorbed into the "
 "model. Applies to the simplified model too, when it is enabled."
 msgstr ""
 "Masque les structures étendues et lumineuses (nébuleuses) afin qu'elles ne "
-"soient pas absorbées par le modèle."
+"soient pas absorbées par le modèle. S'applique aussi au modèle simplifié "
+"lorsqu'il est activé."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:481
 msgid "    Protection threshold"
@@ -3368,7 +3377,7 @@ msgstr "RVB/K"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:150
 msgid "Master channel (RGB or greyscale)"
-msgstr ""
+msgstr "Canal principal (RVB ou niveaux de gris)"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:161 src/gui-gtk4/cut.c:594
 #: src/gui-gtk4/pixelmath.c:1223
@@ -3403,23 +3412,20 @@ msgid "L"
 msgstr "L"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:201
-#, fuzzy
 msgid "Luminance (CIE L*)"
-msgstr "Luminance "
+msgstr "Luminance (CIE L*)"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:213
-#, fuzzy
 msgid "C"
-msgstr "RC"
+msgstr "C"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:214
 msgid "Chrominance (LCH chroma)"
-msgstr ""
+msgstr "Chrominance (chroma LCH)"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:227
-#, fuzzy
 msgid "Saturation (HSV)"
-msgstr "Saturation : "
+msgstr "Saturation (TSV)"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:246
 msgid "Toggles whether the grid is shown on the histogram display"
@@ -3429,11 +3435,12 @@ msgstr "Permet d'afficher ou non la grille sur l'histogramme"
 msgid ""
 "Pipette: click on the image to mark the corresponding value on the curve"
 msgstr ""
+"Pipette : cliquez sur l'image pour marquer la valeur correspondante sur la "
+"courbe"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:276
-#, fuzzy
 msgid "Cubic Spline"
-msgstr "Spline"
+msgstr "Spline cubique"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:277
 #: src/gui-gtk4/uifiles/extract_wavelet_layers_dialog.ui:51
@@ -3445,9 +3452,8 @@ msgid "Linear"
 msgstr "Linéaire"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:278
-#, fuzzy
 msgid "Akima Spline"
-msgstr "Spline"
+msgstr "Spline d'Akima"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:283
 msgid "Interpolation algorithm used to compute a curve from the placed points"
@@ -3456,75 +3462,74 @@ msgstr ""
 "points placés"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:296
-#, fuzzy
 msgid "Reset channel"
-msgstr "Rétablir"
+msgstr "Réinitialiser le canal"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:297
 msgid "Reset the current channel to the identity curve"
-msgstr ""
+msgstr "Réinitialise le canal actuel à la courbe identité"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:303
 msgid "↩ Stage"
-msgstr ""
+msgstr "↩ Étape"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:305
 msgid "Undo the last applied stage"
-msgstr ""
+msgstr "Annule la dernière étape appliquée"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:311
-#, fuzzy
 msgid "Apply Stage"
-msgstr "Appliquer StarNet"
+msgstr "Appliquer l'étape"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:312
 msgid ""
 "Commit current curves as a non-destructive stage. Use Apply to validate all "
 "stages as one undo entry."
 msgstr ""
+"Valide les courbes actuelles comme une étape non destructive. Utilisez "
+"Appliquer pour valider toutes les étapes en une seule entrée d'annulation."
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:329
-#, fuzzy
 msgid "Enable Range Masking"
-msgstr "Activer la correspondance des _parenthèses"
+msgstr "Activer le masquage par plage"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:330
 msgid "Restrict the curve to a luminance range with a soft feathered roll-off"
 msgstr ""
+"Restreint la courbe à une plage de luminance avec une transition douce et "
+"adoucie"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:339
-#, fuzzy
 msgid "Show mask"
-msgstr "Montrer l'image"
+msgstr "Afficher le masque"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:340
 msgid ""
 "Preview the luminance mask of the current channel as a grayscale image: "
 "white means full curve application, black means excluded"
 msgstr ""
+"Affiche le masque de luminance du canal actuel en niveaux de gris : le blanc "
+"signifie une application complète de la courbe, le noir une exclusion"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:367
-#, fuzzy
 msgid "Minimum luminance range."
-msgstr "Fonction minimum."
+msgstr "Limite basse de la plage de luminance."
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:378
 msgid "Max"
 msgstr "Max"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:391
-#, fuzzy
 msgid "Maximum luminance range."
-msgstr "Fonction maximum."
+msgstr "Limite haute de la plage de luminance."
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:402
-#, fuzzy
 msgid "Feather"
-msgstr "Masque d'adoucissement"
+msgstr "Adoucissement"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:415
 msgid "Soft roll-off width at range boundaries."
-msgstr ""
+msgstr "Largeur de la transition douce aux limites de la plage."
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:439
 #: src/gui-gtk4/uifiles/siril_plot.ui:209
@@ -3538,7 +3543,7 @@ msgstr "Coordonnée Y du point sélectionné de la courbe"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:450
 msgid "ID:"
-msgstr ""
+msgstr "ID :"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:451
 #: src/gui-gtk4/uifiles/curves_dialog.ui:497
@@ -3579,13 +3584,12 @@ msgid "Toggles preview"
 msgstr "Activer / désactiver l'aperçu"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:653
-#, fuzzy
 msgid "Reset all"
-msgstr "Réinitialiser"
+msgstr "Tout réinitialiser"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:655
 msgid "Reset all channels and settings"
-msgstr ""
+msgstr "Réinitialise tous les canaux et paramètres"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:665
 msgid "Close curves transformation dialog window"
@@ -9242,7 +9246,6 @@ msgstr ""
 "système peut provoquer un crash de Siril ou du système d'exploitation."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:4097
-#, fuzzy
 msgid ""
 "Sets a new ratio of free memory on memory used for stacking. Value should be "
 "between 0.05 and 2, depending on other activities of the machine. A higher "
@@ -9252,10 +9255,10 @@ msgid ""
 msgstr ""
 "Définit un nouveau ratio de mémoire disponible sur la mémoire utilisée pour "
 "l’empilement. La valeur doit être comprise entre 0,05 et 2, en fonction des "
-"autres activités de la machine. Un rapport plus élevé devrait permettre à "
-"siril d'empiler les images plus rapidement, mais pour définir le rapport de "
-"mémoire utilisé pour l’empilement au-dessus de 1, il faudra utiliser de la "
-"mémoire disque, ce qui est très lent et non recommandé"
+"autres activités de la machine. Un ratio plus élevé devrait permettre à "
+"siril d'empiler les images plus rapidement, mais un ratio de mémoire "
+"utilisée pour l’empilement supérieur à 1 nécessitera l'utilisation de "
+"mémoire sur disque, ce qui est très lent et non recommandé"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:4129
 msgid "<b>Memory management</b>"
@@ -13701,20 +13704,22 @@ msgid "Nb of layers:"
 msgstr "Nombre de Couches :"
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:200
-#, fuzzy
 msgid "Number of wavelet layers to compute on the next Execute"
-msgstr "Nombre de couches d'ondelettes qui vont être utilisées"
+msgstr ""
+"Nombre de couches d'ondelettes à calculer lors de la prochaine exécution"
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:209
-#, fuzzy
 msgid "Anscombe VST"
-msgstr "Application du VST d'Anscombe\n"
+msgstr "VST d'Anscombe"
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:210
 msgid ""
 "Decompose in the Anscombe variance-stabilising domain so denoising better "
 "fits Poisson-dominated (deep-sky) noise. Takes effect on Execute."
 msgstr ""
+"Décompose dans le domaine de stabilisation de variance d'Anscombe afin que "
+"le débruitage soit mieux adapté au bruit à dominante poissonienne (ciel "
+"profond). Pris en compte lors de l'exécution."
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:220
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:231
@@ -13732,9 +13737,8 @@ msgstr "Couche 1"
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:427
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:479
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:531
-#, fuzzy
 msgid "Layer strength"
-msgstr "Étirement logarithmique"
+msgstr "Force de la couche"
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:291
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:343
@@ -13742,9 +13746,8 @@ msgstr "Étirement logarithmique"
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:447
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:499
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:551
-#, fuzzy
 msgid "Include this layer in the preview"
-msgstr "Active ou désactive la mise à jour de l'aperçu."
+msgstr "Inclure cette couche dans l'aperçu"
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:301
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:353
@@ -13752,9 +13755,8 @@ msgstr "Active ou désactive la mise à jour de l'aperçu."
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:457
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:509
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:561
-#, fuzzy
 msgid "Reset strength"
-msgstr "Force"
+msgstr "Réinitialiser la force"
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:311
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:772
@@ -13784,53 +13786,51 @@ msgstr "Couche 6"
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:574
 msgid "Per-scale controls will appear once decomposition is done"
 msgstr ""
+"Les réglages par échelle apparaîtront une fois la décomposition effectuée"
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:582
 msgid "Adjust"
 msgstr "Ajuster"
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:606
-#, fuzzy
 msgid "Enable denoising"
-msgstr "Activer le _pliage de code"
+msgstr "Activer le débruitage"
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:607
 msgid ""
 "Master switch: a layer is denoised only when this and its per-layer Enable "
 "are both ticked"
 msgstr ""
+"Interrupteur principal : une couche n'est débruitée que si cette case et sa "
+"case Activer sont toutes deux cochées"
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:629
 msgid "Bivariate (BiShrink)"
-msgstr ""
+msgstr "Bivarié (BiShrink)"
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:635
-#, fuzzy
 msgid "Shrinkage method"
-msgstr "Méthode de cadrage"
+msgstr "Méthode de rétrécissement"
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:643
-#, fuzzy
 msgid "Strength (k):"
-msgstr "Force"
+msgstr "Force (k) :"
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:653
 msgid "Global denoising strength (k-sigma; 3 is neutral)"
-msgstr ""
+msgstr "Force globale du débruitage (k-sigma ; 3 est neutre)"
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:661
-#, fuzzy
 msgid "Soft thresholding"
-msgstr "Seuil bas : %d"
+msgstr "Seuillage doux"
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:664
 msgid "Soft vs hard threshold (Threshold method only)"
-msgstr ""
+msgstr "Seuil doux ou dur (méthode par seuillage uniquement)"
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:672
-#, fuzzy
 msgid "Measure noise per scale"
-msgstr "Mesure en pixels"
+msgstr "Mesurer le bruit par échelle"
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:674
 msgid ""
@@ -13838,26 +13838,31 @@ msgid ""
 "scale. Turn on for coarse or colour noise (mottled backgrounds, low frame "
 "counts, debayer/registration residuals); leave off for ordinary sensor noise."
 msgstr ""
+"Mesure directement le bruit de chaque échelle au lieu de le prédire à partir "
+"de l'échelle la plus fine. À activer pour un bruit grossier ou chromatique "
+"(fonds marbrés, faible nombre d'images, résidus de dématriçage/"
+"d'alignement) ; à laisser désactivé pour le bruit ordinaire du capteur."
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:682
 msgid "Per-scale strength adjustments"
-msgstr ""
+msgstr "Ajustements de force par échelle"
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:684
 msgid ""
 "Show second-order per-scale multipliers that fine-tune the denoising above; "
 "leave off to control the strength with a single value"
 msgstr ""
+"Affiche des multiplicateurs par échelle de second ordre qui affinent le "
+"débruitage ci-dessus ; laissez désactivé pour contrôler la force avec une "
+"seule valeur"
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:692
-#, fuzzy
 msgid "Noise σ: —"
-msgstr "Bruit : N/A"
+msgstr "Bruit σ : —"
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:710
-#, fuzzy
 msgid "Per-scale NR adjustments"
-msgstr "Ajustement du bleu"
+msgstr "Ajustements du débruitage par échelle"
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:732
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:742
@@ -13873,6 +13878,8 @@ msgstr "Ajustement du bleu"
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:1007
 msgid "Relative per-scale adjustment to the denoising strength (1 = no change)"
 msgstr ""
+"Ajustement relatif de la force du débruitage pour cette échelle (1 = aucun "
+"changement)"
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:751
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:804
@@ -13880,9 +13887,8 @@ msgstr ""
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:910
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:963
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:1016
-#, fuzzy
 msgid "Enable"
-msgstr "Activé"
+msgstr "Activer"
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:752
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:805
@@ -13890,9 +13896,8 @@ msgstr "Activé"
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:911
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:964
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:1017
-#, fuzzy
 msgid "Denoise this layer"
-msgstr "Supprimer ce filtre"
+msgstr "Débruiter cette couche"
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:762
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:815
@@ -13900,30 +13905,30 @@ msgstr "Supprimer ce filtre"
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:921
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:974
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:1027
-#, fuzzy
 msgid "Reset denoising"
-msgstr "débruitage"
+msgstr "Réinitialiser le débruitage"
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:1039
 msgid "Denoising"
 msgstr "Débruitage"
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:1062
-#, fuzzy
 msgid ""
 "If a sequence is loaded and this is activated, the same wavelet layers, "
 "coefficients and denoising options are applied to every selected frame, "
 "generating a new sequence."
 msgstr ""
-"Si une séquence est chargée et que cette option est cochée, le traitement "
-"s'appliquera à toute la séquence et pas seulement à l'image chargée."
+"Si une séquence est chargée et que cette option est cochée, les mêmes "
+"couches d'ondelettes, coefficients et options de débruitage sont appliqués à "
+"chaque image sélectionnée, ce qui génère une nouvelle séquence."
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:1077
-#, fuzzy
 msgid ""
 "Prefix of the image names resulting from the wavelet processing of the "
 "sequence."
-msgstr "Préfixe du nom des images résultantes du pré-traitement."
+msgstr ""
+"Préfixe du nom des images résultant du traitement par ondelettes de la "
+"séquence."
 
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:1098
 msgid "Reset changes"
@@ -14707,9 +14712,8 @@ msgid "unknown error"
 msgstr "erreur inconnue"
 
 #: src/algos/background_extraction.c:1233
-#, fuzzy
 msgid "simplified + multiscale"
-msgstr "Modèle simplifié"
+msgstr "simplifié + multi-échelle"
 
 #: src/algos/background_extraction.c:1233
 msgid "multiscale"
@@ -15490,12 +15494,12 @@ msgstr "FAUX"
 #: src/algos/line_detection.c:207
 #, c-format
 msgid "Detection threshold %f is lower than %.2f ksigma.\n"
-msgstr ""
+msgstr "Le seuil de détection %f est inférieur à %.2f ksigma.\n"
 
 #: src/algos/line_detection.c:231
 #, c-format
 msgid "Detection threshold %f is lower than median value %f.\n"
-msgstr ""
+msgstr "Le seuil de détection %f est inférieur à la valeur médiane %f.\n"
 
 #: src/algos/noise.c:56
 msgid "Noise standard deviation: calculating...\n"
@@ -15512,14 +15516,13 @@ msgid "PCC"
 msgstr "PCC"
 
 #: src/algos/photometric_cc.c:178
-#, fuzzy
 msgid "White Balance summary"
-msgstr "Facteurs de balance des blancs :\n"
+msgstr "Résumé de la balance des blancs"
 
 #: src/algos/photometric_cc.c:183
-#, fuzzy, c-format
+#, c-format
 msgid "%s SPCC Linear Fit"
-msgstr "Adaptations linéaires SPCC\n"
+msgstr "Ajustement linéaire SPCC %s"
 
 #: src/algos/photometric_cc.c:188
 #, c-format
@@ -15527,76 +15530,69 @@ msgid ""
 "y = %f + %f·x   &#x03C3; = %f\n"
 "Number of stars: %d (removed %d outliers)"
 msgstr ""
+"y = %f + %f·x   &#x03C3; = %f\n"
+"Nombre d'étoiles : %d (%d valeurs aberrantes retirées)"
 
 #: src/algos/photometric_cc.c:211
-#, fuzzy
 msgid "X mean"
-msgstr "moyenne"
+msgstr "Moyenne X"
 
 #: src/algos/photometric_cc.c:214
-#, fuzzy
 msgid "Y mean"
-msgstr "moyenne"
+msgstr "Moyenne Y"
 
 #: src/algos/photometric_cc.c:220
 msgid "Slope"
-msgstr ""
+msgstr "Pente"
 
 #: src/algos/photometric_cc.c:223
-#, fuzzy
 msgid "Intercept"
-msgstr "Perception"
+msgstr "Ordonnée à l'origine"
 
 #: src/algos/photometric_cc.c:234
-#, fuzzy, c-format
+#, c-format
 msgid "%d (%d excluded)"
-msgstr "%d étoile exclue"
+msgstr "%d (%d exclues)"
 
 #: src/algos/photometric_cc.c:235
-#, fuzzy
 msgid "Stars measured"
-msgstr "Masque d'étoiles"
+msgstr "Étoiles mesurées"
 
 #: src/algos/photometric_cc.c:236
-#, fuzzy
 msgid "Photometrically valid"
-msgstr "Échec de la photométrie.\n"
+msgstr "Valides photométriquement"
 
 #: src/algos/photometric_cc.c:242
 msgid "Inliers, R/G fit"
-msgstr ""
+msgstr "Valeurs retenues, ajustement R/V"
 
 #: src/algos/photometric_cc.c:243
 msgid "Inliers, B/G fit"
-msgstr ""
+msgstr "Valeurs retenues, ajustement B/V"
 
 #: src/algos/photometric_cc.c:247
-#, fuzzy
 msgid "Fit type"
-msgstr "Type du script"
+msgstr "Type d'ajustement"
 
 #: src/algos/photometric_cc.c:248
 msgid "Linear (y = a + b·x)"
-msgstr ""
+msgstr "Linéaire (y = a + b·x)"
 
 #: src/algos/photometric_cc.c:248
 msgid "Repeated median (robust)"
-msgstr ""
+msgstr "Médiane répétée (robuste)"
 
 #: src/algos/photometric_cc.c:251
-#, fuzzy
 msgid "White balance factors"
-msgstr "Facteurs de balance des blancs :\n"
+msgstr "Facteurs de balance des blancs"
 
 #: src/algos/photometric_cc.c:257
-#, fuzzy
 msgid "Generated"
-msgstr "Générer"
+msgstr "Généré"
 
 #: src/algos/photometric_cc.c:258
-#, fuzzy
 msgid "Version"
-msgstr "Conversion"
+msgstr "Version"
 
 #: src/algos/photometric_cc.c:386 src/algos/photometric_cc.c:704
 #, c-format
@@ -15645,9 +15641,8 @@ msgid "Image B/G = %f + %f * Catalog B/G (sigma: %f)\n"
 msgstr "B/V de l'image = %f + %f * B/V du catalogue (sigma : %f)\n"
 
 #: src/algos/photometric_cc.c:589
-#, fuzzy
 msgid "SPCC Linear Fits"
-msgstr "Adaptations linéaires SPCC\n"
+msgstr "Ajustements linéaires SPCC"
 
 #: src/algos/photometric_cc.c:598
 msgid "Catalog R/G (flux)"
@@ -16303,42 +16298,43 @@ msgstr "MAD est nulle. Les statistiques ne peuvent être calculées.\n"
 #: src/algos/streaks.c:79
 #, c-format
 msgid "Erased %d stars (%zd pixels written).\n"
-msgstr ""
+msgstr "%d étoiles effacées (%zd pixels écrits).\n"
 
 #: src/algos/streaks.c:96
-#, fuzzy
 msgid "No star found\n"
-msgstr "Aucune étoile valide trouvée.\n"
+msgstr "Aucune étoile trouvée\n"
 
 #: src/algos/streaks.c:150
 #, c-format
 msgid "Cannot store result, bad index %d, size is %d\n"
 msgstr ""
+"Impossible de stocker le résultat, index %d invalide, la taille est %d\n"
 
 #: src/algos/streaks.c:190
-#, fuzzy, c-format
+#, c-format
 msgid "Could not save the result CSV file %s\n"
-msgstr "Impossible d'enregistrer le résultat de l'empilement %s\n"
+msgstr "Impossible d'enregistrer le fichier CSV de résultats %s\n"
 
 #: src/algos/streaks.c:194
-#, fuzzy, c-format
+#, c-format
 msgid "Saving results to %s\n"
-msgstr "Tracé sauvegardé dans %s\n"
+msgstr "Enregistrement des résultats dans %s\n"
 
 #: src/algos/streaks.c:277
-#, fuzzy, c-format
+#, c-format
 msgid "No satellite detected for image %d\n"
-msgstr "Aucune étoile détectée dans l'image.\n"
+msgstr "Aucun satellite détecté dans l'image %d\n"
 
 #: src/algos/streaks.c:287
-#, fuzzy, c-format
+#, c-format
 msgid "Found %d trail(s) in frame %2d\n"
-msgstr "%d étoiles trouvées dans l'image référence, canal #%d\n"
+msgstr "%d traînée(s) trouvée(s) dans l'image %2d\n"
 
 #: src/algos/streaks.c:336
-#, fuzzy
 msgid "The image was not plate solved, the results will not be saved\n"
-msgstr "L'image %s est résolue, mais n'a pas pu être sauvegardée\n"
+msgstr ""
+"L'image n'est pas résolue astrométriquement, les résultats ne seront pas "
+"enregistrés\n"
 
 #: src/algos/transform.c:275
 msgid "wavelet_transform_data: bad plane number\n"
@@ -16353,27 +16349,24 @@ msgid "KOMBAT registration (planetary / deep-sky)"
 msgstr "Alignement KOMBAT (planétaire / ciel profond)"
 
 #: src/compositing/align_rgb.c:63
-#, fuzzy
 msgid "one star"
-msgstr "nb étoiles"
+msgstr "une étoile"
 
 #: src/compositing/align_rgb.c:65
-#, fuzzy
 msgid "image pattern"
-msgstr "Motif de Bayer"
+msgstr "motif de l'image"
 
 #: src/compositing/align_rgb.c:67
 msgid "KOMBAT"
-msgstr ""
+msgstr "KOMBAT"
 
 #: src/compositing/align_rgb.c:69
-#, fuzzy
 msgid "global star"
-msgstr "Rééchelonner globalement"
+msgstr "global sur les étoiles"
 
 #: src/compositing/align_rgb.c:78
 msgid "RGB alignment requires a loaded colour image.\n"
-msgstr ""
+msgstr "L'alignement RVB nécessite une image couleur chargée.\n"
 
 #: src/compositing/align_rgb.c:84
 #, c-format
@@ -16381,6 +16374,8 @@ msgid ""
 "The %s alignment method requires a selection. Make one in the image or use "
 "the boxselect command.\n"
 msgstr ""
+"La méthode d'alignement %s nécessite une sélection. Faites-en une dans "
+"l'image ou utilisez la commande boxselect.\n"
 
 #: src/compositing/align_rgb.c:89 src/core/command.c:5389
 #: src/core/command.c:6105 src/core/command.c:6410
@@ -16393,14 +16388,13 @@ msgstr ""
 "faire une sélection autour d'une seule étoile.\n"
 
 #: src/compositing/align_rgb.c:134
-#, fuzzy, c-format
+#, c-format
 msgid "The %s channel could not be aligned and is left unchanged.\n"
-msgstr "L'image n'a pas pu être alignée avec les étoiles de référence\n"
+msgstr "Le canal %s n'a pas pu être aligné et reste inchangé.\n"
 
 #: src/compositing/align_rgb.c:159
-#, fuzzy
 msgid "Could not extract the channels of the loaded image.\n"
-msgstr "Retourne le niveau d'arrière-plan de l'image chargée en mémoire"
+msgstr "Impossible d'extraire les canaux de l'image chargée.\n"
 
 #: src/compositing/align_rgb.c:187 src/gui-gtk4/compositing.c:1212
 msgid "A processing operation is already running.\n"
@@ -16421,9 +16415,9 @@ msgid "Registration complete."
 msgstr "Alignement terminé."
 
 #: src/compositing/align_rgb.c:212
-#, fuzzy, c-format
+#, c-format
 msgid "Aligned RGB channels using the %s method\n"
-msgstr "Canaux RVB alignés\n"
+msgstr "Canaux RVB alignés avec la méthode %s\n"
 
 #: src/core/OS_utils.c:372
 msgid "Error while computing available free disk space.\n"
@@ -17202,7 +17196,7 @@ msgstr ""
 
 #: src/core/command.c:3059 src/core/command.c:3148
 msgid "Too many coefficients (max 7).\n"
-msgstr ""
+msgstr "Trop de coefficients (7 au maximum).\n"
 
 #: src/core/command.c:3065 src/core/command.c:3090 src/core/command.c:3097
 #: src/core/command.c:3102 src/core/command.c:3154 src/core/command.c:3179
@@ -17212,14 +17206,14 @@ msgid "Wrong parameters.\n"
 msgstr "Mauvais paramètres.\n"
 
 #: src/core/command.c:3106 src/core/command.c:3203 src/core/command.c:4143
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown parameter %s.\n"
-msgstr "Paramètre %s inconnu, abandon.\n"
+msgstr "Paramètre %s inconnu.\n"
 
 #: src/core/command.c:3197
-#, fuzzy, c-format
+#, c-format
 msgid "Missing argument to %s.\n"
-msgstr "Argument manquant dans %s, abandon.\n"
+msgstr "Argument manquant pour %s.\n"
 
 #: src/core/command.c:3218 src/core/command.c:3275 src/core/command.c:4117
 #: src/gui-gtk4/wavelets.c:637
@@ -17228,9 +17222,11 @@ msgid "Wavelet: type must be %d or %d\n"
 msgstr "Ondelettes : le type doit être %d ou %d\n"
 
 #: src/core/command.c:3224 src/core/command.c:3283
-#, fuzzy, c-format
+#, c-format
 msgid "Wavelet: number of plans must be between 2 and %d for this image size\n"
-msgstr "Ondelettes : le nombre maximum de plan pour cette image est %d\n"
+msgstr ""
+"Ondelettes : le nombre de plans doit être compris entre 2 et %d pour cette "
+"taille d'image\n"
 
 #: src/core/command.c:3368 src/core/command.c:3872
 #, c-format
@@ -19118,15 +19114,15 @@ msgstr ""
 "[0.05, 4], avec des valeurs inférieures à la mémoire disponible recommandée\n"
 
 #: src/core/command.c:12539
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Setting the ratio of memory used for stacking above 1 will require the use "
 "of on-disk memory, which can be very slow and is not recommended (%g "
 "requested)\n"
 msgstr ""
 "Définir un ratio de mémoire supérieur à 1 pour l’empilement nécessite "
-"l’utilisation de mémoire sur disque, ce qui est très lent et non recommandé "
-"(%g demandé)\n"
+"l’utilisation de mémoire sur disque, ce qui peut être très lent et n'est pas "
+"recommandé (%g demandé)\n"
 
 #: src/core/command.c:12546
 #, c-format
@@ -19234,14 +19230,13 @@ msgid "Overriding previous selection\n"
 msgstr "Remplacer la sélection précédente\n"
 
 #: src/core/command.c:12797
-#, fuzzy
 msgid "Only one alignment method can be given.\n"
-msgstr "Une seule méthode de pondération peut être utilisée\n"
+msgstr "Une seule méthode d'alignement peut être indiquée.\n"
 
 #: src/core/command.c:12807
-#, fuzzy, c-format
+#, c-format
 msgid "RGB alignment (%s)"
-msgstr "Alignement RGB (DFT)"
+msgstr "Alignement RVB (%s)"
 
 #: src/core/command.c:12849
 #, c-format
@@ -19249,15 +19244,17 @@ msgid ""
 "The %s option only applies to LRGB composition, it requires a luminance "
 "image given with -lum=\n"
 msgstr ""
+"L'option %s ne s'applique qu'à la composition LRVB, elle nécessite une image "
+"de luminance fournie avec -lum=\n"
 
 #: src/core/command.c:12903 src/core/command.c:12944
 msgid "Image must all have the same dimensions and be monochrome\n"
 msgstr "Les images doivent avoir les mêmes dimensions et être monochromes\n"
 
 #: src/core/command.c:12936
-#, fuzzy, c-format
+#, c-format
 msgid "LRGB composition using %s\n"
-msgstr "Composition RVB..."
+msgstr "Composition LRVB avec %s\n"
 
 #: src/core/command.c:12975
 #, c-format
@@ -20261,6 +20258,31 @@ msgid ""
 "makes denoising a better statistical fit for Poisson-dominated (deep-sky) "
 "data"
 msgstr ""
+"Calcule la transformée en ondelettes 'à trous' (starlet) de l'image chargée "
+"sur <b>nbr_layers</b> couches, applique un débruitage optionnel par échelle, "
+"puis reconstruit l'image, le tout en une seule étape (contrairement au "
+"couple WAVELET / WRECONS en deux étapes). La transformée est linéaire "
+"(<b>type</b>=1) ou bspline (<b>type</b>=2).\n"
+"\n"
+"Les coefficients de reconstruction optionnels par couche <b>c1</b>, <b>c2</"
+"b>, ..., pondèrent chaque échelle lors de la reconstruction (1 est neutre, 0 "
+"supprime cette échelle) ; les couches non spécifiées conservent leur poids "
+"neutre de 1.\n"
+"\n"
+"Le débruitage par échelle est appliqué aux couches de détail avant la "
+"reconstruction lorsque <b>-denoise</b> est fourni. La méthode est le "
+"rétrécissement bivarié (<b>-bishrink</b>, par défaut) ou le seuillage (<b>-"
+"threshold</b>, éventuellement <b>-hard</b> au lieu de <b>-soft</b>). La "
+"force globale est définie avec <b>-k=valeur</b> (3 est neutre) ; les "
+"facteurs de force par échelle avec <b>-f1=valeur</b> à <b>-f6=valeur</b> (1 "
+"suit le modèle de bruit, une valeur plus élevée débruite plus fortement "
+"cette échelle). Par défaut, le bruit de chaque échelle suit le modèle de "
+"propagation à partir d'une estimation globale unique ; <b>-perband</b> "
+"mesure le bruit de chaque échelle indépendamment. Avec <b>-anscombe</b>, la "
+"décomposition et la reconstruction sont effectuées dans le domaine de "
+"stabilisation de variance d'Anscombe, ce qui rend le débruitage "
+"statistiquement mieux adapté aux données à dominante poissonienne (ciel "
+"profond)"
 
 #: src/core/command_def.h:13
 msgid "Returns the background level of the loaded image"
@@ -20461,7 +20483,6 @@ msgstr ""
 "l'exécution"
 
 #: src/core/command_def.h:22
-#, fuzzy
 msgid ""
 "Computes the absolute magnitude reference using, in order of preference, the "
 "local Gaia catalog, the local NOMAD catalog or the remote Gaia catalog, "
@@ -20906,6 +20927,9 @@ msgid ""
 "equatorial coordinates if it has an astrometric solution or as pixels if "
 "not, in a CSV .streaks file"
 msgstr ""
+"Détecte jusqu'à trois traînées dans l'image chargée et enregistre leurs "
+"coordonnées dans un fichier CSV .streaks, en coordonnées équatoriales si "
+"l'image possède une solution astrométrique, ou en pixels sinon"
 
 #: src/core/command_def.h:42
 msgid ""
@@ -21892,7 +21916,6 @@ msgstr ""
 "(FITS_file_without_ext).json' et peut être modifié avec l'option <b>-out=</b>"
 
 #: src/core/command_def.h:108
-#, fuzzy
 msgid ""
 "Generates a PSF for use with deconvolution, any of the three methods exposed "
 "by RL, SB or WIENER commands. One of the following must be given as the "
@@ -21952,7 +21975,7 @@ msgstr ""
 "exposées par les commandes RL, SB ou WIENER. L'un des éléments suivants doit "
 "être donné en premier argument : <b>clear</b> (efface la PSF existante), "
 "<b>load</b> (charge une PSF à partir d'un fichier), <b>save</b> (enregistre "
-"la PSF actuelle), <b>blind</b> (estimation aveugle de tke PSF), <b>stars</b> "
+"la PSF actuelle), <b>blind</b> (estimation aveugle de la PSF), <b>stars</b> "
 "(génère une PSF basée sur les étoiles mesurées à partir de l'image) ou "
 "<b>manual</b> (génère manuellement une PSF basée sur une fonction et des "
 "paramètres).\n"
@@ -22051,7 +22074,6 @@ msgstr ""
 "de l'image chargée"
 
 #: src/core/command_def.h:111
-#, fuzzy
 msgid ""
 "Create a mask based on image color. As simple hue-based masking performs "
 "poorly on dark images, normalized chromaticity is used (this is defined as "
@@ -23243,9 +23265,25 @@ msgid ""
 "The selection used by the last three methods is the one made in the image, "
 "or the one set by the <b>boxselect</b> command in scripts"
 msgstr ""
+"Aligne les canaux rouge, vert et bleu de l'image couleur chargée les uns sur "
+"les autres, ce qui corrige les franges colorées résiduelles laissées par la "
+"réfraction atmosphérique différentielle. C'est l'équivalent en commande des "
+"entrées <b>Aligner RVB</b> du menu contextuel de l'image.\n"
+"\n"
+"La méthode d'alignement est choisie avec l'un des arguments suivants :\n"
+"<b>-global</b> : alignement global sur les étoiles, par défaut. Fonctionne "
+"sur toute l'image et ne nécessite pas de sélection\n"
+"<b>-psf</b> : alignement sur une étoile, nécessite une sélection d'au plus "
+"300x300 pixels autour d'une seule étoile\n"
+"<b>-dft</b> : alignement par motif de l'image, nécessite une sélection qui "
+"est rendue carrée avant utilisation\n"
+"<b>-kombat</b> : alignement KOMBAT, nécessite une sélection du motif sur "
+"lequel s'aligner\n"
+"\n"
+"La sélection utilisée par les trois dernières méthodes est celle faite dans "
+"l'image, ou celle définie par la commande <b>boxselect</b> dans les scripts"
 
 #: src/core/command_def.h:147
-#, fuzzy
 msgid ""
 "Creates an RGB composition using three independent images, or an LRGB "
 "composition using the optional luminance image and three monochrome images "
@@ -23265,7 +23303,12 @@ msgstr ""
 "composed_rgb.fit ou composed_lrgb.fit à moins qu'un autre nom ne soit fourni "
 "dans l'argument optionnel. Un autre argument facultatif, <b>-nosum</b> "
 "indique à Siril de ne pas additionner les temps d'exposition. Cela a un "
-"impact sur les mots-clés FITS tels que LIVETIME et STACKCNT"
+"impact sur les mots-clés FITS tels que LIVETIME et STACKCNT.\n"
+"\n"
+"Pour les compositions LRVB, l'espace colorimétrique dans lequel la luminance "
+"remplace la luminosité des données couleur peut être choisi avec <b>-hsl</b> "
+"(par défaut), <b>-hsv</b> ou <b>-lab</b> (CIE L*a*b*), correspondant aux "
+"types de combinaison proposés par l'outil de composition RVB"
 
 #: src/core/command_def.h:148
 msgid ""
@@ -23721,7 +23764,6 @@ msgstr ""
 "commande"
 
 #: src/core/command_def.h:167
-#, fuzzy
 msgid ""
 "Same command as CCM but for the sequence <b>sequencename</b>. Only selected "
 "images in the sequence are processed.\n"
@@ -23754,7 +23796,6 @@ msgstr ""
 "sont effacés si aucune option n'est passée"
 
 #: src/core/command_def.h:169
-#, fuzzy
 msgid ""
 "Same command as COSME but for the sequence <b>sequencename</b>. Only "
 "selected images in the sequence are processed.\n"
@@ -23769,7 +23810,6 @@ msgstr ""
 "indication contraire avec l'option <b>-prefix=</b>"
 
 #: src/core/command_def.h:170
-#, fuzzy
 msgid ""
 "Same command as COSME_CFA but for the sequence <b>sequencename</b>. Only "
 "selected images in the sequence are processed.\n"
@@ -24007,7 +24047,6 @@ msgstr ""
 "indication contraire avec l'option <b>-prefix=</b>"
 
 #: src/core/command_def.h:188
-#, fuzzy
 msgid ""
 "Same command as ATROUS but for the sequence <b>sequencename</b>. The same "
 "wavelet layers, per-layer coefficients and denoising options are applied to "
@@ -24016,10 +24055,12 @@ msgid ""
 "The output sequence name starts with the prefix \"wv_\" unless otherwise "
 "specified with <b>-prefix=</b> option"
 msgstr ""
-"Même commande que COSME mais pour la séquence <b>sequencename</b>. Seules "
-"les images sélectionnées dans la séquence sont traitées.\n"
+"Même commande que ATROUS mais pour la séquence <b>sequencename</b>. Les "
+"mêmes couches d'ondelettes, coefficients par couche et options de débruitage "
+"sont appliqués à chaque image sélectionnée, ce qui génère une nouvelle "
+"séquence.\n"
 "\n"
-"Le nom de la séquence de sortie commence par le préfixe \"cosme_\" sauf "
+"Le nom de la séquence de sortie commence par le préfixe \"wv_\" sauf "
 "indication contraire avec l'option <b>-prefix=</b>"
 
 #: src/core/command_def.h:189
@@ -24585,7 +24626,6 @@ msgstr ""
 "Pour réinitialiser la constante de magnitude, voir UNSETMAG"
 
 #: src/core/command_def.h:211
-#, fuzzy
 msgid ""
 "Sets a new ratio of used memory on free memory.\n"
 "\n"
@@ -24821,9 +24861,11 @@ msgid ""
 "Replaces stars by median - 0.1 * bgnoise, unless another factor is passed. "
 "Set star detection parameters with SETFINDSTAR"
 msgstr ""
+"Remplace les étoiles par médiane - 0.1 * bgnoise, sauf si un autre facteur "
+"est fourni. Les paramètres de détection des étoiles se règlent avec "
+"SETFINDSTAR"
 
 #: src/core/command_def.h:221
-#, fuzzy
 msgid ""
 "Stacks the <b>sequencename</b> sequence, using options.\n"
 "\n"
@@ -25089,7 +25131,6 @@ msgid "Stops the live stacking session. Only possible after START_LS"
 msgstr "Arrête la session de livestacking. Uniquement possible après START_LS"
 
 #: src/core/command_def.h:227
-#, fuzzy
 msgid ""
 "Computes a synthetic background gradient using either the polynomial "
 "function model of <b>degree</b> degrees or the RBF model (if <b>-rbf</b> is "
@@ -25191,9 +25232,16 @@ msgstr ""
 "laquelle un pixel est considéré comme une structure (par défaut 0.05).\n"
 "<b>-protect_amount=</b> distance sur laquelle le masque de protection "
 "s'étend autour des structures détectées (par défaut 0.5).\n"
-"<b>-simplified</b> : remplace le modèle multi-échelle par un polynôme "
-"rigide, préférable lorsqu'une nébuleuse remplit le cadre ; <b>-degree=</b> "
-"définit son degré dans la plage [1, 6] (par défaut 2).\n"
+"<b>-simplified</b> : active le modèle simplifié, un polynôme rigide ajusté "
+"et retiré avant le modèle multi-échelle, qui est ensuite ajusté sur le "
+"résidu ; la somme des deux est soustraite. Utile pour les gradients forts et "
+"complexes dont l'amplitude égale ou dépasse celle des objets d'intérêt, "
+"lorsqu'une seule passe ne peut pas les séparer. Peut surcorriger lorsque "
+"l'image contient un grand objet lumineux, que le polynôme risque d'absorber "
+"en partie : gardez donc <b>-degree=</b> faible.\n"
+"<b>-degree=</b> degré du modèle simplifié, dans la plage [1, 6] (par défaut "
+"1, un plan). Augmentez-le pour un gradient réellement courbé, mais un grand "
+"objet lumineux sera alors plus facilement absorbé.\n"
 "<b>-downsample=</b> facteur d'échelle de travail interne, l'une des valeurs "
 "1, 2, 4, 8 (par défaut 4).\n"
 "<b>-mode=</b> <b>subtract</b> (gradient additif, par défaut) ou <b>divide</"
@@ -25407,7 +25455,6 @@ msgstr ""
 "haut, GUI uniquement"
 
 #: src/core/command_def.h:245
-#, fuzzy
 msgid ""
 "Computes the wavelet transform of the loaded image on (<b>nbr_layers</"
 "b>=1...n) layer(s) using linear (<b>type</b>=1) or bspline (<b>type</b>=2) "
@@ -25427,6 +25474,12 @@ msgstr ""
 "b>=2) comme version de l'algorithme 'à trous'. Le résultat est stocké dans "
 "un fichier sous forme de structure contenant les calques, prêt pour la "
 "reconstruction pondérée avec WRECONS.\n"
+"\n"
+"Avec <b>-anscombe</b>, l'image est décomposée dans le domaine de "
+"stabilisation de variance d'Anscombe, ce qui rend le débruitage par "
+"ondelettes de WRECONS statistiquement mieux adapté aux données à dominante "
+"poissonienne (ciel profond) ; l'option <b>-anscombe</b> correspondante doit "
+"alors être fournie à WRECONS.\n"
 "\n"
 "Voir aussi EXTRACT"
 
@@ -25469,6 +25522,23 @@ msgid ""
 "variance-stabilising transform (use it only when the matching WAVELET was "
 "run with <b>-anscombe</b>)"
 msgstr ""
+"Reconstruit l'image actuelle à partir des couches précédemment calculées par "
+"ondelettes et pondérées par les coefficients <b>c1</b>, <b>c2</b>, ..., "
+"<b>cn</b> selon le nombre de couches utilisées pour la transformée en "
+"ondelettes, après l'utilisation de WAVELET.\n"
+"\n"
+"Un débruitage optionnel par échelle est appliqué aux couches de détail avant "
+"la reconstruction lorsque <b>-denoise</b> est fourni. La méthode est le "
+"rétrécissement bivarié (<b>-bishrink</b>, par défaut) ou le seuillage (<b>-"
+"threshold</b>, éventuellement <b>-hard</b> au lieu de <b>-soft</b>). La "
+"force globale est définie avec <b>-k=valeur</b> (3 est neutre) ; les "
+"facteurs de force par échelle avec <b>-f1=valeur</b> à <b>-f6=valeur</b> (1 "
+"suit le modèle de bruit, une valeur plus élevée débruite plus fortement "
+"cette échelle). Par défaut, le bruit de chaque échelle suit le modèle de "
+"propagation à partir d'une estimation globale unique ; <b>-perband</b> "
+"mesure le bruit de chaque échelle indépendamment. <b>-anscombe</b> inverse "
+"la transformée de stabilisation de variance d'Anscombe (à n'utiliser que si "
+"le WAVELET correspondant a été exécuté avec <b>-anscombe</b>)"
 
 #: src/core/command_line_processor.c:46
 msgid "unknown command name"
@@ -26048,12 +26118,12 @@ msgstr ""
 "pas utilisé.\n"
 
 #: src/core/initfile.c:121
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "`%s' is not a valid FITS extension for config key %s.%s, not using it.\n"
 msgstr ""
-"le répertoire `%s' pour la clé de configuration %s.%s n'existe pas, il n'est "
-"pas utilisé.\n"
+"`%s' n'est pas une extension FITS valide pour la clé de configuration %s.%s, "
+"elle n'est pas utilisée.\n"
 
 #: src/core/initfile.c:173
 #, c-format
@@ -28054,14 +28124,15 @@ msgid "Curve Transformation"
 msgstr "Transformation par courbes"
 
 #: src/filters/curve_transform.c:678
-#, fuzzy, c-format
+#, c-format
 msgid "%s curve transformation (VeraLux Engine)"
-msgstr "Application de la transformation par courbe %s avec %d points"
+msgstr "Transformation par courbe %s (moteur VeraLux)"
 
 #: src/filters/curve_transform.c:680
-#, fuzzy, c-format
+#, c-format
 msgid "Applying %s curve transformation with Range Masking..."
-msgstr "Application de la transformation par courbe %s avec %d points : "
+msgstr ""
+"Application de la transformation par courbe %s avec masquage par plage..."
 
 #: src/filters/da3d/DA3D.cpp:208
 msgid "DA3D denoising..."
@@ -28082,11 +28153,10 @@ msgid "Wrong PSF size"
 msgstr "Mauvaise taille de PSF"
 
 #: src/filters/deconvolution.c:230
-#, fuzzy
 msgid "PSF file does not contain a square PSF. Cannot load this file."
 msgstr ""
-"Erreur : le fichier PSF ne contient pas de PSF carré. Impossible de charger "
-"ce fichier.\n"
+"Le fichier PSF ne contient pas de PSF carrée. Impossible de charger ce "
+"fichier."
 
 #: src/filters/deconvolution.c:239
 #, c-format
@@ -28186,101 +28256,95 @@ msgstr "PSF réalisée en orientation descendante.\n"
 #: src/filters/deconvolution.c:481
 #, c-format
 msgid "Est. deconv kernel (%s)"
-msgstr ""
+msgstr "Estim. noyau de déconv. (%s)"
 
 #: src/filters/deconvolution.c:481
 msgid "blind"
-msgstr ""
+msgstr "aveugle"
 
 #: src/filters/deconvolution.c:482
-#, fuzzy
 msgid "from stars"
-msgstr "PSF des étoiles"
+msgstr "à partir des étoiles"
 
 #. args->psftype==PSF_MANUAL ?
 #: src/filters/deconvolution.c:483
-#, fuzzy
 msgid "manual"
-msgstr "Manuelle"
+msgstr "manuel"
 
 #: src/filters/deconvolution.c:493
 #, c-format
 msgid "Split Bregman deconvolution: alpha=%.3f, iters=%d"
-msgstr ""
+msgstr "Déconvolution Split Bregman : alpha=%.3f, itérations=%d"
 
 #: src/filters/deconvolution.c:497
 #, c-format
 msgid ", step size=%.3e"
-msgstr ""
+msgstr ", pas=%.3e"
 
 #: src/filters/deconvolution.c:498
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "%s Richardson-Lucy deconvolution: alpha=%.3f, iters=%d, %s regularization%s"
-msgstr "Méthode de Richardson-Lucy avec régularisation TV"
+msgstr ""
+"Déconvolution de Richardson-Lucy (%s) : alpha=%.3f, itérations=%d, "
+"régularisation %s%s"
 
 #: src/filters/deconvolution.c:499
-#, fuzzy
 msgid "Gradient descent"
 msgstr "Descente par gradient"
 
 #: src/filters/deconvolution.c:501
-#, fuzzy
 msgid "total variation"
-msgstr "Variation totale"
+msgstr "variation totale"
 
 #: src/filters/deconvolution.c:502
-#, fuzzy
 msgid "Frobenius of Hessian"
-msgstr "Norme de Frobenius du Hessian"
+msgstr "norme de Frobenius de la hessienne"
 
 #: src/filters/deconvolution.c:507
-#, fuzzy, c-format
+#, c-format
 msgid "Wiener deconvolution: alpha=%.3f"
-msgstr "Déconvolution de Wiener..."
+msgstr "Déconvolution de Wiener : alpha=%.3f"
 
 #: src/filters/deconvolution.c:516
 #, c-format
 msgid "SB deconv: alpha=%.3f, iters=%d"
-msgstr ""
+msgstr "Déconv. SB : alpha=%.3f, itér.=%d"
 
 #: src/filters/deconvolution.c:520
 #, c-format
 msgid ", step size=%.2e"
-msgstr ""
+msgstr ", pas=%.2e"
 
 #: src/filters/deconvolution.c:521
 #, c-format
 msgid "%s RL deconv: alpha=%.2f, iters=%d, %s reg%s"
-msgstr ""
+msgstr "Déconv. RL %s : alpha=%.2f, itér.=%d, rég. %s%s"
 
 #: src/filters/deconvolution.c:522
 msgid "Mult."
-msgstr ""
+msgstr "Mult."
 
 #: src/filters/deconvolution.c:522
-#, fuzzy
 msgid "GD"
-msgstr "V"
+msgstr "DG"
 
 #: src/filters/deconvolution.c:524
-#, fuzzy
 msgid "TV"
-msgstr "TSV"
+msgstr "VT"
 
 #: src/filters/deconvolution.c:525
 msgid "FoH"
-msgstr ""
+msgstr "FoH"
 
 #: src/filters/deconvolution.c:525
-#, fuzzy
 msgid "no"
-msgstr "Mono"
+msgstr "aucune"
 
 #: src/filters/deconvolution.c:530
-#, fuzzy, c-format
+#, c-format
 msgid "Wiener deconv: alpha=%.3f"
-msgstr "Déconvolution de Wiener..."
+msgstr "Déconv. Wiener : alpha=%.3f"
 
 #. User wants PSF from stars but has not selected any stars
 #: src/filters/deconvolution.c:555 src/filters/deconvolution.c:713
@@ -28690,9 +28754,8 @@ msgid "Wavelet reconstruction"
 msgstr "Reconstruction en ondelettes"
 
 #: src/filters/wavelets.c:52 src/filters/wavelets.c:489
-#, fuzzy
 msgid "Wavelet transform"
-msgstr "Transformation ondelettes"
+msgstr "Transformée en ondelettes"
 
 #: src/filters/wavelets.c:200
 #, c-format
@@ -28702,12 +28765,12 @@ msgstr "Décomposition en ondelettes calculée (%d plans)\n"
 #: src/filters/wavelets.c:391
 #, c-format
 msgid "À trous wavelet transform (%d layers, denoise k=%.2f)"
-msgstr ""
+msgstr "Transformée en ondelettes à trous (%d couches, débruitage k=%.2f)"
 
 #: src/filters/wavelets.c:393
-#, fuzzy, c-format
+#, c-format
 msgid "À trous wavelet transform (%d layers)"
-msgstr "Transformation d'ondelettes \"à trous\"..."
+msgstr "Transformée en ondelettes à trous (%d couches)"
 
 #: src/filters/wavelets.c:597
 msgid "Could not copy image, aborting\n"
@@ -30231,9 +30294,8 @@ msgstr[0] "%d fichier sélectionné"
 msgstr[1] "%d fichiers sélectionnés"
 
 #: src/gui-gtk4/curves.c:1630
-#, fuzzy
 msgid "Curves: nothing to apply.\n"
-msgstr "Nombre d'itérations à appliquer."
+msgstr "Courbes : rien à appliquer.\n"
 
 #: src/gui-gtk4/curves.c:1736
 msgid "Curves Transform"
@@ -31152,13 +31214,12 @@ msgid "Operation on the sequence"
 msgstr "Opération sur la séquence"
 
 #: src/gui-gtk4/keywords_tree.c:151
-#, fuzzy
 msgid ""
 "Keyword edits made here will be applied to the FITS header of every image of "
 "the entire sequence. Are you sure?"
 msgstr ""
-"Ces mots-clés seront supprimés de chaque image sur la séquence entière. Êtes-"
-"vous sûr ?"
+"Les modifications de mots-clés faites ici seront appliquées à l'en-tête FITS "
+"de chaque image de la séquence entière. Êtes-vous sûr ?"
 
 #: src/gui-gtk4/keywords_tree.c:185
 msgid "Keyname can contain a maximum of 8 characters.\n"
@@ -34321,48 +34382,40 @@ msgid "SVG files (*.svg)"
 msgstr "Fichiers SVG (*.svg)"
 
 #: src/gui-gtk4/siril_plot.c:559
-#, fuzzy
 msgid "Plot figures were copied to the clipboard.\n"
-msgstr "L'instantané a été copié dans le presse-papiers.\n"
+msgstr "Les figures du tracé ont été copiées dans le presse-papiers.\n"
 
 #: src/gui-gtk4/siril_plot.c:580
-#, fuzzy
 msgid "Copy these figures to the clipboard"
-msgstr "Copier l’instantané vers le presse-papier"
+msgstr "Copier ces figures dans le presse-papiers"
 
 #: src/gui-gtk4/siril_plot.c:661
-#, fuzzy
 msgid "Display the y axis in log scale"
-msgstr "Affichage de la courbe de lumière"
+msgstr "Afficher l'axe y en échelle logarithmique"
 
 #: src/gui-gtk4/siril_plot.c:664
-#, fuzzy
 msgid "Log scale"
-msgstr "Échelle X"
+msgstr "Échelle log"
 
 #: src/gui-gtk4/siril_plot.c:669
-#, fuzzy
 msgid "Show this plot alone"
-msgstr "Montrer les distorsions"
+msgstr "Afficher ce tracé seul"
 
 #: src/gui-gtk4/siril_plot.c:675
 msgid "Plot options and exports"
-msgstr ""
+msgstr "Options et exports du tracé"
 
 #: src/gui-gtk4/siril_plot.c:732
-#, fuzzy
 msgid "Could not save the report snapshot.\n"
-msgstr "Impossible d'analyser les coordonnées\n"
+msgstr "Impossible d'enregistrer la capture du rapport.\n"
 
 #: src/gui-gtk4/siril_plot.c:747
-#, fuzzy
 msgid "Save report…"
-msgstr "Enregistrer graphique"
+msgstr "Enregistrer le rapport…"
 
 #: src/gui-gtk4/siril_plot.c:748
-#, fuzzy
 msgid "Save the whole window as a PNG image"
-msgstr "Enregistrer l'image chargée"
+msgstr "Enregistrer toute la fenêtre en image PNG"
 
 #: src/gui-gtk4/siril_preview.c:171
 msgid "Warning: insufficient memory available to create a preview.\n"
@@ -34605,14 +34658,12 @@ msgid "Select image"
 msgstr "Sélectionner l'image"
 
 #: src/gui-gtk4/wavelets.c:368
-#, fuzzy
 msgid "Wavelets preview"
-msgstr "Activer / désactiver l'aperçu"
+msgstr "Aperçu des ondelettes"
 
 #: src/gui-gtk4/wavelets.c:392
-#, fuzzy
 msgid "Noise σ: "
-msgstr "Bruit : N/A"
+msgstr "Bruit σ : "
 
 #: src/gui-gtk4/wavelets.c:597
 msgid "Wavelets Transformation"
@@ -35159,9 +35210,9 @@ msgid "ID range exceeds catalog bounds.\n"
 msgstr "La plage d'ID dépasse les limites du catalogue.\n"
 
 #: src/io/healpix/healpix.cpp:207
-#, fuzzy, c-format
+#, c-format
 msgid "Catalogue index is corrupted: %s\n"
-msgstr "Index du catalogue corrompu (décalages non monotones)\n"
+msgstr "L'index du catalogue est corrompu : %s\n"
 
 #: src/io/healpix/healpix.cpp:217
 msgid "Failed to read data entries.\n"
@@ -35174,6 +35225,9 @@ msgid ""
 "Check the catalogue paths in Preferences and that the file downloaded "
 "completely.\n"
 msgstr ""
+"Erreur : %s n'est pas un fichier de catalogue Healpix Siril valide, ou il "
+"est corrompu. Vérifiez les chemins des catalogues dans les Préférences et "
+"que le fichier a été entièrement téléchargé.\n"
 
 #: src/io/healpix/healpix.cpp:320 src/io/healpix/healpix.cpp:402
 #, c-format
@@ -35292,24 +35346,24 @@ msgstr ""
 "représenter la même version de données Gaia.\n"
 
 #: src/io/healpix/healpix.cpp:953
-#, fuzzy, c-format
+#, c-format
 msgid "Error querying the local %s catalogue: %s\n"
-msgstr "Échec de la lecture du catalogue local %s\n"
+msgstr "Erreur lors de l'interrogation du catalogue local %s : %s\n"
 
 #: src/io/healpix/healpix.cpp:955
-#, fuzzy, c-format
+#, c-format
 msgid "Error querying the local %s catalogue\n"
-msgstr "Échec de la lecture du catalogue local %s\n"
+msgstr "Erreur lors de l'interrogation du catalogue local %s\n"
 
 #: src/io/healpix/healpix.cpp:1127
-#, fuzzy, c-format
+#, c-format
 msgid "Error querying the local Gaia astrometric catalogue: %s\n"
-msgstr "Chemin du catalogue astrométrique local Gaia"
+msgstr ""
+"Erreur lors de l'interrogation du catalogue astrométrique local Gaia : %s\n"
 
 #: src/io/healpix/healpix.cpp:1129
-#, fuzzy
 msgid "Error querying the local Gaia astrometric catalogue\n"
-msgstr "Chemin du catalogue astrométrique local Gaia"
+msgstr "Erreur lors de l'interrogation du catalogue astrométrique local Gaia\n"
 
 #: src/io/healpix/healpix.cpp:1163
 #, c-format
@@ -35349,14 +35403,14 @@ msgid "Warning: No data retrieved for chunk %d\n"
 msgstr "Avertissement : aucune donnée récupérée pour le bloc %d\n"
 
 #: src/io/healpix/healpix.cpp:1361
-#, fuzzy, c-format
+#, c-format
 msgid "Error querying the remote %s catalogue: %s\n"
-msgstr "Erreur lors de la création du fichier de script temporaire : %s\n"
+msgstr "Erreur lors de l'interrogation du catalogue distant %s : %s\n"
 
 #: src/io/healpix/healpix.cpp:1363
-#, fuzzy, c-format
+#, c-format
 msgid "Error querying the remote %s catalogue\n"
-msgstr "Erreur lors de l'ouverture du fichier %s\n"
+msgstr "Erreur lors de l'interrogation du catalogue distant %s\n"
 
 #: src/io/healpix/healpix.cpp:1383 src/io/healpix/healpix.cpp:1407
 msgid ""
@@ -35381,10 +35435,10 @@ msgstr ""
 "pour les opérations séquentielles\n"
 
 #: src/io/image_format_fits.c:637
-#, fuzzy, c-format
+#, c-format
 msgid "Normalizing the image data from [%g, %g] to our float range [0, 1]\n"
 msgstr ""
-"Normalisation des données d'entrée dans notre plage de valeurs flottantes "
+"Normalisation des données de l'image de [%g, %g] vers notre plage flottante "
 "[0, 1]\n"
 
 #: src/io/image_format_fits.c:657
@@ -35418,11 +35472,15 @@ msgid ""
 "This FITS image stores floating point data scaled to integers (BSCALE = %g, "
 "BZERO = %g), reading it as 32-bit float\n"
 msgstr ""
+"Cette image FITS stocke des données flottantes mises à l'échelle en entiers "
+"(BSCALE = %g, BZERO = %g), lecture en flottant 32 bits\n"
 
 #: src/io/image_format_fits.c:900
 #, c-format
 msgid "Removed %d DATA* keyword(s) that described the original physical data\n"
 msgstr ""
+"%d mot(s)-clé(s) DATA* décrivant les données physiques d'origine "
+"supprimé(s)\n"
 
 #: src/io/image_format_fits.c:917
 #, c-format
@@ -35753,6 +35811,9 @@ msgid ""
 "XISF is supported in read-only mode for compatibility; for interoperability "
 "and long-term preservation, FITS remains recommended.\n"
 msgstr ""
+"Le XISF est pris en charge en lecture seule par souci de compatibilité ; "
+"pour l'interopérabilité et la conservation à long terme, le FITS reste "
+"recommandé.\n"
 
 #: src/io/image_formats_libraries.c:1331
 #, c-format
@@ -35989,7 +36050,7 @@ msgstr "Encodeur sélectionné : %s\n"
 
 #: src/io/mp4_output.c:375
 msgid "Image does not match the film input format\n"
-msgstr ""
+msgstr "L'image ne correspond pas au format d'entrée du film\n"
 
 #: src/io/mp4_output.c:512
 msgid ""
@@ -37921,25 +37982,23 @@ msgid "Saved plot to %s\n"
 msgstr "Tracé sauvegardé dans %s\n"
 
 #: src/io/siril_pythonmodule.c:1363
-#, fuzzy
 msgid ""
 "Processing thread is not claimed: unable to update the background samples. "
 "This is a script error: claim_thread() has either not been called or has "
 "failed, or the thread has been released too early."
 msgstr ""
-"Le thread de traitement n'est pas réclamé : impossible de mettre à jour "
-"l'image actuelle. Il s'agit d'une erreur de script : claim_thread() n'a pas "
-"été appelé ou a échoué, ou encore le thread a été libéré trop tôt."
+"Le thread de traitement n'est pas réclamé : impossible de mettre à jour les "
+"échantillons de fond. Il s'agit d'une erreur de script : claim_thread() n'a "
+"pas été appelé ou a échoué, ou encore le thread a été libéré trop tôt."
 
 #: src/io/siril_pythonmodule.c:1484
-#, fuzzy
 msgid ""
 "Processing thread is not claimed: unable to update the image header. This is "
 "a script error: claim_thread() has either not been called or has failed, or "
 "the thread has been released too early."
 msgstr ""
-"Le thread de traitement n'est pas réclamé : impossible de mettre à jour "
-"l'image actuelle. Il s'agit d'une erreur de script : claim_thread() n'a pas "
+"Le thread de traitement n'est pas réclamé : impossible de mettre à jour l'en-"
+"tête de l'image. Il s'agit d'une erreur de script : claim_thread() n'a pas "
 "été appelé ou a échoué, ou encore le thread a été libéré trop tôt."
 
 #: src/io/siril_pythonmodule.c:1555
@@ -37947,15 +38006,14 @@ msgid "Error: could not parse FITS header string"
 msgstr "Erreur : impossible d'analyser la chaîne d'en-tête FITS"
 
 #: src/io/siril_pythonmodule.c:1579
-#, fuzzy
 msgid ""
 "Processing thread is not claimed: unable to update the ICC profile. This is "
 "a script error: claim_thread() has either not been called or has failed, or "
 "the thread has been released too early."
 msgstr ""
-"Le thread de traitement n'est pas réclamé : impossible de mettre à jour "
-"l'image actuelle. Il s'agit d'une erreur de script : claim_thread() n'a pas "
-"été appelé ou a échoué, ou encore le thread a été libéré trop tôt."
+"Le thread de traitement n'est pas réclamé : impossible de mettre à jour le "
+"profil ICC. Il s'agit d'une erreur de script : claim_thread() n'a pas été "
+"appelé ou a échoué, ou encore le thread a été libéré trop tôt."
 
 #: src/io/siril_pythonmodule.c:1665
 msgid "Failed to add user polygon: no image loaded"
@@ -38723,14 +38781,14 @@ msgid "Mask updated with its gradient (max gradient: %.3f)\n"
 msgstr "Masque mis à jour avec son gradient (gradient max : %.3f)\n"
 
 #: src/opencv/tracks.cpp:354
-#, fuzzy, c-format
+#, c-format
 msgid "Using layer %d\n"
-msgstr "Traitement de l'étoile #%d\n"
+msgstr "Utilisation de la couche %d\n"
 
 #: src/opencv/tracks.cpp:421
 #, c-format
 msgid "%d objects with an angle in [%f, %f]\n"
-msgstr ""
+msgstr "%d objets avec un angle dans [%f, %f]\n"
 
 #: src/pixelMath/pixel_math_runner.c:293
 #, c-format
@@ -40426,14 +40484,14 @@ msgstr ""
 "Impossible de lire les données de chevauchement entre les images %d et %d\n"
 
 #: src/stacking/normalization.c:655
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Your system does not have enough memory to normalize image overlaps for "
 "stacking operation (%d MB free for %d MB required)\n"
 msgstr ""
 "Votre système ne dispose pas de suffisamment de mémoire pour normaliser les "
-"chevauchements d'images pour l'opération d'empilement (%d MB libre pour %d "
-"MB requis).\n"
+"chevauchements d'images pour l'opération d'empilement (%d Mo libres pour %d "
+"Mo requis)\n"
 
 #: src/stacking/normalization.c:662
 #, c-format
