@@ -643,7 +643,7 @@ void curves_activate(GSimpleAction *action, GVariant *parameter, gpointer user_d
 }
 
 void fix_banding_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_open_dialog("canon_fixbanding_dialog");
+	siril_open_dialog("fixbanding_dialog");
 }
 
 void cosmetic_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

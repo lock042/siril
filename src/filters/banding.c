@@ -16,7 +16,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
-*/
+ */
 #include <float.h>
 #include <string.h>
 #include <gsl/gsl_statistics.h>
@@ -41,7 +41,8 @@
 #include "opencv/opencv.h"
 
 #include "banding.h"
-static int BandingEngine(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation, threading_type threading);
+
+static int BandingEngine(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean vertical, threading_type threading);
 
 /*****************************************************************************
  *      B A N D I N G      R E D U C T I O N      M A N A G E M E N T        *
@@ -50,7 +51,7 @@ static int BandingEngine(fits *fit, double sigma, double amount, gboolean protec
 int banding_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	struct banding_data *banding_args = (struct banding_data *)args->user;
 	return BandingEngine(fit, banding_args->sigma, banding_args->amount,
-			banding_args->protect_highlights, banding_args->applyRotation, SINGLE_THREADED);
+			banding_args->protect_highlights, banding_args->vertical, SINGLE_THREADED);
 }
 
 static int banding_mem_limits_hook(struct generic_seq_args *args, gboolean for_writer) {
@@ -68,14 +69,14 @@ static int banding_mem_limits_hook(struct generic_seq_args *args, gboolean for_w
 		required = 2 * MB_per_image + MB_per_channel;
 		int thread_limit = MB_avail / required;
 		if (thread_limit > com.max_thread)
-                        thread_limit = com.max_thread;
+			thread_limit = com.max_thread;
 
 		if (for_writer) {
-                        /* we allow the already allocated thread_limit images,
-                         * plus how many images can be stored in what remains
-                         * unused by the main processing */
-                        limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_image;
-                } else limit = thread_limit;
+			/* we allow the already allocated thread_limit images,
+			 * plus how many images can be stored in what remains
+			 * unused by the main processing */
+			limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_image;
+		} else limit = thread_limit;
 
 	}
 	if (limit == 0) {
@@ -152,34 +153,6 @@ gboolean end_BandingEngine(gpointer p) {
 	return FALSE;
 }
 
-static int fmul_layer_ushort(fits *a, int layer, float coeff) {
-	WORD *buf;
-	size_t i, n = a->naxes[0] * a->naxes[1];
-
-	if (coeff < 0.0)
-		return 1;
-	buf = a->pdata[layer];
-	for (i = 0; i < n; ++i) {
-		buf[i] = round_to_WORD(buf[i] * coeff);
-	}
-	invalidate_stats_from_fit(a);
-	return 0;
-}
-
-static int fmul_layer_float(fits *a, int layer, float coeff) {
-	float *buf;
-	size_t i, n = a->naxes[0] * a->naxes[1];
-
-	if (coeff < 0.0)
-		return 1;
-	buf = a->fpdata[layer];
-	for (i = 0; i < n; ++i) {
-		buf[i] = buf[i] * coeff;
-	}
-	invalidate_stats_from_fit(a);
-	return 0;
-}
-
 /*** Reduces Banding in Canon DSLR images.
  * This code come from CanonBandingReduction.js v0.9.1, a script of
  * PixInsight, originally written by Georg Viehoever and
@@ -191,7 +164,7 @@ gpointer BandingEngineThreaded(gpointer p) {
 	siril_log_color_message(_("Banding Reducing: processing...\n"), "green");
 	gettimeofday(&t_start, NULL);
 
-	int retval = BandingEngine(args->fit, args->sigma, args->amount, args->protect_highlights, args->applyRotation, MULTI_THREADED);
+	int retval = BandingEngine(args->fit, args->sigma, args->amount, args->protect_highlights, args->vertical, MULTI_THREADED);
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
@@ -200,187 +173,248 @@ gpointer BandingEngineThreaded(gpointer p) {
 	return GINT_TO_POINTER(retval);
 }
 
-static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation, threading_type threads) {
-	int chan, row, i, ret = 0;
-	WORD *line, *fixline;
-	double minimum = DBL_MAX, globalsigma = 0.0;
-	fits *fiximage = NULL;
-	double invsigma = 1.0 / sigma;
 
-	if (applyRotation) {
+static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean vertical_banding, threading_type threads) {
+	threads = limit_threading(&threads, 10000000, (size_t)fit->ry * fit->rx);
+	if (vertical_banding) {
+		siril_debug_print("rotating image for vertical banding removal\n");
 		if (cvRotateImage(fit, 90)) return 1;
 	}
 
+	fits *fiximage = NULL;
 	if (new_fit_image(&fiximage, fit->rx, fit->ry, fit->naxes[2], DATA_USHORT))
 		return 1;
+	double *row_value = calloc(fit->ry, sizeof(double));
+	if (!row_value) {
+		PRINT_ALLOC_ERR;
+		clearfits(fiximage);
+		free(fiximage);
+		return 1;
+	}
 
-	for (chan = 0; chan < fit->naxes[2]; chan++) {
-		imstats *stat = statistics(NULL, -1, fit, chan, NULL, STATS_BASIC | STATS_MAD, threads);
-		if (!stat) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
-			clearfits(fiximage);
-			return 1;
-		}
-		double background = stat->median;
-		double *rowvalue = calloc(fit->ry, sizeof(double));
-		if (rowvalue == NULL) {
+	WORD *row_pixels = NULL;
+	if (protect_highlights) {
+		row_pixels = calloc(fit->rx, sizeof(WORD));
+		if (!row_pixels) {
 			PRINT_ALLOC_ERR;
+			free(row_value);
 			clearfits(fiximage);
-			free_stats(stat);
+			free(fiximage);
 			return 1;
 		}
-		if (protect_highlights) {
-			globalsigma = stat->mad * MAD_NORM;
+	}
+	else if (fit->rx < 10) {
+		siril_log_color_message(_("Unsupported operation for very small images\n"), "red");
+		// because of histogram_median calling sortnet
+		free(row_value);
+		clearfits(fiximage);
+		free(fiximage);
+		return 1;
+	}
+
+	int retval = 0;
+	for (int chan = 0; chan < fit->naxes[2]; chan++) {
+		int stats_operation = protect_highlights ? (STATS_BASIC | STATS_MAD) : STATS_BASIC;
+		imstats *stat = statistics(NULL, -1, fit, chan, NULL, stats_operation, threads);
+		if (!stat) {
+			siril_log_color_message(_("Error: statistics computation failed.\n"), "red");
+			retval = 1;
+			break;
+		}
+		double image_background = stat->median;
+		gboolean protect_this_channel = protect_highlights;
+		WORD reject = 0;
+		if (protect_this_channel) {
+			double globalsigma = stat->mad * MAD_NORM;
+			reject = round_to_WORD(image_background + sigma * globalsigma);
+			if (reject == 65535)
+				protect_this_channel = FALSE;
+			siril_debug_print("%d: image median: %.0f, global sigma from MAD: %.1f, k: %f, rejection value: %hu (%s)\n",
+					chan, image_background, globalsigma, sigma, reject, protect_this_channel ? "enabled" : "disabled");
 		}
 		free_stats(stat);
-		for (row = 0; row < fit->ry; row++) {
-			line = fit->pdata[chan] + row * fit->rx;
-			WORD *cpyline = calloc(fit->rx, sizeof(WORD));
-			if (cpyline == NULL) {
-				PRINT_ALLOC_ERR;
-				free(rowvalue);
-				clearfits(fiximage);
-				return 1;
-			}
-			memcpy(cpyline, line, fit->rx * sizeof(WORD));
-			int n = fit->rx;
-			double median;
-			if (protect_highlights) {
-				quicksort_s(cpyline, n);
-				WORD reject = round_to_WORD(
-						background + invsigma * globalsigma);
+
+		double minimum_row_value = DBL_MAX;
+		for (int row = 0; row < fit->ry; row++) {
+			WORD *line = fit->pdata[chan] + row * fit->rx;
+			double row_median;
+			if (protect_this_channel) {
+				memcpy(row_pixels, line, fit->rx * sizeof(WORD));
+				quicksort_s(row_pixels, fit->rx);
+				int i;
 				for (i = fit->rx - 1; i >= 0; i--) {
-					if (cpyline[i] < reject)
+					if (row_pixels[i] < reject)
 						break;
-					n--;
 				}
-				median = gsl_stats_ushort_median_from_sorted_data(cpyline, 1, n);
+				if (i < 0)
+					row_median = image_background;
+				else row_median = gsl_stats_ushort_median_from_sorted_data(row_pixels, 1, i+1);
 			} else {
-				median = round_to_WORD(quickmedian(cpyline, n));
+				// bad design: histogram_median doesn't modify input data UNLESS size < 10
+				row_median = histogram_median(line, fit->rx, SINGLE_THREADED);
 			}
 
-			rowvalue[row] = background - median;
-			minimum = min(minimum, rowvalue[row]);
-			free(cpyline);
+			row_value[row] = image_background - row_median;
+			// row values are positive if rows are darker than the image
+			// so the minimum value here is the brightest, becomes the pedestal
+			minimum_row_value = min(minimum_row_value, row_value[row]);
 		}
-		for (row = 0; row < fit->ry; row++) {
-			fixline = fiximage->pdata[chan] + row * fiximage->rx;
-			for (i = 0; i < fit->rx; i++)
-				fixline[i] = round_to_WORD(rowvalue[row] - minimum);
-		}
-		free(rowvalue);
-	}
-	for (chan = 0; chan < fit->naxes[2]; chan++)
-		fmul_layer_ushort(fiximage, chan, amount);
-	ret = imoper(fit, fiximage, OPER_ADD, FALSE);
+		siril_debug_print("minimum row value: %f\n", minimum_row_value);
 
-	invalidate_stats_from_fit(fit);
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(threads) schedule(static)
+#endif
+		for (int row = 0; row < fit->ry; row++) {
+			WORD *fixline = fiximage->pdata[chan] + row * fiximage->rx;
+			for (int i = 0; i < fit->rx; i++)
+				fixline[i] = round_to_WORD(row_value[row] - minimum_row_value);
+		}
+	}
+	free(row_pixels);
+	free(row_value);
+	if (!retval) {
+		if (amount != 1.0)
+			soper(fiximage, amount, OPER_MUL, FALSE);
+		retval = imoper(fit, fiximage, OPER_ADD, FALSE);
+		invalidate_stats_from_fit(fit);
+	}
 	clearfits(fiximage);
-	if ((!ret) && applyRotation) {
+	free(fiximage);
+	if (vertical_banding) {
 		if (cvRotateImage(fit, -90)) return 1;
 	}
-
-	return ret;
+	return retval;
 }
 
-static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation, threading_type threads) {
-	int chan, row, i, ret = 0;
-	float *line, *fixline;
-	double minimum = DBL_MAX, globalsigma = 0.0;
-	fits *fiximage = NULL;
-	double invsigma = 1.0 / sigma;
-
-	if (applyRotation) {
+static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean vertical_banding, threading_type threads) {
+	threads = limit_threading(&threads, 10000000, (size_t)fit->ry * fit->rx);
+	if (vertical_banding) {
+		siril_debug_print("rotating image for vertical banding removal\n");
 		if (cvRotateImage(fit, 90)) return 1;
 	}
 
+	fits *fiximage = NULL;
 	if (new_fit_image(&fiximage, fit->rx, fit->ry, fit->naxes[2], DATA_FLOAT))
 		return 1;
+	double *row_value = calloc(fit->ry, sizeof(double));
+	if (!row_value) {
+		PRINT_ALLOC_ERR;
+		clearfits(fiximage);
+		free(fiximage);
+		return 1;
+	}
 
-	for (chan = 0; chan < fit->naxes[2]; chan++) {
-		imstats *stat = statistics(NULL, -1, fit, chan, NULL, STATS_BASIC | STATS_MAD, threads);
-		if (!stat) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
-			return 1;
-		}
-		double background = stat->median;
-		double *rowvalue = calloc(fit->ry, sizeof(double));
-		if (rowvalue == NULL) {
+	float *row_pixels = NULL;
+	if (protect_highlights) {
+		row_pixels = calloc(fit->rx, sizeof(float));
+		if (!row_pixels) {
 			PRINT_ALLOC_ERR;
-			free_stats(stat);
+			free(row_value);
+			clearfits(fiximage);
+			free(fiximage);
 			return 1;
 		}
-		if (protect_highlights) {
-			globalsigma = stat->mad * MAD_NORM;
+	}
+	else if (fit->rx < 10) {
+		siril_log_color_message(_("Unsupported operation for very small images\n"), "red");
+		// because of histogram_median calling sortnet
+		free(row_value);
+		clearfits(fiximage);
+		free(fiximage);
+		return 1;
+	}
+
+	int retval = 0;
+	for (int chan = 0; chan < fit->naxes[2]; chan++) {
+		int stats_operation = protect_highlights ? (STATS_BASIC | STATS_MAD) : STATS_BASIC;
+		imstats *stat = statistics(NULL, -1, fit, chan, NULL, stats_operation, threads);
+		if (!stat) {
+			siril_log_color_message(_("Error: statistics computation failed.\n"), "red");
+			retval = 1;
+			break;
+		}
+		double image_background = stat->median;
+		gboolean protect_this_channel = protect_highlights;
+		float reject = 0.0;
+		if (protect_this_channel) {
+			double globalsigma = stat->mad * MAD_NORM;
+			reject = (float)(image_background + sigma * globalsigma);
+			if (reject > 1.0f)
+				protect_this_channel = FALSE;
+			siril_debug_print("%d: image median: %.0f, global sigma from MAD: %.1f, k: %f, rejection value: %f (%s)\n",
+					chan, image_background, globalsigma, sigma, reject, protect_this_channel ? "enabled" : "disabled");
 		}
 		free_stats(stat);
-		for (row = 0; row < fit->ry; row++) {
-			line = fit->fpdata[chan] + row * fit->rx;
-			float *cpyline = calloc(fit->rx, sizeof(float));
-			if (cpyline == NULL) {
-				PRINT_ALLOC_ERR;
-				free(rowvalue);
-				return 1;
-			}
-			memcpy(cpyline, line, fit->rx * sizeof(float));
-			int n = fit->rx;
-			double median;
-			if (protect_highlights) {
-				quicksort_f(cpyline, n);
-				float reject = background + invsigma * globalsigma;
+
+		double minimum_row_value = DBL_MAX;
+		for (int row = 0; row < fit->ry; row++) {
+			float *line = fit->fpdata[chan] + row * fit->rx;
+			double row_median;
+			if (protect_this_channel) {
+				memcpy(row_pixels, line, fit->rx * sizeof(float));
+				quicksort_f(row_pixels, fit->rx);
+				int i;
 				for (i = fit->rx - 1; i >= 0; i--) {
-					if (cpyline[i] < reject)
+					if (row_pixels[i] < reject)
 						break;
-					n--;
 				}
-				median = gsl_stats_float_median_from_sorted_data(cpyline, 1, n);
+				if (i < 0)
+					row_median = image_background;
+				else row_median = gsl_stats_float_median_from_sorted_data(row_pixels, 1, i+1);
 			} else {
-				median = quickmedian_float(cpyline, n);
+				// bad design: histogram_median doesn't modify input data UNLESS size < 10
+				row_median = histogram_median_float(line, fit->rx, SINGLE_THREADED);
 			}
 
-			rowvalue[row] = background - median;
-			minimum = min(minimum, rowvalue[row]);
-			free(cpyline);
+			row_value[row] = image_background - row_median;
+			// row values are positive if rows are darker than the image
+			// so the minimum value here is the brightest, becomes the pedestal
+			minimum_row_value = min(minimum_row_value, row_value[row]);
 		}
-		for (row = 0; row < fit->ry; row++) {
-			fixline = fiximage->fpdata[chan] + row * fiximage->rx;
-			for (i = 0; i < fit->rx; i++)
-				fixline[i] = rowvalue[row] - minimum;
-		}
-		free(rowvalue);
-	}
-	for (chan = 0; chan < fit->naxes[2]; chan++)
-		fmul_layer_float(fiximage, chan, amount);
-	ret = imoper(fit, fiximage, OPER_ADD, TRUE);
+		siril_debug_print("minimum row value: %f\n", minimum_row_value);
 
-	invalidate_stats_from_fit(fit);
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(threads) schedule(static)
+#endif
+		for (int row = 0; row < fit->ry; row++) {
+			float *fixline = fiximage->fpdata[chan] + row * fiximage->rx;
+			for (int i = 0; i < fit->rx; i++)
+				fixline[i] = row_value[row] - minimum_row_value;
+		}
+	}
+	free(row_pixels);
+	free(row_value);
+	if (!retval) {
+		if (amount != 1.0)
+			soper(fiximage, amount, OPER_MUL, FALSE);
+		retval = imoper(fit, fiximage, OPER_ADD, TRUE);
+		invalidate_stats_from_fit(fit);
+	}
 	clearfits(fiximage);
 	free(fiximage);
-	if ((!ret) && applyRotation) {
+	if (vertical_banding) {
 		if (cvRotateImage(fit, -90)) return 1;
 	}
-
-	return ret;
+	return retval;
 }
 
-static int BandingEngine(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation, threading_type threading) {
-	int threads = check_threading(&threading);
 
+static int BandingEngine(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean vertical, threading_type threading) {
 	if (fit->type == DATA_FLOAT)
-		return BandingEngine_float(fit, sigma, amount, protect_highlights, applyRotation, threads);
+		return BandingEngine_float(fit, sigma, amount, protect_highlights, vertical, threading);
 	if (fit->type == DATA_USHORT)
-		return BandingEngine_ushort(fit, sigma, amount, protect_highlights, applyRotation, threads);
+		return BandingEngine_ushort(fit, sigma, amount, protect_highlights, vertical, threading);
 	return -1;
 }
 
 /***************** GUI for Canon Banding Reduction ********************/
 
 void on_button_ok_fixbanding_clicked(GtkButton *button, gpointer user_data) {
-	siril_close_dialog("canon_fixbanding_dialog");
+	siril_close_dialog("fixbanding_dialog");
 }
 
 gboolean banding_hide_on_delete(GtkWidget *widget) {
-	siril_close_dialog("canon_fixbanding_dialog");
+	siril_close_dialog("fixbanding_dialog");
 	return TRUE;
 }
 
@@ -388,11 +422,11 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
 	static GtkRange *range_amount = NULL;
-	static GtkRange *range_invsigma = NULL;
+	static GtkRange *range_ksigma = NULL;
 	static GtkToggleButton *toggle_protect_highlights_banding = NULL,
-		*vertical = NULL, *seq = NULL;
+			       *vertical = NULL, *seq = NULL;
 	static GtkEntry *bandingSeqEntry = NULL;
-	double amount, invsigma;
+	double amount, sigma;
 	gboolean protect_highlights;
 
 	if (get_thread_run()) {
@@ -404,7 +438,7 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 
 	if (range_amount == NULL) {
 		range_amount = GTK_RANGE(lookup_widget("scale_fixbanding_amount"));
-		range_invsigma = GTK_RANGE(lookup_widget("scale_fixbanding_invsigma"));
+		range_ksigma = GTK_RANGE(lookup_widget("scale_fixbanding_ksigma"));
 		toggle_protect_highlights_banding = GTK_TOGGLE_BUTTON(
 				lookup_widget("checkbutton_fixbanding"));
 		vertical = GTK_TOGGLE_BUTTON(lookup_widget("checkBandingVertical"));
@@ -412,21 +446,21 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 		bandingSeqEntry = GTK_ENTRY(lookup_widget("entryBandingSeq"));
 	}
 	amount = gtk_range_get_value(range_amount);
-	invsigma = gtk_range_get_value(range_invsigma);
+	sigma = gtk_range_get_value(range_ksigma);
 	protect_highlights = gtk_toggle_button_get_active(
 			toggle_protect_highlights_banding);
 
 	if (!protect_highlights)
-		undo_save_state(&gfit, _("Canon Banding Reduction (amount=%.2lf)"), amount);
+		undo_save_state(&gfit, _("Banding Reduction (amount=%.2lf)"), amount);
 	else
-		undo_save_state(&gfit, _("Canon Banding Reduction (amount=%.2lf, Protect=TRUE, invsigma=%.2lf)"),
-				amount, invsigma);
+		undo_save_state(&gfit, _("Banding Reduction (amount=%.2lf, Protect=TRUE, sigma=%.2lf)"),
+				amount, sigma);
 
 	args->fit = &gfit;
 	args->protect_highlights = protect_highlights;
 	args->amount = amount;
-	args->sigma = invsigma;
-	args->applyRotation = gtk_toggle_button_get_active(vertical);
+	args->sigma = sigma;
+	args->vertical = gtk_toggle_button_get_active(vertical);
 	args->seqEntry = strdup(gtk_entry_get_text(bandingSeqEntry));
 	set_cursor_waiting(TRUE);
 
@@ -453,8 +487,8 @@ void on_checkbutton_fixbanding_toggled(GtkToggleButton *togglebutton,
 	gboolean is_active;
 
 	if (scalebandingHighlightBox == NULL) {
-		scalebandingHighlightBox = lookup_widget("scale_fixbanding_invsigma");
-		spinbandingHighlightBox = lookup_widget("spin_fixbanding_invsigma");
+		scalebandingHighlightBox = lookup_widget("scale_fixbanding_ksigma");
+		spinbandingHighlightBox = lookup_widget("spin_fixbanding_ksigma");
 	}
 
 	is_active = gtk_toggle_button_get_active(togglebutton);
