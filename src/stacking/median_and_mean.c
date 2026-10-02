@@ -1126,12 +1126,20 @@ static int compute_noise_weights(struct stacking_args *args) {
 		pweights[layer] = args->weights + layer * nb_frames;
 		for (int i = 0; i < args->nb_images_to_stack; ++i) {
 			int idx = args->image_indices[i];
-			pweights[layer][i] = 1.f /
-				(args->coeff.pscale[layer][i] * args->coeff.pscale[layer][i] *
-				 args->seq->stats[layer][idx]->bgnoise * args->seq->stats[layer][idx]->bgnoise);
+			const imstats *stat = args->seq->stats[layer][idx];
+			/* noise of the normalized frame: pixels are multiplied by pscale * pmul */
+			double sigma = stat ? stat->bgnoise * args->coeff.pscale[layer][i] * args->coeff.pmul[layer][i] : 0.0;
+			if (sigma > 0.0) {
+				pweights[layer][i] = 1.0 / (sigma * sigma);
+			} else {
+				siril_log_warning(_("Image #%d - Layer %d: invalid noise estimate, weight set to 0\n"), idx + 1, layer);
+				pweights[layer][i] = 0.0;
+			}
 			norm += pweights[layer][i];
 		}
 		norm /= (double) nb_frames;
+		if (!norm)
+			return ST_GENERIC_ERROR;
 
 		for (int i = 0; i < args->nb_images_to_stack; i++) {
 			pweights[layer][i] /= norm;
@@ -1145,7 +1153,7 @@ static int compute_wfwhm_weights(struct stacking_args *args) {
 	int nb_layers = args->seq->nb_layers;
 	double fwhmmin = DBL_MAX;
 	double fwhmmax = -DBL_MAX;
-	double invdenom, invfwhmax2;
+	double invdenom = 0., invfwhmax2 = 0.;
 
 	if (!layer_has_registration(args->seq, args->reglayer)) {
 		siril_log_error(_("Sequence does not have registration info, cannot use weighing by %s, aborting\n"), "wFWHM");
@@ -1160,8 +1168,12 @@ static int compute_wfwhm_weights(struct stacking_args *args) {
 		if (args->seq->regparam[args->reglayer][idx].weighted_fwhm < fwhmmin && args->seq->regparam[args->reglayer][idx].weighted_fwhm > 0) fwhmmin = args->seq->regparam[args->reglayer][idx].weighted_fwhm;
 		if (args->seq->regparam[args->reglayer][idx].weighted_fwhm > fwhmmax) fwhmmax = args->seq->regparam[args->reglayer][idx].weighted_fwhm;
 	}
-	invdenom = 1. / (1. / (fwhmmin * fwhmmin) - 1. / (fwhmmax * fwhmmax));
-	invfwhmax2 = 1. / (fwhmmax * fwhmmax);
+	/* all valid frames share the same wFWHM: uniform weights */
+	gboolean uniform = fwhmmax <= fwhmmin;
+	if (!uniform) {
+		invdenom = 1. / (1. / (fwhmmin * fwhmmin) - 1. / (fwhmmax * fwhmmax));
+		invfwhmax2 = 1. / (fwhmmax * fwhmmax);
+	}
 
 	for (int layer = 0; layer < nb_layers; ++layer) {
 		double norm = 0.0;
@@ -1169,7 +1181,7 @@ static int compute_wfwhm_weights(struct stacking_args *args) {
 		for (int i = 0; i < args->nb_images_to_stack; ++i) {
 			int idx = args->image_indices[i];
 			if (args->seq->regparam[args->reglayer][idx].weighted_fwhm > 0) {
-				pweights[layer][i] = (1. / (args->seq->regparam[args->reglayer][idx].weighted_fwhm * args->seq->regparam[args->reglayer][idx].weighted_fwhm) - invfwhmax2) * invdenom;
+				pweights[layer][i] = uniform ? 1. : (1. / (args->seq->regparam[args->reglayer][idx].weighted_fwhm * args->seq->regparam[args->reglayer][idx].weighted_fwhm) - invfwhmax2) * invdenom;
 				norm += pweights[layer][i];
 			} else {
 				pweights[layer][i] = 0.;
