@@ -49,7 +49,9 @@ typedef enum {
 	NBSTARS_WEIGHT,
 	WFWHM_WEIGHT,
 	NOISE_WEIGHT,
-	NBSTACK_WEIGHT
+	NBSTACK_WEIGHT,
+	PSFSW_WEIGHT,
+	PSFSNR_WEIGHT
 } weightingType;
 
 typedef struct {

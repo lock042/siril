@@ -164,6 +164,7 @@ static void start_stacking() {
 	stackparam.coeff.scale = NULL;
 	stackparam.method =	stacking_methods[gtk_drop_down_get_selected(method_combo)];
 	gboolean weighing_is_enabled = gtk_widget_get_visible(GTK_WIDGET(weighing_combo));
+	stackparam.weighting_type = NO_WEIGHT;
 	if (weighing_is_enabled) {
 		int weight_type = gtk_drop_down_get_selected(weighing_combo);
 		if (weight_type == NOISE_WEIGHT) {
@@ -171,11 +172,9 @@ static void start_stacking() {
 			if (norm_type == NO_NORM) {
 				siril_log_error(_("Weighting by noise is allowed only if normalization has been activated, ignoring weights.\n"));
 				weight_type = NO_WEIGHT;
-			} else
-				stackparam.weighting_type = norm_type;
-		} else {
-			stackparam.weighting_type = weight_type;
+			}
 		}
+		stackparam.weighting_type = weight_type;
 	}
 	stackparam.equalizeRGB = siril_toggle_get_active(GTK_WIDGET(RGB_equal)) && gtk_widget_is_visible(RGB_equal)  && (gtk_drop_down_get_selected(norm_combo) != NO_NORM);
 	stackparam.lite_norm = siril_toggle_get_active(GTK_WIDGET(fast_norm));

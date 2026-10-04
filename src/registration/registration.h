@@ -220,6 +220,11 @@ const char *describe_transformation_type(transformation_type type);
 // Homography-related functions
 void selection_H_transform(rectangle *selection, Homography Href, Homography Himg);
 void translation_from_H(Homography H, double *dx, double *dy);
+struct s_star;
+void compute_psf_terms(psf_star **stars, psf_star **ref_stars, struct s_star *match, struct s_star *match_ref,
+		double noise, double bkg, float *psf_flux, float *psf_mean_flux);
+void match_psf_terms(psf_star **stars, int nb_stars, psf_star **ref_stars, int nb_ref_stars, transformation_type type,
+		double noise, double bkg, float *psf_flux, float *psf_mean_flux);
 Homography H_from_translation(double dx, double dy);
 void SetNullH(Homography *H);
 void compute_roi(Homography *H, int rx, int ry, framing_roi *roi);

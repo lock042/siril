@@ -672,6 +672,8 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
 	regargs->regparam[out_index].background_lvl = sadata->current_regdata[in_index].background_lvl;
 	regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
+	regargs->regparam[out_index].psf_flux = sadata->current_regdata[in_index].psf_flux;
+	regargs->regparam[out_index].psf_mean_flux = sadata->current_regdata[in_index].psf_mean_flux;
 	regargs->regparam[out_index].H = Hs;
 
 	if (scale != 1.f) {

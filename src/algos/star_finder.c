@@ -767,6 +767,70 @@ psf_star **filter_stars_by_amplitude(psf_star **stars, float threshold, int *nbf
 	return filtered_stars;
 }
 
+/* flux integrated from the fitted PSF model, independent of any aperture.
+ * Sizes are computed from the FWHM because star lists read from the cache
+ * don't contain the fitted sizes nor the profile; beta is only set (> 0) for
+ * Moffat profiles. Returns 0 if it cannot be computed */
+double psf_model_flux(const psf_star *s) {
+	if (s->beta > 0.) {
+		if (s->beta <= 1.)
+			return 0.;
+		double k = 0.5 / sqrt(pow(2., 1. / s->beta) - 1.);	// alpha / FWHM
+		return s->A * G_PI * (k * s->fwhmx) * (k * s->fwhmy) / (s->beta - 1.);
+	}
+	double k = 0.5 / sqrt(2. * log(2.));	// sigma / FWHM
+	return s->A * 2. * G_PI * (k * s->fwhmx) * (k * s->fwhmy);
+}
+
+/* noise and background level of a channel. With a sequence, the stats cached
+ * by the star finder are reused and fit can be NULL, in which case nothing is
+ * computed if they are not cached */
+int measure_noise_background(sequence *seq, int index, fits *fit, int layer, threading_type threads, double *noise, double *bkg) {
+	if (fit && layer >= fit->naxes[2])
+		return -1;
+	imstats *stat = statistics(seq, seq ? index : -1, fit, layer, NULL, STATS_BASIC, threads);
+	if (!stat)
+		return -1;
+	*noise = stat->bgnoise;
+	*bkg = stat->median;
+	free_stats(stat);
+	return 0;
+}
+
+/* median ratios of fitted fluxes and of amplitudes between pairs of matched
+ * stars (stars[idx[k]] matches ref_stars[ref_idx[k]]), ignoring stars
+ * saturated in either image. These ratios don't depend on which stars are
+ * detected in each image, unlike sums. Returns the number of pairs used */
+int psf_signal_ratios(psf_star **stars, psf_star **ref_stars, const int *idx, const int *ref_idx, int n, double *flux_ratio, double *peak_ratio) {
+	double *fr = malloc(n * sizeof(double));
+	double *pr = malloc(n * sizeof(double));
+	if (!fr || !pr) {
+		PRINT_ALLOC_ERR;
+		free(fr);
+		free(pr);
+		return 0;
+	}
+	int nb = 0;
+	for (int k = 0; k < n; k++) {
+		const psf_star *s = stars[idx[k]], *r = ref_stars[ref_idx[k]];
+		if (s->has_saturated || r->has_saturated)
+			continue;
+		double fs = psf_model_flux(s), fref = psf_model_flux(r);
+		if (!(fs > 0.) || !(fref > 0.) || !(s->A > 0.) || !(r->A > 0.))
+			continue;
+		fr[nb] = fs / fref;
+		pr[nb] = s->A / r->A;
+		nb++;
+	}
+	if (nb > 0) {
+		*flux_ratio = quickmedian_double(fr, nb);
+		*peak_ratio = quickmedian_double(pr, nb);
+	}
+	free(fr);
+	free(pr);
+	return nb;
+}
+
 void FWHM_stats(psf_star **stars, int nb, int bitpix, float *FWHMx, float *FWHMy, char **units, float *B, float *Acut, double Acutp) {
 	*FWHMx = 0.0f;
 	*FWHMy = 0.0f;
@@ -1161,6 +1225,10 @@ static int findstar_compute_mem_limits(struct generic_seq_args *args, gboolean f
 /* return FALSE to avoid reading image */
 static gboolean findstar_image_read_hook(struct generic_seq_args *args, int index) {
 	struct starfinder_data *findstar_args = (struct starfinder_data *)args->user;
+	// noise and background for PSF weighting need the pixels if they are not in the stats cache
+	if (findstar_args->psf_noise && measure_noise_background(args->seq, index, NULL, findstar_args->layer, SINGLE_THREADED,
+				&findstar_args->psf_noise[index], &findstar_args->psf_bkg[index]))
+		return TRUE;
 
 	struct starfinder_data *curr_findstar_args = calloc(1, sizeof(struct starfinder_data));
 	memcpy(curr_findstar_args, findstar_args, sizeof(struct starfinder_data));
@@ -1191,6 +1259,12 @@ static gboolean findstar_image_read_hook(struct generic_seq_args *args, int inde
 	free(curr_findstar_args);
 	g_free(star_filename);
 	return !status; // check_star_list returns TRUE on success
+}
+
+static void store_noise_background(struct starfinder_data *sfargs, int i, fits *fit, int layer, int threads) {
+	if (!sfargs->psf_noise || !sfargs->psf_bkg)
+		return;
+	measure_noise_background(sfargs->im.from_seq, i, fit, layer, threads, &sfargs->psf_noise[i], &sfargs->psf_bkg[i]);
 }
 
 // contrarily to findstar_worker, this function first checks if a lst file exists:
@@ -1249,6 +1323,8 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 			// savefits(green_filename, green_fit);
 		}
 		retval = GPOINTER_TO_INT(findstar_worker(curr_findstar_args));
+		if (!retval)
+			store_noise_background(curr_findstar_args, i, green_fit ? green_fit : fit, green_fit ? 0 : curr_findstar_args->layer, threads);
 		clearfits(green_fit);
 		free(green_fit);
 		if (retval) {
@@ -1259,6 +1335,11 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 			free(curr_findstar_args);
 			curr_findstar_args = NULL;
 		}
+	} else {
+		// cached stars of CFA images were detected on an interpolated green image,
+		// so only stats cached at that time can be used
+		store_noise_background(curr_findstar_args, i, fit->keywords.bayer_pattern[0] == '\0' ? fit : NULL,
+				curr_findstar_args->layer, threads);
 	}
 	return curr_findstar_args;
 }

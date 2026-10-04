@@ -358,6 +358,10 @@ void _show_summary(struct stacking_args *args) {
 		siril_log_message(_("Image weighting ........... from weighted FWHM\n"));
 	else if (args->weighting_type == NBSTARS_WEIGHT)
 		siril_log_message(_("Image weighting ........... from star count\n"));
+	else if (args->weighting_type == PSFSW_WEIGHT)
+		siril_log_message(_("Image weighting ........... from PSF signal weight\n"));
+	else if (args->weighting_type == PSFSNR_WEIGHT)
+		siril_log_message(_("Image weighting ........... from PSF SNR\n"));
 	else siril_log_message(_("Image weighting ........... disabled\n"));
 
 	if (args->feather_dist > 0)
@@ -486,6 +490,10 @@ void describe_stack_for_history(struct stacking_args *args, GSList **hist, gbool
 		g_string_append(str, ", image weighting from weighted FWHM");
 	else if (args->weighting_type == NBSTARS_WEIGHT)
 		g_string_append(str, ", image weighting from star count");
+	else if (args->weighting_type == PSFSW_WEIGHT)
+		g_string_append(str, ", image weighting from PSF signal weight");
+	else if (args->weighting_type == PSFSNR_WEIGHT)
+		g_string_append(str, ", image weighting from PSF SNR");
 	else g_string_append(str, ", no image weighting");
 
 	if (args->feather_dist > 0)

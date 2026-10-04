@@ -11523,6 +11523,10 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 					arg->weighting_type = NBSTACK_WEIGHT;
 				else if (!strcmp(value, "wfwhm"))
 					arg->weighting_type = WFWHM_WEIGHT;
+				else if (!strcmp(value, "psfsw"))
+					arg->weighting_type = PSFSW_WEIGHT;
+				else if (!strcmp(value, "psfsnr"))
+					arg->weighting_type = PSFSNR_WEIGHT;
 				else {
 					siril_log_error(_("Unknown argument to %s, aborting.\n"), current);
 					return CMD_ARG_ERROR;

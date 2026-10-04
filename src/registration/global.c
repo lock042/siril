@@ -49,6 +49,7 @@
 # define MAX_TRIALS_2PASS 5 // max number of trialsto find the best ref
 
 static void print_alignment_results(Homography H, int filenum, float FWHMx, float FWHMy, char *units);
+static void reference_psf_terms(const struct starfinder_data *sfargs, int index, float *psf_flux, float *psf_mean_flux);
 
 static int get_min_requires_stars(transformation_type type) {
 	switch(type) {
@@ -275,11 +276,61 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	sadata->current_regdata[regargs->reference_image].weighted_fwhm = FWHMx;
 	sadata->current_regdata[regargs->reference_image].background_lvl = B;
 	sadata->current_regdata[regargs->reference_image].number_of_stars = sadata->fitted_stars;
+	if (!regargs->use_external_ref)
+		reference_psf_terms(regargs->sfargs, regargs->reference_image,
+				&sadata->current_regdata[regargs->reference_image].psf_flux,
+				&sadata->current_regdata[regargs->reference_image].psf_mean_flux);
 
 	return registration_prepare_results(args);
 }
 
-static int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_ref_stars, int nb_stars, struct registration_args *regargs, int filenum, Homography *H) {
+#define PSF_WEIGHT_MIN_PAIRS 10
+
+/* PSF weighting terms from the stars matched with the reference: psf_flux is
+ * the median ratio of fitted fluxes divided by the noise, psf_mean_flux the
+ * median ratio of amplitudes divided by the background */
+void compute_psf_terms(psf_star **stars, psf_star **ref_stars, struct s_star *match, struct s_star *match_ref,
+		double noise, double bkg, float *psf_flux, float *psf_mean_flux) {
+	*psf_flux = 0.f;
+	*psf_mean_flux = 0.f;
+	int n = 0;
+	for (struct s_star *a = match; a; a = a->next)
+		n++;
+	if (n < PSF_WEIGHT_MIN_PAIRS || !(noise > 0.))
+		return;
+	int *idx = malloc(n * sizeof(int));
+	int *ref_idx = malloc(n * sizeof(int));
+	if (!idx || !ref_idx) {
+		PRINT_ALLOC_ERR;
+		free(idx);
+		free(ref_idx);
+		return;
+	}
+	int k = 0;
+	for (struct s_star *a = match, *b = match_ref; a && b; a = a->next, b = b->next, k++) {
+		idx[k] = a->id;
+		ref_idx[k] = b->id;
+	}
+	double flux_ratio = 0., peak_ratio = 0.;
+	int nb_used = psf_signal_ratios(stars, ref_stars, idx, ref_idx, k, &flux_ratio, &peak_ratio);
+	siril_log_debug("PSF weighting: %d matched pairs, %d used, flux ratio %.4f, peak ratio %.4f, noise %g, background %g\n",
+			k, nb_used, flux_ratio, peak_ratio, noise, bkg);
+	if (nb_used >= PSF_WEIGHT_MIN_PAIRS) {
+		*psf_flux = flux_ratio / noise;
+		// a background close to 0, like after background extraction, can't scale the weights
+		*psf_mean_flux = bkg > noise ? peak_ratio / bkg : 0.;
+	}
+	free(idx);
+	free(ref_idx);
+}
+
+/* matches the stars of an image with those of a reference to get its PSF
+ * weighting terms, for code paths where they are not matched for registration */
+/* matches two star lists, first with bounded scales, then without bounds and
+ * with more stars to build the triangles. The number of attempts is returned
+ * in attempts if not NULL */
+static int star_match_with_retries(psf_star **ref_stars, psf_star **stars, int nb_ref_stars, int nb_stars, transformation_type type,
+		Homography *H, s_star **match, s_star **match_ref, int *attempts) {
 	double scale_min = 0.9;
 	double scale_max = 1.1;
 	int attempt = 1;
@@ -288,8 +339,8 @@ static int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_
 	/* make a loop with different tries in order to align the two sets of data */
 	while (failure && attempt < NB_OF_MATCHING_TRY) {
 		failure = new_star_match(stars, ref_stars, nb_stars, nb_ref_stars, nobj,
-				scale_min, scale_max, H, NULL, FALSE, regargs->type, AT_TRANS_UNDEFINED,
-				NULL, NULL);
+				scale_min, scale_max, H, NULL, FALSE, type, AT_TRANS_UNDEFINED,
+				match, match_ref);
 		if (attempt == 1) {
 			scale_min = -1.0;
 			scale_max = -1.0;
@@ -298,6 +349,41 @@ static int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_
 		}
 		attempt++;
 	}
+	if (attempts)
+		*attempts = attempt;
+	return failure;
+}
+
+void match_psf_terms(psf_star **stars, int nb_stars, psf_star **ref_stars, int nb_ref_stars, transformation_type type,
+		double noise, double bkg, float *psf_flux, float *psf_mean_flux) {
+	Homography H = { 0 };
+	s_star *match = NULL, *match_ref = NULL;
+	*psf_flux = 0.f;
+	*psf_mean_flux = 0.f;
+	if (nb_stars < 3 || nb_ref_stars < 3)
+		return;
+	if (star_match_with_retries(ref_stars, stars, nb_ref_stars, nb_stars, type, &H, &match, &match_ref, NULL))
+		return;
+	compute_psf_terms(stars, ref_stars, match, match_ref, noise, bkg, psf_flux, psf_mean_flux);
+	free_stars(&match);
+	free_stars(&match_ref);
+}
+
+/* the reference is matched with itself */
+static void reference_psf_terms(const struct starfinder_data *sfargs, int index, float *psf_flux, float *psf_mean_flux) {
+	*psf_flux = 0.f;
+	*psf_mean_flux = 0.f;
+	if (!sfargs->psf_noise || !(sfargs->psf_noise[index] > 0.))
+		return;
+	*psf_flux = 1. / sfargs->psf_noise[index];
+	*psf_mean_flux = sfargs->psf_bkg[index] > sfargs->psf_noise[index] ? 1. / sfargs->psf_bkg[index] : 0.;
+}
+
+/* match and match_ref receive the lists of matched stars if not NULL */
+static int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_ref_stars, int nb_stars, struct registration_args *regargs, int filenum, Homography *H,
+		s_star **match, s_star **match_ref) {
+	int attempt;
+	int failure = star_match_with_retries(ref_stars, stars, nb_ref_stars, nb_stars, regargs->type, H, match, match_ref, &attempt);
 	if (failure) {
 		siril_log_error(_("Cannot perform star matching: try #%d. Image %d skipped\n"), attempt, filenum);
 	}
@@ -325,6 +411,12 @@ static int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_
 			default:
 				printf("Should not happen\n");
 		}
+	}
+	if (failure) {
+		if (match)
+			free_stars(match);
+		if (match_ref)
+			free_stars(match_ref);
 	}
 	return failure;
 }
@@ -387,9 +479,17 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 			return 1;
 		}
 
-		int not_matched = star_match_and_checks(sadata->refstars, stars, sadata->fitted_stars, nb_stars, regargs, filenum, &H);
-		if (!not_matched)
+		s_star *match = NULL, *match_ref = NULL;
+		float psf_flux = 0.f, psf_mean_flux = 0.f;
+		int not_matched = star_match_and_checks(sadata->refstars, stars, sadata->fitted_stars, nb_stars, regargs, filenum, &H, &match, &match_ref);
+		if (!not_matched) {
 			FWHM_stats(stars, nb_stars, args->seq->bitpix, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
+			if (regargs->sfargs->psf_noise)
+				compute_psf_terms(stars, sadata->refstars, match, match_ref, regargs->sfargs->psf_noise[in_index],
+						regargs->sfargs->psf_bkg[in_index], &psf_flux, &psf_mean_flux);
+			free_stars(&match);
+			free_stars(&match_ref);
+		}
 		free_fitted_stars(stars);
 		if (not_matched) {
 			args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
@@ -409,6 +509,8 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		sadata->current_regdata[in_index].background_lvl = B;
 		sadata->current_regdata[in_index].number_of_stars = nb_stars;
 		sadata->current_regdata[in_index].H = H;
+		sadata->current_regdata[in_index].psf_flux = psf_flux;
+		sadata->current_regdata[in_index].psf_mean_flux = psf_mean_flux;
 
 		if (!regargs->no_output) {
 			if (regargs->driz || regargs->interpolation <= OPENCV_LANCZOS4) {
@@ -445,6 +547,8 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 				regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
 				regargs->regparam[out_index].background_lvl = sadata->current_regdata[in_index].background_lvl;
 				regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
+				regargs->regparam[out_index].psf_flux = sadata->current_regdata[in_index].psf_flux;
+				regargs->regparam[out_index].psf_mean_flux = sadata->current_regdata[in_index].psf_mean_flux;
 				regargs->regparam[out_index].H = H;
 			}
 		}
@@ -721,6 +825,8 @@ int register_star_alignment(struct registration_args *regargs) {
 	regargs->sfargs->keep_stars = TRUE;
 	regargs->sfargs->save_to_file = !regargs->matchSelection && !regargs->no_starlist;
 	regargs->sfargs->max_stars_fitted = regargs->max_stars_candidates;
+	regargs->sfargs->psf_noise = calloc(regargs->seq->number, sizeof(double));
+	regargs->sfargs->psf_bkg = calloc(regargs->seq->number, sizeof(double));
 	if (regargs->matchSelection && com.selection.w > 0 && com.selection.h > 0)
 		regargs->sfargs->selection = com.selection;
 	else {
@@ -752,6 +858,10 @@ int register_star_alignment(struct registration_args *regargs) {
 
 	regargs->retval = args->retval;
 	free_generic_seq_args(args, FALSE);
+	free(regargs->sfargs->psf_noise);
+	free(regargs->sfargs->psf_bkg);
+	free(regargs->sfargs);
+	regargs->sfargs = NULL;
 	return regargs->retval;
 }
 
@@ -788,7 +898,31 @@ static void print_alignment_results(Homography H, int filenum, float fwhm, float
 	siril_log_message(_("roundness:%*.2f\n"), 8, roundness);
 }
 
-static int compute_transform(struct registration_args *regargs, struct starfinder_data *sfargs, gboolean *included, int *failed, const float *fwhm, const float *roundness, const float *B, gboolean verbose) {
+/* PSF weighting terms of the 2-pass registration, relative to the image with the
+ * most stars. They are computed before the amplitude filtering of the star lists,
+ * which would only keep the brightest stars of the worst images and bias the ratios */
+static void compute_psf_terms_sequence(struct registration_args *regargs, struct starfinder_data *sfargs, const gboolean *included,
+		float *psf_flux, float *psf_mean_flux) {
+	int psf_ref = -1;
+	for (int i = 0; i < regargs->seq->number; i++)
+		if (included[i] && (psf_ref < 0 || sfargs->nb_stars[i] > sfargs->nb_stars[psf_ref]))
+			psf_ref = i;
+	if (psf_ref < 0)
+		return;
+	reference_psf_terms(sfargs, psf_ref, &psf_flux[psf_ref], &psf_mean_flux[psf_ref]);
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(dynamic)
+#endif
+	for (int i = 0; i < regargs->seq->number; i++) {
+		if (!included[i] || i == psf_ref)
+			continue;
+		match_psf_terms(sfargs->stars[i], sfargs->nb_stars[i], sfargs->stars[psf_ref], sfargs->nb_stars[psf_ref], regargs->type,
+				sfargs->psf_noise[i], sfargs->psf_bkg[i], &psf_flux[i], &psf_mean_flux[i]);
+	}
+}
+
+static int compute_transform(struct registration_args *regargs, struct starfinder_data *sfargs, gboolean *included, int *failed, const float *fwhm, const float *roundness, const float *B,
+		const float *psf_flux, const float *psf_mean_flux, gboolean verbose) {
 	regdata *current_regdata = registration_get_current_regdata(regargs); // clean the structure if it exists, allocates otherwise
 	if (!current_regdata) return -1;
 	int nb_ref_stars = sfargs->nb_stars[regargs->seq->reference_image];
@@ -806,7 +940,7 @@ static int compute_transform(struct registration_args *regargs, struct starfinde
 		} else {
 			int filenum = regargs->seq->imgparam[i].filenum;	// for display purposes
 			int not_matched = star_match_and_checks(sfargs->stars[regargs->seq->reference_image], sfargs->stars[i],
-					sfargs->nb_stars[regargs->seq->reference_image], sfargs->nb_stars[i], regargs, filenum, &H);
+					sfargs->nb_stars[regargs->seq->reference_image], sfargs->nb_stars[i], regargs, filenum, &H, NULL, NULL);
 			if (not_matched) {
 				g_atomic_int_inc(&nbfail);
 				included[i] = FALSE;
@@ -826,6 +960,8 @@ static int compute_transform(struct registration_args *regargs, struct starfinde
 			/ (double)nb_ref_stars + fwhm[i];
 		current_regdata[i].background_lvl = B[i];
 		current_regdata[i].number_of_stars = sfargs->nb_stars[i];
+		current_regdata[i].psf_flux = psf_flux[i];
+		current_regdata[i].psf_mean_flux = psf_mean_flux[i];
 		current_regdata[i].H = H;
 	}
 	*failed = nbfail;
@@ -913,6 +1049,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 	int retval = 0;
 	float *fwhm = NULL, *roundness = NULL, *A = NULL, *B = NULL, *Acut = NULL, *scores = NULL;
 	float *dist = NULL;
+	float *psf_flux_terms = NULL, *psf_mean_terms = NULL;
 	// local flag (and its copy) accounting both for process_all_frames flag and collecting failures along the process
 	gboolean *included = NULL, *tmp_included = NULL;
 	// local flag to make checks only on frames that matter
@@ -998,7 +1135,9 @@ int register_multi_step_global(struct registration_args *regargs) {
 		goto free_all;
 	}
 	sfargs->nb_stars = calloc(regargs->seq->number, sizeof(int));
-	if (!sfargs->nb_stars) {
+	sfargs->psf_noise = calloc(regargs->seq->number, sizeof(double));
+	sfargs->psf_bkg = calloc(regargs->seq->number, sizeof(double));
+	if (!sfargs->nb_stars || !sfargs->psf_noise || !sfargs->psf_bkg) {
 		PRINT_ALLOC_ERR;
 		retval = 1;
 		goto free_all;
@@ -1028,7 +1167,9 @@ int register_multi_step_global(struct registration_args *regargs) {
 	meaningful = calloc(regargs->seq->number, sizeof(gboolean));
 	scores = calloc(regargs->seq->number, sizeof(float));
 	dist = calloc(regargs->seq->number, sizeof(float));
-	if (!fwhm || !roundness || !B || !A || !included || !tmp_included || !meaningful || !scores || !dist) {
+	psf_flux_terms = calloc(regargs->seq->number, sizeof(float));
+	psf_mean_terms = calloc(regargs->seq->number, sizeof(float));
+	if (!fwhm || !roundness || !B || !A || !included || !tmp_included || !meaningful || !scores || !dist || !psf_flux_terms || !psf_mean_terms) {
 		PRINT_ALLOC_ERR;
 		retval = 1;
 		goto free_all;
@@ -1060,6 +1201,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 		roundness[i] = FWHMy/FWHMx;
 		if (sfargs->nb_stars[i] > maxstars) maxstars = sfargs->nb_stars[i];
 	}
+	compute_psf_terms_sequence(regargs, sfargs, included, psf_flux_terms, psf_mean_terms);
 
 
 	if (maxstars == sfargs->max_stars_fitted) {
@@ -1123,7 +1265,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 			Homography H = { 0 };
 			int filenum = regargs->seq->imgparam[i].filenum;	// for display purposes
 			int not_matched = star_match_and_checks(ref_stars, sfargs->stars[i],
-					nb_ref_stars, sfargs->nb_stars[i], regargs, filenum, &H);
+					nb_ref_stars, sfargs->nb_stars[i], regargs, filenum, &H, NULL, NULL);
 			if (not_matched) {
 				g_atomic_int_inc(&failed);
 				included[i] = FALSE;
@@ -1141,6 +1283,8 @@ int register_multi_step_global(struct registration_args *regargs) {
 				/ (double)nb_ref_stars + fwhm[i];
 			current_regdata[i].background_lvl = B[i];
 			current_regdata[i].number_of_stars = sfargs->nb_stars[i];
+			current_regdata[i].psf_flux = psf_flux_terms[i];
+			current_regdata[i].psf_mean_flux = psf_mean_terms[i];
 			current_regdata[i].H = H;
 		}
 		if (nb_aligned == 0) {
@@ -1170,7 +1314,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 	while (trials < max_trials) {
 		tmp_failed = failed;
 		for (int i = 0; i < regargs->seq->number; i++) tmp_included[i] = included[i];
-		nb_aligned[trials] = compute_transform(regargs, sfargs, tmp_included, &tmp_failed, fwhm, roundness, B, FALSE);
+		nb_aligned[trials] = compute_transform(regargs, sfargs, tmp_included, &tmp_failed, fwhm, roundness, B, psf_flux_terms, psf_mean_terms, FALSE);
 		// if number of aligned frames is less than half the number of meaningful frames (those with enough stars)
 		// we have chosen a reference which is not framed well enough to align the sequence (the computed cog is probably meaningless as well)
 		// we set its score to FLT_MAX and start again with the next best frame
@@ -1189,7 +1333,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 		} else { // not necessary but a simple to have print_alignment_results
 			tmp_failed = failed;
 			for (int i = 0; i < regargs->seq->number; i++) tmp_included[i] = included[i];
-			compute_transform(regargs, sfargs, tmp_included, &tmp_failed, fwhm, roundness, B, TRUE);
+			compute_transform(regargs, sfargs, tmp_included, &tmp_failed, fwhm, roundness, B, psf_flux_terms, psf_mean_terms, TRUE);
 			break;
 		}
 	}
@@ -1218,7 +1362,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 		siril_log_message(_("After sequence analysis, we are choosing image %d as new reference for registration\n"), reffilenum);
 		tmp_failed = failed;
 		for (int i = 0; i < regargs->seq->number; i++) tmp_included[i] = included[i];
-		compute_transform(regargs, sfargs, tmp_included, &tmp_failed, fwhm, roundness, B, TRUE);
+		compute_transform(regargs, sfargs, tmp_included, &tmp_failed, fwhm, roundness, B, psf_flux_terms, psf_mean_terms, TRUE);
 	}
 	// and we copy back to the initial arrays
 	for (int i = 0; i < regargs->seq->number; i++) included[i] = tmp_included[i];
@@ -1244,7 +1388,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 			reffilenum = regargs->seq->imgparam[new_best_index].filenum;	// for display purposes
 			siril_log_message(_("After sequence analysis, we are choosing image %d as new reference for registration\n"), reffilenum);
 			// back to 3b. compute the transforms and store them in regparams
-			compute_transform(regargs, sfargs, included, &failed, fwhm, roundness, B, TRUE);
+			compute_transform(regargs, sfargs, included, &failed, fwhm, roundness, B, psf_flux_terms, psf_mean_terms, TRUE);
 		} else {
 			siril_log_message(_("Could not find a better frame, keeping image %d as the reference for the sequence\n"), reffilenum);
 		}
@@ -1273,6 +1417,8 @@ free_all:
 		}
 		free(sfargs->stars);
 		free(sfargs->nb_stars);
+		free(sfargs->psf_noise);
+		free(sfargs->psf_bkg);
 		free(sfargs);
 	}
 	free(fwhm);
@@ -1285,6 +1431,8 @@ free_all:
 	free(meaningful);
 	free(scores);
 	free(dist);
+	free(psf_flux_terms);
+	free(psf_mean_terms);
 	free_fitted_stars(ref_stars);
 	return retval;
 }

@@ -60,8 +60,11 @@
  * version 7
  * - added E card:
  * 	=> E filename ext_ref_rx ext_ref_ry
+ * version 8
+ * - added PSF photometry terms at the end of R cards, used for PSF weighting:
+ * 	=> ... H h00 ... h22 P psf_flux psf_mean_flux
  */
-#define CURRENT_SEQFILE_VERSION 7	// to increment on format change
+#define CURRENT_SEQFILE_VERSION 8	// to increment on format change
 
 /* File format (lines starting with # are comments, lines that are (for all
  * something) need to be in all in sequence of this only type of line):
@@ -400,7 +403,8 @@ sequence * readseqfile(const char *name){
 				else {
 					// version 4 without shifts and with homography matrix
 					// version 5
-					if (sscanf(line+3, "%g %g %g %lg %g %d H %lg %lg %lg %lg %lg %lg %lg %lg %lg",
+					// version 8 with PSF photometry terms
+					int nb_read = sscanf(line+3, "%g %g %g %lg %g %d H %lg %lg %lg %lg %lg %lg %lg %lg %lg P %g %g",
 								&(regparam[i].fwhm),
 								&(regparam[i].weighted_fwhm),
 								&(regparam[i].roundness),
@@ -415,7 +419,10 @@ sequence * readseqfile(const char *name){
 								&(regparam[i].H.h12),
 								&(regparam[i].H.h20),
 								&(regparam[i].H.h21),
-								&(regparam[i].H.h22)) != 15) {
+								&(regparam[i].H.h22),
+								&(regparam[i].psf_flux),
+								&(regparam[i].psf_mean_flux));
+					if (nb_read != (version >= 8 ? 17 : 15)) {
 						fprintf(stderr,"readseqfile: sequence file format error: %s\n",line);
 						goto error;
 					}
@@ -811,7 +818,7 @@ int writeseqfile(sequence *seq){
 				}
 			}
 			for (i = 0; i < seq->number; ++i) {
-				fprintf(seqfile, "R%c %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g\n",
+				fprintf(seqfile, "R%c %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g P %g %g\n",
 						seq->cfa_opened_monochrome ? '*' : '0' + layer,
 						seq->regparam[layer][i].fwhm,
 						seq->regparam[layer][i].weighted_fwhm,
@@ -827,7 +834,9 @@ int writeseqfile(sequence *seq){
 						seq->regparam[layer][i].H.h12,
 						seq->regparam[layer][i].H.h20,
 						seq->regparam[layer][i].H.h21,
-						seq->regparam[layer][i].H.h22
+						seq->regparam[layer][i].H.h22,
+						seq->regparam[layer][i].psf_flux,
+						seq->regparam[layer][i].psf_mean_flux
 					);
 			}
 		}
@@ -858,7 +867,7 @@ int writeseqfile(sequence *seq){
 	for (layer = 0; layer < 3; layer++) {
 		if (seq->regparam_bkp && seq->regparam_bkp[layer]) {
 			for (i = 0; i < seq->number; ++i) {
-				fprintf(seqfile, "R%c %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g\n",
+				fprintf(seqfile, "R%c %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g P %g %g\n",
 						seq->cfa_opened_monochrome ? '0' + layer : '*',
 						seq->regparam_bkp[layer][i].fwhm,
 						seq->regparam_bkp[layer][i].weighted_fwhm,
@@ -874,7 +883,9 @@ int writeseqfile(sequence *seq){
 						seq->regparam_bkp[layer][i].H.h12,
 						seq->regparam_bkp[layer][i].H.h20,
 						seq->regparam_bkp[layer][i].H.h21,
-						seq->regparam_bkp[layer][i].H.h22
+						seq->regparam_bkp[layer][i].H.h22,
+						seq->regparam_bkp[layer][i].psf_flux,
+						seq->regparam_bkp[layer][i].psf_mean_flux
 					);
 			}
 		}
