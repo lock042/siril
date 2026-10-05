@@ -13980,7 +13980,7 @@ int process_catquery(int nb) {
 			ra = gfit->keywords.wcsdata.ra;
 			dec = gfit->keywords.wcsdata.dec;
 		}
-		have_ra = have_dec = TRUE;
+		have_ra = have_dec = !isnan(ra) && !isnan(dec) && ra >= 0.0 && ra < 360.0 && dec >= -90.0 && dec <= 90.0;
 	}
 
 	if (!have_radius && has_image) {
@@ -14014,10 +14014,15 @@ int process_catquery(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
-	if (limit_mag == -1.0f && (cat == CAT_GAIADR3 || cat == CAT_LOCAL_KSTARS || cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_NOMAD)) {
-		limit_mag = (float) compute_mag_limit_from_position_and_fov(ra, dec, radius * 2.0, BRIGHTEST_STARS);
-		have_limit_mag = TRUE;
-	}
+	if (limit_mag == -1.0f) {
+		if (cat == CAT_GAIADR3 || cat == CAT_LOCAL_KSTARS || cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_NOMAD) {
+			limit_mag = (float) compute_mag_limit_from_position_and_fov(ra, dec, radius * 2.0, BRIGHTEST_STARS);
+			have_limit_mag = TRUE;
+		} else {
+			siril_log_warning(_("Limit mag of -1 is only available for GAIA, KStars, and NOMAD catalogues, ignoring.\n"));
+			have_limit_mag = FALSE;
+		}
+}
 	if (!have_limit_mag)
 		limit_mag = siril_catalog_get_default_limit_mag(cat);
 
@@ -14790,6 +14795,8 @@ int process_addwcs(int nb) {
 		}
 		free_wcs(gfit);
 		reset_wcsdata(gfit);
+		update_fits_header(gfit);
+		gfit_modified_update_gui();
 		refresh_annotations(TRUE);
 		gui_iface.update_menu_state();
 		gui_iface.redraw_image_async(REDRAW_OVERLAY);
@@ -14824,15 +14831,16 @@ int process_addwcs(int nb) {
 		clearfits(&result);
 		return CMD_ARG_ERROR;
 	}
-	if (flip) {
-		flip_bottom_up_astrometry_data(&result);
-	}
 
 	free_wcs(gfit);
 	gfit->keywords.wcslib = result.keywords.wcslib;
 	wcsset(gfit->keywords.wcslib);
 	result.keywords.wcslib = NULL;
 	clearfits(&result);
+
+	if (flip) {
+		flip_bottom_up_astrometry_data(gfit);
+	}
 
 	if (has_wcsdata(gfit))
 		reset_wcsdata(gfit);
