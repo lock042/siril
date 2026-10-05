@@ -60,6 +60,22 @@ gboolean layer_has_registration(const sequence *seq, int layer) {
 	return TRUE;
 }
 
+/* mean of the valid PSF weights of the included images, 0 if there is none */
+double psf_weight_mean(const sequence *seq, int layer, gboolean signal_weight) {
+	if (!layer_has_registration(seq, layer))
+		return 0.;
+	double sum = 0.;
+	int nb = 0;
+	for (int i = 0; i < seq->number; i++) {
+		double w = psf_weight(seq->regparam[layer][i].psf_flux, seq->regparam[layer][i].psf_mean_flux, signal_weight);
+		if (seq->imgparam[i].incl && w > 0.) {
+			sum += w;
+			nb++;
+		}
+	}
+	return nb ? sum / nb : 0.;
+}
+
 gboolean layer_has_usable_registration(sequence *seq, int layer) {
 	transformation_type min, max;
 	guess_transform_from_seq(seq, layer, &min, &max, FALSE); // will check first that layer_has_registration

@@ -288,9 +288,11 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 
 /* PSF weighting terms from the stars matched with the reference: psf_flux is
  * the median ratio of fitted fluxes divided by the noise, psf_mean_flux the
- * median ratio of amplitudes divided by the background */
+ * median ratio of amplitudes divided by the noise. Like PixInsight's M*, the
+ * second term is scaled by a dispersion of the background and not by its level,
+ * which depends on the calibration and is often close to 0 */
 void compute_psf_terms(psf_star **stars, psf_star **ref_stars, struct s_star *match, struct s_star *match_ref,
-		double noise, double bkg, float *psf_flux, float *psf_mean_flux) {
+		double noise, float *psf_flux, float *psf_mean_flux) {
 	*psf_flux = 0.f;
 	*psf_mean_flux = 0.f;
 	int n = 0;
@@ -313,12 +315,11 @@ void compute_psf_terms(psf_star **stars, psf_star **ref_stars, struct s_star *ma
 	}
 	double flux_ratio = 0., peak_ratio = 0.;
 	int nb_used = psf_signal_ratios(stars, ref_stars, idx, ref_idx, k, &flux_ratio, &peak_ratio);
-	siril_log_debug("PSF weighting: %d matched pairs, %d used, flux ratio %.4f, peak ratio %.4f, noise %g, background %g\n",
-			k, nb_used, flux_ratio, peak_ratio, noise, bkg);
+	siril_log_debug("PSF weighting: %d matched pairs, %d used, flux ratio %.4f, peak ratio %.4f, noise %g\n",
+			k, nb_used, flux_ratio, peak_ratio, noise);
 	if (nb_used >= PSF_WEIGHT_MIN_PAIRS) {
 		*psf_flux = flux_ratio / noise;
-		// a background close to 0, like after background extraction, can't scale the weights
-		*psf_mean_flux = bkg > noise ? peak_ratio / bkg : 0.;
+		*psf_mean_flux = peak_ratio / noise;
 	}
 	free(idx);
 	free(ref_idx);
@@ -355,7 +356,7 @@ static int star_match_with_retries(psf_star **ref_stars, psf_star **stars, int n
 }
 
 void match_psf_terms(psf_star **stars, int nb_stars, psf_star **ref_stars, int nb_ref_stars, transformation_type type,
-		double noise, double bkg, float *psf_flux, float *psf_mean_flux) {
+		double noise, float *psf_flux, float *psf_mean_flux) {
 	Homography H = { 0 };
 	s_star *match = NULL, *match_ref = NULL;
 	*psf_flux = 0.f;
@@ -364,7 +365,7 @@ void match_psf_terms(psf_star **stars, int nb_stars, psf_star **ref_stars, int n
 		return;
 	if (star_match_with_retries(ref_stars, stars, nb_ref_stars, nb_stars, type, &H, &match, &match_ref, NULL))
 		return;
-	compute_psf_terms(stars, ref_stars, match, match_ref, noise, bkg, psf_flux, psf_mean_flux);
+	compute_psf_terms(stars, ref_stars, match, match_ref, noise, psf_flux, psf_mean_flux);
 	free_stars(&match);
 	free_stars(&match_ref);
 }
@@ -376,7 +377,7 @@ static void reference_psf_terms(const struct starfinder_data *sfargs, int index,
 	if (!sfargs->psf_noise || !(sfargs->psf_noise[index] > 0.))
 		return;
 	*psf_flux = 1. / sfargs->psf_noise[index];
-	*psf_mean_flux = sfargs->psf_bkg[index] > sfargs->psf_noise[index] ? 1. / sfargs->psf_bkg[index] : 0.;
+	*psf_mean_flux = *psf_flux;
 }
 
 /* match and match_ref receive the lists of matched stars if not NULL */
@@ -486,7 +487,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 			FWHM_stats(stars, nb_stars, args->seq->bitpix, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
 			if (regargs->sfargs->psf_noise)
 				compute_psf_terms(stars, sadata->refstars, match, match_ref, regargs->sfargs->psf_noise[in_index],
-						regargs->sfargs->psf_bkg[in_index], &psf_flux, &psf_mean_flux);
+						&psf_flux, &psf_mean_flux);
 			free_stars(&match);
 			free_stars(&match_ref);
 		}
@@ -826,7 +827,6 @@ int register_star_alignment(struct registration_args *regargs) {
 	regargs->sfargs->save_to_file = !regargs->matchSelection && !regargs->no_starlist;
 	regargs->sfargs->max_stars_fitted = regargs->max_stars_candidates;
 	regargs->sfargs->psf_noise = calloc(regargs->seq->number, sizeof(double));
-	regargs->sfargs->psf_bkg = calloc(regargs->seq->number, sizeof(double));
 	if (regargs->matchSelection && com.selection.w > 0 && com.selection.h > 0)
 		regargs->sfargs->selection = com.selection;
 	else {
@@ -859,7 +859,6 @@ int register_star_alignment(struct registration_args *regargs) {
 	regargs->retval = args->retval;
 	free_generic_seq_args(args, FALSE);
 	free(regargs->sfargs->psf_noise);
-	free(regargs->sfargs->psf_bkg);
 	free(regargs->sfargs);
 	regargs->sfargs = NULL;
 	return regargs->retval;
@@ -917,7 +916,7 @@ static void compute_psf_terms_sequence(struct registration_args *regargs, struct
 		if (!included[i] || i == psf_ref)
 			continue;
 		match_psf_terms(sfargs->stars[i], sfargs->nb_stars[i], sfargs->stars[psf_ref], sfargs->nb_stars[psf_ref], regargs->type,
-				sfargs->psf_noise[i], sfargs->psf_bkg[i], &psf_flux[i], &psf_mean_flux[i]);
+				sfargs->psf_noise[i], &psf_flux[i], &psf_mean_flux[i]);
 	}
 }
 
@@ -1136,8 +1135,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 	}
 	sfargs->nb_stars = calloc(regargs->seq->number, sizeof(int));
 	sfargs->psf_noise = calloc(regargs->seq->number, sizeof(double));
-	sfargs->psf_bkg = calloc(regargs->seq->number, sizeof(double));
-	if (!sfargs->nb_stars || !sfargs->psf_noise || !sfargs->psf_bkg) {
+	if (!sfargs->nb_stars || !sfargs->psf_noise) {
 		PRINT_ALLOC_ERR;
 		retval = 1;
 		goto free_all;
@@ -1418,7 +1416,6 @@ free_all:
 		free(sfargs->stars);
 		free(sfargs->nb_stars);
 		free(sfargs->psf_noise);
-		free(sfargs->psf_bkg);
 		free(sfargs);
 	}
 	free(fwhm);

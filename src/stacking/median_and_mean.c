@@ -1229,7 +1229,7 @@ static int compute_nbstars_weights(struct stacking_args *args) {
  * the PSF photometry terms at stacking time when the registration didn't
  * provide them */
 static int detect_psf_stars(struct stacking_args *args, int idx, int layer, threading_type threads, int thread_id,
-		psf_star ***stars, int *nb_stars, double *noise, double *bkg) {
+		psf_star ***stars, int *nb_stars, double *noise) {
 	sequence *seq = args->seq;
 	fits fit = { 0 };
 	rectangle area = { 0, 0,
@@ -1244,7 +1244,7 @@ static int detect_psf_stars(struct stacking_args *args, int idx, int layer, thre
 	image im = { .fit = &fit, .from_seq = NULL, .index_in_seq = -1 };
 	*stars = peaker(&im, 0, &com.pref.starfinder_conf, nb_stars, NULL, FALSE, TRUE,
 			MAX_STARS_FITTED, com.pref.starfinder_conf.profile, threads);
-	int retval = measure_noise_background(NULL, -1, &fit, 0, threads, noise, bkg) ? ST_GENERIC_ERROR : ST_OK;
+	int retval = measure_noise(NULL, -1, &fit, 0, threads, noise) ? ST_GENERIC_ERROR : ST_OK;
 	clearfits(&fit);
 	return retval;
 }
@@ -1263,8 +1263,8 @@ static int measure_psf_signal_sequence(struct stacking_args *args, int layer, do
 
 	psf_star **ref_stars = NULL;
 	int nb_ref_stars = 0;
-	double ref_noise = 0., ref_bkg = 0.;
-	if (detect_psf_stars(args, args->ref_image, layer, MULTI_THREADED, -1, &ref_stars, &nb_ref_stars, &ref_noise, &ref_bkg)) {
+	double ref_noise = 0.;
+	if (detect_psf_stars(args, args->ref_image, layer, MULTI_THREADED, -1, &ref_stars, &nb_ref_stars, &ref_noise)) {
 		siril_log_error(_("Could not measure PSF signal of image %d\n"), args->ref_image + 1);
 		free_fitted_stars(ref_stars);
 		return ST_GENERIC_ERROR;
@@ -1289,7 +1289,7 @@ static int measure_psf_signal_sequence(struct stacking_args *args, int layer, do
 		float psf_flux = 0.f, psf_mean_flux = 0.f;
 		if (idx == args->ref_image) {
 			psf_flux = ref_noise > 0. ? 1. / ref_noise : 0.;
-			psf_mean_flux = ref_bkg > ref_noise ? 1. / ref_bkg : 0.;
+			psf_mean_flux = psf_flux;
 		} else {
 			int thread_id = -1;
 			threading_type threads = SINGLE_THREADED;
@@ -1299,14 +1299,14 @@ static int measure_psf_signal_sequence(struct stacking_args *args, int layer, do
 #endif
 			psf_star **stars = NULL;
 			int nb_stars = 0;
-			double noise = 0., bkg = 0.;
-			if (detect_psf_stars(args, idx, layer, threads, thread_id, &stars, &nb_stars, &noise, &bkg)) {
+			double noise = 0.;
+			if (detect_psf_stars(args, idx, layer, threads, thread_id, &stars, &nb_stars, &noise)) {
 				siril_log_error(_("Could not measure PSF signal of image %d\n"), idx + 1);
 				free_fitted_stars(stars);
 				retval = ST_GENERIC_ERROR;
 				continue;
 			}
-			match_psf_terms(stars, nb_stars, ref_stars, nb_ref_stars, SIMILARITY_TRANSFORMATION, noise, bkg, &psf_flux, &psf_mean_flux);
+			match_psf_terms(stars, nb_stars, ref_stars, nb_ref_stars, SIMILARITY_TRANSFORMATION, noise, &psf_flux, &psf_mean_flux);
 			free_fitted_stars(stars);
 		}
 		flux[i] = psf_flux;
@@ -1366,24 +1366,16 @@ static int compute_psf_weights(struct stacking_args *args) {
 
 	args->weights = malloc(nb_layers * nb_frames * sizeof(double));
 	double norm = 0.0;
-	gboolean low_bkg = FALSE;
 	for (int i = 0; i < nb_frames; i++) {
-		double w = is_psfsw ? flux[i] * mean_flux[i] : flux[i] * flux[i];
+		double w = psf_weight(flux[i], mean_flux[i], is_psfsw);
 		if (!(w > 0.)) {
-			if (flux[i] > 0.) {
-				siril_log_warning(_("Image #%d: background too low for PSF signal weight, weight set to 0\n"), args->image_indices[i] + 1);
-				low_bkg = TRUE;
-			} else {
-				siril_log_warning(_("Image #%d: not enough stars matched with the reference, weight set to 0\n"), args->image_indices[i] + 1);
-			}
+			siril_log_warning(_("Image #%d: not enough stars matched with the reference, weight set to 0\n"), args->image_indices[i] + 1);
 			w = 0.;
 		}
 		args->weights[i] = w;
 		norm += w;
 	}
 	norm /= (double) nb_frames;
-	if (low_bkg)
-		siril_log_warning(_("PSF signal weight needs the sky background of unprocessed images, use PSF SNR for images with background extracted\n"));
 	if (!norm) {
 		siril_log_error(_("No valid PSF weight could be computed\n"));
 		free(flux);

@@ -64,6 +64,8 @@ enum registration_source {
 	r_WFWHM,
 	r_BACKGROUND,
 	r_NBSTARS,
+	r_PSFSNR,
+	r_PSFSW,
 	r_X_POSITION,
 	r_Y_POSITION,
 	r_QUALITY,

@@ -94,8 +94,8 @@ static gboolean is_fwhm = TRUE;
 static gboolean is_arcsec = FALSE;
 static gboolean force_Julian = FALSE;
 static plot_draw_data_t pdd = { 0 };
-static char *regfmt32[] = { "%0.2f", "%0.2f", "%0.2f", "%0.4f", "%0.0f", "%0.1f", "%0.1f", "%0.3f", "%0.0f" };
-static char *regfmt16[] = { "%0.2f", "%0.2f", "%0.2f", "%0.0f", "%0.0f", "%0.1f", "%0.1f", "%0.3f", "%0.0f" };
+static char *regfmt32[] = { "%0.2f", "%0.2f", "%0.2f", "%0.4f", "%0.0f", "%0.3f", "%0.3f", "%0.1f", "%0.1f", "%0.3f", "%0.0f" };
+static char *regfmt16[] = { "%0.2f", "%0.2f", "%0.2f", "%0.0f", "%0.0f", "%0.3f", "%0.3f", "%0.1f", "%0.1f", "%0.3f", "%0.0f" };
 static char *phtfmt32[] = { "%0.2f", "%0.2f", "%0.2f", "%0.2f", "%0.4f", "%0.1f", "%0.1f", "%0.2f"};
 static char *phtfmt16[] = { "%0.2f", "%0.2f", "%0.2f", "%0.2f", "%0.0f", "%0.1f", "%0.1f", "%0.2f"};
 /* Phase 15: GtkMenu was replaced in siril.ui by a GtkPopover (id
@@ -183,6 +183,8 @@ static const gchar *registration_labels[] = {
 	N_("wFWHM"),
 	N_("Background"),
 	N_("# Stars"),
+	N_("PSF SNR"),
+	N_("PSF signal weight"),
 	N_("X Position"),
 	N_("Y Position"),
 	N_("Quality"),
@@ -468,6 +470,10 @@ static void plot_draw_selection(cairo_t *cr){
 	cairo_stroke(cr);
 }
 
+static double relative_psf_weight(const regdata *reg, gboolean signal_weight, double mean) {
+	return mean > 0. ? psf_weight(reg->psf_flux, reg->psf_mean_flux, signal_weight) / mean : 0.;
+}
+
 static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 		pldata *plot) {
 	int i, j;
@@ -492,6 +498,9 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 	}
 	pdd.datamin = (point){ DBL_MAX, DBL_MAX};
 	pdd.datamax = (point){ -DBL_MAX, -DBL_MAX};
+	// PSF weights are shown relative to their mean, as used for stacking
+	double psfsnr_mean = psf_weight_mean(seq, layer, FALSE);
+	double psfsw_mean = psf_weight_mean(seq, layer, TRUE);
 
 	for (i = 0, j = 0; i < seq->number; i++) {
 		if (!seq->imgparam[i].incl)
@@ -538,6 +547,10 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				break;
 			case r_NBSTARS:
 				plot->data[j].x = seq->regparam[layer][i].number_of_stars;
+				break;
+			case r_PSFSNR:
+			case r_PSFSW:
+				plot->data[j].x = relative_psf_weight(&seq->regparam[layer][i], X_selected_source == r_PSFSW, X_selected_source == r_PSFSW ? psfsw_mean : psfsnr_mean);
 				break;
 			case r_FRAME:
 				plot->data[j].x = (double) i + 1;
@@ -588,6 +601,11 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				break;
 			case r_NBSTARS:
 				plot->data[j].y = seq->regparam[layer][i].number_of_stars;
+				break;
+			case r_PSFSNR:
+			case r_PSFSW:
+				plot->data[j].y = relative_psf_weight(&seq->regparam[layer][i], registration_selected_source == r_PSFSW,
+						registration_selected_source == r_PSFSW ? psfsw_mean : psfsnr_mean);
 				break;
 			default:
 				break;
@@ -1609,7 +1627,8 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr) {
 	if (nb_graphs == 1 && plot_data->nb > 0) {
 		if (!use_photometry && (registration_selected_source == r_FWHM || registration_selected_source == r_WFWHM ||
 					registration_selected_source == r_ROUNDNESS || registration_selected_source == r_QUALITY ||
-					registration_selected_source == r_BACKGROUND || registration_selected_source == r_NBSTARS)) {
+					registration_selected_source == r_BACKGROUND || registration_selected_source == r_NBSTARS ||
+					registration_selected_source == r_PSFSNR || registration_selected_source == r_PSFSW)) {
 			if (X_selected_source == r_FRAME) {
 				struct kpair *sorted_data;
 				sorted_data = calloc(plot_data->nb, sizeof(struct kpair));
@@ -1619,7 +1638,8 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr) {
 				}
 				qsort(sorted_data, plot_data->nb, sizeof(struct kpair),
 						(registration_selected_source == r_ROUNDNESS || registration_selected_source == r_QUALITY ||
-						 registration_selected_source == r_NBSTARS) ? comparey_desc : comparey);
+						 registration_selected_source == r_NBSTARS || registration_selected_source == r_PSFSNR ||
+						 registration_selected_source == r_PSFSW) ? comparey_desc : comparey);
 				double imin = pdd.pdatamin.x;
 				double imax = pdd.pdatamax.x;
 				double pace = (imax - imin) / ((double)plot_data->nb - 1.);
@@ -1806,6 +1826,12 @@ static void update_ylabel() {
 			case r_NBSTARS:
 				ylabel = _("Number of stars");
 				break;
+			case r_PSFSNR:
+				ylabel = _("PSF SNR (relative weight)");
+				break;
+			case r_PSFSW:
+				ylabel = _("PSF signal weight (relative)");
+				break;
 			default:
 				break;
 		}
@@ -1833,6 +1859,12 @@ static void update_ylabel() {
 				break;
 			case r_NBSTARS:
 				xlabel = _("Number of stars");
+				break;
+			case r_PSFSNR:
+				xlabel = _("PSF SNR (relative weight)");
+				break;
+			case r_PSFSW:
+				xlabel = _("PSF signal weight (relative)");
 				break;
 			case r_FRAME:
 				xlabel = _("Frames");

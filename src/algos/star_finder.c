@@ -782,17 +782,16 @@ double psf_model_flux(const psf_star *s) {
 	return s->A * 2. * G_PI * (k * s->fwhmx) * (k * s->fwhmy);
 }
 
-/* noise and background level of a channel. With a sequence, the stats cached
- * by the star finder are reused and fit can be NULL, in which case nothing is
+/* background noise of a channel. With a sequence, the stats cached by the
+ * star finder are reused and fit can be NULL, in which case nothing is
  * computed if they are not cached */
-int measure_noise_background(sequence *seq, int index, fits *fit, int layer, threading_type threads, double *noise, double *bkg) {
+int measure_noise(sequence *seq, int index, fits *fit, int layer, threading_type threads, double *noise) {
 	if (fit && layer >= fit->naxes[2])
 		return -1;
 	imstats *stat = statistics(seq, seq ? index : -1, fit, layer, NULL, STATS_BASIC, threads);
 	if (!stat)
 		return -1;
 	*noise = stat->bgnoise;
-	*bkg = stat->median;
 	free_stats(stat);
 	return 0;
 }
@@ -1225,9 +1224,9 @@ static int findstar_compute_mem_limits(struct generic_seq_args *args, gboolean f
 /* return FALSE to avoid reading image */
 static gboolean findstar_image_read_hook(struct generic_seq_args *args, int index) {
 	struct starfinder_data *findstar_args = (struct starfinder_data *)args->user;
-	// noise and background for PSF weighting need the pixels if they are not in the stats cache
-	if (findstar_args->psf_noise && measure_noise_background(args->seq, index, NULL, findstar_args->layer, SINGLE_THREADED,
-				&findstar_args->psf_noise[index], &findstar_args->psf_bkg[index]))
+	// the noise for PSF weighting needs the pixels if it is not in the stats cache
+	if (findstar_args->psf_noise && measure_noise(args->seq, index, NULL, findstar_args->layer, SINGLE_THREADED,
+				&findstar_args->psf_noise[index]))
 		return TRUE;
 
 	struct starfinder_data *curr_findstar_args = calloc(1, sizeof(struct starfinder_data));
@@ -1261,10 +1260,10 @@ static gboolean findstar_image_read_hook(struct generic_seq_args *args, int inde
 	return !status; // check_star_list returns TRUE on success
 }
 
-static void store_noise_background(struct starfinder_data *sfargs, int i, fits *fit, int layer, int threads) {
-	if (!sfargs->psf_noise || !sfargs->psf_bkg)
+static void store_noise(struct starfinder_data *sfargs, int i, fits *fit, int layer, int threads) {
+	if (!sfargs->psf_noise)
 		return;
-	measure_noise_background(sfargs->im.from_seq, i, fit, layer, threads, &sfargs->psf_noise[i], &sfargs->psf_bkg[i]);
+	measure_noise(sfargs->im.from_seq, i, fit, layer, threads, &sfargs->psf_noise[i]);
 }
 
 // contrarily to findstar_worker, this function first checks if a lst file exists:
@@ -1324,7 +1323,7 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 		}
 		retval = GPOINTER_TO_INT(findstar_worker(curr_findstar_args));
 		if (!retval)
-			store_noise_background(curr_findstar_args, i, green_fit ? green_fit : fit, green_fit ? 0 : curr_findstar_args->layer, threads);
+			store_noise(curr_findstar_args, i, green_fit ? green_fit : fit, green_fit ? 0 : curr_findstar_args->layer, threads);
 		clearfits(green_fit);
 		free(green_fit);
 		if (retval) {
@@ -1338,7 +1337,7 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 	} else {
 		// cached stars of CFA images were detected on an interpolated green image,
 		// so only stats cached at that time can be used
-		store_noise_background(curr_findstar_args, i, fit->keywords.bayer_pattern[0] == '\0' ? fit : NULL,
+		store_noise(curr_findstar_args, i, fit->keywords.bayer_pattern[0] == '\0' ? fit : NULL,
 				curr_findstar_args->layer, threads);
 	}
 	return curr_findstar_args;

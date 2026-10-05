@@ -222,9 +222,14 @@ void selection_H_transform(rectangle *selection, Homography Href, Homography Him
 void translation_from_H(Homography H, double *dx, double *dy);
 struct s_star;
 void compute_psf_terms(psf_star **stars, psf_star **ref_stars, struct s_star *match, struct s_star *match_ref,
-		double noise, double bkg, float *psf_flux, float *psf_mean_flux);
+		double noise, float *psf_flux, float *psf_mean_flux);
+/* PSF signal weight or PSF SNR from the PSF terms of the registration */
+static inline double psf_weight(double psf_flux, double psf_mean_flux, gboolean signal_weight) {
+	return signal_weight ? psf_flux * psf_mean_flux : psf_flux * psf_flux;
+}
+double psf_weight_mean(const sequence *seq, int layer, gboolean signal_weight);
 void match_psf_terms(psf_star **stars, int nb_stars, psf_star **ref_stars, int nb_ref_stars, transformation_type type,
-		double noise, double bkg, float *psf_flux, float *psf_mean_flux);
+		double noise, float *psf_flux, float *psf_mean_flux);
 Homography H_from_translation(double dx, double dy);
 void SetNullH(Homography *H);
 void compute_roi(Homography *H, int rx, int ry, framing_roi *roi);

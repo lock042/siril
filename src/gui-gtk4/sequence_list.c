@@ -100,6 +100,7 @@ static void sequence_list_init_statics(void) {
 }
 
 static int selected_source = -1;
+static double psf_mean = 0.;	// to show PSF weights relative to their mean
 static gboolean is_arcsec = FALSE;
 static gboolean use_photometry = FALSE;
 
@@ -627,6 +628,11 @@ static SirilSeqRow *build_seq_row(sequence *seq, int index, int layer) {
 				case r_NBSTARS:
 					fwhm = seq->regparam[layer][index].number_of_stars;
 					break;
+				case r_PSFSNR:
+				case r_PSFSW:
+					fwhm = psf_mean > 0. ? psf_weight(seq->regparam[layer][index].psf_flux, seq->regparam[layer][index].psf_mean_flux,
+							selected_source == r_PSFSW) / psf_mean : 0.;
+					break;
 				default:
 					break;
 			}
@@ -896,6 +902,8 @@ static gboolean fill_sequence_list_idle(gpointer p) {
 	is_arcsec = siril_toggle_get_active(GTK_WIDGET(arcsec));
 	use_photometry = (gboolean)gtk_drop_down_get_selected(GTK_DROP_DOWN(sourceCombo));
 	qualfmt = (args->seq && ((use_photometry && (selected_source == BACKGROUND)) || (!use_photometry && (selected_source == r_BACKGROUND))) && (get_data_type(args->seq->bitpix) == DATA_FLOAT)) ? ("%.5f") : ("%.3f");
+	psf_mean = (!use_photometry && (selected_source == r_PSFSNR || selected_source == r_PSFSW)) ?
+		psf_weight_mean(args->seq, args->layer, selected_source == r_PSFSW) : 0.;
 
 	get_list_store();
 	if (seq_store) g_list_store_remove_all(seq_store);
@@ -910,6 +918,8 @@ static gboolean fill_sequence_list_idle(gpointer p) {
 				case r_QUALITY:    qual_title = N_("Quality");    break;
 				case r_BACKGROUND: qual_title = N_("Background"); break;
 				case r_NBSTARS:    qual_title = N_("#Stars");     break;
+				case r_PSFSNR:     qual_title = N_("PSF SNR");    break;
+				case r_PSFSW:      qual_title = N_("PSF SW");     break;
 				default: break;
 			}
 		}

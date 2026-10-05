@@ -362,7 +362,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
 
 &lt;b&gt;Number of images&lt;/b&gt; weights individual frames based on their integration time.
 
-&lt;b&gt;PSF signal weight&lt;/b&gt; weights individual frames based on the photometry of detected stars, accounting for signal, star size, noise and background level. Stars are measured during global star registration, or at stacking time if not available.
+&lt;b&gt;PSF signal weight&lt;/b&gt; weights individual frames based on the photometry of detected stars, accounting for signal, star sharpness and noise. Stars are measured during global star registration, or at stacking time if not available.
 
 &lt;b&gt;PSF SNR&lt;/b&gt; weights individual frames based on the signal to noise ratio from the photometry of detected stars, to maximize the SNR of the result.</property>
                                             <property name="valign">start</property>
