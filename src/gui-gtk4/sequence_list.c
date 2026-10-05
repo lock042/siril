@@ -630,8 +630,7 @@ static SirilSeqRow *build_seq_row(sequence *seq, int index, int layer) {
 					break;
 				case r_PSFSNR:
 				case r_PSFSW:
-					fwhm = psf_mean > 0. ? psf_weight(seq->regparam[layer][index].psf_flux, seq->regparam[layer][index].psf_mean_flux,
-							selected_source == r_PSFSW) / psf_mean : 0.;
+					fwhm = relative_psf_weight(&seq->regparam[layer][index], selected_source == r_PSFSW, psf_mean);
 					break;
 				default:
 					break;

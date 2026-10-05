@@ -228,6 +228,10 @@ static inline double psf_weight(double psf_flux, double psf_mean_flux, gboolean 
 	return signal_weight ? psf_flux * psf_mean_flux : psf_flux * psf_flux;
 }
 double psf_weight_mean(const sequence *seq, int layer, gboolean signal_weight);
+/* PSF weight of an image relative to the mean given by psf_weight_mean() */
+static inline double relative_psf_weight(const regdata *reg, gboolean signal_weight, double mean) {
+	return mean > 0. ? psf_weight(reg->psf_flux, reg->psf_mean_flux, signal_weight) / mean : 0.;
+}
 void match_psf_terms(psf_star **stars, int nb_stars, psf_star **ref_stars, int nb_ref_stars, transformation_type type,
 		double noise, float *psf_flux, float *psf_mean_flux);
 Homography H_from_translation(double dx, double dy);

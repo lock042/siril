@@ -470,10 +470,6 @@ static void plot_draw_selection(cairo_t *cr){
 	cairo_stroke(cr);
 }
 
-static double relative_psf_weight(const regdata *reg, gboolean signal_weight, double mean) {
-	return mean > 0. ? psf_weight(reg->psf_flux, reg->psf_mean_flux, signal_weight) / mean : 0.;
-}
-
 static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 		pldata *plot) {
 	int i, j;
