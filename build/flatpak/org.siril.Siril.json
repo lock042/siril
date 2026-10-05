@@ -9,6 +9,7 @@
     "rename-mime-icons": [
         "text-x-seq"
     ],
+    "appstream-compose": false,
     "finish-args": [
         "--share=ipc",
         "--share=network",

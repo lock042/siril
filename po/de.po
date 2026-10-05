@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-18 17:15+0200\n"
+"POT-Creation-Date: 2026-10-01 13:47+0200\n"
 "PO-Revision-Date: 2026-06-04 11:07+0000\n"
 "Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
@@ -64,7 +64,7 @@ msgstr ""
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:394
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:446
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:498
-#: src/gui-gtk4/uifiles/wavelets_dialog.ui:550 src/gui-gtk4/file_browser.c:3333
+#: src/gui-gtk4/uifiles/wavelets_dialog.ui:550 src/gui-gtk4/file_browser.c:3363
 msgid "Preview"
 msgstr "Vorschau"
 
@@ -96,7 +96,7 @@ msgstr "Zurücksetzen"
 #: src/gui-gtk4/uifiles/settings_window.ui:4646
 #: src/gui-gtk4/uifiles/unpurple_dialog.ui:184
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:1105
-#: src/gui-gtk4/file_browser.c:3000
+#: src/gui-gtk4/file_browser.c:3030
 msgid "Cancel"
 msgstr "Abbruch"
 
@@ -106,7 +106,7 @@ msgstr "Abbruch"
 #: src/gui-gtk4/uifiles/aavso_dialog.ui:352
 #: src/gui-gtk4/uifiles/annotate_dialog.ui:523
 #: src/gui-gtk4/uifiles/asinh_dialog.ui:170
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:686
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:688
 #: src/gui-gtk4/uifiles/bdeconv_dialog.ui:1672
 #: src/gui-gtk4/uifiles/binxy_dialog.ui:106
 #: src/gui-gtk4/uifiles/canon_fixbanding_dialog.ui:158
@@ -209,7 +209,7 @@ msgstr "Benutze Luminanz"
 #: src/gui-gtk4/uifiles/aavso_dialog.ui:344
 #: src/gui-gtk4/uifiles/annotate_dialog.ui:514
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:915
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:677
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:679
 #: src/gui-gtk4/uifiles/bdeconv_dialog.ui:1652
 #: src/gui-gtk4/uifiles/binxy_dialog.ui:98
 #: src/gui-gtk4/uifiles/canon_fixbanding_dialog.ui:150
@@ -247,7 +247,7 @@ msgstr "Benutze Luminanz"
 #: src/gui-gtk4/uifiles/pixelmath.ui:327
 #: src/gui-gtk4/uifiles/resample_dialog.ui:225
 #: src/gui-gtk4/uifiles/rotation_dialog.ui:120
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1108
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1143
 #: src/gui-gtk4/uifiles/spcc_details.ui:205
 #: src/gui-gtk4/uifiles/split_cfa_dialog.ui:137
 #: src/gui-gtk4/uifiles/stars_list_window.ui:476 src/gui-gtk4/python_gui.c:2193
@@ -340,7 +340,7 @@ msgstr ""
 
 #: src/gui-gtk4/uifiles/StatWindow.ui:48
 #: src/gui-gtk4/uifiles/spcc_details.ui:28 src/gui-gtk4/astrometry_solver.c:130
-#: src/gui-gtk4/conversion.c:198 src/gui-gtk4/file_browser.c:3226
+#: src/gui-gtk4/conversion.c:198 src/gui-gtk4/file_browser.c:3256
 #: src/gui-gtk4/mouse_action_preferences.c:608
 #: src/gui-gtk4/mouse_action_preferences.c:754
 #: src/gui-gtk4/statistics_list.c:147
@@ -474,10 +474,10 @@ msgstr "Cstd: "
 #: src/gui-gtk4/uifiles/cut_spectroscopy_dialog.ui:122
 #: src/gui-gtk4/uifiles/cut_spectroscopy_dialog.ui:136
 #: src/gui-gtk4/uifiles/mask_thresholds_dialog.ui:130
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:968
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:983
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:998
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1013
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1003
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1018
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1033
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1048
 #: src/gui-gtk4/uifiles/settings_window.ui:374
 #: src/gui-gtk4/uifiles/settings_window.ui:389
 msgid "0"
@@ -878,8 +878,8 @@ msgstr "Alle aktuellen Anmerkungen löschen (Default in rot)"
 
 #: src/gui-gtk4/uifiles/annotate_dialog.ui:516
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:917
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:679
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1110
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:681
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1145
 msgid "Close the window."
 msgstr "Fenster schließen."
 
@@ -1279,12 +1279,12 @@ msgid "Image Parameters"
 msgstr "Bildparameter"
 
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:662
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:812
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:847
 msgid "Catalogue Limit Mag: "
 msgstr "Katalog Mag-Limit: "
 
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:676
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:825
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:860
 msgid ""
 "Maximum star magnitude used in the catalog queries. Wider is the field, "
 "lower is the value."
@@ -1296,7 +1296,7 @@ msgstr ""
 #. * ordering so the selected index is the persisted value.
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:688
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:742
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:862
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:897
 #: src/gui-gtk4/uifiles/siril_conversion.ui:225
 #: src/gui-gtk4/uifiles/siril_registration.ui:1008
 #: src/gui-gtk4/message_dialog.c:565
@@ -1304,7 +1304,7 @@ msgid "Auto"
 msgstr "Auto"
 
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:689
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:863
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:898
 msgid ""
 "The limit magnitude is automatically determined using the approximation of "
 "the Field Of View."
@@ -1391,7 +1391,7 @@ msgstr ""
 "angewiesen sind."
 
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:765
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:885
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:920
 msgid "Catalogue Parameters"
 msgstr "Katalog Parameter"
 
@@ -1510,8 +1510,8 @@ msgid "Sequence / Astrometric Registration"
 msgstr "Sequenz / Astrometrische Registrierung"
 
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:924
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1117
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1129
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1152
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1164
 msgid "OK"
 msgstr "OK"
 
@@ -1540,7 +1540,7 @@ msgid ""
 msgstr ""
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:104
-#: src/algos/background_extraction.c:1464
+#: src/algos/background_extraction.c:1236
 msgid "RBF"
 msgstr "RBF"
 
@@ -1735,7 +1735,7 @@ msgstr "Skalierung:"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:382
 msgid ""
-"Relative scale of the multiscale model. Higher = smoother (large-scale "
+"Relative scale of the multiscale surface. Higher = smoother (large-scale "
 "only); lower follows more complex / local gradients."
 msgstr ""
 
@@ -1746,87 +1746,93 @@ msgstr "Glättung"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:411
 msgid ""
-"Extra smoothing of the final model. Higher gives a softer, more gradual "
-"background; 0 leaves the fitted model untouched."
+"Extra smoothing of the multiscale surface. Higher gives a softer, more "
+"gradual background; 0 leaves the fitted model untouched."
 msgstr ""
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:437
 #, fuzzy
+msgid "Simplified model"
+msgstr "Vereinfachtes 2x Drizzlen"
+
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:438
+msgid ""
+"Fit a stiff polynomial and remove it before the multiscale model, which is "
+"then fitted on what it leaves; the sum of the two is removed.\n"
+"Helps on strong, complex gradients whose amplitude rivals or exceeds the "
+"objects of interest, where a single pass cannot separate them and the model "
+"locks onto the objects.\n"
+"It can overcorrect when the frame holds a large bright object, which the "
+"polynomial may partly absorb: keep the degree low. Off by default."
+msgstr ""
+
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:450
+msgid "    Model degree"
+msgstr ""
+
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:451
+msgid ""
+"Degree of the simplified model. Lower = stiffer (degree 1 = plane). Raise it "
+"for a gradient with real curvature, but a large bright object is then more "
+"easily absorbed by it."
+msgstr ""
+
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:469
+#, fuzzy
 msgid "Structure protection"
 msgstr "Sternerkennung"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:439
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:471
 msgid ""
 "Mask extended bright structures (nebulae) so they are not absorbed into the "
-"model."
+"model. Applies to the simplified model too, when it is enabled."
 msgstr ""
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:449
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:481
 #, fuzzy
 msgid "    Protection threshold"
 msgstr "Schutzmethode: "
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:450
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:482
 msgid ""
 "Brightness above the model at which a pixel is treated as a structure. Lower "
 "= protects more."
 msgstr ""
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:472
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:504
 #, fuzzy
 msgid "    Protection amount"
 msgstr "Schutzmethode: "
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:473
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:505
 msgid "How far the protection mask grows around detected structures."
 msgstr ""
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:492
-#, fuzzy
-msgid "Simplified model"
-msgstr "Vereinfachtes 2x Drizzlen"
-
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:493
-msgid ""
-"Replace the multiscale model with a stiff polynomial. Use it when a nebula "
-"fills the frame and the default model hollows it out."
-msgstr ""
-
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:503
-msgid "    Model degree"
-msgstr ""
-
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:504
-msgid ""
-"Polynomial degree of the simplified model. Lower = stiffer (degree 1 = "
-"plane)."
-msgstr ""
-
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:525
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:527
 #, fuzzy
 msgid "Downsample"
 msgstr "Herunterskalierungsunschärfe"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:526
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:528
 msgid ""
 "Internal working scale factor. Higher = faster but coarser; the background "
 "scale itself is unaffected."
 msgstr ""
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:552
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:554
 #, fuzzy
 msgid "Automatic Model"
 msgstr "Automatische Updates"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:570
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:572
 msgid "Subtraction"
 msgstr "Subtraktion"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:571
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:573
 msgid "Division"
 msgstr "Division"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:576
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:578
 #, fuzzy
 msgid ""
 "Choose the type of correction you want apply:\n"
@@ -1843,15 +1849,15 @@ msgstr ""
 "Vignettierung oder differenzielle Absorbtion durch die Atmosphäre. "
 "Wesentlich erfolgt dies bereits durch die Master-Flat-Korrektur."
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:584
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:586
 msgid "Correction"
 msgstr "Korrektur"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:596
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:598
 msgid "Compute Background"
 msgstr "Berechne Hintergrund-Gradient"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:598
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:600
 msgid ""
 "This will compute the synthetic background and will apply the selected "
 "correction. The model is always computed from the original image kept in "
@@ -1861,33 +1867,33 @@ msgstr ""
 "Korrektur angewendet. Das Modell wird immer aus dem im Speicher gehaltenen "
 "Originalbild berechnet, so dass der Benutzer iterativ arbeiten kann."
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:612
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:614
 msgid "View"
 msgstr ""
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:621
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:623
 #, fuzzy
 msgid "Processed image"
 msgstr "Verarbeite Bild %s"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:622
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:624
 #, fuzzy
 msgid "Background model"
 msgstr "Entfernen des Hintergrunds"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:623
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:625
 #, fuzzy
 msgid "Original image"
 msgstr "Zeige Originalbild"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:628
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:630
 msgid ""
 "Choose what is shown in the main view after a background has been computed: "
 "the corrected image, the background model that was removed, or the original "
 "image."
 msgstr ""
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:640
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:642
 #: src/gui-gtk4/uifiles/bdeconv_dialog.ui:1615
 #: src/gui-gtk4/uifiles/canon_fixbanding_dialog.ui:114
 #: src/gui-gtk4/uifiles/ccm_dialog.ui:237
@@ -1901,7 +1907,7 @@ msgstr ""
 msgid "Apply to sequence"
 msgstr "Auf Sequenz anwenden"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:641
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:643
 #: src/gui-gtk4/uifiles/canon_fixbanding_dialog.ui:115
 #: src/gui-gtk4/uifiles/ccm_dialog.ui:238
 #: src/gui-gtk4/uifiles/cosmetic_dialog.ui:162
@@ -1915,7 +1921,7 @@ msgstr ""
 "Wenn eine Sequenz geladen und aktiviert ist, wende die Bearbeitung auf alle "
 "Bilder der Sequenz an, anstatt nur auf das geladene Bild."
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:647
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:649
 #: src/gui-gtk4/uifiles/canon_fixbanding_dialog.ui:121
 #: src/gui-gtk4/uifiles/ccm_dialog.ui:243
 #: src/gui-gtk4/uifiles/cosmetic_dialog.ui:167
@@ -1928,14 +1934,14 @@ msgstr ""
 msgid "Output prefix:"
 msgstr "Ausgabepräfix:"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:656
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:658
 msgid ""
 "Prefix of the image names resulting from the background extraction process."
 msgstr ""
 "Präfix der Bildnamen, die sich aus dem Hintergrund-Extraktionsprozess "
 "ergeben."
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:689
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:691
 msgid ""
 "This will confirm the background model previously applied with the "
 "<b>Compute Background</b> button. However, in the case of a sequence, if the "
@@ -1947,8 +1953,8 @@ msgstr ""
 "die Schaltfläche <b>Auf Sequenz anwenden</b> aktiviert ist, wird das Modell "
 "berechnet und auf die gesamte Sequenz angewendet."
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:702
-#: src/algos/background_extraction.c:2446
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:704
+#: src/algos/background_extraction.c:2250
 msgid "Background Extraction"
 msgstr "Hintergrund-Extraktion"
 
@@ -2784,40 +2790,40 @@ msgstr ""
 "deaktiviert wurde"
 
 #: src/gui-gtk4/uifiles/color_calibration.ui:109
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:969
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1004
 msgid "x coordinate of the start of the background selection"
 msgstr "X-Koordinate des Ursprungs der Hintergrund-Auswahl"
 
 #: src/gui-gtk4/uifiles/color_calibration.ui:123
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:984
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1019
 msgid "y coordinate of the start of the background selection"
 msgstr "Y-Koordinate des Ursprungs der Hintergrund-Auswahl"
 
 #: src/gui-gtk4/uifiles/color_calibration.ui:137
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:999
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1034
 msgid "Width of the background selection"
 msgstr "Breite der Hintergrund-Auswahl"
 
 #: src/gui-gtk4/uifiles/color_calibration.ui:151
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1014
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1049
 msgid "Height of the background selection"
 msgstr "Höhe der Hintergrund-Auswahl"
 
 #: src/gui-gtk4/uifiles/color_calibration.ui:161
 #: src/gui-gtk4/uifiles/color_calibration.ui:391
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1024
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1059
 msgid "Selected area"
 msgstr "Ausgewählter Bereich"
 
 #: src/gui-gtk4/uifiles/color_calibration.ui:175
 #: src/gui-gtk4/uifiles/color_calibration.ui:405
 #: src/gui-gtk4/uifiles/rgradient_dialog.ui:88
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1038
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1073
 msgid "Use current selection"
 msgstr "Verwende aktuelle Auswahl"
 
 #: src/gui-gtk4/uifiles/color_calibration.ui:177
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1040
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1075
 msgid ""
 "You must specify a selection that represents the true background of the "
 "image, trying to exclude all stars or other stellar objects."
@@ -2925,7 +2931,7 @@ msgstr "Untere Grenze: "
 msgid "Upper limit: "
 msgstr "Obere Grenze: "
 
-#: src/gui-gtk4/uifiles/color_calibration.ui:477
+#: src/gui-gtk4/uifiles/color_calibration.ui:477 src/algos/photometric_cc.c:252
 msgid "White reference"
 msgstr "Weiß-Referenz"
 
@@ -3871,7 +3877,7 @@ msgid "Plot x axis"
 msgstr "X-Achse zeichnen"
 
 #: src/gui-gtk4/uifiles/cut_spectroscopy_dialog.ui:255
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:445
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:480
 msgid "Wavelength"
 msgstr "Wellenlänge"
 
@@ -5214,7 +5220,7 @@ msgid "<b>Color Management Operations</b>"
 msgstr "<b>Farbmanagement Operationen</b>"
 
 #: src/gui-gtk4/uifiles/icc_dialog.ui:276
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:712
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:747
 #: src/gui-gtk4/uifiles/siril_plot.ui:289
 #: src/gui-gtk4/uifiles/spcc_details.ui:196
 msgid "Plot"
@@ -5695,7 +5701,7 @@ msgid "Browse..."
 msgstr "Suche..."
 
 #: src/gui-gtk4/uifiles/mask_from_image.ui:89
-#: src/gui-gtk4/uifiles/settings_window.ui:727
+#: src/gui-gtk4/uifiles/settings_window.ui:727 src/algos/photometric_cc.c:248
 msgid "Method"
 msgstr "Methode"
 
@@ -6238,19 +6244,19 @@ msgstr "Nächster Nachbar"
 
 #: src/gui-gtk4/uifiles/resample_dialog.ui:105
 #: src/gui-gtk4/uifiles/rotation_dialog.ui:83
-#: src/gui-gtk4/uifiles/siril_registration.ui:1682 src/algos/geometry.c:832
+#: src/gui-gtk4/uifiles/siril_registration.ui:1682 src/algos/geometry.c:831
 msgid "Bilinear"
 msgstr "Bilinear"
 
 #: src/gui-gtk4/uifiles/resample_dialog.ui:106
 #: src/gui-gtk4/uifiles/rotation_dialog.ui:84
-#: src/gui-gtk4/uifiles/siril_registration.ui:1683 src/algos/geometry.c:838
+#: src/gui-gtk4/uifiles/siril_registration.ui:1683 src/algos/geometry.c:837
 msgid "Bicubic"
 msgstr "Bikubisch"
 
 #: src/gui-gtk4/uifiles/resample_dialog.ui:107
 #: src/gui-gtk4/uifiles/rotation_dialog.ui:85
-#: src/gui-gtk4/uifiles/siril_registration.ui:1684 src/algos/geometry.c:835
+#: src/gui-gtk4/uifiles/siril_registration.ui:1684 src/algos/geometry.c:834
 msgid "Pixel Area Relation"
 msgstr "Pixel zu Fläche Verhältnis"
 
@@ -6268,9 +6274,9 @@ msgstr "Algorithmus für's Resampling"
 msgid "%"
 msgstr "%"
 
-#: src/gui-gtk4/uifiles/resample_dialog.ui:192 src/gui-gtk4/file_browser.c:2628
-#: src/gui-gtk4/file_browser.c:2630 src/gui-gtk4/file_browser.c:2674
-#: src/gui-gtk4/file_browser.c:2677
+#: src/gui-gtk4/uifiles/resample_dialog.ui:192 src/gui-gtk4/file_browser.c:2658
+#: src/gui-gtk4/file_browser.c:2660 src/gui-gtk4/file_browser.c:2704
+#: src/gui-gtk4/file_browser.c:2707
 msgid "pixels"
 msgstr "Pixel"
 
@@ -6402,72 +6408,72 @@ msgstr "Blaufilter:"
 msgid "Select an OSC sensor"
 msgstr "Wählen Sie einen Farb(OSC)-Sensor"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:207
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:212
 msgid "Select a mono sensor"
 msgstr "Wählen Sie einen Mono-Sensor"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:218
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:228
 msgid "Select an OSC filter (e.g. a broadband light pollution filter)"
 msgstr ""
 "Wählen Sie einen Farb(OSC)-Filter (z.B. einen Breitband-"
 "Lichtverschmutzungsfilter)"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:229
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:244
 msgid "Select a red filter used with composited mono images"
 msgstr "Wählen Sie einen Rotfilter für die Komposition von Mono-Bildern"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:240
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:260
 msgid "Select a green filter used with composited mono images"
 msgstr "Wählen Sie einen Grünfilter für die Komposition von Mono-Bildern"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:251
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:276
 msgid "Select a blue filter used with composited mono images"
 msgstr "Wählen Sie einen Blaufilter für die Komposition von Mono-Bildern"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:263
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:276
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:289
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:302
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:315
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:328
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:351
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:397
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:293
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:306
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:319
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:332
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:345
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:358
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:381
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:432
 msgid "Details"
 msgstr "Details"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:265
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:295
 msgid "Show details of the selected OSC sensor"
 msgstr "Anzeige der Details des gewählten Farb(OSC)-Sensors"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:278
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:308
 msgid "Show details of the selected mono sensor"
 msgstr "Anzeige der Details des gewählten Mono-Sensors"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:291
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:321
 msgid "Show details of the selected OSC filter"
 msgstr "Anzeige der Details des gewählten Farb(OSC)-Sensors"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:304
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:334
 msgid "Show details of the selected red filter"
 msgstr "Anzeige der Details des gewählten Rotfilters"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:317
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:347
 msgid "Show details of the selected green filter"
 msgstr "Anzeige der Details des gewählten Grünfilters"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:330
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:360
 msgid "Show details of the selected blue filter"
 msgstr "Anzeige der Details des gewählten Blaufilters"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:341
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:371
 msgid "DSLR Low Pass Filter:"
 msgstr "DSLR Low-Pass-Filter/LPF:"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:353
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:383
 msgid "Show details of the selected LPF"
 msgstr "Anzeige der Details des gewählten LPF"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:363
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:393
 msgid ""
 "For unmodified DSLRs, select the LPF most closely matching your model (many "
 "Canon LPFs are almost identical so there may not be an exact match for your "
@@ -6480,15 +6486,15 @@ msgstr ""
 "modifizierte DSLRs wählen Sie den montierten Ersatz-LPF (wenn es keine "
 "exakte Übereinstimmung gibt, ist der Baader BCF wahrscheinlich nahe dran)."
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:374
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:409
 msgid "Select white balance reference"
 msgstr "Referenz Weißabgleich wählen"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:384
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:419
 msgid "Plot all"
 msgstr "Alles zeichnen"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:386
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:421
 msgid ""
 "Plot the selected sensor QE, filter responses and white reference relative "
 "photon count as a function of wavelength"
@@ -6496,23 +6502,23 @@ msgstr ""
 "Zeichnet die Sensor-QE, die Filterkurven und der relativen Photonenzahl der "
 "Weißreferenz als Funktion der Wellenlänge"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:399
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:434
 msgid "Show details of the selected white reference"
 msgstr "Anzeige der Details der gewählten Weißreferenz"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:416
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:451
 msgid "Blue:"
 msgstr "Blau:"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:426
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:461
 msgid "Green:"
 msgstr "Grün:"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:436
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:471
 msgid "Red:"
 msgstr "Rot:"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:446
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:481
 #, fuzzy
 msgid ""
 "Nominal passband wavelength in nm\n"
@@ -6523,43 +6529,43 @@ msgstr ""
 "Typische Wellenlängen: S II - 672 nm, Ha - 656,46 nm, O III - 500 nm, Hb - "
 "486,1 nm"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:456
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:491
 msgid "Bandwidth"
 msgstr "Durchlassweite"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:457
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:492
 msgid "Filter bandwidth in nm"
 msgstr "Durchlassbreite des Filters in nm"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:470
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:505
 msgid "Enter the nominal wavelength of the red channel narrowband filter"
 msgstr "Geben Sie die Nenn-Durchlassbreite des Rotfilters an"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:485
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:520
 msgid "Enter the nominal wavelength of the blue channel narrowband filter"
 msgstr "Geben Sie die Nenn-Durchlassbreite des Blaufilters an"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:500
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:535
 msgid "Enter the nominal wavelength of the green channel narrowband filter"
 msgstr "Geben Sie die Nenn-Durchlassbreite des Grünfilters an"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:515
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:550
 msgid "Enter the nominal bandwidth of the red channel narrowband filter"
 msgstr "Geben Sie die Nenn-Durchlassbreite des Schmalband-Rotfilters an"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:530
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:565
 msgid "Enter the nominal bandwidth of the green channel narrowband filter"
 msgstr "Geben Sie die Nenn-Durchlassbreite des Schmalband-Grünfilters an"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:545
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:580
 msgid "Enter the nominal bandwidth of the blue channel narrowband filter"
 msgstr "Geben Sie die Nenn-Durchlassbreite des Schmalband-Blaufilters an"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:565
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:600
 msgid "Plot fits"
 msgstr "SPCC-Anpassungen zeichnen"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:566
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:601
 msgid ""
 "Plot SPCC linear fits for catalog to image R/G and B/G ratios. In narrowband "
 "mode, plots of degenerate ratios will not be shown."
@@ -6568,19 +6574,19 @@ msgstr ""
 "zeichnen. Im Schmalbandmodus werden Diagramme degenerierter Verhältnisse "
 "nicht angezeigt."
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:577
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:612
 msgid "Sensor Type:"
 msgstr "Sensortyp:"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:597 src/gui-gtk4/photometric_cc.c:1077
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:632 src/gui-gtk4/photometric_cc.c:1077
 msgid "mono"
 msgstr "Mono"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:610
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:645
 msgid "Narrowband mode"
 msgstr "Schmalband-Modus"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:611
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:646
 msgid ""
 "Set narrowband mode. This is suitable for composited narrowband images such "
 "as HOO as well as for OSC images taken with dual narrowband filters etc."
@@ -6589,11 +6595,11 @@ msgstr ""
 "Schmalbandbilder wie HOO sowie für OSC-Aufnahmen die mit einem Dual-"
 "Schmalbandfilter etc. aufgenommen wurden."
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:622
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:657
 msgid "Atmospheric corrections"
 msgstr "Atmosphärenkorrekturen"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:623
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:658
 msgid ""
 "Apply an atmosphere model to account for wavelength-dependent atmospheric "
 "extinction."
@@ -6601,19 +6607,19 @@ msgstr ""
 "Wenden Sie ein Atmosphärenmodell an, um die wellenlängenabhängige "
 "atmosphärische Auslöschung zu berücksichtigen."
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:642
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:677
 msgid "Observer height / m:"
 msgstr "Höhe des Beobachters / m:"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:655
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:690
 msgid "Observer's height (altitude) above sea level."
 msgstr "Höhe des Beobachters (Höhe) über dem Meeresspiegel."
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:666
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:701
 msgid "Atmospheric pressure / hPa:"
 msgstr "Luftdruck / hPa:"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:679
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:714
 msgid ""
 "Atmospheric pressure in hPa. If the \"sea level\" check box is checked this "
 "is taken to be sea level pressure, otherwise it is taken to be local "
@@ -6623,35 +6629,35 @@ msgstr ""
 "dies als Druck auf Meereshöhe angenommen, andernfalls als lokaler Druck auf "
 "der Höhe des Beobachters."
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:692 src/gui-gtk4/photometric_cc.c:1553
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:727 src/gui-gtk4/photometric_cc.c:1553
 msgid "sea level"
 msgstr "Meeresspiegel"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:702
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:737
 msgid "Airmass:"
 msgstr "Luftmasse:"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:714
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:749
 msgid "Plot atmosphere model"
 msgstr "Atmosphärenmodell zeichnen"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:737
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:772
 msgid "Atmospheric Parameters"
 msgstr "Atmosphärenpaarameter"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:755
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:790
 msgid "SPCC Parameters"
 msgstr "SPCC-Parameter"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:782 src/io/siril_catalogues.c:271
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:817 src/io/siril_catalogues.c:271
 msgid "APASS"
 msgstr "APASS"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:783
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:818
 msgid "GAIA DR3"
 msgstr "Gaia DR3"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:788
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:823
 #, fuzzy
 msgid ""
 "Choose the online catalogue against one want to compare the image and "
@@ -6687,16 +6693,16 @@ msgstr ""
 "liefert Messungen der effektiven Temperatur der Quelle auf der Grundlage des "
 "Spektrums der Quelle, und SIRIL verwendet diesen \"Teff\"-Wert für PCC."
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:802
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:837
 msgid "Photometric Star Catalogue: "
 msgstr "Photometrischer Sternkatalog "
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:840
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:875
 #, fuzzy
 msgid "Gaia DR3 (local catalogue)"
 msgstr "(Lokaler Katalog)"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:845
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:880
 #, fuzzy
 msgid ""
 "Choose the catalogue to use for spectrophotometric colour calibration.\n"
@@ -6716,7 +6722,7 @@ msgstr ""
 "Gaia DR3 enthält abgetastete Spektren für ca. 30 Millionen Sterne bis zu "
 "einer Magnitude von 17,6."
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:874
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:909
 msgid ""
 "The NOMAD catalogue can be installed locally to not rely on an Internet "
 "connection for this operation."
@@ -6724,26 +6730,26 @@ msgstr ""
 "Der NOMAD-Katalog kann lokal installiert werden, so dass Sie für diesen "
 "Vorgang nicht auf eine Internetverbindung angewiesen sind."
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:911
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:946
 msgid "Tolerance / σ"
 msgstr "Toleranz / σ"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:921
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:956
 msgid ""
 "Include background samples this many σ above the median. Default is 2.00"
 msgstr ""
 "Hintergrundproben die σ über dem Median liegen einbeziehen. Standard ist 2,00"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:933
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:968
 msgid "Include background samples this many σ below the median. Default is 2.8"
 msgstr ""
 "Hintergrundproben die σ unter dem Median liegen einbeziehen. Standard ist 2,8"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:945
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:980
 msgid "Automatic detection"
 msgstr "Auto-Detektion"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:946
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:981
 msgid ""
 "Uncheck this button if you want to select the background reference by "
 "yourself. It can be useful when nebulae cover a large portion of the image."
@@ -6752,23 +6758,23 @@ msgstr ""
 "auswählen möchten. Evtl. vorteilhaft wenn Nebel fast das ganze Bild "
 "einnehmen."
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1053
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1088
 msgid "Background Reference"
 msgstr "Hintergrund Referenz"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1080
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1115
 msgid "Click to update Gaia archive status check"
 msgstr "Klicken Sie hier, um den Status des Gaia-Archivs zu überprüfen"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1091
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1126
 msgid "Status: "
 msgstr "Status: "
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1097
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1132
 msgid "Checking Gaia archive status..."
 msgstr "Prüfe Gaia Archiv Status..."
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1119
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1154
 msgid "Start the photometric color calibration algorithm."
 msgstr "Starte Photometrische Farb-Kalibrierung."
 
@@ -7010,7 +7016,7 @@ msgid "JPEG XL"
 msgstr "JPEG XL"
 
 #: src/gui-gtk4/uifiles/savepopup.ui:619 src/gui-gtk4/uifiles/siril.ui:2387
-#: src/gui-gtk4/file_browser.c:3716 src/io/sequence.c:2212
+#: src/gui-gtk4/file_browser.c:3746 src/io/sequence.c:2215
 msgid "Save"
 msgstr "Speichern"
 
@@ -7342,7 +7348,7 @@ msgstr ""
 
 #: src/gui-gtk4/uifiles/settings_window.ui:463
 #: src/gui-gtk4/uifiles/siril_conversion.ui:203
-#: src/gui-gtk4/file_browser.c:3418
+#: src/gui-gtk4/file_browser.c:3448
 msgid "Debayer"
 msgstr "Debayern"
 
@@ -9245,12 +9251,13 @@ msgstr ""
 "führen."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:4097
+#, fuzzy
 msgid ""
 "Sets a new ratio of free memory on memory used for stacking. Value should be "
 "between 0.05 and 2, depending on other activities of the machine. A higher "
 "ratio should allow siril to stack faster, but setting the ratio of memory "
 "used for stacking above 1 will require the use of on-disk memory, which is "
-"very slow and unrecommended"
+"very slow and not recommended"
 msgstr ""
 "Setzt ein neues Verhältnis von freiem Speicher zu Speicher, der für das "
 "Stacking verwendet wird. Der Wert sollte zwischen 0,05 und 2 liegen, "
@@ -10353,8 +10360,8 @@ msgstr "AAVSO Dateiformat"
 msgid "Build an output file in the AAVSO format"
 msgstr "Erstellen einer Ausgabedatei im AAVSO-Format"
 
-#: src/gui-gtk4/uifiles/siril.ui:2129 src/gui-gtk4/file_browser.c:3137
-#: src/gui-gtk4/file_browser.c:3524 src/gui-gtk4/file_browser.c:3716
+#: src/gui-gtk4/uifiles/siril.ui:2129 src/gui-gtk4/file_browser.c:3167
+#: src/gui-gtk4/file_browser.c:3554 src/gui-gtk4/file_browser.c:3746
 #: src/gui-gtk4/single_image.c:53
 msgid "Open"
 msgstr "Öffnen"
@@ -14132,9 +14139,8 @@ msgstr "echt reduziert"
 msgid "relative"
 msgstr "relativ"
 
-#: src/algos/PSF.c:1010 src/algos/background_extraction.c:1248
-#: src/algos/background_extraction.c:1912
-#: src/algos/background_extraction.c:2091
+#: src/algos/PSF.c:1010 src/algos/background_extraction.c:1716
+#: src/algos/background_extraction.c:1895
 msgid "monochrome"
 msgstr "Monochrome"
 
@@ -14635,47 +14641,65 @@ msgstr "Hintergrundmuster für das Bild %s konnten nicht erzeugt werden\n"
 msgid "unknown error"
 msgstr "unbekannter Fehler"
 
-#: src/algos/background_extraction.c:1231
-#: src/algos/background_extraction.c:1403
-#: src/algos/background_extraction.c:2029
-#: src/algos/background_extraction.c:2082
-msgid "Not enough samples."
-msgstr "Nicht genügend Samples."
+#: src/algos/background_extraction.c:1233
+#, fuzzy
+msgid "simplified + multiscale"
+msgstr "Vereinfachtes 2x Drizzlen"
 
-#: src/algos/background_extraction.c:1231
-#: src/algos/background_extraction.c:2082
-msgid "Insufficient samples"
-msgstr "Unzureichende Muster"
+#: src/algos/background_extraction.c:1233
+#, fuzzy
+msgid "multiscale"
+msgstr "Mehrstufig"
 
-#: src/algos/background_extraction.c:1249
-#: src/algos/background_extraction.c:2092
-#, c-format
-msgid "Background extraction from %s channel.\n"
+#: src/algos/background_extraction.c:1234
+#: src/algos/background_extraction.c:1717
+#, fuzzy, c-format
+msgid "Automatic gradient removal (%s)"
+msgstr "Auto-Detektion"
+
+#: src/algos/background_extraction.c:1236
+#, fuzzy
+msgid "polynomial"
+msgstr "Polynomisch"
+
+#: src/algos/background_extraction.c:1238
+#, fuzzy, c-format
+msgid "Background extraction (%s, CFA)"
+msgstr "Hintergrund-Extraktion"
+
+#: src/algos/background_extraction.c:1239
+#, fuzzy, c-format
+msgid "Background extraction (%s)"
+msgstr "Hintergrund-Extraktion"
+
+#: src/algos/background_extraction.c:1727
+msgid "Automatic gradient removal failed.\n"
+msgstr ""
+
+#: src/algos/background_extraction.c:1732
+#, fuzzy, c-format
+msgid "Automatic gradient removed from %s channel.\n"
 msgstr "Hintergrund-Extraktion von Kanal %s.\n"
 
-#: src/algos/background_extraction.c:1255
-#: src/algos/background_extraction.c:2097
-#, c-format
-msgid "Background with %s interpolation computed.\n"
-msgstr "Hintergrundmodel mit %s Durchgängen berechnet.\n"
+#: src/algos/background_extraction.c:1739
+#, fuzzy
+msgid "Automatic gradient removal done"
+msgstr "Auto-Detektion"
 
-#: src/algos/background_extraction.c:1315
-#: src/algos/background_extraction.c:1950
-#: src/algos/background_extraction.c:2232
+#: src/algos/background_extraction.c:1754
+#: src/algos/background_extraction.c:2036
 msgid "Error: unsupported CFA pattern for this operation.\n"
 msgstr "Nicht unterstütztes CFA-Muster für diese Funktion\n"
 
-#: src/algos/background_extraction.c:1337
-#: src/algos/background_extraction.c:1964
-#: src/algos/background_extraction.c:2251
+#: src/algos/background_extraction.c:1768
+#: src/algos/background_extraction.c:2055
 msgid "Error splitting into CFA subchannels, aborting...\n"
 msgstr "Fehler beim Aufteilen in CFA-Unterkanälte, breche ab...\n"
 
-#: src/algos/background_extraction.c:1346
-#: src/algos/background_extraction.c:1972 src/algos/colors.c:1153
+#: src/algos/background_extraction.c:1776 src/algos/colors.c:1153
 #: src/algos/colors.c:1244 src/algos/line_detection.c:191
 #: src/algos/line_detection.c:219 src/algos/noise.c:96
-#: src/algos/photometric_cc.c:788 src/algos/star_finder.c:66
+#: src/algos/photometric_cc.c:886 src/algos/star_finder.c:66
 #: src/algos/statistics.c:783 src/core/preprocess.c:76
 #: src/core/preprocess.c:346 src/core/siril.c:445 src/filters/banding.c:260
 #: src/filters/banding.c:343 src/filters/cosmetic_correction.c:218
@@ -14686,8 +14710,7 @@ msgstr "Fehler beim Aufteilen in CFA-Unterkanälte, breche ab...\n"
 msgid "Error: statistics computation failed.\n"
 msgstr "Fehler: Statistik-Berechnung fehlgeschlagen.\n"
 
-#: src/algos/background_extraction.c:1354
-#: src/algos/background_extraction.c:1979
+#: src/algos/background_extraction.c:1783
 msgid ""
 "Subchannel with negative median detected: removing the gradient on negative "
 "images is not supported\n"
@@ -14695,75 +14718,46 @@ msgstr ""
 "Unterkanal mit negativem Median erkannt: das Entfernen des Gradienten bei "
 "Bilden mit negativen Pixeln wird nicht unterstützt\n"
 
-#: src/algos/background_extraction.c:1366
-#: src/algos/background_extraction.c:1989
+#: src/algos/background_extraction.c:1793
 msgid "Failed to adapt background samples for CFA image\n"
 msgstr "Hintergrundproben für CFA-Bild konnten nicht angepasst werden\n"
 
-#: src/algos/background_extraction.c:1374
-#: src/algos/background_extraction.c:2141
-#: src/algos/background_extraction.c:2269
-msgid "Out of memory - aborting"
-msgstr "Ungenügender Speicherplatz - Abbruch"
+#: src/algos/background_extraction.c:1833
+#: src/algos/background_extraction.c:1886
+msgid "Not enough samples."
+msgstr "Nicht genügend Samples."
 
-#: src/algos/background_extraction.c:1429
-#: src/algos/background_extraction.c:2043
+#: src/algos/background_extraction.c:1847
 #, c-format
 msgid "Background with %s interpolation computed for CFA image.\n"
 msgstr "Hintergrund wurde mit Interpolation %s für CFA-Bild berechnet\n"
 
-#: src/algos/background_extraction.c:1461
-#, fuzzy
-msgid "simplified"
-msgstr "Einfach"
+#: src/algos/background_extraction.c:1886
+msgid "Insufficient samples"
+msgstr "Unzureichende Muster"
 
-#: src/algos/background_extraction.c:1461
-#, fuzzy
-msgid "multiscale"
-msgstr "Mehrstufig"
-
-#: src/algos/background_extraction.c:1462
-#: src/algos/background_extraction.c:1913
-#, fuzzy, c-format
-msgid "Automatic gradient removal (%s)"
-msgstr "Auto-Detektion"
-
-#: src/algos/background_extraction.c:1464
-#, fuzzy
-msgid "polynomial"
-msgstr "Polynomisch"
-
-#: src/algos/background_extraction.c:1466
-#, fuzzy, c-format
-msgid "Background extraction (%s, CFA)"
-msgstr "Hintergrund-Extraktion"
-
-#: src/algos/background_extraction.c:1467
-#, fuzzy, c-format
-msgid "Background extraction (%s)"
-msgstr "Hintergrund-Extraktion"
-
-#: src/algos/background_extraction.c:1923
-msgid "Automatic gradient removal failed.\n"
-msgstr ""
-
-#: src/algos/background_extraction.c:1928
-#, fuzzy, c-format
-msgid "Automatic gradient removed from %s channel.\n"
+#: src/algos/background_extraction.c:1896
+#, c-format
+msgid "Background extraction from %s channel.\n"
 msgstr "Hintergrund-Extraktion von Kanal %s.\n"
 
-#: src/algos/background_extraction.c:1935
-#, fuzzy
-msgid "Automatic gradient removal done"
-msgstr "Auto-Detektion"
+#: src/algos/background_extraction.c:1901
+#, c-format
+msgid "Background with %s interpolation computed.\n"
+msgstr "Hintergrundmodel mit %s Durchgängen berechnet.\n"
 
-#: src/algos/background_extraction.c:2160
-#: src/algos/background_extraction.c:2293
+#: src/algos/background_extraction.c:1945
+#: src/algos/background_extraction.c:2073
+msgid "Out of memory - aborting"
+msgstr "Ungenügender Speicherplatz - Abbruch"
+
+#: src/algos/background_extraction.c:1964
+#: src/algos/background_extraction.c:2097
 #, c-format
 msgid "Failed to generate background samples for image %d: %s\n"
 msgstr "Hintergrundmuster für Bild %d konnten nicht erzeugt werden: %s\n"
 
-#: src/algos/background_extraction.c:2226
+#: src/algos/background_extraction.c:2030
 msgid ""
 "Warning: RBF background removal is not recommended for CFA images. Only "
 "linear background removal is recommended.\n"
@@ -14771,7 +14765,7 @@ msgstr ""
 "Warnung: RBF Hintergrundentfernung wird für CFA-Bilder nicht empfohlen. Nur "
 "lineare Hintergrundentfernung wird empfohlen.\n"
 
-#: src/algos/background_extraction.c:2228
+#: src/algos/background_extraction.c:2032
 msgid ""
 "Warning: polynomial background removal order > 1 is not recommended for CFA "
 "images. Only linear background removal is recommended.\n"
@@ -14779,10 +14773,10 @@ msgstr ""
 "Warnung: Polygon-Hintergrundentfernung mit der Ordnung >1 wird für CFA-"
 "Bilder nicht empfohlen. Nur lineare Hintergrundentfernung wird empfohlen.\n"
 
-#: src/algos/background_extraction.c:2394 src/algos/demosaicing.c:602
+#: src/algos/background_extraction.c:2198 src/algos/demosaicing.c:602
 #: src/algos/extraction.c:1134 src/algos/star_finder.c:1146
 #: src/algos/statistics.c:939 src/core/preprocess.c:281
-#: src/core/processing.c:493 src/filters/banding.c:154
+#: src/core/processing.c:495 src/filters/banding.c:154
 #: src/filters/cosmetic_correction.c:412 src/filters/wavelets.c:450
 #: src/gui-gtk4/cut.c:1249
 #, c-format
@@ -14793,7 +14787,7 @@ msgstr ""
 "%s: Nicht genügend Speicher für diese Operation (%s pro Bild erforderlich, "
 "%s gilt als verfügbar)\n"
 
-#: src/algos/background_extraction.c:2429
+#: src/algos/background_extraction.c:2233
 msgid "Error reading reference metadata.\n"
 msgstr "Fehler beim lesen der Referenz-Metadaten.\n"
 
@@ -14870,7 +14864,7 @@ msgstr ""
 "echten L*-Kanal in anderer Software verwenden möchten, müssen Sie die Werte "
 "mit 100 multiplizieren, beispielsweise mit dem Siril-Befehl „fmul 100“.\n"
 
-#: src/algos/colors.c:1240 src/algos/photometric_cc.c:827
+#: src/algos/colors.c:1240 src/algos/photometric_cc.c:925
 msgid "Background reference:\n"
 msgstr "Hintergrund Referenz:\n"
 
@@ -15021,7 +15015,7 @@ msgstr "Vergleichssterne: Verarbeitung...\n"
 #: src/algos/comparison_stars.c:420 src/algos/search_objects.c:525
 #: src/core/command.c:7022 src/core/command.c:12985 src/core/command.c:13700
 #: src/core/command.c:13851 src/core/command.c:13885
-#: src/io/siril_catalogues.c:1119 src/io/siril_catalogues.c:1165
+#: src/io/siril_catalogues.c:1121 src/io/siril_catalogues.c:1167
 msgid "This command only works on plate solved images\n"
 msgstr "Dieser Befehl funktioniert nur mit astrometrisch gelösten Bildern\n"
 
@@ -15298,72 +15292,72 @@ msgstr "Spiegeln Y"
 msgid "Error binning mask\n"
 msgstr "Fehler beim Verschachteln des Bildes\n"
 
-#: src/algos/geometry.c:825 src/filters/deconvolution.c:502
+#: src/algos/geometry.c:824 src/filters/deconvolution.c:502
 msgid "No"
 msgstr "Keine"
 
-#: src/algos/geometry.c:828
+#: src/algos/geometry.c:827
 msgid "Nearest-Neighbor"
 msgstr "Nächster Nachbar"
 
-#: src/algos/geometry.c:841
+#: src/algos/geometry.c:840
 msgid "Lanczos4"
 msgstr "Lanczos-4"
 
-#: src/algos/geometry.c:868
+#: src/algos/geometry.c:867
 #, fuzzy
 msgid "Error resizing mask\n"
 msgstr "Fehler beim Verschachteln des Bildes\n"
 
-#: src/algos/geometry.c:937 src/algos/geometry.c:978
+#: src/algos/geometry.c:934 src/algos/geometry.c:974
 #, fuzzy
 msgid "Error rotating mask\n"
 msgstr "Fehler beim Öffnen der Dateien!\n"
 
-#: src/algos/geometry.c:1006
+#: src/algos/geometry.c:1001
 msgid "Horizontal mirror: processing...\n"
 msgstr "Horizontale Spiegelung: in Bearbeitung...\n"
 
-#: src/algos/geometry.c:1017 src/algos/geometry.c:1063
+#: src/algos/geometry.c:1012 src/algos/geometry.c:1057
 #, fuzzy
 msgid "Error mirroring mask\n"
 msgstr "Fehler beim Verschachteln des Bildes\n"
 
-#: src/algos/geometry.c:1052
+#: src/algos/geometry.c:1046
 msgid "Vertical mirror: processing...\n"
 msgstr "Vertikale Spiegelung: in Bearbeitung...\n"
 
-#: src/algos/geometry.c:1248 src/algos/geometry.c:1259
+#: src/algos/geometry.c:1241 src/algos/geometry.c:1252
 msgid "Rounding selection to match CFA pattern\n"
 msgstr "Rundungsauswahl entsprechend dem CFA-Muster\n"
 
-#: src/algos/geometry.c:1279
+#: src/algos/geometry.c:1272
 #, fuzzy
 msgid "Error cropping mask\n"
 msgstr "Fehler beim Öffnen der BMP-Datei.\n"
 
-#: src/algos/geometry.c:1319 src/algos/geometry.c:1410
-#: src/algos/geometry.c:1630
+#: src/algos/geometry.c:1311 src/algos/geometry.c:1402
+#: src/algos/geometry.c:1622
 #, c-format
 msgid "Crop (x=%d, y=%d, w=%d, h=%d)"
 msgstr "Beschneiden (x=%d, y=%d, w=%d, h=%d)"
 
-#: src/algos/geometry.c:1344
+#: src/algos/geometry.c:1336
 #, fuzzy
 msgid "The specified coordinates are not in the image\n"
 msgstr "Die angegebenen Koordinaten sind nicht im Bild vorhanden, Abbruch.\n"
 
-#: src/algos/geometry.c:1401
+#: src/algos/geometry.c:1393
 #, c-format
 msgid "Cropping image to pixel coordinates (%d, %d), size %d x %d\n"
 msgstr ""
 
-#: src/algos/geometry.c:1405
+#: src/algos/geometry.c:1397
 #, fuzzy
 msgid "Cropping failed\n"
 msgstr "Vorverarbeitung der Sequenz fehlgeschlagen.\n"
 
-#: src/algos/geometry.c:1454 src/registration/applyreg.c:883
+#: src/algos/geometry.c:1446 src/registration/applyreg.c:883
 #: src/registration/global.c:634 src/stacking/blending.c:116
 #, c-format
 msgid ""
@@ -15373,47 +15367,47 @@ msgstr ""
 "%s: Nicht genügend Speicher für diese Operation (%s pro Bild erforderlich, "
 "%s gilt als verfügbar)\n"
 
-#: src/algos/geometry.c:1511 src/gui-gtk4/compositing.c:2408
+#: src/algos/geometry.c:1503 src/gui-gtk4/compositing.c:2408
 msgid "Crop Sequence"
 msgstr "Sequenz zuschneiden"
 
-#: src/algos/geometry.c:1538
+#: src/algos/geometry.c:1530
 msgid "Scale Sequence"
 msgstr "Sequenz skalieren"
 
-#: src/algos/geometry.c:1639
+#: src/algos/geometry.c:1631
 #, fuzzy, c-format
 msgid "Resampling to %d x %d pixels with %s interpolation"
 msgstr "Neuskalierung auf %d x %d Pixel mit %s-Interpolation\n"
 
-#: src/algos/geometry.c:1646
+#: src/algos/geometry.c:1638
 #, c-format
 msgid "Binning x%d (%s)"
 msgstr "Binning x%d (%s)"
 
-#: src/algos/geometry.c:1646
+#: src/algos/geometry.c:1638
 msgid "average"
 msgstr "Durchschnitt"
 
-#: src/algos/geometry.c:1646
+#: src/algos/geometry.c:1638
 msgid "sum"
 msgstr "Summe"
 
-#: src/algos/geometry.c:1654
+#: src/algos/geometry.c:1646
 #, fuzzy, c-format
 msgid "Rotation (%.1fdeg)"
 msgstr "Drehung (90 Grad)"
 
-#: src/algos/geometry.c:1656
+#: src/algos/geometry.c:1648
 #, fuzzy, c-format
 msgid "Rotation (%.1fdeg, cropped=%s, clamped=%s, %s interpolation)"
 msgstr "Drehung (%.1lf Grad, Ausschnitt = %s, clamped=%s)"
 
-#: src/algos/geometry.c:1657
+#: src/algos/geometry.c:1649
 msgid "TRUE"
 msgstr "Wahr"
 
-#: src/algos/geometry.c:1657
+#: src/algos/geometry.c:1649
 msgid "FALSE"
 msgstr "Falsch"
 
@@ -15436,51 +15430,122 @@ msgstr "Rauschen Standard-Abweichung: berechne...\n"
 msgid "Background noise value (channel: #%d): %0.3f (%.3e)\n"
 msgstr "Wert Hintergrund-Rauschen (Kanal: #%d): %0.3f(%.3e)\n"
 
-#: src/algos/photometric_cc.c:56 src/algos/photometric_cc.c:959
+#: src/algos/photometric_cc.c:56 src/algos/photometric_cc.c:1057
 #: src/core/command.c:13260 src/gui-gtk4/photometric_cc.c:249
 msgid "PCC"
 msgstr "PCC"
 
-#: src/algos/photometric_cc.c:176
+#: src/algos/photometric_cc.c:178
+#, fuzzy
+msgid "White Balance summary"
+msgstr "Weißabgleich Faktoren:\n"
+
+#: src/algos/photometric_cc.c:183
+#, fuzzy, c-format
+msgid "%s SPCC Linear Fit"
+msgstr "SPCC Lineare-Anpassung\n"
+
+#: src/algos/photometric_cc.c:188
 #, c-format
 msgid ""
-"White Balance summary\n"
-"<span size=\"small\">%s SPCC Linear Fit: y = %f + %f·x, &#x03C3; = %f\n"
-"White reference: %s\n"
-"Number of stars: %d (removed %d outliers)\n"
-"White balance factors: %.3f %.3f %.3f</span>"
+"y = %f + %f·x   &#x03C3; = %f\n"
+"Number of stars: %d (removed %d outliers)"
 msgstr ""
-"Zusammenfassung Weißabgleich\n"
-"<span size=\"small\">%s SPCC Lineare Anpassung: y = %f + %f·x, &#x03C3; = "
-"%f\n"
-"Weißreferenz: %s\n"
-"Anzahl der Sterne: %d (%d Ausreißer entfernt)\n"
-"Faktoren Weißabgleich: %.3f %.3f %.3f</span>"
 
-#: src/algos/photometric_cc.c:309 src/algos/photometric_cc.c:606
+#: src/algos/photometric_cc.c:211
+#, fuzzy
+msgid "X mean"
+msgstr "Mittelwert"
+
+#: src/algos/photometric_cc.c:214
+#, fuzzy
+msgid "Y mean"
+msgstr "Mittelwert"
+
+#: src/algos/photometric_cc.c:220
+msgid "Slope"
+msgstr ""
+
+#: src/algos/photometric_cc.c:223
+#, fuzzy
+msgid "Intercept"
+msgstr "Wahrnehmung"
+
+#: src/algos/photometric_cc.c:234
+#, fuzzy, c-format
+msgid "%d (%d excluded)"
+msgstr "%d Frames wurden ausgeschlossen.\n"
+
+#: src/algos/photometric_cc.c:235
+#, fuzzy
+msgid "Stars measured"
+msgstr "Sternmaske"
+
+#: src/algos/photometric_cc.c:236
+#, fuzzy
+msgid "Photometrically valid"
+msgstr "Photometrie fehlgeschlagen.\n"
+
+#: src/algos/photometric_cc.c:242
+msgid "Inliers, R/G fit"
+msgstr ""
+
+#: src/algos/photometric_cc.c:243
+msgid "Inliers, B/G fit"
+msgstr ""
+
+#: src/algos/photometric_cc.c:247
+#, fuzzy
+msgid "Fit type"
+msgstr "Skript-Typ"
+
+#: src/algos/photometric_cc.c:248
+msgid "Linear (y = a + b·x)"
+msgstr ""
+
+#: src/algos/photometric_cc.c:248
+msgid "Repeated median (robust)"
+msgstr ""
+
+#: src/algos/photometric_cc.c:251
+#, fuzzy
+msgid "White balance factors"
+msgstr "Weißabgleich Faktoren:\n"
+
+#: src/algos/photometric_cc.c:257
+#, fuzzy
+msgid "Generated"
+msgstr "Generiere"
+
+#: src/algos/photometric_cc.c:258
+#, fuzzy
+msgid "Version"
+msgstr "Umrechnung"
+
+#: src/algos/photometric_cc.c:386 src/algos/photometric_cc.c:704
 #, c-format
 msgid "Applying aperture photometry to %d star.\n"
 msgid_plural "Applying aperture photometry to %d stars.\n"
 msgstr[0] "Verwende Apertur Photometrie für %d Stern.\n"
 msgstr[1] "Verwende Apertur Photometrie für %d Sterne.\n"
 
-#: src/algos/photometric_cc.c:453
+#: src/algos/photometric_cc.c:530
 msgid "Array mismatch after discarding photometrically invalid stars\n"
 msgstr ""
 "Array-Diskrepanz nach dem Löschen von photometrisch ungültigen Sternen\n"
 
-#: src/algos/photometric_cc.c:458 src/algos/photometric_cc.c:726
+#: src/algos/photometric_cc.c:535 src/algos/photometric_cc.c:824
 #, c-format
 msgid "%d star excluded from the calculation\n"
 msgid_plural "%d stars excluded from the calculation\n"
 msgstr[0] "%d Stern von der Berechnung ausgeschlossen\n"
 msgstr[1] "%d Sterne von der Berechnung ausgeschlossen\n"
 
-#: src/algos/photometric_cc.c:469
+#: src/algos/photometric_cc.c:546
 msgid "Error: insufficient photometrically valid stars\n"
 msgstr "Fehler: Unzureichende Anzahl photometrisch nutzbarer Sterne\n"
 
-#: src/algos/photometric_cc.c:479 src/algos/photometric_cc.c:491
+#: src/algos/photometric_cc.c:556 src/algos/photometric_cc.c:568
 msgid ""
 "Error: unable to compute a fit to the data. Check your sensor and filter "
 "selections are correct.\n"
@@ -15488,64 +15553,69 @@ msgstr ""
 "Fehler: Berechnung der Anpassung für die Daten nicht möglich. Prüfen Sie ob "
 "der Kamerasensor und die Filter korrekt ausgewählt sind.\n"
 
-#: src/algos/photometric_cc.c:495
+#: src/algos/photometric_cc.c:572
 msgid "SPCC Linear Fits\n"
 msgstr "SPCC Lineare-Anpassung\n"
 
-#: src/algos/photometric_cc.c:496
+#: src/algos/photometric_cc.c:573
 #, c-format
 msgid "Image R/G = %f + %f * Catalog R/G (sigma: %f)\n"
 msgstr "Bild R/G = %f + %f * Katalog R/G (Sigma: %f)\n"
 
-#: src/algos/photometric_cc.c:497
+#: src/algos/photometric_cc.c:574
 #, c-format
 msgid "Image B/G = %f + %f * Catalog B/G (sigma: %f)\n"
 msgstr "Bild B/G = %f + %f * Katalog B/G (Sigma: %f)\n"
 
-#: src/algos/photometric_cc.c:517
+#: src/algos/photometric_cc.c:589
+#, fuzzy
+msgid "SPCC Linear Fits"
+msgstr "SPCC Lineare-Anpassung\n"
+
+#: src/algos/photometric_cc.c:598
 msgid "Catalog R/G (flux)"
 msgstr "Katalog R/G (flux)"
 
-#: src/algos/photometric_cc.c:522
+#: src/algos/photometric_cc.c:608
 msgid "Image R/G (flux)"
 msgstr "Bild R/G (flux)"
 
-#: src/algos/photometric_cc.c:523
+#: src/algos/photometric_cc.c:609
 msgid "R/G"
 msgstr "R/G"
 
-#: src/algos/photometric_cc.c:524 src/algos/photometric_cc.c:550
+#: src/algos/photometric_cc.c:610 src/algos/photometric_cc.c:641
 msgid "Best fit"
 msgstr "Beste Anpassung"
 
-#: src/algos/photometric_cc.c:542
+#: src/algos/photometric_cc.c:628
 msgid "Catalog B/G (flux)"
 msgstr "Katalog B/G (flux)"
 
-#: src/algos/photometric_cc.c:547
+#: src/algos/photometric_cc.c:638
 msgid "Image B/G (flux)"
 msgstr "Bild B/G (flux)"
 
-#: src/algos/photometric_cc.c:548
+#: src/algos/photometric_cc.c:639
 msgid "B/G"
 msgstr "B/G"
 
-#: src/algos/photometric_cc.c:570
+#: src/algos/photometric_cc.c:668
 msgid ""
 "Error calculating white balance coefficients: kw contains negative values.\n"
 msgstr ""
 "Fehler beim berechnen der Koeffizienten des Weißabgleichs: kw enthält "
 "negative Werte.\n"
 
-#: src/algos/photometric_cc.c:573 src/algos/photometric_cc.c:762
+#: src/algos/photometric_cc.c:671 src/algos/photometric_cc.c:860
 #, c-format
 msgid "Found a solution for color calibration using %d stars. Factors:\n"
 msgstr ""
 "Ich habe eine Lösung für die Farbkalibrierung mit %d Sternen gefunden. "
 "Faktoren:\n"
 
-#: src/algos/photometric_cc.c:580 src/algos/photometric_cc.c:582
-#: src/algos/photometric_cc.c:768 src/algos/photometric_cc.c:770
+#: src/algos/photometric_cc.c:678 src/algos/photometric_cc.c:680
+#: src/algos/photometric_cc.c:866 src/algos/photometric_cc.c:868
 msgid ""
 "The photometric color calibration has found a solution which may not be "
 "perfect because it did not rely on many stars\n"
@@ -15553,7 +15623,7 @@ msgstr ""
 "Die photometrische Farbkorrektur hat eine Lösung gefunden, die vielleicht "
 "nicht perfekt ist, weil sie sich nicht auf viele Sterne stützt\n"
 
-#: src/algos/photometric_cc.c:584 src/algos/photometric_cc.c:772
+#: src/algos/photometric_cc.c:682 src/algos/photometric_cc.c:870
 msgid ""
 "The photometric color calibration seems to have found an imprecise solution, "
 "consider correcting the image gradient first\n"
@@ -15561,7 +15631,7 @@ msgstr ""
 "Die photometrische Farbkorrektur scheint eine ungenaue Lösung gefunden zu "
 "haben, versuchen Sie, zuerst den Bildgradienten zu korrigieren\n"
 
-#: src/algos/photometric_cc.c:627
+#: src/algos/photometric_cc.c:725
 msgid ""
 "Image color space is nonlinear. It is recommended to apply photometric color "
 "calibration to linear images.\n"
@@ -15569,30 +15639,30 @@ msgstr ""
 "Bildfarbraum ist nicht linear. Es wird empfohlen die photometrische "
 "Farbkalibrierung auf linearen Bildern anzuwenden.\n"
 
-#: src/algos/photometric_cc.c:647
+#: src/algos/photometric_cc.c:745
 msgid "Error: failed to set up colorspace transform.\n"
 msgstr "Fehler: Setup der Farbraumtransformation fehlgeschlagen.\n"
 
-#: src/algos/photometric_cc.c:734
+#: src/algos/photometric_cc.c:832
 msgid "No valid stars found.\n"
 msgstr "Keine gültigen Sterne gefunden.\n"
 
 #. we cannot use compute_all_channels_statistics_single_image because of the area
-#: src/algos/photometric_cc.c:784
+#: src/algos/photometric_cc.c:882
 #, c-format
 msgid "Computing background reference with tolerance +%.2fσ / -%.2fσ.\n"
 msgstr "Berechne Hintergrundreferenz mit Toleranz +%.2fσ / -%.2fσ.\n"
 
 #. Check for NaN... If they are NaN the result image is junk
-#: src/algos/photometric_cc.c:817
+#: src/algos/photometric_cc.c:915
 msgid "Error computing coefficients: aborting...\n"
 msgstr "Fehler beim Berechnen der Koeffizienten: Abbruch...\n"
 
-#: src/algos/photometric_cc.c:823
+#: src/algos/photometric_cc.c:921
 msgid "White balance factors:\n"
 msgstr "Weißabgleich Faktoren:\n"
 
-#: src/algos/photometric_cc.c:860
+#: src/algos/photometric_cc.c:958
 msgid ""
 "Found linear plate solve data. For better result you should redo "
 "platesolving\n"
@@ -15600,31 +15670,31 @@ msgstr ""
 "Daten einer linearen astrometrischen Lösung gefunden. Für ein besseres "
 "Ergebnis sollten Sie die astrometrische Lösung erneut ausführen\n"
 
-#: src/algos/photometric_cc.c:864
+#: src/algos/photometric_cc.c:962
 msgid "Photometric color correction will do nothing for monochrome images\n"
 msgstr ""
 "Die photometrische Farbkorrektur ist bei monochromen Bildern wirkungslos.\n"
 
-#: src/algos/photometric_cc.c:875
+#: src/algos/photometric_cc.c:973
 msgid "failed to compute statistics on image, aborting\n"
 msgstr ""
 "Die Berechnung der Statistik für das Bild ist fehlgeschlagen und wurde "
 "abgebrochen.\n"
 
-#: src/algos/photometric_cc.c:884 src/algos/photometry.c:644
+#: src/algos/photometric_cc.c:982 src/algos/photometry.c:644
 #, c-format
 msgid "Photometry radii set to %.1f for inner and %.1f for outer\n"
 msgstr "Photometrische Radien auf %.1f für innen und %.1f für außen gesetzt\n"
 
-#: src/algos/photometric_cc.c:887
+#: src/algos/photometric_cc.c:985
 msgid "Photometric color calibration in progress..."
 msgstr "Photometrische Farbkalibrierung läuft..."
 
-#: src/algos/photometric_cc.c:906
+#: src/algos/photometric_cc.c:1004
 msgid "Photometric Color Calibration failed"
 msgstr "Photometrische Farbkalibrierung fehlerhaft"
 
-#: src/algos/photometric_cc.c:929 src/algos/photometric_cc.c:945
+#: src/algos/photometric_cc.c:1027 src/algos/photometric_cc.c:1043
 msgid ""
 "Cannot run the standalone photometric color calibration on this image "
 "because it has no WCS data or it is not supported\n"
@@ -15633,13 +15703,13 @@ msgstr ""
 "ausgeführt werden, da es keine WCS-Daten hat oder das Bildformat nicht "
 "unterstützt wird\n"
 
-#: src/algos/photometric_cc.c:936
+#: src/algos/photometric_cc.c:1034
 msgid "Error computing FWHM for photometry settings adjustment\n"
 msgstr ""
 "Fehler bei der Berechnung der FWHM für die Anpassung der "
 "Photometrieeinstellungen\n"
 
-#: src/algos/photometric_cc.c:959
+#: src/algos/photometric_cc.c:1057
 #, c-format
 msgid ""
 "Getting stars from local catalogue %s for %s, with a radius of %.2f degrees "
@@ -15648,16 +15718,16 @@ msgstr ""
 "Ermittele Sterne aus dem lokalen Katalog %s für %s, mit einem Radius von "
 "%.2f Grad und einer Grenzgröße von %.2f\n"
 
-#: src/algos/photometric_cc.c:959 src/core/command.c:13260
+#: src/algos/photometric_cc.c:1057 src/core/command.c:13260
 #: src/gui-gtk4/photometric_cc.c:249
 msgid "SPCC"
 msgstr "SPCC"
 
-#: src/algos/photometric_cc.c:977
+#: src/algos/photometric_cc.c:1075
 msgid "No valid catalog found.\n"
 msgstr "Keine gültiger Katalog gefunden.\n"
 
-#: src/algos/photometric_cc.c:980
+#: src/algos/photometric_cc.c:1078
 #, c-format
 msgid ""
 "Getting stars from online catalogue %s for PCC, with a radius of %.2f "
@@ -15666,15 +15736,15 @@ msgstr ""
 "Ermittle Sterne aus online Katalog %s für die Farbkalibrierung, mit einem "
 "Radius von %.2f Grad und einer Grenzgröße von %.2f\n"
 
-#: src/algos/photometric_cc.c:1004
+#: src/algos/photometric_cc.c:1102
 msgid "Catalog error, no stars identified!\n"
 msgstr "Katalogfehler, keine Sterne erkannt!\n"
 
-#: src/algos/photometric_cc.c:1015 src/gui-gtk4/photometric_cc.c:409
+#: src/algos/photometric_cc.c:1113 src/gui-gtk4/photometric_cc.c:409
 msgid "Spectrophotometric Color Calibration"
 msgstr "Spektrophotometrische Farb-Kalibrierung"
 
-#: src/algos/photometric_cc.c:1015 src/gui-gtk4/photometric_cc.c:328
+#: src/algos/photometric_cc.c:1113 src/gui-gtk4/photometric_cc.c:328
 msgid "Photometric Color Calibration"
 msgstr "Photometrische Farb-Kalibrierung"
 
@@ -15759,14 +15829,14 @@ msgid "flux ratio failed"
 msgstr "Flussverhältnis fehlgeschlagen"
 
 #: src/algos/photometry.c:343 src/io/aavso_extended.c:111
-#: src/io/siril_plot.c:909
+#: src/io/siril_plot.c:1177
 #, c-format
 msgid "Could not create %s, aborting\n"
 msgstr "Konnte %s nicht erstellen, Abbruch\n"
 
 #: src/algos/photometry.c:355 src/gui-gtk4/plot.c:881
-#: src/io/aavso_extended.c:126 src/io/siril_plot.c:760 src/io/siril_plot.c:789
-#: src/io/siril_plot.c:921
+#: src/gui-gtk4/siril_plot.c:730 src/io/aavso_extended.c:126
+#: src/io/siril_plot.c:1028 src/io/siril_plot.c:1057 src/io/siril_plot.c:1189
 #, c-format
 msgid "%s has been saved.\n"
 msgstr "%s wurden gespeichert.\n"
@@ -16066,7 +16136,7 @@ msgid "FindStar"
 msgstr "FindStar"
 
 #: src/algos/star_finder.c:1333 src/gui-gtk4/compositing.c:2214
-#: src/io/sequence.c:2442 src/io/sequence.c:2460
+#: src/io/sequence.c:2445 src/io/sequence.c:2463
 #: src/registration/applyreg.c:350 src/registration/applyreg.c:1121
 #: src/registration/applyreg.c:1333 src/registration/comet.c:137
 #: src/registration/global.c:127
@@ -16234,7 +16304,7 @@ msgstr ""
 
 #: src/compositing/align_rgb.c:89 src/core/command.c:5389
 #: src/core/command.c:6105 src/core/command.c:6410
-#: src/gui-gtk4/siril_actions.c:584
+#: src/gui-gtk4/siril_actions.c:582
 msgid ""
 "Current selection is too large. To determine the PSF, please make a "
 "selection around a single star.\n"
@@ -17191,11 +17261,11 @@ msgstr ""
 msgid "Computing %s auto-stretch with values %f and %f\n"
 msgstr "Berechnet %s Auto-Stretch mit Werten %f und %f\n"
 
-#: src/core/command.c:4037 src/gui-gtk4/siril_actions.c:506
+#: src/core/command.c:4037 src/gui-gtk4/siril_actions.c:504
 msgid "linked"
 msgstr "Verbunden"
 
-#: src/core/command.c:4037 src/gui-gtk4/siril_actions.c:506
+#: src/core/command.c:4037 src/gui-gtk4/siril_actions.c:504
 msgid "unlinked"
 msgstr "unverknüpft"
 
@@ -17459,7 +17529,7 @@ msgid "Wrong magnitude value.\n"
 msgstr "Falscher Wert der Magnitude.\n"
 
 #: src/core/command.c:5393 src/core/command.c:6109 src/core/command.c:6415
-#: src/gui-gtk4/siril_actions.c:588 src/io/sequence.c:2270
+#: src/gui-gtk4/siril_actions.c:586 src/io/sequence.c:2273
 msgid "Select an area first\n"
 msgstr "Wählen Sie zunächst einen Bereich aus\n"
 
@@ -17526,7 +17596,7 @@ msgid ""
 "each image\n"
 msgstr "Referenz Magnitude des Sterns %d wurde auf %f gesetzt\n"
 
-#: src/core/command.c:5637
+#: src/core/command.c:5638
 #, c-format
 msgid "FITS extension unknown: %s\n"
 msgstr "Unbekannte FITS-Extension: %s\n"
@@ -17743,7 +17813,7 @@ msgstr ""
 
 #. Run PSF
 #: src/core/command.c:6435 src/gui-gtk4/callbacks.c:3882
-#: src/gui-gtk4/siril_actions.c:603
+#: src/gui-gtk4/siril_actions.c:601
 #, c-format
 msgid "Running the PSF on the sequence, layer %d\n"
 msgstr "PSF läuft für geladene Sequenz auf Layer %d\n"
@@ -18957,10 +19027,10 @@ msgstr ""
 "4]. Werte sollten unter dem empfohlenen verfügbaren Speicher liegen.\n"
 
 #: src/core/command.c:12539
-#, c-format
+#, fuzzy, c-format
 msgid ""
 "Setting the ratio of memory used for stacking above 1 will require the use "
-"of on-disk memory, which can be very slow and is unrecommended (%g "
+"of on-disk memory, which can be very slow and is not recommended (%g "
 "requested)\n"
 msgstr ""
 "Ein Stacking-Verhältnis über 1 verwendet erfordert die Verwendung von "
@@ -19461,7 +19531,7 @@ msgstr "Weiß-Referenz"
 msgid "Unknown SPCC list\n"
 msgstr "Unbekannte SPCC-Liste\n"
 
-#: src/core/command.c:14566 src/gui-gtk4/siril_actions.c:747
+#: src/core/command.c:14566 src/gui-gtk4/siril_actions.c:745
 msgid ""
 "This command only works on plate solved images with distortions included\n"
 msgstr ""
@@ -20289,7 +20359,7 @@ msgstr ""
 
 #: src/core/command_def.h:22
 msgid ""
-"Computes the abolute magnitude reference using by order or preference the "
+"Computes the absolute magnitude reference using, in order of preference, the "
 "local Gaia catalog, the local NOMAD catalog or the remote Gaia catalog, "
 "using a single channel (green for color images). Stars used for the "
 "calibration can be filtered by color, using a reference temperature "
@@ -21669,12 +21739,13 @@ msgstr ""
 "Option <b>-out=</b> geändert werden"
 
 #: src/core/command_def.h:108
+#, fuzzy
 msgid ""
 "Generates a PSF for use with deconvolution, any of the three methods exposed "
 "by RL, SB or WIENER commands. One of the following must be given as the "
 "first argument: <b>clear</b> (clears the existing PSF), <b>load</b> (loads a "
 "PSF from a file), <b>save</b> (saves the current PSF), <b>blind</b> (blind "
-"estimate of tke PSF), <b>stars</b> (generates a PSF based on measured stars "
+"estimate of the PSF), <b>stars</b> (generates a PSF based on measured stars "
 "from the image) or <b>manual</b> (generates a PSF manually based on a "
 "function and parameters).\n"
 "\n"
@@ -21815,7 +21886,7 @@ msgid ""
 "Create a mask based on image color. As simple hue-based masking performs "
 "poorly on dark images, normalized chromaticity is used (this is defined as "
 "cr = r / (r + g + b) etc.) The chromaticity coordinates and chromaticity "
-"tolerance <i>must</i> be specfied using <b>-cr=</b>, <b>-cg=</b>, <b>-cb=</"
+"tolerance <i>must</i> be specified using <b>-cr=</b>, <b>-cg=</b>, <b>-cb=</"
 "b> and <b>-tol=</b>, and additional luminance filtering may optionally be "
 "set using <b>-lum_min</b> and <b>-lum_max</b>. Additionally, a feathering "
 "radius may be specified using the argument <b>-fr</b> and the mask may be "
@@ -23263,9 +23334,10 @@ msgstr ""
 "Funktion."
 
 #: src/core/command_def.h:167
+#, fuzzy
 msgid ""
-"Same command as CCM but for the the sequence <b>sequencename</b>. Only "
-"selected images in the sequence are processed.\n"
+"Same command as CCM but for the sequence <b>sequencename</b>. Only selected "
+"images in the sequence are processed.\n"
 "\n"
 "The output sequence name starts with the prefix \"ccm\" unless otherwise "
 "specified with option <b>-prefix=</b>"
@@ -23295,8 +23367,9 @@ msgstr ""
 "wird"
 
 #: src/core/command_def.h:169
+#, fuzzy
 msgid ""
-"Same command as COSME but for the the sequence <b>sequencename</b>. Only "
+"Same command as COSME but for the sequence <b>sequencename</b>. Only "
 "selected images in the sequence are processed.\n"
 "\n"
 "The output sequence name starts with the prefix \"cosme_\" unless otherwise "
@@ -23309,8 +23382,9 @@ msgstr ""
 "mit der Option <b>-prefix=</b> ein anderer Prefix vorgegeben wird"
 
 #: src/core/command_def.h:170
+#, fuzzy
 msgid ""
-"Same command as COSME_CFA but for the the sequence <b>sequencename</b>. Only "
+"Same command as COSME_CFA but for the sequence <b>sequencename</b>. Only "
 "selected images in the sequence are processed.\n"
 "\n"
 "The output sequence name starts with the prefix \"cosme_\" unless otherwise "
@@ -24126,13 +24200,14 @@ msgstr ""
 "Um die Magnitudenkonstante zurückzusetzen, siehe UNSETMAG"
 
 #: src/core/command_def.h:211
+#, fuzzy
 msgid ""
 "Sets a new ratio of used memory on free memory.\n"
 "\n"
 "<b>Ratio</b> value should be between 0.05 and 2, depending on other "
 "activities of the machine. A higher ratio should allow siril to process "
 "faster, but setting the ratio of used memory above 1 will require the use of "
-"on-disk memory, which is very slow and unrecommended, even sometimes not "
+"on-disk memory, which is very slow and not recommended, even sometimes not "
 "supported, leading to system crash. A fixed amount of memory can also be set "
 "in the generic settings, with SET, instead of a ratio"
 msgstr ""
@@ -24363,6 +24438,7 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:221
+#, fuzzy
 msgid ""
 "Stacks the <b>sequencename</b> sequence, using options.\n"
 "\n"
@@ -24390,11 +24466,11 @@ msgid ""
 "additive, <b>-norm=mul</b> for multiplicative. Options <b>-norm=addscale</b> "
 "and <b>-norm=mulscale</b> apply same normalization but with scale "
 "operations. <b>-nonorm</b> is the option to disable normalization. Otherwise "
-"addtive with scale method is applied by default.\n"
+"additive with scale method is applied by default.\n"
 "<b>-fastnorm</b> option specifies to use faster estimators for location and "
 "scale than the default IKSS.\n"
-"<b>-overlap_norm</b>, if passed, will compute normalization coeffcients on "
-"images overlaps instead of whole images (allowed only if <b>-maximize</b> is "
+"<b>-overlap_norm</b>, if passed, will compute normalization coefficients on "
+"image overlaps instead of whole images (allowed only if <b>-maximize</b> is "
 "passed).\n"
 "\n"
 "Other options for rejection stacking:\n"
@@ -24633,9 +24709,16 @@ msgid ""
 "treated as a structure (default 0.05).\n"
 "<b>-protect_amount=</b> how far the protection mask grows around detected "
 "structures (default 0.5).\n"
-"<b>-simplified</b>: replace the multiscale model with a stiff polynomial, "
-"best when a nebula fills the frame; <b>-degree=</b> sets its degree in the "
-"[1, 6] range (default 2).\n"
+"<b>-simplified</b>: enable the simplified model, a stiff polynomial fitted "
+"and removed before the multiscale model, which is then fitted on what it "
+"leaves; the sum of the two is removed. Helps on strong, complex gradients "
+"whose amplitude rivals or exceeds the objects of interest, where a single "
+"pass cannot separate them. It can overcorrect when the frame holds a large "
+"bright object, which the polynomial may partly absorb, so keep <b>-degree=</"
+"b> low.\n"
+"<b>-degree=</b> degree of the simplified model, in the [1, 6] range (default "
+"1, a plane). Raise it for a gradient with real curvature, but a large bright "
+"object is then more easily absorbed.\n"
 "<b>-downsample=</b> internal working scale factor, one of 1, 2, 4, 8 "
 "(default 4).\n"
 "<b>-mode=</b> <b>subtract</b> (additive gradient, default) or <b>divide</b> "
@@ -25319,7 +25402,7 @@ msgstr "Zugewiesenes ICC-Farbprofil: %s"
 #: src/gui-gtk4/nina_light_curve.c:245 src/gui-gtk4/nina_light_curve.c:250
 #: src/gui-gtk4/nina_light_curve.c:256 src/gui-gtk4/nina_light_curve.c:265
 #: src/gui-gtk4/nina_light_curve.c:304 src/gui-gtk4/open_dialog.c:541
-#: src/gui-gtk4/preferences.c:546 src/gui-gtk4/save_dialog.c:317
+#: src/gui-gtk4/preferences.c:546 src/gui-gtk4/save_dialog.c:321
 #: src/gui-gtk4/script_menu.c:567 src/io/siril_pythoncommands.c:1184
 msgid "Error"
 msgstr "Error"
@@ -25474,40 +25557,48 @@ msgstr ""
 "Verzeichins `%s' für Konfigurationswert %s.%s existiert nicht, wird daher "
 "nicht benutzt.\n"
 
-#: src/core/initfile.c:166
+#: src/core/initfile.c:121
+#, fuzzy, c-format
+msgid ""
+"`%s' is not a valid FITS extension for config key %s.%s, not using it.\n"
+msgstr ""
+"Verzeichins `%s' für Konfigurationswert %s.%s existiert nicht, wird daher "
+"nicht benutzt.\n"
+
+#: src/core/initfile.c:173
 #, c-format
 msgid "Error creating regex: %s\n"
 msgstr "Fehler beim erzeugen der Regex: %s\n"
 
-#: src/core/initfile.c:227
+#: src/core/initfile.c:234
 #, c-format
 msgid "Converting previous initfile: %s\n"
 msgstr "Konvertiere vorherige Initdatei: %s\n"
 
-#: src/core/initfile.c:252
+#: src/core/initfile.c:259
 #, c-format
 msgid "unknown settings variable %s.%s\n"
 msgstr "Unbekannte Einstellung %s. %s\n"
 
-#: src/core/initfile.c:270
+#: src/core/initfile.c:277
 #, c-format
 msgid "Settings could not be loaded from %s: %s\n"
 msgstr "Einstellungen konnten nicht von %s geladen werden: %s\n"
 
-#: src/core/initfile.c:277
+#: src/core/initfile.c:284
 msgid "Warning: nothing could be read from the settings file\n"
 msgstr "Warnung: Es konnte nichts aus der Einstellungsdatei gelesen werden\n"
 
-#: src/core/initfile.c:286
+#: src/core/initfile.c:293
 #, c-format
 msgid "Reading configuration file %s\n"
 msgstr "Lese Konfigurationsdatei %s\n"
 
-#: src/core/initfile.c:308
+#: src/core/initfile.c:315
 msgid "Continuing without configuration file\n"
 msgstr "Weiter ohne Konfigurationsdatei\n"
 
-#: src/core/initfile.c:372
+#: src/core/initfile.c:379
 #, c-format
 msgid "Could not save the settings in %s: %s\n"
 msgstr "Die Einstellungen in %s konnten nicht gespeichert werden: %s\n"
@@ -25760,11 +25851,11 @@ msgstr "Vorverarbeitung von Bild %s\n"
 msgid "Saving image %s\n"
 msgstr "Speichere Bild %s\n"
 
-#: src/core/processing.c:104 src/core/processing.c:1131
+#: src/core/processing.c:106 src/core/processing.c:1133
 msgid "No image selected for processing, aborting\n"
 msgstr "Kein Frame zur Bearbeitung ausgewählt. Abbruch.\n"
 
-#: src/core/processing.c:134
+#: src/core/processing.c:136
 #, c-format
 msgid ""
 "%s: with the current memory and thread limits, up to %d thread(s) can be "
@@ -25773,25 +25864,25 @@ msgstr ""
 "%s: Mit den aktuellen Speicher- und Thread-Grenzen können bis zu %d "
 "Thread(s) verwendet werden\n"
 
-#: src/core/processing.c:142
+#: src/core/processing.c:144
 msgid "Preparing sequence processing failed.\n"
 msgstr "Vorbereitende Verarbeitungder Sequenz fehlgeschlagen.\n"
 
-#: src/core/processing.c:169 src/core/processing.c:1154
+#: src/core/processing.c:171 src/core/processing.c:1156
 #, c-format
 msgid "Output index mapping failed (%d/%d).\n"
 msgstr "Ausgabe Index-Mapping fehlgeschlagen (%d/%d).\n"
 
-#: src/core/processing.c:181
+#: src/core/processing.c:183
 msgid "Not enough space to save the output images, aborting\n"
 msgstr "Nicht genug Speicherplatz um die Ausgabebilder zu speichern, Abbruch\n"
 
-#: src/core/processing.c:189
+#: src/core/processing.c:191
 #, c-format
 msgid "%s: processing...\n"
 msgstr "%s: in Bearbeitung...\n"
 
-#: src/core/processing.c:302 src/io/sequence.c:978
+#: src/core/processing.c:304 src/io/sequence.c:981
 #, c-format
 msgid ""
 "Image #%d: number of layers (%d) is not consistent with sequence (%d), "
@@ -25800,147 +25891,147 @@ msgstr ""
 "Bild #%d: Die Anzahl der Layer (%d) stimmt nicht mit der Sequenz (%d) "
 "überein, breche ab\n"
 
-#: src/core/processing.c:372
+#: src/core/processing.c:374
 #, c-format
 msgid "%s. Processing image %d (%s)"
 msgstr "%s. Bearbeite Bild %d (%s)"
 
-#: src/core/processing.c:380 src/core/processing.c:413
+#: src/core/processing.c:382 src/core/processing.c:415
 msgid "Finalizing sequence processing failed.\n"
 msgstr "Finale Bearbeitung der Sequenz fehlgeschlagen.\n"
 
-#: src/core/processing.c:384
+#: src/core/processing.c:386
 msgid "Sequence processing failed. Check the log."
 msgstr ""
 "Bearbeitung der Sequenz fehlgeschlagen. Überprüfen sie das Log-Protokoll."
 
-#: src/core/processing.c:385
+#: src/core/processing.c:387
 msgid "Sequence processing failed.\n"
 msgstr "Bearbeitung der Sequenz fehlgeschlagen.\n"
 
-#: src/core/processing.c:392
+#: src/core/processing.c:394
 msgid "Sequence processing partially succeeded. Check the log."
 msgstr ""
 "Bearbeitung der Sequenz teilweise erfolgreich. Überprüfen Sie die Logdatei."
 
-#: src/core/processing.c:393
+#: src/core/processing.c:395
 #, c-format
 msgid "Sequence processing partially succeeded, with %d images that failed.\n"
 msgstr ""
 "Bearbeitung der Sequenz teilweise erfolgreich. %d Bilder nicht verarbeitet.\n"
 
-#: src/core/processing.c:395
+#: src/core/processing.c:397
 msgid "Sequence processing succeeded."
 msgstr "Bearbeitung der Sequenz erfolgreich."
 
-#: src/core/processing.c:396
+#: src/core/processing.c:398
 msgid "Sequence processing succeeded.\n"
 msgstr "Bearbeitung der Sequenz erfolgreich.\n"
 
-#: src/core/processing.c:718
+#: src/core/processing.c:720
 #, c-format
 msgid "Image %d not found for writing\n"
 msgstr "Bilddatei %d nicht gefunden\n"
 
-#: src/core/processing.c:1024
+#: src/core/processing.c:1026
 msgid "Process aborted by user\n"
 msgstr "Bearbeitung durch Benutzer abgebrochen\n"
 
-#: src/core/processing.c:1033
+#: src/core/processing.c:1035
 #, c-format
 msgid "Failed to find GPid %d, it may already have exited...\n"
 msgstr ""
 "GPid %d konnte nicht gefunden werden, möglicherweise wurde sie bereits "
 "beendet ...\n"
 
-#: src/core/processing.c:1221
+#: src/core/processing.c:1223
 #, c-format
 msgid "Error finding the HDU for frame %d\n"
 msgstr "Fehler: kann HDU für Bild %d nicht finden\n"
 
-#: src/core/processing.c:1321 src/core/processing.c:1347
+#: src/core/processing.c:1323 src/core/processing.c:1349
 #, c-format
 msgid "Not enough memory for operation: need %.1f MB, have %.1f MB\n"
 msgstr ""
 
-#: src/core/processing.c:1629 src/core/processing.c:1649
+#: src/core/processing.c:1631 src/core/processing.c:1651
 #, fuzzy
 msgid "Failed to copy original image.\n"
 msgstr "Konnte erstes Bild nicht öffnen"
 
-#: src/core/processing.c:1674
+#: src/core/processing.c:1676
 #, fuzzy, c-format
 msgid "%s: processing%s...\n"
 msgstr "%s: in Bearbeitung...\n"
 
-#: src/core/processing.c:1674
+#: src/core/processing.c:1676
 #, fuzzy
 msgid " (mask active)"
 msgstr "Aktiv"
 
-#: src/core/processing.c:1679
+#: src/core/processing.c:1681
 #, fuzzy
 msgid "Processing image..."
 msgstr "Verarbeite Bild %s"
 
-#: src/core/processing.c:1684
+#: src/core/processing.c:1686
 #, fuzzy, c-format
 msgid "%s image processing failed.\n"
 msgstr "%d Bild verarbeitet.\n"
 
-#: src/core/processing.c:1809
+#: src/core/processing.c:1819
 #, fuzzy
 msgid "Image processing failed. Check the log."
 msgstr ""
 "Bearbeitung der Sequenz fehlgeschlagen. Überprüfen sie das Log-Protokoll."
 
-#: src/core/processing.c:1811
+#: src/core/processing.c:1821
 #, fuzzy
 msgid "Image processing succeeded."
 msgstr "Bearbeitung der Sequenz erfolgreich."
 
-#: src/core/processing.c:1824
+#: src/core/processing.c:1834
 #, c-format
 msgid "%s %s.\n"
 msgstr ""
 
-#: src/core/processing.c:1824
+#: src/core/processing.c:1834
 #, fuzzy
 msgid "failed"
 msgstr "Fehlgeschlagen\n"
 
-#: src/core/processing.c:1824
+#: src/core/processing.c:1834
 #, fuzzy
 msgid "succeeded"
 msgstr "%s der Lösung erfolgt.\n"
 
-#: src/core/processing.c:1881
+#: src/core/processing.c:1891
 #, fuzzy, c-format
 msgid "%s: processing mask...\n"
 msgstr "%s: in Bearbeitung...\n"
 
-#: src/core/processing.c:1886
+#: src/core/processing.c:1896
 #, fuzzy
 msgid "Processing mask..."
 msgstr "Verarbeite Bild %s"
 
-#: src/core/processing.c:1897
+#: src/core/processing.c:1907
 #, fuzzy, c-format
 msgid "%s mask processing failed.\n"
 msgstr "Vorverarbeitung der Sequenz fehlgeschlagen.\n"
 
-#: src/core/processing.c:1906
+#: src/core/processing.c:1916
 #, fuzzy, c-format
 msgid "%s succeeded.\n"
 msgstr "%s der Lösung erfolgt.\n"
 
-#: src/core/processing.c:1914
+#: src/core/processing.c:1924
 #, fuzzy
 msgid "Mask processing failed. Check the log."
 msgstr ""
 "Bearbeitung der Sequenz fehlgeschlagen. Überprüfen sie das Log-Protokoll."
 
-#: src/core/processing.c:1916
+#: src/core/processing.c:1926
 #, fuzzy
 msgid "Mask processing succeeded."
 msgstr "Bearbeitung der Sequenz erfolgreich."
@@ -27330,21 +27421,21 @@ msgstr "Kann nicht ins Verzeichnis '%s' wechseln (Fehlercode %d: %s).\n"
 msgid "Filename is too long, not expanding it\n"
 msgstr "Dateiname zu lang\n"
 
-#: src/core/utils.c:1313 src/core/utils.c:1316
+#: src/core/utils.c:1303 src/core/utils.c:1306
 msgid "(invalid UTF-8 string)"
 msgstr "(ungültige UTF-8 Zeichenkette)"
 
-#: src/core/utils.c:2315
+#: src/core/utils.c:2318
 msgid "Significantly out of range pixels detected: clipping outliers\n"
 msgstr ""
 "Deutlich außerhalb des Bereichs liegende Pixel erkannt: Ausreißer werden "
 "abgeschnitten\n"
 
-#: src/core/utils.c:2319
+#: src/core/utils.c:2322
 msgid "Negative-valued pixels detected: clipping and scaling to [0,1]\n"
 msgstr "Negative Pixelwerte erkannt: Beschneiden und Skalieren auf [0,1]\n"
 
-#: src/core/utils.c:2325
+#: src/core/utils.c:2328
 msgid "Marginally out of range pixels detected: scaling to [0,1]\n"
 msgstr ""
 "Pixel, die knapp außerhalb des Bereichs liegen, wurden erkannt: Skalierung "
@@ -28248,11 +28339,11 @@ msgstr "Datei mit Stern-Liste (*.lst)"
 msgid "Error: error writing the CSV.\n"
 msgstr "Fehler beim Schreiben der CSV-Datei.\n"
 
-#: src/gui-gtk4/PSF_list.c:726 src/gui-gtk4/siril_actions.c:556
+#: src/gui-gtk4/PSF_list.c:726 src/gui-gtk4/siril_actions.c:554
 msgid "Current selection is too large"
 msgstr "Aktuelle Auswahl ist zu groß"
 
-#: src/gui-gtk4/PSF_list.c:727 src/gui-gtk4/siril_actions.c:557
+#: src/gui-gtk4/PSF_list.c:727 src/gui-gtk4/siril_actions.c:555
 msgid "To determine the PSF, please make a selection around a star."
 msgstr "Um die PSF zu bestimmen, treffen Sie eine Auswahl um einen Stern."
 
@@ -29534,7 +29625,7 @@ msgstr "BV-Bereich nicht akzeptiert (muss zwischen ]0, 0,7] liegen"
 msgid "Magnitude error not accepted (should be ]0, 0.1["
 msgstr "Größenfehler nicht akzeptiert (sollte ]0, 0,1[ sein)"
 
-#: src/gui-gtk4/conversion.c:206 src/gui-gtk4/file_browser.c:3240
+#: src/gui-gtk4/conversion.c:206 src/gui-gtk4/file_browser.c:3270
 msgid "Size"
 msgstr "Größe"
 
@@ -29888,7 +29979,7 @@ msgstr ""
 msgid "Select Folder"
 msgstr "Verzeichnis auswählen"
 
-#: src/gui-gtk4/dialogs.c:386 src/gui-gtk4/file_browser.c:2953
+#: src/gui-gtk4/dialogs.c:386 src/gui-gtk4/file_browser.c:2983
 #: src/gui-gtk4/pixelmath.c:1018
 msgid "Open File"
 msgstr "Öffne Datei"
@@ -29955,7 +30046,7 @@ msgstr "Wählen Sie zuerst Magnitude und Phase !\n"
 msgid "Recent files"
 msgstr "_Zuletzt verwendete Dateien"
 
-#: src/gui-gtk4/file_browser.c:939 src/gui-gtk4/file_browser.c:2252
+#: src/gui-gtk4/file_browser.c:939 src/gui-gtk4/file_browser.c:2282
 msgid "Trash"
 msgstr ""
 
@@ -29979,7 +30070,7 @@ msgid "Unknown error"
 msgstr "Unbekannter Fehler"
 
 #. Name above type: bold filename on top, plain "Folder" beneath.
-#: src/gui-gtk4/file_browser.c:1303 src/gui-gtk4/file_browser.c:2456
+#: src/gui-gtk4/file_browser.c:1303 src/gui-gtk4/file_browser.c:2486
 msgid "Folder"
 msgstr "Verzeichnis"
 
@@ -29993,25 +30084,25 @@ msgstr "Eine Datei namens %s existiert bereits. Überschreiben?\n"
 msgid "Replace file?"
 msgstr "Datei ersetzen"
 
-#: src/gui-gtk4/file_browser.c:1827
+#: src/gui-gtk4/file_browser.c:1851
 #, fuzzy
 msgid "Recent"
 msgstr "_Zuletzt verwendete Dateien"
 
-#: src/gui-gtk4/file_browser.c:1950
+#: src/gui-gtk4/file_browser.c:1980
 #, fuzzy
 msgid "Volume"
 msgstr "Spalte"
 
-#: src/gui-gtk4/file_browser.c:1951
+#: src/gui-gtk4/file_browser.c:1981
 msgid "Not mounted"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:1953
+#: src/gui-gtk4/file_browser.c:1983
 msgid "Click to mount this device"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:2065
+#: src/gui-gtk4/file_browser.c:2095
 #, fuzzy, c-format
 msgid "Could not mount %s: %s\n"
 msgstr "Konnte Datei %s: %s nicht öffnen\n"
@@ -30020,120 +30111,120 @@ msgstr "Konnte Datei %s: %s nicht öffnen\n"
 #. * Siril shipped previously, plus the Working Directory shortcut that
 #. * jumps to com.wd (the folder Siril is operating on).  Templates /
 #. * Public / Computer are intentionally omitted — see the brief.
-#: src/gui-gtk4/file_browser.c:2230
+#: src/gui-gtk4/file_browser.c:2260
 #, fuzzy
 msgid "Places"
 msgstr "Ersetzen"
 
-#: src/gui-gtk4/file_browser.c:2233
+#: src/gui-gtk4/file_browser.c:2263
 msgid "Home"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:2235
+#: src/gui-gtk4/file_browser.c:2265
 #, fuzzy
 msgid "Documents"
 msgstr "Parameter:"
 
-#: src/gui-gtk4/file_browser.c:2238
+#: src/gui-gtk4/file_browser.c:2268
 msgid "Pictures"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:2241
+#: src/gui-gtk4/file_browser.c:2271
 msgid "Music"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:2244
+#: src/gui-gtk4/file_browser.c:2274
 #, fuzzy
 msgid "Downloads"
 msgstr "Beim laden"
 
-#: src/gui-gtk4/file_browser.c:2247
+#: src/gui-gtk4/file_browser.c:2277
 msgid "Videos"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:2257
+#: src/gui-gtk4/file_browser.c:2287
 #, fuzzy
 msgid "Working Directory"
 msgstr "kein Arbeitsverzeichnis festgelegt"
 
 #. Section: Bookmarks (only if the user has any).
-#: src/gui-gtk4/file_browser.c:2260
+#: src/gui-gtk4/file_browser.c:2290
 msgid "Bookmarks"
 msgstr ""
 
 #. Section: Devices (mounted first, then unmounted with a Mount badge).
-#: src/gui-gtk4/file_browser.c:2263
+#: src/gui-gtk4/file_browser.c:2293
 msgid "Devices"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:2411
+#: src/gui-gtk4/file_browser.c:2441
 #, fuzzy
 msgid "Unknown"
 msgstr "unbekannt"
 
-#: src/gui-gtk4/file_browser.c:3048
+#: src/gui-gtk4/file_browser.c:3078
 #, fuzzy
 msgid "Up a level"
 msgstr "Meeresspiegel"
 
-#: src/gui-gtk4/file_browser.c:3057
+#: src/gui-gtk4/file_browser.c:3087
 msgid "Forward along the trail"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:3069
+#: src/gui-gtk4/file_browser.c:3099
 msgid "Type a path and press Enter to navigate"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:3090
+#: src/gui-gtk4/file_browser.c:3120
 msgid "Edit path as text"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:3098
+#: src/gui-gtk4/file_browser.c:3128
 #, fuzzy
 msgid "Create folder"
 msgstr "Farbmaske erstellen"
 
-#: src/gui-gtk4/file_browser.c:3109
+#: src/gui-gtk4/file_browser.c:3139
 #, fuzzy
 msgid "Folder name"
 msgstr "Verzeichnis"
 
-#: src/gui-gtk4/file_browser.c:3114
+#: src/gui-gtk4/file_browser.c:3144
 #, fuzzy
 msgid "Create"
 msgstr "Ausgabe erzeugen"
 
-#: src/gui-gtk4/file_browser.c:3133
+#: src/gui-gtk4/file_browser.c:3163
 #, fuzzy
 msgid "Filter the list by filename"
 msgstr "Dateiname für die als erstes zu speichernde FITS-Datei."
 
-#: src/gui-gtk4/file_browser.c:3154
+#: src/gui-gtk4/file_browser.c:3184
 #, fuzzy
 msgid "Filter by name…"
 msgstr "Filtertyp"
 
-#: src/gui-gtk4/file_browser.c:3253 src/gui-gtk4/git_gui.c:386
+#: src/gui-gtk4/file_browser.c:3283 src/gui-gtk4/git_gui.c:386
 msgid "Type"
 msgstr "Typ"
 
-#: src/gui-gtk4/file_browser.c:3266
+#: src/gui-gtk4/file_browser.c:3296
 #, fuzzy
 msgid "Modified"
 msgstr "Modifikator"
 
-#: src/gui-gtk4/file_browser.c:3421
+#: src/gui-gtk4/file_browser.c:3451
 msgid ""
 "Debayer CFA images on open.  Linked to the same setting as the Conversion "
 "tab's Debayer toggle."
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:3449
+#: src/gui-gtk4/file_browser.c:3479
 #, fuzzy
 msgid "Name:"
 msgstr "Name: "
 
-#: src/gui-gtk4/file_browser.c:3873 src/gui-gtk4/open_dialog.c:273
+#: src/gui-gtk4/file_browser.c:3903 src/gui-gtk4/open_dialog.c:273
 #: src/gui-gtk4/open_dialog.c:281
 #, fuzzy
 msgid "Open Image"
@@ -30221,7 +30312,7 @@ msgstr "Version um zurückzugehen (0 = aktuelle Version):"
 msgid "Loading commit message..."
 msgstr "Commit-Bemerkung wird geladen..."
 
-#: src/gui-gtk4/gui_iface_impl.c:1032
+#: src/gui-gtk4/gui_iface_impl.c:1036
 #, c-format
 msgid ""
 "Image is color managed\n"
@@ -30234,7 +30325,7 @@ msgstr ""
 "Monitorprofil: %s\n"
 "Softproofing-Profil: %s"
 
-#: src/gui-gtk4/gui_iface_impl.c:1034
+#: src/gui-gtk4/gui_iface_impl.c:1038
 msgid ""
 "Image is color managed\n"
 "\n"
@@ -30246,7 +30337,7 @@ msgstr ""
 "Linksklick: Dialog Farbmanagement\n"
 "Rechtsklick: ISO12646-Farbbewertungsmodus umschalten"
 
-#: src/gui-gtk4/gui_iface_impl.c:1036
+#: src/gui-gtk4/gui_iface_impl.c:1040
 msgid ""
 "Image is not color managed\n"
 "\n"
@@ -30258,7 +30349,7 @@ msgstr ""
 "Linksklick: Dialog Farbmanagement\n"
 "Rechtsklick: ISO12646-Farbbewertungsmodus umschalten"
 
-#: src/gui-gtk4/gui_iface_impl.c:1083
+#: src/gui-gtk4/gui_iface_impl.c:1087
 msgid "Syntax error"
 msgstr "Syntaxfehler"
 
@@ -33189,7 +33280,7 @@ msgstr "Speichere BMP"
 #. png_write_image() is just a loop of png_write_row(); doing it by hand
 #. * lets us report progress.  row_pointers already encodes the vertical
 #. * flip, so writing them in order produces byte-identical output.
-#: src/gui-gtk4/save_dialog.c:208 src/io/image_formats_libraries.c:2124
+#: src/gui-gtk4/save_dialog.c:208 src/io/image_formats_libraries.c:2149
 msgid "Saving PNG"
 msgstr "Speichere PNG"
 
@@ -33198,7 +33289,7 @@ msgid "Saving Netpbm"
 msgstr "Speichere NetPBM"
 
 #. JSAMPLEs per row in image_buffer
-#: src/gui-gtk4/save_dialog.c:216 src/io/image_formats_libraries.c:1599
+#: src/gui-gtk4/save_dialog.c:216 src/io/image_formats_libraries.c:1624
 msgid "Saving JPG"
 msgstr "Speichere JPG"
 
@@ -33206,7 +33297,7 @@ msgstr "Speichere JPG"
 msgid "Saving JPEG XL"
 msgstr "Speichere JPG XL"
 
-#: src/gui-gtk4/save_dialog.c:224 src/io/image_formats_libraries.c:864
+#: src/gui-gtk4/save_dialog.c:224 src/io/image_formats_libraries.c:865
 msgid "Saving TIFF"
 msgstr "Speichere TIFF"
 
@@ -33214,20 +33305,20 @@ msgstr "Speichere TIFF"
 msgid "Saving FITS"
 msgstr "Speichere FITS"
 
-#: src/gui-gtk4/save_dialog.c:280
+#: src/gui-gtk4/save_dialog.c:284
 #, fuzzy
 msgid "Save As"
 msgstr "Speichern als"
 
-#: src/gui-gtk4/save_dialog.c:317
+#: src/gui-gtk4/save_dialog.c:321
 msgid "File saving failed. Check the logs for more info."
 msgstr "Datei speichern fehlgeschlagen. Überprüfen Sie das Log-Protokoll."
 
-#: src/gui-gtk4/save_dialog.c:337
+#: src/gui-gtk4/save_dialog.c:341
 msgid "Viewer mode is not linear"
 msgstr "Anzeigemodus ist nicht linear"
 
-#: src/gui-gtk4/save_dialog.c:338
+#: src/gui-gtk4/save_dialog.c:342
 msgid ""
 "You are saving an image that is displayed in a non linear mode. What you see "
 "is not what you will get. Switch the viewer mode to linear to save what you "
@@ -33237,30 +33328,30 @@ msgstr ""
 "Ändern Sie den Anzeigemodus auf Linear um das Bild so zu speichern wie Sie "
 "es sehen."
 
-#: src/gui-gtk4/save_dialog.c:339
+#: src/gui-gtk4/save_dialog.c:343
 msgid "Save Anyway"
 msgstr "Trotzdem Speichern"
 
-#: src/gui-gtk4/save_dialog.c:751
+#: src/gui-gtk4/save_dialog.c:756
 #, c-format
 msgid "Snapshot <b>%s</b> was saved into the working directory."
 msgstr "Snapshot <b>%s</b> wurde im Arbeitsverzeichnis gespeichert."
 
-#: src/gui-gtk4/save_dialog.c:753
+#: src/gui-gtk4/save_dialog.c:758
 msgid "Snapshot was saved into the clipboard."
 msgstr "Snapshot wurde in der Zwischenablage gespeichert."
 
-#: src/gui-gtk4/save_dialog.c:951
+#: src/gui-gtk4/save_dialog.c:956
 #, fuzzy
 msgid "Snapshot copied to clipboard.\n"
 msgstr "Schnappschuss wurde in der Zwischenablage gespeichert.\n"
 
-#: src/gui-gtk4/save_dialog.c:965
+#: src/gui-gtk4/save_dialog.c:970
 #, fuzzy, c-format
 msgid "Snapshot %s saved into the working directory.\n"
 msgstr "Snapshot <b>%s</b> wurde im Arbeitsverzeichnis gespeichert."
 
-#: src/gui-gtk4/save_dialog.c:971
+#: src/gui-gtk4/save_dialog.c:976
 #, fuzzy
 msgid "Cannot take snapshot\n"
 msgstr "Kann den Snapshot nicht erstellen: %s\n"
@@ -33550,7 +33641,7 @@ msgstr ""
 "Mit dieser Version kann nicht nach Updates gesucht werden, fehlende "
 "Abhängigkeit\n"
 
-#: src/gui-gtk4/siril_actions.c:505
+#: src/gui-gtk4/siril_actions.c:503
 #, c-format
 msgid ""
 "Link/unlink channels in autostretch viewer mode.\n"
@@ -33559,19 +33650,19 @@ msgstr ""
 "Verkettung/Verknüpfung von Kanälen im Autostretch-Viewer-Modus.\n"
 "Aktuelle Einstellung: %s"
 
-#: src/gui-gtk4/siril_actions.c:574
+#: src/gui-gtk4/siril_actions.c:572
 msgid "Error: no sequence loaded.\n"
 msgstr "Fehler: Keine Sequenz geladen.\n"
 
-#: src/gui-gtk4/siril_actions.c:607
+#: src/gui-gtk4/siril_actions.c:605
 msgid "Error running the PSF on the sequence\n"
 msgstr "Fehler die PSF für die geladene Sequenz durchzuführen\n"
 
-#: src/gui-gtk4/siril_actions.c:685
+#: src/gui-gtk4/siril_actions.c:683
 msgid "Save your changes before loading a frame of the sequence."
 msgstr "Speichern Sie Ihre Änderungen, bevor Sie ein Bild der Sequenz laden."
 
-#: src/gui-gtk4/siril_actions.c:686
+#: src/gui-gtk4/siril_actions.c:684
 msgid ""
 "The image currently displayed is the result of the previous stack. If you "
 "load an image from the sequence, you might lose the entire process you "
@@ -33583,15 +33674,15 @@ msgstr ""
 "gesamten Prozess, den Sie an dem Bild durchgeführt haben, aber nicht das "
 "Bild selbst. Sie müssen Ihre Daten vorher speichern."
 
-#: src/gui-gtk4/siril_actions.c:689
+#: src/gui-gtk4/siril_actions.c:687
 msgid "Load another image"
 msgstr "Ein anderes Bild laden"
 
-#: src/gui-gtk4/siril_actions.c:938 src/gui-gtk4/siril_actions.c:946
+#: src/gui-gtk4/siril_actions.c:936 src/gui-gtk4/siril_actions.c:944
 msgid "Close current image?"
 msgstr "aktuelles Bild schließen ?"
 
-#: src/gui-gtk4/siril_actions.c:938
+#: src/gui-gtk4/siril_actions.c:936
 msgid ""
 "Opening the RGB Composition dialog will close the current image without "
 "saving. Are you sure?"
@@ -33599,11 +33690,11 @@ msgstr ""
 "Wenn Sie das Dialogfeld RGB-Komposition öffnen, wird das aktuelle Bild ohne "
 "Speichern geschlossen. Sind Sie sicher?"
 
-#: src/gui-gtk4/siril_actions.c:938 src/gui-gtk4/siril_actions.c:946
+#: src/gui-gtk4/siril_actions.c:936 src/gui-gtk4/siril_actions.c:944
 msgid "Yes"
 msgstr "Ja"
 
-#: src/gui-gtk4/siril_actions.c:946
+#: src/gui-gtk4/siril_actions.c:944
 msgid ""
 "Opening the Star Recomposition dialog will close the current image without "
 "saving. Are you sure?"
@@ -33611,32 +33702,32 @@ msgstr ""
 "Wenn Sie das Dialogfeld Sternneuzusammensetzung öffnen, wird das aktuelle "
 "Bild geschlossen, ohne es zu speichern. Sind Sie sicher?"
 
-#: src/gui-gtk4/siril_actions.c:1017
+#: src/gui-gtk4/siril_actions.c:1015
 msgid "RGB alignment (DFT)"
 msgstr "RGB Ausrichtung (DFT)"
 
-#: src/gui-gtk4/siril_actions.c:1021
+#: src/gui-gtk4/siril_actions.c:1019
 msgid "RGB alignment (Global stars)"
 msgstr "RGB Ausrichtung (Globale Sternausrichtung)"
 
-#: src/gui-gtk4/siril_actions.c:1025
+#: src/gui-gtk4/siril_actions.c:1023
 msgid "RGB alignment (KOMBAT)"
 msgstr "RGB Ausrichtung (KOMBAT)"
 
-#: src/gui-gtk4/siril_actions.c:1029
+#: src/gui-gtk4/siril_actions.c:1027
 msgid "RGB alignment (PSF)"
 msgstr "RGB Ausrichtung (PSF)"
 
-#: src/gui-gtk4/siril_actions.c:1109 src/gui-gtk4/siril_actions.c:1138
+#: src/gui-gtk4/siril_actions.c:1107 src/gui-gtk4/siril_actions.c:1136
 msgid "No mask present"
 msgstr ""
 
-#: src/gui-gtk4/siril_actions.c:1110
+#: src/gui-gtk4/siril_actions.c:1108
 #, fuzzy
 msgid "There is no mask to autostretch."
 msgstr "Es gibt keinen Zeitstempel in dieser Datei"
 
-#: src/gui-gtk4/siril_actions.c:1139
+#: src/gui-gtk4/siril_actions.c:1137
 #, fuzzy
 msgid "There is no mask to invert."
 msgstr "Keine Auswahl getroffen"
@@ -33799,7 +33890,7 @@ msgstr "Schnappschuss wurde in der Zwischenablage gespeichert.\n"
 msgid "Could not copy the snapshot into the clipboard.\n"
 msgstr "Schnappschuss konnte nicht in die Zwischenablage kopiert werden.\n"
 
-#: src/gui-gtk4/siril_plot.c:454
+#: src/gui-gtk4/siril_plot.c:454 src/gui-gtk4/siril_plot.c:727
 msgid "PNG files (*.png)"
 msgstr "PNG-Dateien (*.png)"
 
@@ -33810,6 +33901,50 @@ msgstr "DAT-Dateien (*.dat)"
 #: src/gui-gtk4/siril_plot.c:466
 msgid "SVG files (*.svg)"
 msgstr "SVG-Dateien (*.svg)"
+
+#: src/gui-gtk4/siril_plot.c:559
+#, fuzzy
+msgid "Plot figures were copied to the clipboard.\n"
+msgstr "Schnappschuss wurde in der Zwischenablage gespeichert.\n"
+
+#: src/gui-gtk4/siril_plot.c:580
+#, fuzzy
+msgid "Copy these figures to the clipboard"
+msgstr "Snapshot in die Zwischenablage kopieren"
+
+#: src/gui-gtk4/siril_plot.c:661
+#, fuzzy
+msgid "Display the y axis in log scale"
+msgstr "Lichtkurve anzeigen"
+
+#: src/gui-gtk4/siril_plot.c:664
+#, fuzzy
+msgid "Log scale"
+msgstr "X-Skalierung"
+
+#: src/gui-gtk4/siril_plot.c:669
+#, fuzzy
+msgid "Show this plot alone"
+msgstr "Verzerrungen anzeigen"
+
+#: src/gui-gtk4/siril_plot.c:675
+msgid "Plot options and exports"
+msgstr ""
+
+#: src/gui-gtk4/siril_plot.c:732
+#, fuzzy
+msgid "Could not save the report snapshot.\n"
+msgstr "Konnte die Zielkoordinaten nicht feststellen\n"
+
+#: src/gui-gtk4/siril_plot.c:747
+#, fuzzy
+msgid "Save report…"
+msgstr "Grafik speichern"
+
+#: src/gui-gtk4/siril_plot.c:748
+#, fuzzy
+msgid "Save the whole window as a PNG image"
+msgstr "Geladenes Bild speichern"
 
 #: src/gui-gtk4/siril_preview.c:171
 msgid "Warning: insufficient memory available to create a preview.\n"
@@ -34362,40 +34497,40 @@ msgstr "FILM ERROR: inkompatibles Format\n"
 msgid "Loaded FITS file has a BSCALE different than 1 (%f)\n"
 msgstr "Die geladenen FITS-Datei verwendet ein BSCALE verschieden von 1 (%f)\n"
 
-#: src/io/fits_keywords.c:1180
+#: src/io/fits_keywords.c:1182
 #, c-format
 msgid "Warning: FITS value for keyname '%s' out of range for INT: %s\n"
 msgstr ""
 
-#: src/io/fits_keywords.c:1193
+#: src/io/fits_keywords.c:1195
 #, c-format
 msgid "Warning: FITS value for keyname '%s' out of range for UINT: %s\n"
 msgstr ""
 
-#: src/io/fits_keywords.c:1206
+#: src/io/fits_keywords.c:1208
 #, c-format
 msgid "Warning: FITS value for keyname '%s' out of range for USHORT: %s\n"
 msgstr ""
 
-#: src/io/fits_keywords.c:1364
+#: src/io/fits_keywords.c:1366
 msgid "Error when closing fitseq\n"
 msgstr "Fehler beim Schließen von fitseq\n"
 
-#: src/io/fits_keywords.c:1372
+#: src/io/fits_keywords.c:1374
 msgid "Error when reopening fitseq\n"
 msgstr "Fehler beim erneuten Öffnen von fitseq\n"
 
-#: src/io/fits_keywords.c:1395
+#: src/io/fits_keywords.c:1397
 #, c-format
 msgid "FITS header of image %d updated\n"
 msgstr "FIT Header von Bild %d aktualisiert\n"
 
-#: src/io/fits_keywords.c:1413
+#: src/io/fits_keywords.c:1415
 #, c-format
 msgid "File %s updated\n"
 msgstr "Datei %s aktualisiert\n"
 
-#: src/io/fits_keywords.c:1459
+#: src/io/fits_keywords.c:1461
 msgid "This command won't work for SER sequence.\n"
 msgstr "Dieser Befehl funktioniert nicht für die SER-Sequenz.\n"
 
@@ -34442,7 +34577,7 @@ msgstr ""
 "FITS-Dateien mit 64-bit \"Signed Integer\" je Pixel/Kanal werden nicht "
 "unterstützt.\n"
 
-#: src/io/fits_sequence.c:275 src/stacking/median_and_mean.c:1361
+#: src/io/fits_sequence.c:275 src/stacking/median_and_mean.c:1367
 msgid "Your version of cfitsio does not support multi-threading\n"
 msgstr "Ihre Version von CFITSIO unterstützt kein Multi-Threading\n"
 
@@ -35092,164 +35227,170 @@ msgstr "Datum der Aufnahme: %s\n"
 msgid "Time (of observation): %s\n"
 msgstr "Uhrzeit der Aufnahme: %s\n"
 
-#: src/io/image_formats_libraries.c:108 src/io/image_formats_libraries.c:193
-#: src/io/image_formats_libraries.c:278 src/io/image_formats_libraries.c:358
+#: src/io/image_formats_libraries.c:109 src/io/image_formats_libraries.c:194
+#: src/io/image_formats_libraries.c:279 src/io/image_formats_libraries.c:359
 msgid "Alpha channel is ignored.\n"
 msgstr "Alpha-Kanal wird ignoriert.\n"
 
-#: src/io/image_formats_libraries.c:128 src/io/image_formats_libraries.c:155
-#: src/io/image_formats_libraries.c:213 src/io/image_formats_libraries.c:240
-#: src/io/image_formats_libraries.c:298 src/io/image_formats_libraries.c:325
-#: src/io/image_formats_libraries.c:390
+#: src/io/image_formats_libraries.c:129 src/io/image_formats_libraries.c:156
+#: src/io/image_formats_libraries.c:214 src/io/image_formats_libraries.c:241
+#: src/io/image_formats_libraries.c:299 src/io/image_formats_libraries.c:326
+#: src/io/image_formats_libraries.c:391
 msgid "An unexpected error was encountered while trying to read the file.\n"
 msgstr "Unerwarteter Fehler beim Einlesen der Datei.\n"
 
-#: src/io/image_formats_libraries.c:169 src/io/image_formats_libraries.c:254
-#: src/io/image_formats_libraries.c:339
+#: src/io/image_formats_libraries.c:170 src/io/image_formats_libraries.c:255
+#: src/io/image_formats_libraries.c:340
 msgid "Unknown TIFF file.\n"
 msgstr "Unbekanntes TIFF-Format.\n"
 
-#: src/io/image_formats_libraries.c:434
+#: src/io/image_formats_libraries.c:435
 #, c-format
 msgid "Could not open the TIFF file %s\n"
 msgstr "Konnte TIFF-Datei %s nicht öffnen\n"
 
-#: src/io/image_formats_libraries.c:451
+#: src/io/image_formats_libraries.c:452
 #, c-format
 msgid "TIFF image has invalid dimensions (%u x %u)\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:508 src/io/image_formats_libraries.c:514
+#: src/io/image_formats_libraries.c:509 src/io/image_formats_libraries.c:515
 msgid "Siril cannot read this TIFF format.\n"
 msgstr "SIRIL kann diese TIFF-Datei nicht lesen.\n"
 
-#: src/io/image_formats_libraries.c:605 src/io/image_formats_libraries.c:621
+#: src/io/image_formats_libraries.c:606 src/io/image_formats_libraries.c:622
 msgid "TIFFTAG Orientation not handled.\n"
 msgstr "TIFFTAG Ausrichtung nicht behandelt.\n"
 
-#: src/io/image_formats_libraries.c:658
+#: src/io/image_formats_libraries.c:659
 #, c-format
 msgid "Reading TIFF: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "Lese TIFF: %d-bit Datei %s, %ld Layer, %ux%u Pixel\n"
 
-#: src/io/image_formats_libraries.c:682
+#: src/io/image_formats_libraries.c:683
 msgid "Siril cannot create TIFF file.\n"
 msgstr "SIRIL kann TIFF-Datei nicht erstellen.\n"
 
-#: src/io/image_formats_libraries.c:718
+#: src/io/image_formats_libraries.c:719
 msgid "TIFF file has unexpected number of channels (not 1 or 3).\n"
 msgstr ""
 "TIFF-Datei enthält eine unerwartete Anzahl an Kanälen (nicht 1 oder 3).\n"
 
-#: src/io/image_formats_libraries.c:977
+#: src/io/image_formats_libraries.c:978
 msgid "Saving TIFF: Cannot write TIFF file.\n"
 msgstr "TIFF Speichern: kann TIFF-Datei nicht speichern.\n"
 
-#: src/io/image_formats_libraries.c:983
+#: src/io/image_formats_libraries.c:984
 #, c-format
 msgid "Saving TIFF: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "Speichere TIFF: %d-bit Datei %s, %ld Layer, %ux%u Pixel\n"
 
-#: src/io/image_formats_libraries.c:1164
+#: src/io/image_formats_libraries.c:1165
 #, fuzzy, c-format
 msgid "Failed to read XISF file %s\n"
 msgstr "Konnte Datei %s nicht öffnen\n"
 
-#: src/io/image_formats_libraries.c:1196
+#: src/io/image_formats_libraries.c:1197
 msgid "Memory allocation error for image data.\n"
 msgstr "Speicher für Bildaten kann nicht angeforder werden\n"
 
-#: src/io/image_formats_libraries.c:1265
+#: src/io/image_formats_libraries.c:1266
 msgid "This image type is not handled.\n"
 msgstr "Dieser Bildtyp wird nicht bearbeitet.\n"
 
-#: src/io/image_formats_libraries.c:1306
+#: src/io/image_formats_libraries.c:1329
+msgid ""
+"XISF is supported in read-only mode for compatibility; for interoperability "
+"and long-term preservation, FITS remains recommended.\n"
+msgstr ""
+
+#: src/io/image_formats_libraries.c:1331
 #, c-format
 msgid "Reading XISF: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "LeseXISF: Datei %s, %ld Layer, %ux%u Pixel\n"
 
-#: src/io/image_formats_libraries.c:1327 src/io/image_formats_libraries.c:1638
-#: src/io/image_formats_libraries.c:2874
+#: src/io/image_formats_libraries.c:1352 src/io/image_formats_libraries.c:1663
+#: src/io/image_formats_libraries.c:2899
 #, c-format
 msgid "Sorry but Siril cannot open the file: %s.\n"
 msgstr "SIRIL kann die Datei nicht öffnen: %s.\n"
 
-#: src/io/image_formats_libraries.c:1379
+#: src/io/image_formats_libraries.c:1404
 msgid "Read ICC profile from JPEG.\n"
 msgstr "Lese ICC-Farbprofile aus JPEG.\n"
 
-#: src/io/image_formats_libraries.c:1382
+#: src/io/image_formats_libraries.c:1407
 msgid "Cannot read an ICC profile from this JPEG, assuming sRGB.\n"
 msgstr "Kann aus diesem JPEG kein ICC-Farbprofil lesen, nehme sRGB an.\n"
 
-#: src/io/image_formats_libraries.c:1385
+#: src/io/image_formats_libraries.c:1410
 msgid "JPEG ICC profile support unavailable, assuming sRGB.\n"
 msgstr "Unterstützung für JPEG-ICC-Profile nicht verfügbar, nehme sRGB an.\n"
 
-#: src/io/image_formats_libraries.c:1421
+#: src/io/image_formats_libraries.c:1446
 #, c-format
 msgid "Reading JPG: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "Lese JPG: Datei %s, %ld Layer, %ux%u Pixel\n"
 
-#: src/io/image_formats_libraries.c:1444
+#: src/io/image_formats_libraries.c:1469
 msgid "Siril cannot create JPG file.\n"
 msgstr "SIRIL kann JPG-Datei nicht erstellen.\n"
 
-#: src/io/image_formats_libraries.c:1594
+#: src/io/image_formats_libraries.c:1619
 msgid "Error: failed to write ICC profile to JPG\n"
 msgstr "Fehler: ICC-Profil konnte nicht in JPG geschrieben werden\n"
 
-#: src/io/image_formats_libraries.c:1620
+#: src/io/image_formats_libraries.c:1645
 #, c-format
 msgid "Saving JPG: file %s, quality=%d%%, %ld layer(s), %ux%u pixels\n"
 msgstr "Speichere JPG: Datei %s, Qualität=%d%%, %ld Layer, %ux%u Pixel\n"
 
-#: src/io/image_formats_libraries.c:1652
+#: src/io/image_formats_libraries.c:1677
 #, c-format
 msgid "Error opening the file %s\n"
 msgstr "Fehler beim Öffnen der Datei %s\n"
 
-#: src/io/image_formats_libraries.c:1662
+#: src/io/image_formats_libraries.c:1687
 #, c-format
 msgid "PNG image has invalid dimensions (%d x %d)\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1833
+#: src/io/image_formats_libraries.c:1858
 #, c-format
 msgid "Reading PNG: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "Lese PNG: %d-bit Datei %s, %ld Layer, %ux%u Pixel\n"
 
-#: src/io/image_formats_libraries.c:2136
+#: src/io/image_formats_libraries.c:2161
 #, c-format
 msgid "Saving PNG: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "Speichere PNG: Datei %s, %ld Layer, %ux%u Pixel\n"
 
-#: src/io/image_formats_libraries.c:2290
+#: src/io/image_formats_libraries.c:2315
 msgid "Siril cannot open this file in CFA mode: no RAW data available.\n"
 msgstr ""
 "SIRIL kann diese Datei im CFA-Modus nicht öffnen (keine Daten verfügbar). \n"
 
-#: src/io/image_formats_libraries.c:2319
+#: src/io/image_formats_libraries.c:2344
 #, c-format
 msgid "Decoding %s %s file (ISO=%g, Exposure=1/%0.1f sec)\n"
 msgstr "Dekodiere %s %s Datei (ISO=%g, Belichtungszeit=1/%0.1f s)\n"
 
-#: src/io/image_formats_libraries.c:2322
+#: src/io/image_formats_libraries.c:2347
 #, c-format
 msgid "Decoding %s %s file (ISO=%g, Exposure=%0.1f sec)\n"
 msgstr "Dekodiere %s %s Datei (ISO=%g, Belichtungszeit=%0.1f sec)\n"
 
-#: src/io/image_formats_libraries.c:2345
+#: src/io/image_formats_libraries.c:2370
 #, c-format
 msgid "Filter pattern: %s\n"
 msgstr "Filtermuster: %s\n"
 
-#: src/io/image_formats_libraries.c:2428
+#: src/io/image_formats_libraries.c:2453
 #, c-format
 msgid "Reading RAW: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "Lese RAW: Datei %s, %ld Layer, %ux%u Pixel\n"
 
-#: src/io/image_formats_libraries.c:2562
+#: src/io/image_formats_libraries.c:2587
 msgid ""
 "Error: the specified NCLX TRC is not yet supported in Siril. A linear TRC "
 "will be used: you may need to fix this file up manually.\n"
@@ -35258,16 +35399,16 @@ msgstr ""
 "wird ein linearer TRC verwendet. Möglicherweise müssen Sie diese Datei "
 "manuell korrigieren.\n"
 
-#: src/io/image_formats_libraries.c:2610
+#: src/io/image_formats_libraries.c:2635
 msgid "Input file contains no readable images.\n"
 msgstr "Datei enthält kein lesbares Bild.\n"
 
-#: src/io/image_formats_libraries.c:2643
+#: src/io/image_formats_libraries.c:2668
 #, c-format
 msgid "This is a sequence of %d images: loading the primary one.\n"
 msgstr "Dies ist eine Sequenz von %d Bildern: Lade das erste.\n"
 
-#: src/io/image_formats_libraries.c:2678
+#: src/io/image_formats_libraries.c:2703
 msgid ""
 "Error getting ICC profile from HEIF file. Continuing: you will need to "
 "manually assign an ICC profile\n"
@@ -35275,25 +35416,25 @@ msgstr ""
 "Fehler beim Abrufen des ICC-Profils aus der HEIF-Datei. Fortsetzung: Sie "
 "müssen manuell ein ICC-Profil zuweisen\n"
 
-#: src/io/image_formats_libraries.c:2703
+#: src/io/image_formats_libraries.c:2728
 msgid "Input image has undefined bit-depth.\n"
 msgstr "Eingabebild hat eine undefinierte Bittiefe.\n"
 
-#: src/io/image_formats_libraries.c:2858
+#: src/io/image_formats_libraries.c:2883
 #, c-format
 msgid "Reading HEIF: file %s, %ld layer(s), %ux%u pixels, bitdepth %d\n"
 msgstr "HEIF wird gelesen: Datei %s, %ld Ebene(n), %ux%u Pixel, Bittiefe %d\n"
 
-#: src/io/image_formats_libraries.c:2975
+#: src/io/image_formats_libraries.c:3000
 #, c-format
 msgid "Reading JPEG XL: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "JPEG XL wird gelesen: Datei %s, %ld Ebene(n), %ux%u Pixel\n"
 
-#: src/io/image_formats_libraries.c:2995
+#: src/io/image_formats_libraries.c:3020
 msgid "Error interleaving image\n"
 msgstr "Fehler beim Verschachteln des Bildes\n"
 
-#: src/io/image_formats_libraries.c:3105
+#: src/io/image_formats_libraries.c:3130
 #, c-format
 msgid ""
 "Saving JPEG XL: file %s, lossless, effort=%d %ld layer(s), %ux%u pixels, bit "
@@ -35302,7 +35443,7 @@ msgstr ""
 "JPEG XL speichern: Datei %s, verlustfrei, Aufwand=%d %ld Ebene(n), %ux%u "
 "Pixel, Bittiefe: %d\n"
 
-#: src/io/image_formats_libraries.c:3108
+#: src/io/image_formats_libraries.c:3133
 #, c-format
 msgid ""
 "Saving JPEG XL: file %s, quality=%.3f, effort=%d %ld layer(s), %ux%u pixels, "
@@ -35314,12 +35455,12 @@ msgstr ""
 #. The libjxl encoder is opaque (no row/percentage callback), so we can't
 #. * report a real fraction: mark the bar pulsating for the duration of the
 #. * blocking encode.
-#: src/io/image_formats_libraries.c:3114
+#: src/io/image_formats_libraries.c:3139
 #, fuzzy
 msgid "Encoding JPEG XL"
 msgstr "Speichere JPG XL"
 
-#: src/io/image_formats_libraries.c:3121
+#: src/io/image_formats_libraries.c:3146
 msgid "Save complete.\n"
 msgstr "Speichern abgeschlossen.\n"
 
@@ -35386,7 +35527,11 @@ msgstr "%d Trixel gefunden\n"
 msgid "Selected encoder: %s\n"
 msgstr "Gewählter Encoder: %s\n"
 
-#: src/io/mp4_output.c:504
+#: src/io/mp4_output.c:375
+msgid "Image does not match the film input format\n"
+msgstr ""
+
+#: src/io/mp4_output.c:512
 msgid ""
 "Parameters for mp4 file creation were incorrect. Image dimension has to be a "
 "multiple of 2, fps and file name non nul, quality between 1 and 5."
@@ -35395,34 +35540,34 @@ msgstr ""
 "müssen Vielfache von 2 sein, FPS und Dateiname nicht Null, Qualität von 1 "
 "bis 5."
 
-#: src/io/mp4_output.c:516
+#: src/io/mp4_output.c:524
 msgid "Could not deduce output format from file extension: using mp4.\n"
 msgstr ""
 "Konnte das Ausgabeformat nicht aus der Dateierweiterung herleiten: Verwende "
 "MP4.\n"
 
-#: src/io/mp4_output.c:520
+#: src/io/mp4_output.c:528
 msgid "FFMPEG does not seem to support mp4 format, aborting.\n"
 msgstr "FFMPEG scheint das mp4-Format nicht zu unterstützen, Abbruch.\n"
 
-#: src/io/mp4_output.c:552
+#: src/io/mp4_output.c:560
 msgid "Error: format does not support video codec.\n"
 msgstr "Fehler: Format unterstützt keinen Videocodec.\n"
 
-#: src/io/mp4_output.c:558
+#: src/io/mp4_output.c:566
 msgid "Could not add the video stream in the output film, aborting\n"
 msgstr "Konnte den Videostream nicht an den Ausgabefilm anfügen, breche ab\n"
 
-#: src/io/mp4_output.c:564
+#: src/io/mp4_output.c:572
 msgid "Selected codec is not available\n"
 msgstr "Gewählter Codec ist nicht verfügbar\n"
 
-#: src/io/mp4_output.c:578
+#: src/io/mp4_output.c:586
 #, c-format
 msgid "Could not open '%s': %s\n"
 msgstr "Konnte Datei %s: %s nicht öffnen\n"
 
-#: src/io/mp4_output.c:586
+#: src/io/mp4_output.c:594
 #, c-format
 msgid "Error occurred when opening output file: %s\n"
 msgstr "Fehler beim Öffnen der Ausgabedatei: %s\n"
@@ -35647,7 +35792,7 @@ msgstr ""
 "Kann die Sequenz %s nicht erstellen. Es werden mindestens 2 Bilder benötigt, "
 "um in Siril verwendet werden zu können.\n"
 
-#: src/io/sequence.c:460
+#: src/io/sequence.c:463
 msgid ""
 "Cannot load SER sequence. Need at least 2 frames to be usable in Siril. "
 "Please convert the SER file into FITS file.\n"
@@ -35656,11 +35801,11 @@ msgstr ""
 "benötigt, um in Siril verwendet werden zu können. Bitte konvertieren Sie die "
 "SER-Datei in eine FITS-Datei.\n"
 
-#: src/io/sequence.c:573
+#: src/io/sequence.c:576
 msgid "Deprecated sequence"
 msgstr "Sequenz ist veraltet"
 
-#: src/io/sequence.c:574
+#: src/io/sequence.c:577
 #, fuzzy
 msgid ""
 "Film sequences are now deprecated in Siril: some features are disabled and "
@@ -35678,11 +35823,11 @@ msgstr ""
 "Sequenz in eine SER-Datei zu konvertieren. Das SER-Dateiformat ist ein "
 "einfaches Bildsequenzformat, ähnlich wie bei unkomprimierten Filmen."
 
-#: src/io/sequence.c:580
+#: src/io/sequence.c:583
 msgid "Convert to SER"
 msgstr "In SER konvertieren"
 
-#: src/io/sequence.c:582
+#: src/io/sequence.c:585
 msgid ""
 "Warning: deprecated sequence. Film sequences are now deprecated in Siril: "
 "some features are disabled and others may crash. Continuing, but we strongly "
@@ -35695,22 +35840,22 @@ msgstr ""
 "Sequenz in eine SER-Datei zu konvertieren. Das SER-Dateiformat ist ein "
 "einfaches Bildsequenzformat, ähnlich wie bei unkomprimierten Filmen.\n"
 
-#: src/io/sequence.c:605
+#: src/io/sequence.c:608
 msgid "could not load reference image from sequence\n"
 msgstr "Referenzbild konnte nicht aus Sequenz geladen werden\n"
 
-#: src/io/sequence.c:616
+#: src/io/sequence.c:619
 #, c-format
 msgid "Sequence loaded: %s (%d->%d)\n"
 msgstr "Sequenz geladen: %s (%d->%d)\n"
 
-#: src/io/sequence.c:636
+#: src/io/sequence.c:639
 #, c-format
 msgid "mpp: loaded sidecar %s — %d APs%s\n"
 msgstr ""
 
 #. Readable but for a different sequence state.
-#: src/io/sequence.c:641
+#: src/io/sequence.c:644
 #, c-format
 msgid ""
 "mpp: sidecar %s does not match this sequence (%d frames vs %d) — ignoring "
@@ -35718,82 +35863,82 @@ msgid ""
 msgstr ""
 
 #. Unreadable — e.g. written by an older Siril version.
-#: src/io/sequence.c:647
+#: src/io/sequence.c:650
 #, c-format
 msgid ""
 "mpp: could not read sidecar %s (code %d) — it may be from an older version; "
 "re-run Analyze.\n"
 msgstr ""
 
-#: src/io/sequence.c:924 src/io/sequence.c:1059
+#: src/io/sequence.c:927 src/io/sequence.c:1062
 #: src/registration/astrometric.c:440
 #, c-format
 msgid "Could not load image %d from sequence %s\n"
 msgstr "Konnte Bild %d aus Sequenz %s nicht laden\n"
 
-#: src/io/sequence.c:933 src/io/sequence.c:1015 src/io/sequence.c:1067
+#: src/io/sequence.c:936 src/io/sequence.c:1018 src/io/sequence.c:1070
 #, c-format
 msgid "Could not load frame %d from SER sequence %s\n"
 msgstr "Konnte Frame %d aus SER-Sequenz %s nicht laden\n"
 
-#: src/io/sequence.c:941 src/io/sequence.c:1086 src/io/sequence.c:1097
-#: src/io/sequence.c:1164
+#: src/io/sequence.c:944 src/io/sequence.c:1089 src/io/sequence.c:1100
+#: src/io/sequence.c:1167
 #, c-format
 msgid "Could not load frame %d from FITS sequence %s\n"
 msgstr "Konnte Frame %d aus FITS-Sequenz %s nicht laden\n"
 
-#: src/io/sequence.c:951 src/io/sequence.c:1034 src/io/sequence.c:1109
+#: src/io/sequence.c:954 src/io/sequence.c:1037 src/io/sequence.c:1112
 #, c-format
 msgid "Could not load frame %d from AVI sequence %s\n"
 msgstr "Konnte Frame %d aus AVI-Sequenz %s nicht laden\n"
 
-#: src/io/sequence.c:1007 src/io/sequence.c:1023
+#: src/io/sequence.c:1010 src/io/sequence.c:1026
 #, c-format
 msgid "Could not load partial image %d from sequence %s\n"
 msgstr "Konnte Teilbild %d aus Sequenz %s nicht laden\n"
 
-#: src/io/sequence.c:1081 src/io/sequence.c:1154
+#: src/io/sequence.c:1084 src/io/sequence.c:1157
 #, c-format
 msgid "Could not seek frame %d from FITS sequence %s. Error status: %d\n"
 msgstr "Konnte Frame %d aus FITS-Sequenz %s nicht suchen. Fehlerstatus: %d\n"
 
-#: src/io/sequence.c:1252
+#: src/io/sequence.c:1255
 msgid "This operation is not supported on AVI sequences (seq_open_image)\n"
 msgstr ""
 "Diese Operation wird für AVI-Sequenzen (seq_open_image) nicht unterstützt\n"
 
-#: src/io/sequence.c:1256
+#: src/io/sequence.c:1259
 msgid ""
 "This operation is not supported on internal sequences (seq_open_image)\n"
 msgstr ""
 "Diese Operation wird für interne Sequenzen (seq_open_image) nicht "
 "unterstützt\n"
 
-#: src/io/sequence.c:1771
+#: src/io/sequence.c:1774
 #, c-format
 msgid "Closing sequence %s\n"
 msgstr "Schließe Sequenz %s\n"
 
-#: src/io/sequence.c:1798
+#: src/io/sequence.c:1801
 #, fuzzy, c-format
 msgid "Invalid reference image (%d) in sequence, resetting it\n"
 msgstr "Das Referenzbild der Sequenz konnte nicht geladen werden, Abbruch.\n"
 
-#: src/io/sequence.c:1890
+#: src/io/sequence.c:1893
 #, c-format
 msgid "This operation will use registration data of layer %d\n"
 msgstr "Dieser Vorgang verwendet Registrierungsdaten der Ebene %d\n"
 
-#: src/io/sequence.c:1909
+#: src/io/sequence.c:1912
 msgid "internal sequence"
 msgstr "Interne Sequenz"
 
-#: src/io/sequence.c:2036
+#: src/io/sequence.c:2039
 #, c-format
 msgid "Photometry analysis failed for image %d (%s)\n"
 msgstr "Photometrieanalyse für Bild %d (%s) fehlgeschlagen\n"
 
-#: src/io/sequence.c:2062
+#: src/io/sequence.c:2065
 #, c-format
 msgid ""
 "No star found in the area image %d around %d,%d: error %s (use a larger "
@@ -35802,7 +35947,7 @@ msgstr ""
 "Kein Stern im Auswahlbereich zu finden im Bild %d um %d,%d: error %s "
 "(größeren Bereich wählen?)\n"
 
-#: src/io/sequence.c:2065
+#: src/io/sequence.c:2068
 #, c-format
 msgid ""
 "No star found in the area image %d around %d,%d: error %s (use 'follow star' "
@@ -35811,7 +35956,7 @@ msgstr ""
 "Kein Stern im Auswahlbereich zu finden im Bild %d um %d,%d: Fehler %s "
 "(\"Verfolge Stern\"-Option verwenden?)\n"
 
-#: src/io/sequence.c:2149
+#: src/io/sequence.c:2152
 msgid ""
 "Star analysis does not give consistent results when exposure changes across "
 "the sequence.\n"
@@ -35819,16 +35964,16 @@ msgstr ""
 "Stern-Analyse liefert keine konsistenten Ergebnisse, wenn sich die "
 "Belichtungszeit über die Sequenz ändert.\n"
 
-#: src/io/sequence.c:2165
+#: src/io/sequence.c:2168
 #, c-format
 msgid "Photometry for star at %.1f, %.1f in image %d\n"
 msgstr "Photometrie für Stern an %.1f, %.1f in Bild %d\n"
 
-#: src/io/sequence.c:2210
+#: src/io/sequence.c:2213
 msgid "No registration data stored for this layer"
 msgstr "Keine Registrierungsdaten für diese Ebene gespeichert"
 
-#: src/io/sequence.c:2211
+#: src/io/sequence.c:2214
 msgid ""
 "Some registration data was found for another layer.\n"
 "Do you want to save the psf data as registration data for this layer?"
@@ -35836,7 +35981,7 @@ msgstr ""
 "Es wurden einige Registrierungsdaten für eine andere Ebene gefunden.\n"
 "Möchten Sie die Psf-Daten als Registrierungsdaten für diese Ebene speichern?"
 
-#: src/io/sequence.c:2290 src/registration/3stars.c:116
+#: src/io/sequence.c:2293 src/registration/3stars.c:116
 msgid ""
 "The reference image has a null matrix and was not previously registered. "
 "Please select another one.\n"
@@ -35844,7 +35989,7 @@ msgstr ""
 "Das Referenzbild hat eine Nullmatrix und wurde vorher nicht registiert. "
 "Bitte wählen Sie ein anderes Referenzbild aus.\n"
 
-#: src/io/sequence.c:2298
+#: src/io/sequence.c:2301
 msgid ""
 "The current image has a null matrix and was not previously registered. "
 "Please load another one to select the star.\n"
@@ -35852,7 +35997,7 @@ msgstr ""
 "Das aktuelle Bild hat eine Null-Matrix und wurde vorher nicht registriert. "
 "Bitte laden Sie ein anderes Bild, um den Stern auszuwählen.\n"
 
-#: src/io/sequence.c:2306 src/registration/3stars.c:132
+#: src/io/sequence.c:2309 src/registration/3stars.c:132
 msgid ""
 "This area is outside of the reference image. Please select the reference "
 "image to select another star.\n"
@@ -35860,7 +36005,7 @@ msgstr ""
 "Dieser Bereich liegt außerhalb des Referenzbildes. Bitte wählen Sie das "
 "Referenzbild, um einen anderen Stern auszuwählen.\n"
 
-#: src/io/sequence.c:2315
+#: src/io/sequence.c:2318
 msgid ""
 "The sequence analysis of the PSF will use a sliding selection area centred "
 "on the previous found star; this disables parallel processing.\n"
@@ -35869,7 +36014,7 @@ msgstr ""
 "Zentrum auf dem zuvor gefundenen Stern. Dies deaktiviert die "
 "Parallelverarbeitung.\n"
 
-#: src/io/sequence.c:2317
+#: src/io/sequence.c:2320
 msgid ""
 "The sequence analysis of the PSF will use registration data to move the "
 "selection area for each image; this is compatible with parallel processing.\n"
@@ -35878,11 +36023,11 @@ msgstr ""
 "Auswahlbereich für jedes Bild zurechtzurücken. Dies ist verträglich mit "
 "Parallelverarbeitung.\n"
 
-#: src/io/sequence.c:2329
+#: src/io/sequence.c:2332
 msgid "PSF on area"
 msgstr "PSF des Bereichs"
 
-#: src/io/sequence.c:2433
+#: src/io/sequence.c:2436
 #, c-format
 msgid ""
 "Fixing the selection number in the .seq file (%d) to the actual value (%d) "
@@ -35891,7 +36036,7 @@ msgstr ""
 "Aktualisiere Anzahl der Bilder in der Sequenz-Datei (%d) auf den aktuellen "
 "Wert (%d) (nicht gespeichert)\n"
 
-#: src/io/sequence.c:2472
+#: src/io/sequence.c:2475
 #, c-format
 msgid ""
 "Sequence drift could not be checked as sequence has no regdata on layer %d\n"
@@ -35899,7 +36044,7 @@ msgstr ""
 "Sequenzdrift konnte nicht geprüft werden, da die Sequenz keine "
 "Registrierungsdaten auf Ebene %d hat\n"
 
-#: src/io/sequence.c:2486
+#: src/io/sequence.c:2489
 #, c-format
 msgid ""
 "Warning: the sequence appears to have heavy drifted images (%d pixels for "
@@ -35910,48 +36055,48 @@ msgstr ""
 "Bild %d), die Photometrie wird wahrscheinlich nicht zuverlässig sein. Prüfen "
 "Sie die Sequenz und schließen Sie einige Bilder aus\n"
 
-#: src/io/sequence.c:2500
+#: src/io/sequence.c:2503
 #, c-format
 msgid "Registration data cleared for layer %d\n"
 msgstr "Registrierungsdaten für Layer %d gelöscht\n"
 
-#: src/io/sequence.c:2506
+#: src/io/sequence.c:2509
 msgid "External reference path cleared\n"
 msgstr ""
 
-#: src/io/sequence.c:2517
+#: src/io/sequence.c:2520
 #, c-format
 msgid "Registration (back-up) data cleared for layer %d\n"
 msgstr "Registrierungsdaten (back-up) für Layer %d gelöscht\n"
 
-#: src/io/sequence.c:2524
+#: src/io/sequence.c:2527
 #, c-format
 msgid "Statistics data cleared for layer %d\n"
 msgstr "Statistikdaten für Ebene %d gelöscht\n"
 
-#: src/io/sequence.c:2530
+#: src/io/sequence.c:2533
 #, c-format
 msgid "Statistics data (back-up) cleared for layer %d\n"
 msgstr "Statistikdaten (backu-up) für Ebene %d gelöscht\n"
 
-#: src/io/sequence.c:2550
+#: src/io/sequence.c:2553
 #, fuzzy
 msgid "MPP registration data (sidecar) cleared\n"
 msgstr "Registrierungsdaten für Layer %d gelöscht\n"
 
-#: src/io/sequence.c:2585 src/io/sequence.c:2600
+#: src/io/sequence.c:2588 src/io/sequence.c:2603
 #, c-format
 msgid "Removed outdated cache file %s failed\n"
 msgstr "Löschen veralteter Cache-Datei %s fehlgeschlagen\n"
 
-#: src/io/sequence_export.c:100
+#: src/io/sequence_export.c:133
 #, c-format
 msgid "Using registration information from layer %d to export sequence\n"
 msgstr ""
 "Benutze Registrierungs-Informationen aus Layer %d für den Export der "
 "Sequenz\n"
 
-#: src/io/sequence_export.c:136
+#: src/io/sequence_export.c:169
 msgid ""
 "Reference frame has an ICC profile. Will assign / convert other frames to to "
 "match.\n"
@@ -35959,16 +36104,16 @@ msgstr ""
 "Das Referenzbild verfügt über ein ICC-Profil. Andere Bilder werden "
 "entsprechend zugewiesen bzw. konvertiert.\n"
 
-#: src/io/sequence_export.c:183 src/io/sequence_export.c:215
+#: src/io/sequence_export.c:216 src/io/sequence_export.c:248
 msgid "Reference frame has an ICC profile. Exporting as sRGB.\n"
 msgstr "Referenzrahmen hat ein ICC-Profil. Export als sRGB.\n"
 
-#: src/io/sequence_export.c:193
+#: src/io/sequence_export.c:226
 #, c-format
 msgid "AVI file `%s' could not be created\n"
 msgstr "AVI-Datei %s konnte nicht erstellt werden.\n"
 
-#: src/io/sequence_export.c:206
+#: src/io/sequence_export.c:239
 msgid ""
 "MP4 output is not supported because siril was not compiled with ffmpeg "
 "support.\n"
@@ -35976,7 +36121,7 @@ msgstr ""
 "Die MP4-Ausgabe wird nicht unterstützt, weil SIRIL nicht mit \"ffmpeg "
 "support\" compiliert wurde.\n"
 
-#: src/io/sequence_export.c:224
+#: src/io/sequence_export.c:257
 msgid ""
 "Film output needs to have a width that is a multiple of 32 and an even "
 "height, resizing selection.\n"
@@ -35984,7 +36129,7 @@ msgstr ""
 "Die Video-Ausgabe muß in der Breite ein Vielfaches von 32 und eine "
 "geradzahlige Höhe haben, Auswahl wird neu dimensioniert.\n"
 
-#: src/io/sequence_export.c:276
+#: src/io/sequence_export.c:309
 msgid ""
 "Export has detected registration data with more than simple shifts, this is "
 "not supported\n"
@@ -35992,25 +36137,25 @@ msgstr ""
 "Der Export hat Registrierungsdaten mit mehr als nur einfachen Verschiebungen "
 "erkannt, dies wird nicht unterstützt.\n"
 
-#: src/io/sequence_export.c:330
+#: src/io/sequence_export.c:363
 #, c-format
 msgid "image %d is excluded from export\n"
 msgstr "Bild %d vom Export ausgeschlossen\n"
 
-#: src/io/sequence_export.c:343
+#: src/io/sequence_export.c:376
 #, c-format
 msgid "Processing image %s"
 msgstr "Verarbeite Bild %s"
 
-#: src/io/sequence_export.c:351
+#: src/io/sequence_export.c:384
 msgid "Export: could not read frame, aborting\n"
 msgstr "Export: konte Frame nicht lesen. Abbruch\n"
 
-#: src/io/sequence_export.c:366
+#: src/io/sequence_export.c:399
 msgid "An image of the sequence doesn't have the same dimensions\n"
 msgstr "Ein Bild der Sequenz hat nicht die gleichen Abmessungen\n"
 
-#: src/io/sequence_export.c:513
+#: src/io/sequence_export.c:532
 msgid ""
 "Info: this frame has an ICC profile but the reference frame does not. "
 "Profile will be preserved...\n"
@@ -36018,19 +36163,19 @@ msgstr ""
 "Info: Dieses Bild hat ein ICC-Profil, das Referenzbild jedoch nicht. Das "
 "Profil bleibt erhalten...\n"
 
-#: src/io/sequence_export.c:612
+#: src/io/sequence_export.c:629
 msgid "Sequence export failed. Check the log."
 msgstr "Export der Sequenz fehlgeschlagen. Überprüfen Sie das Log-Protokoll."
 
-#: src/io/sequence_export.c:613
+#: src/io/sequence_export.c:630
 msgid "Sequence export failed\n"
 msgstr "Export der Sequenz fehlgeschlagen\n"
 
-#: src/io/sequence_export.c:616
+#: src/io/sequence_export.c:633
 msgid "Sequence export succeeded."
 msgstr "Sequenz erfolgreich exportiert."
 
-#: src/io/sequence_export.c:617
+#: src/io/sequence_export.c:634
 msgid "Sequence export succeeded.\n"
 msgstr "Sequenz erfolgreich exportiert.\n"
 
@@ -36311,19 +36456,19 @@ msgstr ""
 "Informationen zum Markieren von Objekten im Sonnensystem finden Sie im "
 "Befehl conesearch\n"
 
-#: src/io/siril_catalogues.c:1046
+#: src/io/siril_catalogues.c:1048
 msgid "no DATE-OBS information, cannot account for stars proper motions\n"
 msgstr ""
 "Keine DATE-OBS-Informationen, kann die Eigenbewegungen der Sterne nicht "
 "berücksichtigen\n"
 
-#: src/io/siril_catalogues.c:1049
+#: src/io/siril_catalogues.c:1051
 msgid "This catalog does not have proper motion info, will not be computed\n"
 msgstr ""
 "Dieser Katalog verfügt nicht über die richtigen Bewegungsinformationen und "
 "wird nicht berechnet\n"
 
-#: src/io/siril_catalogues.c:1103
+#: src/io/siril_catalogues.c:1105
 #, c-format
 msgid ""
 "Won't log list of objects for catalog %s which does not have name "
@@ -36332,13 +36477,13 @@ msgstr ""
 "Liste der Objekte für Katalog %s, die keine Namensinformationen haben, wird "
 "nicht protokolliert\n"
 
-#: src/io/siril_catalogues.c:1107
+#: src/io/siril_catalogues.c:1109
 msgid "Won't show objects tags as there is no display, ignoring\n"
 msgstr ""
 "Objekt-Tags werden nicht angezeigt, da keine Anzeige vorhanden ist. "
 "Ignorieren\n"
 
-#: src/io/siril_catalogues.c:1111
+#: src/io/siril_catalogues.c:1113
 #, c-format
 msgid ""
 "Won't display objects tags for catalog %s which does not have name "
@@ -36347,12 +36492,12 @@ msgstr ""
 "Für den Katalog %s, der keine Namensinformationen enthält, werden keine "
 "Objekt-Tags angezeigt\n"
 
-#: src/io/siril_catalogues.c:1130
+#: src/io/siril_catalogues.c:1132
 #, c-format
 msgid "Using default observatory code %s\n"
 msgstr "Standard Observatoriumscode %s verwenden\n"
 
-#: src/io/siril_catalogues.c:1133
+#: src/io/siril_catalogues.c:1135
 msgid ""
 "Did not specify an observatory code, using geocentric by default, positions "
 "may not be accurate\n"
@@ -36360,29 +36505,29 @@ msgstr ""
 "Kein Sternwartencode angegeben, standardmäßig wird geozentrisch genutzt. "
 "Positionen können ungenau sein\n"
 
-#: src/io/siril_catalogues.c:1261
+#: src/io/siril_catalogues.c:1263
 #, c-format
 msgid "The %s catalog has been successfully downloaded\n"
 msgstr "Der Katalog %s wurde erfolgreich heruntergeladen.\n"
 
-#: src/io/siril_catalogues.c:1276
+#: src/io/siril_catalogues.c:1278
 msgid "No item found in the image\n"
 msgstr "Keine Objekte im Bild gefunden.\n"
 
 #. Summary log message
-#: src/io/siril_catalogues.c:1411
+#: src/io/siril_catalogues.c:1413
 #, c-format
 msgid "%d objects found%s in the image (mag limit %.2f) using %s catalogue\n"
 msgstr ""
 "Im Bild wurden %d Objekte gefunden%s (Grenzgröße %.2f) unter Verwendung des "
 "%s-Katalogs\n"
 
-#: src/io/siril_catalogues.c:1469
+#: src/io/siril_catalogues.c:1471
 #, c-format
 msgid "List saved to %s\n"
 msgstr "Liste in %s gespeichert\n"
 
-#: src/io/siril_catalogues.c:1471
+#: src/io/siril_catalogues.c:1473
 #, c-format
 msgid "Failed to save list to %s\n"
 msgstr "Liste als %s speichern fehlgeschlagen\n"
@@ -37904,17 +38049,17 @@ msgstr "Willkommen zu %s v%s\n"
 msgid "Supported file types: %s\n"
 msgstr "Unterstützte Dateitypen: %s\n"
 
-#: src/main-cli.c:239 src/main.c:522
+#: src/main-cli.c:241 src/main.c:522
 #, c-format
 msgid "File [%s] does not exist (from CWD, use absolute path?)\n"
 msgstr "Datei [%s] existiert nicht (von CWD, absoluten Pfad benutzen?)\n"
 
 #. g_signal_connect(app, "open", G_CALLBACK(siril_app_open), NULL);
-#: src/main-cli.c:414 src/main.c:919
+#: src/main-cli.c:415 src/main.c:919
 msgid "Siril - A free astronomical image processing software."
 msgstr "SIRIL - Ein kostenloses Astronomisches Bildverarbeitungsprogramm."
 
-#: src/main-cli.c:421 src/main.c:932
+#: src/main-cli.c:422 src/main.c:932
 #, c-format
 msgid "Run “%s --help” to see a full list of available command line options."
 msgstr ""
@@ -39506,12 +39651,7 @@ msgstr ""
 "Drizzle-Stapelverarbeitung kann nicht durchgeführt werden weil die "
 "Gewichtungen fehlen.\n"
 
-#: src/stacking/median_and_mean.c:307
-#, c-format
-msgid "We have %d parallel blocks of size %d (+%d) for stacking.\n"
-msgstr "Wir haben %d parallele Blocks der Größe %d (+%d) zum Stacken.\n"
-
-#: src/stacking/median_and_mean.c:320
+#: src/stacking/median_and_mean.c:319
 msgid ""
 "A bug has been found. Unable to split the image area into the correct "
 "processing blocks.\n"
@@ -39519,23 +39659,28 @@ msgstr ""
 "Ein Bug wurde gefunden. Kann das Bild nicht in korrekte Bearbeitungsblöcke "
 "unterteilen.\n"
 
-#: src/stacking/median_and_mean.c:474
+#: src/stacking/median_and_mean.c:356
+#, c-format
+msgid "We have %d parallel blocks of size %d (+%d) for stacking.\n"
+msgstr "Wir haben %d parallele Blocks der Größe %d (+%d) zum Stacken.\n"
+
+#: src/stacking/median_and_mean.c:478
 #, c-format
 msgid "Error reading one of the image areas (%d: %d %d %d %d)\n"
 msgstr "Fehler beim Einlesen eines der Bildbereiche (%d: %d %d %d %d)\n"
 
-#: src/stacking/median_and_mean.c:503
+#: src/stacking/median_and_mean.c:507
 #, c-format
 msgid "Error reading one of the masks areas (%d: %d %d %d %d)\n"
 msgstr "Fehler beim Einlesen eines der Bildbereiche (%d: %d %d %d %d)\n"
 
-#: src/stacking/median_and_mean.c:530 src/stacking/median_and_mean.c:535
+#: src/stacking/median_and_mean.c:534 src/stacking/median_and_mean.c:539
 #: src/stacking/sum.c:138
 #, c-format
 msgid "Error reading one of the drizzle weights areas (%d: %d %d %d %d)\n"
 msgstr "Fehler beim Einlesen einer der Drizzlegewichtung (%d: %d %d %d %d)\n"
 
-#: src/stacking/median_and_mean.c:1145 src/stacking/median_and_mean.c:1192
+#: src/stacking/median_and_mean.c:1151 src/stacking/median_and_mean.c:1198
 #, c-format
 msgid ""
 "Sequence does not have registration info, cannot use weighing by %s, "
@@ -39544,20 +39689,20 @@ msgstr ""
 "Die Sequenz hat keine Registrierungsinformationen, kann die Gewichtung durch "
 "%s nicht verwenden, Abbruch\n"
 
-#: src/stacking/median_and_mean.c:1192
+#: src/stacking/median_and_mean.c:1198
 msgid "number of stars"
 msgstr "Anzahl Sterne"
 
-#: src/stacking/median_and_mean.c:1248
+#: src/stacking/median_and_mean.c:1254
 #, c-format
 msgid "Using %d MB memory maximum for stacking\n"
 msgstr "Verwende höchstens %d MB Speicher zum Stacken\n"
 
-#: src/stacking/median_and_mean.c:1280
+#: src/stacking/median_and_mean.c:1286
 msgid "Select at least two frames for stacking. Aborting.\n"
 msgstr "Wählen Sie mindestens 2 Frames zum Stacken aus. Abbruch.\n"
 
-#: src/stacking/median_and_mean.c:1283
+#: src/stacking/median_and_mean.c:1289
 msgid ""
 "The Generalized Extreme Studentized Deviate Test needs at least three frames "
 "for stacking. Aborting.\n"
@@ -39565,17 +39710,17 @@ msgstr ""
 "Der Generalized Extreme Studentized Deviate Test benötigt mindestens 3 "
 "Bilder zum Stacken. Abbruch.\n"
 
-#: src/stacking/median_and_mean.c:1289
+#: src/stacking/median_and_mean.c:1295
 msgid "No registration layer passed, ignoring registration data!\n"
 msgstr ""
 "Keine Registrierungsebene übergeben, Registrierungsdaten werden ignoriert!\n"
 
 #. no image has been loaded
-#: src/stacking/median_and_mean.c:1303
+#: src/stacking/median_and_mean.c:1309
 msgid "Rejection stack error: uninitialized sequence\n"
 msgstr "Stacken mit Ausschluss - Fehler: Sequenz nicht initialisiert\n"
 
-#: src/stacking/median_and_mean.c:1308
+#: src/stacking/median_and_mean.c:1314
 #, c-format
 msgid ""
 "Rejection stack error: sequence has wrong image size (%dx%d for sequence, "
@@ -39584,11 +39729,11 @@ msgstr ""
 "Ausschluss-Stack-Fehler: Sequenz hat falsche Bildgröße (%dx%d für Sequenz, "
 "%ldx%ld für Bilder)\n"
 
-#: src/stacking/median_and_mean.c:1313
+#: src/stacking/median_and_mean.c:1319
 msgid "Processing the sequence as RGB\n"
 msgstr "Bearbeite die Sequenz als RGB\n"
 
-#: src/stacking/median_and_mean.c:1366
+#: src/stacking/median_and_mean.c:1372
 msgid ""
 "Stacking a film will work only on one core and will be slower than if you "
 "convert it to SER\n"
@@ -39596,73 +39741,73 @@ msgstr ""
 "Das Stapeln eines Films funktioniert nur auf einem CPU-Kern und ist "
 "langsamer, als wenn Sie den Film in SER konvertieren\n"
 
-#: src/stacking/median_and_mean.c:1525
+#: src/stacking/median_and_mean.c:1533
 msgid "Computing weights based on noise...\n"
 msgstr "Berechne Gewichtung auf Basis von Bildrauschen...\n"
 
-#: src/stacking/median_and_mean.c:1529
+#: src/stacking/median_and_mean.c:1537
 msgid "Computing weights based on wFWHM...\n"
 msgstr "Berechne Gewichtung auf Basis von Bildrauschen...\n"
 
-#: src/stacking/median_and_mean.c:1533
+#: src/stacking/median_and_mean.c:1541
 msgid "Computing weights based on number of stars...\n"
 msgstr "Berechne Gewichtung auf Basis von Bildrauschen...\n"
 
-#: src/stacking/median_and_mean.c:1537
+#: src/stacking/median_and_mean.c:1545
 msgid "Computing weights based on number of stacked images...\n"
 msgstr "Berechne Gewichtung auf Basis von Bildrauschen...\n"
 
-#: src/stacking/median_and_mean.c:1545
+#: src/stacking/median_and_mean.c:1553
 msgid "Starting stacking...\n"
 msgstr "Starte Stacking...\n"
 
-#: src/stacking/median_and_mean.c:1547
+#: src/stacking/median_and_mean.c:1555
 msgid "Rejection stacking in progress..."
 msgstr "Stacken mit Ausschluss: läuft..."
 
-#: src/stacking/median_and_mean.c:1548
+#: src/stacking/median_and_mean.c:1556
 msgid "Median stacking in progress..."
 msgstr "Median Stacking läuft..."
 
-#: src/stacking/median_and_mean.c:1765
+#: src/stacking/median_and_mean.c:1773
 msgid "Finalizing stacking..."
 msgstr "Schließe Stacking ab..."
 
-#: src/stacking/median_and_mean.c:1769
+#: src/stacking/median_and_mean.c:1777
 msgid "Pixel rejection in channel #%d: %.3lf%% - %.3lf%%\n"
 msgstr "Pixel-Ausschluss in Kanal #%d: %.3lf%% - %.3lf%%\n"
 
-#: src/stacking/median_and_mean.c:1811
+#: src/stacking/median_and_mean.c:1819
 msgid "Rejection stacking failed. Check the log."
 msgstr ""
 "Stacken mit Ausschluss fehlgeschlagen. Überprüfen Sie das Log-Protokoll."
 
-#: src/stacking/median_and_mean.c:1812
+#: src/stacking/median_and_mean.c:1820
 msgid "Median stacking failed. Check the log."
 msgstr "Median Stacking fehlgeschlagen. Überprüfen Sie das Log-Protokoll."
 
-#: src/stacking/median_and_mean.c:1814
+#: src/stacking/median_and_mean.c:1822
 msgid "Stacking operation was cancelled.\n"
 msgstr "Stacking wurde gestopp.\n"
 
-#: src/stacking/median_and_mean.c:1815
+#: src/stacking/median_and_mean.c:1823
 msgid "Stacking failed.\n"
 msgstr "Stacking fehlgeschlagen.\n"
 
-#: src/stacking/median_and_mean.c:1818
+#: src/stacking/median_and_mean.c:1826
 msgid "Rejection stacking complete."
 msgstr "Stacken mit Ausschluss abgeschlossen."
 
-#: src/stacking/median_and_mean.c:1819
+#: src/stacking/median_and_mean.c:1827
 #, c-format
 msgid "Rejection stacking complete. %d images have been stacked.\n"
 msgstr "Ausschluss Stacking abgeschlossen. %d Bilder wurden gestackt.\n"
 
-#: src/stacking/median_and_mean.c:1821
+#: src/stacking/median_and_mean.c:1829
 msgid "Median stacking complete."
 msgstr "Median Stacking abgeschlossen."
 
-#: src/stacking/median_and_mean.c:1822
+#: src/stacking/median_and_mean.c:1830
 #, c-format
 msgid "Median stacking complete. %d images have been stacked.\n"
 msgstr "Median Stacking abgeschlossen. %d Bilder wurden gestackt.\n"
@@ -39717,9 +39862,9 @@ msgstr ""
 "Überlappungsdaten zwischen Bild %d und %d konnten nicht gelesen werden\n"
 
 #: src/stacking/normalization.c:655
-#, c-format
+#, fuzzy, c-format
 msgid ""
-"Your system does not have enough memory to normalize images overlaps for "
+"Your system does not have enough memory to normalize image overlaps for "
 "stacking operation (%d MB free for %d MB required)\n"
 msgstr ""
 "Ihr System verfügt nicht über genügend Speicher, um Bildüberlappungen fürs "
@@ -39960,6 +40105,25 @@ msgstr "Skaliere Sequenz für's Stacken"
 #: src/stacking/upscaling.c:148
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr "Das Stacken erfolgt ohne Hochskalierung (ohne 'Drizzle')\n"
+
+#, fuzzy
+#~ msgid "simplified"
+#~ msgstr "Einfach"
+
+#, c-format
+#~ msgid ""
+#~ "White Balance summary\n"
+#~ "<span size=\"small\">%s SPCC Linear Fit: y = %f + %f·x, &#x03C3; = %f\n"
+#~ "White reference: %s\n"
+#~ "Number of stars: %d (removed %d outliers)\n"
+#~ "White balance factors: %.3f %.3f %.3f</span>"
+#~ msgstr ""
+#~ "Zusammenfassung Weißabgleich\n"
+#~ "<span size=\"small\">%s SPCC Lineare Anpassung: y = %f + %f·x, &#x03C3; = "
+#~ "%f\n"
+#~ "Weißreferenz: %s\n"
+#~ "Anzahl der Sterne: %d (%d Ausreißer entfernt)\n"
+#~ "Faktoren Weißabgleich: %.3f %.3f %.3f</span>"
 
 #~ msgid "Toggles whether to apply the curve to the red channel"
 #~ msgstr "Schaltet um, ob die Streckung für den monochromen Kanal (Rot) gilt"
@@ -40383,9 +40547,6 @@ msgstr "Das Stacken erfolgt ohne Hochskalierung (ohne 'Drizzle')\n"
 
 #~ msgid "Starless"
 #~ msgstr "Sternlos"
-
-#~ msgid "Star mask"
-#~ msgstr "Sternmaske"
 
 #~ msgid "Original"
 #~ msgstr "Original"
@@ -43325,9 +43486,6 @@ msgstr "Das Stacken erfolgt ohne Hochskalierung (ohne 'Drizzle')\n"
 #~ "lokale NOMAD-Katalog installiert ist, kann mit der Option <b>-"
 #~ "catalog=nomad</b> die Verwendung des Remote-Katalogs erzwungen werden"
 
-#~ msgid "Photometry failed.\n"
-#~ msgstr "Photometrie fehlgeschlagen.\n"
-
 #~ msgid ""
 #~ "Photometry could not be performed. You can try to adjust the settings in "
 #~ "the Siril preferences."
@@ -43537,9 +43695,6 @@ msgstr "Das Stacken erfolgt ohne Hochskalierung (ohne 'Drizzle')\n"
 #~ msgstr ""
 #~ "Objekte des Sonnensystems mit mag<20.0 suchen und anzeigen.\n"
 #~ "Diese Forschung nutzt das IMCCE SkyBoT VO Tool."
-
-#~ msgid "Save Plot"
-#~ msgstr "Grafik speichern"
 
 #~ msgid "legend"
 #~ msgstr "Legende"
@@ -46119,12 +46274,6 @@ msgstr "Das Stacken erfolgt ohne Hochskalierung (ohne 'Drizzle')\n"
 #~ msgid_plural "%d files were ignored"
 #~ msgstr[0] "Datei wurde verworfen"
 #~ msgstr[1] "Datei"
-
-#, fuzzy
-#~ msgid "%d star excluded"
-#~ msgid_plural "%d stars excluded "
-#~ msgstr[0] "%d Frames wurden ausgeschlossen.\n"
-#~ msgstr[1] "%d Frames wurden ausgeschlossen.\n"
 
 #, fuzzy
 #~ msgid "%d %s processed.\n"

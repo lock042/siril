@@ -223,6 +223,8 @@ static void siril_app_activate(GApplication *application) {
 	 * "python not ready yet".  See main.c for the details. */
 	initialize_python_venv_in_thread();
 
+	initialize_profiles_and_transforms(); // color management
+
 	if (main_option_script) {
 		GInputStream *input_stream = NULL;
 
@@ -254,7 +256,6 @@ static void siril_app_activate(GApplication *application) {
 		read_pipe(main_option_rpipe_path);
 	}
 
-	initialize_profiles_and_transforms(); // color management
 	initialize_spcc_mirrors();
 	if (main_option_sync_spcc) {
 		siril_check_spcc_mirrors(TRUE, TRUE);
