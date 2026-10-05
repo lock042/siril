@@ -354,8 +354,8 @@ static int star_match_with_retries(psf_star **ref_stars, psf_star **stars, int n
 }
 
 /* matches the stars of an image with those of a reference to get its PSF
- * weighting terms, for code paths where they are not matched for registration */
-void match_psf_terms(psf_star **stars, int nb_stars, psf_star **ref_stars, int nb_ref_stars, transformation_type type,
+ * weighting terms, when they are not matched for registration */
+static void match_psf_terms(psf_star **stars, int nb_stars, psf_star **ref_stars, int nb_ref_stars, transformation_type type,
 		double noise, float *psf_flux, float *psf_mean_flux) {
 	Homography H = { 0 };
 	s_star *match = NULL, *match_ref = NULL;

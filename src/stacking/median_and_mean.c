@@ -34,7 +34,6 @@
 #include "io/image_format_fits.h"
 #include "algos/sorting.h"
 #include "algos/statistics.h"
-#include "algos/star_finder.h"
 #include "algos/siril_wcs.h"
 #include "stacking/stacking.h"
 #include "stacking/siril_fit_linear.h"
@@ -1225,172 +1224,43 @@ static int compute_nbstars_weights(struct stacking_args *args) {
 	return ST_OK;
 }
 
-/* detects the stars of a frame and measures its noise and background, for
- * the PSF photometry terms at stacking time when the registration didn't
- * provide them */
-static int detect_psf_stars(struct stacking_args *args, int idx, int layer, threading_type threads, int thread_id,
-		psf_star ***stars, int *nb_stars, double *noise) {
-	sequence *seq = args->seq;
-	fits fit = { 0 };
-	rectangle area = { 0, 0,
-		seq->is_variable ? seq->imgparam[idx].rx : seq->rx,
-		seq->is_variable ? seq->imgparam[idx].ry : seq->ry };
-
-	*stars = NULL;
-	*nb_stars = 0;
-	if (seq_read_frame_part(seq, layer, idx, &fit, &area, FALSE, thread_id))
-		return ST_GENERIC_ERROR;
-
-	image im = { .fit = &fit, .from_seq = NULL, .index_in_seq = -1 };
-	*stars = peaker(&im, 0, &com.pref.starfinder_conf, nb_stars, NULL, FALSE, TRUE,
-			MAX_STARS_FITTED, com.pref.starfinder_conf.profile, threads);
-	int retval = measure_noise(NULL, -1, &fit, 0, threads, noise) ? ST_GENERIC_ERROR : ST_OK;
-	clearfits(&fit);
-	return retval;
-}
-
-/* stars of each frame are matched with those of the reference image */
-static int measure_psf_signal_sequence(struct stacking_args *args, int layer, double *flux, double *mean_flux) {
-	int nb_frames = args->nb_images_to_stack;
-	// one channel read per thread, plus the star finder working copies
-	guint64 mem_per_frame = (guint64)args->seq->rx * args->seq->ry * sizeof(float) * 4;
-	int nb_threads = (int)(get_max_memory_in_MB() / max(1, (int)(mem_per_frame / BYTES_IN_A_MB)));
-	nb_threads = min(nb_threads, min(com.max_thread, nb_frames));
-	if (nb_threads <= 0) {
-		siril_log_error(_("Not enough memory to compute PSF weights\n"));
-		return ST_GENERIC_ERROR;
-	}
-
-	psf_star **ref_stars = NULL;
-	int nb_ref_stars = 0;
-	double ref_noise = 0.;
-	if (detect_psf_stars(args, args->ref_image, layer, MULTI_THREADED, -1, &ref_stars, &nb_ref_stars, &ref_noise)) {
-		siril_log_error(_("Could not measure PSF signal of image %d\n"), args->ref_image + 1);
-		free_fitted_stars(ref_stars);
-		return ST_GENERIC_ERROR;
-	}
-
-	int *threads_per_thread = compute_thread_distribution(nb_threads, com.max_thread);
-	int retval = ST_OK, cur_nb = 0;
-	gui_iface.set_progress(PROGRESS_RESET, _("Computing PSF weights"));
-
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(nb_threads) schedule(dynamic) \
-	if (args->seq->type == SEQ_SER || ((args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) && fits_is_reentrant()))
-#endif
-	for (int i = 0; i < nb_frames; i++) {
-		if (retval)
-			continue;
-		if (!processing_should_continue()) {
-			retval = ST_CANCEL;
-			continue;
-		}
-		int idx = args->image_indices[i];
-		float psf_flux = 0.f, psf_mean_flux = 0.f;
-		if (idx == args->ref_image) {
-			psf_flux = ref_noise > 0. ? 1. / ref_noise : 0.;
-			psf_mean_flux = psf_flux;
-		} else {
-			int thread_id = -1;
-			threading_type threads = SINGLE_THREADED;
-#ifdef _OPENMP
-			thread_id = omp_get_thread_num();
-			threads = threads_per_thread[thread_id];
-#endif
-			psf_star **stars = NULL;
-			int nb_stars = 0;
-			double noise = 0.;
-			if (detect_psf_stars(args, idx, layer, threads, thread_id, &stars, &nb_stars, &noise)) {
-				siril_log_error(_("Could not measure PSF signal of image %d\n"), idx + 1);
-				free_fitted_stars(stars);
-				retval = ST_GENERIC_ERROR;
-				continue;
-			}
-			match_psf_terms(stars, nb_stars, ref_stars, nb_ref_stars, SIMILARITY_TRANSFORMATION, noise, &psf_flux, &psf_mean_flux);
-			free_fitted_stars(stars);
-		}
-		flux[i] = psf_flux;
-		mean_flux[i] = psf_mean_flux;
-		g_atomic_int_inc(&cur_nb);
-		gui_iface.set_progress(cur_nb / (double)nb_frames, NULL);
-	}
-	free(threads_per_thread);
-	free_fitted_stars(ref_stars);
-	gui_iface.set_progress(PROGRESS_DONE, NULL);
-	return retval;
-}
-
-/* PSF Signal Weight = flux * mean_flux and PSF SNR = flux^2, with the terms
- * computed from the stars matched with the reference during registration
- * (see compute_psf_terms()), or at stacking time if they are not available */
+/* PSF Signal Weight = psf_flux * psf_mean_flux and PSF SNR = psf_flux^2, with
+ * the terms computed from the stars matched with the reference during the
+ * global star registration (see compute_psf_terms()) */
 static int compute_psf_weights(struct stacking_args *args) {
 	int nb_frames = args->nb_images_to_stack;
 	int nb_layers = args->seq->nb_layers;
 	gboolean is_psfsw = args->weighting_type == PSFSW_WEIGHT;
-	int layer = (args->reglayer >= 0 && args->reglayer < nb_layers) ? args->reglayer :
-		(nb_layers == 3 ? GLAYER : RLAYER);
+	const gchar *name = is_psfsw ? _("PSF signal weight") : _("PSF SNR");
 
-	double *flux = calloc(nb_frames, sizeof(double));
-	double *mean_flux = calloc(nb_frames, sizeof(double));
-	if (!flux || !mean_flux) {
-		PRINT_ALLOC_ERR;
-		free(flux);
-		free(mean_flux);
-		return ST_ALLOC_ERROR;
-	}
-
-	// frames for which the registration couldn't compute the terms get a null weight
-	gboolean from_reg = FALSE;
-	if (layer_has_registration(args->seq, layer)) {
-		for (int i = 0; i < nb_frames; i++) {
-			const regdata *reg = &args->seq->regparam[layer][args->image_indices[i]];
-			flux[i] = reg->psf_flux;
-			mean_flux[i] = reg->psf_mean_flux;
-			if (flux[i] > 0.)
-				from_reg = TRUE;
-		}
-	}
-	if (from_reg) {
-		siril_log_message(_("Using PSF photometry from registration data\n"));
-	} else {
-		siril_log_message(_("PSF photometry not available from registration data, measuring stars...\n"));
-		memset(flux, 0, nb_frames * sizeof(double));
-		memset(mean_flux, 0, nb_frames * sizeof(double));
-		int retval = measure_psf_signal_sequence(args, layer, flux, mean_flux);
-		if (retval) {
-			free(flux);
-			free(mean_flux);
-			return retval;
-		}
+	if (!layer_has_registration(args->seq, args->reglayer)) {
+		siril_log_error(_("Sequence does not have registration info, cannot use weighing by %s, aborting\n"), name);
+		return ST_GENERIC_ERROR;
 	}
 
 	args->weights = malloc(nb_layers * nb_frames * sizeof(double));
 	double norm = 0.0;
 	for (int i = 0; i < nb_frames; i++) {
-		double w = psf_weight(flux[i], mean_flux[i], is_psfsw);
-		if (!(w > 0.)) {
-			siril_log_warning(_("Image #%d: not enough stars matched with the reference, weight set to 0\n"), args->image_indices[i] + 1);
-			w = 0.;
-		}
-		args->weights[i] = w;
-		norm += w;
+		const regdata *reg = &args->seq->regparam[args->reglayer][args->image_indices[i]];
+		double w = psf_weight(reg->psf_flux, reg->psf_mean_flux, is_psfsw);
+		args->weights[i] = w > 0. ? w : 0.;
+		norm += args->weights[i];
 	}
 	norm /= (double) nb_frames;
 	if (!norm) {
-		siril_log_error(_("No valid PSF weight could be computed\n"));
-		free(flux);
-		free(mean_flux);
+		siril_log_error(_("Sequence has no PSF photometry, a global star registration is required for weighing by %s, aborting\n"), name);
 		return ST_GENERIC_ERROR;
 	}
 	for (int i = 0; i < nb_frames; i++) {
+		const regdata *reg = &args->seq->regparam[args->reglayer][args->image_indices[i]];
+		if (args->weights[i] == 0.)
+			siril_log_warning(_("Image #%d: not enough stars matched with the reference, weight set to 0\n"), args->image_indices[i] + 1);
 		args->weights[i] /= norm;
 		for (int l = 1; l < nb_layers; l++)
 			args->weights[l * nb_frames + i] = args->weights[i];
 		siril_log_debug("Image #%d - Layer %d - psf flux: %g, psf mean flux: %g - weight: %.4f\n",
-				args->image_indices[i] + 1, layer, flux[i], mean_flux[i], args->weights[i]);
+				args->image_indices[i] + 1, args->reglayer, reg->psf_flux, reg->psf_mean_flux, args->weights[i]);
 	}
-	free(flux);
-	free(mean_flux);
 	return ST_OK;
 }
 

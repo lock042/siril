@@ -232,8 +232,6 @@ double psf_weight_mean(const sequence *seq, int layer, gboolean signal_weight);
 static inline double relative_psf_weight(const regdata *reg, gboolean signal_weight, double mean) {
 	return mean > 0. ? psf_weight(reg->psf_flux, reg->psf_mean_flux, signal_weight) / mean : 0.;
 }
-void match_psf_terms(psf_star **stars, int nb_stars, psf_star **ref_stars, int nb_ref_stars, transformation_type type,
-		double noise, float *psf_flux, float *psf_mean_flux);
 Homography H_from_translation(double dx, double dy);
 void SetNullH(Homography *H);
 void compute_roi(Homography *H, int rx, int ry, framing_roi *roi);
