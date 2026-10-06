@@ -181,6 +181,7 @@ int multi_finalize(struct generic_seq_args *args);
 gboolean start_in_new_thread(gpointer(*f)(gpointer p), gpointer p);
 gpointer waiting_for_thread();
 void stop_processing_thread();
+void request_processing_thread_stop();
 gboolean get_thread_run();
 
 gboolean start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p);

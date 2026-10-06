@@ -35,6 +35,7 @@ gboolean image_cfa_warning_check();
 gboolean get_followstar_idle(gpointer user_data);
 
 int	process_addmax(int nb);
+int	process_addwcs(int nb);
 int	process_autostretch(int nb);
 int	process_autoghs(int nb);
 int	process_asinh(int nb);
@@ -51,6 +52,7 @@ int	process_boxselect(int nb);
 int	process_calibrate(int nb);
 int	process_calibrate_single(int nb);
 int	process_capabilities(int nb);
+int	process_catquery(int nb);
 int	process_catsearch(int nb);
 int	process_ccm(int nb);
 int	process_cd(int nb);
