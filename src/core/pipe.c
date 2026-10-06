@@ -199,6 +199,7 @@ static int pipe_write(const char *string) {
 #endif
 }
 
+// verb is only used for msgtype PIPE_STATUS
 int pipe_send_message(pipe_message msgtype, pipe_verb verb, const char *arg) {
 #ifdef _WIN32
 	if (hPipe_w == INVALID_HANDLE_VALUE) return -1;
@@ -258,16 +259,23 @@ int enqueue_command(char *command) {
 	g_strstrip(command);
 
 	/* commands specific to pipes: cancel and ping */
-	if (!strncmp(command, "cancel", 6))
-		return 1;
+	if (!strncmp(command, "cancel", 6)) {
+		if (processing_is_job_active()) {
+			pipe_send_message(PIPE_STATUS, PIPE_BUSY, NULL);
+			stop_processing_thread();
+		} else {
+			pipe_send_message(PIPE_STATUS, PIPE_SUCCESS, "cancel\n");
+		}
+		free(command);
+		return 0;
+	}
 	if (!strcmp(command, "ping")) {
 		if (processing_is_job_active())
 			pipe_send_message(PIPE_STATUS, PIPE_BUSY, NULL);
 		else {
-			gchar *str = g_strdup_printf("%s\n", command);
-			pipe_send_message(PIPE_STATUS, PIPE_SUCCESS, str);
-			g_free(str);
+			pipe_send_message(PIPE_STATUS, PIPE_SUCCESS, "ping\n");
 		}
+		free(command);
 		return 0;
 	}
 	if ((command[0] >= 'a' && command[0] <= 'z') ||
@@ -282,10 +290,8 @@ int enqueue_command(char *command) {
 
 void empty_command_queue() {
 	g_mutex_lock(&read_mutex);
-	while (command_list) {
-		free(command_list->data);
-		command_list = g_list_next(command_list);
-	}
+	g_list_free_full(command_list, free);
+	command_list = NULL;
 	g_mutex_unlock(&read_mutex);
 }
 
