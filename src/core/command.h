@@ -34,6 +34,7 @@ extern char *word[MAX_COMMAND_WORDS];  // NULL terminated
 gboolean image_cfa_warning_check();
 
 int	process_addmax(int nb);
+int	process_addwcs(int nb);
 int	process_autostretch(int nb);
 int	process_autostretch_mask(int nb);
 int	process_autoghs(int nb);
@@ -51,6 +52,7 @@ int	process_calibrate(int nb);
 int	process_calibrate_single(int nb);
 int	process_capabilities(int nb);
 int	process_catmag_mono(int nb);
+int	process_catquery(int nb);
 int	process_catsearch(int nb);
 int	process_ccm(int nb);
 int	process_cd(int nb);

@@ -1923,10 +1923,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	if (solution->wcslib->lin.dispre) { // some distortions were calculated, checked that the terms are not all null
 		int N = extract_SIP_order_and_matrices(solution->wcslib->lin.dispre, NULL, NULL, NULL, NULL);
 		if (!N) { // the computation of the distortions has failed for the order specified, we remove it and warn the user
-			disfree(solution->wcslib->lin.dispre);
-			solution->wcslib->lin.dispre = NULL;
-			solution->wcslib->flag = 0;
-			wcsset(solution->wcslib);
+			remove_dis_from_wcs(solution->wcslib);
 			return SOLVE_LINONLY;
 		}
 	}
