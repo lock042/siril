@@ -440,7 +440,7 @@ double get_wcs_image_resolution(fits *fit) {
 		resolution = (fabs(fit->keywords.wcslib->cdelt[0]) + fabs(fit->keywords.wcslib->cdelt[1])) * 0.5;
 	}
 	if (resolution <= 0.0) {
-		if (fit->keywords.focal_length >= 0.0 && fit->keywords.pixel_size_x >= 0.0 && fit->keywords.pixel_size_y == fit->keywords.pixel_size_x)
+		if (fit->keywords.focal_length > 0.0 && fit->keywords.pixel_size_x > 0.0 && fit->keywords.pixel_size_y == fit->keywords.pixel_size_x)
 			resolution = (RADCONV / fit->keywords.focal_length * fit->keywords.pixel_size_x) / 3600.0;
 		// what about pix size x != y?
 	}
