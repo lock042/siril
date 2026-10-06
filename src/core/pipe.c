@@ -49,6 +49,7 @@
 
 #include "core/siril.h"
 #include "core/siril_log.h"
+#include "core/processing.h"
 #include "pipe.h"
 #include "command_line_processor.h"
 //#include "processing.h"
@@ -202,6 +203,7 @@ static int pipe_write(const char *string) {
 #endif
 }
 
+// verb is only used for msgtype PIPE_STATUS
 int pipe_send_message(pipe_message msgtype, pipe_verb verb, const char *arg) {
 #ifdef _WIN32
 	if (hPipe_w == INVALID_HANDLE_VALUE) return -1;
@@ -261,8 +263,19 @@ int enqueue_command(char *command) {
 	g_strstrip(command);
 
 	/* commands specific to pipes: cancel and ping */
-	if (!strncmp(command, "cancel", 6))
-		return 1;
+	if (!strncmp(command, "cancel", 6)) {
+		/* Only request the stop here: process_commands() is already joining
+		 * the processing thread and will report the command's status.
+		 * Joining it from this thread as well would be a double join. */
+		if (get_thread_run()) {
+			pipe_send_message(PIPE_STATUS, PIPE_BUSY, NULL);
+			request_processing_thread_stop();
+		} else {
+			pipe_send_message(PIPE_STATUS, PIPE_SUCCESS, "cancel\n");
+		}
+		free(command);
+		return 0;
+	}
 	if (!strcmp(command, "ping")) {
 		if (get_thread_run())
 			pipe_send_message(PIPE_STATUS, PIPE_BUSY, NULL);
@@ -271,6 +284,7 @@ int enqueue_command(char *command) {
 			pipe_send_message(PIPE_STATUS, PIPE_SUCCESS, str);
 			g_free(str);
 		}
+		free(command);
 		return 0;
 	}
 	if ((command[0] >= 'a' && command[0] <= 'z') ||
