@@ -18,7 +18,6 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
 #include <string.h>
 

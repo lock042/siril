@@ -11,7 +11,6 @@
  */
 
 #include <gtk/gtk.h>
-#include <gdk/gdkkeysyms.h>
 
 #include "core/siril.h"
 #include "core/siril_log.h"
