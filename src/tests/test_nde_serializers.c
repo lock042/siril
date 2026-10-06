@@ -1065,7 +1065,7 @@ Test(nde_serializers, banding_roundtrip) {
 	in.sigma = 2.0 + 0.1;
 	in.amount = 0.5 + 0.03125;
 	in.protect_highlights = TRUE;
-	in.applyRotation = FALSE;
+	in.vertical = FALSE;
 	gchar *blob = op_desc_banding.serialize(&in);
 	cr_assert_not_null(blob);
 	struct banding_data *out = op_desc_banding.deserialize(blob, op_desc_banding.version);
@@ -1073,7 +1073,7 @@ Test(nde_serializers, banding_roundtrip) {
 	cr_assert(memcmp(&out->sigma, &in.sigma, sizeof(double)) == 0);
 	cr_assert(memcmp(&out->amount, &in.amount, sizeof(double)) == 0);
 	cr_assert_eq(out->protect_highlights, in.protect_highlights);
-	cr_assert_eq(out->applyRotation, in.applyRotation);
+	cr_assert_eq(out->vertical, in.vertical);
 	FREE_VIA_DESTRUCTOR(out);
 	CHECK_MALFORMED(&op_desc_banding, blob);
 	g_free(blob);

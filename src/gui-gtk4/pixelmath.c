@@ -24,7 +24,6 @@
  * pixelMath/pixel_math_runner.c.
  */
 
-#include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
 
 #include "core/siril.h"
@@ -1075,7 +1074,7 @@ static void select_image(int nb) {
 				gchar *name = g_path_get_basename(filename);
 				gchar *str = g_strdup_printf("%s will not be added in the pixel math tool because its size is different from the other loaded images"
 						" (width, height or number of channels).", name);
-				gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Image must have same dimension"), str);
+				gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Image must have same dimension"), _(str));
 				g_free(name);
 				g_free(str);
 			} else {

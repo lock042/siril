@@ -38,10 +38,10 @@
 #include "io/single_image.h"
 #include "io/sequence.h"
 
-static GtkRange *banding_scale_amount = NULL, *banding_scale_invsigma = NULL;
+static GtkRange *banding_scale_amount = NULL, *banding_scale_ksigma = NULL;
 static GtkCheckButton *banding_protect_highlights = NULL, *banding_vertical = NULL, *banding_seq = NULL;
 static GtkEntry *banding_seq_entry = NULL;
-static GtkWidget *banding_spin_invsigma = NULL;
+static GtkWidget *banding_spin_ksigma = NULL;
 static GtkWidget *banding_amend_note = NULL;
 
 /* Amend mode (convergence C5b): the dialog edits an existing history record.
@@ -59,30 +59,30 @@ void banding_dialog_init_statics(void);
 void banding_dialog_init_statics(void) {
 	if (banding_scale_amount) return;
 	banding_scale_amount = GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_fixbanding_amount"));
-	banding_scale_invsigma = GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_fixbanding_invsigma"));
+	banding_scale_ksigma = GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_fixbanding_ksigma"));
 	banding_protect_highlights = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_fixbanding"));
 	banding_vertical = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "checkBandingVertical"));
 	banding_seq = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "checkBandingSeq"));
 	banding_seq_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entryBandingSeq"));
-	banding_spin_invsigma = GTK_WIDGET(gtk_builder_get_object(gui.builder, "spin_fixbanding_invsigma"));
+	banding_spin_ksigma = GTK_WIDGET(gtk_builder_get_object(gui.builder, "spin_fixbanding_ksigma"));
 	banding_amend_note = GTK_WIDGET(gtk_builder_get_object(gui.builder, "banding_amend_note"));
 }
 
 /* Fill the widgets from the amended record's current parameters through the
  * op's own deserializer — the same struct the normal apply builds.  The
- * scale value IS sigma (apply reads sigma = invsigma scale). */
+ * scale value IS sigma (apply reads sigma = ksigma scale). */
 static void banding_prefill_from_amend(void) {
 	struct banding_data *p = op_desc_banding.deserialize(nde_amend_preview_params(),
 	                                                    nde_amend_preview_op_version());
 	if (!p)
 		return;
 	gtk_range_set_value(banding_scale_amount, p->amount);
-	gtk_range_set_value(banding_scale_invsigma, p->sigma);
+	gtk_range_set_value(banding_scale_ksigma, p->sigma);
 	siril_toggle_set_active(GTK_WIDGET(banding_protect_highlights), p->protect_highlights);
-	siril_toggle_set_active(GTK_WIDGET(banding_vertical), p->applyRotation);
+	siril_toggle_set_active(GTK_WIDGET(banding_vertical), p->vertical);
 	/* mirror the highlight-protect sensitivity wiring */
-	gtk_widget_set_sensitive(GTK_WIDGET(banding_scale_invsigma), p->protect_highlights);
-	gtk_widget_set_sensitive(banding_spin_invsigma, p->protect_highlights);
+	gtk_widget_set_sensitive(GTK_WIDGET(banding_scale_ksigma), p->protect_highlights);
+	gtk_widget_set_sensitive(banding_spin_ksigma, p->protect_highlights);
 	if (p->destroy_fn)
 		p->destroy_fn(p);
 	else
@@ -154,9 +154,9 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 		banding_dialog_init_statics();
 		struct banding_data applied = { 0 };
 		applied.amount = gtk_range_get_value(banding_scale_amount);
-		applied.sigma = gtk_range_get_value(banding_scale_invsigma);
+		applied.sigma = gtk_range_get_value(banding_scale_ksigma);
 		applied.protect_highlights = siril_toggle_get_active(GTK_WIDGET(banding_protect_highlights));
-		applied.applyRotation = siril_toggle_get_active(GTK_WIDGET(banding_vertical));
+		applied.vertical = siril_toggle_get_active(GTK_WIDGET(banding_vertical));
 		gchar *blob = op_desc_banding.serialize(&applied);
 		banding_amend_exit(TRUE, blob);
 		g_free(blob);
@@ -165,7 +165,7 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 
 	if (!check_ok_if_cfa())
 		return;
-	double amount, invsigma;
+	double amount, ksigma;
 	gboolean protect_highlights;
 
 	if (processing_is_job_active()) {
@@ -175,9 +175,9 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 
 	banding_dialog_init_statics();
 	amount = gtk_range_get_value(banding_scale_amount);
-	invsigma = gtk_range_get_value(banding_scale_invsigma);
+	ksigma = gtk_range_get_value(banding_scale_ksigma);
 	protect_highlights = siril_toggle_get_active(GTK_WIDGET(banding_protect_highlights));
-	gboolean applyRotation = siril_toggle_get_active(GTK_WIDGET(banding_vertical));
+	gboolean vertical = siril_toggle_get_active(GTK_WIDGET(banding_vertical));
 
 	set_cursor_waiting(TRUE);
 
@@ -193,8 +193,8 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 		seq_args->seqEntry = strdup((entry_text && entry_text[0] != '\0') ? entry_text : "unband_");
 		seq_args->protect_highlights = protect_highlights;
 		seq_args->amount = amount;
-		seq_args->sigma = invsigma;
-		seq_args->applyRotation = applyRotation;
+		seq_args->sigma = ksigma;
+		seq_args->vertical = vertical;
 		seq_args->seq = &com.seq;
 		seq_args->fit = NULL;
 
@@ -210,8 +210,8 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 
 		params->protect_highlights = protect_highlights;
 		params->amount = amount;
-		params->sigma = invsigma;
-		params->applyRotation = applyRotation;
+		params->sigma = ksigma;
+		params->vertical = vertical;
 		params->seqEntry = NULL;
 		params->seq = NULL;
 		params->fit = NULL;
@@ -220,7 +220,6 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 		if (!args) {
 			PRINT_ALLOC_ERR;
 			free_banding_data(params);
-			free(params);
 			set_cursor_waiting(FALSE);
 			return;
 		}
@@ -235,7 +234,6 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 
 		if (!start_in_new_thread(generic_image_worker, args)) {
 			free_banding_data(params);
-			free(params);
 			free(args);
 			set_cursor_waiting(FALSE);
 		}
@@ -246,8 +244,8 @@ void on_checkbutton_fixbanding_toggled(GtkCheckButton *togglebutton,
 		gpointer user_data) {
 	banding_dialog_init_statics();
 	gboolean is_active = siril_toggle_get_active(GTK_WIDGET(togglebutton));
-	gtk_widget_set_sensitive(GTK_WIDGET(banding_scale_invsigma), is_active);
-	gtk_widget_set_sensitive(banding_spin_invsigma, is_active);
+	gtk_widget_set_sensitive(GTK_WIDGET(banding_scale_ksigma), is_active);
+	gtk_widget_set_sensitive(banding_spin_ksigma, is_active);
 }
 
 /* ---- amend-mode entry (nde_editors registry) --------------------------- */

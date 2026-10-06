@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-18 17:15+0200\n"
+"POT-Creation-Date: 2026-10-01 13:47+0200\n"
 "PO-Revision-Date: 2026-07-19 06:22+0000\n"
 "Last-Translator: Ching Ying Lin <grypus@gmail.com>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.siril.org/"
@@ -60,7 +60,7 @@ msgstr ""
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:394
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:446
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:498
-#: src/gui-gtk4/uifiles/wavelets_dialog.ui:550 src/gui-gtk4/file_browser.c:3333
+#: src/gui-gtk4/uifiles/wavelets_dialog.ui:550 src/gui-gtk4/file_browser.c:3363
 msgid "Preview"
 msgstr "預覽"
 
@@ -92,7 +92,7 @@ msgstr "重設"
 #: src/gui-gtk4/uifiles/settings_window.ui:4646
 #: src/gui-gtk4/uifiles/unpurple_dialog.ui:184
 #: src/gui-gtk4/uifiles/wavelets_dialog.ui:1105
-#: src/gui-gtk4/file_browser.c:3000
+#: src/gui-gtk4/file_browser.c:3030
 msgid "Cancel"
 msgstr "取消"
 
@@ -102,7 +102,7 @@ msgstr "取消"
 #: src/gui-gtk4/uifiles/aavso_dialog.ui:352
 #: src/gui-gtk4/uifiles/annotate_dialog.ui:523
 #: src/gui-gtk4/uifiles/asinh_dialog.ui:170
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:686
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:688
 #: src/gui-gtk4/uifiles/bdeconv_dialog.ui:1672
 #: src/gui-gtk4/uifiles/binxy_dialog.ui:106
 #: src/gui-gtk4/uifiles/canon_fixbanding_dialog.ui:158
@@ -201,7 +201,7 @@ msgstr "使用亮度"
 #: src/gui-gtk4/uifiles/aavso_dialog.ui:344
 #: src/gui-gtk4/uifiles/annotate_dialog.ui:514
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:915
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:677
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:679
 #: src/gui-gtk4/uifiles/bdeconv_dialog.ui:1652
 #: src/gui-gtk4/uifiles/binxy_dialog.ui:98
 #: src/gui-gtk4/uifiles/canon_fixbanding_dialog.ui:150
@@ -239,7 +239,7 @@ msgstr "使用亮度"
 #: src/gui-gtk4/uifiles/pixelmath.ui:327
 #: src/gui-gtk4/uifiles/resample_dialog.ui:225
 #: src/gui-gtk4/uifiles/rotation_dialog.ui:120
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1108
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1143
 #: src/gui-gtk4/uifiles/spcc_details.ui:205
 #: src/gui-gtk4/uifiles/split_cfa_dialog.ui:137
 #: src/gui-gtk4/uifiles/stars_list_window.ui:476 src/gui-gtk4/python_gui.c:2193
@@ -328,7 +328,7 @@ msgstr ""
 
 #: src/gui-gtk4/uifiles/StatWindow.ui:48
 #: src/gui-gtk4/uifiles/spcc_details.ui:28 src/gui-gtk4/astrometry_solver.c:130
-#: src/gui-gtk4/conversion.c:198 src/gui-gtk4/file_browser.c:3226
+#: src/gui-gtk4/conversion.c:198 src/gui-gtk4/file_browser.c:3256
 #: src/gui-gtk4/mouse_action_preferences.c:608
 #: src/gui-gtk4/mouse_action_preferences.c:754
 #: src/gui-gtk4/statistics_list.c:147
@@ -453,10 +453,10 @@ msgstr "參考星的圖表星等： "
 #: src/gui-gtk4/uifiles/cut_spectroscopy_dialog.ui:122
 #: src/gui-gtk4/uifiles/cut_spectroscopy_dialog.ui:136
 #: src/gui-gtk4/uifiles/mask_thresholds_dialog.ui:130
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:968
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:983
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:998
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1013
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1003
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1018
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1033
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1048
 #: src/gui-gtk4/uifiles/settings_window.ui:374
 #: src/gui-gtk4/uifiles/settings_window.ui:389
 msgid "0"
@@ -824,8 +824,8 @@ msgstr "清除當前所有臨時標註（預設以紅色顯示）"
 
 #: src/gui-gtk4/uifiles/annotate_dialog.ui:516
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:917
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:679
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1110
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:681
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1145
 msgid "Close the window."
 msgstr "關閉視窗。"
 
@@ -1176,12 +1176,12 @@ msgid "Image Parameters"
 msgstr "影像參數"
 
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:662
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:812
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:847
 msgid "Catalogue Limit Mag: "
 msgstr "星表極限星等： "
 
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:676
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:825
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:860
 msgid ""
 "Maximum star magnitude used in the catalog queries. Wider is the field, "
 "lower is the value."
@@ -1191,7 +1191,7 @@ msgstr "星表查詢中使用的最大星等。視野越廣，此值應該越低
 #. * ordering so the selected index is the persisted value.
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:688
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:742
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:862
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:897
 #: src/gui-gtk4/uifiles/siril_conversion.ui:225
 #: src/gui-gtk4/uifiles/siril_registration.ui:1008
 #: src/gui-gtk4/message_dialog.c:565
@@ -1199,7 +1199,7 @@ msgid "Auto"
 msgstr "自動"
 
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:689
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:863
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:898
 msgid ""
 "The limit magnitude is automatically determined using the approximation of "
 "the Field Of View."
@@ -1268,7 +1268,7 @@ msgstr ""
 "操作。"
 
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:765
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:885
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:920
 msgid "Catalogue Parameters"
 msgstr "星表參數"
 
@@ -1371,8 +1371,8 @@ msgid "Sequence / Astrometric Registration"
 msgstr "序列 / 天體測量對位"
 
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:924
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1117
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1129
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1152
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1164
 msgid "OK"
 msgstr "好"
 
@@ -1400,7 +1400,7 @@ msgid ""
 msgstr ""
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:104
-#: src/algos/background_extraction.c:1464
+#: src/algos/background_extraction.c:1236
 msgid "RBF"
 msgstr "徑向基函數(Radial basis function)"
 
@@ -1580,7 +1580,7 @@ msgstr "重新縮放"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:382
 msgid ""
-"Relative scale of the multiscale model. Higher = smoother (large-scale "
+"Relative scale of the multiscale surface. Higher = smoother (large-scale "
 "only); lower follows more complex / local gradients."
 msgstr ""
 
@@ -1591,86 +1591,92 @@ msgstr "平滑化"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:411
 msgid ""
-"Extra smoothing of the final model. Higher gives a softer, more gradual "
-"background; 0 leaves the fitted model untouched."
+"Extra smoothing of the multiscale surface. Higher gives a softer, more "
+"gradual background; 0 leaves the fitted model untouched."
 msgstr ""
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:437
+msgid "Simplified model"
+msgstr ""
+
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:438
+msgid ""
+"Fit a stiff polynomial and remove it before the multiscale model, which is "
+"then fitted on what it leaves; the sum of the two is removed.\n"
+"Helps on strong, complex gradients whose amplitude rivals or exceeds the "
+"objects of interest, where a single pass cannot separate them and the model "
+"locks onto the objects.\n"
+"It can overcorrect when the frame holds a large bright object, which the "
+"polynomial may partly absorb: keep the degree low. Off by default."
+msgstr ""
+
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:450
+msgid "    Model degree"
+msgstr ""
+
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:451
+msgid ""
+"Degree of the simplified model. Lower = stiffer (degree 1 = plane). Raise it "
+"for a gradient with real curvature, but a large bright object is then more "
+"easily absorbed by it."
+msgstr ""
+
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:469
 #, fuzzy
 msgid "Structure protection"
 msgstr "星點偵測"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:439
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:471
 msgid ""
 "Mask extended bright structures (nebulae) so they are not absorbed into the "
-"model."
+"model. Applies to the simplified model too, when it is enabled."
 msgstr ""
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:449
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:481
 #, fuzzy
 msgid "    Protection threshold"
 msgstr "保護方法： "
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:450
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:482
 msgid ""
 "Brightness above the model at which a pixel is treated as a structure. Lower "
 "= protects more."
 msgstr ""
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:472
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:504
 #, fuzzy
 msgid "    Protection amount"
 msgstr "保護方法： "
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:473
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:505
 msgid "How far the protection mask grows around detected structures."
 msgstr ""
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:492
-msgid "Simplified model"
-msgstr ""
-
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:493
-msgid ""
-"Replace the multiscale model with a stiff polynomial. Use it when a nebula "
-"fills the frame and the default model hollows it out."
-msgstr ""
-
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:503
-msgid "    Model degree"
-msgstr ""
-
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:504
-msgid ""
-"Polynomial degree of the simplified model. Lower = stiffer (degree 1 = "
-"plane)."
-msgstr ""
-
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:525
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:527
 #, fuzzy
 msgid "Downsample"
 msgstr "縮小影像"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:526
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:528
 msgid ""
 "Internal working scale factor. Higher = faster but coarser; the background "
 "scale itself is unaffected."
 msgstr ""
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:552
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:554
 #, fuzzy
 msgid "Automatic Model"
 msgstr "自動"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:570
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:572
 msgid "Subtraction"
 msgstr "減法"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:571
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:573
 msgid "Division"
 msgstr "除法"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:576
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:578
 #, fuzzy
 msgid ""
 "Choose the type of correction you want apply:\n"
@@ -1685,15 +1691,15 @@ msgstr ""
 "除法：主要用於校正乘法訊號，例如暗角或不同大氣吸收。不過這種訊號應該透過主平"
 "場校正來完成。"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:584
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:586
 msgid "Correction"
 msgstr "校正"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:596
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:598
 msgid "Compute Background"
 msgstr "計算背景"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:598
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:600
 msgid ""
 "This will compute the synthetic background and will apply the selected "
 "correction. The model is always computed from the original image kept in "
@@ -1702,33 +1708,33 @@ msgstr ""
 "這將計算背景，並套用所選的校正方式。該模型永遠是從原始影像計算得出的，允許使"
 "用者進行迭代嘗試。"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:612
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:614
 msgid "View"
 msgstr ""
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:621
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:623
 #, fuzzy
 msgid "Processed image"
 msgstr "影像處理"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:622
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:624
 #, fuzzy
 msgid "Background model"
 msgstr "背景提取"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:623
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:625
 #, fuzzy
 msgid "Original image"
 msgstr "顯示原始影像"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:628
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:630
 msgid ""
 "Choose what is shown in the main view after a background has been computed: "
 "the corrected image, the background model that was removed, or the original "
 "image."
 msgstr ""
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:640
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:642
 #: src/gui-gtk4/uifiles/bdeconv_dialog.ui:1615
 #: src/gui-gtk4/uifiles/canon_fixbanding_dialog.ui:114
 #: src/gui-gtk4/uifiles/ccm_dialog.ui:237
@@ -1742,7 +1748,7 @@ msgstr ""
 msgid "Apply to sequence"
 msgstr "套用到序列"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:641
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:643
 #: src/gui-gtk4/uifiles/canon_fixbanding_dialog.ui:115
 #: src/gui-gtk4/uifiles/ccm_dialog.ui:238
 #: src/gui-gtk4/uifiles/cosmetic_dialog.ui:162
@@ -1756,7 +1762,7 @@ msgstr ""
 "如果已載入序列，並且啟用了此功能，則會對序列中的所有影像執行處理，而不只是載"
 "入的單一影像。"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:647
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:649
 #: src/gui-gtk4/uifiles/canon_fixbanding_dialog.ui:121
 #: src/gui-gtk4/uifiles/ccm_dialog.ui:243
 #: src/gui-gtk4/uifiles/cosmetic_dialog.ui:167
@@ -1769,12 +1775,12 @@ msgstr ""
 msgid "Output prefix:"
 msgstr "輸出前綴："
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:656
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:658
 msgid ""
 "Prefix of the image names resulting from the background extraction process."
 msgstr "背景提取過程產生的影像名稱的前綴。"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:689
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:691
 msgid ""
 "This will confirm the background model previously applied with the "
 "<b>Compute Background</b> button. However, in the case of a sequence, if the "
@@ -1784,8 +1790,8 @@ msgstr ""
 "這將確認先前使用 <b>計算背景 </b>按鈕所套用的背景模型。但如果是處理一個影像序"
 "列，勾選 <b>套用至序列 </b>按鈕，則會計算模型並套用到整個序列。"
 
-#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:702
-#: src/algos/background_extraction.c:2446
+#: src/gui-gtk4/uifiles/background_extraction_dialog.ui:704
+#: src/algos/background_extraction.c:2250
 msgid "Background Extraction"
 msgstr "背景提取"
 
@@ -2536,40 +2542,40 @@ msgid "Reactivate ICC profile previously disabled by applying a CCM"
 msgstr "透過套用 CCM 重新啟用之前禁用的 ICC 色彩特性檔案"
 
 #: src/gui-gtk4/uifiles/color_calibration.ui:109
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:969
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1004
 msgid "x coordinate of the start of the background selection"
 msgstr "背景選區起點的 x 軸座標"
 
 #: src/gui-gtk4/uifiles/color_calibration.ui:123
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:984
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1019
 msgid "y coordinate of the start of the background selection"
 msgstr "背景選區起點的 y 軸座標"
 
 #: src/gui-gtk4/uifiles/color_calibration.ui:137
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:999
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1034
 msgid "Width of the background selection"
 msgstr "背景選區的寬度"
 
 #: src/gui-gtk4/uifiles/color_calibration.ui:151
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1014
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1049
 msgid "Height of the background selection"
 msgstr "背景選區的高度"
 
 #: src/gui-gtk4/uifiles/color_calibration.ui:161
 #: src/gui-gtk4/uifiles/color_calibration.ui:391
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1024
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1059
 msgid "Selected area"
 msgstr "選擇一個區域"
 
 #: src/gui-gtk4/uifiles/color_calibration.ui:175
 #: src/gui-gtk4/uifiles/color_calibration.ui:405
 #: src/gui-gtk4/uifiles/rgradient_dialog.ui:88
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1038
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1073
 msgid "Use current selection"
 msgstr "使用當前選區"
 
 #: src/gui-gtk4/uifiles/color_calibration.ui:177
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1040
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1075
 msgid ""
 "You must specify a selection that represents the true background of the "
 "image, trying to exclude all stars or other stellar objects."
@@ -2666,7 +2672,7 @@ msgstr "下限： "
 msgid "Upper limit: "
 msgstr "上限： "
 
-#: src/gui-gtk4/uifiles/color_calibration.ui:477
+#: src/gui-gtk4/uifiles/color_calibration.ui:477 src/algos/photometric_cc.c:252
 msgid "White reference"
 msgstr "參考白色"
 
@@ -3529,7 +3535,7 @@ msgid "Plot x axis"
 msgstr "圖表 X 軸"
 
 #: src/gui-gtk4/uifiles/cut_spectroscopy_dialog.ui:255
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:445
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:480
 msgid "Wavelength"
 msgstr "波長"
 
@@ -4688,7 +4694,7 @@ msgid "<b>Color Management Operations</b>"
 msgstr "<b>色彩管理操作</b>"
 
 #: src/gui-gtk4/uifiles/icc_dialog.ui:276
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:712
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:747
 #: src/gui-gtk4/uifiles/siril_plot.ui:289
 #: src/gui-gtk4/uifiles/spcc_details.ui:196
 msgid "Plot"
@@ -5126,7 +5132,7 @@ msgid "Browse..."
 msgstr ""
 
 #: src/gui-gtk4/uifiles/mask_from_image.ui:89
-#: src/gui-gtk4/uifiles/settings_window.ui:727
+#: src/gui-gtk4/uifiles/settings_window.ui:727 src/algos/photometric_cc.c:248
 msgid "Method"
 msgstr "方法"
 
@@ -5619,19 +5625,19 @@ msgstr "最近鄰"
 
 #: src/gui-gtk4/uifiles/resample_dialog.ui:105
 #: src/gui-gtk4/uifiles/rotation_dialog.ui:83
-#: src/gui-gtk4/uifiles/siril_registration.ui:1682 src/algos/geometry.c:832
+#: src/gui-gtk4/uifiles/siril_registration.ui:1682 src/algos/geometry.c:831
 msgid "Bilinear"
 msgstr "雙線性"
 
 #: src/gui-gtk4/uifiles/resample_dialog.ui:106
 #: src/gui-gtk4/uifiles/rotation_dialog.ui:84
-#: src/gui-gtk4/uifiles/siril_registration.ui:1683 src/algos/geometry.c:838
+#: src/gui-gtk4/uifiles/siril_registration.ui:1683 src/algos/geometry.c:837
 msgid "Bicubic"
 msgstr "雙三次"
 
 #: src/gui-gtk4/uifiles/resample_dialog.ui:107
 #: src/gui-gtk4/uifiles/rotation_dialog.ui:85
-#: src/gui-gtk4/uifiles/siril_registration.ui:1684 src/algos/geometry.c:835
+#: src/gui-gtk4/uifiles/siril_registration.ui:1684 src/algos/geometry.c:834
 msgid "Pixel Area Relation"
 msgstr "像素區域關聯法"
 
@@ -5649,9 +5655,9 @@ msgstr "重取樣（縮放）演算法"
 msgid "%"
 msgstr "%"
 
-#: src/gui-gtk4/uifiles/resample_dialog.ui:192 src/gui-gtk4/file_browser.c:2628
-#: src/gui-gtk4/file_browser.c:2630 src/gui-gtk4/file_browser.c:2674
-#: src/gui-gtk4/file_browser.c:2677
+#: src/gui-gtk4/uifiles/resample_dialog.ui:192 src/gui-gtk4/file_browser.c:2658
+#: src/gui-gtk4/file_browser.c:2660 src/gui-gtk4/file_browser.c:2704
+#: src/gui-gtk4/file_browser.c:2707
 msgid "pixels"
 msgstr "像素"
 
@@ -5777,70 +5783,70 @@ msgstr "藍色濾鏡："
 msgid "Select an OSC sensor"
 msgstr "選擇 OSC 感測器"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:207
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:212
 msgid "Select a mono sensor"
 msgstr "選擇單色感測器"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:218
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:228
 msgid "Select an OSC filter (e.g. a broadband light pollution filter)"
 msgstr "選擇 OSC 濾鏡（例如寬頻光害濾鏡）"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:229
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:244
 msgid "Select a red filter used with composited mono images"
 msgstr "選擇與合成單色影像一起使用的紅色濾鏡"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:240
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:260
 msgid "Select a green filter used with composited mono images"
 msgstr "選擇與合成單色影像一起使用的綠色濾鏡"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:251
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:276
 msgid "Select a blue filter used with composited mono images"
 msgstr "選擇與合成單色影像一起使用的藍色濾鏡"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:263
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:276
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:289
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:302
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:315
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:328
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:351
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:397
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:293
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:306
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:319
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:332
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:345
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:358
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:381
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:432
 msgid "Details"
 msgstr "詳情"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:265
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:295
 msgid "Show details of the selected OSC sensor"
 msgstr "顯示所選 OSC 感測器的詳細資訊"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:278
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:308
 msgid "Show details of the selected mono sensor"
 msgstr "顯示所選單色感測器的詳細資訊"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:291
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:321
 msgid "Show details of the selected OSC filter"
 msgstr "顯示所選 OSC 濾鏡的詳細資訊"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:304
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:334
 msgid "Show details of the selected red filter"
 msgstr "顯示所選紅色濾鏡的詳細資訊"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:317
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:347
 msgid "Show details of the selected green filter"
 msgstr "顯示所選綠色濾鏡的詳細資訊"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:330
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:360
 msgid "Show details of the selected blue filter"
 msgstr "顯示所選藍色濾鏡的詳細資訊"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:341
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:371
 msgid "DSLR Low Pass Filter:"
 msgstr "DSLR 低通濾鏡："
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:353
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:383
 msgid "Show details of the selected LPF"
 msgstr "顯示所選低通濾鏡的詳細資訊"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:363
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:393
 msgid ""
 "For unmodified DSLRs, select the LPF most closely matching your model (many "
 "Canon LPFs are almost identical so there may not be an exact match for your "
@@ -5851,80 +5857,80 @@ msgstr ""
 "同，因此可能與你的型號不完全匹配）。對於修改後的 DSLR，請選擇替換低通濾鏡（如"
 "果沒有完全匹配，Baader BCF 可能接近）。"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:374
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:409
 msgid "Select white balance reference"
 msgstr "選擇白平衡參考"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:384
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:419
 msgid "Plot all"
 msgstr "繪製全部"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:386
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:421
 msgid ""
 "Plot the selected sensor QE, filter responses and white reference relative "
 "photon count as a function of wavelength"
 msgstr "繪製所選感測器 QE、濾鏡響應和白點參考相對光子計數與波長的函式關係"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:399
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:434
 msgid "Show details of the selected white reference"
 msgstr "顯示所選白點參考的詳細資訊"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:416
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:451
 msgid "Blue:"
 msgstr "藍色："
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:426
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:461
 msgid "Green:"
 msgstr "綠色："
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:436
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:471
 msgid "Red:"
 msgstr "紅色："
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:446
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:481
 msgid ""
 "Nominal passband wavelength in nm\n"
 "    Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - "
 "486.1 nm"
 msgstr ""
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:456
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:491
 msgid "Bandwidth"
 msgstr "頻寬"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:457
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:492
 msgid "Filter bandwidth in nm"
 msgstr "濾鏡頻寬（nm）"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:470
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:505
 msgid "Enter the nominal wavelength of the red channel narrowband filter"
 msgstr "輸入紅色通道窄帶濾鏡的標稱波長"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:485
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:520
 msgid "Enter the nominal wavelength of the blue channel narrowband filter"
 msgstr "輸入藍色通道窄帶濾鏡的標稱波長"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:500
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:535
 msgid "Enter the nominal wavelength of the green channel narrowband filter"
 msgstr "輸入綠色通道窄帶濾鏡的標稱波長"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:515
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:550
 msgid "Enter the nominal bandwidth of the red channel narrowband filter"
 msgstr "輸入紅色通道窄帶濾鏡的標稱頻寬"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:530
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:565
 msgid "Enter the nominal bandwidth of the green channel narrowband filter"
 msgstr "輸入綠色通道窄帶濾鏡的標稱頻寬"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:545
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:580
 msgid "Enter the nominal bandwidth of the blue channel narrowband filter"
 msgstr "輸入藍色通道窄帶濾鏡的標稱頻寬"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:565
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:600
 msgid "Plot fits"
 msgstr "圖表擬合"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:566
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:601
 msgid ""
 "Plot SPCC linear fits for catalog to image R/G and B/G ratios. In narrowband "
 "mode, plots of degenerate ratios will not be shown."
@@ -5932,19 +5938,19 @@ msgstr ""
 "為星表與影像的 R/G、B/G 比值繪製 SPCC 線性擬合圖。在窄帶模式下，簡併比率圖將"
 "不予顯示。"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:577
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:612
 msgid "Sensor Type:"
 msgstr "感測器類型："
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:597 src/gui-gtk4/photometric_cc.c:1077
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:632 src/gui-gtk4/photometric_cc.c:1077
 msgid "mono"
 msgstr "單色"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:610
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:645
 msgid "Narrowband mode"
 msgstr "窄帶模式"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:611
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:646
 msgid ""
 "Set narrowband mode. This is suitable for composited narrowband images such "
 "as HOO as well as for OSC images taken with dual narrowband filters etc."
@@ -5952,29 +5958,29 @@ msgstr ""
 "設定窄帶模式。這適用於合成窄帶影像，例如 HOO 以及使用雙窄帶濾鏡等拍攝的 OSC "
 "影像。"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:622
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:657
 msgid "Atmospheric corrections"
 msgstr "大氣修正"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:623
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:658
 msgid ""
 "Apply an atmosphere model to account for wavelength-dependent atmospheric "
 "extinction."
 msgstr "套用一個大氣模型來修正與波長相關的大氣消光。"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:642
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:677
 msgid "Observer height / m:"
 msgstr "天文臺海拔（米）："
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:655
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:690
 msgid "Observer's height (altitude) above sea level."
 msgstr "天文臺的海拔。"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:666
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:701
 msgid "Atmospheric pressure / hPa:"
 msgstr "氣壓（hPa）："
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:679
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:714
 msgid ""
 "Atmospheric pressure in hPa. If the \"sea level\" check box is checked this "
 "is taken to be sea level pressure, otherwise it is taken to be local "
@@ -5983,35 +5989,35 @@ msgstr ""
 "氣壓（單位是 hPa）。如果勾選了“海平面”則為海平面氣壓，否則為天文臺所在海拔的"
 "氣壓。"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:692 src/gui-gtk4/photometric_cc.c:1553
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:727 src/gui-gtk4/photometric_cc.c:1553
 msgid "sea level"
 msgstr "海平面"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:702
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:737
 msgid "Airmass:"
 msgstr "大氣光學質量："
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:714
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:749
 msgid "Plot atmosphere model"
 msgstr "繪製大氣模型"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:737
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:772
 msgid "Atmospheric Parameters"
 msgstr "大氣引數"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:755
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:790
 msgid "SPCC Parameters"
 msgstr "SPCC 引數"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:782 src/io/siril_catalogues.c:271
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:817 src/io/siril_catalogues.c:271
 msgid "APASS"
 msgstr "APASS"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:783
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:818
 msgid "GAIA DR3"
 msgstr "GAIA DR3"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:788
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:823
 msgid ""
 "Choose the online catalogue against one want to compare the image and "
 "compute photometry.\n"
@@ -6030,15 +6036,15 @@ msgid ""
 "this Teff for PCC."
 msgstr ""
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:802
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:837
 msgid "Photometric Star Catalogue: "
 msgstr "線上星表（測光用）： "
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:840
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:875
 msgid "Gaia DR3 (local catalogue)"
 msgstr "Gaia DR3（本機星表）"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:845
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:880
 msgid ""
 "Choose the catalogue to use for spectrophotometric colour calibration.\n"
 "    * Gaia DR3 archive is an online service providing direct access to the "
@@ -6049,53 +6055,53 @@ msgid ""
 "magnitude 17.6."
 msgstr ""
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:874
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:909
 msgid ""
 "The NOMAD catalogue can be installed locally to not rely on an Internet "
 "connection for this operation."
 msgstr "NOMAD 星表可以本地安裝，不依賴於網際網路連線進行此操作。"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:911
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:946
 msgid "Tolerance / σ"
 msgstr "容差 / σ"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:921
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:956
 msgid ""
 "Include background samples this many σ above the median. Default is 2.00"
 msgstr "包括高於中值這麼多 σ 的背景樣本。預設為 2.00"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:933
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:968
 msgid "Include background samples this many σ below the median. Default is 2.8"
 msgstr "包括低於中值這麼多 σ 的背景樣本。預設為 2.8"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:945
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:980
 msgid "Automatic detection"
 msgstr "自動偵測"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:946
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:981
 msgid ""
 "Uncheck this button if you want to select the background reference by "
 "yourself. It can be useful when nebulae cover a large portion of the image."
 msgstr ""
 "取消此選項用於手動選擇參考背景。當星雲幾乎佈滿整個影像時可以使用該功能。"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1053
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1088
 msgid "Background Reference"
 msgstr "參考背景"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1080
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1115
 msgid "Click to update Gaia archive status check"
 msgstr "點擊以更新 Gaia 星表狀態檢查"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1091
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1126
 msgid "Status: "
 msgstr "狀態： "
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1097
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1132
 msgid "Checking Gaia archive status..."
 msgstr "正在檢查 Gaia 星表狀態…"
 
-#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1119
+#: src/gui-gtk4/uifiles/s_pcc_dialog.ui:1154
 msgid "Start the photometric color calibration algorithm."
 msgstr "開始測光法色彩校正。"
 
@@ -6313,7 +6319,7 @@ msgid "JPEG XL"
 msgstr "JPEG XL"
 
 #: src/gui-gtk4/uifiles/savepopup.ui:619 src/gui-gtk4/uifiles/siril.ui:2387
-#: src/gui-gtk4/file_browser.c:3716 src/io/sequence.c:2212
+#: src/gui-gtk4/file_browser.c:3746 src/io/sequence.c:2215
 msgid "Save"
 msgstr "儲存"
 
@@ -6575,7 +6581,7 @@ msgstr ""
 
 #: src/gui-gtk4/uifiles/settings_window.ui:463
 #: src/gui-gtk4/uifiles/siril_conversion.ui:203
-#: src/gui-gtk4/file_browser.c:3418
+#: src/gui-gtk4/file_browser.c:3448
 msgid "Debayer"
 msgstr "解 Bayer"
 
@@ -8202,12 +8208,13 @@ msgid ""
 msgstr ""
 
 #: src/gui-gtk4/uifiles/settings_window.ui:4097
+#, fuzzy
 msgid ""
 "Sets a new ratio of free memory on memory used for stacking. Value should be "
 "between 0.05 and 2, depending on other activities of the machine. A higher "
 "ratio should allow siril to stack faster, but setting the ratio of memory "
 "used for stacking above 1 will require the use of on-disk memory, which is "
-"very slow and unrecommended"
+"very slow and not recommended"
 msgstr ""
 "設定疊圖所使用的可用記憶體比例。可以設定的範圍為 0.05 到 2，取決於系統中的其"
 "他活動情況。設定較高的比例可以使得 siril 疊圖執行得更快。但是當記憶體比例高"
@@ -9218,8 +9225,8 @@ msgstr "AAVSO 檔案格式"
 msgid "Build an output file in the AAVSO format"
 msgstr "以 AAVSO 格式構建輸出檔案"
 
-#: src/gui-gtk4/uifiles/siril.ui:2129 src/gui-gtk4/file_browser.c:3137
-#: src/gui-gtk4/file_browser.c:3524 src/gui-gtk4/file_browser.c:3716
+#: src/gui-gtk4/uifiles/siril.ui:2129 src/gui-gtk4/file_browser.c:3167
+#: src/gui-gtk4/file_browser.c:3554 src/gui-gtk4/file_browser.c:3746
 #: src/gui-gtk4/single_image.c:53
 msgid "Open"
 msgstr "開啟"
@@ -12688,9 +12695,8 @@ msgstr "真正減少"
 msgid "relative"
 msgstr "相對"
 
-#: src/algos/PSF.c:1010 src/algos/background_extraction.c:1248
-#: src/algos/background_extraction.c:1912
-#: src/algos/background_extraction.c:2091
+#: src/algos/PSF.c:1010 src/algos/background_extraction.c:1716
+#: src/algos/background_extraction.c:1895
 msgid "monochrome"
 msgstr "單色"
 
@@ -13124,47 +13130,62 @@ msgstr "無法生成影像 %s 的背景樣本\n"
 msgid "unknown error"
 msgstr "未知錯誤"
 
-#: src/algos/background_extraction.c:1231
-#: src/algos/background_extraction.c:1403
-#: src/algos/background_extraction.c:2029
-#: src/algos/background_extraction.c:2082
-msgid "Not enough samples."
-msgstr "沒有足夠的取樣。"
+#: src/algos/background_extraction.c:1233
+msgid "simplified + multiscale"
+msgstr ""
 
-#: src/algos/background_extraction.c:1231
-#: src/algos/background_extraction.c:2082
-msgid "Insufficient samples"
-msgstr "樣本不足"
+#: src/algos/background_extraction.c:1233
+msgid "multiscale"
+msgstr ""
 
-#: src/algos/background_extraction.c:1249
-#: src/algos/background_extraction.c:2092
+#: src/algos/background_extraction.c:1234
+#: src/algos/background_extraction.c:1717
 #, c-format
-msgid "Background extraction from %s channel.\n"
-msgstr "背景提取於通道 %s。\n"
+msgid "Automatic gradient removal (%s)"
+msgstr ""
 
-#: src/algos/background_extraction.c:1255
-#: src/algos/background_extraction.c:2097
+#: src/algos/background_extraction.c:1236
+#, fuzzy
+msgid "polynomial"
+msgstr "多項式函數"
+
+#: src/algos/background_extraction.c:1238
+#, fuzzy, c-format
+msgid "Background extraction (%s, CFA)"
+msgstr "背景提取"
+
+#: src/algos/background_extraction.c:1239
+#, fuzzy, c-format
+msgid "Background extraction (%s)"
+msgstr "背景提取"
+
+#: src/algos/background_extraction.c:1727
+msgid "Automatic gradient removal failed.\n"
+msgstr ""
+
+#: src/algos/background_extraction.c:1732
 #, c-format
-msgid "Background with %s interpolation computed.\n"
-msgstr "背景 %s 差值計算。\n"
+msgid "Automatic gradient removed from %s channel.\n"
+msgstr ""
 
-#: src/algos/background_extraction.c:1315
-#: src/algos/background_extraction.c:1950
-#: src/algos/background_extraction.c:2232
+#: src/algos/background_extraction.c:1739
+msgid "Automatic gradient removal done"
+msgstr ""
+
+#: src/algos/background_extraction.c:1754
+#: src/algos/background_extraction.c:2036
 msgid "Error: unsupported CFA pattern for this operation.\n"
 msgstr "錯誤：此操作不支援此 CFA 模式。\n"
 
-#: src/algos/background_extraction.c:1337
-#: src/algos/background_extraction.c:1964
-#: src/algos/background_extraction.c:2251
+#: src/algos/background_extraction.c:1768
+#: src/algos/background_extraction.c:2055
 msgid "Error splitting into CFA subchannels, aborting...\n"
 msgstr "分離 CFA 子通道時發生錯誤，中止…\n"
 
-#: src/algos/background_extraction.c:1346
-#: src/algos/background_extraction.c:1972 src/algos/colors.c:1153
+#: src/algos/background_extraction.c:1776 src/algos/colors.c:1153
 #: src/algos/colors.c:1244 src/algos/line_detection.c:191
 #: src/algos/line_detection.c:219 src/algos/noise.c:96
-#: src/algos/photometric_cc.c:788 src/algos/star_finder.c:66
+#: src/algos/photometric_cc.c:886 src/algos/star_finder.c:66
 #: src/algos/statistics.c:783 src/core/preprocess.c:76
 #: src/core/preprocess.c:346 src/core/siril.c:445 src/filters/banding.c:260
 #: src/filters/banding.c:343 src/filters/cosmetic_correction.c:218
@@ -13175,85 +13196,58 @@ msgstr "分離 CFA 子通道時發生錯誤，中止…\n"
 msgid "Error: statistics computation failed.\n"
 msgstr "錯誤：統計資訊計算失敗。\n"
 
-#: src/algos/background_extraction.c:1354
-#: src/algos/background_extraction.c:1979
+#: src/algos/background_extraction.c:1783
 msgid ""
 "Subchannel with negative median detected: removing the gradient on negative "
 "images is not supported\n"
 msgstr "某個通道的中值是負數：不支援在有負數的影像中消除背景漸變\n"
 
-#: src/algos/background_extraction.c:1366
-#: src/algos/background_extraction.c:1989
+#: src/algos/background_extraction.c:1793
 msgid "Failed to adapt background samples for CFA image\n"
 msgstr "無法為 CFA 影像調整背景樣本\n"
 
-#: src/algos/background_extraction.c:1374
-#: src/algos/background_extraction.c:2141
-#: src/algos/background_extraction.c:2269
-msgid "Out of memory - aborting"
-msgstr "記憶體不足 - 異常中止"
+#: src/algos/background_extraction.c:1833
+#: src/algos/background_extraction.c:1886
+msgid "Not enough samples."
+msgstr "沒有足夠的取樣。"
 
-#: src/algos/background_extraction.c:1429
-#: src/algos/background_extraction.c:2043
+#: src/algos/background_extraction.c:1847
 #, c-format
 msgid "Background with %s interpolation computed for CFA image.\n"
 msgstr "為 CFA 影像計算了 %s 插值的背景。\n"
 
-#: src/algos/background_extraction.c:1461
-msgid "simplified"
-msgstr ""
+#: src/algos/background_extraction.c:1886
+msgid "Insufficient samples"
+msgstr "樣本不足"
 
-#: src/algos/background_extraction.c:1461
-msgid "multiscale"
-msgstr ""
-
-#: src/algos/background_extraction.c:1462
-#: src/algos/background_extraction.c:1913
+#: src/algos/background_extraction.c:1896
 #, c-format
-msgid "Automatic gradient removal (%s)"
-msgstr ""
+msgid "Background extraction from %s channel.\n"
+msgstr "背景提取於通道 %s。\n"
 
-#: src/algos/background_extraction.c:1464
-#, fuzzy
-msgid "polynomial"
-msgstr "多項式函數"
-
-#: src/algos/background_extraction.c:1466
-#, fuzzy, c-format
-msgid "Background extraction (%s, CFA)"
-msgstr "背景提取"
-
-#: src/algos/background_extraction.c:1467
-#, fuzzy, c-format
-msgid "Background extraction (%s)"
-msgstr "背景提取"
-
-#: src/algos/background_extraction.c:1923
-msgid "Automatic gradient removal failed.\n"
-msgstr ""
-
-#: src/algos/background_extraction.c:1928
+#: src/algos/background_extraction.c:1901
 #, c-format
-msgid "Automatic gradient removed from %s channel.\n"
-msgstr ""
+msgid "Background with %s interpolation computed.\n"
+msgstr "背景 %s 差值計算。\n"
 
-#: src/algos/background_extraction.c:1935
-msgid "Automatic gradient removal done"
-msgstr ""
+#: src/algos/background_extraction.c:1945
+#: src/algos/background_extraction.c:2073
+msgid "Out of memory - aborting"
+msgstr "記憶體不足 - 異常中止"
 
-#: src/algos/background_extraction.c:2160
-#: src/algos/background_extraction.c:2293
+#: src/algos/background_extraction.c:1964
+#: src/algos/background_extraction.c:2097
 #, c-format
 msgid "Failed to generate background samples for image %d: %s\n"
 msgstr "無法為影像 %d 生成背景樣本: %s\n"
 
-#: src/algos/background_extraction.c:2226
+#: src/algos/background_extraction.c:2030
 msgid ""
 "Warning: RBF background removal is not recommended for CFA images. Only "
 "linear background removal is recommended.\n"
 msgstr "警告：建議不要對 CFA 影像套用 RBF 背景去除，而是使用線性背景去除。\n"
 
-#: src/algos/background_extraction.c:2228
+#: src/algos/background_extraction.c:2032
 msgid ""
 "Warning: polynomial background removal order > 1 is not recommended for CFA "
 "images. Only linear background removal is recommended.\n"
@@ -13261,10 +13255,10 @@ msgstr ""
 "警告：建議不要對 CFA 影像套用次數>1 的多項式背景去除，而是使用線性背景去"
 "除。\n"
 
-#: src/algos/background_extraction.c:2394 src/algos/demosaicing.c:602
+#: src/algos/background_extraction.c:2198 src/algos/demosaicing.c:602
 #: src/algos/extraction.c:1134 src/algos/star_finder.c:1146
 #: src/algos/statistics.c:939 src/core/preprocess.c:281
-#: src/core/processing.c:493 src/filters/banding.c:154
+#: src/core/processing.c:495 src/filters/banding.c:154
 #: src/filters/cosmetic_correction.c:412 src/filters/wavelets.c:450
 #: src/gui-gtk4/cut.c:1249
 #, c-format
@@ -13273,7 +13267,7 @@ msgid ""
 "considered available)\n"
 msgstr "%s：沒有足夠的記憶體來執行（%s 每幅影像需要, %s 可用）\n"
 
-#: src/algos/background_extraction.c:2429
+#: src/algos/background_extraction.c:2233
 msgid "Error reading reference metadata.\n"
 msgstr "讀取參考影格後設資料時出錯。\n"
 
@@ -13344,7 +13338,7 @@ msgstr ""
 "L*a*b* 色彩空間將 L* 定義為 0.0 - 100.0 的範圍，因此，如果你需要在其他軟體中"
 "將其用作真正的 L* 同道，則需要將值乘以 100，例如使用 Siril 命令“fmul 100”\n"
 
-#: src/algos/colors.c:1240 src/algos/photometric_cc.c:827
+#: src/algos/colors.c:1240 src/algos/photometric_cc.c:925
 msgid "Background reference:\n"
 msgstr "參考背景：\n"
 
@@ -13484,7 +13478,7 @@ msgstr "參考星：處理中…\n"
 #: src/algos/comparison_stars.c:420 src/algos/search_objects.c:525
 #: src/core/command.c:7022 src/core/command.c:12985 src/core/command.c:13700
 #: src/core/command.c:13851 src/core/command.c:13885
-#: src/io/siril_catalogues.c:1119 src/io/siril_catalogues.c:1165
+#: src/io/siril_catalogues.c:1121 src/io/siril_catalogues.c:1167
 msgid "This command only works on plate solved images\n"
 msgstr "此命令僅適用於已解析的影像\n"
 
@@ -13752,67 +13746,67 @@ msgstr "映象 Y"
 msgid "Error binning mask\n"
 msgstr ""
 
-#: src/algos/geometry.c:825 src/filters/deconvolution.c:502
+#: src/algos/geometry.c:824 src/filters/deconvolution.c:502
 msgid "No"
 msgstr "無"
 
-#: src/algos/geometry.c:828
+#: src/algos/geometry.c:827
 msgid "Nearest-Neighbor"
 msgstr "最近鄰"
 
-#: src/algos/geometry.c:841
+#: src/algos/geometry.c:840
 msgid "Lanczos4"
 msgstr "Lanczos4"
 
-#: src/algos/geometry.c:868
+#: src/algos/geometry.c:867
 msgid "Error resizing mask\n"
 msgstr ""
 
-#: src/algos/geometry.c:937 src/algos/geometry.c:978
+#: src/algos/geometry.c:934 src/algos/geometry.c:974
 msgid "Error rotating mask\n"
 msgstr ""
 
-#: src/algos/geometry.c:1006
+#: src/algos/geometry.c:1001
 msgid "Horizontal mirror: processing...\n"
 msgstr "水平翻轉：處理中…\n"
 
-#: src/algos/geometry.c:1017 src/algos/geometry.c:1063
+#: src/algos/geometry.c:1012 src/algos/geometry.c:1057
 msgid "Error mirroring mask\n"
 msgstr ""
 
-#: src/algos/geometry.c:1052
+#: src/algos/geometry.c:1046
 msgid "Vertical mirror: processing...\n"
 msgstr "垂直翻轉：處理中…\n"
 
-#: src/algos/geometry.c:1248 src/algos/geometry.c:1259
+#: src/algos/geometry.c:1241 src/algos/geometry.c:1252
 msgid "Rounding selection to match CFA pattern\n"
 msgstr "略微調整選區大小以匹配 CFA 陣列\n"
 
-#: src/algos/geometry.c:1279
+#: src/algos/geometry.c:1272
 msgid "Error cropping mask\n"
 msgstr ""
 
-#: src/algos/geometry.c:1319 src/algos/geometry.c:1410
-#: src/algos/geometry.c:1630
+#: src/algos/geometry.c:1311 src/algos/geometry.c:1402
+#: src/algos/geometry.c:1622
 #, c-format
 msgid "Crop (x=%d, y=%d, w=%d, h=%d)"
 msgstr "裁切（x=%d, y=%d, w=%d, h=%d）"
 
-#: src/algos/geometry.c:1344
+#: src/algos/geometry.c:1336
 msgid "The specified coordinates are not in the image\n"
 msgstr ""
 
-#: src/algos/geometry.c:1401
+#: src/algos/geometry.c:1393
 #, c-format
 msgid "Cropping image to pixel coordinates (%d, %d), size %d x %d\n"
 msgstr ""
 
-#: src/algos/geometry.c:1405
+#: src/algos/geometry.c:1397
 #, fuzzy
 msgid "Cropping failed\n"
 msgstr "疊圖失敗\n"
 
-#: src/algos/geometry.c:1454 src/registration/applyreg.c:883
+#: src/algos/geometry.c:1446 src/registration/applyreg.c:883
 #: src/registration/global.c:634 src/stacking/blending.c:116
 #, c-format
 msgid ""
@@ -13820,47 +13814,47 @@ msgid ""
 "considered available)\n"
 msgstr "%s: 沒有足夠的記憶體來執行操作（每執行緒需要 %s，而僅 %s 可用)\n"
 
-#: src/algos/geometry.c:1511 src/gui-gtk4/compositing.c:2408
+#: src/algos/geometry.c:1503 src/gui-gtk4/compositing.c:2408
 msgid "Crop Sequence"
 msgstr "裁切整個序列"
 
-#: src/algos/geometry.c:1538
+#: src/algos/geometry.c:1530
 msgid "Scale Sequence"
 msgstr "縮放整個序列"
 
-#: src/algos/geometry.c:1639
+#: src/algos/geometry.c:1631
 #, c-format
 msgid "Resampling to %d x %d pixels with %s interpolation"
 msgstr ""
 
-#: src/algos/geometry.c:1646
+#: src/algos/geometry.c:1638
 #, c-format
 msgid "Binning x%d (%s)"
 msgstr "像素合併 x%d (%s)"
 
-#: src/algos/geometry.c:1646
+#: src/algos/geometry.c:1638
 msgid "average"
 msgstr "平均數"
 
-#: src/algos/geometry.c:1646
+#: src/algos/geometry.c:1638
 msgid "sum"
 msgstr "求和"
 
-#: src/algos/geometry.c:1654
+#: src/algos/geometry.c:1646
 #, fuzzy, c-format
 msgid "Rotation (%.1fdeg)"
 msgstr "長短軸比"
 
-#: src/algos/geometry.c:1656
+#: src/algos/geometry.c:1648
 #, c-format
 msgid "Rotation (%.1fdeg, cropped=%s, clamped=%s, %s interpolation)"
 msgstr ""
 
-#: src/algos/geometry.c:1657
+#: src/algos/geometry.c:1649
 msgid "TRUE"
 msgstr ""
 
-#: src/algos/geometry.c:1657
+#: src/algos/geometry.c:1649
 msgid "FALSE"
 msgstr ""
 
@@ -13883,215 +13877,291 @@ msgstr "雜訊標準背離：計算中…\n"
 msgid "Background noise value (channel: #%d): %0.3f (%.3e)\n"
 msgstr "背景雜訊值（通道：#%d）: %0.3f（%.3e）\n"
 
-#: src/algos/photometric_cc.c:56 src/algos/photometric_cc.c:959
+#: src/algos/photometric_cc.c:56 src/algos/photometric_cc.c:1057
 #: src/core/command.c:13260 src/gui-gtk4/photometric_cc.c:249
 msgid "PCC"
 msgstr "PCC"
 
-#: src/algos/photometric_cc.c:176
+#: src/algos/photometric_cc.c:178
+#, fuzzy
+msgid "White Balance summary"
+msgstr "白平衡係數：\n"
+
+#: src/algos/photometric_cc.c:183
+#, fuzzy, c-format
+msgid "%s SPCC Linear Fit"
+msgstr "SPCC 線性擬合\n"
+
+#: src/algos/photometric_cc.c:188
 #, c-format
 msgid ""
-"White Balance summary\n"
-"<span size=\"small\">%s SPCC Linear Fit: y = %f + %f·x, &#x03C3; = %f\n"
-"White reference: %s\n"
-"Number of stars: %d (removed %d outliers)\n"
-"White balance factors: %.3f %.3f %.3f</span>"
+"y = %f + %f·x   &#x03C3; = %f\n"
+"Number of stars: %d (removed %d outliers)"
 msgstr ""
-"白平衡概要\n"
-"<span size=\"small\">%s SPCC 線性擬合：y = %f + %f·x, &#x03C3; =%f\n"
-"白點參考：%s\n"
-"星點數量：%d（移除了 %d 個異常值）\n"
-"白平衡係數：%.3f %.3f %.3f</span>"
 
-#: src/algos/photometric_cc.c:309 src/algos/photometric_cc.c:606
+#: src/algos/photometric_cc.c:211
+#, fuzzy
+msgid "X mean"
+msgstr "平均數"
+
+#: src/algos/photometric_cc.c:214
+#, fuzzy
+msgid "Y mean"
+msgstr "平均數"
+
+#: src/algos/photometric_cc.c:220
+msgid "Slope"
+msgstr ""
+
+#: src/algos/photometric_cc.c:223
+#, fuzzy
+msgid "Intercept"
+msgstr "可感知"
+
+#: src/algos/photometric_cc.c:234
+#, c-format
+msgid "%d (%d excluded)"
+msgstr ""
+
+#: src/algos/photometric_cc.c:235
+msgid "Stars measured"
+msgstr ""
+
+#: src/algos/photometric_cc.c:236
+#, fuzzy
+msgid "Photometrically valid"
+msgstr "測光"
+
+#: src/algos/photometric_cc.c:242
+msgid "Inliers, R/G fit"
+msgstr ""
+
+#: src/algos/photometric_cc.c:243
+msgid "Inliers, B/G fit"
+msgstr ""
+
+#: src/algos/photometric_cc.c:247
+#, fuzzy
+msgid "Fit type"
+msgstr "指令碼類型"
+
+#: src/algos/photometric_cc.c:248
+msgid "Linear (y = a + b·x)"
+msgstr ""
+
+#: src/algos/photometric_cc.c:248
+msgid "Repeated median (robust)"
+msgstr ""
+
+#: src/algos/photometric_cc.c:251
+#, fuzzy
+msgid "White balance factors"
+msgstr "白平衡係數：\n"
+
+#: src/algos/photometric_cc.c:257
+#, fuzzy
+msgid "Generated"
+msgstr "產生"
+
+#: src/algos/photometric_cc.c:258
+#, fuzzy
+msgid "Version"
+msgstr "轉換"
+
+#: src/algos/photometric_cc.c:386 src/algos/photometric_cc.c:704
 #, c-format
 msgid "Applying aperture photometry to %d star.\n"
 msgid_plural "Applying aperture photometry to %d stars.\n"
 msgstr[0] "執行孔徑測光於 %d 星點。\n"
 
-#: src/algos/photometric_cc.c:453
+#: src/algos/photometric_cc.c:530
 msgid "Array mismatch after discarding photometrically invalid stars\n"
 msgstr "丟棄光度無效的恆星後陣列不匹配\n"
 
-#: src/algos/photometric_cc.c:458 src/algos/photometric_cc.c:726
+#: src/algos/photometric_cc.c:535 src/algos/photometric_cc.c:824
 #, c-format
 msgid "%d star excluded from the calculation\n"
 msgid_plural "%d stars excluded from the calculation\n"
 msgstr[0] "%d 星點被排除於運算。\n"
 
-#: src/algos/photometric_cc.c:469
+#: src/algos/photometric_cc.c:546
 msgid "Error: insufficient photometrically valid stars\n"
 msgstr "錯誤：光度有效的星點不足\n"
 
-#: src/algos/photometric_cc.c:479 src/algos/photometric_cc.c:491
+#: src/algos/photometric_cc.c:556 src/algos/photometric_cc.c:568
 msgid ""
 "Error: unable to compute a fit to the data. Check your sensor and filter "
 "selections are correct.\n"
 msgstr "錯誤：無法計算資料的擬合度。檢查你的感測器和濾鏡選擇是否正確。\n"
 
-#: src/algos/photometric_cc.c:495
+#: src/algos/photometric_cc.c:572
 msgid "SPCC Linear Fits\n"
 msgstr "SPCC 線性擬合\n"
 
-#: src/algos/photometric_cc.c:496
+#: src/algos/photometric_cc.c:573
 #, c-format
 msgid "Image R/G = %f + %f * Catalog R/G (sigma: %f)\n"
 msgstr "影像 R/G = %f + %f * 星表 R/G（sigma：%f）\n"
 
-#: src/algos/photometric_cc.c:497
+#: src/algos/photometric_cc.c:574
 #, c-format
 msgid "Image B/G = %f + %f * Catalog B/G (sigma: %f)\n"
 msgstr "影像 B/G = %f + %f * 星表 B/G（sigma：%f）\n"
 
-#: src/algos/photometric_cc.c:517
+#: src/algos/photometric_cc.c:589
+#, fuzzy
+msgid "SPCC Linear Fits"
+msgstr "SPCC 線性擬合\n"
+
+#: src/algos/photometric_cc.c:598
 msgid "Catalog R/G (flux)"
 msgstr "星表 R/G（光通量）"
 
-#: src/algos/photometric_cc.c:522
+#: src/algos/photometric_cc.c:608
 msgid "Image R/G (flux)"
 msgstr "影像 R/G（光通量）"
 
-#: src/algos/photometric_cc.c:523
+#: src/algos/photometric_cc.c:609
 msgid "R/G"
 msgstr "R/G"
 
-#: src/algos/photometric_cc.c:524 src/algos/photometric_cc.c:550
+#: src/algos/photometric_cc.c:610 src/algos/photometric_cc.c:641
 msgid "Best fit"
 msgstr "最佳擬合"
 
-#: src/algos/photometric_cc.c:542
+#: src/algos/photometric_cc.c:628
 msgid "Catalog B/G (flux)"
 msgstr "星表 B/G（光通量）"
 
-#: src/algos/photometric_cc.c:547
+#: src/algos/photometric_cc.c:638
 msgid "Image B/G (flux)"
 msgstr "影像 B/G（光通量）"
 
-#: src/algos/photometric_cc.c:548
+#: src/algos/photometric_cc.c:639
 msgid "B/G"
 msgstr "B/G"
 
-#: src/algos/photometric_cc.c:570
+#: src/algos/photometric_cc.c:668
 msgid ""
 "Error calculating white balance coefficients: kw contains negative values.\n"
 msgstr "計算白平衡係數時出錯：kw 包含負值。\n"
 
-#: src/algos/photometric_cc.c:573 src/algos/photometric_cc.c:762
+#: src/algos/photometric_cc.c:671 src/algos/photometric_cc.c:860
 #, c-format
 msgid "Found a solution for color calibration using %d stars. Factors:\n"
 msgstr "找到了使用 %d 星進行色彩校正的解決方案。因子：\n"
 
-#: src/algos/photometric_cc.c:580 src/algos/photometric_cc.c:582
-#: src/algos/photometric_cc.c:768 src/algos/photometric_cc.c:770
+#: src/algos/photometric_cc.c:678 src/algos/photometric_cc.c:680
+#: src/algos/photometric_cc.c:866 src/algos/photometric_cc.c:868
 msgid ""
 "The photometric color calibration has found a solution which may not be "
 "perfect because it did not rely on many stars\n"
 msgstr "測光法色彩校正找到了一個可能不完美的解決方案，因為它不依賴於很多星點\n"
 
-#: src/algos/photometric_cc.c:584 src/algos/photometric_cc.c:772
+#: src/algos/photometric_cc.c:682 src/algos/photometric_cc.c:870
 msgid ""
 "The photometric color calibration seems to have found an imprecise solution, "
 "consider correcting the image gradient first\n"
 msgstr "測光法色彩校正似乎不能精確校正，考慮先修正影像漸變\n"
 
-#: src/algos/photometric_cc.c:627
+#: src/algos/photometric_cc.c:725
 msgid ""
 "Image color space is nonlinear. It is recommended to apply photometric color "
 "calibration to linear images.\n"
 msgstr "影像色彩空間是非線性的。建議對線性影像應測光法色彩校正。\n"
 
-#: src/algos/photometric_cc.c:647
+#: src/algos/photometric_cc.c:745
 msgid "Error: failed to set up colorspace transform.\n"
 msgstr "錯誤：未能設定色彩空間變換。\n"
 
-#: src/algos/photometric_cc.c:734
+#: src/algos/photometric_cc.c:832
 msgid "No valid stars found.\n"
 msgstr "未能發現有效的星點。\n"
 
 #. we cannot use compute_all_channels_statistics_single_image because of the area
-#: src/algos/photometric_cc.c:784
+#: src/algos/photometric_cc.c:882
 #, c-format
 msgid "Computing background reference with tolerance +%.2fσ / -%.2fσ.\n"
 msgstr "計算背景參考容差 +%.2fσ / -%.2fσ。\n"
 
 #. Check for NaN... If they are NaN the result image is junk
-#: src/algos/photometric_cc.c:817
+#: src/algos/photometric_cc.c:915
 msgid "Error computing coefficients: aborting...\n"
 msgstr "計算係數時出錯：異常中止…\n"
 
-#: src/algos/photometric_cc.c:823
+#: src/algos/photometric_cc.c:921
 msgid "White balance factors:\n"
 msgstr "白平衡係數：\n"
 
-#: src/algos/photometric_cc.c:860
+#: src/algos/photometric_cc.c:958
 msgid ""
 "Found linear plate solve data. For better result you should redo "
 "platesolving\n"
 msgstr "找到線性解析資料。為了獲得更好的結果，你應該重新進行解析\n"
 
-#: src/algos/photometric_cc.c:864
+#: src/algos/photometric_cc.c:962
 msgid "Photometric color correction will do nothing for monochrome images\n"
 msgstr "測光法色彩校正對單色影像無效\n"
 
-#: src/algos/photometric_cc.c:875
+#: src/algos/photometric_cc.c:973
 msgid "failed to compute statistics on image, aborting\n"
 msgstr "無法計算影像的統計資訊，異常中止\n"
 
-#: src/algos/photometric_cc.c:884 src/algos/photometry.c:644
+#: src/algos/photometric_cc.c:982 src/algos/photometry.c:644
 #, c-format
 msgid "Photometry radii set to %.1f for inner and %.1f for outer\n"
 msgstr "測光內半徑設定為 %.1f，外半徑設定為 %.1f\n"
 
-#: src/algos/photometric_cc.c:887
+#: src/algos/photometric_cc.c:985
 msgid "Photometric color calibration in progress..."
 msgstr "測光法色彩校正進行中…"
 
-#: src/algos/photometric_cc.c:906
+#: src/algos/photometric_cc.c:1004
 msgid "Photometric Color Calibration failed"
 msgstr "測光法色彩校正失敗"
 
-#: src/algos/photometric_cc.c:929 src/algos/photometric_cc.c:945
+#: src/algos/photometric_cc.c:1027 src/algos/photometric_cc.c:1043
 msgid ""
 "Cannot run the standalone photometric color calibration on this image "
 "because it has no WCS data or it is not supported\n"
 msgstr "無法對此影像執行獨立的測光法色彩校正，因為它沒有 WCS 資料或不受支援\n"
 
-#: src/algos/photometric_cc.c:936
+#: src/algos/photometric_cc.c:1034
 msgid "Error computing FWHM for photometry settings adjustment\n"
 msgstr "計算用於測光設定調整的 FWHM 時出錯\n"
 
-#: src/algos/photometric_cc.c:959
+#: src/algos/photometric_cc.c:1057
 #, c-format
 msgid ""
 "Getting stars from local catalogue %s for %s, with a radius of %.2f degrees "
 "and limit magnitude %.2f\n"
 msgstr "從 PCC 的本地星表中 %s 獲取恆星 %s，半徑為 %.2f 度，極限星等為 %.2f\n"
 
-#: src/algos/photometric_cc.c:959 src/core/command.c:13260
+#: src/algos/photometric_cc.c:1057 src/core/command.c:13260
 #: src/gui-gtk4/photometric_cc.c:249
 msgid "SPCC"
 msgstr "SPCC"
 
-#: src/algos/photometric_cc.c:977
+#: src/algos/photometric_cc.c:1075
 msgid "No valid catalog found.\n"
 msgstr "未找到有效的星表。\n"
 
-#: src/algos/photometric_cc.c:980
+#: src/algos/photometric_cc.c:1078
 #, c-format
 msgid ""
 "Getting stars from online catalogue %s for PCC, with a radius of %.2f "
 "degrees and limit magnitude %.2f\n"
 msgstr "從 PCC 的線上星表 %s 獲取恆星，半徑為 %.2f 度，極限星等為 %.2f\n"
 
-#: src/algos/photometric_cc.c:1004
+#: src/algos/photometric_cc.c:1102
 msgid "Catalog error, no stars identified!\n"
 msgstr "星表錯誤，無星點可識別！\n"
 
-#: src/algos/photometric_cc.c:1015 src/gui-gtk4/photometric_cc.c:409
+#: src/algos/photometric_cc.c:1113 src/gui-gtk4/photometric_cc.c:409
 msgid "Spectrophotometric Color Calibration"
 msgstr "分光光度色彩校正"
 
-#: src/algos/photometric_cc.c:1015 src/gui-gtk4/photometric_cc.c:328
+#: src/algos/photometric_cc.c:1113 src/gui-gtk4/photometric_cc.c:328
 msgid "Photometric Color Calibration"
 msgstr "測光法色彩校正"
 
@@ -14170,14 +14240,14 @@ msgid "flux ratio failed"
 msgstr "通量比失敗"
 
 #: src/algos/photometry.c:343 src/io/aavso_extended.c:111
-#: src/io/siril_plot.c:909
+#: src/io/siril_plot.c:1177
 #, c-format
 msgid "Could not create %s, aborting\n"
 msgstr "無法建立 %s，異常中止\n"
 
 #: src/algos/photometry.c:355 src/gui-gtk4/plot.c:881
-#: src/io/aavso_extended.c:126 src/io/siril_plot.c:760 src/io/siril_plot.c:789
-#: src/io/siril_plot.c:921
+#: src/gui-gtk4/siril_plot.c:730 src/io/aavso_extended.c:126
+#: src/io/siril_plot.c:1028 src/io/siril_plot.c:1057 src/io/siril_plot.c:1189
 #, c-format
 msgid "%s has been saved.\n"
 msgstr "%s 已儲存。\n"
@@ -14446,7 +14516,7 @@ msgid "FindStar"
 msgstr "星點偵測"
 
 #: src/algos/star_finder.c:1333 src/gui-gtk4/compositing.c:2214
-#: src/io/sequence.c:2442 src/io/sequence.c:2460
+#: src/io/sequence.c:2445 src/io/sequence.c:2463
 #: src/registration/applyreg.c:350 src/registration/applyreg.c:1121
 #: src/registration/applyreg.c:1333 src/registration/comet.c:137
 #: src/registration/global.c:127
@@ -14606,7 +14676,7 @@ msgstr ""
 
 #: src/compositing/align_rgb.c:89 src/core/command.c:5389
 #: src/core/command.c:6105 src/core/command.c:6410
-#: src/gui-gtk4/siril_actions.c:584
+#: src/gui-gtk4/siril_actions.c:582
 msgid ""
 "Current selection is too large. To determine the PSF, please make a "
 "selection around a single star.\n"
@@ -15493,11 +15563,11 @@ msgstr "目標背景值必須在 [0, 1] 區間\n"
 msgid "Computing %s auto-stretch with values %f and %f\n"
 msgstr "計算 %s 自動拉伸，使用值 %f 和 %f\n"
 
-#: src/core/command.c:4037 src/gui-gtk4/siril_actions.c:506
+#: src/core/command.c:4037 src/gui-gtk4/siril_actions.c:504
 msgid "linked"
 msgstr "繫結"
 
-#: src/core/command.c:4037 src/gui-gtk4/siril_actions.c:506
+#: src/core/command.c:4037 src/gui-gtk4/siril_actions.c:504
 msgid "unlinked"
 msgstr "不繫結"
 
@@ -15738,7 +15808,7 @@ msgid "Wrong magnitude value.\n"
 msgstr "錯誤的星等值。\n"
 
 #: src/core/command.c:5393 src/core/command.c:6109 src/core/command.c:6415
-#: src/gui-gtk4/siril_actions.c:588 src/io/sequence.c:2270
+#: src/gui-gtk4/siril_actions.c:586 src/io/sequence.c:2273
 msgid "Select an area first\n"
 msgstr "請先選擇一個區域\n"
 
@@ -15803,7 +15873,7 @@ msgid ""
 "each image\n"
 msgstr "已將恆星 %d 的參考星等設定為 %f，並將為每影格影像計算\n"
 
-#: src/core/command.c:5637
+#: src/core/command.c:5638
 #, c-format
 msgid "FITS extension unknown: %s\n"
 msgstr "不可識別的 FITS 副檔名：%s\n"
@@ -15997,7 +16067,7 @@ msgstr "PSF 在通道 %d 上，在有 %d 通道的序列中無法被計算\n"
 
 #. Run PSF
 #: src/core/command.c:6435 src/gui-gtk4/callbacks.c:3882
-#: src/gui-gtk4/siril_actions.c:603
+#: src/gui-gtk4/siril_actions.c:601
 #, c-format
 msgid "Running the PSF on the sequence, layer %d\n"
 msgstr "於序列中執行 PSF，圖層 %d\n"
@@ -17075,10 +17145,10 @@ msgid ""
 msgstr "疊圖時的可用記憶體比例範圍為[0.05, 4]，建議使用低於總記憶體量\n"
 
 #: src/core/command.c:12539
-#, c-format
+#, fuzzy, c-format
 msgid ""
 "Setting the ratio of memory used for stacking above 1 will require the use "
-"of on-disk memory, which can be very slow and is unrecommended (%g "
+"of on-disk memory, which can be very slow and is not recommended (%g "
 "requested)\n"
 msgstr ""
 "將疊圖時的可用記憶體比例設定為 1 以上，將用到磁碟上的虛擬記憶體，這可能非常緩"
@@ -17521,7 +17591,7 @@ msgstr "白點參考"
 msgid "Unknown SPCC list\n"
 msgstr "未知的 SPCC 列表\n"
 
-#: src/core/command.c:14566 src/gui-gtk4/siril_actions.c:747
+#: src/core/command.c:14566 src/gui-gtk4/siril_actions.c:745
 msgid ""
 "This command only works on plate solved images with distortions included\n"
 msgstr "此命令僅適用於包含失真的已解析的影像\n"
@@ -18232,7 +18302,7 @@ msgstr "根據編譯選項和執行時列出 Siril 的功能"
 
 #: src/core/command_def.h:22
 msgid ""
-"Computes the abolute magnitude reference using by order or preference the "
+"Computes the absolute magnitude reference using, in order of preference, the "
 "local Gaia catalog, the local NOMAD catalog or the remote Gaia catalog, "
 "using a single channel (green for color images). Stars used for the "
 "calibration can be filtered by color, using a reference temperature "
@@ -19290,12 +19360,13 @@ msgstr ""
 "案，可以使用<b>-out=</b>指定檔名"
 
 #: src/core/command_def.h:108
+#, fuzzy
 msgid ""
 "Generates a PSF for use with deconvolution, any of the three methods exposed "
 "by RL, SB or WIENER commands. One of the following must be given as the "
 "first argument: <b>clear</b> (clears the existing PSF), <b>load</b> (loads a "
 "PSF from a file), <b>save</b> (saves the current PSF), <b>blind</b> (blind "
-"estimate of tke PSF), <b>stars</b> (generates a PSF based on measured stars "
+"estimate of the PSF), <b>stars</b> (generates a PSF based on measured stars "
 "from the image) or <b>manual</b> (generates a PSF manually based on a "
 "function and parameters).\n"
 "\n"
@@ -19414,7 +19485,7 @@ msgid ""
 "Create a mask based on image color. As simple hue-based masking performs "
 "poorly on dark images, normalized chromaticity is used (this is defined as "
 "cr = r / (r + g + b) etc.) The chromaticity coordinates and chromaticity "
-"tolerance <i>must</i> be specfied using <b>-cr=</b>, <b>-cg=</b>, <b>-cb=</"
+"tolerance <i>must</i> be specified using <b>-cr=</b>, <b>-cg=</b>, <b>-cb=</"
 "b> and <b>-tol=</b>, and additional luminance filtering may optionally be "
 "set using <b>-lum_min</b> and <b>-lum_max</b>. Additionally, a feathering "
 "radius may be specified using the argument <b>-fr</b> and the mask may be "
@@ -20524,9 +20595,10 @@ msgstr ""
 "完整說明請參閱指令參考文件"
 
 #: src/core/command_def.h:167
+#, fuzzy
 msgid ""
-"Same command as CCM but for the the sequence <b>sequencename</b>. Only "
-"selected images in the sequence are processed.\n"
+"Same command as CCM but for the sequence <b>sequencename</b>. Only selected "
+"images in the sequence are processed.\n"
 "\n"
 "The output sequence name starts with the prefix \"ccm\" unless otherwise "
 "specified with option <b>-prefix=</b>"
@@ -20546,8 +20618,9 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:169
+#, fuzzy
 msgid ""
-"Same command as COSME but for the the sequence <b>sequencename</b>. Only "
+"Same command as COSME but for the sequence <b>sequencename</b>. Only "
 "selected images in the sequence are processed.\n"
 "\n"
 "The output sequence name starts with the prefix \"cosme_\" unless otherwise "
@@ -20558,8 +20631,9 @@ msgstr ""
 "<b>-prefix=</b> 指定輸出序列名前綴，否則為\"cosme_\""
 
 #: src/core/command_def.h:170
+#, fuzzy
 msgid ""
-"Same command as COSME_CFA but for the the sequence <b>sequencename</b>. Only "
+"Same command as COSME_CFA but for the sequence <b>sequencename</b>. Only "
 "selected images in the sequence are processed.\n"
 "\n"
 "The output sequence name starts with the prefix \"cosme_\" unless otherwise "
@@ -21241,13 +21315,14 @@ msgstr ""
 "要重設星等常數，參見 UNSETMAG"
 
 #: src/core/command_def.h:211
+#, fuzzy
 msgid ""
 "Sets a new ratio of used memory on free memory.\n"
 "\n"
 "<b>Ratio</b> value should be between 0.05 and 2, depending on other "
 "activities of the machine. A higher ratio should allow siril to process "
 "faster, but setting the ratio of used memory above 1 will require the use of "
-"on-disk memory, which is very slow and unrecommended, even sometimes not "
+"on-disk memory, which is very slow and not recommended, even sometimes not "
 "supported, leading to system crash. A fixed amount of memory can also be set "
 "in the generic settings, with SET, instead of a ratio"
 msgstr ""
@@ -21438,6 +21513,7 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:221
+#, fuzzy
 msgid ""
 "Stacks the <b>sequencename</b> sequence, using options.\n"
 "\n"
@@ -21465,11 +21541,11 @@ msgid ""
 "additive, <b>-norm=mul</b> for multiplicative. Options <b>-norm=addscale</b> "
 "and <b>-norm=mulscale</b> apply same normalization but with scale "
 "operations. <b>-nonorm</b> is the option to disable normalization. Otherwise "
-"addtive with scale method is applied by default.\n"
+"additive with scale method is applied by default.\n"
 "<b>-fastnorm</b> option specifies to use faster estimators for location and "
 "scale than the default IKSS.\n"
-"<b>-overlap_norm</b>, if passed, will compute normalization coeffcients on "
-"images overlaps instead of whole images (allowed only if <b>-maximize</b> is "
+"<b>-overlap_norm</b>, if passed, will compute normalization coefficients on "
+"image overlaps instead of whole images (allowed only if <b>-maximize</b> is "
 "passed).\n"
 "\n"
 "Other options for rejection stacking:\n"
@@ -21680,9 +21756,16 @@ msgid ""
 "treated as a structure (default 0.05).\n"
 "<b>-protect_amount=</b> how far the protection mask grows around detected "
 "structures (default 0.5).\n"
-"<b>-simplified</b>: replace the multiscale model with a stiff polynomial, "
-"best when a nebula fills the frame; <b>-degree=</b> sets its degree in the "
-"[1, 6] range (default 2).\n"
+"<b>-simplified</b>: enable the simplified model, a stiff polynomial fitted "
+"and removed before the multiscale model, which is then fitted on what it "
+"leaves; the sum of the two is removed. Helps on strong, complex gradients "
+"whose amplitude rivals or exceeds the objects of interest, where a single "
+"pass cannot separate them. It can overcorrect when the frame holds a large "
+"bright object, which the polynomial may partly absorb, so keep <b>-degree=</"
+"b> low.\n"
+"<b>-degree=</b> degree of the simplified model, in the [1, 6] range (default "
+"1, a plane). Raise it for a gradient with real curvature, but a large bright "
+"object is then more easily absorbed.\n"
 "<b>-downsample=</b> internal working scale factor, one of 1, 2, 4, 8 "
 "(default 4).\n"
 "<b>-mode=</b> <b>subtract</b> (additive gradient, default) or <b>divide</b> "
@@ -22276,7 +22359,7 @@ msgstr "分配的 ICC 色彩特性檔案：%s"
 #: src/gui-gtk4/nina_light_curve.c:245 src/gui-gtk4/nina_light_curve.c:250
 #: src/gui-gtk4/nina_light_curve.c:256 src/gui-gtk4/nina_light_curve.c:265
 #: src/gui-gtk4/nina_light_curve.c:304 src/gui-gtk4/open_dialog.c:541
-#: src/gui-gtk4/preferences.c:546 src/gui-gtk4/save_dialog.c:317
+#: src/gui-gtk4/preferences.c:546 src/gui-gtk4/save_dialog.c:321
 #: src/gui-gtk4/script_menu.c:567 src/io/siril_pythoncommands.c:1184
 msgid "Error"
 msgstr "錯誤"
@@ -22419,40 +22502,46 @@ msgstr "%s.%s 的配置檔案中出現未知錯誤。\n"
 msgid "directory `%s' for config key %s.%s doesn't exist, not using it.\n"
 msgstr "目錄“%s”（用於配置關鍵字 %s）。%s 不存在，不使用。\n"
 
-#: src/core/initfile.c:166
+#: src/core/initfile.c:121
+#, fuzzy, c-format
+msgid ""
+"`%s' is not a valid FITS extension for config key %s.%s, not using it.\n"
+msgstr "目錄“%s”（用於配置關鍵字 %s）。%s 不存在，不使用。\n"
+
+#: src/core/initfile.c:173
 #, c-format
 msgid "Error creating regex: %s\n"
 msgstr ""
 
-#: src/core/initfile.c:227
+#: src/core/initfile.c:234
 #, c-format
 msgid "Converting previous initfile: %s\n"
 msgstr "轉換以前的初始化檔案：%s\n"
 
-#: src/core/initfile.c:252
+#: src/core/initfile.c:259
 #, c-format
 msgid "unknown settings variable %s.%s\n"
 msgstr "未知設定變數 %s.%s\n"
 
-#: src/core/initfile.c:270
+#: src/core/initfile.c:277
 #, c-format
 msgid "Settings could not be loaded from %s: %s\n"
 msgstr "無法從 %s: %s 載入設定\n"
 
-#: src/core/initfile.c:277
+#: src/core/initfile.c:284
 msgid "Warning: nothing could be read from the settings file\n"
 msgstr "警告：無法從設定檔案中讀取任何內容\n"
 
-#: src/core/initfile.c:286
+#: src/core/initfile.c:293
 #, c-format
 msgid "Reading configuration file %s\n"
 msgstr "讀取配置檔案 %s\n"
 
-#: src/core/initfile.c:308
+#: src/core/initfile.c:315
 msgid "Continuing without configuration file\n"
 msgstr "在沒有配置檔案的情況下繼續\n"
 
-#: src/core/initfile.c:372
+#: src/core/initfile.c:379
 #, c-format
 msgid "Could not save the settings in %s: %s\n"
 msgstr "無法將設定儲存於 %s: %s\n"
@@ -22687,173 +22776,173 @@ msgstr "預處理影像 %s\n"
 msgid "Saving image %s\n"
 msgstr "儲存影像 %s\n"
 
-#: src/core/processing.c:104 src/core/processing.c:1131
+#: src/core/processing.c:106 src/core/processing.c:1133
 msgid "No image selected for processing, aborting\n"
 msgstr "沒有任何選中的待處理影像，異常中止\n"
 
-#: src/core/processing.c:134
+#: src/core/processing.c:136
 #, c-format
 msgid ""
 "%s: with the current memory and thread limits, up to %d thread(s) can be "
 "used\n"
 msgstr "%s：基於當前的記憶體和執行緒上限， 最多 %d 執行緒可用\n"
 
-#: src/core/processing.c:142
+#: src/core/processing.c:144
 msgid "Preparing sequence processing failed.\n"
 msgstr "準備待處理序列失敗。\n"
 
-#: src/core/processing.c:169 src/core/processing.c:1154
+#: src/core/processing.c:171 src/core/processing.c:1156
 #, c-format
 msgid "Output index mapping failed (%d/%d).\n"
 msgstr "輸出指標對映失敗（%d/%d）。\n"
 
-#: src/core/processing.c:181
+#: src/core/processing.c:183
 msgid "Not enough space to save the output images, aborting\n"
 msgstr "沒有足夠的空間來儲存輸出影像，異常中止\n"
 
-#: src/core/processing.c:189
+#: src/core/processing.c:191
 #, c-format
 msgid "%s: processing...\n"
 msgstr "%s：處理中…\n"
 
-#: src/core/processing.c:302 src/io/sequence.c:978
+#: src/core/processing.c:304 src/io/sequence.c:981
 #, c-format
 msgid ""
 "Image #%d: number of layers (%d) is not consistent with sequence (%d), "
 "aborting\n"
 msgstr "影像 #%d：圖層數量（%d）與序列數量（%d）不一致，異常中止\n"
 
-#: src/core/processing.c:372
+#: src/core/processing.c:374
 #, c-format
 msgid "%s. Processing image %d (%s)"
 msgstr "%s. 處理影像 %d (%s)"
 
-#: src/core/processing.c:380 src/core/processing.c:413
+#: src/core/processing.c:382 src/core/processing.c:415
 msgid "Finalizing sequence processing failed.\n"
 msgstr "序列最終處理失敗。\n"
 
-#: src/core/processing.c:384
+#: src/core/processing.c:386
 msgid "Sequence processing failed. Check the log."
 msgstr "序列處理失敗，請檢查日誌。"
 
-#: src/core/processing.c:385
+#: src/core/processing.c:387
 msgid "Sequence processing failed.\n"
 msgstr "序列處理失敗。\n"
 
-#: src/core/processing.c:392
+#: src/core/processing.c:394
 msgid "Sequence processing partially succeeded. Check the log."
 msgstr "序列處理失敗，請檢查日誌。"
 
-#: src/core/processing.c:393
+#: src/core/processing.c:395
 #, c-format
 msgid "Sequence processing partially succeeded, with %d images that failed.\n"
 msgstr "序列處理部分成功，%d 影格影像失敗。\n"
 
-#: src/core/processing.c:395
+#: src/core/processing.c:397
 msgid "Sequence processing succeeded."
 msgstr "序列處理成功。"
 
-#: src/core/processing.c:396
+#: src/core/processing.c:398
 msgid "Sequence processing succeeded.\n"
 msgstr "序列處理成功。\n"
 
-#: src/core/processing.c:718
+#: src/core/processing.c:720
 #, c-format
 msgid "Image %d not found for writing\n"
 msgstr "找不到用於寫入的影像 %d\n"
 
-#: src/core/processing.c:1024
+#: src/core/processing.c:1026
 msgid "Process aborted by user\n"
 msgstr "程式處理被使用者中斷\n"
 
-#: src/core/processing.c:1033
+#: src/core/processing.c:1035
 #, c-format
 msgid "Failed to find GPid %d, it may already have exited...\n"
 msgstr "找不到 GPid%d，它可能已經退出…\n"
 
-#: src/core/processing.c:1221
+#: src/core/processing.c:1223
 #, c-format
 msgid "Error finding the HDU for frame %d\n"
 msgstr "尋找影格 %d 的 HDU 時發生錯誤\n"
 
-#: src/core/processing.c:1321 src/core/processing.c:1347
+#: src/core/processing.c:1323 src/core/processing.c:1349
 #, c-format
 msgid "Not enough memory for operation: need %.1f MB, have %.1f MB\n"
 msgstr ""
 
-#: src/core/processing.c:1629 src/core/processing.c:1649
+#: src/core/processing.c:1631 src/core/processing.c:1651
 #, fuzzy
 msgid "Failed to copy original image.\n"
 msgstr "顯示原始影像"
 
-#: src/core/processing.c:1674
+#: src/core/processing.c:1676
 #, fuzzy, c-format
 msgid "%s: processing%s...\n"
 msgstr "影像處理"
 
-#: src/core/processing.c:1674
+#: src/core/processing.c:1676
 msgid " (mask active)"
 msgstr ""
 
-#: src/core/processing.c:1679
+#: src/core/processing.c:1681
 #, fuzzy
 msgid "Processing image..."
 msgstr "影像處理"
 
-#: src/core/processing.c:1684
+#: src/core/processing.c:1686
 #, fuzzy, c-format
 msgid "%s image processing failed.\n"
 msgstr "影像處理"
 
-#: src/core/processing.c:1809
+#: src/core/processing.c:1819
 #, fuzzy
 msgid "Image processing failed. Check the log."
 msgstr "疊圖失敗。請查看日誌。"
 
-#: src/core/processing.c:1811
+#: src/core/processing.c:1821
 #, fuzzy
 msgid "Image processing succeeded."
 msgstr "影像處理"
 
-#: src/core/processing.c:1824
+#: src/core/processing.c:1834
 #, c-format
 msgid "%s %s.\n"
 msgstr ""
 
-#: src/core/processing.c:1824
+#: src/core/processing.c:1834
 msgid "failed"
 msgstr ""
 
-#: src/core/processing.c:1824
+#: src/core/processing.c:1834
 msgid "succeeded"
 msgstr ""
 
-#: src/core/processing.c:1881
+#: src/core/processing.c:1891
 #, fuzzy, c-format
 msgid "%s: processing mask...\n"
 msgstr "影像處理"
 
-#: src/core/processing.c:1886
+#: src/core/processing.c:1896
 #, fuzzy
 msgid "Processing mask..."
 msgstr "影像處理"
 
-#: src/core/processing.c:1897
+#: src/core/processing.c:1907
 #, fuzzy, c-format
 msgid "%s mask processing failed.\n"
 msgstr "疊圖失敗\n"
 
-#: src/core/processing.c:1906
+#: src/core/processing.c:1916
 #, c-format
 msgid "%s succeeded.\n"
 msgstr ""
 
-#: src/core/processing.c:1914
+#: src/core/processing.c:1924
 #, fuzzy
 msgid "Mask processing failed. Check the log."
 msgstr "疊圖失敗。請查看日誌。"
 
-#: src/core/processing.c:1916
+#: src/core/processing.c:1926
 #, fuzzy
 msgid "Mask processing succeeded."
 msgstr "影像處理"
@@ -24161,19 +24250,19 @@ msgstr "無法將目錄更改為'%s'（錯誤程式碼 %d: %s）。\n"
 msgid "Filename is too long, not expanding it\n"
 msgstr "檔名太長了\n"
 
-#: src/core/utils.c:1313 src/core/utils.c:1316
+#: src/core/utils.c:1303 src/core/utils.c:1306
 msgid "(invalid UTF-8 string)"
 msgstr "（UTF-8 字串無效）"
 
-#: src/core/utils.c:2315
+#: src/core/utils.c:2318
 msgid "Significantly out of range pixels detected: clipping outliers\n"
 msgstr "偵測到嚴重超出範圍的像素：截斷離群值\n"
 
-#: src/core/utils.c:2319
+#: src/core/utils.c:2322
 msgid "Negative-valued pixels detected: clipping and scaling to [0,1]\n"
 msgstr "偵測到負值像素：截斷並縮放到 [0,1]\n"
 
-#: src/core/utils.c:2325
+#: src/core/utils.c:2328
 msgid "Marginally out of range pixels detected: scaling to [0,1]\n"
 msgstr "偵測到輕微超出範圍的像素：縮放到 [0,1]\n"
 
@@ -25020,11 +25109,11 @@ msgstr "星表檔案 (*.lst)"
 msgid "Error: error writing the CSV.\n"
 msgstr "錯誤：寫入 CSV 時出錯。\n"
 
-#: src/gui-gtk4/PSF_list.c:726 src/gui-gtk4/siril_actions.c:556
+#: src/gui-gtk4/PSF_list.c:726 src/gui-gtk4/siril_actions.c:554
 msgid "Current selection is too large"
 msgstr "當前選區過大"
 
-#: src/gui-gtk4/PSF_list.c:727 src/gui-gtk4/siril_actions.c:557
+#: src/gui-gtk4/PSF_list.c:727 src/gui-gtk4/siril_actions.c:555
 msgid "To determine the PSF, please make a selection around a star."
 msgstr "若要計算 PSF，請框選一個星點。"
 
@@ -26216,7 +26305,7 @@ msgstr "不接受 BV 範圍（應為 [0， 0.7]）"
 msgid "Magnitude error not accepted (should be ]0, 0.1["
 msgstr "不可接受星等誤差（應為]0, 0.1["
 
-#: src/gui-gtk4/conversion.c:206 src/gui-gtk4/file_browser.c:3240
+#: src/gui-gtk4/conversion.c:206 src/gui-gtk4/file_browser.c:3270
 msgid "Size"
 msgstr "大小"
 
@@ -26538,7 +26627,7 @@ msgstr ""
 msgid "Select Folder"
 msgstr "選擇資料夾"
 
-#: src/gui-gtk4/dialogs.c:386 src/gui-gtk4/file_browser.c:2953
+#: src/gui-gtk4/dialogs.c:386 src/gui-gtk4/file_browser.c:2983
 #: src/gui-gtk4/pixelmath.c:1018
 msgid "Open File"
 msgstr "開啟檔案"
@@ -26600,7 +26689,7 @@ msgstr "請先選擇好幅值和相位！\n"
 msgid "Recent files"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:939 src/gui-gtk4/file_browser.c:2252
+#: src/gui-gtk4/file_browser.c:939 src/gui-gtk4/file_browser.c:2282
 msgid "Trash"
 msgstr ""
 
@@ -26623,7 +26712,7 @@ msgid "Unknown error"
 msgstr "未知錯誤"
 
 #. Name above type: bold filename on top, plain "Folder" beneath.
-#: src/gui-gtk4/file_browser.c:1303 src/gui-gtk4/file_browser.c:2456
+#: src/gui-gtk4/file_browser.c:1303 src/gui-gtk4/file_browser.c:2486
 msgid "Folder"
 msgstr "資料夾"
 
@@ -26637,23 +26726,23 @@ msgstr "名為 %s 的檔案已經存在。是否要覆蓋？\n"
 msgid "Replace file?"
 msgstr "替換檔案"
 
-#: src/gui-gtk4/file_browser.c:1827
+#: src/gui-gtk4/file_browser.c:1851
 msgid "Recent"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:1950
+#: src/gui-gtk4/file_browser.c:1980
 msgid "Volume"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:1951
+#: src/gui-gtk4/file_browser.c:1981
 msgid "Not mounted"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:1953
+#: src/gui-gtk4/file_browser.c:1983
 msgid "Click to mount this device"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:2065
+#: src/gui-gtk4/file_browser.c:2095
 #, c-format
 msgid "Could not mount %s: %s\n"
 msgstr ""
@@ -26662,110 +26751,110 @@ msgstr ""
 #. * Siril shipped previously, plus the Working Directory shortcut that
 #. * jumps to com.wd (the folder Siril is operating on).  Templates /
 #. * Public / Computer are intentionally omitted — see the brief.
-#: src/gui-gtk4/file_browser.c:2230
+#: src/gui-gtk4/file_browser.c:2260
 msgid "Places"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:2233
+#: src/gui-gtk4/file_browser.c:2263
 msgid "Home"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:2235
+#: src/gui-gtk4/file_browser.c:2265
 msgid "Documents"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:2238
+#: src/gui-gtk4/file_browser.c:2268
 msgid "Pictures"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:2241
+#: src/gui-gtk4/file_browser.c:2271
 msgid "Music"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:2244
+#: src/gui-gtk4/file_browser.c:2274
 msgid "Downloads"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:2247
+#: src/gui-gtk4/file_browser.c:2277
 msgid "Videos"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:2257
+#: src/gui-gtk4/file_browser.c:2287
 msgid "Working Directory"
 msgstr ""
 
 #. Section: Bookmarks (only if the user has any).
-#: src/gui-gtk4/file_browser.c:2260
+#: src/gui-gtk4/file_browser.c:2290
 msgid "Bookmarks"
 msgstr ""
 
 #. Section: Devices (mounted first, then unmounted with a Mount badge).
-#: src/gui-gtk4/file_browser.c:2263
+#: src/gui-gtk4/file_browser.c:2293
 msgid "Devices"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:2411
+#: src/gui-gtk4/file_browser.c:2441
 #, fuzzy
 msgid "Unknown"
 msgstr "復原上一個動作"
 
-#: src/gui-gtk4/file_browser.c:3048
+#: src/gui-gtk4/file_browser.c:3078
 msgid "Up a level"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:3057
+#: src/gui-gtk4/file_browser.c:3087
 msgid "Forward along the trail"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:3069
+#: src/gui-gtk4/file_browser.c:3099
 msgid "Type a path and press Enter to navigate"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:3090
+#: src/gui-gtk4/file_browser.c:3120
 msgid "Edit path as text"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:3098
+#: src/gui-gtk4/file_browser.c:3128
 msgid "Create folder"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:3109
+#: src/gui-gtk4/file_browser.c:3139
 msgid "Folder name"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:3114
+#: src/gui-gtk4/file_browser.c:3144
 msgid "Create"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:3133
+#: src/gui-gtk4/file_browser.c:3163
 msgid "Filter the list by filename"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:3154
+#: src/gui-gtk4/file_browser.c:3184
 #, fuzzy
 msgid "Filter by name…"
 msgstr "濾鏡： "
 
-#: src/gui-gtk4/file_browser.c:3253 src/gui-gtk4/git_gui.c:386
+#: src/gui-gtk4/file_browser.c:3283 src/gui-gtk4/git_gui.c:386
 msgid "Type"
 msgstr "類型"
 
-#: src/gui-gtk4/file_browser.c:3266
+#: src/gui-gtk4/file_browser.c:3296
 msgid "Modified"
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:3421
+#: src/gui-gtk4/file_browser.c:3451
 msgid ""
 "Debayer CFA images on open.  Linked to the same setting as the Conversion "
 "tab's Debayer toggle."
 msgstr ""
 
-#: src/gui-gtk4/file_browser.c:3449
+#: src/gui-gtk4/file_browser.c:3479
 #, fuzzy
 msgid "Name:"
 msgstr "名稱： "
 
-#: src/gui-gtk4/file_browser.c:3873 src/gui-gtk4/open_dialog.c:273
+#: src/gui-gtk4/file_browser.c:3903 src/gui-gtk4/open_dialog.c:273
 #: src/gui-gtk4/open_dialog.c:281
 #, fuzzy
 msgid "Open Image"
@@ -26849,7 +26938,7 @@ msgstr "要回溯的修訂版本數（0 表示目前版本）："
 msgid "Loading commit message..."
 msgstr "載入提交資訊…"
 
-#: src/gui-gtk4/gui_iface_impl.c:1032
+#: src/gui-gtk4/gui_iface_impl.c:1036
 #, c-format
 msgid ""
 "Image is color managed\n"
@@ -26862,7 +26951,7 @@ msgstr ""
 "顯示器特性檔案：%s\n"
 "軟打樣特性檔案：%s"
 
-#: src/gui-gtk4/gui_iface_impl.c:1034
+#: src/gui-gtk4/gui_iface_impl.c:1038
 msgid ""
 "Image is color managed\n"
 "\n"
@@ -26874,7 +26963,7 @@ msgstr ""
 "左鍵：色彩管理對話方塊\n"
 "右鍵：切換 ISO12646 色彩評估模式"
 
-#: src/gui-gtk4/gui_iface_impl.c:1036
+#: src/gui-gtk4/gui_iface_impl.c:1040
 msgid ""
 "Image is not color managed\n"
 "\n"
@@ -26886,7 +26975,7 @@ msgstr ""
 "左鍵：色彩管理對話方塊\n"
 "右鍵：切換 ISO12646 色彩評估模式"
 
-#: src/gui-gtk4/gui_iface_impl.c:1083
+#: src/gui-gtk4/gui_iface_impl.c:1087
 msgid "Syntax error"
 msgstr "語法錯誤"
 
@@ -29562,7 +29651,7 @@ msgstr "儲存 BMP"
 #. png_write_image() is just a loop of png_write_row(); doing it by hand
 #. * lets us report progress.  row_pointers already encodes the vertical
 #. * flip, so writing them in order produces byte-identical output.
-#: src/gui-gtk4/save_dialog.c:208 src/io/image_formats_libraries.c:2124
+#: src/gui-gtk4/save_dialog.c:208 src/io/image_formats_libraries.c:2149
 msgid "Saving PNG"
 msgstr "儲存 PNG"
 
@@ -29571,7 +29660,7 @@ msgid "Saving Netpbm"
 msgstr "儲存 Netpbm"
 
 #. JSAMPLEs per row in image_buffer
-#: src/gui-gtk4/save_dialog.c:216 src/io/image_formats_libraries.c:1599
+#: src/gui-gtk4/save_dialog.c:216 src/io/image_formats_libraries.c:1624
 msgid "Saving JPG"
 msgstr "儲存 JPG"
 
@@ -29579,7 +29668,7 @@ msgstr "儲存 JPG"
 msgid "Saving JPEG XL"
 msgstr "儲存 JPEG XL"
 
-#: src/gui-gtk4/save_dialog.c:224 src/io/image_formats_libraries.c:864
+#: src/gui-gtk4/save_dialog.c:224 src/io/image_formats_libraries.c:865
 msgid "Saving TIFF"
 msgstr "儲存 TIFF"
 
@@ -29587,20 +29676,20 @@ msgstr "儲存 TIFF"
 msgid "Saving FITS"
 msgstr "儲存 FITS"
 
-#: src/gui-gtk4/save_dialog.c:280
+#: src/gui-gtk4/save_dialog.c:284
 #, fuzzy
 msgid "Save As"
 msgstr "取得腳本"
 
-#: src/gui-gtk4/save_dialog.c:317
+#: src/gui-gtk4/save_dialog.c:321
 msgid "File saving failed. Check the logs for more info."
 msgstr "儲存檔案失敗。 請查詢日誌。"
 
-#: src/gui-gtk4/save_dialog.c:337
+#: src/gui-gtk4/save_dialog.c:341
 msgid "Viewer mode is not linear"
 msgstr "預覽模式非線性"
 
-#: src/gui-gtk4/save_dialog.c:338
+#: src/gui-gtk4/save_dialog.c:342
 msgid ""
 "You are saving an image that is displayed in a non linear mode. What you see "
 "is not what you will get. Switch the viewer mode to linear to save what you "
@@ -29609,29 +29698,29 @@ msgstr ""
 "當前儲存的影像是以非線性模式被顯示。所見非所得。請將預覽切換為線性模式來獲得"
 "真實效果。"
 
-#: src/gui-gtk4/save_dialog.c:339
+#: src/gui-gtk4/save_dialog.c:343
 msgid "Save Anyway"
 msgstr "依然要儲存"
 
-#: src/gui-gtk4/save_dialog.c:751
+#: src/gui-gtk4/save_dialog.c:756
 #, c-format
 msgid "Snapshot <b>%s</b> was saved into the working directory."
 msgstr "快照 <b>%s</b> 已儲存於工作目錄。"
 
-#: src/gui-gtk4/save_dialog.c:753
+#: src/gui-gtk4/save_dialog.c:758
 msgid "Snapshot was saved into the clipboard."
 msgstr "快照已儲存到剪貼簿。"
 
-#: src/gui-gtk4/save_dialog.c:951
+#: src/gui-gtk4/save_dialog.c:956
 msgid "Snapshot copied to clipboard.\n"
 msgstr ""
 
-#: src/gui-gtk4/save_dialog.c:965
+#: src/gui-gtk4/save_dialog.c:970
 #, c-format
 msgid "Snapshot %s saved into the working directory.\n"
 msgstr ""
 
-#: src/gui-gtk4/save_dialog.c:971
+#: src/gui-gtk4/save_dialog.c:976
 msgid "Cannot take snapshot\n"
 msgstr ""
 
@@ -29901,7 +29990,7 @@ msgstr "有其他開啟的處理視窗，影像不能被處理。"
 msgid "Cannot check for updates with this version, missing dependency\n"
 msgstr "無法檢查此版本的更新，缺少依賴項\n"
 
-#: src/gui-gtk4/siril_actions.c:505
+#: src/gui-gtk4/siril_actions.c:503
 #, c-format
 msgid ""
 "Link/unlink channels in autostretch viewer mode.\n"
@@ -29910,19 +29999,19 @@ msgstr ""
 "在自動拉伸預覽中繫結/解綁各通道。\n"
 "當前狀態：%s。"
 
-#: src/gui-gtk4/siril_actions.c:574
+#: src/gui-gtk4/siril_actions.c:572
 msgid "Error: no sequence loaded.\n"
 msgstr "錯誤：沒有載入的序列。\n"
 
-#: src/gui-gtk4/siril_actions.c:607
+#: src/gui-gtk4/siril_actions.c:605
 msgid "Error running the PSF on the sequence\n"
 msgstr "在序列上執行 PSF 時發生錯誤\n"
 
-#: src/gui-gtk4/siril_actions.c:685
+#: src/gui-gtk4/siril_actions.c:683
 msgid "Save your changes before loading a frame of the sequence."
 msgstr "請於讀取序列中的影格之前儲存修改。"
 
-#: src/gui-gtk4/siril_actions.c:686
+#: src/gui-gtk4/siril_actions.c:684
 msgid ""
 "The image currently displayed is the result of the previous stack. If you "
 "load an image from the sequence, you might lose the entire process you "
@@ -29932,55 +30021,55 @@ msgstr ""
 "當前所顯示的影像是前一次疊圖的結果。如果你從序列中載入一個影像，你將會丟失對"
 "當前影像所進行的所有修改。請在進行後續操作之前儲存。"
 
-#: src/gui-gtk4/siril_actions.c:689
+#: src/gui-gtk4/siril_actions.c:687
 msgid "Load another image"
 msgstr "讀取另外的影像"
 
-#: src/gui-gtk4/siril_actions.c:938 src/gui-gtk4/siril_actions.c:946
+#: src/gui-gtk4/siril_actions.c:936 src/gui-gtk4/siril_actions.c:944
 msgid "Close current image?"
 msgstr "關閉當前視窗？"
 
-#: src/gui-gtk4/siril_actions.c:938
+#: src/gui-gtk4/siril_actions.c:936
 msgid ""
 "Opening the RGB Composition dialog will close the current image without "
 "saving. Are you sure?"
 msgstr "開啟 RGB 合成對話方塊會直接關閉當前影像，而不儲存。確定嗎？"
 
-#: src/gui-gtk4/siril_actions.c:938 src/gui-gtk4/siril_actions.c:946
+#: src/gui-gtk4/siril_actions.c:936 src/gui-gtk4/siril_actions.c:944
 msgid "Yes"
 msgstr "是的"
 
-#: src/gui-gtk4/siril_actions.c:946
+#: src/gui-gtk4/siril_actions.c:944
 msgid ""
 "Opening the Star Recomposition dialog will close the current image without "
 "saving. Are you sure?"
 msgstr "開啟重混合對話方塊會直接關閉當前影像，而不儲存。確定嗎？"
 
-#: src/gui-gtk4/siril_actions.c:1017
+#: src/gui-gtk4/siril_actions.c:1015
 msgid "RGB alignment (DFT)"
 msgstr "RGB 對位(DFT)"
 
-#: src/gui-gtk4/siril_actions.c:1021
+#: src/gui-gtk4/siril_actions.c:1019
 msgid "RGB alignment (Global stars)"
 msgstr "RGB 對位（全域性星點）"
 
-#: src/gui-gtk4/siril_actions.c:1025
+#: src/gui-gtk4/siril_actions.c:1023
 msgid "RGB alignment (KOMBAT)"
 msgstr "RGB 對位（KOMBAT）"
 
-#: src/gui-gtk4/siril_actions.c:1029
+#: src/gui-gtk4/siril_actions.c:1027
 msgid "RGB alignment (PSF)"
 msgstr "RGB 對位(PSF)"
 
-#: src/gui-gtk4/siril_actions.c:1109 src/gui-gtk4/siril_actions.c:1138
+#: src/gui-gtk4/siril_actions.c:1107 src/gui-gtk4/siril_actions.c:1136
 msgid "No mask present"
 msgstr ""
 
-#: src/gui-gtk4/siril_actions.c:1110
+#: src/gui-gtk4/siril_actions.c:1108
 msgid "There is no mask to autostretch."
 msgstr ""
 
-#: src/gui-gtk4/siril_actions.c:1139
+#: src/gui-gtk4/siril_actions.c:1137
 msgid "There is no mask to invert."
 msgstr ""
 
@@ -30120,7 +30209,7 @@ msgstr "快照已儲存到剪貼簿。\n"
 msgid "Could not copy the snapshot into the clipboard.\n"
 msgstr "無法複製快照到剪貼簿。\n"
 
-#: src/gui-gtk4/siril_plot.c:454
+#: src/gui-gtk4/siril_plot.c:454 src/gui-gtk4/siril_plot.c:727
 msgid "PNG files (*.png)"
 msgstr "PNG 檔案 (*.png)"
 
@@ -30131,6 +30220,49 @@ msgstr "DAT 檔案 (*.dat)"
 #: src/gui-gtk4/siril_plot.c:466
 msgid "SVG files (*.svg)"
 msgstr "SVG 檔案 (*.svg)"
+
+#: src/gui-gtk4/siril_plot.c:559
+#, fuzzy
+msgid "Plot figures were copied to the clipboard.\n"
+msgstr "快照已儲存到剪貼簿。\n"
+
+#: src/gui-gtk4/siril_plot.c:580
+#, fuzzy
+msgid "Copy these figures to the clipboard"
+msgstr "複製快照到剪貼簿"
+
+#: src/gui-gtk4/siril_plot.c:661
+#, fuzzy
+msgid "Display the y axis in log scale"
+msgstr "顯示光變曲線"
+
+#: src/gui-gtk4/siril_plot.c:664
+#, fuzzy
+msgid "Log scale"
+msgstr "X 軸縮放"
+
+#: src/gui-gtk4/siril_plot.c:669
+#, fuzzy
+msgid "Show this plot alone"
+msgstr "顯示變形"
+
+#: src/gui-gtk4/siril_plot.c:675
+msgid "Plot options and exports"
+msgstr ""
+
+#: src/gui-gtk4/siril_plot.c:732
+#, fuzzy
+msgid "Could not save the report snapshot.\n"
+msgstr "無法儲存疊圖結果 %s\n"
+
+#: src/gui-gtk4/siril_plot.c:747
+msgid "Save report…"
+msgstr ""
+
+#: src/gui-gtk4/siril_plot.c:748
+#, fuzzy
+msgid "Save the whole window as a PNG image"
+msgstr "儲存載入的影像"
 
 #: src/gui-gtk4/siril_preview.c:171
 msgid "Warning: insufficient memory available to create a preview.\n"
@@ -30638,40 +30770,40 @@ msgstr "影片錯誤：不相容的格式\n"
 msgid "Loaded FITS file has a BSCALE different than 1 (%f)\n"
 msgstr "載入的 FITS 檔案的 BSCALE 小於 1 （%f）\n"
 
-#: src/io/fits_keywords.c:1180
+#: src/io/fits_keywords.c:1182
 #, c-format
 msgid "Warning: FITS value for keyname '%s' out of range for INT: %s\n"
 msgstr ""
 
-#: src/io/fits_keywords.c:1193
+#: src/io/fits_keywords.c:1195
 #, c-format
 msgid "Warning: FITS value for keyname '%s' out of range for UINT: %s\n"
 msgstr ""
 
-#: src/io/fits_keywords.c:1206
+#: src/io/fits_keywords.c:1208
 #, c-format
 msgid "Warning: FITS value for keyname '%s' out of range for USHORT: %s\n"
 msgstr ""
 
-#: src/io/fits_keywords.c:1364
+#: src/io/fits_keywords.c:1366
 msgid "Error when closing fitseq\n"
 msgstr "關閉 fitseq 時出錯\n"
 
-#: src/io/fits_keywords.c:1372
+#: src/io/fits_keywords.c:1374
 msgid "Error when reopening fitseq\n"
 msgstr "重新開啟 fitseq 時出錯\n"
 
-#: src/io/fits_keywords.c:1395
+#: src/io/fits_keywords.c:1397
 #, c-format
 msgid "FITS header of image %d updated\n"
 msgstr "影像 %d 的 FITS 檔案頭已更新\n"
 
-#: src/io/fits_keywords.c:1413
+#: src/io/fits_keywords.c:1415
 #, c-format
 msgid "File %s updated\n"
 msgstr "檔案 %s 已更新\n"
 
-#: src/io/fits_keywords.c:1459
+#: src/io/fits_keywords.c:1461
 msgid "This command won't work for SER sequence.\n"
 msgstr "命令對 SER 序列無效。\n"
 
@@ -30708,7 +30840,7 @@ msgid ""
 "supported.\n"
 msgstr "不支援每個像素通道具有 64 位有符號整數的 FITS 影像。\n"
 
-#: src/io/fits_sequence.c:275 src/stacking/median_and_mean.c:1361
+#: src/io/fits_sequence.c:275 src/stacking/median_and_mean.c:1367
 msgid "Your version of cfitsio does not support multi-threading\n"
 msgstr "你的 cfitsio 版本不支援多執行緒\n"
 
@@ -31323,162 +31455,168 @@ msgstr "（觀測）日期：%s\n"
 msgid "Time (of observation): %s\n"
 msgstr "（觀測）時間: %s\n"
 
-#: src/io/image_formats_libraries.c:108 src/io/image_formats_libraries.c:193
-#: src/io/image_formats_libraries.c:278 src/io/image_formats_libraries.c:358
+#: src/io/image_formats_libraries.c:109 src/io/image_formats_libraries.c:194
+#: src/io/image_formats_libraries.c:279 src/io/image_formats_libraries.c:359
 msgid "Alpha channel is ignored.\n"
 msgstr "Alpha 通道被忽略。\n"
 
-#: src/io/image_formats_libraries.c:128 src/io/image_formats_libraries.c:155
-#: src/io/image_formats_libraries.c:213 src/io/image_formats_libraries.c:240
-#: src/io/image_formats_libraries.c:298 src/io/image_formats_libraries.c:325
-#: src/io/image_formats_libraries.c:390
+#: src/io/image_formats_libraries.c:129 src/io/image_formats_libraries.c:156
+#: src/io/image_formats_libraries.c:214 src/io/image_formats_libraries.c:241
+#: src/io/image_formats_libraries.c:299 src/io/image_formats_libraries.c:326
+#: src/io/image_formats_libraries.c:391
 msgid "An unexpected error was encountered while trying to read the file.\n"
 msgstr "讀取檔案時產生了未知的錯誤。\n"
 
-#: src/io/image_formats_libraries.c:169 src/io/image_formats_libraries.c:254
-#: src/io/image_formats_libraries.c:339
+#: src/io/image_formats_libraries.c:170 src/io/image_formats_libraries.c:255
+#: src/io/image_formats_libraries.c:340
 msgid "Unknown TIFF file.\n"
 msgstr "未知的 TIFF 檔案。\n"
 
-#: src/io/image_formats_libraries.c:434
+#: src/io/image_formats_libraries.c:435
 #, c-format
 msgid "Could not open the TIFF file %s\n"
 msgstr "無法開啟 TIFF 檔案: %s\n"
 
-#: src/io/image_formats_libraries.c:451
+#: src/io/image_formats_libraries.c:452
 #, c-format
 msgid "TIFF image has invalid dimensions (%u x %u)\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:508 src/io/image_formats_libraries.c:514
+#: src/io/image_formats_libraries.c:509 src/io/image_formats_libraries.c:515
 msgid "Siril cannot read this TIFF format.\n"
 msgstr "Siril 無法讀取此 TIFF 格式。\n"
 
-#: src/io/image_formats_libraries.c:605 src/io/image_formats_libraries.c:621
+#: src/io/image_formats_libraries.c:606 src/io/image_formats_libraries.c:622
 msgid "TIFFTAG Orientation not handled.\n"
 msgstr "TIFFTAG 方向無法被處理。\n"
 
-#: src/io/image_formats_libraries.c:658
+#: src/io/image_formats_libraries.c:659
 #, c-format
 msgid "Reading TIFF: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "讀取 TIFF：%d-bit 檔名 %s, %ld layer(s), %ux%u pixels\n"
 
-#: src/io/image_formats_libraries.c:682
+#: src/io/image_formats_libraries.c:683
 msgid "Siril cannot create TIFF file.\n"
 msgstr "Siril 無法建立 TIFF 檔案。\n"
 
-#: src/io/image_formats_libraries.c:718
+#: src/io/image_formats_libraries.c:719
 msgid "TIFF file has unexpected number of channels (not 1 or 3).\n"
 msgstr "TIFF 檔案含有意外的通道數量（非 1 或 3）。\n"
 
-#: src/io/image_formats_libraries.c:977
+#: src/io/image_formats_libraries.c:978
 msgid "Saving TIFF: Cannot write TIFF file.\n"
 msgstr "儲存 TIFF：無法寫入 TIFF 檔案。\n"
 
-#: src/io/image_formats_libraries.c:983
+#: src/io/image_formats_libraries.c:984
 #, c-format
 msgid "Saving TIFF: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "儲存 TIFF：%d-bit 檔名 %s, %ld layer(s), %ux%u pixels\n"
 
-#: src/io/image_formats_libraries.c:1164
+#: src/io/image_formats_libraries.c:1165
 #, fuzzy, c-format
 msgid "Failed to read XISF file %s\n"
 msgstr "無法開啟檔案: %s\n"
 
-#: src/io/image_formats_libraries.c:1196
+#: src/io/image_formats_libraries.c:1197
 msgid "Memory allocation error for image data.\n"
 msgstr "影像資料的記憶體分配錯誤。\n"
 
-#: src/io/image_formats_libraries.c:1265
+#: src/io/image_formats_libraries.c:1266
 msgid "This image type is not handled.\n"
 msgstr "該影像類型無法處理。\n"
 
-#: src/io/image_formats_libraries.c:1306
+#: src/io/image_formats_libraries.c:1329
+msgid ""
+"XISF is supported in read-only mode for compatibility; for interoperability "
+"and long-term preservation, FITS remains recommended.\n"
+msgstr ""
+
+#: src/io/image_formats_libraries.c:1331
 #, c-format
 msgid "Reading XISF: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "讀取 XISF：檔名 %s, %ld 圖層， %ux%u 像素\n"
 
-#: src/io/image_formats_libraries.c:1327 src/io/image_formats_libraries.c:1638
-#: src/io/image_formats_libraries.c:2874
+#: src/io/image_formats_libraries.c:1352 src/io/image_formats_libraries.c:1663
+#: src/io/image_formats_libraries.c:2899
 #, c-format
 msgid "Sorry but Siril cannot open the file: %s.\n"
 msgstr "抱歉，Siril 無法開啟檔案：%s。\n"
 
-#: src/io/image_formats_libraries.c:1379
+#: src/io/image_formats_libraries.c:1404
 msgid "Read ICC profile from JPEG.\n"
 msgstr "從 JPEG 讀取 ICC 色彩特性檔案。\n"
 
-#: src/io/image_formats_libraries.c:1382
+#: src/io/image_formats_libraries.c:1407
 msgid "Cannot read an ICC profile from this JPEG, assuming sRGB.\n"
 msgstr "無法從此 JPEG 讀取 ICC 色彩特性檔案（假定為 sRGB）。\n"
 
-#: src/io/image_formats_libraries.c:1385
+#: src/io/image_formats_libraries.c:1410
 msgid "JPEG ICC profile support unavailable, assuming sRGB.\n"
 msgstr "JPEG ICC 色彩特性檔案支援不可用（假定為 sRGB）。\n"
 
-#: src/io/image_formats_libraries.c:1421
+#: src/io/image_formats_libraries.c:1446
 #, c-format
 msgid "Reading JPG: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "讀取 JPG：檔名 %s, %ld layer(s), %ux%u pixels\n"
 
-#: src/io/image_formats_libraries.c:1444
+#: src/io/image_formats_libraries.c:1469
 msgid "Siril cannot create JPG file.\n"
 msgstr "Siril 無法建立 JPG 檔案。\n"
 
-#: src/io/image_formats_libraries.c:1594
+#: src/io/image_formats_libraries.c:1619
 msgid "Error: failed to write ICC profile to JPG\n"
 msgstr "錯誤：無法將 ICC 色彩特性檔案寫入 JPG\n"
 
-#: src/io/image_formats_libraries.c:1620
+#: src/io/image_formats_libraries.c:1645
 #, c-format
 msgid "Saving JPG: file %s, quality=%d%%, %ld layer(s), %ux%u pixels\n"
 msgstr "儲存 JPG：檔名 %s, quality=%d%%, %ld layer(s), %ux%u pixels\n"
 
-#: src/io/image_formats_libraries.c:1652
+#: src/io/image_formats_libraries.c:1677
 #, c-format
 msgid "Error opening the file %s\n"
 msgstr "開啟檔案 %s 時出錯\n"
 
-#: src/io/image_formats_libraries.c:1662
+#: src/io/image_formats_libraries.c:1687
 #, c-format
 msgid "PNG image has invalid dimensions (%d x %d)\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1833
+#: src/io/image_formats_libraries.c:1858
 #, c-format
 msgid "Reading PNG: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "讀取 PNG：%d-bit 檔名 %s, %ld layer(s), %ux%u pixels\n"
 
-#: src/io/image_formats_libraries.c:2136
+#: src/io/image_formats_libraries.c:2161
 #, c-format
 msgid "Saving PNG: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "儲存 PNG：檔名 %s, %ld layer(s), %ux%u pixels\n"
 
-#: src/io/image_formats_libraries.c:2290
+#: src/io/image_formats_libraries.c:2315
 msgid "Siril cannot open this file in CFA mode: no RAW data available.\n"
 msgstr "Siril 無法以 CFA 模式開啟此檔案：無可用 RAW 資料。\n"
 
-#: src/io/image_formats_libraries.c:2319
+#: src/io/image_formats_libraries.c:2344
 #, c-format
 msgid "Decoding %s %s file (ISO=%g, Exposure=1/%0.1f sec)\n"
 msgstr "解碼 %s %s 檔案 (ISO=%g, Exposure=1/%0.1f sec)\n"
 
-#: src/io/image_formats_libraries.c:2322
+#: src/io/image_formats_libraries.c:2347
 #, c-format
 msgid "Decoding %s %s file (ISO=%g, Exposure=%0.1f sec)\n"
 msgstr "解碼 %s %s 檔案 (ISO=%g, Exposure=%0.1f sec)\n"
 
-#: src/io/image_formats_libraries.c:2345
+#: src/io/image_formats_libraries.c:2370
 #, c-format
 msgid "Filter pattern: %s\n"
 msgstr "濾鏡模式: %s\n"
 
-#: src/io/image_formats_libraries.c:2428
+#: src/io/image_formats_libraries.c:2453
 #, c-format
 msgid "Reading RAW: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "讀取 RAW：檔名 %s, %ld layer(s), %ux%u pixels\n"
 
-#: src/io/image_formats_libraries.c:2562
+#: src/io/image_formats_libraries.c:2587
 msgid ""
 "Error: the specified NCLX TRC is not yet supported in Siril. A linear TRC "
 "will be used: you may need to fix this file up manually.\n"
@@ -31486,16 +31624,16 @@ msgstr ""
 "錯誤：Siril 尚不支援指定的 NCLX TRC。將使用線性 TRC：你可能需要手動修復此檔"
 "案。\n"
 
-#: src/io/image_formats_libraries.c:2610
+#: src/io/image_formats_libraries.c:2635
 msgid "Input file contains no readable images.\n"
 msgstr "輸入檔案含有不可讀取的資訊。\n"
 
-#: src/io/image_formats_libraries.c:2643
+#: src/io/image_formats_libraries.c:2668
 #, c-format
 msgid "This is a sequence of %d images: loading the primary one.\n"
 msgstr "這是一個由 %d 影格影像所組成的序列：讀取第一影格。\n"
 
-#: src/io/image_formats_libraries.c:2678
+#: src/io/image_formats_libraries.c:2703
 msgid ""
 "Error getting ICC profile from HEIF file. Continuing: you will need to "
 "manually assign an ICC profile\n"
@@ -31503,32 +31641,32 @@ msgstr ""
 "從 HEIF 文件獲取 ICC 色彩特性檔案時出錯。繼續：你將需要手動分配 ICC 色彩特性"
 "檔案\n"
 
-#: src/io/image_formats_libraries.c:2703
+#: src/io/image_formats_libraries.c:2728
 msgid "Input image has undefined bit-depth.\n"
 msgstr "輸入影像具有未定義的位深。\n"
 
-#: src/io/image_formats_libraries.c:2858
+#: src/io/image_formats_libraries.c:2883
 #, c-format
 msgid "Reading HEIF: file %s, %ld layer(s), %ux%u pixels, bitdepth %d\n"
 msgstr "正在讀取 HEIF：檔案 %s，%ld 圖層，%ux%u 像素，位深 %d\n"
 
-#: src/io/image_formats_libraries.c:2975
+#: src/io/image_formats_libraries.c:3000
 #, c-format
 msgid "Reading JPEG XL: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "讀取 JPEG XL：檔案 %s, %ld 圖層， %ux%u 像素\n"
 
-#: src/io/image_formats_libraries.c:2995
+#: src/io/image_formats_libraries.c:3020
 msgid "Error interleaving image\n"
 msgstr "交錯影像時出錯\n"
 
-#: src/io/image_formats_libraries.c:3105
+#: src/io/image_formats_libraries.c:3130
 #, c-format
 msgid ""
 "Saving JPEG XL: file %s, lossless, effort=%d %ld layer(s), %ux%u pixels, bit "
 "depth: %d\n"
 msgstr "儲存 JPEG XL：檔案 %s，無損，力度=%d %ld 圖層，%ux%u 像素，位深：%d\n"
 
-#: src/io/image_formats_libraries.c:3108
+#: src/io/image_formats_libraries.c:3133
 #, c-format
 msgid ""
 "Saving JPEG XL: file %s, quality=%.3f, effort=%d %ld layer(s), %ux%u pixels, "
@@ -31539,12 +31677,12 @@ msgstr ""
 #. The libjxl encoder is opaque (no row/percentage callback), so we can't
 #. * report a real fraction: mark the bar pulsating for the duration of the
 #. * blocking encode.
-#: src/io/image_formats_libraries.c:3114
+#: src/io/image_formats_libraries.c:3139
 #, fuzzy
 msgid "Encoding JPEG XL"
 msgstr "儲存 JPEG XL"
 
-#: src/io/image_formats_libraries.c:3121
+#: src/io/image_formats_libraries.c:3146
 msgid "Save complete.\n"
 msgstr "儲存完成。\n"
 
@@ -31609,7 +31747,11 @@ msgstr "找到 %d trixels：\n"
 msgid "Selected encoder: %s\n"
 msgstr "選擇的編碼器：%s\n"
 
-#: src/io/mp4_output.c:504
+#: src/io/mp4_output.c:375
+msgid "Image does not match the film input format\n"
+msgstr ""
+
+#: src/io/mp4_output.c:512
 msgid ""
 "Parameters for mp4 file creation were incorrect. Image dimension has to be a "
 "multiple of 2, fps and file name non nul, quality between 1 and 5."
@@ -31617,32 +31759,32 @@ msgstr ""
 "用於建立 mp4 檔案的引數不正確。影像尺寸須為 2 的倍數，fps 和檔名非空，品質範"
 "圍 1 到 5。"
 
-#: src/io/mp4_output.c:516
+#: src/io/mp4_output.c:524
 msgid "Could not deduce output format from file extension: using mp4.\n"
 msgstr "無法由副檔名推斷檔案類型: 暫且當作 mp4。\n"
 
-#: src/io/mp4_output.c:520
+#: src/io/mp4_output.c:528
 msgid "FFMPEG does not seem to support mp4 format, aborting.\n"
 msgstr "FFMPEG 似乎不支援 mp4 格式，異常中止。\n"
 
-#: src/io/mp4_output.c:552
+#: src/io/mp4_output.c:560
 msgid "Error: format does not support video codec.\n"
 msgstr "錯誤：不支援該影片編碼格式。\n"
 
-#: src/io/mp4_output.c:558
+#: src/io/mp4_output.c:566
 msgid "Could not add the video stream in the output film, aborting\n"
 msgstr "無法在輸出影片中新增影片流，異常中止\n"
 
-#: src/io/mp4_output.c:564
+#: src/io/mp4_output.c:572
 msgid "Selected codec is not available\n"
 msgstr "所選編解碼器不可用\n"
 
-#: src/io/mp4_output.c:578
+#: src/io/mp4_output.c:586
 #, c-format
 msgid "Could not open '%s': %s\n"
 msgstr "無法開啟 \"%s\"： %s\n"
 
-#: src/io/mp4_output.c:586
+#: src/io/mp4_output.c:594
 #, c-format
 msgid "Error occurred when opening output file: %s\n"
 msgstr "開啟輸出檔案時出錯：%s\n"
@@ -31848,7 +31990,7 @@ msgid ""
 "Cannot create sequence %s. Need at least 2 frames to be usable in Siril.\n"
 msgstr "無法建立序列 %s。至少需要 2 影格才能在 Siril 中使用。\n"
 
-#: src/io/sequence.c:460
+#: src/io/sequence.c:463
 msgid ""
 "Cannot load SER sequence. Need at least 2 frames to be usable in Siril. "
 "Please convert the SER file into FITS file.\n"
@@ -31856,11 +31998,11 @@ msgstr ""
 "無法載入 SER 序列。至少需要 2 個影格才能在 Siril 中使用。請將 SER 檔案轉換為 "
 "FITS 檔案。\n"
 
-#: src/io/sequence.c:573
+#: src/io/sequence.c:576
 msgid "Deprecated sequence"
 msgstr "已否決序列"
 
-#: src/io/sequence.c:574
+#: src/io/sequence.c:577
 msgid ""
 "Film sequences are now deprecated in Siril: some features are disabled and "
 "others may crash. We strongly encourage you to convert this sequence into a "
@@ -31873,11 +32015,11 @@ msgid ""
 "mono."
 msgstr ""
 
-#: src/io/sequence.c:580
+#: src/io/sequence.c:583
 msgid "Convert to SER"
 msgstr "轉換為 SER"
 
-#: src/io/sequence.c:582
+#: src/io/sequence.c:585
 msgid ""
 "Warning: deprecated sequence. Film sequences are now deprecated in Siril: "
 "some features are disabled and others may crash. Continuing, but we strongly "
@@ -31888,22 +32030,22 @@ msgstr ""
 "用或可能導致程式崩潰。雖然仍可繼續，但強烈建議將該序列轉換為 SER 檔案。SER 是"
 "一種簡單的影像序列格式，類似於未壓縮的影片。\n"
 
-#: src/io/sequence.c:605
+#: src/io/sequence.c:608
 msgid "could not load reference image from sequence\n"
 msgstr "無法從序列載入參考影格\n"
 
-#: src/io/sequence.c:616
+#: src/io/sequence.c:619
 #, c-format
 msgid "Sequence loaded: %s (%d->%d)\n"
 msgstr "載入序列: %s (%d->%d)\n"
 
-#: src/io/sequence.c:636
+#: src/io/sequence.c:639
 #, c-format
 msgid "mpp: loaded sidecar %s — %d APs%s\n"
 msgstr ""
 
 #. Readable but for a different sequence state.
-#: src/io/sequence.c:641
+#: src/io/sequence.c:644
 #, c-format
 msgid ""
 "mpp: sidecar %s does not match this sequence (%d frames vs %d) — ignoring "
@@ -31911,86 +32053,86 @@ msgid ""
 msgstr ""
 
 #. Unreadable — e.g. written by an older Siril version.
-#: src/io/sequence.c:647
+#: src/io/sequence.c:650
 #, c-format
 msgid ""
 "mpp: could not read sidecar %s (code %d) — it may be from an older version; "
 "re-run Analyze.\n"
 msgstr ""
 
-#: src/io/sequence.c:924 src/io/sequence.c:1059
+#: src/io/sequence.c:927 src/io/sequence.c:1062
 #: src/registration/astrometric.c:440
 #, c-format
 msgid "Could not load image %d from sequence %s\n"
 msgstr "無法載入影像 %d 位於序列 %s\n"
 
-#: src/io/sequence.c:933 src/io/sequence.c:1015 src/io/sequence.c:1067
+#: src/io/sequence.c:936 src/io/sequence.c:1018 src/io/sequence.c:1070
 #, c-format
 msgid "Could not load frame %d from SER sequence %s\n"
 msgstr "無法載入第 %d 影格，於 SER 序列 %s\n"
 
-#: src/io/sequence.c:941 src/io/sequence.c:1086 src/io/sequence.c:1097
-#: src/io/sequence.c:1164
+#: src/io/sequence.c:944 src/io/sequence.c:1089 src/io/sequence.c:1100
+#: src/io/sequence.c:1167
 #, c-format
 msgid "Could not load frame %d from FITS sequence %s\n"
 msgstr "無法載入第 %d 影格，於 FITS 序列 %s\n"
 
-#: src/io/sequence.c:951 src/io/sequence.c:1034 src/io/sequence.c:1109
+#: src/io/sequence.c:954 src/io/sequence.c:1037 src/io/sequence.c:1112
 #, c-format
 msgid "Could not load frame %d from AVI sequence %s\n"
 msgstr "無法載入第 %d 影格，於 AVI 序列 %s\n"
 
-#: src/io/sequence.c:1007 src/io/sequence.c:1023
+#: src/io/sequence.c:1010 src/io/sequence.c:1026
 #, c-format
 msgid "Could not load partial image %d from sequence %s\n"
 msgstr "無法載入部分影像 %d，從序列 %s 中\n"
 
-#: src/io/sequence.c:1081 src/io/sequence.c:1154
+#: src/io/sequence.c:1084 src/io/sequence.c:1157
 #, c-format
 msgid "Could not seek frame %d from FITS sequence %s. Error status: %d\n"
 msgstr "無法在 FITS 序列 %s 中定位影格 %d。錯誤狀態：%d\n"
 
-#: src/io/sequence.c:1252
+#: src/io/sequence.c:1255
 msgid "This operation is not supported on AVI sequences (seq_open_image)\n"
 msgstr "AVI 序列（seq_open_image）不支援此操作\n"
 
-#: src/io/sequence.c:1256
+#: src/io/sequence.c:1259
 msgid ""
 "This operation is not supported on internal sequences (seq_open_image)\n"
 msgstr "內部序列（seq_open_image）不支援此操作\n"
 
-#: src/io/sequence.c:1771
+#: src/io/sequence.c:1774
 #, c-format
 msgid "Closing sequence %s\n"
 msgstr "關閉序列 %s\n"
 
-#: src/io/sequence.c:1798
+#: src/io/sequence.c:1801
 #, c-format
 msgid "Invalid reference image (%d) in sequence, resetting it\n"
 msgstr ""
 
-#: src/io/sequence.c:1890
+#: src/io/sequence.c:1893
 #, c-format
 msgid "This operation will use registration data of layer %d\n"
 msgstr "此操作將會使用圖層 %d 的對位資料\n"
 
-#: src/io/sequence.c:1909
+#: src/io/sequence.c:1912
 msgid "internal sequence"
 msgstr "內部序列"
 
-#: src/io/sequence.c:2036
+#: src/io/sequence.c:2039
 #, c-format
 msgid "Photometry analysis failed for image %d (%s)\n"
 msgstr "影像 %d（%s）的測光分析失敗\n"
 
-#: src/io/sequence.c:2062
+#: src/io/sequence.c:2065
 #, c-format
 msgid ""
 "No star found in the area image %d around %d,%d: error %s (use a larger "
 "area?)\n"
 msgstr "無法偵測到星點於影像 %d 座標 %d,%d：錯誤 %s（選擇一個更大的範圍？）\n"
 
-#: src/io/sequence.c:2065
+#: src/io/sequence.c:2068
 #, c-format
 msgid ""
 "No star found in the area image %d around %d,%d: error %s (use 'follow star' "
@@ -31998,22 +32140,22 @@ msgid ""
 msgstr ""
 "無法偵測到星點於影像 %d 座標 %d,%d：錯誤 %s（啟用“跟隨星點移動”選項？）\n"
 
-#: src/io/sequence.c:2149
+#: src/io/sequence.c:2152
 msgid ""
 "Star analysis does not give consistent results when exposure changes across "
 "the sequence.\n"
 msgstr "當序列中的曝光時間不一致時，星點分析無法得到一致的結果。\n"
 
-#: src/io/sequence.c:2165
+#: src/io/sequence.c:2168
 #, c-format
 msgid "Photometry for star at %.1f, %.1f in image %d\n"
 msgstr "執行測光於星點 %.1f, %.1f 在影像 %d\n"
 
-#: src/io/sequence.c:2210
+#: src/io/sequence.c:2213
 msgid "No registration data stored for this layer"
 msgstr "該圖層中沒有對位資料"
 
-#: src/io/sequence.c:2211
+#: src/io/sequence.c:2214
 msgid ""
 "Some registration data was found for another layer.\n"
 "Do you want to save the psf data as registration data for this layer?"
@@ -32021,25 +32163,25 @@ msgstr ""
 "某些其他圖層的對位資料被發現。\n"
 "是否要將 psf 資料作為本圖層的對位資料儲存？"
 
-#: src/io/sequence.c:2290 src/registration/3stars.c:116
+#: src/io/sequence.c:2293 src/registration/3stars.c:116
 msgid ""
 "The reference image has a null matrix and was not previously registered. "
 "Please select another one.\n"
 msgstr "參考影格矩陣為空，並且之前未對位。請選擇另一個。\n"
 
-#: src/io/sequence.c:2298
+#: src/io/sequence.c:2301
 msgid ""
 "The current image has a null matrix and was not previously registered. "
 "Please load another one to select the star.\n"
 msgstr "當前影像矩陣為空，並且之前未對位。請載入另一個以選擇星點。\n"
 
-#: src/io/sequence.c:2306 src/registration/3stars.c:132
+#: src/io/sequence.c:2309 src/registration/3stars.c:132
 msgid ""
 "This area is outside of the reference image. Please select the reference "
 "image to select another star.\n"
 msgstr "區域在參考影格範圍以外。請重新選擇星點和參考影格。\n"
 
-#: src/io/sequence.c:2315
+#: src/io/sequence.c:2318
 msgid ""
 "The sequence analysis of the PSF will use a sliding selection area centred "
 "on the previous found star; this disables parallel processing.\n"
@@ -32047,31 +32189,31 @@ msgstr ""
 "序列的 PSF 分析將使用一個以之前找到的星點為中心的滑動選區；此操作禁用並行處"
 "理。\n"
 
-#: src/io/sequence.c:2317
+#: src/io/sequence.c:2320
 msgid ""
 "The sequence analysis of the PSF will use registration data to move the "
 "selection area for each image; this is compatible with parallel processing.\n"
 msgstr ""
 "序列的 PSF 分析將使用對位資料來移動每影格影像的選區；此操作相容並行處理。\n"
 
-#: src/io/sequence.c:2329
+#: src/io/sequence.c:2332
 msgid "PSF on area"
 msgstr "區域中的 PSF"
 
-#: src/io/sequence.c:2433
+#: src/io/sequence.c:2436
 #, c-format
 msgid ""
 "Fixing the selection number in the .seq file (%d) to the actual value (%d) "
 "(not saved)\n"
 msgstr "將 .seq 檔案 （%d） 中所選擇的編號固定為實際值 （%d）（未儲存的）\n"
 
-#: src/io/sequence.c:2472
+#: src/io/sequence.c:2475
 #, c-format
 msgid ""
 "Sequence drift could not be checked as sequence has no regdata on layer %d\n"
 msgstr "無法檢查序列漂移，因為序列在圖層 %d 上沒有對位資料\n"
 
-#: src/io/sequence.c:2486
+#: src/io/sequence.c:2489
 #, c-format
 msgid ""
 "Warning: the sequence appears to have heavy drifted images (%d pixels for "
@@ -32081,114 +32223,114 @@ msgstr ""
 "警告：序列似乎具有嚴重漂移的影像（%d 像素於影像 %d），測光可能不可靠。請檢查"
 "序列並排除一些影像\n"
 
-#: src/io/sequence.c:2500
+#: src/io/sequence.c:2503
 #, c-format
 msgid "Registration data cleared for layer %d\n"
 msgstr "已清除圖層 %d 的對位資料\n"
 
-#: src/io/sequence.c:2506
+#: src/io/sequence.c:2509
 msgid "External reference path cleared\n"
 msgstr ""
 
-#: src/io/sequence.c:2517
+#: src/io/sequence.c:2520
 #, c-format
 msgid "Registration (back-up) data cleared for layer %d\n"
 msgstr "清除圖層 %d 的對位（備份）資料\n"
 
-#: src/io/sequence.c:2524
+#: src/io/sequence.c:2527
 #, c-format
 msgid "Statistics data cleared for layer %d\n"
 msgstr "已清除圖層 %d 的統計資料\n"
 
-#: src/io/sequence.c:2530
+#: src/io/sequence.c:2533
 #, c-format
 msgid "Statistics data (back-up) cleared for layer %d\n"
 msgstr "已清除圖層 %d 的統計資料（備份）\n"
 
-#: src/io/sequence.c:2550
+#: src/io/sequence.c:2553
 msgid "MPP registration data (sidecar) cleared\n"
 msgstr ""
 
-#: src/io/sequence.c:2585 src/io/sequence.c:2600
+#: src/io/sequence.c:2588 src/io/sequence.c:2603
 #, c-format
 msgid "Removed outdated cache file %s failed\n"
 msgstr "刪除過時的快取檔案 %s 失敗\n"
 
-#: src/io/sequence_export.c:100
+#: src/io/sequence_export.c:133
 #, c-format
 msgid "Using registration information from layer %d to export sequence\n"
 msgstr "使用圖層 %d 中的對位資訊匯出序列\n"
 
-#: src/io/sequence_export.c:136
+#: src/io/sequence_export.c:169
 msgid ""
 "Reference frame has an ICC profile. Will assign / convert other frames to to "
 "match.\n"
 msgstr "參考影格具有 ICC 色彩特性檔案。將分配/轉換其他影格以進行匹配。\n"
 
-#: src/io/sequence_export.c:183 src/io/sequence_export.c:215
+#: src/io/sequence_export.c:216 src/io/sequence_export.c:248
 msgid "Reference frame has an ICC profile. Exporting as sRGB.\n"
 msgstr "參考影格含有 ICC 色彩特性檔案。匯出為 sRGB。\n"
 
-#: src/io/sequence_export.c:193
+#: src/io/sequence_export.c:226
 #, c-format
 msgid "AVI file `%s' could not be created\n"
 msgstr "AVI 檔案“%s”無法被被建立\n"
 
-#: src/io/sequence_export.c:206
+#: src/io/sequence_export.c:239
 msgid ""
 "MP4 output is not supported because siril was not compiled with ffmpeg "
 "support.\n"
 msgstr "不支援 MP4 輸出，因為 siril 不是使用 ffmpeg 支援的編譯。\n"
 
-#: src/io/sequence_export.c:224
+#: src/io/sequence_export.c:257
 msgid ""
 "Film output needs to have a width that is a multiple of 32 and an even "
 "height, resizing selection.\n"
 msgstr "電影輸出的寬度需要是 32 的倍數，並且高度是偶數，正在調整選區的尺寸。\n"
 
-#: src/io/sequence_export.c:276
+#: src/io/sequence_export.c:309
 msgid ""
 "Export has detected registration data with more than simple shifts, this is "
 "not supported\n"
 msgstr "匯出時偵測到的對位資料不只是單純平移，目前不支援\n"
 
-#: src/io/sequence_export.c:330
+#: src/io/sequence_export.c:363
 #, c-format
 msgid "image %d is excluded from export\n"
 msgstr "影像 %d 被排除於匯出列表\n"
 
-#: src/io/sequence_export.c:343
+#: src/io/sequence_export.c:376
 #, c-format
 msgid "Processing image %s"
 msgstr "處理影像 %s"
 
-#: src/io/sequence_export.c:351
+#: src/io/sequence_export.c:384
 msgid "Export: could not read frame, aborting\n"
 msgstr "匯出：無法讀取影格，異常中止\n"
 
-#: src/io/sequence_export.c:366
+#: src/io/sequence_export.c:399
 msgid "An image of the sequence doesn't have the same dimensions\n"
 msgstr "序列中的影像尺寸不一致\n"
 
-#: src/io/sequence_export.c:513
+#: src/io/sequence_export.c:532
 msgid ""
 "Info: this frame has an ICC profile but the reference frame does not. "
 "Profile will be preserved...\n"
 msgstr "資訊：此影格具有 ICC 色彩特性檔案，但參考影格沒有。特性檔案將被保留…\n"
 
-#: src/io/sequence_export.c:612
+#: src/io/sequence_export.c:629
 msgid "Sequence export failed. Check the log."
 msgstr "序列匯出錯誤，請查詢日誌。"
 
-#: src/io/sequence_export.c:613
+#: src/io/sequence_export.c:630
 msgid "Sequence export failed\n"
 msgstr "序列匯出錯誤\n"
 
-#: src/io/sequence_export.c:616
+#: src/io/sequence_export.c:633
 msgid "Sequence export succeeded."
 msgstr "序列匯出成功。"
 
-#: src/io/sequence_export.c:617
+#: src/io/sequence_export.c:634
 msgid "Sequence export succeeded.\n"
 msgstr "序列匯出成功。\n"
 
@@ -32445,64 +32587,64 @@ msgstr "無法校正速率，將按原樣使用 赤經/赤緯\n"
 msgid "To tag solar system objects, please refer to conesearch command\n"
 msgstr "要標記太陽系天體，請參考 conesearch 命令\n"
 
-#: src/io/siril_catalogues.c:1046
+#: src/io/siril_catalogues.c:1048
 msgid "no DATE-OBS information, cannot account for stars proper motions\n"
 msgstr "沒有 DATE-OBS 資訊，無法解釋恆星自行運動\n"
 
-#: src/io/siril_catalogues.c:1049
+#: src/io/siril_catalogues.c:1051
 msgid "This catalog does not have proper motion info, will not be computed\n"
 msgstr "該星表沒有自行資訊，不會被計算\n"
 
-#: src/io/siril_catalogues.c:1103
+#: src/io/siril_catalogues.c:1105
 #, c-format
 msgid ""
 "Won't log list of objects for catalog %s which does not have name "
 "information\n"
 msgstr "不會記錄沒有名稱資訊的星表 %s 的天體列表\n"
 
-#: src/io/siril_catalogues.c:1107
+#: src/io/siril_catalogues.c:1109
 msgid "Won't show objects tags as there is no display, ignoring\n"
 msgstr "不會顯示天體標籤，因為沒有顯示，已忽略\n"
 
-#: src/io/siril_catalogues.c:1111
+#: src/io/siril_catalogues.c:1113
 #, c-format
 msgid ""
 "Won't display objects tags for catalog %s which does not have name "
 "information\n"
 msgstr "不會顯示沒有名稱資訊的星表 %s 的天體標籤\n"
 
-#: src/io/siril_catalogues.c:1130
+#: src/io/siril_catalogues.c:1132
 #, c-format
 msgid "Using default observatory code %s\n"
 msgstr "使用預設天文臺程式碼 %s\n"
 
-#: src/io/siril_catalogues.c:1133
+#: src/io/siril_catalogues.c:1135
 msgid ""
 "Did not specify an observatory code, using geocentric by default, positions "
 "may not be accurate\n"
 msgstr "未指定天文臺程式碼，預設使用地心，位置可能不準確\n"
 
-#: src/io/siril_catalogues.c:1261
+#: src/io/siril_catalogues.c:1263
 #, c-format
 msgid "The %s catalog has been successfully downloaded\n"
 msgstr "%s 星表已成功下載\n"
 
-#: src/io/siril_catalogues.c:1276
+#: src/io/siril_catalogues.c:1278
 msgid "No item found in the image\n"
 msgstr "影像中未找到專案\n"
 
 #. Summary log message
-#: src/io/siril_catalogues.c:1411
+#: src/io/siril_catalogues.c:1413
 #, c-format
 msgid "%d objects found%s in the image (mag limit %.2f) using %s catalogue\n"
 msgstr "%d 個天體在影像 %s 中找到（極限星等: %.2f，使用星表: %s）\n"
 
-#: src/io/siril_catalogues.c:1469
+#: src/io/siril_catalogues.c:1471
 #, c-format
 msgid "List saved to %s\n"
 msgstr "列表已儲存至 %s\n"
 
-#: src/io/siril_catalogues.c:1471
+#: src/io/siril_catalogues.c:1473
 #, c-format
 msgid "Failed to save list to %s\n"
 msgstr "將列表儲存到 %s 時出錯\n"
@@ -33946,17 +34088,17 @@ msgstr "歡迎使用 %s - CLI\n"
 msgid "Supported file types: %s\n"
 msgstr "支援的檔案類型: %s\n"
 
-#: src/main-cli.c:239 src/main.c:522
+#: src/main-cli.c:241 src/main.c:522
 #, c-format
 msgid "File [%s] does not exist (from CWD, use absolute path?)\n"
 msgstr "檔案 [%s] 不存在（命令列使用絕對路徑）\n"
 
 #. g_signal_connect(app, "open", G_CALLBACK(siril_app_open), NULL);
-#: src/main-cli.c:414 src/main.c:919
+#: src/main-cli.c:415 src/main.c:919
 msgid "Siril - A free astronomical image processing software."
 msgstr "Siril - 一款自由的天文影像處理軟體。"
 
-#: src/main-cli.c:421 src/main.c:932
+#: src/main-cli.c:422 src/main.c:932
 #, c-format
 msgid "Run “%s --help” to see a full list of available command line options."
 msgstr "執行 “%s --help” 來得到一個完整的命令列引數列表。"
@@ -35401,151 +35543,151 @@ msgid ""
 "Drizzle stacking cannot be performed because drizzle weights are missing.\n"
 msgstr "缺少 Drizzle 權重檔，無法進行 Drizzle 疊圖。\n"
 
-#: src/stacking/median_and_mean.c:307
-#, c-format
-msgid "We have %d parallel blocks of size %d (+%d) for stacking.\n"
-msgstr "我們有 %d 大小為 %d （+%d） 的並行塊用於疊圖。\n"
-
-#: src/stacking/median_and_mean.c:320
+#: src/stacking/median_and_mean.c:319
 msgid ""
 "A bug has been found. Unable to split the image area into the correct "
 "processing blocks.\n"
 msgstr "發現一個 Bug，無法將影像區域拆分成正確的待處理塊。\n"
 
-#: src/stacking/median_and_mean.c:474
+#: src/stacking/median_and_mean.c:356
+#, c-format
+msgid "We have %d parallel blocks of size %d (+%d) for stacking.\n"
+msgstr "我們有 %d 大小為 %d （+%d） 的並行塊用於疊圖。\n"
+
+#: src/stacking/median_and_mean.c:478
 #, c-format
 msgid "Error reading one of the image areas (%d: %d %d %d %d)\n"
 msgstr "某個影像區域讀取錯誤（%d: %d %d %d %d）\n"
 
-#: src/stacking/median_and_mean.c:503
+#: src/stacking/median_and_mean.c:507
 #, c-format
 msgid "Error reading one of the masks areas (%d: %d %d %d %d)\n"
 msgstr "某個蒙版區域讀取錯誤（%d: %d %d %d %d）\n"
 
-#: src/stacking/median_and_mean.c:530 src/stacking/median_and_mean.c:535
+#: src/stacking/median_and_mean.c:534 src/stacking/median_and_mean.c:539
 #: src/stacking/sum.c:138
 #, c-format
 msgid "Error reading one of the drizzle weights areas (%d: %d %d %d %d)\n"
 msgstr "讀取 Drizzle 權重區域之一時發生錯誤（%d：%d %d %d %d）\n"
 
-#: src/stacking/median_and_mean.c:1145 src/stacking/median_and_mean.c:1192
+#: src/stacking/median_and_mean.c:1151 src/stacking/median_and_mean.c:1198
 #, c-format
 msgid ""
 "Sequence does not have registration info, cannot use weighing by %s, "
 "aborting\n"
 msgstr "序列沒有對位資訊，無法使用以 %s 的加權，異常中止\n"
 
-#: src/stacking/median_and_mean.c:1192
+#: src/stacking/median_and_mean.c:1198
 msgid "number of stars"
 msgstr "星星數量"
 
-#: src/stacking/median_and_mean.c:1248
+#: src/stacking/median_and_mean.c:1254
 #, c-format
 msgid "Using %d MB memory maximum for stacking\n"
 msgstr "疊圖操作共使用記憶體 %d MB\n"
 
-#: src/stacking/median_and_mean.c:1280
+#: src/stacking/median_and_mean.c:1286
 msgid "Select at least two frames for stacking. Aborting.\n"
 msgstr "至少選擇兩幅影像用於疊圖，異常中止。\n"
 
-#: src/stacking/median_and_mean.c:1283
+#: src/stacking/median_and_mean.c:1289
 msgid ""
 "The Generalized Extreme Studentized Deviate Test needs at least three frames "
 "for stacking. Aborting.\n"
 msgstr "廣義 ESD 檢驗演算法至少需要三幅影像用於疊圖，異常中止。\n"
 
-#: src/stacking/median_and_mean.c:1289
+#: src/stacking/median_and_mean.c:1295
 msgid "No registration layer passed, ignoring registration data!\n"
 msgstr "沒有傳遞已對位的圖層，已忽略對位資料！\n"
 
 #. no image has been loaded
-#: src/stacking/median_and_mean.c:1303
+#: src/stacking/median_and_mean.c:1309
 msgid "Rejection stack error: uninitialized sequence\n"
 msgstr "疊圖（像素剔除）：序列未初始化\n"
 
-#: src/stacking/median_and_mean.c:1308
+#: src/stacking/median_and_mean.c:1314
 #, c-format
 msgid ""
 "Rejection stack error: sequence has wrong image size (%dx%d for sequence, "
 "%ldx%ld for images)\n"
 msgstr "像素剔除疊圖：序列具有錯誤的影像尺寸（%dx%d 序列, %ldx%ld 影像）\n"
 
-#: src/stacking/median_and_mean.c:1313
+#: src/stacking/median_and_mean.c:1319
 msgid "Processing the sequence as RGB\n"
 msgstr "以 RGB 模式處理當前序列\n"
 
-#: src/stacking/median_and_mean.c:1366
+#: src/stacking/median_and_mean.c:1372
 msgid ""
 "Stacking a film will work only on one core and will be slower than if you "
 "convert it to SER\n"
 msgstr "影片疊圖只能在單執行緒上工作，將其轉換為 SER 再處理會更快\n"
 
-#: src/stacking/median_and_mean.c:1525
+#: src/stacking/median_and_mean.c:1533
 msgid "Computing weights based on noise...\n"
 msgstr "基於雜訊計算權重…\n"
 
-#: src/stacking/median_and_mean.c:1529
+#: src/stacking/median_and_mean.c:1537
 msgid "Computing weights based on wFWHM...\n"
 msgstr "基於 wFWHM 計算權重…\n"
 
-#: src/stacking/median_and_mean.c:1533
+#: src/stacking/median_and_mean.c:1541
 msgid "Computing weights based on number of stars...\n"
 msgstr "基於星點數量計算權重…\n"
 
-#: src/stacking/median_and_mean.c:1537
+#: src/stacking/median_and_mean.c:1545
 msgid "Computing weights based on number of stacked images...\n"
 msgstr "基於已疊圖影像數量計算權重…\n"
 
-#: src/stacking/median_and_mean.c:1545
+#: src/stacking/median_and_mean.c:1553
 msgid "Starting stacking...\n"
 msgstr "開始疊圖…\n"
 
-#: src/stacking/median_and_mean.c:1547
+#: src/stacking/median_and_mean.c:1555
 msgid "Rejection stacking in progress..."
 msgstr "排異疊圖正在進行中…"
 
-#: src/stacking/median_and_mean.c:1548
+#: src/stacking/median_and_mean.c:1556
 msgid "Median stacking in progress..."
 msgstr "中位數疊圖正在進行中…"
 
-#: src/stacking/median_and_mean.c:1765
+#: src/stacking/median_and_mean.c:1773
 msgid "Finalizing stacking..."
 msgstr "疊圖最終定稿…"
 
-#: src/stacking/median_and_mean.c:1769
+#: src/stacking/median_and_mean.c:1777
 msgid "Pixel rejection in channel #%d: %.3lf%% - %.3lf%%\n"
 msgstr "像素剔除於通道 #%d: %.3lf%% - %.3lf%%\n"
 
-#: src/stacking/median_and_mean.c:1811
+#: src/stacking/median_and_mean.c:1819
 msgid "Rejection stacking failed. Check the log."
 msgstr "排除疊圖失敗。檢查日誌。"
 
-#: src/stacking/median_and_mean.c:1812
+#: src/stacking/median_and_mean.c:1820
 msgid "Median stacking failed. Check the log."
 msgstr "中位數疊圖失敗。檢查日誌。"
 
-#: src/stacking/median_and_mean.c:1814
+#: src/stacking/median_and_mean.c:1822
 msgid "Stacking operation was cancelled.\n"
 msgstr "疊圖操作已取消。\n"
 
-#: src/stacking/median_and_mean.c:1815
+#: src/stacking/median_and_mean.c:1823
 msgid "Stacking failed.\n"
 msgstr "疊圖失敗。\n"
 
-#: src/stacking/median_and_mean.c:1818
+#: src/stacking/median_and_mean.c:1826
 msgid "Rejection stacking complete."
 msgstr "排除疊圖完成。"
 
-#: src/stacking/median_and_mean.c:1819
+#: src/stacking/median_and_mean.c:1827
 #, c-format
 msgid "Rejection stacking complete. %d images have been stacked.\n"
 msgstr "像素剔除疊圖完成。共 %d 影格影像被疊圖。\n"
 
-#: src/stacking/median_and_mean.c:1821
+#: src/stacking/median_and_mean.c:1829
 msgid "Median stacking complete."
 msgstr "中位數疊圖完成。"
 
-#: src/stacking/median_and_mean.c:1822
+#: src/stacking/median_and_mean.c:1830
 #, c-format
 msgid "Median stacking complete. %d images have been stacked.\n"
 msgstr "中位數疊圖完成。已疊合%d張圖片。\n"
@@ -35596,9 +35738,9 @@ msgid "Could not read overlap data between image %d and %d\n"
 msgstr "無法讀取影像 %d 和 %d 之間的重疊資料\n"
 
 #: src/stacking/normalization.c:655
-#, c-format
+#, fuzzy, c-format
 msgid ""
-"Your system does not have enough memory to normalize images overlaps for "
+"Your system does not have enough memory to normalize image overlaps for "
 "stacking operation (%d MB free for %d MB required)\n"
 msgstr ""
 "系統沒有足夠的記憶體來將影像的重疊部分正規化，以便後續疊圖（可用記憶體 %d "
@@ -35833,6 +35975,20 @@ msgstr "將要疊圖的超取樣序列"
 #: src/stacking/upscaling.c:148
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr "疊圖將不會使用超取樣（“drizzle”關閉）\n"
+
+#, c-format
+#~ msgid ""
+#~ "White Balance summary\n"
+#~ "<span size=\"small\">%s SPCC Linear Fit: y = %f + %f·x, &#x03C3; = %f\n"
+#~ "White reference: %s\n"
+#~ "Number of stars: %d (removed %d outliers)\n"
+#~ "White balance factors: %.3f %.3f %.3f</span>"
+#~ msgstr ""
+#~ "白平衡概要\n"
+#~ "<span size=\"small\">%s SPCC 線性擬合：y = %f + %f·x, &#x03C3; =%f\n"
+#~ "白點參考：%s\n"
+#~ "星點數量：%d（移除了 %d 個異常值）\n"
+#~ "白平衡係數：%.3f %.3f %.3f</span>"
 
 #~ msgid "Toggles whether to apply the curve to the red channel"
 #~ msgstr "切換拉伸是否套用於紅通道"

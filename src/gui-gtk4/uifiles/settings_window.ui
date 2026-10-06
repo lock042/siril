@@ -4108,7 +4108,7 @@
                                         <property name="halign">start</property>
                                         <property name="numeric">1</property>
                                         <property name="text">0.90</property>
-                                        <property name="tooltip-text" translatable="yes">Sets a new ratio of free memory on memory used for stacking. Value should be between 0.05 and 2, depending on other activities of the machine. A higher ratio should allow siril to stack faster, but setting the ratio of memory used for stacking above 1 will require the use of on-disk memory, which is very slow and unrecommended</property>
+                                        <property name="tooltip-text" translatable="yes">Sets a new ratio of free memory on memory used for stacking. Value should be between 0.05 and 2, depending on other activities of the machine. A higher ratio should allow siril to stack faster, but setting the ratio of memory used for stacking above 1 will require the use of on-disk memory, which is very slow and not recommended</property>
                                         <property name="valign">center</property>
                                         <property name="value">0.90</property>
                                         <property name="width-chars">5</property>
