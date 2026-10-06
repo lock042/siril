@@ -689,17 +689,12 @@ int save_wcs_keywords(fits *fit) {
 
 	if (fit->keywords.wcslib) {
 		gboolean has_sip = fit->keywords.wcslib->lin.dispre != NULL; // we don't handle the disseq terms for now
-		if (!has_sip) {// no distortions
-			fits_update_key(fit->fptr, TSTRING, "CTYPE1", "RA---TAN", "TAN (gnomic) projection", &status);
-			status = 0;
-			fits_update_key(fit->fptr, TSTRING, "CTYPE2", "DEC--TAN", "TAN (gnomic) projection", &status);
-			status = 0;
-		} else {
-			fits_update_key(fit->fptr, TSTRING, "CTYPE1", "RA---TAN-SIP", "TAN (gnomic) projection + SIP distortions", &status);
-			status = 0;
-			fits_update_key(fit->fptr, TSTRING, "CTYPE2", "DEC--TAN-SIP", "TAN (gnomic) projection + SIP distortions", &status);
-			status = 0;
-		}
+		gchar *comment = g_strdup_printf("%s projection%s", fit->keywords.wcslib->cel.prj.code,
+						has_sip ? " + SIP distortions" : "");
+		fits_update_key(fit->fptr, TSTRING, "CTYPE1", fit->keywords.wcslib->ctype[0], comment, &status);
+		status = 0;
+		fits_update_key(fit->fptr, TSTRING, "CTYPE2", fit->keywords.wcslib->ctype[1], comment, &status);
+		g_free(comment);
 		status = 0;
 		fits_update_key(fit->fptr, TSTRING, "CUNIT1", "deg","Unit of coordinates", &status);
 		status = 0;
@@ -713,18 +708,18 @@ int save_wcs_keywords(fits *fit) {
 		status = 0;
 		fits_update_key(fit->fptr, TDOUBLE, "CRPIX2", &(fit->keywords.wcslib->crpix[1]), "Axis2 reference pixel", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->keywords.wcslib->crval[0]), "[deg] Axis1 reference value", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->keywords.wcslib->crval[0]), "[deg] Axis1 reference value", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->keywords.wcslib->crval[1]), "[deg] Axis2 reference value", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->keywords.wcslib->crval[1]), "[deg] Axis2 reference value", &status);
 		if (fit->keywords.wcslib->lonpole) {
 			status = 0;
 			fits_update_key(fit->fptr, TDOUBLE, "LONPOLE", &(fit->keywords.wcslib->lonpole), "Native longitude of celestial pole", &status);
 		}
 		if (com.pref.wcs_formalism == WCS_FORMALISM_1) {
 			status = 0;
-			fits_update_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->keywords.wcslib->cdelt[0]), "[deg] X pixel size", &status);
+			fits_update_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->keywords.wcslib->cdelt[0]), "[deg] X pixel size", &status);
 			status = 0;
-			fits_update_key(fit->fptr, TDOUBLE, "CDELT2", &(fit->keywords.wcslib->cdelt[1]), "[deg] Y pixel size", &status);
+			fits_update_key(fit->fptr, TDOUBLE, "CDELT2", &(fit->keywords.wcslib->cdelt[1]), "[deg] Y pixel size", &status);
 			status = 0;
 			fits_update_key(fit->fptr, TDOUBLE, "PC1_1", &(fit->keywords.wcslib->pc[0]), "Linear transformation matrix (1, 1)", &status);
 			status = 0;
