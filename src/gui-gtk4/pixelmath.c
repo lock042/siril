@@ -24,7 +24,6 @@
  * pixelMath/pixel_math_runner.c.
  */
 
-#include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
 
 #include "core/siril.h"
