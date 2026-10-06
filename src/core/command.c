@@ -10846,7 +10846,7 @@ int process_catquery(int nb) {
 			else if (!g_strcmp0(arg, "solsys"))
 				cat = CAT_IMCCE;
 			else {
-				siril_log_error(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				siril_log_color_message(_("Invalid argument to %s, aborting.\n"), "red", word[arg_idx]);
 				g_free(obscode);
 				g_free(outfilename);
 				return CMD_ARG_ERROR;
@@ -10854,7 +10854,7 @@ int process_catquery(int nb) {
 		} else if (g_str_has_prefix(word[arg_idx], "-obscode=")) {
 			char *arg = word[arg_idx] + 9;
 			if (strlen(arg) != 3) {
-				siril_log_error(_("The observatory should be coded as a 3-letter word\n"));
+				siril_log_color_message(_("The observatory should be coded as a 3-letter word\n"), "red");
 				g_free(obscode);
 				g_free(outfilename);
 				return CMD_ARG_ERROR;
@@ -10866,7 +10866,7 @@ int process_catquery(int nb) {
 			gchar *end;
 			ra = g_ascii_strtod(word[arg_idx] + 4, &end);
 			if (end == word[arg_idx] + 4 || ra < 0.0 || ra >= 360.0) {
-				siril_log_error(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				siril_log_color_message(_("Invalid argument to %s, aborting.\n"), "red", word[arg_idx]);
 				g_free(obscode);
 				g_free(outfilename);
 				return CMD_ARG_ERROR;
@@ -10876,7 +10876,7 @@ int process_catquery(int nb) {
 			gchar *end;
 			dec = g_ascii_strtod(word[arg_idx] + 5, &end);
 			if (end == word[arg_idx] + 5 || dec < -90.0 || dec > 90.0) {
-				siril_log_error(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				siril_log_color_message(_("Invalid argument to %s, aborting.\n"), "red", word[arg_idx]);
 				g_free(obscode);
 				g_free(outfilename);
 				return CMD_ARG_ERROR;
@@ -10886,7 +10886,7 @@ int process_catquery(int nb) {
 			gchar *end;
 			radius = g_ascii_strtod(word[arg_idx] + 8, &end);
 			if (end == word[arg_idx] + 8 || radius <= 0.0) {
-				siril_log_error(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				siril_log_color_message(_("Invalid argument to %s, aborting.\n"), "red", word[arg_idx]);
 				g_free(obscode);
 				g_free(outfilename);
 				return CMD_ARG_ERROR;
@@ -10895,7 +10895,7 @@ int process_catquery(int nb) {
 		} else if (g_str_has_prefix(word[arg_idx], "-out=")) {
 			char *arg = word[arg_idx] + 5;
 			if (arg[0] == '\0') {
-				siril_log_error(_("Missing argument to %s, aborting.\n"), word[arg_idx]);
+				siril_log_color_message(_("Missing argument to %s, aborting.\n"), "red", word[arg_idx]);
 				g_free(obscode);
 				g_free(outfilename);
 				return CMD_ARG_ERROR;
@@ -10906,7 +10906,7 @@ int process_catquery(int nb) {
 			gchar *end;
 			limit_mag = g_ascii_strtod(word[arg_idx], &end);
 			if (end == word[arg_idx]) {
-				siril_log_error(_("Invalid argument %s, aborting.\n"), word[arg_idx]);
+				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", word[arg_idx]);
 				g_free(obscode);
 				g_free(outfilename);
 				return CMD_ARG_ERROR;
@@ -10920,44 +10920,44 @@ int process_catquery(int nb) {
 		outfilename = g_strdup("cat.csv");
 
 	if (have_ra != have_dec) {
-		siril_log_error(_("-ra= and -dec= must be provided together, aborting.\n"));
+		siril_log_color_message(_("-ra= and -dec= must be provided together, aborting.\n"), "red");
 		g_free(obscode);
 		g_free(outfilename);
 		return CMD_ARG_ERROR;
 	}
 
 	gboolean has_image = (single_image_is_loaded() || (sequence_is_loaded() && com.seq.current >= 0))
-			&& gfit->rx > 0 && gfit->ry > 0;
+			&& gfit.rx > 0 && gfit.ry > 0;
 
 	if (!have_ra && has_image &&
-			(gfit->keywords.wcsdata.ra > DEFAULT_DOUBLE_VALUE || strlen(gfit->keywords.wcsdata.objctra) > 0) &&
-			(gfit->keywords.wcsdata.dec > DEFAULT_DOUBLE_VALUE || strlen(gfit->keywords.wcsdata.objctdec) > 0)) {
-		if (strlen(gfit->keywords.wcsdata.objctra) > 0 && strlen(gfit->keywords.wcsdata.objctdec) > 0) {
-			ra = parse_hms(gfit->keywords.wcsdata.objctra);
-			dec = parse_dms(gfit->keywords.wcsdata.objctdec);
+			(gfit.keywords.wcsdata.ra > DEFAULT_DOUBLE_VALUE || strlen(gfit.keywords.wcsdata.objctra) > 0) &&
+			(gfit.keywords.wcsdata.dec > DEFAULT_DOUBLE_VALUE || strlen(gfit.keywords.wcsdata.objctdec) > 0)) {
+		if (strlen(gfit.keywords.wcsdata.objctra) > 0 && strlen(gfit.keywords.wcsdata.objctdec) > 0) {
+			ra = parse_hms(gfit.keywords.wcsdata.objctra);
+			dec = parse_dms(gfit.keywords.wcsdata.objctdec);
 		} else {
-			ra = gfit->keywords.wcsdata.ra;
-			dec = gfit->keywords.wcsdata.dec;
+			ra = gfit.keywords.wcsdata.ra;
+			dec = gfit.keywords.wcsdata.dec;
 		}
 		have_ra = have_dec = !isnan(ra) && !isnan(dec) && ra >= 0.0 && ra < 360.0 && dec >= -90.0 && dec <= 90.0;
 	}
 
 	if (!have_radius && has_image) {
-		double resolution = get_wcs_image_resolution(gfit) * 3600.0; // arcsec/px
+		double resolution = get_wcs_image_resolution(&gfit) * 3600.0; // arcsec/px
 		if (resolution > 0.0) {
-			radius = get_radius_deg(resolution, gfit->rx, gfit->ry);
+			radius = get_radius_deg(resolution, gfit.rx, gfit.ry);
 			have_radius = TRUE;
 		}
 	}
 
 	if (!have_ra) {
-		siril_log_error(_("No RA/Dec provided and none could be determined from the loaded image, use -ra= and -dec=, aborting.\n"));
+		siril_log_color_message(_("No RA/Dec provided and none could be determined from the loaded image, use -ra= and -dec=, aborting.\n"), "red");
 		g_free(obscode);
 		g_free(outfilename);
 		return CMD_ARG_ERROR;
 	}
 	if (!have_radius) {
-		siril_log_error(_("No radius provided and none could be computed from the loaded image (needs a plate solve, or a focal length and pixel size), use -radius=, aborting.\n"));
+		siril_log_color_message(_("No radius provided and none could be computed from the loaded image (needs a plate solve, or a focal length and pixel size), use -radius=, aborting.\n"), "red");
 		g_free(obscode);
 		g_free(outfilename);
 		return CMD_ARG_ERROR;
@@ -10966,8 +10966,8 @@ int process_catquery(int nb) {
 	if (cat == CAT_AUTO)
 		cat = local_gaia ? CAT_LOCAL_GAIA_ASTRO : local_kstars ? CAT_LOCAL_KSTARS : CAT_NOMAD;
 
-	if (cat == CAT_IMCCE && !(has_image && gfit->keywords.date_obs)) {
-		siril_log_error(_("The solsys catalogue requires observation date information from a loaded image, aborting.\n"));
+	if (cat == CAT_IMCCE && !(has_image && gfit.keywords.date_obs)) {
+		siril_log_color_message(_("The solsys catalogue requires observation date information from a loaded image, aborting.\n"), "red");
 		g_free(obscode);
 		g_free(outfilename);
 		return CMD_ARG_ERROR;
@@ -10978,7 +10978,7 @@ int process_catquery(int nb) {
 			limit_mag = (float) compute_mag_limit_from_position_and_fov(ra, dec, radius * 2.0, BRIGHTEST_STARS);
 			have_limit_mag = TRUE;
 		} else {
-			siril_log_warning(_("Limit mag of -1 is only available for GAIA, KStars, and NOMAD catalogues, ignoring.\n"));
+			siril_log_color_message(_("Limit mag of -1 is only available for GAIA, KStars, and NOMAD catalogues, ignoring.\n"), "salmon");
 			have_limit_mag = FALSE;
 		}
 }
@@ -10991,7 +10991,7 @@ int process_catquery(int nb) {
 	siril_cat->radius = radius * 60.0; // degrees to arcmin
 	siril_cat->limitmag = limit_mag;
 	if (cat == CAT_IMCCE) {
-		siril_cat->dateobs = gfit->keywords.date_obs;
+		siril_cat->dateobs = gfit.keywords.date_obs;
 		if (obscode) {
 			siril_cat->IAUcode = obscode;
 			obscode = NULL;
@@ -10999,7 +10999,7 @@ int process_catquery(int nb) {
 				siril_log_message(_("Using default observatory code %s\n"), siril_cat->IAUcode);
 		} else {
 			siril_cat->IAUcode = g_strdup("500");
-			siril_log_warning(_("Did not specify an observatory code, using geocentric by default, positions may not be accurate\n"));
+			siril_log_color_message(_("Did not specify an observatory code, using geocentric by default, positions may not be accurate\n"), "salmon");
 		}
 	}
 	g_free(obscode);
@@ -11729,24 +11729,24 @@ int process_addwcs(int nb) {
 		return CMD_WRONG_N_ARG;
 
 	if (nb == 1) {
-		if (!has_wcs(gfit)) {
+		if (!has_wcs(&gfit)) {
 			siril_log_message(_("Image is not plate solved, nothing to remove\n"));
 			return CMD_OK;
 		}
-		free_wcs(gfit);
-		reset_wcsdata(gfit);
-		update_fits_header(gfit);
-		gfit_modified_update_gui();
+		free_wcs(&gfit);
+		reset_wcsdata(&gfit);
+		update_fits_header(&gfit);
+		notify_gfit_modified();
 		refresh_annotations(TRUE);
-		gui_iface.update_menu_state();
-		gui_iface.redraw_image_async(REDRAW_OVERLAY);
+		gui_function(update_MenuItem, NULL);
+		queue_redraw(REDRAW_OVERLAY);
 		siril_log_message(_("WCS solution removed\n"));
 		return CMD_OK;
 	}
 
 	char *filename = word[1];
 	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
-		siril_log_error(_("File [%s] does not exist.\n"), filename);
+		siril_log_color_message(_("File [%s] does not exist.\n"), "red", filename);
 		return CMD_FILE_NOT_FOUND;
 	}
 
@@ -11755,43 +11755,43 @@ int process_addwcs(int nb) {
 		if (!g_strcmp0(word[2], "-flip")) {
 			flip = TRUE;
 		} else {
-			siril_log_error(_("Unknown parameter %s, aborting.\n"), word[2]);
+			siril_log_color_message(_("Unknown parameter %s, aborting.\n"), "red", word[2]);
 			return CMD_ARG_ERROR;
 		}
 	}
 
 	fits result = { 0 };
 	if (read_fits_metadata_from_path_first_HDU(filename, &result)) {
-		siril_log_error(_("Could not read the WCS solution from %s\n"), filename);
+		siril_log_color_message(_("Could not read the WCS solution from %s\n"), "red", filename);
 		clearfits(&result);
 		return CMD_FILE_NOT_FOUND;
 	}
 	if (!result.keywords.wcslib) {
-		siril_log_error(_("No WCS solution found in %s\n"), filename);
+		siril_log_color_message(_("No WCS solution found in %s\n"), "red", filename);
 		clearfits(&result);
 		return CMD_ARG_ERROR;
 	}
 
-	free_wcs(gfit);
-	gfit->keywords.wcslib = result.keywords.wcslib;
-	wcsset(gfit->keywords.wcslib);
+	free_wcs(&gfit);
+	gfit.keywords.wcslib = result.keywords.wcslib;
+	wcsset(gfit.keywords.wcslib);
 	result.keywords.wcslib = NULL;
 	clearfits(&result);
 
 	if (flip) {
-		flip_bottom_up_astrometry_data(gfit);
+		flip_bottom_up_astrometry_data(&gfit);
 	}
 
-	if (has_wcsdata(gfit))
-		reset_wcsdata(gfit);
-	gfit->keywords.wcsdata.pltsolvd = TRUE;
-	g_snprintf(gfit->keywords.wcsdata.pltsolvd_comment, FLEN_COMMENT, "WCS loaded from file");
-	update_wcsdata_from_wcs(gfit);
-	update_fits_header(gfit);
-	gfit_modified_update_gui();
+	if (has_wcsdata(&gfit))
+		reset_wcsdata(&gfit);
+	gfit.keywords.wcsdata.pltsolvd = TRUE;
+	g_snprintf(gfit.keywords.wcsdata.pltsolvd_comment, FLEN_COMMENT, "WCS loaded from file");
+	update_wcsdata_from_wcs(&gfit);
+	update_fits_header(&gfit);
+	notify_gfit_modified();
 	refresh_annotations(TRUE);
-	gui_iface.update_menu_state();
-	gui_iface.redraw_image_async(REDRAW_OVERLAY);
+	gui_function(update_MenuItem, NULL);
+	queue_redraw(REDRAW_OVERLAY);
 	siril_log_message(_("WCS solution loaded from %s\n"), filename);
 	return CMD_OK;
 }

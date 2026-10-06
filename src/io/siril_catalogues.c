@@ -1706,7 +1706,7 @@ gpointer catquery_worker(gpointer p) {
 
 	int nbstars = siril_catalog_conesearch(siril_cat);
 	if (!nbstars) {
-		siril_log_error(_("Catalogue query failed\n"));
+		siril_log_color_message(_("Catalogue query failed\n"), "red");
 	} else if (nbstars == -1) {
 		siril_log_message(_("Catalogue query returned no object\n"));
 	} else {
@@ -1715,7 +1715,7 @@ gpointer catquery_worker(gpointer p) {
 		if (siril_catalog_write_to_file(siril_cat, args->outfilename))
 			siril_log_message(_("List saved to %s\n"), args->outfilename);
 		else
-			siril_log_error(_("Failed to save list to %s\n"), args->outfilename);
+			siril_log_color_message(_("Failed to save list to %s\n"), "red", args->outfilename);
 	}
 
 	free_catquery_args(args);
