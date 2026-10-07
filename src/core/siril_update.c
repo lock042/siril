@@ -803,7 +803,7 @@ end_spcc_mirrors_error:
 
 void siril_check_spcc_mirrors(gboolean verbose, gboolean sync) {
 	if (spcc_mirrors_checked) { // no need to check more than once per Siril instance
-		siril_debug_print("Skipping SPCC mirror checked, already done since program start\n");
+		siril_log_debug("Skipping SPCC mirror checked, already done since program start\n");
 		return;
 	}
 	if (!is_online()) {

@@ -338,8 +338,6 @@ static void global_initialization() {
 	processing_system_init();
 
 	initialize_default_settings();	// com.pref
-	initialize_spcc_mirrors();
-	initialize_profiles_and_transforms(); // color management
 #ifdef HAVE_FFTW3F_MULTITHREAD
 	fprintf(stdout, _("Initializing FFTW multithreading support...\n"));
 	fftwf_init_threads(); // Should really only be called once so do it at startup

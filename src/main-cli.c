@@ -225,8 +225,12 @@ static void siril_app_activate(GApplication *application) {
 
 	init_num_procs();
 	log_num_procs();
-	// python init
 	siril_log_message(_("Supported file types: %s\n"), supported_files);
+
+	/* Start the python venv initialisation BEFORE the script runs.  This used
+	 * to sit after execute_script() / read_pipe(), so com.python_init_thread
+	 * was still NULL for the whole script and every `pyscript` failed with
+	 * "python not ready yet".  See main.c for the details. */
 	if (!com.python_disabled)
 		initialize_python_venv_in_thread();
 	else
@@ -235,14 +239,6 @@ static void siril_app_activate(GApplication *application) {
 #if defined(HAVE_LIBCURL)
 	curl_global_init(CURL_GLOBAL_ALL);
 #endif
-
-	/* Start the python venv initialisation BEFORE the script runs.  This used
-	 * to sit after execute_script() / read_pipe(), so com.python_init_thread
-	 * was still NULL for the whole script and every `pyscript` failed with
-	 * "python not ready yet".  See main.c for the details. */
-	initialize_python_venv_in_thread();
-
-	initialize_profiles_and_transforms(); // color management
 
 	if (main_option_script) {
 		GInputStream *input_stream = NULL;
