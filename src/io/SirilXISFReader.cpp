@@ -88,6 +88,21 @@ int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 			return -1;
 		}
 
+		/* Native XISF colour filter array description. Some writers only
+		 * ship this element and no BAYERPAT FITS keyword, in which case it
+		 * is the only way to know the mosaic. */
+		const LibXISF::ColorFilterArray cfa = image.colorFilterArray();
+		xdata->cfa_pattern[0] = '\0';
+		/* only 2x2 Bayer and 6x6 X-Trans RGB mosaics are usable by Siril; a
+		 * CFA element may also describe white, cyan, magenta or yellow
+		 * filters, or undefined elements */
+		if (((cfa.width == 2 && cfa.height == 2) || (cfa.width == 6 && cfa.height == 6)) &&
+				cfa.pattern.size() == (size_t) cfa.width * cfa.height &&
+				cfa.pattern.find_first_not_of("RGB") == std::string::npos) {
+			memcpy(xdata->cfa_pattern, cfa.pattern.c_str(), cfa.pattern.size());
+			xdata->cfa_pattern[cfa.pattern.size()] = '\0';
+		}
+
 		std::ostringstream fitsHeaderStream;
 		xdata->fitsHeader = NULL;
 
@@ -110,6 +125,30 @@ int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 		xdata->width = image.width();
 		xdata->height = image.height();
 		xdata->channelCount = image.channelCount();
+
+		// Validate that the reported geometry is consistent with the actual
+		// image data size: the consumer indexes width*height*channels samples
+		// out of this buffer, so a crafted XISF declaring dimensions larger
+		// than the data it ships would over-read the heap.
+		size_t bytes_per_sample;
+		switch (image.sampleFormat()) {
+			case LibXISF::Image::UInt8:   bytes_per_sample = 1; break;
+			case LibXISF::Image::UInt16:  bytes_per_sample = 2; break;
+			case LibXISF::Image::UInt32:
+			case LibXISF::Image::Float32: bytes_per_sample = 4; break;
+			case LibXISF::Image::Float64: bytes_per_sample = 8; break;
+			default:                      bytes_per_sample = 0; break;
+		}
+		const uint64_t max_dim = 100000; // matches MAX_IMAGE_DIM
+		if (bytes_per_sample == 0 || xdata->width == 0 || xdata->height == 0 ||
+				xdata->channelCount == 0 || xdata->width > max_dim ||
+				xdata->height > max_dim || xdata->channelCount > 3 ||
+				(uint64_t) image.imageDataSize() <
+					(uint64_t) xdata->width * xdata->height *
+					xdata->channelCount * bytes_per_sample) {
+			xisfReader.close();
+			return -1;
+		}
 
 		xdata->data = (uint8_t*) malloc(image.imageDataSize());
 		if (!xdata->data) {
@@ -161,9 +200,14 @@ static int get_bit_depth(LibXISF::Image::SampleFormat depth) {
 	}
 }
 
-GdkPixbuf* get_thumbnail_from_xisf(char *filename, gchar **descr) {
-	GdkPixbuf *pixbuf = NULL;
+/* Core thumbnail extractor: returns a malloc'd RGB888 byte buffer plus
+ * dimensions, or NULL on error.  Caller owns *data (free with free()) and
+ * *descr (free with g_free()). */
+extern "C" guchar *extract_thumbnail_from_xisf(const char *filename, gchar **descr,
+                                                int *width_out, int *height_out) {
 	gchar *description = NULL;
+	guchar *pixbuf_data = NULL;
+	int out_w = 0, out_h = 0;
 	try {
 		LibXISF::XISFReader xisfReader;
 		xisfReader.open(LibXISF::String(filename));
@@ -177,12 +221,12 @@ GdkPixbuf* get_thumbnail_from_xisf(char *filename, gchar **descr) {
 		const LibXISF::Image &thumbnail = xisfReader.getThumbnail();
 		if (thumbnail.width() != 0 && thumbnail.height() != 0) {
 
-			/* Only RGB is handled in GdkPixBuf. So if the thumbnail is monochrome we need to add 2 channels */
+			/* Only RGB is handled. Monochrome thumbnails are expanded to RGB. */
 			size_t extra_size = 0;
 			if (thumbnail.channelCount() == 1) {
 				extra_size = 2;
 			}
-			uint8_t *pixbuf_data = (uint8_t*) malloc(thumbnail.imageDataSize() + extra_size * thumbnail.imageDataSize());
+			pixbuf_data = (guchar*) malloc(thumbnail.imageDataSize() + extra_size * thumbnail.imageDataSize());
 			if (!pixbuf_data) {
 				xisfReader.close();
 				return NULL;
@@ -200,15 +244,8 @@ GdkPixbuf* get_thumbnail_from_xisf(char *filename, gchar **descr) {
 			} else {
 				memcpy(pixbuf_data, planarThumbnail.imageData(), planarThumbnail.imageDataSize());
 			}
-
-			pixbuf = gdk_pixbuf_new_from_data(pixbuf_data,	// guchar* data
-					GDK_COLORSPACE_RGB,	// only this supported
-					FALSE,				// no alpha
-					8,				// number of bits
-					thumbnail.width(), thumbnail.height(),				// size
-					thumbnail.width() * 3,				// line length in bytes
-					(GdkPixbufDestroyNotify) free_preview_data, // function (*GdkPixbufDestroyNotify) (guchar *pixels, gpointer data);
-					NULL);
+			out_w = (int)thumbnail.width();
+			out_h = (int)thumbnail.height();
 		}
 
 		const LibXISF::Image &image = xisfReader.getImage(0);
@@ -219,10 +256,25 @@ GdkPixbuf* get_thumbnail_from_xisf(char *filename, gchar **descr) {
 		xisfReader.close();
 	} catch (const LibXISF::Error &error) {
 		std::cout << error.what() << std::endl;
+		if (pixbuf_data) free(pixbuf_data);
 		return NULL;
 	}
 	*descr = description;
-	return pixbuf;
+	if (width_out) *width_out = out_w;
+	if (height_out) *height_out = out_h;
+	return pixbuf_data;
+}
+
+/* GdkPixbuf shim around extract_thumbnail_from_xisf, kept for the GTK3
+ * build. */
+GdkPixbuf* get_thumbnail_from_xisf(char *filename, gchar **descr) {
+	int w = 0, h = 0;
+	guchar *data = extract_thumbnail_from_xisf(filename, descr, &w, &h);
+	if (!data) return NULL;
+	if (w <= 0 || h <= 0) { free(data); return NULL; }
+	return gdk_pixbuf_new_from_data(data, GDK_COLORSPACE_RGB, FALSE, 8,
+			w, h, w * 3,
+			(GdkPixbufDestroyNotify) free_preview_data, NULL);
 }
 
 #endif

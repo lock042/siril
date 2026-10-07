@@ -164,8 +164,14 @@ struct _multi_split {
 	fits **images;
 };
 
+struct op_descriptor; // core/op_descriptor.h — per-op invariants, filled into args by the worker
+
 struct generic_img_args {
 	fits *fit; // input image to be processed
+	/* When set, the worker fills image_hook/log_hook/description/mem_ratio from
+	 * this descriptor (op_descriptor_fill_img_args()).  NULL for un-migrated
+	 * sites, which populate those fields directly as before. */
+	const struct op_descriptor *op;
 	float mem_ratio; 	// peak memory requirement as multiple of image size
 	/** function called to process the image
 	 *  Returns 0 on success, non-zero on error */
@@ -185,20 +191,36 @@ struct generic_img_args {
 	 */
 
 	gpointer user;
-	int max_threads; // number of threads to use for the operation
+	/* Number of threads the operation may use. Leave it at 0 (as a calloc'd
+	 * struct does) to mean "the whole machine": generic_image_worker fills it
+	 * in with com.max_thread. Set it explicitly only to ask for fewer, e.g.
+	 * for an operation that does not scale or that is already parallel
+	 * elsewhere. Hooks receive this value and must not read com.max_thread
+	 * themselves, or a caller asking for fewer threads gets ignored. */
+	int max_threads;
 	gboolean for_preview; // if TRUE, this is a preview operation and should not save undo
 	gboolean for_roi; // if TRUE, operation is being applied to ROI only
-	gboolean custom_undo; // if TRUE, operation handles its own undo state (required for stretches so they can handle the "revert ICC if no stretch applied" issue)
+	/* if TRUE, generic_image_worker does not create an undo state; provision
+	 * of an undo state (if any) is left to the caller. Two use cases:
+	 *  - operations that handle their own undo (e.g. stretches, which need to
+	 *    handle the "revert ICC if no stretch applied" issue);
+	 *  - measurement-only commands that don't modify the image (bgnoise, bg,
+	 *    stat, entropy, cdg), for which an undo state would be meaningless. */
+	gboolean skip_generic_undo;
 	gboolean mask_aware; // Whether the operation is mask-aware or not
 	gboolean has_mask;   // Captured from fit->mask before writer unlock; used by end_generic_image_update_gfit
-	/* When TRUE, populate_roi() is called in the worker thread (while the fit's
-	 * rwlock is held) instead of in the idle function, keeping gfit reads on the
-	 * processing thread. */
+	/* DEPRECATED — the worker now calls populate_roi() automatically whenever
+	 * args->fit == gfit (and not script/python/headless), so callers no longer
+	 * need to set this.  Retained on the struct purely so existing call sites
+	 * continue to compile; the value is ignored. */
 	gboolean populate_roi_on_complete;
 };
 
 struct generic_mask_args {
 	fits *fit; // input image to be processed
+	/* When set, the worker fills mask_hook/log_hook/description/mem_ratio from
+	 * this descriptor (op_descriptor_fill_mask_args()). */
+	const struct op_descriptor *op;
 	float mem_ratio; 	// peak memory requirement as multiple of image size
 	/** function called to process the image
 	 *  Returns 0 on success, non-zero on error */
@@ -216,7 +238,7 @@ struct generic_mask_args {
 	 first member, which is called in free_generic_img_args() */
 	gpointer user;
 	gboolean mask_creation; // states if this is a mask creation operation (mask is active on completion if TRUE)
-	int max_threads; // number of threads to use for the operation
+	int max_threads; // as above: 0 means com.max_thread
 };
 
 void free_generic_img_args(struct generic_img_args *args);

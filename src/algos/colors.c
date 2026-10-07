@@ -37,6 +37,17 @@
 #include "algos/colors.h"
 #include "algos/statistics.h"
 #include "algos/extraction.h"
+#include "core/op_descriptors.h"
+
+/* Op descriptor — single source of truth for this operation (op_descriptor.h) */
+const op_descriptor op_desc_ccm = {
+	.id = "color.ccm", .version = 1,
+	.image_hook = ccm_single_image_hook,
+	.log_hook = ccm_log_hook,
+	.description = N_("Color Conversion Matrix"),
+	.mem_ratio = 1.5f,
+	.flags = 0,
+};
 
 /******************************************************************************
  * Note for maintainers: do not use the translation macro on the following    *
@@ -46,6 +57,19 @@
 const gchar *extractionstring = "Extraction";
 
 static gchar *add_filter_str[] = { "R", "G", "B"};
+
+/* Removes the last entry from a history list and returns the new head.
+ * Does nothing if the list is empty. */
+static GSList *remove_last_history_entry(GSList *history) {
+	if (!history)
+		return NULL;
+	GSList *last = g_slist_last(history);
+	history = g_slist_remove_link(history, last);
+	g_free(last->data);
+	g_slist_free_1(last);
+	return history;
+}
+
 /*
  * A Fast HSL-to-RGB Transform
  * by Ken Fishkin
@@ -641,6 +665,44 @@ void xyz_to_rgbf(float x, float y, float z, float *r, float *g, float *b) {
 	*b = (*b > 0.0031308f) ? 1.055f * (powf(*b, (1.f / 2.4f))) - 0.055f : 12.92f * (*b);
 }
 
+const char *coloring_type_to_str(coloring_type_enum type) {
+	switch (type) {
+		case COLORING_HSV:
+			return "HSV";
+		case COLORING_CIELAB:
+			return "CIE L*a*b*";
+		default:
+			return "HSL";
+	}
+}
+
+/* Substitutes the luminance value lum into the colour information carried by
+ * (r, g, b), in the requested colour space. All values are in the [0, 1] range;
+ * the result may fall slightly outside it for the HSV and L*a*b* modes, so
+ * callers are expected to clip it. */
+void merge_luminance(double r, double g, double b, double lum, coloring_type_enum type,
+		double *ro, double *go, double *bo) {
+	double h, s, i, X, Y, Z, a, bb;
+
+	switch (type) {
+		default:
+		case COLORING_HSL:
+			rgb_to_hsl(r, g, b, &h, &s, &i);
+			hsl_to_rgb(h, s, lum, ro, go, bo);
+			break;
+		case COLORING_HSV:
+			rgb_to_hsv(r, g, b, &h, &s, &i);
+			hsv_to_rgb(h, s, lum, ro, go, bo);
+			break;
+		case COLORING_CIELAB:
+			rgb_to_xyz(r, g, b, &X, &Y, &Z);
+			xyz_to_LAB(X, Y, Z, &i, &a, &bb);
+			LAB_to_xyz(lum * 100.0, a, bb, &X, &Y, &Z);	// 0 < L < 100
+			xyz_to_rgb(X, Y, Z, ro, go, bo);
+			break;
+	}
+}
+
 // Reference: https://en.wikipedia.org/wiki/Color_index and https://arxiv.org/abs/1201.1809 (Ballesteros, F. J., 2012)
 // Uses Ballesteros' formula based on considering stars as black bodies
 double BV_to_T(double BV) {
@@ -805,7 +867,7 @@ static gpointer extract_channels_ushort(gpointer p) {
 		return GINT_TO_POINTER(1);
 	}
 
-	siril_log_color_message(_("%s channel extraction: processing...\n"), "green",
+	siril_log_info(_("%s channel extraction: processing...\n"),
 			args->str_type);
 	gettimeofday(&t_start, NULL);
 	gchar *histstring = NULL;
@@ -895,27 +957,16 @@ static gpointer extract_channels_ushort(gpointer p) {
 		args->fit->history = g_slist_append(args->fit->history, g_strdup_printf(_("Channel extraction from 3-channel image with ICC profile:")));
 		args->fit->history = g_slist_append(args->fit->history, g_strdup_printf("%s", desc));
 	}
+	gboolean history_appended = FALSE;
 	for (int i = 0; i < 3; i++) {
 		if (args->channel[i]) {
 			update_filter_information(args->fit, add_filter_str[i], TRUE);
-			if (i > 0) {
-				GSList *current = args->fit->history;
-				while (current->next != NULL && current->next->next != NULL) {
-					current = current->next;
-				}
-				// Check if there is only one element in the list.
-				if (current->next == NULL) {
-					g_slist_free_full(args->fit->history, g_free);
-					args->fit->history = NULL;
-				} else {
-					// Remove the last element.
-					GSList *last = current->next;
-					current->next = NULL;
-					g_free(last->data);
-					g_slist_free_1(last);
-				}
-			}
+			// Drop the history line written for the previously saved channel,
+			// if any: only the current channel's line belongs in this file.
+			if (history_appended)
+				args->fit->history = remove_last_history_entry(args->fit->history);
 			args->fit->history = g_slist_append(args->fit->history, g_strdup_printf("%s %d", histstring, i));
+			history_appended = TRUE;
 			args->fit->keywords.bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
 			save1fits16(args->channel[i], args->fit, i);
 			update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name
@@ -943,7 +994,7 @@ static gpointer extract_channels_float(gpointer p) {
 		return GINT_TO_POINTER(1);
 	}
 
-	siril_log_color_message(_("%s channel extraction: processing...\n"), "green",
+	siril_log_info(_("%s channel extraction: processing...\n"),
 			args->str_type);
 	gettimeofday(&t_start, NULL);
 	gchar *histstring = NULL;
@@ -1042,27 +1093,16 @@ static gpointer extract_channels_float(gpointer p) {
 		args->fit->history = g_slist_append(args->fit->history, g_strdup_printf(_("Channel extraction from 3-channel image with ICC profile:")));
 		args->fit->history = g_slist_append(args->fit->history, g_strdup_printf("%s", desc));
 	}
+	gboolean history_appended = FALSE;
 	for (int i = 0; i < 3; i++) {
 		if (args->channel[i]) {
 			update_filter_information(args->fit, add_filter_str[i], TRUE);
-			if (i > 0) {
-				GSList *current = args->fit->history;
-				while (current->next != NULL && current->next->next != NULL) {
-					current = current->next;
-				}
-				// Check if there is only one element in the list.
-				if (current->next == NULL) {
-					g_slist_free_full(args->fit->history, g_free);
-					args->fit->history = NULL;
-				} else {
-					// Remove the last element.
-					GSList *last = current->next;
-					current->next = NULL;
-					g_free(last->data);
-					g_slist_free_1(last);
-				}
-			}
+			// Drop the history line written for the previously saved channel,
+			// if any: only the current channel's line belongs in this file.
+			if (history_appended)
+				args->fit->history = remove_last_history_entry(args->fit->history);
 			args->fit->history = g_slist_append(args->fit->history, g_strdup_printf("%s %d", histstring, i));
+			history_appended = TRUE;
 			args->fit->keywords.bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
 			save1fits32(args->channel[i], args->fit, i);
 			update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name
@@ -1110,7 +1150,7 @@ void background_neutralize(fits* fit, rectangle black_selection) {
 	for (chan = 0; chan < 3; chan++) {
 		stats[chan] = statistics(NULL, -1, fit, chan, &black_selection, STATS_BASIC, MULTI_THREADED);
 		if (!stats[chan]) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
+			siril_log_error(_("Error: statistics computation failed.\n"));
 			return;
 		}
 		ref += stats[chan]->median;
@@ -1201,7 +1241,7 @@ void get_coeff_for_wb(fits *fit, rectangle white, rectangle black,
 	for (chan = 0; chan < 3; chan++) {
 		imstats *stat = statistics(NULL, -1, fit, chan, &black, STATS_BASIC, MULTI_THREADED);
 		if (!stat) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
+			siril_log_error(_("Error: statistics computation failed.\n"));
 			return;
 		}
 		bg[chan] = stat->median / stat->normValue;
@@ -1379,7 +1419,7 @@ int ccm_process_with_worker(ccm matrix, float power) {
 	// Check if image is RGB
 	fits *target_fit = gfit;
 	if (!isrgb(target_fit)) {
-		siril_log_color_message(_("Color Conversion Matrices can only be applied to 3-channel images.\n"), "red");
+		siril_log_error(_("Color Conversion Matrices can only be applied to 3-channel images.\n"));
 		return 1;
 	}
 
@@ -1408,15 +1448,11 @@ int ccm_process_with_worker(ccm matrix, float power) {
 
 	// Set the fit based on whether ROI is active
 	args->fit = target_fit;
-	args->mem_ratio = 1.5f; // CCM needs minimal extra memory
-	args->image_hook = ccm_single_image_hook;
+	args->op = &op_desc_ccm;
 	args->idle_function = NULL;
-	args->description = _("Color Conversion Matrix");
 	args->verbose = TRUE;
 	args->user = params;
-	args->log_hook = ccm_log_hook;
 	args->max_threads = com.max_thread;
-	args->populate_roi_on_complete = TRUE;
 	// We don't need to do these two because of calloc, but they are shown as a
 	// reminder of intent
 	// args->for_preview = FALSE;
@@ -1434,7 +1470,7 @@ int ccm_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 	struct ccm_data *c_args = (struct ccm_data*) args->user;
 	int ret = ccm_calc(fit, c_args->matrix, c_args->power);
 	if (ret) {
-		siril_log_color_message(_("Color Conversion Matrices can only be applied to 3-channel images.\n"), "red");
+		siril_log_error(_("Color Conversion Matrices can only be applied to 3-channel images.\n"));
 	}
 	return ret;
 }

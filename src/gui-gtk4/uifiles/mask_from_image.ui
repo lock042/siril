@@ -1,0 +1,328 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
+<interface>
+  <!-- interface-name mask_from_image.ui -->
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkAdjustment" id="adj_spin_mask_chan">
+    <property name="page-increment">1</property>
+    <property name="step-increment">1</property>
+    <property name="upper">2</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_spin_mask_lb">
+    <property name="page-increment">0.10</property>
+    <property name="step-increment">0.01</property>
+    <property name="upper">1</property>
+    <property name="value">0.333</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_spin_mask_lg">
+    <property name="page-increment">0.10</property>
+    <property name="step-increment">0.01</property>
+    <property name="upper">1</property>
+    <property name="value">0.333</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_spin_mask_lr">
+    <property name="page-increment">0.10</property>
+    <property name="step-increment">0.01</property>
+    <property name="upper">1</property>
+    <property name="value">0.333</property>
+  </object>
+  <object class="GtkWindow" id="mask_from_image_dialog">
+    <property name="child">
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkBox">
+            <property name="margin-bottom">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">6</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">10</property>
+            <child>
+              <object class="GtkGrid" id="mask_file_chooser_box">
+                <property name="column-spacing">5</property>
+                <property name="row-spacing">5</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Image file</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox">
+                    <property name="spacing">5</property>
+                    <child>
+                      <object class="GtkEntry" id="entry_mask_filename">
+                        <property name="editable">0</property>
+                        <property name="focusable">1</property>
+                        <property name="hexpand">1</property>
+                        <property name="placeholder-text" translatable="yes">No file selected</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="button_mask_file_chooser">
+                        <property name="focusable">1</property>
+                        <property name="label" translatable="yes">Browse...</property>
+                        <property name="receives-default">1</property>
+                        <signal name="clicked" handler="on_mask_file_chooser_clicked"/>
+                      </object>
+                    </child>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkGrid">
+                <property name="column-spacing">5</property>
+                <property name="row-spacing">10</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Method</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkDropDown" id="combo_mask_from_image_type">
+                    <property name="model">
+                      <object class="GtkStringList">
+                        <items>
+                          <item translatable="yes">Luminance</item>
+                          <item translatable="yes">Channel</item>
+                        </items>
+                      </object>
+                    </property>
+                    <property name="selected">0</property>
+                    <property name="tooltip-text" translatable="yes">Select what type of mask to create from the image</property>
+                    <signal name="notify::selected" handler="on_combo_mask_from_image_type_changed"/>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="label" translatable="yes">Bit depth</property>
+                    <layout>
+                      <property name="column">2</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkDropDown" id="combo_mask_from_image_bitdepth">
+                    <property name="model">
+                      <object class="GtkStringList">
+                        <items>
+                          <item translatable="yes">8-bit</item>
+                          <item translatable="yes">16-bit</item>
+                          <item translatable="yes">32-bit</item>
+                        </items>
+                      </object>
+                    </property>
+                    <property name="selected">0</property>
+                    <layout>
+                      <property name="column">3</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkGrid" id="mask_luminance_grid">
+                <property name="column-spacing">5</property>
+                <property name="row-spacing">10</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Luminance weight (R)</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Luminance weight (G)</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">2</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Luminance weight (B)</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">3</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="spin_mask_lr">
+                    <property name="adjustment">adj_spin_mask_lr</property>
+                    <property name="digits">3</property>
+                    <property name="focusable">1</property>
+                    <property name="tooltip-text" translatable="yes">Set a custom Red luminance weight</property>
+                    <property name="value">0.33</property>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="spin_mask_lg">
+                    <property name="adjustment">adj_spin_mask_lg</property>
+                    <property name="digits">3</property>
+                    <property name="focusable">1</property>
+                    <property name="tooltip-text" translatable="yes">Set a custom Green luminance weight</property>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">2</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="spin_mask_lb">
+                    <property name="adjustment">adj_spin_mask_lb</property>
+                    <property name="digits">3</property>
+                    <property name="focusable">1</property>
+                    <property name="tooltip-text" translatable="yes">Set a custom Blue luminance weight</property>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">3</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Luminance </property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkDropDown" id="combo_mask_luminance_type">
+                    <property name="model">
+                      <object class="GtkStringList">
+                        <items>
+                          <item translatable="yes">Even-weighted</item>
+                          <item translatable="yes">Human-weighted</item>
+                          <item translatable="yes">Custom</item>
+                        </items>
+                      </object>
+                    </property>
+                    <property name="selected">0</property>
+                    <property name="tooltip-text" translatable="yes">Specifies what type of luminance weighting to use. For custom weights, select "Custom" and set the weights using the spin buttons below.</property>
+                    <signal name="notify::selected" handler="on_combo_mask_luminance_type_changed"/>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkGrid" id="mask_channel_grid">
+                <property name="column-spacing">5</property>
+                <property name="row-spacing">10</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Channel</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="spin_mask_channel">
+                    <property name="adjustment">adj_spin_mask_chan</property>
+                    <property name="focusable">1</property>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="toggle_mask_autostretch">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Apply autostretch to mask</property>
+                <property name="tooltip-text" translatable="yes">If checked, the mask will be autostretched.</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="toggle_mask_invert">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Invert mask</property>
+                <property name="tooltip-text" translatable="yes">If checked, the mask will be inverted</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="halign">end</property>
+            <property name="margin-bottom">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-top">12</property>
+            <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
+            <child>
+              <object class="GtkButton" id="mask_from_image_close">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Close</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_mask_from_image_close_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="mask_from_image_apply">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Apply</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_mask_from_image_apply_clicked"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </property>
+    <property name="height-request">200</property>
+    <property name="resizable">0</property>
+    <property name="title" translatable="yes">Create a mask from the current image</property>
+    <property name="width-request">400</property>
+    <signal name="close-request" handler="siril_widget_hide_on_delete"/>
+    <signal name="show" handler="on_mask_from_image_dialog_show"/>
+  </object>
+</interface>

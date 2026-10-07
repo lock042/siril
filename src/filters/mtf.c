@@ -26,6 +26,28 @@
 void destroy_mtf_data(void *args); /* forward decl */
 #include "core/siril_log.h"
 #include "algos/statistics.h"
+#include "core/op_descriptors.h"
+
+/* Op descriptors — single source of truth for the MTF stretch ops.
+ * process_mtf picks the forward/inverse descriptor via its `inverse` flag; the
+ * autostretch / histogram sites share op_desc_mtf with a description override. */
+const op_descriptor op_desc_mtf = {
+	.id = "stretch.mtf", .version = 1,
+	.image_hook = mtf_single_image_hook,
+	.log_hook = mtf_log_hook,
+	.description = N_("Midtones Transfer Function"),
+	.mem_ratio = 1.0f,
+	.flags = OP_MASK_CAPABLE,
+};
+
+const op_descriptor op_desc_mtf_inverse = {
+	.id = "stretch.mtf_inverse", .version = 1,
+	.image_hook = invmtf_single_image_hook,
+	.log_hook = invmtf_log_hook,
+	.description = N_("Inverse Midtones Transfer Function"),
+	.mem_ratio = 1.0f,
+	.flags = OP_MASK_CAPABLE,
+};
 
 void apply_linked_mtf_to_fits(fits *from, fits *to, struct mtf_params params, gboolean multithreaded) {
 
@@ -116,7 +138,7 @@ float MTFp(float x, struct mtf_params params) {
 }
 
 void apply_linked_pseudoinverse_mtf_to_fits(fits *from, fits *to, struct mtf_params params, gboolean multithreaded) {
-// This is for use in reversing the pre-stretch applied to linear images for starnet++ input.
+// This is for use in reversing an MTF pre-stretch applied to linear images.
 // It does not support selected channels.
 	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
 	const size_t layersize = from->naxes[0] * from->naxes[1];
@@ -176,7 +198,7 @@ void apply_linked_pseudoinverse_mtf_to_fits(fits *from, fits *to, struct mtf_par
 }
 
 void apply_unlinked_pseudoinverse_mtf_to_fits(fits *from, fits *to, struct mtf_params *params, gboolean multithreaded) {
-	// This is for use in reversing the pre-stretch applied to linear images for starnet++ input.
+	// This is for use in reversing an MTF pre-stretch applied to linear images.
 	// It does not support selected channels.
 	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
 	const size_t layersize = from->naxes[0] * from->naxes[1];
@@ -187,7 +209,7 @@ void apply_unlinked_pseudoinverse_mtf_to_fits(fits *from, fits *to, struct mtf_p
 
 	// Log the parameters for each channel
 	if (from->naxes[2] == 3) {
-		siril_debug_print("Applying inverse MTF with values:\n"
+		siril_log_debug("Applying inverse MTF with values:\n"
 				"  Red:   %f, %f, %f\n"
 				"  Green: %f, %f, %f\n"
 				"  Blue:  %f, %f, %f\n",
@@ -195,7 +217,7 @@ void apply_unlinked_pseudoinverse_mtf_to_fits(fits *from, fits *to, struct mtf_p
 				params[1].shadows, params[1].midtones, params[1].highlights,
 				params[2].shadows, params[2].midtones, params[2].highlights);
 	} else {
-		siril_debug_print("Applying inverse MTF with values %f, %f, %f\n",
+		siril_log_debug("Applying inverse MTF with values %f, %f, %f\n",
 				params[0].shadows, params[0].midtones, params[0].highlights);
 	}
 
@@ -315,7 +337,7 @@ int find_linked_midtones_balance(fits *fit, float shadows_clipping, float target
 		result->midtones = MTF(m2, target_bg, 0.f, 1.f);
 		result->highlights = 1.0f;
 
-		siril_debug_print("autostretch: (%f, %f, %f)\n",
+		siril_log_debug("autostretch: (%f, %f, %f)\n",
 				result->shadows, result->midtones, result->highlights);
 	} else {
 		for (i = 0; i < nb_channels; ++i) {
@@ -429,7 +451,7 @@ int find_unlinked_midtones_balance(fits *fit, float shadows_clipping, float targ
 			results[i].midtones = MTF(m2, target_bg, 0.f, 1.f);
 			results[i].shadows = c0;
 			results[i].highlights = 1.0;
-			siril_debug_print("autostretch for channel %d: (%f, %f, %f)\n", i,
+			siril_log_debug("autostretch for channel %d: (%f, %f, %f)\n", i,
 					results[i].shadows, results[i].midtones, results[i].highlights);
 		}
 	} else {
@@ -446,7 +468,7 @@ int find_unlinked_midtones_balance(fits *fit, float shadows_clipping, float targ
 			results[i].midtones = 1.f - MTF(m2, target_bg, 0.f, 1.f);
 			results[i].shadows = 0.f;
 			results[i].highlights = c1;
-			siril_debug_print("autostretch for channel %d: (%f, %f, %f)\n", i,
+			siril_log_debug("autostretch for channel %d: (%f, %f, %f)\n", i,
 					results[i].shadows, results[i].midtones, results[i].highlights);
 		}
 

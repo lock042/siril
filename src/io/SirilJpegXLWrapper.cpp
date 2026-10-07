@@ -391,51 +391,42 @@ extern "C" int EncodeJpegXlOneshotWrapper(const uint8_t* pixels, const uint32_t 
 }
 
 
-static GdkPixbuf* createPixbufFromMono(const std::vector<uint8_t>& rgbData, int width, int height) {
-    // Ensure the size of the vector matches the expected size (1 channel per pixel, 8 bits per channel)
-    if (rgbData.size() != static_cast<size_t>(width * height)) {
+/* Build a malloc'd RGB888 byte buffer from a mono pixel vector by
+ * replicating each gray sample across R/G/B.  Returns NULL on size
+ * mismatch. */
+static guchar *bytesFromMono(const std::vector<uint8_t>& monoData, int width, int height) {
+    if (monoData.size() != static_cast<size_t>(width * height)) {
         fprintf(stderr, "Invalid preview data size.\n");
         return nullptr;
     }
-
-    // Create a GdkPixbuf with the specified dimensions and format
-    GdkPixbuf* pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, false, 8, width, height);
-  int rowstride = gdk_pixbuf_get_rowstride(pixbuf);
-  fprintf(stderr, "width: %d rowstride: %d\n", width, rowstride);
-    // Get the pixel buffer from the GdkPixbuf
-    guchar* pixels = gdk_pixbuf_get_pixels(pixbuf);
-
-    // Iterate over the RGB data and copy it to the GdkPixbuf
-    size_t index = 0;
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            // Copy Red channel
-            pixels[(y * rowstride + 3 * x)] = rgbData[index];
-            // Copy Green channel
-            pixels[(y * rowstride + 3 * x) + 1] = rgbData[index];
-            // Copy Blue channel
-            pixels[(y * rowstride + 3 * x) + 2] = rgbData[index++];
-        }
+    guchar *pixels = (guchar*) malloc((size_t)width * height * 3);
+    if (!pixels) return nullptr;
+    for (size_t i = 0, j = 0; i < monoData.size(); i++, j += 3) {
+        pixels[j]     = monoData[i];
+        pixels[j + 1] = monoData[i];
+        pixels[j + 2] = monoData[i];
     }
-
-    return pixbuf;
+    return pixels;
 }
 
-static GdkPixbuf* createPixbufFromRGB(const std::vector<uint8_t>& rgbData, int width, int height) {
-    // Ensure the size of the vector matches the expected size (3 channels per pixel, 8 bits per channel)
+/* Copy an RGB pixel vector into a malloc'd byte buffer.  Returns NULL
+ * on size mismatch. */
+static guchar *bytesFromRGB(const std::vector<uint8_t>& rgbData, int width, int height) {
     if (rgbData.size() != static_cast<size_t>(width * height * 3)) {
         fprintf(stderr, "Invalid preview data size.\n");
         return nullptr;
     }
     guchar *pixels = (guchar*) malloc(rgbData.size());
+    if (!pixels) return nullptr;
     memcpy(pixels, rgbData.data(), rgbData.size());
-    GdkPixbuf* pixbuf = gdk_pixbuf_new_from_data(pixels, GDK_COLORSPACE_RGB, FALSE, 8, width, height, width * 3, (GdkPixbufDestroyNotify) free, pixels);
-
-    return pixbuf;
+    return pixels;
 }
 
-extern "C" GdkPixbuf* get_thumbnail_from_jxl(uint8_t *jxl, gchar **descr, size_t size) {
-  GdkPixbuf *pixbuf = NULL;
+/* Core thumbnail extractor: returns a malloc'd RGB888 byte buffer plus
+ * dimensions, or NULL on error.  Caller owns *data (free with free()) and
+ * *descr (free with g_free()). */
+extern "C" guchar *extract_thumbnail_from_jxl(uint8_t *jxl, gchar **descr, size_t size,
+                                               int *width_out, int *height_out) {
   gchar *description = NULL;
   std::vector<uint8_t> pixels;
   size_t xsize, ysize, zsize;
@@ -511,8 +502,12 @@ extern "C" GdkPixbuf* get_thumbnail_from_jxl(uint8_t *jxl, gchar **descr, size_t
       if (info.have_preview == false) continue;
       // Return whichever comes first: preview image complete, full image complete
       // or decoder success.
-      pixbuf = createPixbufFromMono(pixels, info.preview.xsize, info.preview.ysize);
-      return pixbuf;
+      guchar *data = bytesFromMono(pixels, info.preview.xsize, info.preview.ysize);
+      if (data) {
+        if (width_out)  *width_out  = info.preview.xsize;
+        if (height_out) *height_out = info.preview.ysize;
+      }
+      return data;
     } else if (status == JXL_DEC_NEED_IMAGE_OUT_BUFFER) {
       format.num_channels = zsize; // Update for RGB images (not previews)
       size_t buffer_size;
@@ -537,19 +532,43 @@ extern "C" GdkPixbuf* get_thumbnail_from_jxl(uint8_t *jxl, gchar **descr, size_t
         return NULL;
       }
     } else if (status == JXL_DEC_FULL_IMAGE) {
-      pixbuf = zsize == 1 ? createPixbufFromMono(pixels, xsize, ysize) : createPixbufFromRGB(pixels, xsize, ysize);
-      return pixbuf;
+      guchar *data = zsize == 1 ? bytesFromMono(pixels, xsize, ysize)
+                                : bytesFromRGB(pixels, xsize, ysize);
+      if (data) {
+        if (width_out)  *width_out  = (int)xsize;
+        if (height_out) *height_out = (int)ysize;
+      }
+      return data;
     } else if (status == JXL_DEC_SUCCESS) {
       // All decoding successfully finished.
       // It's not required to call JxlDecoderReleaseInput(dec.get()) here since
       // the decoder will be destroyed.
-      pixbuf = zsize == 1 ? createPixbufFromMono(pixels, xsize, ysize) : createPixbufFromRGB(pixels, xsize, ysize);
-      return pixbuf;
+      guchar *data = zsize == 1 ? bytesFromMono(pixels, xsize, ysize)
+                                : bytesFromRGB(pixels, xsize, ysize);
+      if (data) {
+        if (width_out)  *width_out  = (int)xsize;
+        if (height_out) *height_out = (int)ysize;
+      }
+      return data;
     } else {
       fprintf(stderr, "Unknown decoder status\n");
       return NULL;
     }
   }
   return NULL; // should not happen
+}
+
+/* GdkPixbuf shim around extract_thumbnail_from_jxl, kept for the GTK3
+ * build. */
+extern "C" GdkPixbuf* get_thumbnail_from_jxl(uint8_t *jxl, gchar **descr, size_t size) {
+  int w = 0, h = 0;
+  guchar *data = extract_thumbnail_from_jxl(jxl, descr, size, &w, &h);
+  if (!data || w <= 0 || h <= 0) {
+    if (data) free(data);
+    return NULL;
+  }
+  return gdk_pixbuf_new_from_data(data, GDK_COLORSPACE_RGB, FALSE, 8,
+                                   w, h, w * 3,
+                                   (GdkPixbufDestroyNotify) free, NULL);
 }
 #endif

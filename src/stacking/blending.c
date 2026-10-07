@@ -41,7 +41,7 @@ void init_ramp() {
 		float r = (float)i * norm;
 		ramp_array[i] = r * r * r * (6.f * r * r - 15.f * r + 10.f);
 	}
-	siril_debug_print("ramp array initialized\n");
+	siril_log_debug("ramp array initialized\n");
 }
 
 float get_ramped_value(float val) {
@@ -113,13 +113,12 @@ static int compute_mask_compute_mem_limits(struct generic_seq_args *args, gboole
 	if (limit == 0) {
 		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
-		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per thread, %s considered available)\n"),
-				"red", args->description, mem_per_thread, mem_available);
+		siril_log_error(_("%s: not enough memory to do this operation (%s required per thread, %s considered available)\n"), args->description, mem_per_thread, mem_available);
 		g_free(mem_per_thread);
 		g_free(mem_available);
 	} else {
 #ifdef _OPENMP
-		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+		siril_log_debug("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
 				required, required, limit, for_writer ? "images" : "threads");
 #else
 		limit = 1;
@@ -138,7 +137,7 @@ static int compute_mask_image_hook(struct generic_seq_args *args, int o, int i, 
 
 	if (!buffer8in) {
 		PRINT_ALLOC_ERR;
-		siril_debug_print("failed to allocate mask buffer\n");
+		siril_log_debug("failed to allocate mask buffer\n");
 		free(buffer8in);
 		return 1;
 	}
@@ -154,7 +153,7 @@ static int compute_mask_image_hook(struct generic_seq_args *args, int o, int i, 
 				buffer8in[i] = UCHAR_MAX;
 		}
 	} else {
-		siril_debug_print("wrong data type\n");
+		siril_log_debug("wrong data type\n");
 		free(buffer8in);
 		return 1;
 	}
@@ -166,7 +165,7 @@ static int compute_mask_image_hook(struct generic_seq_args *args, int o, int i, 
 	buffer32out = calloc((size_t)(rx_out * ry_out), sizeof(float));
 	if (!buffer32out) {
 		PRINT_ALLOC_ERR;
-		siril_debug_print("failed to allocate mask downscaled buffer\n");
+		siril_log_debug("failed to allocate mask downscaled buffer\n");
 		free(buffer8in);
 		return 1;
 	}
@@ -175,13 +174,13 @@ static int compute_mask_image_hook(struct generic_seq_args *args, int o, int i, 
 	//we save the mask
 	const gchar *mask_filename = get_sequence_cache_filename(args->seq, i, "cache", "msk", NULL);
 	if (!mask_filename) {
-		siril_debug_print("failed to create the mask filename");
+		siril_log_debug("failed to create the mask filename");
 		free(buffer8in);
 		free(buffer32out);
 		return 1;
 	}
 	if (save_mask_fits(rx_out, ry_out, buffer32out, mask_filename)) {
-		siril_log_color_message(_("Failed to save mask for image %d\n"), "red", i + 1);
+		siril_log_error(_("Failed to save mask for image %d\n"), i + 1);
 		free(buffer8in);
 		free(buffer32out);
 		return 1;

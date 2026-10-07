@@ -34,6 +34,17 @@
 #include "algos/statistics.h"
 
 #include "fft.h"
+#include "core/op_descriptors.h"
+
+/* Op descriptor — single source of truth for this operation (op_descriptor.h) */
+const op_descriptor op_desc_fft = {
+	.id = "filters.fft", .version = 1,
+	.image_hook = fft_image_hook,
+	.log_hook = fft_log_hook,
+	.description = N_("Fourier Transform"),
+	.mem_ratio = 2.0f,
+	.flags = 0,
+};
 
 enum {
 	TYPE_CENTERED,
@@ -137,7 +148,7 @@ static void centered_float(float *buf, unsigned int width, unsigned int height,
 static void normalisation_spectra_ushort(unsigned int w, unsigned int h, const float *modul, const float *phase,
 		WORD *abuf, WORD *pbuf, float maxi) {
 	for (size_t i = 0; i < h * w; i++) {
-		pbuf[i] = roundf_to_WORD(((phase[i] + (float)M_PI) * USHRT_MAX_SINGLE / (2.f * (float)M_PI)));
+		pbuf[i] = roundf_to_WORD(((phase[i] + (float)G_PI) * USHRT_MAX_SINGLE / (2.f * (float)G_PI)));
 		abuf[i] = roundf_to_WORD((modul[i] * USHRT_MAX_SINGLE / maxi));
 	}
 }
@@ -145,7 +156,7 @@ static void normalisation_spectra_ushort(unsigned int w, unsigned int h, const f
 static void normalisation_spectra_float(unsigned int w, unsigned int h, const float *modul, const float *phase,
 		float *abuf, float *pbuf, float maxi) {
 	for (size_t i = 0; i < h * w; i++) {
-		pbuf[i] = (phase[i] + (float)M_PI) / (2.f * (float)M_PI);
+		pbuf[i] = (phase[i] + (float)G_PI) / (2.f * (float)G_PI);
 		abuf[i] = (modul[i] / maxi);
 	}
 }
@@ -302,8 +313,8 @@ static void FFTI_ushort(fits *fit, fits *xfit, fits *yfit, int type_order, int l
 
 	for (i = 0; i < height * width; i++) {
 		modul[i] = (float) xbuf[i] * (xfit->keywords.dft.norm[layer]);
-		phase[i] = (float) ybuf[i] * (2.f * (float)M_PI / USHRT_MAX_SINGLE);
-		phase[i] -= (float)M_PI;
+		phase[i] = (float) ybuf[i] * (2.f * (float)G_PI / USHRT_MAX_SINGLE);
+		phase[i] -= (float)G_PI;
 	}
 
 	fftwf_complex* spatial_repr = fftwf_malloc(sizeof(fftwf_complex) * nbdata);
@@ -361,8 +372,8 @@ static void FFTI_float(fits *fit, fits *xfit, fits *yfit, int type_order, int la
 
 	for (i = 0; i < height * width; i++) {
 		modul[i] = xbuf[i] * (xfit->keywords.dft.norm[layer]);
-		phase[i] = ybuf[i] * (2.f * (float)M_PI);
-		phase[i] -= (float)M_PI;
+		phase[i] = ybuf[i] * (2.f * (float)G_PI);
+		phase[i] -= (float)G_PI;
 	}
 
 	fftwf_complex* spatial_repr = fftwf_malloc(sizeof(fftwf_complex) * nbdata);
@@ -500,7 +511,7 @@ int fft_compute_core(struct fft_data *args, fits *fit) {
 		if ((tmp->rx != tmp1->rx) || (tmp->ry != tmp1->ry) ||
 				(tmp->naxes[2] != tmp1->naxes[2]) || (tmp->bitpix != tmp1->bitpix)) {
 			retval = 1;
-			siril_log_color_message(_("Images must have same dimensions.\n"), "red");
+			siril_log_error(_("Images must have same dimensions.\n"));
 			goto end;
 		}
 		if (tmp->keywords.dft.ord[0] == 'C')
@@ -513,7 +524,7 @@ int fft_compute_core(struct fft_data *args, fits *fit) {
 			goto end;
 		}
 		new_fit_image(&tmp2, width, height, tmp->naxes[2], type);
-		for (chan = 0; chan < fit->naxes[2]; chan++)
+		for (chan = 0; chan < tmp->naxes[2]; chan++)
 			FFTI(tmp2, tmp, tmp1, args->type_order, chan);
 		/* Copy inverse transform result into fit for display */
 		if (copyfits(tmp2, fit, CP_ALLOC | CP_FORMAT | CP_COPYA, -1)) {
@@ -526,7 +537,7 @@ end:
 	if (fftwf_export_wisdom_to_filename(com.pref.fftw_conf.wisdom_file) == 1) {
 		siril_log_message(_("Siril FFT wisdom updated successfully...\n"));
 	} else {
-		siril_log_message(_("Siril FFT wisdom update failed...\n"));
+		siril_log_warning(_("Siril FFT wisdom update failed...\n"));
 	}
 
 	invalidate_stats_from_fit(fit);

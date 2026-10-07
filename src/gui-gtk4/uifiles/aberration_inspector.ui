@@ -1,0 +1,111 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
+<interface>
+  <!-- interface-name aberration_inspector.ui -->
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkApplicationWindow" id="edge_dialog">
+    <property name="resizable">0</property>
+    <property name="title" translatable="yes">Aberration Inspector</property>
+    <signal name="close-request" handler="siril_widget_hide_on_delete"/>
+    <child>
+      <object class="GtkGrid">
+        <property name="column-spacing">6</property>
+        <property name="margin-bottom">6</property>
+        <property name="margin-end">6</property>
+        <property name="margin-start">6</property>
+        <property name="margin-top">6</property>
+        <property name="row-spacing">6</property>
+        <child>
+          <object class="GtkDrawingArea" id="left_top">
+            <property name="height-request">127</property>
+            <property name="width-request">127</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="row">0</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="center_top">
+            <property name="height-request">127</property>
+            <property name="width-request">127</property>
+            <layout>
+              <property name="column">1</property>
+              <property name="row">0</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="right_top">
+            <property name="height-request">127</property>
+            <property name="width-request">127</property>
+            <layout>
+              <property name="column">2</property>
+              <property name="row">0</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="left_center">
+            <property name="height-request">127</property>
+            <property name="width-request">127</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="row">1</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="center_center">
+            <property name="height-request">127</property>
+            <property name="width-request">127</property>
+            <layout>
+              <property name="column">1</property>
+              <property name="row">1</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="right_center">
+            <property name="height-request">127</property>
+            <property name="width-request">127</property>
+            <layout>
+              <property name="column">2</property>
+              <property name="row">1</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="left_bottom">
+            <property name="height-request">127</property>
+            <property name="width-request">127</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="row">2</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="center_bottom">
+            <property name="height-request">127</property>
+            <property name="width-request">127</property>
+            <layout>
+              <property name="column">1</property>
+              <property name="row">2</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="right_bottom">
+            <property name="height-request">127</property>
+            <property name="width-request">127</property>
+            <layout>
+              <property name="column">2</property>
+              <property name="row">2</property>
+            </layout>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

@@ -407,21 +407,21 @@ bool c_pipp_avi_write::create(
 
     // Calculate how many frames fit into each RIFF
     if (old_avi_format != 0) {
-        // Calculate how many frames can go into the RIFF
-        if (old_avi_format == 4) {
-            // Max RIFF size = 4GB
-            m_max_frames_in_first_riff = 0xFFFFFFFF;  // Maximum RIFF size (4GB - 1)
-        } else {
-            // Max RIFF size = 2GB
-            m_max_frames_in_first_riff = 0x7FFFFFFF;  // Maximum RIFF size (2GB - 1)
-        }
-        //max_frames_in_first_riff -= sizeof(avi_riff_header) ;
-        //max_frames_in_first_riff -= (sizeof(hdrl_list_header) - sizeof(hdrl_list_header.four_cc) + hdrl_list_header.size);
-        //max_frames_in_first_riff -= (sizeof(junk_chunk_header) + junk_chunk_header.size);
-        m_max_frames_in_first_riff -= 0x2000;  // Junk field always takes us to 0x2000
-        m_max_frames_in_first_riff -= sizeof(m_movi_list_header);
-        m_max_frames_in_first_riff -= sizeof(m_idx1_chunk_header);
-        m_max_frames_in_first_riff /= (sizeof(m_00db_chunk_header) + m_frame_size + sizeof(m_avi_index_entry));
+        // Calculate how many frames can go into the RIFF. The byte budget is
+        // computed in int64_t: the 4GB-1 case (0xFFFFFFFF) does not fit in the
+        // int32_t field and would otherwise overflow to a negative count. The
+        // divided-down frame count fits comfortably in int32_t.
+        int64_t riff_budget = (old_avi_format == 4)
+                            ? 0xFFFFFFFFLL   // Maximum RIFF size (4GB - 1)
+                            : 0x7FFFFFFFLL;  // Maximum RIFF size (2GB - 1)
+        //riff_budget -= sizeof(avi_riff_header) ;
+        //riff_budget -= (sizeof(hdrl_list_header) - sizeof(hdrl_list_header.four_cc) + hdrl_list_header.size);
+        //riff_budget -= (sizeof(junk_chunk_header) + junk_chunk_header.size);
+        riff_budget -= 0x2000;  // Junk field always takes us to 0x2000
+        riff_budget -= sizeof(m_movi_list_header);
+        riff_budget -= sizeof(m_idx1_chunk_header);
+        riff_budget /= (sizeof(m_00db_chunk_header) + m_frame_size + sizeof(m_avi_index_entry));
+        m_max_frames_in_first_riff = (int32_t) riff_budget;
     } else {
         // Calculate how many frames can go into the first RIFF
         m_max_frames_in_first_riff = 0x3FFFFFFF;  // Maximum RIFF size (1GB - 1)

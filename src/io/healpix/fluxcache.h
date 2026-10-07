@@ -38,15 +38,20 @@ private:
 #endif
 
     explicit FluxCache(const std::string& dbPath);
-    static std::map<uint32_t, std::weak_ptr<FluxCache>> instances;
+    // Keyed by "<type_tag>:<chunk_id>" so xpsamp and xpcts caches for the
+    // same chunk_id are independent shards.
+    static std::map<std::string, std::weak_ptr<FluxCache>> instances;
     static std::mutex mtx;
 
 public:
     ~FluxCache();
 
-    // Static Factory: Returns the correct DB instance based on chunk_healpix (0-47)
-    // For data storage and retrieval
-    static std::shared_ptr<FluxCache> getCache(uint32_t chunk_level, uint32_t healpix_level, uint32_t chunk_id);
+    // Static Factory: Returns the correct DB instance based on chunk_healpix
+    // and the xp catalogue kind ("xpsamp" or "xpcts"). The kind is part of the
+    // filename AND the singleton key so the two record types never share a
+    // SQLite database.
+    static std::shared_ptr<FluxCache> getCache(uint32_t chunk_level, uint32_t healpix_level,
+                                               uint32_t chunk_id, const char *type_tag);
 
     // Management function that affect all shards are static functions
     // We don't push sharding complexity to the caller

@@ -59,7 +59,7 @@
 * @return
 */
 WORD *float_buffer_to_ushort(const float *buffer, size_t ndata) {
-	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
+	if (!buffer) { siril_log_debug("buffer is NULL in data format conversion\n"); return NULL; }
 	WORD *buf = malloc(ndata * sizeof(WORD));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
@@ -78,7 +78,7 @@ WORD *float_buffer_to_ushort(const float *buffer, size_t ndata) {
 * @return
 */
 signed short *float_buffer_to_short(const float *buffer, size_t ndata) {
-	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
+	if (!buffer) { siril_log_debug("buffer is NULL in data format conversion\n"); return NULL; }
 	signed short *buf = malloc(ndata * sizeof(signed short));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
@@ -97,7 +97,7 @@ signed short *float_buffer_to_short(const float *buffer, size_t ndata) {
 * @return
 */
 signed short *ushort_buffer_to_short(const WORD *buffer, size_t ndata) {
-	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
+	if (!buffer) { siril_log_debug("buffer is NULL in data format conversion\n"); return NULL; }
 	signed short *buf = malloc(ndata * sizeof(signed short));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
@@ -116,7 +116,7 @@ signed short *ushort_buffer_to_short(const WORD *buffer, size_t ndata) {
 * @return
 */
 float *uchar_buffer_to_float(BYTE *buffer, size_t ndata) {
-	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
+	if (!buffer) { siril_log_debug("buffer is NULL in data format conversion\n"); return NULL; }
 	float *buf = malloc(ndata * sizeof(float));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
@@ -135,7 +135,7 @@ float *uchar_buffer_to_float(BYTE *buffer, size_t ndata) {
 * @return
 */
 float *ushort_buffer_to_float(WORD *buffer, size_t ndata) {
-	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
+	if (!buffer) { siril_log_debug("buffer is NULL in data format conversion\n"); return NULL; }
 	float *buf = malloc(ndata * sizeof(float));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
@@ -154,7 +154,7 @@ float *ushort_buffer_to_float(WORD *buffer, size_t ndata) {
 * @return
 */
 float *ushort8_buffer_to_float(WORD *buffer, size_t ndata) {
-	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
+	if (!buffer) { siril_log_debug("buffer is NULL in data format conversion\n"); return NULL; }
 	float *buf = malloc(ndata * sizeof(float));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
@@ -334,15 +334,12 @@ int is_readable_file(const char *filename) {
 	GStatBuf sts;
 	if (g_lstat(filename, &sts))
 		return 0;
-	if (S_ISREG (sts.st_mode)
+	return S_ISREG (sts.st_mode) ||
 #ifndef _WIN32
-			|| S_ISLNK(sts.st_mode)
+		S_ISLNK(sts.st_mode);
 #else
-		|| (GetFileAttributesA(filename) & FILE_ATTRIBUTE_REPARSE_POINT )
+		(GetFileAttributesA(filename) & FILE_ATTRIBUTE_REPARSE_POINT );
 #endif
-	)
-		return 1;
-	return 0;
 }
 
 /**
@@ -370,7 +367,7 @@ gint siril_mkdir_with_parents(const gchar* pathname, gint mode) {
 	gint result = g_mkdir_with_parents(pathname, mode);
 	if (result != 0) {
 		int saved_errno = errno;
-		siril_log_color_message(_("Failed to create directory '%s': %s\n"), "red", pathname, g_strerror(saved_errno));
+		siril_log_error(_("Failed to create directory '%s': %s\n"), pathname, g_strerror(saved_errno));
 	}
 	return result;
 }
@@ -488,9 +485,30 @@ static image_type determine_image_type_from_magic(const uint8_t *magic, size_t b
 		return TYPEHEIF;
 	if (bytes_read >= 12 && memcmp(magic + 4, "ftypavif", 8) == 0)
 		return TYPEAVIF;
-	if (bytes_read >= 12 && ((memcmp(magic, "RIFF", 4) == 0 && memcmp(magic + 8, "JXL ", 4) == 0) ||
-		(magic[0] == 0xFF && magic[1] == 0x0A)))
+	// JPEG XL comes in two flavours: a raw codestream starting with the
+	// 2-byte marker FF 0A, or an ISO/IEC 18181-2 container whose first box
+	// is the 12-byte signature box 00 00 00 0C "JXL " 0D 0A 87 0A. libjxl
+	// decodes both, but only the codestream was recognised here, so
+	// containerised files (e.g. saved by GIMP or libjxl >= 0.12 for high
+	// bit-depth images) were rejected before reaching the decoder.
+	if (bytes_read >= 2 && magic[0] == 0xFF && magic[1] == 0x0A)
 		return TYPEJXL;
+	if (bytes_read >= 12 && memcmp(magic, "\x00\x00\x00\x0C\x4A\x58\x4C\x20\x0D\x0A\x87\x0A", 12) == 0)
+		return TYPEJXL;
+#ifdef HAVE_FFMS2
+	// Film containers — all routed to TYPEAVI since films.c handles every flavor via FFMS2.
+	// The image-bearing ISOBMFF variants (HEIF/AVIF) are matched above, so any remaining
+	// "ftyp" at offset 4 is a video MP4/MOV/M4V.
+	if (bytes_read >= 12 && memcmp(magic, "RIFF", 4) == 0 && memcmp(magic + 8, "AVI ", 4) == 0)
+		return TYPEAVI;
+	if (bytes_read >= 8 && memcmp(magic + 4, "ftyp", 4) == 0)
+		return TYPEAVI;
+	if (bytes_read >= 4 && magic[0] == 0x1A && magic[1] == 0x45 && magic[2] == 0xDF && magic[3] == 0xA3)
+		return TYPEAVI;
+	if (bytes_read >= 4 && magic[0] == 0x00 && magic[1] == 0x00 && magic[2] == 0x01 &&
+			(magic[3] == 0xBA || magic[3] == 0xB3))
+		return TYPEAVI;
+#endif
 	return TYPEUNDEF;
 }
 
@@ -532,12 +550,17 @@ int stat_file(const char *filename, image_type *type, char **realname) {
 		size_t bytes_read = fread(magic, 1, sizeof(magic), file);
 		fclose(file);
 
-		*type = determine_image_type_from_magic(magic, bytes_read);
-		if (*type != TYPEUNDEF) {
-			if (realname) *realname = strdup(filename);
-			return 0;
-		}
-		return 1;
+		// Magic wins when it gives a definite answer (handles renamed files),
+		// but a TYPEUNDEF result must not clobber a valid extension-derived
+		// type — otherwise any container we don't sniff (e.g. an old MOV with
+		// no ftyp atom at the head) would be rejected despite a known extension.
+		image_type magic_type = determine_image_type_from_magic(magic, bytes_read);
+		if (magic_type != TYPEUNDEF)
+			*type = magic_type;
+		else if (*type == TYPEUNDEF)
+			return 1;
+		if (realname) *realname = strdup(filename);
+		return 0;
 	}
 
 	// Case 2: No extension - test candidates
@@ -756,8 +779,8 @@ int siril_change_dir(const char *dir, gchar **err) {
 		error = siril_log_message(_("'%s' is not a directory\n"), dir);
 		retval = 3;
 	} else if (g_access(dir, W_OK)) {
-		error = siril_log_color_message(_("You don't have permission "
-				"to write in this directory: '%s'\n"), "red", dir);
+		error = siril_log_error(_("You don't have permission "
+				"to write in this directory: '%s'\n"), dir);
 		retval = 4;
 	} else {
 		/* sequences are invalidate when cwd is changed */
@@ -782,7 +805,7 @@ int siril_change_dir(const char *dir, gchar **err) {
 		retval = 0;
 		} else {
 			int saved_errno = errno;
-			error = siril_log_message(_("Could not change directory to '%s'(error code %d: %s).\n"), dir, saved_errno, g_strerror(saved_errno));
+			error = siril_log_error(_("Could not change directory to '%s'(error code %d: %s).\n"), dir, saved_errno, g_strerror(saved_errno));
 			retval = 1;
 		}
 	}
@@ -855,7 +878,7 @@ gchar* str_append(gchar** data, const gchar* newdata) {
 	*data = p;
 	gsize destsize = len + strlen(newdata);
 	if (g_strlcpy(*data + len, newdata, destsize) >= destsize) {
-		siril_debug_print("FIXME: truncation occurred in str_append()\n");
+		siril_log_debug("FIXME: truncation occurred in str_append()\n");
 	}
 	return *data;
 }
@@ -899,8 +922,6 @@ float compute_slope(WORD *lo, WORD *hi) {
 	*hi = (WORD)ihi;
 	return UCHAR_MAX_SINGLE / (float) (*hi - *lo);
 }
-
-/* siril_get_file_info moved to gui/dialog_preview.c (GUI-only, sole callers). */
 
 /**
 * Truncate a string str to not exceed an length of size
@@ -1035,22 +1056,12 @@ void remove_trailing_eol(char *str) {
 }
 
 gboolean string_is_a_number(const char *str) {
-	if (str[0] != '-' && str[0] != '.' && (str[0] < '0' || str[0] > '9'))
+	/* the first character check rejects leading spaces, inf and nan */
+	if (!str || (str[0] != '-' && str[0] != '+' && str[0] != '.' && !g_ascii_isdigit(str[0])))
 		return FALSE;
-	int i = 0;
-	gboolean had_a_dot = FALSE;
-	while (str[i] != '\0') {
-		if (str[i] == '.') {
-			if (had_a_dot)
-				return FALSE;
-			had_a_dot = TRUE;
-			i++;
-		}
-		else if (str[i] >= '0' && str[i] <= '9')
-			i++;
-		else return FALSE;
-	}
-	return TRUE;
+	gchar *end;
+	double value = g_ascii_strtod(str, &end);
+	return end != str && *end == '\0' && isfinite(value);
 }
 
 #if !GLIB_CHECK_VERSION(2,68,0)
@@ -1304,14 +1315,27 @@ gchar * siril_any_to_utf8 (const gchar *str, gssize len, const gchar *warning_fo
 * @param fz flag to know if the fz extension must be appended.
 * @return a string that must not be freed
 */
-static const gchar *ext[] = { ".fit.fz", ".fits.fz", ".fts.fz" };
+static const gchar *ext_fz[] = { ".fit.fz", ".fits.fz", ".fts.fz" };
 const gchar *get_com_ext(gboolean fz) {
 	if (fz) {
-		for (int i = 0; i < G_N_ELEMENTS(ext); i++) {
-			if (g_str_has_prefix(ext[i], com.pref.ext)) return ext[i];
+		for (int i = 0; i < G_N_ELEMENTS(ext_fz); i++) {
+			if (g_str_has_prefix(ext_fz[i], com.pref.ext)) return ext_fz[i];
 		}
 	}
 	return com.pref.ext;
+}
+
+/* com.pref.ext ends up in the name of every FITS file we write, it can only be
+ * one of the extensions we know how to read back, in lower case and with its
+ * leading dot */
+gboolean is_valid_fits_extension(const gchar *extension) {
+	static const gchar *ext[] = { ".fit", ".fits", ".fts" };
+	if (!extension)
+		return FALSE;
+	for (int i = 0; i < G_N_ELEMENTS(ext); i++) {
+		if (!strcmp(extension, ext[i])) return TRUE;
+	}
+	return FALSE;
 }
 
 /*
@@ -1325,8 +1349,8 @@ We have 4 conventions to handle:
 
 /* converts Siril coordinates to display coordinates */
 int siril_to_display(double sx, double sy, double *dx, double *dy, int ry) {
-	if (sx < 0.0 || sy < 0.0 || sy > ry)
-			return 1;
+	// if (sx < 0.0 || sy < 0.0 || sy > ry)
+	// 		return 1;
 	*dx = sx;
 	*dy = ry - sy;
 	return 0;
@@ -1334,8 +1358,8 @@ int siril_to_display(double sx, double sy, double *dx, double *dy, int ry) {
 
 /* converts display coordinates to Siril */
 int display_to_siril(double dx, double dy, double *sx, double *sy, int ry) {
-	if (dx < 0.0 || dy < 0.0 || dy > ry)
-			return 1;
+	// if (dx < 0.0 || dy < 0.0 || dy > ry)
+	// 		return 1;
 	*sx = dx;
 	*sy = ry - dy;
 	return 0;
@@ -1352,7 +1376,7 @@ int fits_to_display(double fx, double fy, double *dx, double *dy, int ry) {
 // It returns 0 on success and a non-zero value on failure.
 int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_depth, gboolean force_even) {
 	if (max_bitdepth < 8 || (fit->type == DATA_USHORT && max_bitdepth > 16) || (fit->type == DATA_FLOAT && (!(max_bitdepth == 32 || max_bitdepth < 17)))) {
-		siril_debug_print("Error: inappropriate max_bitdepth. Setting max_bitdepth to 8 for safety. Report this as a bug.\n");
+		siril_log_debug("Error: inappropriate max_bitdepth. Setting max_bitdepth to 8 for safety. Report this as a bug.\n");
 		max_bitdepth = 8;
 	}
 	uint8_t *image_buffer = NULL;
@@ -1997,7 +2021,7 @@ gboolean delete_directory (const gchar *dir_path, GError **error) {
 			/* Ignore errors from the move: we don't want to mask the
 			* original deletion error.
 			*/
-			g_file_move(root,
+			(void) g_file_move(root,
 						quarantine,
 						G_FILE_COPY_NOFOLLOW_SYMLINKS,
 						NULL, NULL, NULL, NULL);

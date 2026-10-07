@@ -44,6 +44,11 @@ typedef struct _GdkPixbuf GdkPixbuf;
 /* GtkEntry — parameter of search_object() in gui/search_objects.h. */
 typedef struct _GtkEntry GtkEntry;
 
+/* GtkEditable — interface implemented by both GtkEntry and GtkSearchEntry;
+ * used as the parameter of search_object() since GTK4 broke the
+ * GtkSearchEntry → GtkEntry inheritance. */
+typedef struct _GtkEditable GtkEditable;
+
 /* GtkButton — GTK callback declared in algos/astrometry_solver.h.
  * TODO (plan step 3): move callback declaration to gui/astrometry_solver.c. */
 typedef struct _GtkButton GtkButton;

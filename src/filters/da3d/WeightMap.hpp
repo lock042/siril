@@ -11,9 +11,9 @@
 #include <cassert>
 #include <vector>
 
-namespace da3d {
+template <typename T> class img_t;
 
-class Image;
+namespace da3d {
 
 class WeightMap {
  public:
@@ -23,7 +23,7 @@ class WeightMap {
   void Init(int rows, int columns);
   float Minimum() const;
   std::pair<int, int> FindMinimum() const;
-  void IncreaseWeights(const Image &weights, int row0, int col0);
+  void IncreaseWeights(const img_t<float> &weights, int row0, int col0);
   int width() const { return width_; }
   int height() const { return height_; }
   int num_levels() const { return num_levels_; }

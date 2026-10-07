@@ -25,7 +25,7 @@ SOFTWARE.
 #define SHEAR_IMAGE_H
 
 #include <vector>
-#include "image.hpp"
+#include "algos/img_t/image.hpp"
 
 #include "angleSet.hpp"
 

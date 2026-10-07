@@ -40,6 +40,22 @@
 #include "core/undo.h"
 #include "core/processing.h"
 
+/* Progress gate for image readers.  The FITS / TIFF / PNG / JPEG readers are
+ * shared between the interactive single-image open and batch paths (stacking,
+ * conversion, sequence export).  Those batch paths already drive the progress
+ * bar with frame-level counts, so per-pixel read progress must NOT leak into
+ * them.  read_single_image() raises this flag around the actual decode; the
+ * readers consult read_progress_active() before touching the progress bar. */
+static gboolean read_progress_flag = FALSE;
+
+void set_read_progress_active(gboolean active) {
+	read_progress_flag = active;
+}
+
+gboolean read_progress_active(void) {
+	return read_progress_flag;
+}
+
 /* Closes and frees resources attached to the single image opened in gfit->
  * If a sequence is loaded and one of its images is displayed, nothing is done.
  */
@@ -49,7 +65,7 @@ void close_single_image() {
 	/* We need to clear display and soft proofing transforms and a few other
 	 * color management data */
 
-	siril_debug_print("MODE: closing single image\n");
+	siril_log_debug("MODE: closing single image\n");
 	undo_flush();
 	/* we need to close all dialogs in order to avoid bugs
 	 * with previews
@@ -61,7 +77,7 @@ void close_single_image() {
 /* free_image_data_gui moved to gui/gui_iface_impl.c */
 /* frees resources when changing sequence or closing a single image */
 void free_image_data() {
-	siril_debug_print("free_image_data() called, clearing loaded image\n");
+	siril_log_debug("free_image_data() called, clearing loaded image\n");
 	/* WARNING: single_image.fit references the actual fits image,
 	 * shouldn't it be used here instead of gfit? */
 	cmsCloseProfile(gfit->icc_profile);
@@ -85,8 +101,46 @@ void free_image_data() {
 
 	if (!com.headless)
 		gui_iface.on_image_closed();
+
+	/* Hold the WRITER lock across the clear.  The GTK4 display materialises
+	 * its tiles on a thread pool (materialise_worker(), gui-gtk4/image_display.c)
+	 * which reads gfit's pixel planes under the reader lock; freeing them
+	 * without ever taking the writer lock lets a worker read memory clearfits()
+	 * has already handed back to the allocator, and it segfaults inside the
+	 * float -> LUT -> byte remap.  The window scales with the image: a large
+	 * mosaic has enough tiles that the pool is still busy when `close` arrives,
+	 * where a small one finishes rendering in time and hides it.  The load path
+	 * already guards itself — end_open_single_image() takes the reader lock
+	 * around on_image_loaded() — and clearfits() preserves the lock itself
+	 * (it memsets only up to offsetof(struct ffit, rwlock)); only the close
+	 * path was unguarded.
+	 *
+	 * The pool is quiesced first for the reason swap_into_gfit() gives: the
+	 * workers honour gui.suppress_drawarea_redraw and bail, so the
+	 * non-recursive writer lock is granted in bounded time instead of being
+	 * starved by a pool that keeps re-taking the reader lock tile after tile.
+	 *
+	 * Keep this BELOW on_image_closed(): in script mode that call blocks on the
+	 * main thread running free_image_data_gui(), so taking the writer lock first
+	 * would deadlock against a GUI reader.  No caller holds the writer lock
+	 * across the close either — install_new_single_image() releases it inside
+	 * swap_into_gfit() before calling close_single_image() — so there is no
+	 * recursion on a non-recursive lock.  Headless stubs set_suppress_redraws
+	 * out and the lock is uncontended there.
+	 *
+	 * The suppression is saved and restored rather than forced off, as
+	 * copy_backup_to_gfit() does with the same flag: it is a plain boolean and
+	 * not a counter, so a close nested inside an operation that suppressed
+	 * redraws for its own duration (generic_image_worker(), core/processing.c)
+	 * would otherwise un-suppress them under it, letting a partial remap of the
+	 * image the operation is still writing reach the screen. */
+	const gboolean prev_suppress = gui_iface.get_suppress_redraws();
+	gui_iface.set_suppress_redraws(TRUE);
+	g_rw_lock_writer_lock(&gfit->rwlock);
 	clearfits(gfit);
-	siril_debug_print("free_image_data() complete\n");
+	g_rw_lock_writer_unlock(&gfit->rwlock);
+	gui_iface.set_suppress_redraws(prev_suppress);
+	siril_log_debug("free_image_data() complete\n");
 }
 
 static gboolean end_read_single_image(gpointer p) {
@@ -107,7 +161,7 @@ static gboolean end_read_single_image(gpointer p) {
  */
 int read_single_image(const char *filename, fits *dest, char **realname_out,
 		gboolean allow_sequences, gboolean *is_sequence, gboolean allow_dialogs,
-		gboolean force_float) {
+		gboolean force_float, gboolean no_debayer) {
 	int retval;
 	image_type imagetype;
 	char *realname = NULL;
@@ -115,7 +169,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 
 	retval = stat_file(filename, &imagetype, &realname);
 	if (retval) {
-		siril_log_color_message(_("Error opening image %s: file not found or not supported.\n"), "red", filename);
+		siril_log_error(_("Error opening image %s: file not found or not supported.\n"), filename);
 		free(realname);
 		return 1;
 	}
@@ -125,22 +179,30 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 			retval = read_single_sequence(realname, imagetype);
 			single_sequence = TRUE;
 		} else {
-			siril_log_color_message(_("Cannot open a sequence from here\n"), "red");
+			siril_log_error(_("Cannot open a sequence from here\n"));
 			free(realname);
 			return 1;
 		}
 	} else {
+		/* Report decode progress for this interactive single-image open (the
+		 * readers no-op on the progress bar otherwise). */
+		set_read_progress_active(TRUE);
+		gui_iface.set_progress(PROGRESS_RESET, _("Loading image..."));
 		retval = any_to_fits(imagetype, realname, dest, allow_dialogs, force_float);
-		if (!retval)
+		gui_iface.set_progress(PROGRESS_DONE, PROGRESS_TEXT_RESET);
+		set_read_progress_active(FALSE);
+		/* no_debayer lets a caller (e.g. the Python module) suppress debayering
+		 * without mutating the global com.pref.debayer.open_debayer. */
+		if (!retval && !no_debayer)
 			debayer_if_needed(imagetype, dest, FALSE);
-		if (com.pref.debayer.open_debayer || imagetype != TYPEFITS)
+		if ((com.pref.debayer.open_debayer && !no_debayer) || imagetype != TYPEFITS)
 			update_fits_header(dest);
 	}
 	if (is_sequence) {
 		*is_sequence = single_sequence;
 	}
 	if (retval && retval != OPEN_IMAGE_CANCEL)
-		siril_log_color_message(_("Opening %s failed.\n"), "red", realname);
+		siril_log_error(_("Opening %s failed.\n"), realname);
 	if (realname_out)
 		*realname_out = realname;
 	else
@@ -175,31 +237,22 @@ int create_uniq_from_gfit(char *filename, gboolean exists) {
 	return 0;
 }
 
-/* This function is used to load a single image, meaning outside a sequence,
- * whether a sequence is loaded or not, whether an image was already loaded or
- * not. The opened file is available in the usual global variable for current
- * image, gfit->
- */
-int open_single_image(const char* filename) {
+/* Actual open, without the "is another job running" guard.  Callers that
+ * already own the processing thread (the GUI's threaded open, which reserves
+ * the slot before running this on the worker) must use this variant — the
+ * guard in open_single_image() would otherwise see their own reservation as a
+ * conflict and refuse.  All other callers go through open_single_image(). */
+int open_single_image_internal(const char* filename) {
 	int retval = 0;
 	char *realname = NULL;
 	gboolean is_single_sequence;
 
-	/* Check we aren't running a processing thread otherwise it will clobber gfit
-	 * when it finishes and cause a segfault.
-	 */
-	if ((retval = processing_is_job_active())) {
-		siril_log_message(_("Cannot open another file while the processing thread is still operating on the current one!\n"));
-	}
-
 	/* first, close everything */
-	if (!retval) {
-		close_sequence(FALSE);	// closing a sequence if loaded
-		close_single_image();	// close the previous image and free resources
+	close_sequence(FALSE);	// closing a sequence if loaded
+	close_single_image();	// close the previous image and free resources
 
-		/* open the new file */
-		retval = read_single_image(filename, gfit, &realname, TRUE, &is_single_sequence, TRUE, FALSE);
-	}
+	/* open the new file */
+	retval = read_single_image(filename, gfit, &realname, TRUE, &is_single_sequence, TRUE, FALSE, FALSE);
 	if (retval) {
 		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Error opening file"),
 				_("There was an error when opening this image. "
@@ -209,7 +262,7 @@ int open_single_image(const char* filename) {
 	}
 
 	if (!is_single_sequence) {
-		siril_debug_print("Loading image OK, now displaying\n");
+		siril_log_debug("Loading image OK, now displaying\n");
 
 		/* Now initializing com struct */
 		com.seq.current = UNRELATED_IMAGE;
@@ -224,9 +277,139 @@ int open_single_image(const char* filename) {
 	return retval;
 }
 
+/* This function is used to load a single image, meaning outside a sequence,
+ * whether a sequence is loaded or not, whether an image was already loaded or
+ * not. The opened file is available in the usual global variable for current
+ * image, gfit->
+ */
+int open_single_image(const char* filename) {
+	/* Check we aren't running a processing thread otherwise it will clobber gfit
+	 * when it finishes and cause a segfault.
+	 */
+	if (processing_is_job_active()) {
+		siril_log_error(_("Cannot open another file while the processing thread is still operating on the current one!\n"));
+		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Error opening file"),
+				_("There was an error when opening this image. "
+						"See the log for more information."));
+		return 1;
+	}
+	return open_single_image_internal(filename);
+}
+
+/* ── threaded single-image open, worker + install halves ──────────────────
+ *
+ * The straight-line open_single_image_internal() frees and reallocates gfit
+ * (close_single_image() + read_single_image()) in place.  Running that on the
+ * processing worker (see open_image_threaded() in open_dialog.c) to keep the
+ * progress bar live races the display's gfit readers: the main-thread
+ * autostretch remap and the lazy-tile materialise pool both read gfit (and
+ * compute statistics()) under gfit->rwlock as readers, expecting a cooperating
+ * writer.  The open path never took the writer lock, so a redraw landing
+ * mid-load read a half-freed gfit and crashed inside statistics().
+ *
+ * The two functions below split the work so gfit is only ever mutated on the
+ * main thread under the writer lock: the worker decodes into a private fits
+ * (gfit untouched, fully readable throughout the slow decode), and the main
+ * thread swaps the result into gfit with the same quiesce-pool + writer-lock
+ * discipline used by generic_image_worker() and copy_backup_to_gfit(). */
+
+/* TRUE if `filename` resolves to a sequence (SER/AVI/FITS cube) rather than a
+ * single image.  Mirrors the detection in read_single_image() so the threaded
+ * open can route sequences through the synchronous (main-thread) path — they
+ * load gfit/com.seq directly and are not handled by the local-fits worker. */
+gboolean single_image_path_is_sequence(const char *filename) {
+	image_type imagetype;
+	char *realname = NULL;
+	if (stat_file(filename, &imagetype, &realname))
+		return FALSE;	/* not found / unsupported: let the real open report it */
+	gboolean is_seq = (imagetype == TYPESER || imagetype == TYPEAVI ||
+			(imagetype == TYPEFITS && fitseq_is_fitseq(realname, NULL)));
+	free(realname);
+	return is_seq;
+}
+
+/* Worker half: decode `filename` into a freshly allocated fits WITHOUT touching
+ * gfit, so the displayed image stays valid and readable by the GUI and the
+ * lazy-tile pool for the whole decode.  Returns the new fits (installed by
+ * install_new_single_image() on the main thread), or NULL on error with
+ * *retval set.  Single images only — callers route sequences elsewhere. */
+fits *read_new_single_image(const char *filename, char **realname_out, int *retval) {
+	fits *newfit = calloc(1, sizeof(fits));
+	if (!newfit) {
+		PRINT_ALLOC_ERR;
+		if (retval)
+			*retval = 1;
+		return NULL;
+	}
+	gboolean is_seq = FALSE;
+	int rv = read_single_image(filename, newfit, realname_out, FALSE, &is_seq,
+			TRUE, FALSE, FALSE);
+	if (retval)
+		*retval = rv;
+	if (rv) {
+		clearfits(newfit);
+		free(newfit);
+		return NULL;
+	}
+	return newfit;
+}
+
+/* Swap `src` into gfit under gfit's writer lock, leaving the previous gfit
+ * contents in `src`.  The tile pool is quiesced first (its workers honour
+ * gui.suppress_drawarea_redraw), so the non-recursive writer lock is granted in
+ * bounded time even while the pool is churning, and the swap itself takes no
+ * further locks — matching generic_image_worker()'s install window. */
+static void swap_into_gfit(fits *src) {
+	gui_iface.set_suppress_redraws(TRUE);
+	g_rw_lock_writer_lock(&gfit->rwlock);
+	fits_swap_all_except_rwlock(gfit, src);
+	g_rw_lock_writer_unlock(&gfit->rwlock);
+	gui_iface.set_suppress_redraws(FALSE);
+}
+
+/* Main-thread half: install the worker-decoded `newfit` into gfit and refresh
+ * the GUI, mirroring the tail of open_single_image_internal().  `newfit` and
+ * `realname` (ownership transferred; realname passes to com.uniq) are consumed.
+ * Must run on the GTK main thread.  Returns 0 on success. */
+int install_new_single_image(fits *newfit, char *realname) {
+	/* Detach the old image into a private holder, leaving gfit valid-but-empty.
+	 * The old pixels/stats/ICC now live in oldimg; close_single_image() below
+	 * then runs against an empty gfit, so its clearfits(gfit)/clear_backup()
+	 * path neither races a reader nor recurses on the writer lock. */
+	fits *oldimg = calloc(1, sizeof(fits));
+	if (!oldimg) {
+		PRINT_ALLOC_ERR;
+		clearfits(newfit);
+		free(newfit);
+		free(realname);
+		return 1;
+	}
+	swap_into_gfit(oldimg);				/* gfit = empty, oldimg = old image */
+
+	close_sequence(FALSE);				/* close a sequence if one was loaded */
+	close_single_image();				/* tear down old-image state (empty gfit) */
+	clearfits(oldimg);				/* free the old pixels/stats/ICC/WCS */
+	free(oldimg);
+
+	swap_into_gfit(newfit);				/* gfit = new image, newfit = empty */
+	clearfits(newfit);
+	free(newfit);
+
+	/* Register the single image and refresh the GUI (already on the main
+	 * thread, so end_open_single_image() is called directly rather than via
+	 * execute_idle_sync() as the straight-line path does from the worker). */
+	com.seq.current = UNRELATED_IMAGE;
+	create_uniq_from_gfit(realname, get_type_from_filename(realname) == TYPEFITS);
+	if (!com.headless)
+		end_open_single_image(NULL);
+	gui_iface.reset_cut_gui_filedependent(NULL);
+	gui_iface.check_icc_identical_to_monitor();
+	return 0;
+}
+
 /* updates the GUI to reflect the opening of a single image, found in gfit and com.uniq */
 gboolean open_single_image_from_gfit(gpointer user_data) {
-	siril_debug_print("gui_function(open_single_image_from_gfit, NULL)\n");
+	siril_log_debug("gui_function(open_single_image_from_gfit, NULL)\n");
 	/* now initializing everything
 	 * code based on seq_load_image or set_seq (sequence.c) */
 
@@ -255,7 +438,7 @@ gboolean open_single_image_from_gfit(gpointer user_data) {
 
 	gui_iface.remap_all_vports();
 	gui_iface.update_histogram();
-	gui_iface.redraw_image(REMAP_ALL);
+	gui_iface.redraw_image(REDRAW_ALL);
 	return FALSE;
 }
 
@@ -279,7 +462,7 @@ gboolean update_single_image_from_gfit(gpointer user_data) {
 	gui_iface.remap_all_vports();
 	gui_iface.update_histogram();
 	g_rw_lock_reader_unlock(&gfit->rwlock);
-	gui_iface.redraw_image(REMAP_ALL);
+	gui_iface.redraw_image(REDRAW_ALL);
 	return FALSE;
 }
 
@@ -346,7 +529,7 @@ gboolean end_gfit_operation(gpointer data G_GNUC_UNUSED) {
 	// this function should not contain anything required by the execution
 	// of the operation because it won't be run in headless
 
-	siril_debug_print("end of gfit operation - idle function\n");
+	siril_log_debug("end of gfit operation - idle function\n");
 	stop_processing_thread();
 
 	// Check the mask tab visibility is correct
@@ -368,9 +551,9 @@ gboolean end_gfit_operation(gpointer data G_GNUC_UNUSED) {
 	gui_iface.enable_display_mode_menu();
 
 	if (com.python_command) // must be synchronous to prevent a crash where this is still running while the next command runs
-		gui_iface.redraw_image(REMAP_ALL);
+		gui_iface.redraw_image(REDRAW_ALL);
 	else
-		gui_iface.redraw_image_async(REMAP_ALL);	// queues a redraw if !com.script
+		gui_iface.redraw_image_async(REDRAW_ALL);	// queues a redraw if !com.script
 
 	gui_iface.redraw_previews();
 
@@ -399,6 +582,11 @@ void gfit_modified_update_gui() {
  * as dirty and recompute them on demand.  execute_script() calls this function
  * again after clearing com.script so the final result is displayed correctly. */
 void notify_gfit_data_modified() {
+	/* During application shutdown the loaded image is being torn down and the
+	 * display is going away, so recomputing the histogram and remapping the
+	 * (about-to-be-freed) pixels is pure waste — and laggy on a large image. */
+	if (com.quitting)
+		return;
 	invalidate_stats_from_fit(gfit);
 	// The following are only required in GUI mode
 	if (!com.headless) {
@@ -437,12 +625,14 @@ void notify_gfit_data_modified() {
 			gui_iface.copy_roi_into_gfit();
 		gui_iface.compute_histo_for_fit(gfit); // reads gfit pixel data; GTK toggle update deferred to idle
 		g_mutex_unlock(&com.histogram_mutex);
-		gui_iface.remap_all_vports(); // Updates the Cairo image buffers based on applying the remap LUT to gfit
-		/* gui.hi / gui.lo are read on the GTK main thread (set_cutoff_sliders_values);
-		 * protect the write with com.mutex to prevent a data race. */
+		/* Update hi/lo display range BEFORE remapping so the first rendered frame
+		 * of a new image uses the correct stretch (not stale values from the
+		 * previously displayed image).  In USER slider mode this is a no-op, so
+		 * manually-set slider values are preserved. */
 		g_mutex_lock(&com.mutex);
 		init_layers_hi_and_lo_values((sliders_mode)gui_iface.get_sliders_mode());
 		g_mutex_unlock(&com.mutex);
+		gui_iface.remap_all_vports(); // Updates the Cairo image buffers based on applying the remap LUT to gfit
 	}
 }
 

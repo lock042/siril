@@ -1,6 +1,8 @@
 #ifndef _SIRIL_STATS_H
 #define _SIRIL_STATS_H
 
+#include <math.h>
+
 struct stat_data {
 	destructor destroy_fn;
 	fits *fit;
@@ -63,7 +65,46 @@ void apply_stats_to_sequence(struct stat_data *stat_args);
 float siril_stats_ushort_sd_64(const WORD data[], const int N);
 float siril_stats_ushort_sd_32(const WORD data[], const int N);
 float siril_stats_ushort_mad(const WORD* data, const size_t n, const double m, threading_type threads);
-float siril_stats_float_sd(const float data[], const int N, float *mean);
+
+/* Inlined in the header so callers in tight loops (e.g. per-pixel rejection)
+ * can avoid the call-site overhead and let the compiler specialise on N.
+ *
+ * N is the number of frames, so int is fine. Accumulating in double precision
+ * is important for accuracy.
+ *
+ * For small N the #pragma omp simd peel/tail scaffolding costs more than the
+ * vector body saves, so we fall through to a plain scalar loop that the
+ * compiler can still auto-vectorise where profitable. Threshold picked from
+ * profiling on the MR that introduced the SIMD path; tune if needed.
+ */
+#define SIRIL_STATS_FLOAT_SD_SIMD_THRESHOLD 24
+
+static inline float siril_stats_float_sd(const float data[], const int N, float *m) {
+	double sum = 0.0, vsum = 0.0;
+	float mean;
+
+	if (N < SIRIL_STATS_FLOAT_SD_SIMD_THRESHOLD) {
+		for (int i = 0; i < N; i++) sum += (double)data[i];
+		mean = (float)(sum / N);
+		for (int i = 0; i < N; i++) {
+			float d = data[i] - mean;
+			vsum += (double)(d * d);
+		}
+	} else {
+#pragma omp simd reduction(+:sum)
+		for (int i = 0; i < N; i++) sum += (double)data[i];
+		mean = (float)(sum / N);
+#pragma omp simd reduction(+:vsum)
+		for (int i = 0; i < N; i++) {
+			float d = data[i] - mean;
+			vsum += (double)(d * d);
+		}
+	}
+
+	if (m) *m = mean;
+	return sqrtf((float)(vsum / (N - 1)));
+}
+
 double siril_stats_float_mad(const float *data, const size_t n, const double m, threading_type threads, float *buffer);
 float siril_stats_trmean_from_sorted_data(const float trim, const float sorted_data[], const size_t stride, const size_t size);
 

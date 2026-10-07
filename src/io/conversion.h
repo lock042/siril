@@ -24,6 +24,15 @@ struct _convert_data {
 	gboolean debayer;
 	sequence_type output_type;
 	gboolean multiple_output;	// multiple SER output
+	/* AVI Bayer-pattern hint (enum mpp_avi_bayer in registration/
+	 * mpp_config.h). AVI containers have no Bayer marker, so a raw
+	 * mosaic captured from an OSC camera looks like mono to the autodetect
+	 * heuristic in film_read_frame. When the user marks it via the
+	 * Convert tab combo, this is written into fit->keywords.bayer_pattern
+	 * for each mono AVI frame so the resulting SER/FITS/FITSEQ carries
+	 * the pattern (SER.color_id / FITS BAYERPAT). Ignored for 3-layer
+	 * AVIs and non-AVI inputs. Default MPP_AVI_BAYER_AUTO = no override. */
+	int avi_bayer_pattern;
 
 	GThreadPool *pool;		// for memory adjust
 	GCond pool_cond;
@@ -50,6 +59,11 @@ gpointer convert_thread_worker(gpointer p);
 int any_to_fits(image_type imagetype, const char *source, fits *dest, gboolean interactive, gboolean force_float);
 #ifdef HAVE_FFMS2
 int convert_single_film_to_ser(sequence *seq);
+/* Same, but with a caller-supplied AVI Bayer-pattern hint (enum
+ * mpp_avi_bayer; 0 = Auto = no override). The pattern is stamped onto
+ * each frame's fit->keywords.bayer_pattern before SER write so the
+ * resulting SER carries the right color_id. */
+int convert_single_film_to_ser_with_bayer(sequence *seq, int avi_bayer_pattern);
 #endif
 
 #endif

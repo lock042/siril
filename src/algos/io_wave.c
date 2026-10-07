@@ -117,17 +117,17 @@
 
 /****************************************************************************/
 
-int wave_io_size_data(int Nl, int Nc, int Nbr_Plan, int Type_Wave_Transform) {
-	int Size;
+size_t wave_io_size_data(int Nl, int Nc, int Nbr_Plan, int Type_Wave_Transform) {
+	size_t Size;
 
 	switch (Type_Wave_Transform) {
 	case TO_PAVE_LINEAR:
 	case TO_PAVE_BSPLINE:
-		Size = Nbr_Plan * Nl * Nc;
+		Size = (size_t) Nbr_Plan * (size_t) Nl * (size_t) Nc;
 		break;
 	default:
 		printf("wave_io_read: wrong transform type\n");
-		return (1);
+		return 0;
 		break;
 	}
 	return (Size);
@@ -153,7 +153,8 @@ int static wave_io_name(char *File_Name_In, char *File_Name_Out) {
 
 int wave_io_read(char *File_Name_In, wave_transf_des *Wave_Trans) {
 	FILE *File_Des;
-	int Nbr, Nl, Nc, Nbr_Plan, Size;
+	int Nbr, Nl, Nc, Nbr_Plan;
+	size_t Size;
 	char *Ptr;
 	string File_Name = { 0 };
 
@@ -194,11 +195,17 @@ int wave_io_read(char *File_Name_In, wave_transf_des *Wave_Trans) {
 	switch (Wave_Trans->Type_Wave_Transform) {
 	case TO_PAVE_LINEAR:
 	case TO_PAVE_BSPLINE:
-		Size = Nbr_Plan * Nl * Nc;
+		Size = (size_t) Nbr_Plan * (size_t) Nl * (size_t) Nc;
 		(Wave_Trans->Pave).Data = f_vector_alloc(Size);
+		if ((Wave_Trans->Pave).Data == NULL) {
+			PRINT_ALLOC_ERR;
+			fclose(File_Des);
+			return 1;
+		}
 		Ptr = (char *) ((Wave_Trans->Pave).Data);
-		Nbr = fread(Ptr, sizeof(float), Size, File_Des);
-		if (Nbr <= 0) {
+		/* a short read means the file is truncated: the tail of the transform
+		 * would otherwise be silently left as zeroes */
+		if (fread(Ptr, sizeof(float), Size, File_Des) != Size) {
 			printf("wave_io_read: error reading data\n");
 			fclose(File_Des);
 			return 1;
@@ -220,7 +227,8 @@ int wave_io_read(char *File_Name_In, wave_transf_des *Wave_Trans) {
 
 int wave_io_write(char *File_Name_In, wave_transf_des *Wave_Trans) {
 	FILE *File_Des;
-	int Nbr, Nl, Nc, Nbr_Plan, Size;
+	int Nbr, Nl, Nc, Nbr_Plan;
+	size_t Size;
 	char *Ptr;
 	string File_Name = { 0 };
 
@@ -250,9 +258,10 @@ int wave_io_write(char *File_Name_In, wave_transf_des *Wave_Trans) {
 	case TO_PAVE_LINEAR:
 	case TO_PAVE_BSPLINE:
 		Ptr = (char *) ((Wave_Trans->Pave).Data);
-		Size = Nbr_Plan * Nl * Nc;
-		Nbr = fwrite(Ptr, sizeof(float), Size, File_Des);
-		if (Nbr <= 0) {
+		Size = (size_t) Nbr_Plan * (size_t) Nl * (size_t) Nc;
+		/* a short write (a full /tmp, typically) must not be reported as a
+		 * successful decomposition */
+		if (fwrite(Ptr, sizeof(float), Size, File_Des) != Size) {
 			printf("wave_io_write: error writing data\n");
 			fclose(File_Des);
 			return 1;
@@ -291,7 +300,7 @@ int wave_io_free(wave_transf_des *Wave_Trans) {
 
 int wave_io_alloc(wave_transf_des *Wave_Trans, int Type_Transform, int Nbr_Plan,
 		int Nl, int Nc) {
-	int Size;
+	size_t Size;
 
 	Wave_Trans->Nbr_Ligne = Nl;
 	Wave_Trans->Nbr_Col = Nc;
@@ -302,8 +311,12 @@ int wave_io_alloc(wave_transf_des *Wave_Trans, int Type_Transform, int Nbr_Plan,
 	switch (Wave_Trans->Type_Wave_Transform) {
 	case TO_PAVE_LINEAR:
 	case TO_PAVE_BSPLINE:
-		Size = Nbr_Plan * Nl * Nc;
+		Size = (size_t) Nbr_Plan * (size_t) Nl * (size_t) Nc;
 		(Wave_Trans->Pave).Data = f_vector_alloc(Size);
+		if ((Wave_Trans->Pave).Data == NULL) {
+			PRINT_ALLOC_ERR;
+			return 1;
+		}
 		break;
 	default:
 		printf("wave_io_alloc: wrong transform type\n");

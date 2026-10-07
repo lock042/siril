@@ -63,10 +63,23 @@ static void stub_message_dialog(SirilMessageType type, const char *title,
 	        title ? title : "", text ? text : "");
 }
 
+static void stub_message_dialog_modal(SirilMessageType type, const char *title,
+                                      const char *text) {
+	stub_message_dialog(type, title, text);
+}
+
 static gboolean stub_confirm_dialog(const char *title, const char *msg,
                                     const char *button_accept) {
 	(void)title; (void)msg; (void)button_accept;
 	/* Auto-accept in headless/CLI mode so scripts are not blocked. */
+	return TRUE;
+}
+
+static gboolean stub_confirm_dialog_with_avi_bayer(const char *title, const char *msg,
+                                                   const char *button_accept,
+                                                   int *avi_bayer_pattern) {
+	(void)title; (void)msg; (void)button_accept;
+	if (avi_bayer_pattern) *avi_bayer_pattern = 0;  /* MPP_AVI_BAYER_AUTO */
 	return TRUE;
 }
 
@@ -78,7 +91,7 @@ static void stub_redraw_image(SirilRedrawType remap)       { (void)remap; }
 static void stub_redraw_image_async(SirilRedrawType remap) { (void)remap; }
 static void stub_redraw_image_sync(SirilRedrawType remap)  { (void)remap; }
 static void stub_delete_selection(void) {}
-static void stub_queue_redraw_mask(void) {}
+static void stub_queue_redraw_mask(gboolean remap_tints) { (void)remap_tints; }
 
 static void stub_on_sequence_opened(void) {}
 static void stub_on_image_loaded(void) {}
@@ -95,6 +108,7 @@ static void stub_set_seq_browser_active(gboolean active) { (void)active; }
 static void stub_update_status_bar(void) {}
 static void stub_update_menu_state(void) {}
 static void stub_set_suppress_redraws(gboolean suppress) { (void)suppress; }
+static gboolean stub_get_suppress_redraws(void) { return FALSE; }
 static void stub_populate_roi(void) {}
 static void stub_on_geometry_changed(void) {}
 static void stub_on_mask_state_changed(void) {}
@@ -102,6 +116,7 @@ static void stub_on_crop_complete(void) {}
 static void stub_on_stats_ready(void) {}
 static void stub_on_photometry_changed(void) {}
 static void stub_show_siril_plot(gpointer spl_data) { (void)spl_data; }
+static void stub_show_siril_plot_group(gpointer group) { (void)group; }
 static void stub_update_star_list(psf_star **stars, gboolean update_psf_list,
                                   gboolean wait) {
 	(void)stars; (void)update_psf_list; (void)wait;
@@ -115,7 +130,8 @@ static GPid stub_select_child_process(GSList *children) { (void)children; return
 /* D additions */
 static void stub_invalidate_histogram(void) {}
 static void stub_update_histogram(void) {}
-static void stub_redraw_mask_idle(void) {}
+static void stub_curves_reset_after_undo(void) {}
+static void stub_redraw_mask_idle(gboolean remap_tints) { (void)remap_tints; }
 
 /* G additions */
 static void stub_on_channel_count_changed(void) {}
@@ -160,6 +176,7 @@ static void stub_trigger_gaia_check(void) {}
 
 /* Steps 5.11–5.15 */
 static void stub_remap_all_vports(void) {}
+static void stub_drop_lazy_tile_textures(void) {}
 static void stub_quit_application(void) { exit(0); }
 static void stub_refresh_script_menu(void) {}
 static void stub_clear_backup(void) {}
@@ -194,7 +211,6 @@ static void stub_activate_annotation_display(void) {}
 
 /* U – ICC status */
 static void stub_update_icc_status_icon(gpointer fit, gboolean active) { (void)fit; (void)active; }
-static gboolean stub_get_gamut_check_active(void) { return FALSE; }
 
 /* V – Registration panel status */
 static void stub_update_registration_status(const gchar *msg) { (void)msg; }
@@ -278,11 +294,6 @@ static void stub_show_or_hide_mask_tab(void) {}
 static void stub_show_or_hide_mask_tab_async(void) {}
 static int  stub_number_of_dialogs(void) { return 0; }
 static void stub_clear_previews(void) {}
-static int  stub_toggle_remixer_window_visibility(int invocation,
-                                                   gpointer fit_left,
-                                                   gpointer fit_right) {
-	(void)invocation; (void)fit_left; (void)fit_right; return 0;
-}
 static gboolean stub_heif_dialog(gpointer heif, uint32_t *selected_image) {
 	(void)heif; (void)selected_image; return FALSE;
 }
@@ -322,7 +333,9 @@ SirilGuiInterface gui_iface = {
 	.set_busy             = stub_set_busy,
 	.log_message          = stub_log_message,
 	.message_dialog       = stub_message_dialog,
+	.message_dialog_modal = stub_message_dialog_modal,
 	.confirm_dialog       = stub_confirm_dialog,
+	.confirm_dialog_with_avi_bayer = stub_confirm_dialog_with_avi_bayer,
 	.open_dialog            = stub_open_dialog,
 	.close_dialog           = stub_close_dialog,
 	.is_dialog_open         = stub_is_dialog_open,
@@ -342,6 +355,7 @@ SirilGuiInterface gui_iface = {
 	.update_status_bar      = stub_update_status_bar,
 	.update_menu_state      = stub_update_menu_state,
 	.set_suppress_redraws   = stub_set_suppress_redraws,
+	.get_suppress_redraws   = stub_get_suppress_redraws,
 	.populate_roi           = stub_populate_roi,
 	.on_geometry_changed    = stub_on_geometry_changed,
 	.on_mask_state_changed  = stub_on_mask_state_changed,
@@ -349,6 +363,7 @@ SirilGuiInterface gui_iface = {
 	.on_stats_ready         = stub_on_stats_ready,
 	.on_photometry_changed  = stub_on_photometry_changed,
 	.show_siril_plot        = stub_show_siril_plot,
+	.show_siril_plot_group  = stub_show_siril_plot_group,
 	.update_star_list       = stub_update_star_list,
 	.clear_star_list        = stub_clear_star_list,
 	.get_reg_layer          = stub_get_reg_layer,
@@ -356,6 +371,7 @@ SirilGuiInterface gui_iface = {
 	.select_child_process        = stub_select_child_process,
 	.invalidate_histogram        = stub_invalidate_histogram,
 	.update_histogram            = stub_update_histogram,
+	.curves_reset_after_undo     = stub_curves_reset_after_undo,
 	.redraw_mask_idle            = stub_redraw_mask_idle,
 	.on_channel_count_changed    = stub_on_channel_count_changed,
 	.on_precision_changed        = stub_on_precision_changed,
@@ -383,6 +399,7 @@ SirilGuiInterface gui_iface = {
 	.check_gaia_status           = stub_check_gaia_status,
 	.trigger_gaia_check          = stub_trigger_gaia_check,
 	.remap_all_vports            = stub_remap_all_vports,
+	.drop_lazy_tile_textures     = stub_drop_lazy_tile_textures,
 	.quit_application            = stub_quit_application,
 	.refresh_script_menu         = stub_refresh_script_menu,
 	.clear_backup                = stub_clear_backup,
@@ -406,7 +423,6 @@ SirilGuiInterface gui_iface = {
 	.update_pixel_math_status    = stub_update_pixel_math_status,
 	.activate_annotation_display = stub_activate_annotation_display,
 	.update_icc_status_icon      = stub_update_icc_status_icon,
-	.get_gamut_check_active      = stub_get_gamut_check_active,
 	.update_registration_status  = stub_update_registration_status,
 	.update_single_image_display = stub_update_single_image_display,
 	.seq_redisplay_frame         = stub_seq_redisplay_frame,
@@ -497,6 +513,5 @@ SirilGuiInterface gui_iface = {
 	.show_or_hide_mask_tab_async     = stub_show_or_hide_mask_tab_async,
 	.number_of_dialogs               = stub_number_of_dialogs,
 	.clear_previews                  = stub_clear_previews,
-	.toggle_remixer_window_visibility = stub_toggle_remixer_window_visibility,
 	.heif_dialog                     = stub_heif_dialog,
 };

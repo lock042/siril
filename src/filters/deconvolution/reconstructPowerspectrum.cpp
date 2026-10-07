@@ -29,7 +29,7 @@ SOFTWARE.
 #ifdef _OPENMP
 #include <omp.h>
 #endif
-#include "image.hpp"
+#include "algos/img_t/image.hpp"
 #include "angleSet.hpp"
 
 /// reconstruct the power spectrum from a set of autocorrelations of projections

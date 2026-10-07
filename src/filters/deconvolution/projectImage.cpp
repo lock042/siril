@@ -31,7 +31,7 @@ SOFTWARE.
 #define M_PI 3.14159265358979323846  /* pi */
 #endif
 
-#include "image.hpp"
+#include "algos/img_t/image.hpp"
 
 /// project the gradients by shearing + accumulation
 template <typename T>

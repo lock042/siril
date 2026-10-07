@@ -26,7 +26,7 @@ SOFTWARE.
 
 #pragma once
 
-#include "image.hpp"
+#include "algos/img_t/image.hpp"
 #include <glib.h>
 
 #ifdef _OPENMP

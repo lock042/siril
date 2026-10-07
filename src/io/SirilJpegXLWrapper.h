@@ -43,6 +43,12 @@ int EncodeJpegXlOneshotWrapper(const void* pixels, const uint32_t xsize,
 						uint8_t** compressed, size_t* compressed_length, uint32_t effort, const double quality,
 						uint8_t *icc_profile, uint32_t icc_profile_length);
 
+/* Thumbnail extraction.  extract_thumbnail_from_jxl returns a malloc'd
+ * RGB888 byte buffer (caller frees with free()) plus dimensions and a
+ * description (caller g_frees).  get_thumbnail_from_jxl is the GdkPixbuf
+ * shim kept for the GTK3 build. */
+guchar *extract_thumbnail_from_jxl(uint8_t *jxl, gchar **descr, size_t size,
+                                    int *width_out, int *height_out);
 GdkPixbuf* get_thumbnail_from_jxl(uint8_t *jxl, gchar **descr, size_t size);
 
 #ifdef __cplusplus

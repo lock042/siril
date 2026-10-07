@@ -132,7 +132,7 @@ wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
 						wcs->altlin = 1;
 						wcs->flag = 0;
 						wcsset(wcs);
-						siril_debug_print("contains CD\n");
+						siril_log_debug("contains CD\n");
 					} else if (wcs->altlin & 1) { // header contains PC info
 						double pc[2][2] = {{ 0. }}, cd[2][2] = {{ 0. }};
 						wcs_pc2mat(wcs, pc);
@@ -141,18 +141,18 @@ wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
 						wcs_decompose_cd(wcs, cd); // we decompose again CD in case PC/CDELT do not follow the expected formalism (CDELT to unity instead of scales)
 						wcs->flag = 0;
 						wcsset(wcs);
-						// siril_debug_print("contains PC\n");
+						// siril_log_debug("contains PC\n");
 					} else { // contained some keywords but not enough to define at least a linear projection
-						siril_debug_print("wcs did not contain enough info\n");
+						siril_log_debug("wcs did not contain enough info\n");
 						free(wcs);
 						wcs = NULL;
 						break;
 					}
-					// siril_debug_print("at header readout\n");
+					// siril_log_debug("at header readout\n");
 					// wcs_print(wcs);
 					break;
 				} else {
-					siril_debug_print("wcssub error %d: %s.\n", status, wcs_errmsg[status]);
+					siril_log_debug("wcssub error %d: %s.\n", status, wcs_errmsg[status]);
 					wcsfree(wcs);
 					wcs = NULL;
 				}
@@ -183,7 +183,7 @@ gboolean load_WCS_from_fits(fits* fit) {
 	free(header);
 
 	if (!wcs) {
-		siril_debug_print("No world coordinate systems found.\n");
+		siril_log_debug("No world coordinate systems found.\n");
 		wcsfree(wcs);
 		return FALSE;
 	}
@@ -220,7 +220,7 @@ int wcs2pix2(wcsprm_t *wcslib, double ra, double dec, double *x, double *y) {
 	if (x) *x = -1.0;
 	if (y) *y = -1.0;
 	if (!wcslib) {
-		siril_debug_print("No WCS data available.\n");
+		siril_log_debug("No WCS data available.\n");
 		return WCSERR_UNSET;
 	}
 	int status, stat[NWCSFIX];
@@ -249,7 +249,7 @@ int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
 	if (x) *x = -1.0;
 	if (y) *y = -1.0;
 	if (!fit->keywords.wcslib) {
-		siril_debug_print("No WCS data available.\n");
+		siril_log_debug("No WCS data available.\n");
 		return WCSERR_UNSET;
 	}
 	double xx = -1., yy = -1.;
@@ -257,7 +257,7 @@ int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
 	if (status)
 		return status;
 	if (xx < 0.0 || yy < 0.0 || xx > (double)fit->rx || yy > (double)fit->ry) {
-		// siril_debug_print("outside image but valid return\n");
+		// siril_log_debug("outside image but valid return\n");
 		// wcss2p returns values between 0 and 9, picking a new one
 		status = 10;
 	}
@@ -291,12 +291,17 @@ int *wcs2pix_array(fits *fit, int n, double *world, double *x, double *y) {
 			if (!status[i]) {
 				double xx = pixcrd[c++];
 				double yy = pixcrd[c++];
+				// can happen with SIP for points far from the field
+				if (isnan(xx) || isnan(yy)) {
+					status[i] = WCSERR_NO_SOLUTION;
+					continue;
+				}
 				// return values even if outside (required for celestial grid display)
 				// In WCS convention, origin of the grid is at (-0.5, -0.5) wrt siril grid
 				if (x) x[i] = xx - 0.5;
 				if (y) y[i] = yy - 0.5;
 				if (xx < 0.0 || yy < 0.0 || xx > (double)fit->rx || yy > (double)fit->ry) {
-					//siril_debug_print("outside image but valid return\n");
+					//siril_log_debug("outside image but valid return\n");
 					// wcss2p returns values between 0 and 9, picking a new one
 					status[i] = 10;
 				}
@@ -435,7 +440,7 @@ double get_wcs_image_resolution(fits *fit) {
 		resolution = (fabs(fit->keywords.wcslib->cdelt[0]) + fabs(fit->keywords.wcslib->cdelt[1])) * 0.5;
 	}
 	if (resolution <= 0.0) {
-		if (fit->keywords.focal_length >= 0.0 && fit->keywords.pixel_size_x >= 0.0 && fit->keywords.pixel_size_y == fit->keywords.pixel_size_x)
+		if (fit->keywords.focal_length > 0.0 && fit->keywords.pixel_size_x > 0.0 && fit->keywords.pixel_size_y == fit->keywords.pixel_size_x)
 			resolution = (RADCONV / fit->keywords.focal_length * fit->keywords.pixel_size_x) / 3600.0;
 		// what about pix size x != y?
 	}
@@ -557,6 +562,12 @@ void wcs_print(wcsprm_t *prm) {
 void remove_dis_from_wcs(wcsprm_t *prm) {
 	disfree(prm->lin.dispre);
 	prm->lin.dispre = NULL;
+	for (int i = 0; i < 2; i++) {
+		char *sip_ptr = strstr(prm->ctype[i], "-SIP");
+		if (sip_ptr != NULL) {
+			*sip_ptr = '\0';
+		}
+	}
 	prm->flag = 0;
 	wcsset(prm);
 }
@@ -599,7 +610,7 @@ wcsprm_t *wcs_copy_linear(wcsprm_t *prm_in) {
 	int status = 0;
 	wcsprm_t *prm = wcs_deepcopy(prm_in, &status);
 	if (status != 0) {
-		siril_debug_print("wcs_copy_linear: error copying WCS structure: %d\n", status);
+		siril_log_debug("wcs_copy_linear: error copying WCS structure: %d\n", status);
 		free(prm);
 		return NULL;
 	}

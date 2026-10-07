@@ -1,0 +1,124 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
+<interface>
+  <!-- interface-name binxy_dialog.ui -->
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkAdjustment" id="adj_binning">
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">50</property>
+    <property name="value">2</property>
+  </object>
+  <object class="GtkWindow" id="binxy_dialog">
+    <property name="child">
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkBox">
+            <property name="margin-bottom">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">6</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">10</property>
+            <child>
+              <object class="GtkGrid" id="grid7">
+                <property name="column-spacing">6</property>
+                <property name="row-spacing">10</property>
+                <child>
+                  <object class="GtkLabel" id="label12">
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Binning factor:</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="spinbutton_binning">
+                    <property name="adjustment">adj_binning</property>
+                    <property name="climb-rate">0.01</property>
+                    <property name="focusable">1</property>
+                    <property name="halign">start</property>
+                    <property name="numeric">1</property>
+                    <property name="text">100</property>
+                    <property name="value">2</property>
+                    <property name="width-chars">4</property>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="label13">
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Downsample mode:</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkDropDown" id="combobox_binning">
+                    <property name="halign">start</property>
+                    <property name="model">
+                      <object class="GtkStringList">
+                        <items>
+                          <item translatable="yes">Average</item>
+                          <item translatable="yes">Sum</item>
+                        </items>
+                      </object>
+                    </property>
+                    <property name="selected">0</property>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="halign">end</property>
+            <property name="margin-bottom">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-top">12</property>
+            <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
+            <child>
+              <object class="GtkButton" id="button_binning_close">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Close</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_button_binning_close_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="button_binning_ok">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Apply</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_button_binning_ok_clicked"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </property>
+    <property name="height-request">200</property>
+    <property name="resizable">0</property>
+    <property name="title" translatable="yes">Binning</property>
+    <property name="width-request">400</property>
+    <signal name="close-request" handler="binxy_hide_on_delete"/>
+  </object>
+</interface>

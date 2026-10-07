@@ -25,7 +25,7 @@ SOFTWARE.
 #include <cassert>
 #include <cstring>
 #include <algorithm>
-#include "image.hpp"
+#include "algos/img_t/image.hpp"
 
 #include "angleSet.hpp"
 #include "projectImage.hpp"

@@ -21,8 +21,8 @@
 #pragma once
 
 #include <cstdio>
-#include "image.hpp"
-#include "vec2.hpp"
+#include "algos/img_t/image.hpp"
+#include "algos/img_t/vec2.hpp"
 #include "optimization.hpp"
 #include "deconvolution.h"
 #include "fft.hpp"

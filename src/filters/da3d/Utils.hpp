@@ -12,8 +12,6 @@
 #include <string>
 #include <vector>
 #include <utility>
-#include "Image.hpp"
-#include "WeightMap.hpp"
 
 namespace utils {
 
@@ -53,16 +51,6 @@ inline int SymmetricCoordinate(int pos, int size) {
   return pos;
 }
 
-bool isMonochrome (const da3d::Image &u);
-
-da3d::Image makeMonochrome (const da3d::Image &u);
-
-std::pair<int, int> ComputeTiling(int rows, int columns, int tiles);
-std::vector<da3d::Image> SplitTiles(const da3d::Image &src, int pad_before,
-                                    int pad_after, std::pair<int, int> tiling);
-da3d::Image MergeTiles(const std::vector<std::pair<da3d::Image, da3d::Image>> &src,
-                       std::pair<int, int> shape, int pad_before, int pad_after,
-                       std::pair<int, int> tiling);
 }  // namespace utils
 
 #endif  // DA3D_UTILS_HPP_

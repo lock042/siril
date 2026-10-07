@@ -41,6 +41,7 @@ preferences pref_init = {
 	.memory_ratio = 0.9,
 	.memory_amount = 10,
 	.hd_bitdepth = 20,
+	.lazy_tile_cache_mb = 128,
 	.script_check_requires = TRUE,
 	.pipe_check_requires = FALSE,
  #ifdef SIRIL_UNSTABLE
@@ -61,9 +62,6 @@ preferences pref_init = {
 	.rgb_aladin = FALSE,
 	.use_checksum = FALSE,
 	.copyright = NULL,
-	.starnet_exe = NULL,
-	.starnet_weights = NULL,
-	.graxpert_path = NULL,
 	.asnet_dir = NULL,
 	.selected_scripts = NULL,
 	.startup_scripts = NULL,
@@ -123,6 +121,10 @@ preferences pref_init = {
 				.w = 0,
 				.h = 0
 		},
+		.open_dialog_w = 0,
+		.open_dialog_h = 0,
+		.open_dialog_sidebar_pos = 0,
+		.open_dialog_paned_pos = 0,
 		.pan_position = -1,
 		.is_extended = TRUE,
 		.is_maximized = FALSE,
@@ -180,7 +182,9 @@ preferences pref_init = {
 			.smarthomeend = TRUE,
 			.showspaces = FALSE,
 			.shownewlines = FALSE,
-			.minimap = FALSE
+			.minimap = FALSE,
+			.dynamic_wrap = FALSE,
+			.code_folding = FALSE
 		},
 		.mask_tints_vports = TRUE
 	},
@@ -297,12 +301,6 @@ void free_preferences(preferences *pref) {
 	pref->swap_dir = NULL;
 	g_free(pref->copyright);
 	pref->copyright = NULL;
-	g_free(pref->starnet_exe);
-	pref->starnet_exe = NULL;
-	g_free(pref->graxpert_path);
-	pref->graxpert_path = NULL;
-	g_free(pref->starnet_weights);
-	pref->starnet_weights = NULL;
 	g_free(pref->asnet_dir);
 	pref->asnet_dir = NULL;
 	g_free(pref->lang);
@@ -358,6 +356,7 @@ struct settings_access all_settings[] = {
 	{ "core", "mem_ratio", STYPE_DOUBLE, N_("memory ratio of available"), &com.pref.memory_ratio, { .range_double = { 0.05, 4.0 } } },
 	{ "core", "mem_amount", STYPE_DOUBLE, N_("amount of memory in GB"), &com.pref.memory_amount, { .range_double = { 0.1, 1000000. } } },
 	{ "core", "hd_bitdepth", STYPE_INT, N_("HD AutoStretch bit depth"), &com.pref.hd_bitdepth, { .range_int = { 17, 24 } } },
+	{ "core", "lazy_tile_cache_mb", STYPE_INT, N_("RAM budget in MB for displaying very large images"), &com.pref.lazy_tile_cache_mb, { .range_int = { 128, 4096 } } },
 	{ "core", "script_check_requires", STYPE_BOOL, N_("need requires cmd in script"), &com.pref.script_check_requires },
 	{ "core", "pipe_check_requires", STYPE_BOOL, N_("need requires cmd in pipe"), &com.pref.pipe_check_requires },
 	{ "core", "check_updates", STYPE_BOOL, N_("check update at start-up"), &com.pref.check_update },
@@ -374,9 +373,6 @@ struct settings_access all_settings[] = {
 	{ "core", "rgb_aladin", STYPE_BOOL, N_("add CTYPE3='RGB' in the FITS header"), &com.pref.rgb_aladin },
 	{ "core", "use_checksum", STYPE_BOOL, N_("Verify file checksums if they exist"), &com.pref.use_checksum },
 	{ "core", "copyright", STYPE_STR, N_("user copyright to put in file header"), &com.pref.copyright },
-	{ "core", "starnet_exe", STYPE_STR, N_("location of the StarNet executable"), &com.pref.starnet_exe },
-	{ "core", "starnet_weights", STYPE_STR, N_("location of the StarNet-torch weights file"), &com.pref.starnet_weights },
-	{ "core", "graxpert_path", STYPE_STR, N_("location of the GraXpert executable"), &com.pref.graxpert_path },
 #ifdef _WIN32
 	{ "core", "asnet_dir", STYPE_STR, N_("directory of the asnet_ansvr installation"), &com.pref.asnet_dir },
 #else
@@ -474,7 +470,7 @@ struct settings_access all_settings[] = {
 	{ "gui_registration", "clamping", STYPE_BOOL, N_("use clamping method with Lanczos and Cubic interpolation"), &com.pref.gui.reg_clamping },
 	{ "gui_registration", "drizz_weight_match_bitpix", STYPE_BOOL, N_("Match Drizzle weights bitpix to sequence"), &com.pref.drizz_weight_match_bitpix },
 
-	{ "gui_stack", "method", STYPE_INT, N_("index of the selected method"), &com.pref.stack.method, { .range_int = { 0, STACK_MIN } } },
+	{ "gui_stack", "method", STYPE_INT, N_("index of the selected method"), &com.pref.stack.method, { .range_int = { 0, STACK_MPP } } },
 	{ "gui_stack", "normalization", STYPE_INT, N_("index of the normalization method"), &com.pref.stack.normalisation_method, { .range_int = { 0, MULTIPLICATIVE_SCALING } } },
 	{ "gui_stack", "rejection", STYPE_INT, N_("index of the rejection method"), &com.pref.stack.rej_method, { .range_int = { 0, GESDT } } },
 	{ "gui_stack", "weighting", STYPE_INT, N_("index of the weighting method"), &com.pref.stack.weighting_method, { .range_int = { 0, NBSTACK_WEIGHT } } },
@@ -493,10 +489,14 @@ struct settings_access all_settings[] = {
 	{ "gui", "main_win_pos_y", STYPE_INT, N_("main window position"), &com.pref.gui.main_w_pos.y },
 	{ "gui", "main_win_pos_w", STYPE_INT, N_("main window position"), &com.pref.gui.main_w_pos.w },
 	{ "gui", "main_win_pos_h", STYPE_INT, N_("main window position"), &com.pref.gui.main_w_pos.h },
+	{ "gui", "open_dialog_w", STYPE_INT, N_("remembered open-file dialog width"), &com.pref.gui.open_dialog_w },
+	{ "gui", "open_dialog_h", STYPE_INT, N_("remembered open-file dialog height"), &com.pref.gui.open_dialog_h },
+	{ "gui", "open_dialog_sidebar_pos", STYPE_INT, N_("remembered open-file dialog sidebar divider"), &com.pref.gui.open_dialog_sidebar_pos },
+	{ "gui", "open_dialog_paned_pos", STYPE_INT, N_("remembered open-file dialog list/preview divider"), &com.pref.gui.open_dialog_paned_pos },
 	{ "gui", "pan_position", STYPE_INT, N_("position of the two sides separator"), &com.pref.gui.pan_position },
 	{ "gui", "extended", STYPE_BOOL, N_("main window is extended"), &com.pref.gui.is_extended },
 	{ "gui", "maximized", STYPE_BOOL, N_("main window is maximized"), &com.pref.gui.is_maximized },
-	{ "gui", "theme", STYPE_INT, N_("index of the selected theme"), &com.pref.gui.combo_theme, { .range_int = { 0, 1 } } },
+	{ "gui", "theme", STYPE_INT, N_("index of the selected theme"), &com.pref.gui.combo_theme, { .range_int = { 0, 2 } } },
 	{ "gui", "font_scale", STYPE_DOUBLE, N_("font scale in percent"), &com.pref.gui.font_scale },
 	{ "gui", "icon_symbolic", STYPE_BOOL, N_("icon style"), &com.pref.gui.icon_symbolic },
 	{ "gui", "script_path", STYPE_STRLIST, N_("list of script directories"), &com.pref.gui.script_path },
@@ -552,6 +552,7 @@ struct settings_access all_settings[] = {
 	{ "gui_astrometry", "cat_const_names", STYPE_BOOL, N_("show constellations names in annotations"), &com.pref.gui.catalog[7] },
 	{ "gui_astrometry", "cat_user_dso", STYPE_BOOL, N_("show user DSO objects in annotations"), &com.pref.gui.catalog[8] },
 	{ "gui_astrometry", "cat_user_sso", STYPE_BOOL, N_("show user SSO objects in annotations"), &com.pref.gui.catalog[9] },
+	{ "gui_astrometry", "cat_sso_vect", STYPE_BOOL, N_("show SSO objects velocity vectors"), &com.pref.gui.catalog[10] },
 
 	{ "gui_pixelmath", "pm_presets", STYPE_STRLIST, N_("list of pixel math presets"), &com.pref.gui.pm_presets },
 
@@ -569,6 +570,8 @@ struct settings_access all_settings[] = {
 	{ "script_editor", "showspaces", STYPE_BOOL, N_("Show visible space and tab characters in the script editor"), &com.pref.gui.editor_cfg.showspaces },
 	{ "script_editor", "shownewlines", STYPE_BOOL, N_("Show visible newline characters in the script editor"), &com.pref.gui.editor_cfg.shownewlines },
 	{ "script_editor", "minimap", STYPE_BOOL, N_("Show a minimap in the script editor"), &com.pref.gui.editor_cfg.minimap },
+	{ "script_editor", "dynamic_wrap", STYPE_BOOL, N_("Dynamically wrap long lines in the script editor"), &com.pref.gui.editor_cfg.dynamic_wrap },
+	{ "script_editor", "code_folding", STYPE_BOOL, N_("Enable code folding in the script editor"), &com.pref.gui.editor_cfg.code_folding },
 
 	{ NULL, NULL, STYPE_BOOL, NULL, NULL }
 };

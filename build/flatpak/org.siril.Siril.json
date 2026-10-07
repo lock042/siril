@@ -9,6 +9,7 @@
     "rename-mime-icons": [
         "text-x-seq"
     ],
+    "appstream-compose": false,
     "finish-args": [
         "--share=ipc",
         "--share=network",
@@ -41,7 +42,6 @@
         {
         "name": "python3.13",
         "config-opts": [
-            "--enable-shared",
             "--prefix=/app",
             "--with-ensurepip=install"
 
@@ -177,28 +177,6 @@
                     "disable-http-decompression": true,
                     "sha256": "eba53d1b3f6e345632bb09a7b752ec7ced3d63ec5153a848380f3880c5d61889"
                 }
-            ]
-        },
-        {
-            "name": "gtksourceview4",
-            "buildsystem": "meson",
-            "config-opts": [
-                "-Dgir=false",
-                "-Dvapi=false"
-            ],
-            "sources": [
-                {
-                    "type": "archive",
-                    "url": "https://download.gnome.org/sources/gtksourceview/4.8/gtksourceview-4.8.4.tar.xz",
-                    "sha256": "7ec9d18fb283d1f84a3a3eff3b7a72b09a10c9c006597b3fbabbb5958420a87d"
-                }
-            ],
-            "cleanup": [
-                "/include",
-                "*.la",
-                "*.a",
-                "/lib/pkgconfig",
-                "/share/gtk-doc"
             ]
         },
         {

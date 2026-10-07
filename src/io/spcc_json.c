@@ -50,7 +50,7 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 	FILE *fp = g_fopen(jsonFilePath, "rb");
 	if (!fp) {
 		// Handle file opening error
-		siril_log_color_message(_("Failed to open file: %s\n"), "red", jsonFilePath);
+		siril_log_error(_("Failed to open file: %s\n"), jsonFilePath);
 		return FALSE;
 	}
 
@@ -61,15 +61,14 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 	// Close the file
 	fclose(fp);
 	if (!doc) {
-		siril_log_color_message(_("Error loading SPCC JSON file %s: %s (at position %zu)\n"),
-				"red", jsonFilePath, err.msg, err.pos);
+		siril_log_error(_("Error loading SPCC JSON file %s: %s (at position %zu)\n"), jsonFilePath, err.msg, err.pos);
 		return FALSE;
 	}
 
 	// Get root array
 	yyjson_val *root = yyjson_doc_get_root(doc);
 	if (!yyjson_is_arr(root)) {
-		siril_log_color_message(_("Error: The JSON file should contain an array of objects.\n"), "red");
+		siril_log_error(_("Error: The JSON file should contain an array of objects.\n"));
 		yyjson_doc_free(doc);
 		return 0;
 	}
@@ -77,7 +76,7 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 	// Get the object at specified index
 	size_t num_objects = yyjson_arr_size(root);
 	if (index >= num_objects) {
-		siril_debug_print("Error: index out of range.\n");
+		siril_log_debug("Error: index out of range.\n");
 		yyjson_doc_free(doc);
 		return 0;
 	}
@@ -118,19 +117,19 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 		goto validation_error;
 	}
 	if (!g_utf8_validate(model, -1, NULL)) {
-		siril_debug_print("Invalid UTF-8 in SPCC file %s for field 'model'\n", jsonFilePath);
+		siril_log_debug("Invalid UTF-8 in SPCC file %s for field 'model'\n", jsonFilePath);
 		goto validation_error;
 	}
 	if (!g_utf8_validate(name, -1, NULL)) {
-		siril_debug_print("Invalid UTF-8 in SPCC file %s for field 'name'\n", jsonFilePath);
+		siril_log_debug("Invalid UTF-8 in SPCC file %s for field 'name'\n", jsonFilePath);
 		goto validation_error;
 	}
 	if (!g_utf8_validate(manufacturer, -1, NULL)) {
-		siril_debug_print("Invalid UTF-8 in SPCC file %s for field 'manufacturer'\n", jsonFilePath);
+		siril_log_debug("Invalid UTF-8 in SPCC file %s for field 'manufacturer'\n", jsonFilePath);
 		goto validation_error;
 	}
 	if (!g_utf8_validate(source, -1, NULL)) {
-		siril_debug_print("Invalid UTF-8 in SPCC file %s for field 'source'\n", jsonFilePath);
+		siril_log_debug("Invalid UTF-8 in SPCC file %s for field 'source'\n", jsonFilePath);
 		goto validation_error;
 	}
 	data->model = g_strdup(model);
@@ -204,8 +203,7 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 	size_t valuesLength = yyjson_arr_size(valuesArray);
 
 	if (data->n != valuesLength) {
-		siril_log_color_message(_("Error loading SPCC JSON file: arrays have not the same size (%zu != %zu)\n"),
-								"red", data->n, valuesLength);
+		siril_log_error(_("Error loading SPCC JSON file: arrays have not the same size (%zu != %zu)\n"), data->n, valuesLength);
 		goto validation_error;
 	}
 
@@ -282,7 +280,7 @@ static gboolean processJsonFile(const char *file_path) {
 	FILE *fp = g_fopen(file_path, "rb");
 	if (!fp) {
 		// Handle file opening error
-		siril_log_color_message(_("Failed to open file: %s\n"), "red", file_path);
+		siril_log_error(_("Failed to open file: %s\n"), file_path);
 		return FALSE;
 	}
 
@@ -293,15 +291,14 @@ static gboolean processJsonFile(const char *file_path) {
 	// Close the file
 	fclose(fp);
 	if (!doc) {
-		siril_log_color_message(_("Error loading SPCC JSON file %s: %s (at position %zu)\n"),
-				"red", file_path, err.msg, err.pos);
+		siril_log_error(_("Error loading SPCC JSON file %s: %s (at position %zu)\n"), file_path, err.msg, err.pos);
 		return FALSE;
 	}
 
 	// Get root array
 	yyjson_val *root = yyjson_doc_get_root(doc);
 	if (!yyjson_is_arr(root)) {
-		siril_debug_print("Error: The JSON file should contain an array of objects.\n");
+		siril_log_debug("Error: The JSON file should contain an array of objects.\n");
 		yyjson_doc_free(doc);
 		return FALSE;
 	}
@@ -319,7 +316,7 @@ static gboolean processJsonFile(const char *file_path) {
 
 		if (retval == 1) {
 			#ifdef DEBUG_JSON
-			siril_debug_print("Read JSON object: %s\n", data->name);
+			siril_log_debug("Read JSON object: %s\n", data->name);
 			#endif
 			// Place the data into the correct list based on its type
 			switch (data->type) {
@@ -328,7 +325,7 @@ static gboolean processJsonFile(const char *file_path) {
 					break;
 
 				case OSC_SENSORS:
-					siril_debug_print("Error, this should have been trapped and handled by load_osc_sensor_from_file!\n");
+					siril_log_debug("Error, this should have been trapped and handled by load_osc_sensor_from_file!\n");
 					break;
 
 				case MONO_FILTERS:;
@@ -346,7 +343,7 @@ static gboolean processJsonFile(const char *file_path) {
 							if (copy) {
 								com.spcc_data.mono_filters[chan] = g_list_append(com.spcc_data.mono_filters[chan], copy);
 							} else {
-								siril_debug_print("Error copying SPCC object for channel duplication\n");
+								siril_log_debug("Error copying SPCC object for channel duplication\n");
 							}
 						}
 					}
@@ -369,7 +366,7 @@ static gboolean processJsonFile(const char *file_path) {
 					break;
 
 				default:
-					siril_debug_print("Unknown type: %d", data->type);
+					siril_log_debug("Unknown type: %d", data->type);
 					spcc_object_free(data, TRUE);
 					yyjson_doc_free(doc);
 					return FALSE;
@@ -381,13 +378,13 @@ static gboolean processJsonFile(const char *file_path) {
 				retval = load_osc_sensor_from_file(file_path, osc);
 				if (retval) {
 					#ifdef JSON_DEBUG
-					siril_debug_print("Read JSON object: %s\n", osc->channel[0].model);
+					siril_log_debug("Read JSON object: %s\n", osc->channel[0].model);
 					#endif
 					com.spcc_data.osc_sensors = g_list_append(com.spcc_data.osc_sensors, osc);
 					yyjson_doc_free(doc);
 					return TRUE;
 				} else {
-					siril_log_color_message(_("Error reading JSON object in file %s\n"), "red", file_path);
+					siril_log_error(_("Error reading JSON object in file %s\n"), file_path);
 					osc_sensor_free(osc, TRUE);
 					yyjson_doc_free(doc);
 					return FALSE;
@@ -426,7 +423,7 @@ spcc_object* spcc_object_copy(spcc_object *data) {
 		(!copy->comment && data->comment != NULL) ||
 		(!copy->manufacturer && data->manufacturer != NULL) ||
 		(!copy->source && data->source != NULL)) {
-		siril_debug_print("Error copying strings in spcc_object %s\n", data->filepath);
+		siril_log_debug("Error copying strings in spcc_object %s\n", data->filepath);
 		// Free anything that was already allocated
 		g_free(copy->model);
 		g_free(copy->name);
@@ -535,7 +532,7 @@ int remove_duplicate_x(point *points, int n, const gchar *filename) {
 			write_index++;
 			points[write_index] = points[i];
 		} else {
-			siril_log_color_message(_("Warning: Duplicate x value detected in JSON file %s: %.1f\n"), "salmon", basename, points[i].x);
+			siril_log_warning(_("Warning: Duplicate x value detected in JSON file %s: %.1f\n"), basename, points[i].x);
 		}
 	}
 	g_free(basename);
@@ -558,7 +555,7 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 	FILE *fp = g_fopen(data->filepath, "rb");
 	if (!fp) {
 		// Handle file opening error
-		siril_log_color_message(_("Failed to open file: %s\n"), "red", data->filepath);
+		siril_log_error(_("Failed to open file: %s\n"), data->filepath);
 		return FALSE;
 	}
 
@@ -569,8 +566,7 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 	// Close the file
 	fclose(fp);
 	if (!doc) {
-		siril_log_color_message(_("Error loading SPCC JSON file %s: %s (at position %zu)\n"),
-				"red", data->filepath, err.msg, err.pos);
+		siril_log_error(_("Error loading SPCC JSON file %s: %s (at position %zu)\n"), data->filepath, err.msg, err.pos);
 		return FALSE;
 	}
 
@@ -582,23 +578,21 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 		size_t num_objects = yyjson_arr_size(root);
 		if (data->index >= num_objects) {
 			if (num_objects == 0) {
-				siril_log_color_message(_("Error: index % " G_GSIZE_FORMAT " out of range (no objects).\n"),
-										"red", data->index);
+				siril_log_error(_("Error: index % " G_GSIZE_FORMAT " out of range (no objects).\n"), data->index);
 			} else {
-				siril_log_color_message(_("Error: index % " G_GSIZE_FORMAT " out of range (max: % " G_GSIZE_FORMAT ").\n"),
-										"red", data->index, num_objects - 1);
+				siril_log_error(_("Error: index % " G_GSIZE_FORMAT " out of range (max: % " G_GSIZE_FORMAT ").\n"), data->index, num_objects - 1);
 			}
 			goto error_cleanup;
 		}
 		object = yyjson_arr_get(root, data->index);
 	} else if (yyjson_is_obj(root)) {
 		if (data->index != 0) {
-			siril_log_color_message(_("Error: index must be 0 for single object JSON.\n"), "red");
+			siril_log_error(_("Error: index must be 0 for single object JSON.\n"));
 			goto error_cleanup;
 		}
 		object = root;
 	} else {
-		siril_log_color_message(_("Error: JSON root must be an array or object.\n"), "red");
+		siril_log_error(_("Error: JSON root must be an array or object.\n"));
 		goto error_cleanup;
 	}
 
@@ -606,14 +600,14 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 	yyjson_val *wavelengthObject = yyjson_obj_get(object, "wavelength");
 	yyjson_val *valuesObject = yyjson_obj_get(object, "values");
 	if (!yyjson_is_obj(wavelengthObject) || !yyjson_is_obj(valuesObject)) {
-		siril_log_color_message(_("Error: Missing or invalid wavelength/values objects.\n"), "red");
+		siril_log_error(_("Error: Missing or invalid wavelength/values objects.\n"));
 		goto error_cleanup;
 	}
 
 	// Get wavelength units and determine scale factor
 	yyjson_val *units = yyjson_obj_get(wavelengthObject, "units");
 	if (!yyjson_is_str(units)) {
-		siril_log_color_message(_("Error: Missing or invalid wavelength units.\n"), "red");
+		siril_log_error(_("Error: Missing or invalid wavelength units.\n"));
 		goto error_cleanup;
 	}
 
@@ -624,15 +618,14 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 	else if (strcmp(wavelengthUnit, "angstrom") == 0)   scalefactor = 0.1;
 	else if (strcmp(wavelengthUnit, "m") == 0)          scalefactor = 1.0e9;
 	else {
-		siril_log_color_message(_("Warning: error in JSON file %s: unrecognised wavelength unit\n"),
-								"salmon", data->filepath);
+		siril_log_warning(_("Warning: error in JSON file %s: unrecognised wavelength unit\n"), data->filepath);
 		goto error_cleanup;
 	}
 
 	// Get value range for normalization
 	yyjson_val *valuerange_val = yyjson_obj_get(valuesObject, "range");
 	if (!valuerange_val || !yyjson_is_num(valuerange_val)) {
-		siril_log_color_message(_("Error: Missing or invalid value range.\n"), "red");
+		siril_log_error(_("Error: Missing or invalid value range.\n"));
 		goto error_cleanup;
 	}
 	double valuerange = yyjson_get_num(valuerange_val);  // handles both int and real
@@ -641,15 +634,14 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 	yyjson_val *wavelengthArray = yyjson_obj_get(wavelengthObject, "value");
 	yyjson_val *valuesArray = yyjson_obj_get(valuesObject, "value");
 	if (!yyjson_is_arr(wavelengthArray) || !yyjson_is_arr(valuesArray)) {
-		siril_log_color_message(_("Error: Missing or invalid value arrays.\n"), "red");
+		siril_log_error(_("Error: Missing or invalid value arrays.\n"));
 		goto error_cleanup;
 	}
 
 	size_t wavelengthCount = yyjson_arr_size(wavelengthArray);
 	if (wavelengthCount != yyjson_arr_size(valuesArray) ||
 		wavelengthCount < 5 || wavelengthCount > 2000) {
-		siril_log_color_message(_("Error: Invalid array sizes (wavelength: %zu, values: %zu).\n"),
-								"red", wavelengthCount, yyjson_arr_size(valuesArray));
+		siril_log_error(_("Error: Invalid array sizes (wavelength: %zu, values: %zu).\n"), wavelengthCount, yyjson_arr_size(valuesArray));
 		goto error_cleanup;
 		}
 
@@ -659,7 +651,7 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 	// Allocate temporary storage
 	point *pairs = malloc(data->n * sizeof(point));
 	if (!pairs) {
-		siril_log_color_message(_("Error: Memory allocation failed.\n"), "red");
+		siril_log_error(_("Error: Memory allocation failed.\n"));
 		goto error_cleanup;
 	}
 
@@ -673,7 +665,7 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 
 		v_val = yyjson_arr_get(valuesArray, w_idx);
 		if (!v_val || !yyjson_is_num(w_val) || !yyjson_is_num(v_val)) {
-			siril_log_color_message(_("Error: Invalid number at index %zu.\n"), "red", idx);
+			siril_log_error(_("Error: Invalid number at index %zu.\n"), idx);
 			free(pairs);
 			goto error_cleanup;
 		}
@@ -691,7 +683,7 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 	data->x = malloc(data->n * sizeof(double));
 	data->y = malloc(data->n * sizeof(double));
 	if (!data->x || !data->y) {
-		siril_log_color_message(_("Error: Memory allocation failed.\n"), "red");
+		siril_log_error(_("Error: Memory allocation failed.\n"));
 		free(pairs);
 		free(data->x);
 		free(data->y);
@@ -738,7 +730,7 @@ static void processDirectory(const gchar *directory_path) {
 	GDir *dir = g_dir_open(directory_path, 0, &error);
 
 	if (dir == NULL) {
-		siril_debug_print("Unable to open directory: %s", directory_path);
+		siril_log_debug("Unable to open directory: %s", directory_path);
 		g_error_free(error);
 		return;
 	}
@@ -845,7 +837,7 @@ void load_all_spcc_metadata() {
 
 	const gchar *path = siril_get_spcc_repo_path();
 	processDirectory(path);
-	siril_debug_print("SPCC JSON metadata loaded\n");
+	siril_log_debug("SPCC JSON metadata loaded\n");
 
 	debug_null_list_entries(&com.spcc_data.wb_ref);
 	debug_null_list_entries(&com.spcc_data.osc_lpf);

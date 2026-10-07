@@ -153,18 +153,25 @@ class SirilVport:
 @unique
 class LogColor (IntEnum):
     """
-    Defines colors available for use with ``SirilInterface.log()``
-    For consistency ``LogColor.Default`` should be used for normal messages,
-    ``LogColor.Red`` should be used for error messages, ``LogColor.Salmon``
-    should be used for warning messages, LogColor.Green should  be used
-    for completion notifications, and ``LogColor.Blue`` should be used for
-    technical messages such as equations, coefficients etc.
+    Defines colors available for use with ``SirilInterface.log()``.
+
+    For consistency ``LogColor.DEFAULT`` should be used for normal messages,
+    ``LogColor.RED`` should be used for error messages, ``LogColor.SALMON``
+    should be used for warning messages, ``LogColor.GREEN`` should be used
+    for completion notifications, ``LogColor.BLUE`` should be used for
+    technical messages such as equations, coefficients etc., and
+    ``LogColor.BOLD`` should be used for bold white status headings.
+
+    The convenience methods ``SirilInterface.log_error()``,
+    ``.log_warning()``, ``.log_info()``, ``.log_status()`` and
+    ``.log_bold()`` are preferred over passing a colour explicitly.
     """
     DEFAULT = 0
     RED = 1
     SALMON = 2
     GREEN = 3
     BLUE = 4
+    BOLD = 5
 
 @unique
 class _Command(IntEnum):

@@ -1,0 +1,70 @@
+/*
+ * This file is part of Siril, an astronomy image processor.
+ *
+ * Per-operation descriptors: the single source of truth for the generic
+ * image-processing framework.  See op_descriptor.h for the design rationale.
+ */
+
+#include "core/siril.h"
+#include "core/processing.h"
+#include "core/op_descriptor.h"
+#include "core/op_descriptors.h"
+
+/* Fill args fields from args->op, if set.  Called at the top of
+ * generic_image_worker before any of the affected fields are read.  When
+ * args->op is NULL (an un-migrated site) this is a no-op and the worker behaves
+ * exactly as before. */
+void op_descriptor_fill_img_args(struct generic_img_args *args) {
+	if (!args->op)
+		return;
+	const op_descriptor *op = args->op;
+	g_assert(op->image_hook != NULL);
+	/* Setting both a descriptor and a per-site hook/log_hook is a programming
+	 * error: migrated sites hand these to the descriptor exclusively. */
+	g_assert(args->image_hook == NULL);
+	g_assert(args->log_hook == NULL);
+	args->image_hook = op->image_hook;
+	args->log_hook = op->log_hook;             /* may be NULL */
+	if (!args->description)
+		args->description = _(op->description); /* site may pre-set to override */
+	if (args->mem_ratio == 0.0f)
+		args->mem_ratio = op->mem_ratio;       /* 0 in args means "use default" */
+	if (args->mask_aware)
+		g_warn_if_fail(op->flags & OP_MASK_CAPABLE);
+}
+
+void op_descriptor_fill_mask_args(struct generic_mask_args *args) {
+	if (!args->op)
+		return;
+	const op_descriptor *op = args->op;
+	g_assert(op->mask_hook != NULL);
+	g_assert(args->mask_hook == NULL);
+	g_assert(args->log_hook == NULL);
+	args->mask_hook = op->mask_hook;
+	args->log_hook = op->log_hook;             /* may be NULL */
+	if (!args->description)
+		args->description = _(op->description);
+	if (args->mem_ratio == 0.0f)
+		args->mem_ratio = op->mem_ratio;
+}
+
+/* ---------------------------------------------------------------------------
+ * Registry — every descriptor in the codebase.  The array is generated from
+ * the single canonical list in op_descriptors.def (the same list that produces
+ * the extern declarations in op_descriptors.h), so it can never drift.  Ordered
+ * by id; op_descriptor_all() enumerates it (unit test today, NDE by-id registry
+ * later).
+ * ------------------------------------------------------------------------- */
+static const op_descriptor *const descriptors[] = {
+#define OP_DESC(name) &name,
+#include "core/op_descriptors.def"
+#undef OP_DESC
+	NULL
+};
+
+const op_descriptor *const *op_descriptor_all(size_t *count) {
+	/* -1 for the trailing NULL sentinel */
+	if (count)
+		*count = (sizeof(descriptors) / sizeof(descriptors[0])) - 1;
+	return descriptors;
+}

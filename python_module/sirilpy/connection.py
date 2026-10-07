@@ -138,7 +138,7 @@ class SirilInterface:
                 if self.debug:
                     current_pid = os.getpid()
                     print(f'Current ProcessID is {current_pid}')
-                    self.info_messagebox(f'Current ProcessID is {current_pid}', False)
+                    self.info_messagebox(f'Current ProcessID is {current_pid}', True)
                 SirilInterface._connected = True
                 self.connected = True
                 atexit.register(self._cleanup)
@@ -670,6 +670,78 @@ class SirilInterface:
             raise
         except Exception as e:
             raise SirilError(f"Error sending log message {message_bytes}: {e}") from e
+
+    def log_error(self, my_string: str) -> bool:
+        """
+        Send a red error message to the Siril log. Equivalent to
+        ``log(my_string, LogColor.RED)``; prefer this when the intent
+        is to report an error.
+
+        Args:
+            my_string: The message to log
+
+        Raises:
+            SirilError: if the command fails
+        """
+        return self.log(my_string, LogColor.RED)
+
+    def log_warning(self, my_string: str) -> bool:
+        """
+        Send a salmon warning message to the Siril log. Equivalent to
+        ``log(my_string, LogColor.SALMON)``; prefer this when the intent
+        is to report a non-fatal warning.
+
+        Args:
+            my_string: The message to log
+
+        Raises:
+            SirilError: if the command fails
+        """
+        return self.log(my_string, LogColor.SALMON)
+
+    def log_info(self, my_string: str) -> bool:
+        """
+        Send a green completion / success message to the Siril log.
+        Equivalent to ``log(my_string, LogColor.GREEN)``; prefer this
+        when the intent is to announce successful completion of a step.
+
+        Args:
+            my_string: The message to log
+
+        Raises:
+            SirilError: if the command fails
+        """
+        return self.log(my_string, LogColor.GREEN)
+
+    def log_status(self, my_string: str) -> bool:
+        """
+        Send a blue status / technical message to the Siril log.
+        Equivalent to ``log(my_string, LogColor.BLUE)``; prefer this
+        for technical detail such as equations, fit coefficients,
+        timings or other diagnostics.
+
+        Args:
+            my_string: The message to log
+
+        Raises:
+            SirilError: if the command fails
+        """
+        return self.log(my_string, LogColor.BLUE)
+
+    def log_bold(self, my_string: str) -> bool:
+        """
+        Send a bold white message to the Siril log. Equivalent to
+        ``log(my_string, LogColor.BOLD)``; prefer this for section
+        headings or other text that needs emphasis without conveying
+        an error / warning / success status.
+
+        Args:
+            my_string: The message to log
+
+        Raises:
+            SirilError: if the command fails
+        """
+        return self.log(my_string, LogColor.BOLD)
 
     def _claim_thread(self) -> None:
         """
@@ -1859,6 +1931,12 @@ class SirilInterface:
         By default Siril will recalculate statistics for the sample points
         on receipt, but this can be overridden with the argument recalculate=False
 
+        Note:
+            This method modifies the loaded image and requires the processing
+            thread to be claimed: call it inside a ``with image_lock():`` block
+            (or between ``claim_thread()`` and ``release_thread()``), otherwise
+            Siril will refuse the request with an error.
+
         Args:
             points: List of sample points, either as (x,y) tuples or BGSample objects
             show_samples: Whether to show the sample points in Siril
@@ -1971,6 +2049,12 @@ class SirilInterface:
     def set_image_pixeldata(self, image_data: np.ndarray) -> bool:
         """
         Send image data to Siril using shared memory.
+
+        Note:
+            This method modifies the loaded image and requires the processing
+            thread to be claimed: call it inside a ``with image_lock():`` block
+            (or between ``claim_thread()`` and ``release_thread()``), otherwise
+            Siril will refuse the request with an error.
 
         Args:
             image_data: numpy.ndarray containing the image data.
@@ -3899,6 +3983,12 @@ class SirilInterface:
             # Send the metadata to Siril
             siril.set_image_metadata_from_header_string(header_string)
 
+        Note:
+            This method modifies the loaded image and requires the processing
+            thread to be claimed: call it inside a ``with image_lock():`` block
+            (or between ``claim_thread()`` and ``release_thread()``), otherwise
+            Siril will refuse the request with an error.
+
         Args:
             header: string containing the FITS header data
 
@@ -4771,6 +4861,12 @@ class SirilInterface:
         """
         Set the image ICC profile in Siril
 
+        Note:
+            This method modifies the loaded image and requires the processing
+            thread to be claimed: call it inside a ``with image_lock():`` block
+            (or between ``claim_thread()`` and ``release_thread()``), otherwise
+            Siril will refuse the request with an error.
+
         Args:
             iccprofile (bytes): The ICC profile to send to Siril. This will
                 replace an existing ICC profile, if one is set. If None,
@@ -5604,6 +5700,12 @@ class SirilInterface:
         """
         Send image mask data to Siril using shared memory. Added: v1.1.0
 
+        Note:
+            This method modifies the loaded image and requires the processing
+            thread to be claimed: call it inside a ``with image_lock():`` block
+            (or between ``claim_thread()`` and ``release_thread()``), otherwise
+            Siril will refuse the request with an error.
+
         Args:
             mask_data: numpy.ndarray containing the image data.
                        Must be a 2D array with dtype either np.uint8,
@@ -5836,6 +5938,13 @@ class SirilInterface:
         """
         Adds a user polygon to the Siril image mask. Added: v1.1.1
 
+        Note:
+            This method modifies the loaded image mask and requires the
+            processing thread to be claimed: call it inside a
+            ``with image_lock():`` block (or between ``claim_thread()`` and
+            ``release_thread()``), otherwise Siril will refuse the request
+            with an error.
+
         Args:
             polygon: Polygon defining the polygon to be added
 
@@ -5850,6 +5959,13 @@ class SirilInterface:
     def mask_subtract_polygon(self, poly: Polygon):
         """
         Subtracts a user polygon from the Siril image mask. Added: v1.1.1
+
+        Note:
+            This method modifies the loaded image mask and requires the
+            processing thread to be claimed: call it inside a
+            ``with image_lock():`` block (or between ``claim_thread()`` and
+            ``release_thread()``), otherwise Siril will refuse the request
+            with an error.
 
         Args:
             polygon: Polygon defining the polygon to be added

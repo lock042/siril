@@ -72,8 +72,12 @@ void export_profile(cmsHPROFILE profile, const char *provided_filename);
 void color_manage(fits *fit, gboolean active);
 void lock_display_transform();
 void unlock_display_transform();
-void display_index_transform(BYTE* index, int vport);
+void display_index_transform(const float *fsrc, BYTE *index[3]);
 cmsHTRANSFORM initialize_proofing_transform();
+/* Caller must hold the display transform mutex, both for the lazy build and
+ * for every use of the returned handle (see icc_profile.c). */
+cmsHTRANSFORM get_gamut_transform();
+void clear_proofing_transforms();
 gboolean same_primaries(cmsHPROFILE a, cmsHPROFILE b, cmsHPROFILE c);
 void reset_icc_transforms();
 void validate_custom_profiles();

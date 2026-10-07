@@ -1,0 +1,90 @@
+/* op_descriptors.def — THE canonical list of every op_descriptor.
+ *
+ * One OP_DESC(symbol) entry per descriptor, ordered by id.  This single list
+ * feeds BOTH the extern declarations (op_descriptors.h) and the registry array
+ * (op_descriptor.c) via the X-macro idiom, so the two can never drift.  The
+ * descriptor DEFINITIONS still live next to their hooks in the owning modules.
+ *
+ * To add an operation: add its definition in the owning .c, then add one line
+ * here.  Keep this list ordered by id.
+ */
+OP_DESC(op_desc_addmax)                  /* arith.addmax */
+OP_DESC(op_desc_fdiv)                    /* arith.fdiv */
+OP_DESC(op_desc_ffill)                   /* arith.ffill */
+OP_DESC(op_desc_fill)                    /* arith.fill */
+OP_DESC(op_desc_fmul)                    /* arith.fmul */
+OP_DESC(op_desc_imoper)                  /* arith.imoper */
+OP_DESC(op_desc_limit)                   /* arith.limit */
+OP_DESC(op_desc_neg)                     /* arith.neg */
+OP_DESC(op_desc_nozero)                  /* arith.nozero */
+OP_DESC(op_desc_offset)                  /* arith.offset */
+OP_DESC(op_desc_thresh)                  /* arith.thresh */
+OP_DESC(op_desc_remove_gradient)         /* bkg.remove_gradient */
+OP_DESC(op_desc_catsearch)               /* catalog.search */
+OP_DESC(op_desc_cfa_extract_green)       /* cfa.extract_green */
+OP_DESC(op_desc_cfa_extract_ha)          /* cfa.extract_ha */
+OP_DESC(op_desc_cfa_extract_haoiii)      /* cfa.extract_haoiii */
+OP_DESC(op_desc_findhot)                 /* cfa.findhot */
+OP_DESC(op_desc_fix_xtrans)              /* cfa.fix_xtrans */
+OP_DESC(op_desc_cfa_split)               /* cfa.split */
+OP_DESC(op_desc_ccm)                     /* color.ccm */
+OP_DESC(op_desc_grey_flat)               /* color.grey_flat */
+OP_DESC(op_desc_linear_match)            /* color.linear_match */
+OP_DESC(op_desc_photometric_cc)          /* color.photometric_cc */
+OP_DESC(op_desc_saturation)              /* color.saturation */
+OP_DESC(op_desc_banding)                 /* filters.banding */
+OP_DESC(op_desc_clahe)                   /* filters.clahe */
+OP_DESC(op_desc_cosme)                   /* filters.cosme */
+OP_DESC(op_desc_cosmetic)                /* filters.cosmetic */
+OP_DESC(op_desc_ddp)                     /* filters.ddp */
+OP_DESC(op_desc_deconvolve)              /* filters.deconvolve */
+OP_DESC(op_desc_denoise)                 /* filters.denoise */
+OP_DESC(op_desc_epf)                     /* filters.epf */
+OP_DESC(op_desc_fft)                     /* filters.fft */
+OP_DESC(op_desc_gauss)                   /* filters.gauss */
+OP_DESC(op_desc_median)                  /* filters.median */
+OP_DESC(op_desc_rgradient)               /* filters.rgradient */
+OP_DESC(op_desc_scnr)                    /* filters.scnr */
+OP_DESC(op_desc_unpurple)                /* filters.unpurple */
+OP_DESC(op_desc_unsharp)                 /* filters.unsharp */
+OP_DESC(op_desc_binning)                 /* geometry.binning */
+OP_DESC(op_desc_crop)                    /* geometry.crop */
+OP_DESC(op_desc_mirrorx)                 /* geometry.mirrorx */
+OP_DESC(op_desc_mirrory)                 /* geometry.mirrory */
+OP_DESC(op_desc_resample)                /* geometry.resample */
+OP_DESC(op_desc_rotation)                /* geometry.rotation */
+OP_DESC(op_desc_icc_assign)              /* icc.assign */
+OP_DESC(op_desc_icc_convert)             /* icc.convert */
+OP_DESC(op_desc_icc_remove)              /* icc.remove */
+OP_DESC(op_desc_mask_autostretch)        /* mask.autostretch */
+OP_DESC(op_desc_mask_bitpix)             /* mask.bitpix */
+OP_DESC(op_desc_mask_blur)               /* mask.blur */
+OP_DESC(op_desc_mask_clear)              /* mask.clear */
+OP_DESC(op_desc_mask_feather)            /* mask.feather */
+OP_DESC(op_desc_mask_from_channel)       /* mask.from_channel */
+OP_DESC(op_desc_mask_from_color)         /* mask.from_color */
+OP_DESC(op_desc_mask_from_gradient)      /* mask.from_gradient */
+OP_DESC(op_desc_mask_from_luminance)     /* mask.from_luminance */
+OP_DESC(op_desc_mask_from_stars)         /* mask.from_stars */
+OP_DESC(op_desc_mask_invert)             /* mask.invert */
+OP_DESC(op_desc_mask_mtf_autostretch)    /* mask.mtf_autostretch */
+OP_DESC(op_desc_mask_multiply)           /* mask.multiply */
+OP_DESC(op_desc_mask_threshold)          /* mask.threshold */
+OP_DESC(op_desc_psf_estimate)            /* psf.estimate */
+OP_DESC(op_desc_synthstar)               /* star.synthstar */
+OP_DESC(op_desc_unclip)                  /* star.unclip */
+OP_DESC(op_desc_bg)                      /* stats.bg */
+OP_DESC(op_desc_bgnoise)                 /* stats.bgnoise */
+OP_DESC(op_desc_cdg)                     /* stats.cdg */
+OP_DESC(op_desc_entropy)                 /* stats.entropy */
+OP_DESC(op_desc_stat)                    /* stats.stat */
+OP_DESC(op_desc_asinh)                   /* stretch.asinh */
+OP_DESC(op_desc_autoghs)                 /* stretch.autoghs */
+OP_DESC(op_desc_autoghs_unlinked)        /* stretch.autoghs_unlinked */
+OP_DESC(op_desc_curves)                  /* stretch.curves */
+OP_DESC(op_desc_ghs)                     /* stretch.ghs */
+OP_DESC(op_desc_logstretch)              /* stretch.log */
+OP_DESC(op_desc_mtf)                     /* stretch.mtf */
+OP_DESC(op_desc_mtf_inverse)             /* stretch.mtf_inverse */
+OP_DESC(op_desc_atrous)                  /* wavelets.atrous */
+OP_DESC(op_desc_wrecons)                 /* wavelets.wrecons */

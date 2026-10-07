@@ -41,6 +41,18 @@
 
 static gboolean user_warned = FALSE;
 
+/* Demosaicing algorithm for SER CFA frame reads. RCD has been the
+ * hard-coded choice for this path (shared across the whole application —
+ * see MPP_PSS_DIFFS.md §1); the setter exists for the mpp_improve debayer
+ * experiments so the planetary stacker can A/B algorithms per run. Set it
+ * before a (possibly parallel) read pass and restore afterwards — reads
+ * only, so concurrent ser_read_frame calls are safe once set. */
+static interpolation_method ser_debayer_method = BAYER_RCD;
+
+void ser_set_debayer_method(interpolation_method method) {
+	ser_debayer_method = method;
+}
+
 static int ser_write_header(struct ser_struct *ser_file);
 static int ser_write_image_for_writer(struct seqwriter_data *writer, fits *image, int index);
 static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *fit, int frame_no);
@@ -228,16 +240,16 @@ static ser_color adjust_SER_pattern(ser_color type_ser) {
 			case SER_BAYER_GRBG:
 				return pattern;
 			case SER_MONO:
-				siril_log_color_message(_("Forcing SER frame as CFA instead of monochrome, because Bayer information from file has been overridden in preferences\n"), "salmon");
+				siril_log_warning(_("Forcing SER frame as CFA instead of monochrome, because Bayer information from file has been overridden in preferences\n"));
 				break;
 			default:
-				siril_log_color_message(_("Unknown SER type to debayer (%d), should not happen\n"), "red", type_ser);
+				siril_log_error(_("Unknown SER type to debayer (%d), should not happen\n"), type_ser);
 				return BAYER_FILTER_NONE;
 		}
 	}
 	sensor_pattern bayer_pattern = com.pref.debayer.bayer_pattern;
 	const char *pattern_str = filter_pattern[bayer_pattern];
-	siril_log_color_message(_("Forcing SER Bayer pattern to %s as configured in the preferences\n"), "salmon", pattern_str);
+	siril_log_warning(_("Forcing SER Bayer pattern to %s as configured in the preferences\n"), pattern_str);
 	pattern = convert_bayer_pattern_to_color_id(bayer_pattern);
 	return pattern;
 }
@@ -280,7 +292,7 @@ static int ser_read_header(struct ser_struct *ser_file) {
 		case SER_RGB:
 		case SER_BGR:
 			// if (com.pref.debayer.open_debayer) {
-			// 	siril_log_color_message(_("Cannot debayer already debayered SER\n"), "salmon");
+			// 	siril_log_warning(_("Cannot debayer already debayered SER\n"));
 			// }
 			break;
 		case SER_BAYER_RGGB:
@@ -300,7 +312,7 @@ static int ser_read_header(struct ser_struct *ser_file) {
 			if (com.pref.debayer.open_debayer) { // we are forcing this to CFA, this will read the preferences
 				ser_file->debayer_type_ser = adjust_SER_pattern(type_ser);
 				ser_file->color_id = ser_file->debayer_type_ser;  //we update with prefs values if necessary
-				siril_log_color_message(_("Forcing debayer mono SER\n"), "salmon");
+				siril_log_warning(_("Forcing debayer mono SER\n"));
 			}
 			break;
 		case SER_BAYER_CYYM:
@@ -308,10 +320,10 @@ static int ser_read_header(struct ser_struct *ser_file) {
 		case SER_BAYER_YMCY:
 		case SER_BAYER_MYYC:
 		default:
-			siril_log_color_message(_("Cannot handle this SER type (%d)\n"), "red", type_ser);
+			siril_log_error(_("Cannot handle this SER type (%d)\n"), type_ser);
 			return SER_GENERIC_ERROR;
 	}
-	siril_debug_print("debayer SER file type: %s\n", convert_color_id_to_char(ser_file->debayer_type_ser));
+	siril_log_debug("debayer SER file type: %s\n", convert_color_id_to_char(ser_file->debayer_type_ser));
 
 	memcpy(&ser_file->date, header + 162, 8);
 	memcpy(&ser_file->date_utc, header + 170, 8);
@@ -338,6 +350,17 @@ static int ser_read_header(struct ser_struct *ser_file) {
 		ser_file->number_of_planes = 3;
 	else
 		ser_file->number_of_planes = 1;
+
+	/* Validate the header dimensions read from the (untrusted) file before
+	 * they are used to size allocations and compute file offsets. Negative or
+	 * absurd values would otherwise wrap size computations. */
+	if (ser_file->image_width <= 0 || ser_file->image_height <= 0 ||
+			ser_file->bit_pixel_depth <= 0 || ser_file->bit_pixel_depth > 16) {
+		siril_log_error(_("Invalid SER header dimensions (%dx%d, %d-bit)\n"),
+				ser_file->image_width, ser_file->image_height,
+				ser_file->bit_pixel_depth);
+		return SER_GENERIC_ERROR;
+	}
 
 	/* In some cases, oacapture, firecapture, ... crash before writing
 	 * frame_count data. Here we try to get the calculated frame count
@@ -597,13 +620,13 @@ void ser_display_info(struct ser_struct *ser_file) {
 	if (ser_file->timestamps_in_order) {
 		if (ser_file->ts_min == ser_file->ts_max) {
 			if (ser_file->ts_min == 0) {
-				siril_log_color_message(_("Warning: no timestamps stored in the SER file.\n"), "salmon");
+				siril_log_warning(_("Warning: no timestamps stored in the SER file.\n"));
 			} else {
-				siril_log_color_message(_("Warning: timestamps in the SER file are all identical.\n"), "salmon");
+				siril_log_warning(_("Warning: timestamps in the SER file are all identical.\n"));
 			}
 		} else siril_log_message(_("Timestamps in the SER file are correctly ordered.\n"));
 	} else {
-		siril_log_color_message(_("Warning: timestamps in the SER file are not in the correct order.\n"), "salmon");
+		siril_log_warning(_("Warning: timestamps in the SER file are not in the correct order.\n"));
 	}
 	siril_log_message("========================================\n");
 }
@@ -625,9 +648,9 @@ int ser_close_and_delete_file(struct ser_struct *ser_file) {
 	char *filename = ser_file->filename;
 	ser_file->filename = NULL;
 	ser_close_file(ser_file); // closes, frees and zeroes
-	siril_log_message(_("Removing failed SER file: %s\n"), filename);
+	siril_log_warning(_("Removing failed SER file: %s\n"), filename);
 	if (g_unlink(filename))
-		siril_debug_print("Error unlinking file\n");
+		siril_log_debug("Error unlinking file\n");
 	free(filename);
 	return retval;
 }
@@ -636,7 +659,7 @@ int ser_write_and_close(struct ser_struct *ser_file) {
 	if (ser_file == NULL) return SER_GENERIC_ERROR;
 	int retval = ser_end_write(ser_file, FALSE);
 	if (!ser_file->frame_count) {
-		siril_log_color_message(_("The SER sequence is being created with no image in it.\n"), "red");
+		siril_log_error(_("The SER sequence is being created with no image in it.\n"));
 		ser_close_and_delete_file(ser_file);
 		return SER_GENERIC_ERROR;
 	}
@@ -648,7 +671,7 @@ int ser_write_and_close(struct ser_struct *ser_file) {
 	ser_close_file(ser_file);// closes, frees and zeroes
 	if (retval && file_to_delete)
 		if (g_unlink(file_to_delete))
-			siril_debug_print("g_unlink() failed\n");
+			siril_log_debug("g_unlink() failed\n");
 	g_free(file_to_delete);
 	return retval;
 }
@@ -659,7 +682,7 @@ int ser_create_file(const char *filename, struct ser_struct *ser_file,
 		gboolean overwrite, const struct ser_struct *copy_from) {
 	if (overwrite)
 		if (g_unlink(filename))
-			siril_debug_print("g_unlink() failed\n");
+			siril_log_debug("g_unlink() failed\n");
 	if ((ser_file->file = g_fopen(filename, "w+b")) == NULL) {
 		perror("open SER file for creation");
 		return SER_GENERIC_ERROR;
@@ -876,6 +899,14 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 	fit->keywords.binning_x = fit->keywords.binning_y = 1;
 
 	ser_color debayer_type_ser = ser_file->debayer_type_ser; // this was set in accordance with prefs when reading the header
+	/* Honour an explicit per-call debayer request. When the debayer-on-open
+	 * preference is off, ser_read_header bakes debayer_type_ser = SER_MONO
+	 * even for a CFA file, which used to silently defeat callers passing
+	 * open_debayer = TRUE (e.g. mpp's full-frame stacking reads). */
+	if (open_debayer && debayer_type_ser == SER_MONO &&
+			ser_file->color_id >= SER_BAYER_RGGB &&
+			ser_file->color_id <= SER_BAYER_BGGR)
+		debayer_type_ser = ser_file->color_id;
 	switch (debayer_type_ser) {
 	case SER_MONO: // real mono or CFA kept CFA
 		fit->naxis = 2;
@@ -894,7 +925,14 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 		fit->naxes[1] = fit->ry = ser_file->image_height;
 		fit->naxes[2] = 3;
 		sensor_pattern bayer_pattern = convert_color_id_to_bayer_pattern(debayer_type_ser);
-		debayer(fit, BAYER_RCD, bayer_pattern);
+		/* debayer() fails on allocation failure (a real possibility on
+		 * Windows where there is no memory overcommit); returning the
+		 * un-demosaiced fits with naxes[2] = 3 and stale pdata would
+		 * crash the caller. */
+		if (debayer(fit, ser_debayer_method, bayer_pattern)) {
+			siril_log_error(_("Could not debayer SER frame %d\n"), frame_no);
+			return SER_GENERIC_ERROR;
+		}
 		break;
 	case SER_BGR:
 		swap = 2;
@@ -1018,7 +1056,7 @@ static int read_area_from_image(struct ser_struct *ser_file, const int frame_no,
 	gint64 offset, frame_size;
 	int retval = SER_OK;
 	WORD *read_buffer;
-	size_t read_size = ser_file->image_width * area->h * ser_file->byte_pixel_depth;
+	size_t read_size = (size_t)ser_file->image_width * area->h * ser_file->byte_pixel_depth;
 	if (layer != -1) read_size *= 3;
 	if (layer != -1 || area->w != ser_file->image_width) {
 		// allocated space is probably not enough to
@@ -1125,7 +1163,7 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 		get_debayer_area(area, &debayer_area, &image_area, &xoffset, &yoffset);
 
 		// allocating a buffer for WORD because it's going to be converted in-place
-		rawbuf = malloc(debayer_area.w * debayer_area.h * sizeof(WORD));
+		rawbuf = malloc((size_t)debayer_area.w * debayer_area.h * sizeof(WORD));
 		if (!rawbuf) {
 			PRINT_ALLOC_ERR;
 			return SER_GENERIC_ERROR;

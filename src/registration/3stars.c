@@ -67,7 +67,7 @@ static int _3stars_seqpsf_finalize_hook(struct generic_seq_args *args) {
 
 	int refimage = sequence_find_refimage(&com.seq);
 	if (!results[refimage].stars[awaiting_star - 1]) {
-		siril_log_color_message(_("The star was not found in the reference image. Change the selection or the reference image\n"), "red");
+		siril_log_error(_("The star was not found in the reference image. Change the selection or the reference image\n"));
 		for (int i = 0 ; i < com.seq.number; i++)
 			results[i].stars[awaiting_star - 1] = NULL;
 		args->retval = 1;
@@ -113,7 +113,7 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 	if (spsfargs->framing == REGISTERED_FRAME) {
 		if (regargs->seq->reference_image < 0) regargs->seq->reference_image = sequence_find_refimage(regargs->seq);
 		if (guess_transform_from_H(regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H) == NULL_TRANSFORMATION) {
-			siril_log_color_message(_("The reference image has a null matrix and was not previously registered. Please select another one.\n"), "red");
+			siril_log_error(_("The reference image has a null matrix and was not previously registered. Please select another one.\n"));
 			free(args);
 			free(spsfargs);
 			return 1;
@@ -121,7 +121,7 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 		if (regargs->seq->current != regargs->seq->reference_image) {
 			// transform selection back from current to ref frame coordinates
 			if (guess_transform_from_H(regargs->seq->regparam[regargs->layer][regargs->seq->current].H) == NULL_TRANSFORMATION) {
-				siril_log_color_message(_("The current image has a null matrix and was not previously registered. Please load another one to select the stars.\n"), "red");
+				siril_log_error(_("The current image has a null matrix and was not previously registered. Please load another one to select the stars.\n"));
 				free(args);
 				free(spsfargs);
 				return 1;
@@ -129,7 +129,7 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 			selection_H_transform(&args->area, regargs->seq->regparam[regargs->layer][regargs->seq->current].H, regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H);
 			if (args->area.x < 0 || args-> area.x > regargs->seq->rx - args->area.w ||
 					args->area.y < 0 || args->area.y > regargs->seq->ry - args->area.h) {
-				siril_log_color_message(_("This area is outside of the reference image. Please select the reference image to select another star.\n"), "red");
+				siril_log_error(_("This area is outside of the reference image. Please select the reference image to select another star.\n"));
 				free(args);
 				free(spsfargs);
 				return 1;
@@ -195,18 +195,18 @@ int register_3stars(struct registration_args *regargs) {
 		memcpy(&com.selection, &_3boxes[awaiting_star - 1], sizeof(rectangle));
 		// gui_function(new_selection_zone, NULL);
 		awaiting_star = i + 1;
-		siril_log_color_message(_("Processing star #%d\n"), "salmon", awaiting_star);
+		siril_log_warning(_("Processing star #%d\n"), awaiting_star);
 		if (_3stars_seqpsf(regargs)) return 1;
 		if (results[refimage].stars[i] != NULL) nb_stars_ref++;
 		// Determine if it's worth going on, i.e. if enough stars were found in ref image
 		// before we proceed with next star
 		if (!onestar && ((selected_stars == 2 && nb_stars_ref <= i) || (selected_stars == 3 && i == 1 && nb_stars_ref == 0))) {
-			siril_log_color_message(_("Less than two stars were found in the reference image, try setting another as reference?\n"), "red");
+			siril_log_error(_("Less than two stars were found in the reference image, try setting another as reference?\n"));
 			_3stars_free_results();
 			return 1;
 		}
 		if (onestar && nb_stars_ref <= i) {
-			siril_log_color_message(_("No star was found in the reference image, try setting another as reference?\n"), "red");
+			siril_log_error(_("No star was found in the reference image, try setting another as reference?\n"));
 			_3stars_free_results();
 			return 1;
 		}
@@ -280,7 +280,7 @@ int register_3stars(struct registration_args *regargs) {
 			included[i] = TRUE;
 			scores[i] = current_regdata[i].weighted_fwhm;
 		} else {
-			siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
+			siril_log_error(_("Cannot perform star matching: Image %d skipped\n"),  regargs->seq->imgparam[i].filenum);
 			failed++;
 			continue;
 		}
@@ -303,7 +303,7 @@ int register_3stars(struct registration_args *regargs) {
 		if (i != refimage) {
 			if (regargs->type == SHIFT_TRANSFORMATION) { // shift only 2-3 stars or onestar
 				if (nb_stars == 0) {
-					siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
+					siril_log_error(_("Cannot perform star matching: Image %d skipped\n"),  regargs->seq->imgparam[i].filenum);
 					failed++;
 					continue;
 				}
@@ -329,7 +329,7 @@ int register_3stars(struct registration_args *regargs) {
 					}
 					err = pow(err, 0.5);
 					if (err > current_regdata[i].fwhm) {
-						siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
+						siril_log_error(_("Cannot perform star matching: Image %d skipped\n"),  regargs->seq->imgparam[i].filenum);
 						printf("Image %d max_error : %3.2f > fwhm: %3.2f\n", regargs->seq->imgparam[i].filenum, err, current_regdata[i].fwhm);
 						failed++;
 						continue;
@@ -340,7 +340,7 @@ int register_3stars(struct registration_args *regargs) {
 				regargs->seq->imgparam[i].filenum, shiftx, shifty);
 			} else { // 2-3 stars reg with rotation
 				if (nb_stars < 2) {
-					siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
+					siril_log_error(_("Cannot perform star matching: Image %d skipped\n"),  regargs->seq->imgparam[i].filenum);
 					failed++;
 					continue;
 				}
@@ -365,7 +365,7 @@ int register_3stars(struct registration_args *regargs) {
 				free(arrayref);
 				free(arraycur);
 				if (err > current_regdata[i].fwhm) {
-					siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
+					siril_log_error(_("Cannot perform star matching: Image %d skipped\n"),  regargs->seq->imgparam[i].filenum);
 					printf("Image %d max_error : %3.2f > fwhm: %3.2f\n", regargs->seq->imgparam[i].filenum, err, current_regdata[i].fwhm);
 					failed++;
 					continue;
@@ -386,7 +386,7 @@ int register_3stars(struct registration_args *regargs) {
 
 	fix_selnum(regargs->seq, FALSE);
 	siril_log_message(_("Registration finished.\n"));
-	siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, regargs->new_total);
+	siril_log_info(_("Total: %d failed, %d registered.\n"), failed, regargs->new_total);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 	return 0;

@@ -59,13 +59,14 @@
 static void swap_mark_delete_on_close(int fd, const gchar *path) {
 #ifndef _WIN32
 	(void)fd;
-	g_unlink(path);
+	/* Best-effort: if the entry is already gone the swap simply persists. */
+	(void) g_unlink(path);
 #else
 	(void)path;
 	HANDLE h = (HANDLE)_get_osfhandle(fd);
 	if (h != INVALID_HANDLE_VALUE) {
 		FILE_DISPOSITION_INFO fdi = { .DeleteFile = TRUE };
-		SetFileInformationByHandle(h, FileDispositionInfo, &fdi, sizeof(fdi));
+		(void) SetFileInformationByHandle(h, FileDispositionInfo, &fdi, sizeof(fdi));
 	}
 #endif
 }
@@ -83,7 +84,7 @@ static int undo_build_swapfile(fits *fit) {
     _S_IREAD | _S_IWRITE);
 #endif
 	if (fd < 0) {
-		siril_log_message(_("File I/O Error: Unable to create swap file in %s: [%s]\n"),
+		siril_log_error(_("File I/O Error: Unable to create swap file in %s: [%s]\n"),
 				com.pref.swap_dir, strerror(errno));
 		g_free(nameBuff);
 		return -1;
@@ -100,7 +101,7 @@ static int undo_build_swapfile(fits *fit) {
 		written = write(fd, fit->fdata, size * sizeof(float));
 
 	if (written == -1) {
-		siril_log_message(_("File I/O Error: Unable to write swap file: [%s]\n"), strerror(errno));
+		siril_log_error(_("File I/O Error: Unable to write swap file: [%s]\n"), strerror(errno));
 		g_close(fd, NULL);
 		return -1;
 	}
@@ -121,7 +122,7 @@ static int undo_build_mask_swapfile(fits *fit) {
     _S_IREAD | _S_IWRITE);
 #endif
 	if (fd < 0) {
-		siril_log_message(_("File I/O Error: Unable to create mask swap file in %s: [%s]\n"),
+		siril_log_error(_("File I/O Error: Unable to create mask swap file in %s: [%s]\n"),
 				com.pref.swap_dir, strerror(errno));
 		g_free(nameBuff);
 		return -2;
@@ -136,14 +137,14 @@ static int undo_build_mask_swapfile(fits *fit) {
 		case 16: elem_size = sizeof(uint16_t); break;
 		case 32: elem_size = sizeof(float);    break;
 		default:
-			siril_log_message(_("Error: Invalid mask bitpix value: %d\n"), fit->mask->bitpix);
+			siril_log_error(_("Error: Invalid mask bitpix value: %d\n"), fit->mask->bitpix);
 			g_close(fd, NULL);
 			return -2;
 	}
 
 	errno = 0;
 	if (-1 == write(fd, fit->mask->data, n_pixels * elem_size)) {
-		siril_log_message(_("File I/O Error: Unable to write mask swap file: [%s]\n"), strerror(errno));
+		siril_log_error(_("File I/O Error: Unable to write mask swap file: [%s]\n"), strerror(errno));
 		g_close(fd, NULL);
 		return -2;
 	}
@@ -192,7 +193,7 @@ static int undo_push_to(GList **stack, fits *fit, const char *label) {
 	int status = -1;
 	h->wcslib = wcs_deepcopy(fit->keywords.wcslib, &status);
 	if (status)
-		siril_debug_print("could not copy wcslib struct\n");
+		siril_log_debug("could not copy wcslib struct\n");
 	h->focal_length = fit->keywords.focal_length;
 	h->icc_profile = copyICCProfile(fit->icc_profile);
 	snprintf(h->history, FLEN_VALUE, "%s", label ? label : "");
@@ -245,7 +246,7 @@ static int undo_get_data_ushort(fits *fit, historic *hist) {
 		int status = -1;
 		fit->keywords.wcslib = wcs_deepcopy(hist->wcslib, &status);
 		if (status)
-			siril_debug_print("could not copy wcslib struct\n");
+			siril_log_debug("could not copy wcslib struct\n");
 	} else {
 		reset_wcsdata(fit);
 	}
@@ -296,7 +297,7 @@ static int undo_get_data_float(fits *fit, historic *hist) {
 		int status = -1;
 		fit->keywords.wcslib = wcs_deepcopy(hist->wcslib, &status);
 		if (status)
-			siril_debug_print("could not copy wcslib struct\n");
+			siril_log_debug("could not copy wcslib struct\n");
 	} else {
 		reset_wcsdata(fit);
 	}
@@ -344,7 +345,7 @@ static int undo_get_mask_data(fits *fit, historic *hist) {
 		case 16: elem_size = sizeof(uint16_t); break;
 		case 32: elem_size = sizeof(float);    break;
 		default:
-			siril_log_message(_("Error: Invalid mask bitpix value in history: %d\n"), hist->mask_bitpix);
+			siril_log_error(_("Error: Invalid mask bitpix value in history: %d\n"), hist->mask_bitpix);
 			return 1;
 	}
 
@@ -488,20 +489,20 @@ int undo_display_data(int dir) {
 			g_rw_lock_writer_unlock(&gfit->rwlock); // Finished with writer lock
 			g_rw_lock_reader_lock(&gfit->rwlock);   // But still need reader lock
 			gui_iface.update_histogram();
+			gui_iface.curves_reset_after_undo();
 			gui_iface.on_channel_count_changed(); // These 2 lines account for possible change from mono to RGB
 			g_rw_lock_reader_unlock(&gfit->rwlock);
 			gui_iface.update_menu_state();
 			gui_iface.reset_display_transform();
 			refresh_annotations(TRUE);
-			/* redraw_mask_idle posts an idle - must be called outside any gfit lock */
-			gui_iface.redraw_mask_idle();
-			if (!com.pref.gui.mask_tints_vports) { // redraw() is called in redraw_mask_idle if this is TRUE
-				/* No reader lock here: notify_gfit_data_modified() may call
-				 * copy_roi_into_gfit() which acquires the writer lock —
-				 * mirrors the contract redraw_mask_idle relies on. */
-				notify_gfit_data_modified();
-				gui_iface.redraw_image(REMAP_ALL);
-			}
+			/* No gfit lock held here: notify_gfit_data_modified() may call
+			 * copy_roi_into_gfit() which acquires the writer lock, and
+			 * redraw_mask_idle takes the reader lock itself. */
+			notify_gfit_data_modified();
+			gui_iface.redraw_image(REDRAW_ALL);
+			/* The remap above already applied any mask tint, so only the
+			 * mask vport buffer needs refreshing. */
+			gui_iface.redraw_mask_idle(FALSE);
 			if (preview_was_active) {
 				g_rw_lock_reader_lock(&gfit->rwlock);
 				gui_iface.copy_gfit_to_backup();
@@ -560,19 +561,20 @@ int undo_display_data(int dir) {
 			g_rw_lock_writer_unlock(&gfit->rwlock); // Finished with writer lock
 			g_rw_lock_reader_lock(&gfit->rwlock);   // But still need reader lock
 			gui_iface.update_histogram();
+			gui_iface.curves_reset_after_undo();
 			g_rw_lock_reader_unlock(&gfit->rwlock);
 			gui_iface.update_menu_state();
 			refresh_annotations(TRUE);
 			gui_iface.reset_display_transform();
 			gui_iface.on_channel_count_changed(); // These 2 lines account for possible change from mono to RGB
-			/* redraw_mask_idle posts an idle - must be called outside any gfit lock */
-			gui_iface.redraw_mask_idle();
-			if (!com.pref.gui.mask_tints_vports) { // redraw() is called in redraw_mask_idle if this is TRUE
-				/* No reader lock: notify_gfit_data_modified() may call
-				 * copy_roi_into_gfit() which acquires the writer lock. */
-				notify_gfit_data_modified();
-				gui_iface.redraw_image(REMAP_ALL);
-			}
+			/* No gfit lock held here: notify_gfit_data_modified() may call
+			 * copy_roi_into_gfit() which acquires the writer lock, and
+			 * redraw_mask_idle takes the reader lock itself. */
+			notify_gfit_data_modified();
+			gui_iface.redraw_image(REDRAW_ALL);
+			/* The remap above already applied any mask tint, so only the
+			 * mask vport buffer needs refreshing. */
+			gui_iface.redraw_mask_idle(FALSE);
 			if (preview_was_active) {
 				g_rw_lock_reader_lock(&gfit->rwlock);
 				gui_iface.copy_gfit_to_backup();

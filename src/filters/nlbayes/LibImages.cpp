@@ -20,6 +20,7 @@
 #include "LibImages.h"
 #include "Utilities.h"
 //#include "mt19937ar.h"
+#include "algos/img_t/image_ops.hpp"  // imgops::pad_symmetric / unpad
 
 #include <iostream>
 #include <sstream>
@@ -266,25 +267,25 @@ int computeDiff(
  * @return none.
  **/
 int addBoundary(
-	std::vector<float> const& i_im
-,	std::vector<float> &o_imSym
-,	const ImageSize &p_imSize
-,	const ImageSize &p_imSizeSym
+	img_t<float> const& i_im
+,	img_t<float> &o_imSym
+,	const unsigned p_widthSym
+,	const unsigned p_heightSym
 ){
 	//! Parameters declarations
-	const unsigned width	= p_imSize.width;
-	const unsigned height	= p_imSize.height;
-	const unsigned chnls	= p_imSize.nChannels;
-	const unsigned h		= p_imSizeSym.height;
-	const unsigned w		= p_imSizeSym.width;
+	const unsigned width	= i_im.w;
+	const unsigned height	= i_im.h;
+	const unsigned chnls	= i_im.d;
+	const unsigned h		= p_heightSym;
+	const unsigned w		= p_widthSym;
 
 	if (w < width || h < height) {
 		cout << "o_imSym must be greater than i_im!!!" << endl;
 		return EXIT_FAILURE;
 	}
 
-	if (o_imSym.size() != chnls * h * w) {
-		o_imSym.resize(chnls * w * h);
+	if ((unsigned) o_imSym.size != chnls * h * w) {
+		o_imSym.resize(w, h, chnls);
 	}
 
 	//! Declaration
@@ -328,25 +329,25 @@ int addBoundary(
  * @return none.
  **/
 int removeBoundary(
-	std::vector<float> &o_im
-,	std::vector<float> const& i_imSym
-,	const ImageSize &p_imSize
-,	const ImageSize &p_imSizeSym
+	img_t<float> &o_im
+,	img_t<float> const& i_imSym
+,	const unsigned p_width
+,	const unsigned p_height
 ){
 	//! Parameters declaration
-	const unsigned width	= p_imSize.width;
-	const unsigned height	= p_imSize.height;
-	const unsigned chnls	= p_imSize.nChannels;
-	const unsigned h		= p_imSizeSym.height;
-	const unsigned w		= p_imSizeSym.width;
+	const unsigned width	= p_width;
+	const unsigned height	= p_height;
+	const unsigned chnls	= i_imSym.d;
+	const unsigned h		= i_imSym.h;
+	const unsigned w		= i_imSym.w;
 
 	if (w < width || h < height) {
 		cout << "i_imSym must be greater than o_im!!!" << endl;
 		return EXIT_FAILURE;
 	}
 
-	if (o_im.size() != chnls * height * width) {
-		o_im.resize(chnls * height * width);
+	if ((unsigned) o_im.size != chnls * height * width) {
+		o_im.resize(width, height, chnls);
 	}
 
 	for (unsigned c = 0, k = 0; c < chnls; c++) {
@@ -376,81 +377,23 @@ int removeBoundary(
  * @return none.
  **/
 void symetrizeImage(
-	std::vector<float> const& i_im1
-,	std::vector<float> &o_im2
-,	const ImageSize p_imSize
+	img_t<float> const& i_im1
+,	img_t<float> &o_im2
 ,	const unsigned p_borderSize
 ,	const bool p_isForward
 ){
-	//! Declaration
-	unsigned w1, h1, w2, h2;
+	// Delegates to the shared half-sample symmetric padding. nlbayes stores
+	// images planar ([c*wh + row*w + col]), which is exactly img_t's planar
+	// layout, so the img_t views map faithfully.
+	const int border = static_cast<int>(p_borderSize);
+
 	if (p_isForward) {
-        w1 = p_imSize.width;
-        w2 = w1 + 2 * p_borderSize;
-        h1 = p_imSize.height;
-        h2 = h1 + 2 * p_borderSize;
+		// input is i_im1; output grows by border on every side
+		o_im2 = imgops::pad_symmetric(i_im1, border);
+	} else {
+		// input is the padded image; output is the inner image
+		o_im2 = imgops::unpad(i_im1, border);
 	}
-	else {
-        w2 = p_imSize.width;
-        w1 = w2 + 2 * p_borderSize;
-        h2 = p_imSize.height;
-        h1 = h2 + 2 * p_borderSize;
-	}
-	const unsigned chnls = p_imSize.nChannels;
-
-	if (p_isForward && o_im2.size() != w2 * h2 * chnls) {
-		o_im2.resize(w2 * h2 * chnls);
-	}
-
-	for (unsigned c = 0; c < chnls; c++) {
-		unsigned dc1, dc2;
-
-		//! Small to Big
-		if (p_isForward) {
-		    unsigned dc1 = c * w1 * h1;
-		    unsigned dc2 = c * w2 * h2 + p_borderSize * (w2 + 1);
-
-			//! Center of the image
-			for (unsigned i = 0; i < h1; i++) {
-				for (unsigned j = 0; j < w1; j++, dc1++) {
-					o_im2[dc2 + i * w2 + j] = i_im1[dc1];
-				}
-			}
-
-			//! Top and bottom
-			dc2 = c * w2 * h2 + p_borderSize;
-			for (unsigned j = 0; j < w1; j++, dc2++) {
-				for (unsigned i = 0; i < p_borderSize; i++) {
-					o_im2[dc2 + i * w2] = o_im2[dc2 + (2 * p_borderSize - i - 1) * w2];
-					o_im2[dc2 + (h2 - i - 1) * w2] =
-                        o_im2[dc2 + (h2 - 2 * p_borderSize + i) * w2];
-				}
-			}
-
-			//! Right and left
-			dc2 = c * w2 * h2;
-			for (unsigned i = 0; i < h2; i++) {
-				const unsigned di = dc2 + i * w2;
-				for (unsigned j = 0; j < p_borderSize; j++) {
-					o_im2[di + j] = o_im2[di + 2 * p_borderSize - j - 1];
-					o_im2[di + w2 - j - 1] = o_im2[di + w2 - 2 * p_borderSize + j];
-				}
-			}
-		}
-
-		//! Big to small
-		else {
-			dc2 = c * w2 * h2;
-			dc1	= c * w1 * h1 + p_borderSize * (w1 + 1);
-			for (unsigned i = 0; i < h2; i++) {
-				for (unsigned j = 0; j < w2; j++, dc2++) {
-					o_im2[dc2] = i_im1[dc1 + i * w1 + j];
-				}
-			}
-		}
-	}
-
-	return;
 }
 
 /**
@@ -463,101 +406,18 @@ void symetrizeImage(
  * @return none.
  **/
 void transformColorSpace(
-	std::vector<float> &io_im
-,	const ImageSize p_imSize
+	img_t<float> &io_im
 ,	const bool p_isForward
 ){
-	//! If the image as only one channel, do nothing
-	if (p_imSize.nChannels == 1) {
+	//! If the image has only one channel, do nothing
+	if (io_im.d == 1) {
 		return;
 	}
 
-	//! Initialization
-	const unsigned width	= p_imSize.width;
-	const unsigned height	= p_imSize.height;
-	const unsigned chnls	= p_imSize.nChannels;
-	const unsigned wh		= width * height;
-	vector<float> imTmp(wh * chnls);
-
-	//! RGB to YUV
-	if (p_isForward) {
-		if (chnls == 3) {
-			const unsigned red		= 0;
-			const unsigned green	= wh;
-			const unsigned blue		= wh * 2;
-			const float a			= 1.f / sqrtf(3.f);
-			const float b			= 1.f / sqrtf(2.f);
-			const float c			= 2.f * a * sqrtf(2.f);
-
-			for (unsigned k = 0; k < wh; k++) {
-				//! Y channel
-				imTmp[k + red	] = a * (io_im[k + red] + io_im[k + green] + io_im[k + blue]);
-
-				//! U channel
-				imTmp[k + green	] = b * (io_im[k + red] - io_im[k + blue]);
-
-				//! V channel
-				imTmp[k + blue	] = c * (0.25f * io_im[k + red] - 0.5f * io_im[k + green]
-										+ 0.25f * io_im[k + blue]);
-			}
-		}
-		else {	//! chnls == 4
-			const unsigned Gr	= 0;
-			const unsigned R	= wh;
-			const unsigned B	= wh * 2;
-			const unsigned Gb	= wh * 3;
-			const float a		= 0.5f;
-			const float b		= 1.f / sqrtf(2.f);
-			for (unsigned k = 0; k < wh; k++) {
-				imTmp[k + Gr] = a * (io_im[k + Gr] + io_im[k + R]
-									+ io_im[k + B] + io_im[k + Gb]);
-				imTmp[k + R ] = b * (io_im[k + R] - io_im[k + B]);
-				imTmp[k + B ] = a * (-io_im[k + Gr] + io_im[k + R]
-									+ io_im[k + B] - io_im[k + Gb]);
-				imTmp[k + Gb] = b * (-io_im[k + Gr] + io_im[k + Gb]);
-			}
-		}
-	}
-	//! YUV to RGB
-	else {
-		if (chnls == 3) {
-			const unsigned red		= 0;
-			const unsigned green	= wh;
-			const unsigned blue		= wh * 2;
-			const float a			= 1.f / sqrtf(3.f);
-			const float b			= 1.f / sqrtf(2.f);
-			const float c			= a / b;
-
-			for (unsigned k = 0; k < wh; k++) {
-				//! R channel
-				imTmp[k + red	] = a * io_im[k + red] + b * io_im[k + green]
-									+ c * 0.5f * io_im[k + blue];
-
-				//! G channel
-				imTmp[k + green	] = a * io_im[k + red] - c * io_im[k + blue];
-
-				//! B channel
-				imTmp[k + blue	] = a * io_im[k + red] - b * io_im[k + green]
-									+ c * 0.5f * io_im[k + blue];
-			}
-		}
-		else {	//! chnls == 4
-			const unsigned Gr	= 0;
-			const unsigned R	= wh;
-			const unsigned B	= wh * 2;
-			const unsigned Gb	= wh * 3;
-			const float a		= 0.5f;
-			const float b		= 1.f / sqrtf(2.f);
-			for (unsigned k = 0; k < wh; k++) {
-				imTmp[k + Gr] = a * io_im[k + Gr] - a * io_im[k + B] - b * io_im[k + Gb];
-				imTmp[k + R ] = a * io_im[k + Gr] + b * io_im[k + R] + a * io_im[k + B];
-				imTmp[k + B ] = a * io_im[k + Gr] - b * io_im[k + R] + a * io_im[k + B];
-				imTmp[k + Gb] = a * io_im[k + Gr] - a * io_im[k + B] + b * io_im[k + Gb];
-			}
-		}
-	}
-
-	io_im = std::move(imTmp);
+	// Delegates to the shared orthonormal opponent transform. nlbayes' planar
+	// [c*wh + ...] layout is img_t's planar layout;
+	// imgops::color_transform replicates the original arithmetic bit-for-bit.
+	imgops::color_transform(io_im, p_isForward);
 }
 
 /**
@@ -573,56 +433,46 @@ void transformColorSpace(
  * @return EXIT_FAILURE in case of problems.
  **/
 int subDivide(
-	std::vector<float> const& i_im
-,	std::vector<std::vector<float> > &o_imSub
-,	const ImageSize &p_imSize
-,	ImageSize &o_imSizeSub
+	img_t<float> const& i_im
+,	std::vector<img_t<float> > &o_imSub
 ,	const unsigned p_N
 ,	const unsigned p_nb
 ){
+	const unsigned chnls = i_im.d;
+
 	//! Determine width and height composition
 	unsigned nW, nH;
 	determineFactor(p_nb, nW, nH);
-	const unsigned wTmp = ceil(float(p_imSize.width)  / float(nW));
-	const unsigned hTmp = ceil(float(p_imSize.height) / float(nH));
+	const unsigned wTmp = ceil(float(i_im.w)  / float(nW));
+	const unsigned hTmp = ceil(float(i_im.h) / float(nH));
 
 	//! Add boundaries left and bottom
-	vector<float> imTmp;
-	ImageSize imSizeTmp;
-	imSizeTmp.width     = nW * wTmp;
-	imSizeTmp.height    = nH * hTmp;
-	imSizeTmp.nChannels = p_imSize.nChannels;
-	imSizeTmp.wh        = imSizeTmp.width * imSizeTmp.height;
-	imSizeTmp.whc       = imSizeTmp.wh * imSizeTmp.nChannels;
-	if (addBoundary(i_im, imTmp, p_imSize, imSizeTmp) != EXIT_SUCCESS) {
+	img_t<float> imTmp;
+	const unsigned widthTmp  = nW * wTmp;
+	const unsigned heightTmp = nH * hTmp;
+	if (addBoundary(i_im, imTmp, widthTmp, heightTmp) != EXIT_SUCCESS) {
         return EXIT_FAILURE;
 	}
 
     //! Symetrize boundaries of image
-	vector<float> imSymTmp;
-	ImageSize imSizeSym;
-	imSizeSym.width		= imSizeTmp.width  + 2 * p_N;
-	imSizeSym.height	= imSizeTmp.height + 2 * p_N;
-	imSizeSym.nChannels	= p_imSize.nChannels;
-	imSizeSym.wh		= imSizeSym.width * imSizeSym.height;
-	imSizeSym.whc		= imSizeSym.wh * imSizeSym.nChannels;
-    symetrizeImage(imTmp, imSymTmp, imSizeTmp, p_N, true);
+	img_t<float> imSymTmp;
+	const unsigned widthSym  = widthTmp  + 2 * p_N;
+	const unsigned heightSym = heightTmp + 2 * p_N;
+	const unsigned whSym     = widthSym * heightSym;
+    symetrizeImage(imTmp, imSymTmp, p_N, true);
 
     //! Obtain sub-images
-    o_imSizeSub.width       = wTmp + 2 * p_N;
-    o_imSizeSub.height      = hTmp + 2 * p_N;
-    o_imSizeSub.nChannels	= p_imSize.nChannels;
-	o_imSizeSub.wh		    = o_imSizeSub.width * o_imSizeSub.height;
-	o_imSizeSub.whc		    = o_imSizeSub.wh * o_imSizeSub.nChannels;
+    const unsigned widthSub  = wTmp + 2 * p_N;
+    const unsigned heightSub = hTmp + 2 * p_N;
 	o_imSub.resize(p_nb);
 	for (unsigned p = 0, n = 0; p < nH; p++) {
         for (unsigned q = 0; q < nW; q++, n++) {
-            o_imSub[n].resize(o_imSizeSub.whc);
-            for (unsigned c = 0, k = 0; c < p_imSize.nChannels; c++) {
-                const unsigned dc = c * imSizeSym.wh + p * hTmp * imSizeSym.width + wTmp * q;
-                for (unsigned i = 0; i < o_imSizeSub.height; i++) {
-                    for (unsigned j = 0; j < o_imSizeSub.width; j++, k++) {
-                        o_imSub[n][k] = imSymTmp[dc + i * imSizeSym.width + j];
+            o_imSub[n].resize(widthSub, heightSub, chnls);
+            for (unsigned c = 0, k = 0; c < chnls; c++) {
+                const unsigned dc = c * whSym + p * hTmp * widthSym + wTmp * q;
+                for (unsigned i = 0; i < heightSub; i++) {
+                    for (unsigned j = 0; j < widthSub; j++, k++) {
+                        o_imSub[n][k] = imSymTmp[dc + i * widthSym + j];
                     }
                 }
             }
@@ -644,36 +494,38 @@ int subDivide(
  * @return EXIT_FAILURE in case of problems.
  **/
 int subBuild(
-	std::vector<float> &o_im
-,	std::vector<std::vector<float> > const& i_imSub
-,	const ImageSize &p_imSize
-,	ImageSize &p_imSizeSub
+	img_t<float> &o_im
+,	std::vector<img_t<float> > const& i_imSub
 ,	const unsigned p_N
 ){
+	const unsigned chnls    = o_im.d;
+	const unsigned width    = o_im.w;
+	const unsigned height   = o_im.h;
+	const unsigned widthSub  = i_imSub[0].w;
+	const unsigned heightSub = i_imSub[0].h;
+	const unsigned whSub     = widthSub * heightSub;
+
     //! Determine width and height composition
 	unsigned nW, nH;
 	determineFactor(i_imSub.size(), nW, nH);
-	const unsigned hTmp = p_imSizeSub.height - 2 * p_N;
-	const unsigned wTmp = p_imSizeSub.width  - 2 * p_N;
+	const unsigned hTmp = heightSub - 2 * p_N;
+	const unsigned wTmp = widthSub  - 2 * p_N;
 
 	//! Obtain inner image (containing boundaries)
-	ImageSize imSizeTmp;
-	imSizeTmp.width     = wTmp * nW;
-	imSizeTmp.height    = hTmp * nH;
-	imSizeTmp.nChannels = p_imSize.nChannels;
-	imSizeTmp.wh        = imSizeTmp.width * imSizeTmp.height;
-	imSizeTmp.whc       = imSizeTmp.wh * imSizeTmp.nChannels;
-	vector<float> imTmp(imSizeTmp.whc);
+	const unsigned widthTmp  = wTmp * nW;
+	const unsigned heightTmp = hTmp * nH;
+	const unsigned whTmp     = widthTmp * heightTmp;
+	img_t<float> imTmp(widthTmp, heightTmp, chnls);
 
 	for (unsigned p = 0, n = 0; p < nH; p++) {
         for (unsigned q = 0; q < nW; q++, n++) {
-            for (unsigned c = 0; c < p_imSize.nChannels; c++) {
-                const unsigned dc   = c * imSizeTmp.wh + p * hTmp * imSizeTmp.width + q * wTmp;
-                const unsigned dcS  = c * p_imSizeSub.wh + p_N * p_imSizeSub.width + p_N;
+            for (unsigned c = 0; c < chnls; c++) {
+                const unsigned dc   = c * whTmp + p * hTmp * widthTmp + q * wTmp;
+                const unsigned dcS  = c * whSub + p_N * widthSub + p_N;
                 for (unsigned i = 0; i < hTmp; i++) {
                     for (unsigned j = 0; j < wTmp; j++) {
-                        imTmp[dc + i * imSizeTmp.width + j] =
-                            i_imSub[n][dcS + i * p_imSizeSub.width + j];
+                        imTmp[dc + i * widthTmp + j] =
+                            i_imSub[n][dcS + i * widthSub + j];
                     }
                 }
             }
@@ -681,6 +533,6 @@ int subBuild(
 	}
 
 	//! Remove Boundaries
-	return removeBoundary(o_im, imTmp, p_imSize, imSizeTmp);
+	return removeBoundary(o_im, imTmp, width, height);
 }
 

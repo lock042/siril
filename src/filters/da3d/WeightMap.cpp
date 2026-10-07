@@ -12,8 +12,8 @@
 #include <tuple>
 #include <algorithm>
 #include "WeightMap.hpp"
-#include "Image.hpp"
 #include "Utils.hpp"
+#include "algos/img_t/image.hpp"
 
 using std::max;
 using std::min;
@@ -89,17 +89,17 @@ pair<int, int> WeightMap::FindMinimum() const {
   return {row, col};
 }
 
-void WeightMap::IncreaseWeights(const Image &weights, int row0, int col0) {
-  assert(weights.channels() == 1);
+void WeightMap::IncreaseWeights(const img_t<float> &weights, int row0, int col0) {
+  assert(weights.d == 1);
   int firstrow = max(0, row0);
-  int lastrow = min(height(), row0 + weights.rows()) - 1;
+  int lastrow = min(height(), row0 + weights.h) - 1;
   int firstcol = max(0, col0);
-  int lastcol = min(width(), col0 + weights.columns()) - 1;
+  int lastcol = min(width(), col0 + weights.w) - 1;
 
   // Updates the level zero
   for (int row = firstrow; row <= lastrow; ++row) {
     for (int col = firstcol; col <= lastcol; ++col) {
-        val(col, row) += weights.val(col - col0, row - row0);
+        val(col, row) += weights(col - col0, row - row0);
     }
   }
   // Updates the other levels

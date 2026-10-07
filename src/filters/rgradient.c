@@ -27,6 +27,17 @@
 #include "core/gui_iface.h"
 #include "io/image_format_fits.h"
 #include "rgradient.h"
+#include "core/op_descriptors.h"
+
+/* Op descriptor — single source of truth for this operation (op_descriptor.h) */
+const op_descriptor op_desc_rgradient = {
+	.id = "filters.rgradient", .version = 1,
+	.image_hook = rgradient_image_hook,
+	.log_hook = rgradient_log_hook,
+	.description = N_("Rotational Gradient"),
+	.mem_ratio = 3.0f,
+	.flags = OP_MASK_CAPABLE,
+};
 
 /*****************************************************************************
  *      R G R A D I E N T   A L L O C A T O R   A N D   D E S T R U C T O R  *
@@ -77,7 +88,7 @@ static int apply_rgradient_filter(struct rgradient_data *args) {
 	fits *fit = args->fit;
 	int retval = 0;
 	const point center = {args->xc, args->yc};
-	const double dAlpha = M_PI / 180.0 * args->da;
+	const double dAlpha = G_PI / 180.0 * args->da;
 	gboolean was_ushort;
 	fits imA = { 0 }, imB = { 0 };
 

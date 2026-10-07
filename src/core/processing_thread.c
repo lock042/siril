@@ -131,6 +131,17 @@ static gboolean active_job_running = FALSE;
 /* ── Pseudo-PID for child list tracking ────────────────────────────────── */
 #define PROCESSING_THREAD_PSEUDO_PID ((GPid) -2)
 
+/* ── Post-job callback ───────────────────────────────────────────────────
+*
+* Optional GSourceFunc dispatched as a GTK idle after every job completes
+* and job_active_flag has been cleared.  Set via
+* processing_set_post_job_callback(); NULL means disabled.
+* Written only from the GTK main thread before any jobs run; read from
+* the worker thread — effectively read-only after initialisation so no
+* locking is needed.
+*/
+static GSourceFunc post_job_callback = NULL;
+
 /*****************************************************************************
 *    I N T E R N A L   H E L P E R S
 *****************************************************************************/
@@ -215,6 +226,12 @@ static gpointer worker_thread_main(gpointer user_data G_GNUC_UNUSED) {
         *   4. Free fire-and-forget jobs.
         */
         g_atomic_int_set(&job_active_flag, 0);
+
+		/* Notify any registered observer (e.g. the preview system) that the
+		 * slot is now free.  Dispatched as an idle so the callback runs on the
+		 * GTK main thread and is guaranteed to see job_active_flag == 0. */
+		if (post_job_callback)
+			g_idle_add(post_job_callback, NULL);
 
         g_mutex_lock(&queue_mutex);
         active_job_running = FALSE;
@@ -365,10 +382,9 @@ gboolean processing_submit_job(ProcessingFunc func, gpointer data) {
         gboolean reserved = python_reserved;
         g_mutex_unlock(&queue_mutex);
         if (reserved) {
-            siril_log_color_message(
+            siril_log_warning(
                 _("Processing thread is reserved by Python; "
-                  "cannot submit from GTK main thread.\n"),
-                "salmon");
+                  "cannot submit from GTK main thread.\n"));
             return FALSE;
         }
     } else {
@@ -458,19 +474,16 @@ int claim_thread_for_python(void) {
     * the queue being empty.
     */
     if (gui_iface.is_dialog_open()) {
-        siril_log_color_message(
+        siril_log_warning(
             _("A Siril image processing dialog is open. "
-              "It must be closed before Python can claim the processing thread.\n"),
-            "salmon");
+              "It must be closed before Python can claim the processing thread.\n"));
         return 2;
     }
 
     g_mutex_lock(&queue_mutex);
 
     if (python_reserved) {
-        siril_log_color_message(
-            _("Processing thread is already reserved by Python.\n"),
-            "salmon");
+        siril_log_warning(_("Processing thread is already reserved by Python.\n"));
         g_mutex_unlock(&queue_mutex);
         return 1;
     }
@@ -534,9 +547,7 @@ gboolean start_in_new_thread(ProcessingFunc func, gpointer data) {
         * already running.
         */
         if (processing_is_job_active()) {
-            siril_log_color_message(
-                _("The processing thread is busy, stop it first.\n"),
-                "salmon");
+            siril_log_warning(_("The processing thread is busy, stop it first.\n"));
             return FALSE;
         }
 
@@ -555,9 +566,7 @@ gboolean start_in_new_thread(ProcessingFunc func, gpointer data) {
 
     if (!add_child(PROCESSING_THREAD_PSEUDO_PID, INT_PROC_THREAD,
                    "Siril processing thread"))
-        siril_log_color_message(
-            _("Warning: failed to add processing thread to child list\n"),
-            "salmon");
+        siril_log_warning(_("Warning: failed to add processing thread to child list\n"));
 
     /*
     * Submit the job.  processing_submit_job handles the Python-reservation
@@ -598,9 +607,7 @@ gboolean start_in_reserved_thread(ProcessingFunc func, gpointer data) {
 
     if (!add_child(PROCESSING_THREAD_PSEUDO_PID, INT_PROC_THREAD,
                    "Siril processing thread"))
-        siril_log_color_message(
-            _("Warning: failed to add processing thread to child list\n"),
-            "salmon");
+        siril_log_warning(_("Warning: failed to add processing thread to child list\n"));
 
     /* job_active_flag is already 1 from reserve_thread(); no need to set it
      * again.  The worker sets it once more before executing, which is harmless. */
@@ -703,8 +710,15 @@ void stop_processing_thread(void) {
     */
     processing_request_cancel();
     remove_child_from_children(PROCESSING_THREAD_PSEUDO_PID);
-    if (!com.headless)
+    if (!com.headless) {
         gui_iface.set_busy(FALSE);
+        if (!com.script)
+            gui_iface.console_clear_status();
+    }
+}
+
+void processing_set_post_job_callback(GSourceFunc cb) {
+	post_job_callback = cb;
 }
 
 gboolean reserve_thread(void) {

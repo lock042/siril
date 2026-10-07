@@ -46,7 +46,14 @@ have_fftw3fomp = false
 have_fftw3fthreads = false
 have_fftw3fthreadsnolinkerarg = false
 
+# -Dgtk is a boolean:
+#   - true  → builds the GTK4 GUI from src/gui-gtk4 (default).
+#   - false → headless CLI-only build (no GTK / GtkSourceView / X11 deps).
 enable_gtk       = get_option('gtk')
+gui_subdir       = 'gui-gtk4'
+if enable_gtk
+  add_project_arguments('-DUSE_GTK4=1', language: ['c', 'cpp'])
+endif
 enable_openmp    = get_option('openmp')
 enable_libcurl   = get_option('libcurl')
 enable_sqlite    = get_option('sqlite')
@@ -251,7 +258,23 @@ endif
 # (-Dgtk=false).  The GUI/core boundary is enforced by siril_lib being compiled
 # against core_dep (GTK-free); any gui/ header leakage into core sources would
 # fail to compile.
-gtk_dep = enable_gtk ? dependency('gtk+-3.0', required : true, version: '>= 3.22.0') : no_dep
+#
+# 4.10 introduced GtkAlertDialog, GtkFileDialog, GtkColorDialog and
+# gtk_widget_add_css_class.  4.12 added gtk_column_view_scroll_to /
+# GTK_LIST_SCROLL_NONE which gui-gtk4/keywords_tree.c relies on, so
+# 4.12 is the effective floor for the GTK4 backend.
+if not enable_gtk
+  gtk_dep = no_dep
+else
+  gtk_dep = dependency('gtk4',     required : true, version: '>= 4.12.0')
+endif
+# libX11 is used by the GTK4 GDK X11 drag-and-drop fallback (see
+# src/gui-gtk4/single_image.c).  Gated by the legacy-x11-support option
+# and host OS — only built on Linux / BSD with GTK4; off elsewhere.
+enable_x11_dnd_fallback = (enable_gtk
+  and get_option('legacy-x11-support')
+  and host_machine.system() not in ['darwin', 'windows'])
+x11_dep = enable_x11_dnd_fallback ? dependency('x11', required : true) : no_dep
 # Cairo, Pango and gdk-pixbuf are used by io/siril_plot.c and io/ser.c which
 # are in the core library, so they are always required.
 cairo_dep = dependency('cairo', required : true, version: '>= 1.14.0')
@@ -294,12 +317,15 @@ else
 endif
 cairo_dep = dependency('cairo', required : true)
 kplot_dep = dependency('kplot', fallback : ['kplot', 'kplot_dep'], required : true)
-opencv4_dep = dependency('opencv4', required : true, version: '>= 4.2.0')
+opencv_dep = dependency('opencv5', version : '>= 5.0.0', required : false)
+if not opencv_dep.found()
+  opencv_dep = dependency('opencv4', version : '>= 4.2.0', required : true)
+endif
 # checking required opencv modules
-opencv_symbols = ['HAVE_OPENCV_CORE', 'HAVE_OPENCV_IMGPROC', 'HAVE_OPENCV_CALIB3D', 'HAVE_OPENCV_STITCHING']
-opencv_incdir = '-I'+opencv4_dep.get_variable(pkgconfig : 'includedir')
+opencv_calib_module = opencv_dep.version().version_compare('>= 5.0.0') ? 'HAVE_OPENCV_GEOMETRY' : 'HAVE_OPENCV_CALIB3D'
+opencv_symbols = ['HAVE_OPENCV_CORE', 'HAVE_OPENCV_IMGPROC', opencv_calib_module, 'HAVE_OPENCV_STITCHING']
 foreach s : opencv_symbols
-  cpp.has_header_symbol('opencv2/opencv_modules.hpp', s, args: [opencv_incdir], required : true)
+  cpp.has_header_symbol('opencv2/opencv_modules.hpp', s, dependencies: [opencv_dep], required : true)
 endforeach
 
 rtprocess_dep = dependency('rtprocess', required : false)
@@ -309,6 +335,7 @@ if not rtprocess_dep.found()
   # Call CMake with `-DBUILD_SHARED_LIBS=OFF`
   opt_var.add_cmake_defines({'BUILD_SHARED_LIBS': false})
   opt_var.add_cmake_defines({'OPTION_OMP': false})
+  opt_var.set_install(false)
   if get_option('buildtype').startswith('debug')
     opt_var.add_cmake_defines({'CMAKE_BUILD_TYPE': 'debug'})
   endif
@@ -326,6 +353,7 @@ if not htmesh_dep.found()
 
   # Call CMake with `-DCMAKE_CXX_FLAGS="-I$(abs_srcdir)/htmesh"
   opt_var.add_cmake_defines({'CMAKE_CXX_FLAGS': '-I'+meson.current_source_dir()+'/subprojects/htmesh'})
+  opt_var.set_install(false)
 if platform_windows
   opt_var.append_compile_args('cpp', '-Wno-unknown-pragmas')
 endif
@@ -336,7 +364,11 @@ endif
 else
   siril_cpp_flag += '-DHAVE_HTMESH'
 endif
-gtksourceview_dep = enable_gtk ? dependency('gtksourceview-4', required : true) : no_dep
+if not enable_gtk
+  gtksourceview_dep = no_dep
+else
+  gtksourceview_dep = dependency('gtksourceview-5', required : true)
+endif
 
 healpix_dep = dependency('healpix_cxx', fallback : ['healpix_cxx', 'healpix_cxx_dep'], required : true, version: '>= 3.83')
 yyjson_dep = dependency('yyjson', required : false, version: '>= 0.10.0')
@@ -344,6 +376,7 @@ if not yyjson_dep.found()
   opt_var = cmake.subproject_options()
   # Call CMake with `-DCMAKE_CXX_FLAGS="-I$(abs_srcdir)/htmesh"
   opt_var.add_cmake_defines({'CMAKE_CXX_FLAGS': '-I'+meson.current_source_dir()+'/subprojects/yyjson'})
+  opt_var.set_install(false)
 if platform_windows
   opt_var.append_compile_args('cpp', '-Wno-unknown-pragmas')
 endif
@@ -365,7 +398,8 @@ if enable_openmp
     siril_cpp_flag += ['-Xpreprocessor', '-fopenmp']
     siril_c_flag += ['-Xpreprocessor', '-fopenmp']
   else
-  openmp_dep = dependency('openmp', required : true)
+  # 4.5 (Nov 2015) needed for `#pragma omp simd reduction(min:...) reduction(max:...)`
+  openmp_dep = dependency('openmp', version : '>=4.5', required : true)
   endif
 else
   message('OpenMP disabled')
@@ -448,12 +482,15 @@ endif
 libgit2_dep = no_dep
 if enable_libgit2
   libgit2_dep = dependency('libgit2', required : true)
-  if libgit2_dep.version().version_compare('>=1.8.1') and libgit2_dep.version().version_compare('<1.9.1')
+  if libgit2_dep.version().version_compare('>=1.8.1') and libgit2_dep.version().version_compare('<1.9.3')
     libgit2_warning='''
 
-        libgit2 with a version between 1.8.0 and 1.9.0 is known to have serious issues.
+        libgit2 with a version between 1.8.0 and 1.9.2 is known to have issues that
+        have previously caused problems with synchronising local repositories with gitlab.
+        In practice this has been resolved by changes made by gitlab to their HTTP responses,
+        but for confidence that the issue cannot recur you should build against libgit2
+        1.9.3 or later.
         https://github.com/libgit2/libgit2/issues/7090
-        Please update to 1.9.1 or later.
     '''
     warning(libgit2_warning)
     warnings += libgit2_warning
@@ -504,6 +541,7 @@ conf_data.set('SIRIL_OUTPUT_DEBUG', get_option('buildtype').startswith('debug') 
 conf_data.set('ENABLE_RELOCATABLE_RESOURCES', relocatable_bundle ? 1 : false)
 conf_data.set('OS_OSX', platform_osx ? 1 : false)
 conf_data.set('HAVE_GTK', enable_gtk ? 1 : false, description : 'Build includes GTK GUI support.')
+conf_data.set('HAVE_X11_DND_FALLBACK', enable_x11_dnd_fallback ? 1 : false, description : 'GTK4 X11 drag-and-drop fallback compiled in (libX11 linked).')
 
 conf_data.set('SIRIL_MAJOR_VERSION', siril_version_major)
 conf_data.set('SIRIL_MINOR_VERSION', siril_version_minor)
@@ -583,7 +621,7 @@ foreach header : [
 endforeach
 
 ## Dependencies configuration
-if opencv4_dep.version().version_compare('>=4.4.0')
+if opencv_dep.version().version_compare('>=4.4.0')
   conf_data.set('HAVE_CV44', 1, description : 'Using OpenCV 4.4 and all registration features.')
 else
   warning('OpenCV 4.4 was not found, using a lower version that does not support translation-only registration instead.')
@@ -726,7 +764,7 @@ core_dep = declare_dependency(
     sqlite_dep,
     libgit2_dep,
     gsl_dep,
-    opencv4_dep,
+    opencv_dep,
     rtprocess_dep,
     htmesh_dep,
     healpix_dep,
@@ -755,6 +793,7 @@ externals_dep = declare_dependency(
     core_dep,
     gtk_dep,           # no_dep when -Dgtk=false
     gtksourceview_dep, # no_dep when -Dgtk=false
+    x11_dep,           # no_dep on non-X11 / headless builds
   ]
 )
 

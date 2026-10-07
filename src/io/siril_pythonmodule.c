@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #endif
 #include <string.h>
@@ -47,7 +48,7 @@
 #include "io/siril_pythonmodule.h"
 #include "io/siril_plot.h"
 #include "core/gui_iface.h"
-#include "gui/user_polygons.h"
+#include "gui-gtk4/user_polygons.h"
 
 // 65k buffer is enough for any object except pixel data and things
 // that could be an arbitrary length. For pixel data, FITS header,
@@ -57,9 +58,6 @@
 // anyone is likely to use with Siril, though there are some large
 // ones such as scanner profiles)...
 #define BUFFER_SIZE 65536
-#define MAX_RETRIES 3
-#define PIPE_NAME "\\\\.\\pipe\\mypipe"
-#define SOCKET_PORT 12345
 
 #define PIP_TIMEOUT_SECONDS 300
 #define PIP_MAX_RETRIES 3
@@ -105,7 +103,7 @@ gboolean send_response(Connection* conn, uint8_t status, const void* data, uint3
     // Single WriteFile call for atomic transfer
     if (!WriteFile(conn->pipe_handle, combined_buffer, total_size, &bytes_written, NULL) ||
         bytes_written != total_size) {
-        siril_log_message("Failed to send response: %lu\n", GetLastError());
+        siril_log_error("Failed to send response: %lu\n", GetLastError());
         free(combined_buffer);
         return FALSE;
     }
@@ -117,7 +115,7 @@ gboolean send_response(Connection* conn, uint8_t status, const void* data, uint3
 	// Send header
 	bytes_written = write(conn->client_fd, &header, sizeof(header));
 	if (bytes_written != sizeof(header)) {
-		siril_debug_print("Failed to send response header: %s\n", g_strerror(errno));
+		siril_log_debug("Failed to send response header: %s\n", g_strerror(errno));
 		return FALSE;
 	}
 
@@ -125,7 +123,7 @@ gboolean send_response(Connection* conn, uint8_t status, const void* data, uint3
 	if (data && length > 0) {
 		bytes_written = write(conn->client_fd, data, length);
 		if (bytes_written != length) {
-			siril_debug_print("Failed to send response data: %s\n", g_strerror(errno));
+			siril_log_debug("Failed to send response data: %s\n", g_strerror(errno));
 			return FALSE;
 		}
 	}
@@ -189,12 +187,12 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 	snprintf(shm_name_ptr, 30, "/%08x%08x%08x%04x", siril_random_int(), siril_random_int(), siril_random_int(), siril_random_int());
 	*fd = shm_open(shm_name_ptr, O_CREAT | O_RDWR | O_EXCL, S_IRUSR | S_IWUSR);
 	if (*fd == -1) {
-		siril_log_color_message(_("Invalid file descriptor after shm_open: %s\n"), "red", strerror(errno));
+		siril_log_error(_("Invalid file descriptor after shm_open: %s\n"), strerror(errno));
 		return FALSE;
 	}
 
 	if (*fd < 0) {
-		siril_log_color_message(_("Invalid file descriptor after shm_open\n"), "red");
+		siril_log_error(_("Invalid file descriptor after shm_open\n"));
 		shm_unlink(shm_name_ptr);
 		return FALSE;
 	}
@@ -202,7 +200,7 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 	// Round total_bytes up to page size
 	long page_size = sysconf(_SC_PAGESIZE);
 	if (page_size <= 0) {
-		siril_log_color_message(_("Invalid page size reported\n"), "red");
+		siril_log_error(_("Invalid page size reported\n"));
 		shm_unlink(shm_name_ptr);
 		return FALSE;
 	}
@@ -210,11 +208,11 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 	printf("SHM allocation: Original size: %zu, Aligned size: %" G_GOFFSET_FORMAT ", Page size: %ld\n",
 		   total_bytes, aligned_size, page_size);
 
-	siril_debug_print("Truncating shm file to %lu bytes\n", total_bytes);
+	siril_log_debug("Truncating shm file to %lu bytes\n", total_bytes);
 
 	// Truncate to ensure exact size
 	if (ftruncate(*fd, aligned_size) == -1) {
-		siril_log_color_message(_("Failed to set shared memory size (total_bytes: %ld): %s\n"), "red", aligned_size, strerror(errno));
+		siril_log_error(_("Failed to set shared memory size (total_bytes: %ld): %s\n"), aligned_size, strerror(errno));
 		close(*fd);
 		shm_unlink(shm_name_ptr);
 		return FALSE;
@@ -224,7 +222,7 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 	shm_ptr = mmap(NULL, (size_t) aligned_size, PROT_READ | PROT_WRITE,
 				MAP_SHARED, *fd, 0);
 	if (shm_ptr == MAP_FAILED) {
-		siril_log_color_message(_("Failed to map shared memory: %s\n"), "red", strerror(errno));
+		siril_log_error(_("Failed to map shared memory: %s\n"), strerror(errno));
 		close(*fd);
 		shm_unlink(shm_name_ptr);
 		return FALSE;
@@ -294,7 +292,7 @@ void cleanup_shm_allocation(Connection *conn, const char* shm_name) {
 		conn->g_shm_allocations = g_slist_remove(conn->g_shm_allocations, allocation);
 		g_free(allocation);
 	} else {
-		siril_debug_print("Error cleaning shared memory! No allocation found\n");
+		siril_log_debug("Error cleaning shared memory! No allocation found\n");
 	}
 
 	g_mutex_unlock(&conn->g_shm_mutex);
@@ -336,11 +334,25 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 	if (!fit || (fit->type == DATA_USHORT && !fit->data) || (fit->type == DATA_FLOAT && !fit->fdata)) {
 		const char* error_msg = _("Failed to retrieve pixel data - no FITS image");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_log_message("Error in send_response\n");
+			siril_log_error("Error in send_response\n");
 		return NULL;
 	}
-	if (region.h > 0 && region.w > 0)
-		region.y = fit->ry - region.y - region.h; // Flip vertically 
+	/* The region is supplied by the (possibly untrusted) script. Validate it
+	 * against the image bounds before it is used to compute memcpy offsets,
+	 * otherwise a crafted x/y/w/h reads arbitrary heap into shared memory that
+	 * the script can read back. Comparisons use subtraction to avoid int
+	 * overflow. */
+	if (region.w <= 0 || region.h <= 0 ||
+			region.x < 0 || region.y < 0 ||
+			region.w > (int)fit->rx || region.h > (int)fit->ry ||
+			region.x > (int)fit->rx - region.w ||
+			region.y > (int)fit->ry - region.h) {
+		const char* error_msg = _("Failed to retrieve pixel data - region exceeds image bounds");
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_error("Error in send_response\n");
+		return NULL;
+	}
+	region.y = fit->ry - region.y - region.h; // Flip vertically
 
 	// Calculate total size of pixel data
 	size_t total_bytes, row_bytes;
@@ -363,7 +375,7 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 	if (!siril_allocate_shm(&shm_ptr, shm_name, total_bytes, &win_handle)) {
 		const char* error_msg = _("Failed to allocate shared memory");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_log_message("Error in send_response\n");
+			siril_log_error("Error in send_response\n");
 		return NULL;
 	}
 #else
@@ -372,7 +384,7 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 	if (!siril_allocate_shm(&shm_ptr, shm_name_ptr, total_bytes, &fd)) {
 		const char* error_msg = _("Failed to allocate shared memory");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_log_message("Error in send_response\n");
+			siril_log_error("Error in send_response\n");
 		return NULL;
 	}
 #endif
@@ -381,7 +393,7 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 	if (shm_ptr == NULL) {
 		const char* error_msg = _("Failed to allocate shared memory");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_log_message("Error in send_response\n");
+			siril_log_error("Error in send_response\n");
 		return NULL;
 	}
 	if (as_preview) {
@@ -480,7 +492,7 @@ shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_
 	if (total_bytes == 0) {
 		const char* error_msg = _("Incorrect memory region specification");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_log_message("Error in send_response\n");
+			siril_log_error("Error in send_response\n");
 		return NULL;
 	}
 
@@ -492,7 +504,7 @@ shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_
 	if (!siril_allocate_shm(&shm_ptr, shm_name, total_bytes, &win_handle)) {
 		const char* error_msg = _("Failed to allocate shared memory");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_log_message("Error in send_response\n");
+			siril_log_error("Error in send_response\n");
 		return NULL;
 	}
 #else
@@ -500,7 +512,7 @@ shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_
 	if (!siril_allocate_shm(&shm_ptr, shm_name, total_bytes, &fd)) {
 		const char* error_msg = _("Failed to allocate shared memory");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_log_message("Error in send_response\n");
+			siril_log_error("Error in send_response\n");
 		return NULL;
 	}
 #endif
@@ -509,7 +521,7 @@ shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_
 	if (shm_ptr == NULL) {
 		const char* error_msg = _("Failed to allocate shared memory");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_log_message("Error in send_response\n");
+			siril_log_error("Error in send_response\n");
 		return NULL;
 	}
 
@@ -547,25 +559,26 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 								"This is a script error: claim_thread() has either not been called or has failed, or "
 								"the thread has been released too early.");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_log_message("Error in send_response\n");
+			siril_log_error("Error in send_response\n");
 		return FALSE;
 	}
 
 	if (!single_image_is_loaded() && !sequence_is_loaded()) {
 		const char* error_msg = _("No image or sequence loaded: set_pixel_data() can only be used to update a loaded image, not to create a new one");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_log_message("Error in send_response\n");
+			siril_log_error("Error in send_response\n");
 		return FALSE;
 	}
 
 	if (payload_length != sizeof(incoming_image_info_t)) {
 		const char* error_msg = _("Invalid image info size");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_log_message("Error in send_response\n");
+			siril_log_error("Error in send_response\n");
 		return FALSE;
 	}
 
 	incoming_image_info_t* info = (incoming_image_info_t*)payload;
+	info->shm_name[sizeof(info->shm_name) - 1] = '\0';
 	info->width = GUINT32_FROM_BE(info->width);
 	info->height = GUINT32_FROM_BE(info->height);
 	info->channels = GUINT32_FROM_BE(info->channels);
@@ -573,36 +586,39 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	if (info->size > get_available_memory() / 2) {
 		const char* error_msg = _("Invalid image size: exceeds memory limit");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_log_message("Error in send_response\n");
+			siril_log_error("Error in send_response\n");
 		return FALSE;
 	}
 	info->data_type = GUINT32_FROM_BE(info->data_type);
-	// Validate image dimensions and format
+	// Validate image dimensions and format. The width/height cap is deliberately
+	// far larger than any real image (100000 x 100000 = 1e10 px) but bounds the
+	// untrusted dimensions so width*height*channels cannot overflow below.
 	if (info->width == 0 || info->height == 0 || info->channels == 0 ||
-		info->channels > 3 || info->size == 0) {
+		info->channels > 3 || info->size == 0 ||
+		info->width > 100000 || info->height > 100000) {
 		gchar size_str[32];
 		g_snprintf(size_str, sizeof(size_str), "%" G_GUINT64_FORMAT, info->size);
 		gchar *error_msg = g_strdup_printf(_("Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %s"), info->width, info->height, info->channels, size_str);
 
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_log_message("Error in send_response\n");
+			siril_log_error("Error in send_response\n");
 		g_free(error_msg);
 		return FALSE;
 	}
-	// Compute and sanitize ncpixels
-	size_t ncpixels = info->width * info->height * info->channels;
-	siril_debug_print("received w x h x c: %d x %d x %d\n", info->width, info->height, info->channels);
+	// Compute in 64-bit: the bare uint32 product would wrap before reaching size_t.
+	size_t ncpixels = (size_t)info->width * info->height * info->channels;
+	siril_log_debug("received w x h x c: %d x %d x %d\n", info->width, info->height, info->channels);
 	size_t expected_size = ncpixels * (info->data_type == 0 ? sizeof(WORD) : sizeof(float));
 	if (info->size != expected_size) {
 		const char* error_msg = _("Error: image pixelbuffer does not match expected size");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_log_message(_("Error in send_response: size mismatch\n"));
+			siril_log_error(_("Error in send_response: size mismatch\n"));
 		return FALSE;
 	}
 	if (expected_size > get_available_memory() / 2) {
 		const char* error_msg = _("Error: image dimensions exceed available memory");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_log_message(_("Error in send_response: image exceeds available memory\n"));
+			siril_log_error(_("Error in send_response: image exceeds available memory\n"));
 		return FALSE;
 	}
 
@@ -614,7 +630,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 		if (mapping == NULL) {
 			const char* error_msg = "Failed to open shared memory mapping";
 			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-				siril_log_message("Error in send_response\n");
+				siril_log_error("Error in send_response\n");
 			return FALSE;
 		}
 		shm_ptr = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, info->size);
@@ -622,8 +638,19 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 			CloseHandle(mapping);
 			const char* error_msg = "Failed to map shared memory view";
 			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-				siril_log_message("Error in send_response\n");
+				siril_log_error("Error in send_response\n");
 			return FALSE;
+		}
+		{
+			MEMORY_BASIC_INFORMATION _shmmbi;
+			if (VirtualQuery(shm_ptr, &_shmmbi, sizeof(_shmmbi)) == 0 || _shmmbi.RegionSize < info->size) {
+				UnmapViewOfFile(shm_ptr);
+				CloseHandle(mapping);
+				const char* error_msg = "Shared memory object is smaller than the declared size";
+				if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+					siril_log_error("Error in send_response\n");
+				return FALSE;
+			}
 		}
 		win_handle.mapping = mapping;
 		win_handle.ptr = shm_ptr;
@@ -631,17 +658,27 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 		int fd = shm_open(info->shm_name, O_RDONLY, 0);
 		if (fd == -1) {
 			const char* error_msg = _("Failed to open shared memory");
-			siril_debug_print("SHM ERROR: %s\n", error_msg);
+			siril_log_debug("SHM ERROR: %s\n", error_msg);
 			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-				siril_log_message("Error in send_response\n");
+				siril_log_error("Error in send_response\n");
 			return FALSE;
+		}
+		{
+			struct stat _shmst;
+			if (fstat(fd, &_shmst) == -1 || (size_t)_shmst.st_size < info->size) {
+				close(fd);
+				const char* error_msg = _("Shared memory object is smaller than the declared size");
+				if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+					siril_log_error("Error in send_response\n");
+				return FALSE;
+			}
 		}
 		shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
 		if (shm_ptr == MAP_FAILED) {
 			close(fd);
 			const char* error_msg = _("Failed to map shared memory");
 			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-				siril_log_message("Error in send_response\n");
+				siril_log_error("Error in send_response\n");
 			return FALSE;
 		}
 	#endif
@@ -659,7 +696,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 			alloc_err = TRUE;
 		} else {
 			for (int i = 0 ; i < info->channels ; i++) {
-				fit->pdata[i] = fit->data + i * info->width * info->height;
+				fit->pdata[i] = fit->data + (size_t)i * info->width * info->height;
 			}
 		}
 	} else { // FLOAT data
@@ -668,7 +705,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 			alloc_err = TRUE;
 		} else {
 			for (int i = 0 ; i < info->channels ; i++) {
-				fit->fpdata[i] = fit->fdata + i * info->width * info->height;
+				fit->fpdata[i] = fit->fdata + (size_t)i * info->width * info->height;
 			}
 		}
 	}
@@ -682,7 +719,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 		#endif
 		const char* error_msg = _("Failed to allocate image buffer");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_log_message("Error in send_response\n");
+			siril_log_error("Error in send_response\n");
 		return FALSE;
 	}
 
@@ -698,7 +735,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 
 	// Ensure fit->stats is sized correctly
 	if (info->channels != fit->naxes[2]) {
-		siril_debug_print("Resizing stats allocation to match new channels\n");
+		siril_log_debug("Resizing stats allocation to match new channels\n");
 		free(fit->stats);
 		fit->stats = calloc(info->channels, sizeof(imstats*));
 	}
@@ -731,14 +768,14 @@ gboolean handle_set_image_mask_request(Connection *conn, fits *fit, incoming_ima
 								"This is a script error: claim_thread() has either not been called or has failed, or "
 								"the thread has been released too early.");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_log_message("Error in send_response\n");
+			siril_log_error("Error in send_response\n");
 		return FALSE;
 	}
 
 	if (!single_image_is_loaded()) {
 		const char* error_msg = _("No image loaded: set_image_mask() can only be used to create or update the mask of a loaded single image");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_log_message("Error in send_response\n");
+			siril_log_error("Error in send_response\n");
 		return FALSE;
 	}
 
@@ -750,7 +787,7 @@ gboolean handle_set_image_mask_request(Connection *conn, fits *fit, incoming_ima
 	if (info->size > get_available_memory() / 2) {
 		const char* error_msg = _("Invalid mask size: exceeds memory limit");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_log_message("Error in send_response\n");
+			siril_log_error("Error in send_response\n");
 		return FALSE;
 	}
 	info->data_type = GUINT32_FROM_BE(info->data_type);
@@ -763,24 +800,24 @@ gboolean handle_set_image_mask_request(Connection *conn, fits *fit, incoming_ima
 		gchar *error_msg = g_strdup_printf(_("Invalid mask dimensions or format: w = %u, h = %u, bitpix = %u, size = %s"), info->width, info->height, info->data_type, size_str);
 
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_log_message("Error in send_response\n");
+			siril_log_error("Error in send_response\n");
 		g_free(error_msg);
 		return FALSE;
 	}
 	// Compute and sanitize ncpixels
 	size_t npixels = info->width * info->height;
-	siril_debug_print("received w x h: %d x %d\n", info->width, info->height);
+	siril_log_debug("received w x h: %d x %d\n", info->width, info->height);
 	size_t expected_size = npixels * (bitpix >> 3); // divide by 8
 	if (info->size != expected_size) {
 		const char* error_msg = _("Error: mask buffer does not match expected size");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_log_message(_("Error in send_response: size mismatch\n"));
+			siril_log_error(_("Error in send_response: size mismatch\n"));
 		return FALSE;
 	}
 	if (expected_size > get_available_memory() / 2) {
 		const char* error_msg = _("Error: mask exceeds available memory");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_log_message(_("Error in send_response: mask exceeds available memory\n"));
+			siril_log_error(_("Error in send_response: mask exceeds available memory\n"));
 		return FALSE;
 	}
 
@@ -792,7 +829,7 @@ gboolean handle_set_image_mask_request(Connection *conn, fits *fit, incoming_ima
 		if (mapping == NULL) {
 			const char* error_msg = "Failed to open shared memory mapping";
 			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-				siril_log_message("Error in send_response\n");
+				siril_log_error("Error in send_response\n");
 			return FALSE;
 		}
 		shm_ptr = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, info->size);
@@ -800,8 +837,19 @@ gboolean handle_set_image_mask_request(Connection *conn, fits *fit, incoming_ima
 			CloseHandle(mapping);
 			const char* error_msg = "Failed to map shared memory view";
 			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-				siril_log_message("Error in send_response\n");
+				siril_log_error("Error in send_response\n");
 			return FALSE;
+		}
+		{
+			MEMORY_BASIC_INFORMATION _shmmbi;
+			if (VirtualQuery(shm_ptr, &_shmmbi, sizeof(_shmmbi)) == 0 || _shmmbi.RegionSize < info->size) {
+				UnmapViewOfFile(shm_ptr);
+				CloseHandle(mapping);
+				const char* error_msg = "Shared memory object is smaller than the declared size";
+				if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+					siril_log_error("Error in send_response\n");
+				return FALSE;
+			}
 		}
 		win_handle.mapping = mapping;
 		win_handle.ptr = shm_ptr;
@@ -809,17 +857,27 @@ gboolean handle_set_image_mask_request(Connection *conn, fits *fit, incoming_ima
 		int fd = shm_open(info->shm_name, O_RDONLY, 0);
 		if (fd == -1) {
 			const char* error_msg = _("Failed to open shared memory");
-			siril_debug_print("SHM ERROR: %s\n", error_msg);
+			siril_log_debug("SHM ERROR: %s\n", error_msg);
 			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-				siril_log_message("Error in send_response\n");
+				siril_log_error("Error in send_response\n");
 			return FALSE;
+		}
+		{
+			struct stat _shmst;
+			if (fstat(fd, &_shmst) == -1 || (size_t)_shmst.st_size < info->size) {
+				close(fd);
+				const char* error_msg = _("Shared memory object is smaller than the declared size");
+				if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+					siril_log_error("Error in send_response\n");
+				return FALSE;
+			}
 		}
 		shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
 		if (shm_ptr == MAP_FAILED) {
 			close(fd);
 			const char* error_msg = _("Failed to map shared memory");
 			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-				siril_log_message("Error in send_response\n");
+				siril_log_error("Error in send_response\n");
 			return FALSE;
 		}
 	#endif
@@ -852,7 +910,7 @@ gboolean handle_set_image_mask_request(Connection *conn, fits *fit, incoming_ima
 		#endif
 		const char* error_msg = _("Failed to allocate image buffer");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_log_message("Error in send_response\n");
+			siril_log_error("Error in send_response\n");
 		return FALSE;
 	}
 
@@ -883,11 +941,14 @@ gboolean handle_save_image_file_request(Connection *conn, const char* payload, s
 	if (payload_length != sizeof(save_image_info_t)) {
 		const char* error_msg = _("Invalid save image info size");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_debug_print("Error in send_response\n");
+			siril_log_debug("Error in send_response\n");
 		return FALSE;
 	}
 
 	save_image_info_t* info = (save_image_info_t*)payload;
+	info->image_shm_name[sizeof(info->image_shm_name) - 1] = '\0';
+	info->header_shm_name[sizeof(info->header_shm_name) - 1] = '\0';
+	info->filename[sizeof(info->filename) - 1] = '\0';
 
 	// Convert from network byte order
 	info->width = GUINT32_FROM_BE(info->width);
@@ -897,34 +958,37 @@ gboolean handle_save_image_file_request(Connection *conn, const char* payload, s
 	info->image_size = GUINT64_FROM_BE(info->image_size);
 	info->header_size = GUINT64_FROM_BE(info->header_size);
 
-	// Validate image dimensions and format
+	// Validate image dimensions and format. The width/height cap is far larger
+	// than any real image but bounds the untrusted dimensions so the pixel-count
+	// products below cannot overflow.
 	if (info->width == 0 || info->height == 0 || info->channels == 0 ||
-		info->channels > 3 || info->image_size == 0) {
+		info->channels > 3 || info->image_size == 0 ||
+		info->width > 100000 || info->height > 100000) {
 		gchar size_str[32];
 		g_snprintf(size_str, sizeof(size_str), "%" G_GUINT64_FORMAT, info->image_size);
 		gchar *error_msg = g_strdup_printf(_("Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %s"),
 										info->width, info->height, info->channels, size_str);
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_debug_print("Error in send_response\n");
+			siril_log_debug("Error in send_response\n");
 		g_free(error_msg);
 		return FALSE;
 	}
 
-	// Validate size
-	size_t ncpixels = info->width * info->height * info->channels;
+	// Validate size; compute in 64-bit (the bare uint32 product would wrap).
+	size_t ncpixels = (size_t)info->width * info->height * info->channels;
 	size_t expected_size = ncpixels * (info->data_type == 0 ? sizeof(WORD) : sizeof(float));
 
 	if (info->image_size != expected_size) {
 		const char* error_msg = _("Error: image pixelbuffer does not match expected size");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_debug_print("Error in send_response\n");
+			siril_log_debug("Error in send_response\n");
 		return FALSE;
 	}
 
 	if (expected_size > get_available_memory() / 2) {
 		const char* error_msg = _("Error: image dimensions exceed available memory");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_debug_print("Error in send_response\n");
+			siril_log_debug("Error in send_response\n");
 		return FALSE;
 	}
 
@@ -936,7 +1000,7 @@ gboolean handle_save_image_file_request(Connection *conn, const char* payload, s
 		if (data_mapping == NULL) {
 			const char* error_msg = "Failed to open shared memory mapping for image data";
 			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_debug_print("Error in send_response\n");
+			siril_log_debug("Error in send_response\n");
 			return FALSE;
 		}
 		shm_data_ptr = MapViewOfFile(data_mapping, FILE_MAP_READ, 0, 0, info->image_size);
@@ -944,8 +1008,19 @@ gboolean handle_save_image_file_request(Connection *conn, const char* payload, s
 			CloseHandle(data_mapping);
 			const char* error_msg = "Failed to map shared memory view for image data";
 			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_debug_print("Error in send_response\n");
+			siril_log_debug("Error in send_response\n");
 			return FALSE;
+		}
+		{
+			MEMORY_BASIC_INFORMATION _shmmbi;
+			if (VirtualQuery(shm_data_ptr, &_shmmbi, sizeof(_shmmbi)) == 0 || _shmmbi.RegionSize < info->image_size) {
+				UnmapViewOfFile(shm_data_ptr);
+				CloseHandle(data_mapping);
+				const char* error_msg = "Shared memory object is smaller than the declared size";
+				if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+					siril_log_error("Error in send_response\n");
+				return FALSE;
+			}
 		}
 		win_data_handle.mapping = data_mapping;
 		win_data_handle.ptr = shm_data_ptr;
@@ -954,15 +1029,25 @@ gboolean handle_save_image_file_request(Connection *conn, const char* payload, s
 		if (data_fd == -1) {
 			const char* error_msg = _("Failed to open shared memory for image data");
 			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_debug_print("Error in send_response\n");
+			siril_log_debug("Error in send_response\n");
 			return FALSE;
+		}
+		{
+			struct stat _shmst;
+			if (fstat(data_fd, &_shmst) == -1 || (size_t)_shmst.st_size < info->image_size) {
+				close(data_fd);
+				const char* error_msg = _("Shared memory object is smaller than the declared size");
+				if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+					siril_log_error("Error in send_response\n");
+				return FALSE;
+			}
 		}
 		shm_data_ptr = mmap(NULL, info->image_size, PROT_READ, MAP_SHARED, data_fd, 0);
 		if (shm_data_ptr == MAP_FAILED) {
 			close(data_fd);
 			const char* error_msg = _("Failed to map shared memory for image data");
 			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_debug_print("Error in send_response\n");
+			siril_log_debug("Error in send_response\n");
 			return FALSE;
 		}
 	#endif
@@ -982,7 +1067,7 @@ gboolean handle_save_image_file_request(Connection *conn, const char* payload, s
 			#endif
 			const char* error_msg = "Failed to open shared memory mapping for header";
 			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_debug_print("Error in send_response\n");
+			siril_log_debug("Error in send_response\n");
 			return FALSE;
 		}
 		shm_header_ptr = MapViewOfFile(header_mapping, FILE_MAP_READ, 0, 0, info->header_size);
@@ -997,8 +1082,19 @@ gboolean handle_save_image_file_request(Connection *conn, const char* payload, s
 			#endif
 			const char* error_msg = "Failed to map shared memory view for header";
 			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_debug_print("Error in send_response\n");
+			siril_log_debug("Error in send_response\n");
 			return FALSE;
+		}
+		{
+			MEMORY_BASIC_INFORMATION _shmmbi;
+			if (VirtualQuery(shm_header_ptr, &_shmmbi, sizeof(_shmmbi)) == 0 || _shmmbi.RegionSize < info->header_size) {
+				UnmapViewOfFile(shm_header_ptr);
+				CloseHandle(header_mapping);
+				const char* error_msg = "Shared memory object is smaller than the declared size";
+				if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+					siril_log_error("Error in send_response\n");
+				return FALSE;
+			}
 		}
 		win_header_handle.mapping = header_mapping;
 		win_header_handle.ptr = shm_header_ptr;
@@ -1009,8 +1105,18 @@ gboolean handle_save_image_file_request(Connection *conn, const char* payload, s
 			close(data_fd);
 			const char* error_msg = _("Failed to open shared memory for header");
 			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_debug_print("Error in send_response\n");
+			siril_log_debug("Error in send_response\n");
 			return FALSE;
+		}
+		{
+			struct stat _shmst;
+			if (fstat(header_fd, &_shmst) == -1 || (size_t)_shmst.st_size < info->header_size) {
+				close(header_fd);
+				const char* error_msg = _("Shared memory object is smaller than the declared size");
+				if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+					siril_log_error("Error in send_response\n");
+				return FALSE;
+			}
 		}
 		shm_header_ptr = mmap(NULL, info->header_size, PROT_READ, MAP_SHARED, header_fd, 0);
 		if (shm_header_ptr == MAP_FAILED) {
@@ -1019,7 +1125,7 @@ gboolean handle_save_image_file_request(Connection *conn, const char* payload, s
 			close(data_fd);
 			const char* error_msg = _("Failed to map shared memory for header");
 			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_debug_print("Error in send_response\n");
+			siril_log_debug("Error in send_response\n");
 			return FALSE;
 		}
 	#endif
@@ -1035,7 +1141,7 @@ gboolean handle_save_image_file_request(Connection *conn, const char* payload, s
 			alloc_err = TRUE;
 		} else {
 			for (int i = 0; i < info->channels; i++) {
-				fit.pdata[i] = fit.data + i * info->width * info->height;
+				fit.pdata[i] = fit.data + (size_t)i * info->width * info->height;
 			}
 		}
 	} else { // FLOAT data
@@ -1044,7 +1150,7 @@ gboolean handle_save_image_file_request(Connection *conn, const char* payload, s
 			alloc_err = TRUE;
 		} else {
 			for (int i = 0; i < info->channels; i++) {
-				fit.fpdata[i] = fit.fdata + i * info->width * info->height;
+				fit.fpdata[i] = fit.fdata + (size_t)i * info->width * info->height;
 			}
 		}
 	}
@@ -1063,7 +1169,7 @@ gboolean handle_save_image_file_request(Connection *conn, const char* payload, s
 		#endif
 		const char* error_msg = _("Failed to allocate image buffer");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_debug_print("Error in send_response\n");
+			siril_log_debug("Error in send_response\n");
 		clearfits(&fit);
 		return FALSE;
 	}
@@ -1091,7 +1197,7 @@ gboolean handle_save_image_file_request(Connection *conn, const char* payload, s
 		munmap(shm_data_ptr, info->image_size);
 		close(data_fd);
 #endif
-		siril_debug_print("Error parsing FITS header in save_image_to_file()\n");
+		siril_log_debug("Error parsing FITS header in save_image_to_file()\n");
 		return FALSE;
 	}
 
@@ -1106,7 +1212,7 @@ gboolean handle_save_image_file_request(Connection *conn, const char* payload, s
 
 	// Save the fit structure to disk using info->filename
 	savefits(info->filename, &fit);
-	siril_debug_print("Saving image to file: %s\n", info->filename);
+	siril_log_debug("Saving image to file: %s\n", info->filename);
 
 	// Cleanup shared memory
 #ifdef _WIN32
@@ -1147,6 +1253,17 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 		const char* error_msg = "Failed to map shared memory view";
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
+	{
+		MEMORY_BASIC_INFORMATION _shmmbi;
+		if (VirtualQuery(shm_ptr, &_shmmbi, sizeof(_shmmbi)) == 0 || _shmmbi.RegionSize < info->size) {
+			UnmapViewOfFile(shm_ptr);
+			CloseHandle(mapping);
+			const char* error_msg = "Shared memory object is smaller than the declared size";
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_error("Error in send_response\n");
+			return FALSE;
+		}
+	}
 	win_handle.mapping = mapping;
 	win_handle.ptr = shm_ptr;
 #else
@@ -1154,6 +1271,16 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 	if (fd == -1) {
 		const char* error_msg = _("Failed to open shared memory");
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	{
+		struct stat _shmst;
+		if (fstat(fd, &_shmst) == -1 || (size_t)_shmst.st_size < info->size) {
+			close(fd);
+			const char* error_msg = _("Shared memory object is smaller than the declared size");
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_error("Error in send_response\n");
+			return FALSE;
+		}
 	}
 	shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
 	if (shm_ptr == MAP_FAILED) {
@@ -1214,9 +1341,9 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 				filename = gui_iface.build_save_filename(basepath, ".svg", plot_data->forsequence, FALSE);
 				siril_plot_save_svg(plot_data, filename, width, height);
 #else
-				siril_log_color_message(_("Error: Siril has been compiled with a version of Cairo "
+				siril_log_error(_("Error: Siril has been compiled with a version of Cairo "
 					"that does not provide SVG surface support. Saving plots as SVG is not "
-					"possible with this build.\n"), "red");
+					"possible with this build.\n"));
 #endif
 			}
 			siril_log_message(_("Saved plot to %s\n"), filename);
@@ -1232,6 +1359,15 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 }
 
 gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_info_t* info, gboolean show_samples, gboolean recalculate) {
+	if (!conn->thread_claimed) {
+		const char* error_msg = _("Processing thread is not claimed: unable to update the background samples. "
+								"This is a script error: claim_thread() has either not been called or has failed, or "
+								"the thread has been released too early.");
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_error("Error in send_response\n");
+		return FALSE;
+	}
+
 	// Open shared memory
 	void* shm_ptr = NULL;
 #ifdef _WIN32
@@ -1247,6 +1383,17 @@ gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_inf
 		const char* error_msg = "Failed to map shared memory view";
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
+	{
+		MEMORY_BASIC_INFORMATION _shmmbi;
+		if (VirtualQuery(shm_ptr, &_shmmbi, sizeof(_shmmbi)) == 0 || _shmmbi.RegionSize < info->size) {
+			UnmapViewOfFile(shm_ptr);
+			CloseHandle(mapping);
+			const char* error_msg = "Shared memory object is smaller than the declared size";
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_error("Error in send_response\n");
+			return FALSE;
+		}
+	}
 	win_handle.mapping = mapping;
 	win_handle.ptr = shm_ptr;
 #else
@@ -1254,6 +1401,16 @@ gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_inf
 	if (fd == -1) {
 		const char* error_msg = _("Failed to open shared memory");
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	{
+		struct stat _shmst;
+		if (fstat(fd, &_shmst) == -1 || (size_t)_shmst.st_size < info->size) {
+			close(fd);
+			const char* error_msg = _("Shared memory object is smaller than the declared size");
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_error("Error in send_response\n");
+			return FALSE;
+		}
 	}
 	shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
 	if (shm_ptr == MAP_FAILED) {
@@ -1323,6 +1480,15 @@ gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_inf
 }
 
 gboolean handle_set_image_header_request(Connection* conn, const incoming_image_info_t* info) {
+	if (!conn->thread_claimed) {
+		const char* error_msg = _("Processing thread is not claimed: unable to update the image header. "
+								"This is a script error: claim_thread() has either not been called or has failed, or "
+								"the thread has been released too early.");
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_error("Error in send_response\n");
+		return FALSE;
+	}
+
 	// Open shared memory
 	void* shm_ptr = NULL;
 	#ifdef _WIN32
@@ -1338,6 +1504,17 @@ gboolean handle_set_image_header_request(Connection* conn, const incoming_image_
 		const char* error_msg = "Failed to map shared memory view";
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
+	{
+		MEMORY_BASIC_INFORMATION _shmmbi;
+		if (VirtualQuery(shm_ptr, &_shmmbi, sizeof(_shmmbi)) == 0 || _shmmbi.RegionSize < info->size) {
+			UnmapViewOfFile(shm_ptr);
+			CloseHandle(mapping);
+			const char* error_msg = "Shared memory object is smaller than the declared size";
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_error("Error in send_response\n");
+			return FALSE;
+		}
+	}
 	win_handle.mapping = mapping;
 	win_handle.ptr = shm_ptr;
 	#else
@@ -1345,6 +1522,16 @@ gboolean handle_set_image_header_request(Connection* conn, const incoming_image_
 	if (fd == -1) {
 		const char* error_msg = _("Failed to open shared memory");
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	{
+		struct stat _shmst;
+		if (fstat(fd, &_shmst) == -1 || (size_t)_shmst.st_size < info->size) {
+			close(fd);
+			const char* error_msg = _("Shared memory object is smaller than the declared size");
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_error("Error in send_response\n");
+			return FALSE;
+		}
 	}
 	shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
 	if (shm_ptr == MAP_FAILED) {
@@ -1358,12 +1545,16 @@ gboolean handle_set_image_header_request(Connection* conn, const incoming_image_
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
 
-	// Unpack the FITS header string
-	char *header = (char*) shm_ptr;
-	if (fits_parse_header_str(gfit, header)) {
+	// Unpack the FITS header string. The shared memory is not guaranteed to
+	// contain a NUL within info->size bytes, so make a bounded, NUL-terminated
+	// copy rather than scanning shm_ptr directly (which could over-read).
+	char *header = g_strndup((const char*) shm_ptr, info->size);
+	int header_parse_failed = fits_parse_header_str(gfit, header);
+	g_free(header);
+	if (header_parse_failed) {
 		const char* error_msg = _("Error: could not parse FITS header string");
 		if (send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_debug_print("Error in send_response()\n");
+			siril_log_debug("Error in send_response()\n");
 		goto cleanup;
 	}
 	update_fits_header(gfit);
@@ -1384,6 +1575,15 @@ cleanup:
 }
 
 gboolean handle_set_iccprofile_request(Connection* conn, const incoming_image_info_t* info) {
+	if (!conn->thread_claimed) {
+		const char* error_msg = _("Processing thread is not claimed: unable to update the ICC profile. "
+								"This is a script error: claim_thread() has either not been called or has failed, or "
+								"the thread has been released too early.");
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_error("Error in send_response\n");
+		return FALSE;
+	}
+
 	// Open shared memory
 	void* shm_ptr = NULL;
 	#ifdef _WIN32
@@ -1399,6 +1599,17 @@ gboolean handle_set_iccprofile_request(Connection* conn, const incoming_image_in
 		const char* error_msg = "Failed to map shared memory view";
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
+	{
+		MEMORY_BASIC_INFORMATION _shmmbi;
+		if (VirtualQuery(shm_ptr, &_shmmbi, sizeof(_shmmbi)) == 0 || _shmmbi.RegionSize < info->size) {
+			UnmapViewOfFile(shm_ptr);
+			CloseHandle(mapping);
+			const char* error_msg = "Shared memory object is smaller than the declared size";
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_error("Error in send_response\n");
+			return FALSE;
+		}
+	}
 	win_handle.mapping = mapping;
 	win_handle.ptr = shm_ptr;
 	#else
@@ -1406,6 +1617,16 @@ gboolean handle_set_iccprofile_request(Connection* conn, const incoming_image_in
 	if (fd == -1) {
 		const char* error_msg = _("Failed to open shared memory");
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	{
+		struct stat _shmst;
+		if (fstat(fd, &_shmst) == -1 || (size_t)_shmst.st_size < info->size) {
+			close(fd);
+			const char* error_msg = _("Shared memory object is smaller than the declared size");
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_error("Error in send_response\n");
+			return FALSE;
+		}
 	}
 	shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
 	if (shm_ptr == MAP_FAILED) {
@@ -1440,7 +1661,7 @@ gboolean handle_set_iccprofile_request(Connection* conn, const incoming_image_in
 gboolean handle_add_user_polygon_request(Connection* conn, const incoming_image_info_t* info) {
 	// Check if image is loaded first
 	if (!(single_image_is_loaded() || sequence_is_loaded())) {
-		siril_debug_print("Failed to add user polygon: no image loaded\n");
+		siril_log_debug("Failed to add user polygon: no image loaded\n");
 		const char* error_msg = _("Failed to add user polygon: no image loaded");
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
@@ -1461,6 +1682,17 @@ gboolean handle_add_user_polygon_request(Connection* conn, const incoming_image_
 		CloseHandle(mapping);
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
+	{
+		MEMORY_BASIC_INFORMATION _shmmbi;
+		if (VirtualQuery(shm_ptr, &_shmmbi, sizeof(_shmmbi)) == 0 || _shmmbi.RegionSize < info->size) {
+			UnmapViewOfFile(shm_ptr);
+			CloseHandle(mapping);
+			const char* error_msg = "Shared memory object is smaller than the declared size";
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_error("Error in send_response\n");
+			return FALSE;
+		}
+	}
 	win_handle.mapping = mapping;
 	win_handle.ptr = shm_ptr;
 	#else
@@ -1468,6 +1700,16 @@ gboolean handle_add_user_polygon_request(Connection* conn, const incoming_image_
 	if (fd == -1) {
 		const char* error_msg = _("Failed to open shared memory");
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	{
+		struct stat _shmst;
+		if (fstat(fd, &_shmst) == -1 || (size_t)_shmst.st_size < info->size) {
+			close(fd);
+			const char* error_msg = _("Shared memory object is smaller than the declared size");
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_error("Error in send_response\n");
+			return FALSE;
+		}
 	}
 	shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
 	if (shm_ptr == MAP_FAILED) {
@@ -1510,7 +1752,7 @@ gboolean handle_add_user_polygon_request(Connection* conn, const incoming_image_
 		int id_be = GINT32_TO_BE(id);
 		result = send_response(conn, STATUS_OK, &id_be, 4);
 	} else {
-		siril_debug_print("Failed to deserialize user polygon\n");
+		siril_log_debug("Failed to deserialize user polygon\n");
 		const char* error_msg = _("Failed to add user polygon");
 		result = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
@@ -1519,9 +1761,18 @@ gboolean handle_add_user_polygon_request(Connection* conn, const incoming_image_
 }
 
 gboolean handle_mask_update_polygon_request(Connection* conn, const incoming_image_info_t* info) {
+	if (!conn->thread_claimed) {
+		const char* error_msg = _("Processing thread is not claimed: unable to update the current image mask. "
+								"This is a script error: claim_thread() has either not been called or has failed, or "
+								"the thread has been released too early.");
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_error("Error in send_response\n");
+		return FALSE;
+	}
+
 	// Check if image is loaded first
 	if (!(single_image_is_loaded() || sequence_is_loaded())) {
-		siril_debug_print("Failed to modify mask with user polygon: no image loaded\n");
+		siril_log_debug("Failed to modify mask with user polygon: no image loaded\n");
 		const char* error_msg = _("Failed to modify mask with user polygon: no image loaded");
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
@@ -1542,6 +1793,17 @@ gboolean handle_mask_update_polygon_request(Connection* conn, const incoming_ima
 		CloseHandle(mapping);
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
+	{
+		MEMORY_BASIC_INFORMATION _shmmbi;
+		if (VirtualQuery(shm_ptr, &_shmmbi, sizeof(_shmmbi)) == 0 || _shmmbi.RegionSize < info->size) {
+			UnmapViewOfFile(shm_ptr);
+			CloseHandle(mapping);
+			const char* error_msg = "Shared memory object is smaller than the declared size";
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_error("Error in send_response\n");
+			return FALSE;
+		}
+	}
 	win_handle.mapping = mapping;
 	win_handle.ptr = shm_ptr;
 	#else
@@ -1549,6 +1811,16 @@ gboolean handle_mask_update_polygon_request(Connection* conn, const incoming_ima
 	if (fd == -1) {
 		const char* error_msg = _("Failed to open shared memory");
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	{
+		struct stat _shmst;
+		if (fstat(fd, &_shmst) == -1 || (size_t)_shmst.st_size < info->size) {
+			close(fd);
+			const char* error_msg = _("Shared memory object is smaller than the declared size");
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_error("Error in send_response\n");
+			return FALSE;
+		}
 	}
 	shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
 	if (shm_ptr == MAP_FAILED) {
@@ -1592,10 +1864,10 @@ gboolean handle_mask_update_polygon_request(Connection* conn, const incoming_ima
 		}
 		set_poly_in_mask(polygon, gfit, adding);
 		free_user_polygon(polygon);
-		gui_iface.queue_redraw_mask();
+		gui_iface.queue_redraw_mask(TRUE); // mask data changed: tints are stale
 		result = send_response(conn, STATUS_OK, NULL, 0);
 	} else {
-		siril_debug_print("Failed to deserialize user polygon\n");
+		siril_log_debug("Failed to deserialize user polygon\n");
 		const char* error_msg = _("Failed to update mask with user polygon");
 		result = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
@@ -1616,7 +1888,7 @@ static gpointer monitor_stream_stdout(GDataInputStream *data_input) {
 	}
 
 	if (error) {
-		siril_log_color_message(_("Error reading stdout: %s\n"), "red", error->message);
+		siril_log_error(_("Error reading stdout: %s\n"), error->message);
 		g_error_free(error);
 	}
 
@@ -1635,12 +1907,12 @@ static gpointer monitor_stream_stderr(GDataInputStream *data_input) {
 //#ifdef __APPLE__
 //		if (!g_strrstr(buffer, "resource_tracker"))
 //#endif
-			siril_log_color_message("%s\n", "red", buffer);
+			siril_log_error("%s\n", buffer);
 		g_free(buffer);
 	}
 
 	if (error) {
-		siril_log_color_message(_("Error reading stderr: %s\n"), "red", error->message);
+		siril_log_error(_("Error reading stderr: %s\n"), error->message);
 		g_error_free(error);
 	}
 
@@ -1661,15 +1933,16 @@ gchar* get_venv_python_version(const gchar* venv_path) {
 	gchar* output = NULL;
 	gint status;
 
-	g_spawn_sync(NULL, argv, NULL, G_SPAWN_SEARCH_PATH,
+	gboolean ok = g_spawn_sync(NULL, argv, NULL, G_SPAWN_SEARCH_PATH,
 				NULL, NULL, &output, NULL, &status, NULL);
 
 	g_free(python_path);
 
-	if (output) {
+	if (ok && output) {
 		g_strchomp(output);  // Remove trailing newline
 		return output;
 	}
+	g_free(output);
 	return NULL;
 }
 
@@ -1691,7 +1964,7 @@ static Connection* create_connection(const gchar *pipe_name) {
 	);
 
 	if (conn->pipe_handle == INVALID_HANDLE_VALUE) {
-		siril_debug_print("Failed to create pipe: %lu\n", GetLastError());
+		siril_log_debug("Failed to create pipe: %lu\n", GetLastError());
 		g_free(conn);
 		return NULL;
 	}
@@ -1706,7 +1979,7 @@ static gboolean wait_for_client(Connection *conn) {
 
 	BOOL result = ConnectNamedPipe(conn->pipe_handle, NULL);
 	if (!result && GetLastError() != ERROR_PIPE_CONNECTED) {
-		siril_debug_print("Failed to connect to client: %lu\n", GetLastError());
+		siril_log_debug("Failed to connect to client: %lu\n", GetLastError());
 		return FALSE;
 	}
 
@@ -1726,7 +1999,7 @@ static Connection* create_connection(const gchar *socket_path) {
 
 	conn->server_fd = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (conn->server_fd == -1) {
-		siril_debug_print("Failed to create socket: %s\n", g_strerror(errno));
+		siril_log_debug("Failed to create socket: %s\n", g_strerror(errno));
 		g_free(conn);
 		return NULL;
 	}
@@ -1739,14 +2012,14 @@ static Connection* create_connection(const gchar *socket_path) {
 	unlink(socket_path);  // Remove existing socket file if it exists
 
 	if (bind(conn->server_fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
-		siril_debug_print("Failed to bind socket: %s\n", g_strerror(errno));
+		siril_log_debug("Failed to bind socket: %s\n", g_strerror(errno));
 		close(conn->server_fd);
 		g_free(conn);
 		return NULL;
 	}
 
 	if (listen(conn->server_fd, 1) == -1) {
-		siril_debug_print("Failed to listen on socket: %s\n", g_strerror(errno));
+		siril_log_debug("Failed to listen on socket: %s\n", g_strerror(errno));
 		close(conn->server_fd);
 		unlink(socket_path);
 		g_free(conn);
@@ -1764,7 +2037,7 @@ static gboolean wait_for_client(Connection *conn) {
 
 	conn->client_fd = accept(conn->server_fd, NULL, NULL);
 	if (conn->client_fd == -1) {
-		siril_debug_print("Failed to accept connection: %s\n", g_strerror(errno));
+		siril_log_debug("Failed to accept connection: %s\n", g_strerror(errno));
 		return FALSE;
 	}
 
@@ -1793,6 +2066,11 @@ static gboolean handle_client_communication(Connection *conn) {
 			conn->is_connected = FALSE;
 			g_mutex_unlock(&conn->mutex);
 
+			/* A client disconnect is not necessarily the end of the script:
+			 * a single Python process may disconnect and reconnect on the same
+			 * socket (e.g. an early CLI-mode probe).  Loop back into
+			 * wait_for_client() and only stop when the process actually exits
+			 * (signalled via should_stop by the teardown path). */
 			DisconnectNamedPipe(conn->pipe_handle);
 			return TRUE;
 		}
@@ -1809,13 +2087,18 @@ static gboolean handle_client_communication(Connection *conn) {
 
 		if (bytes_read <= 0) {
 			if (bytes_read < 0) {
-				siril_debug_print("Error reading from socket: %s\n", g_strerror(errno));
+				siril_log_debug("Error reading from socket: %s\n", g_strerror(errno));
 			}
 
 			g_mutex_lock(&conn->mutex);
 			conn->is_connected = FALSE;
 			g_mutex_unlock(&conn->mutex);
 
+			/* A client disconnect is not necessarily the end of the script:
+			 * a single Python process may disconnect and reconnect on the same
+			 * socket (e.g. an early CLI-mode probe).  Loop back into
+			 * wait_for_client() and only stop when the process actually exits
+			 * (signalled via should_stop by the teardown path). */
 			close(conn->client_fd);
 			conn->client_fd = -1;
 			return TRUE;
@@ -1857,17 +2140,105 @@ static void cleanup_connection(Connection *conn) {
 	g_free(conn);
 }
 
+/* Ask a running connection_worker to exit.  Does NOT free conn — that is done
+ * by teardown_connection() once the worker has been joined.  Sets should_stop
+ * and breaks a blocking wait_for_client()/read() so the worker leaves its loop.
+ * Safe to call concurrently with the worker because the teardown owner holds
+ * conn alive until after it joins the worker. */
+static void signal_connection_stop(Connection *conn) {
+	if (!conn)
+		return;
+	g_mutex_lock(&conn->mutex);
+	conn->should_stop = TRUE;
+	conn->is_connected = FALSE;
+	g_mutex_unlock(&conn->mutex);
+#ifdef _WIN32
+	/* Cancel a blocking ConnectNamedPipe()/ReadFile() so the worker wakes. */
+	if (conn->pipe_handle != INVALID_HANDLE_VALUE)
+		CancelIoEx(conn->pipe_handle, NULL);
+#else
+	/* Break a blocking accept() on the listening socket, and a blocking read()
+	 * on a still-connected client, so the worker re-checks should_stop. */
+	if (conn->server_fd > 0)
+		shutdown(conn->server_fd, SHUT_RDWR);
+	if (conn->client_fd > 0)
+		shutdown(conn->client_fd, SHUT_RDWR);
+#endif
+}
+
+/* Final teardown of conn.  MUST be called only after the connection_worker
+ * thread has been joined, so this is the sole remaining user of conn.  Releases
+ * the processing thread if the script died holding it, frees shm and frees conn.
+ */
+static void teardown_connection(Connection *conn) {
+	if (!conn)
+		return;
+	if (conn->thread_claimed) {
+		/* Script exited/was killed without releasing the processing thread;
+		 * release it now so the queue can drain and the busy state clears. */
+		python_releases_thread();
+		conn->thread_claimed = FALSE;
+		gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
+	}
+	cleanup_shm_resources(conn);
+	cleanup_connection(conn);  /* closes sockets, unlinks, clears mutex/cond, frees conn */
+}
+
+typedef struct {
+	Connection *conn;
+	GThread *worker;
+} python_teardown_data;
+
+/* Detached helper: stop the worker, join it, then tear conn down.  Used when
+ * teardown is triggered from the GTK main loop (the child-watch), where joining
+ * inline would deadlock a worker blocked in execute_idle_and_wait_for_it. */
+static gpointer python_teardown_worker(gpointer p) {
+	python_teardown_data *d = (python_teardown_data*)p;
+	signal_connection_stop(d->conn);
+	if (d->worker)
+		g_thread_join(d->worker);
+	teardown_connection(d->conn);
+	g_free(d);
+	return NULL;
+}
+
+/* Tear down a connection + its worker thread.  conn is never freed by the
+ * worker itself; this is the single owner of the free, and it always joins the
+ * worker first so nothing can use conn afterwards.  When called on the GTK main
+ * thread the join is deferred to a detached helper to avoid deadlocking against
+ * a processing job that needs the main loop. */
+static void teardown_connection_and_worker(Connection *conn, GThread *worker) {
+	if (!conn)
+		return;
+	if (g_main_context_is_owner(g_main_context_default())) {
+		python_teardown_data *d = g_new0(python_teardown_data, 1);
+		d->conn = conn;
+		d->worker = worker;
+		g_thread_unref(g_thread_new("python-teardown", python_teardown_worker, d));
+	} else {
+		signal_connection_stop(conn);
+		if (worker)
+			g_thread_join(worker);
+		teardown_connection(conn);
+	}
+}
+
 static gpointer connection_worker(gpointer data) {
 	Connection *conn = (Connection*)data;
-	siril_debug_print("Python communication initialized...\n");
+	siril_log_debug("Python communication initialized...\n");
 	while (!conn->should_stop) {
 		if (wait_for_client(conn)) {
 			handle_client_communication(conn);
-		} else {
+		} else if (!conn->should_stop) {
 			// Wait before retrying
 			g_usleep(1000000);  // 1 second
 		}
 	}
+	/* Do NOT free conn here: a single owner (teardown_connection_and_worker)
+	 * frees it after joining this thread.  The worker keeps looping back into
+	 * wait_for_client() across client disconnects (reconnection is supported)
+	 * and only leaves the loop when should_stop is set by the teardown path on
+	 * process exit. */
 	siril_log_message(_("Python communication worker finished...\n"));
 	return NULL;
 }
@@ -1909,7 +2280,7 @@ static gchar* find_venv_bin_dir(const gchar *venv_path) {
 static gchar* find_venv_python_exe(const gchar *venv_path, const gboolean verbose) {
 	gchar *python_exe = build_venv_subdir_path(venv_path, PYTHON_EXE);
 	if (!python_exe) {
-		if (verbose) siril_debug_print("Error: python executable not found in the venv\n");
+		if (verbose) siril_log_debug("Error: python executable not found in the venv\n");
 		return NULL;
 	}
 	return python_exe;
@@ -2094,7 +2465,8 @@ static gboolean validate_python_version(const gchar *python_exe, GError **error)
 		return FALSE;
 	}
 
-	g_strstrip(stdout_data);
+	if (stdout_data)
+		g_strstrip(stdout_data);
 
 	// Validate we got some output
 	if (!stdout_data || strlen(stdout_data) == 0) {
@@ -2248,7 +2620,7 @@ static gboolean validate_venv_health(const gchar *venv_path, GError **error) {
 						G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL,
 						NULL, NULL,
 						NULL, NULL,
-						&exit_status, NULL)) {
+						&exit_status, &spawn_error)) {
 			g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
 					"Failed to check for module '%s': %s",
 					modules[i],
@@ -2287,7 +2659,7 @@ static gboolean validate_venv_health(const gchar *venv_path, GError **error) {
 					G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL,
 					NULL, NULL,
 					NULL, NULL,
-					&exit_status, NULL)) {
+					&exit_status, &spawn_error)) {
 		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
 				"Failed to execute pip: %s",
 				spawn_error ? spawn_error->message : "unknown error");
@@ -2315,7 +2687,7 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 	g_return_val_if_fail(venv_path != NULL, FALSE);
 
 	gchar *python_path = find_venv_python_exe(venv_path, TRUE);
-	siril_debug_print("Python path: %s\n", python_path);
+	siril_log_debug("Python path: %s\n", python_path ? python_path : "null");
 	g_return_val_if_fail(python_path != NULL, FALSE);
 
 	// Verify the python executable is actually executable
@@ -2345,13 +2717,13 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 		GError* ver_error = NULL;
 		version_number user_version = get_installed_module_version(python_path, &ver_error);
 		if (ver_error) {
-			siril_debug_print("Module version check status (harmless): %s\n", ver_error->message);
+			siril_log_debug("Module version check status (harmless): %s\n", ver_error->message);
 			g_clear_error(&ver_error);
 			needs_install = TRUE;
 		}
-		siril_debug_print("User version: %d.%d.%d\n", user_version.major_version,
+		siril_log_debug("User version: %d.%d.%d\n", user_version.major_version,
 						user_version.minor_version, user_version.micro_version);
-		siril_debug_print("System version: %d.%d.%d\n", module_version.major_version,
+		siril_log_debug("System version: %d.%d.%d\n", module_version.major_version,
 						module_version.minor_version, module_version.micro_version);
 
 		// Check if module version is higher than temp version
@@ -2375,7 +2747,7 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 							NULL, NULL, NULL, NULL,
 							&uninstall_status, &uninstall_error)) {
 				// Uninstall failed, try to delete venv
-				siril_debug_print("Uninstall failed: %s. Attempting venv deletion.\n",
+				siril_log_debug("Uninstall failed: %s. Attempting venv deletion.\n",
 								uninstall_error ? uninstall_error->message : "unknown error");
 
 				GError *del_error = NULL;
@@ -2406,25 +2778,15 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 	if (needs_install) {
 		siril_log_message(_("Installing / updating python module in the background. This may take a few seconds...\n"));
 
-		// ATOMIC INSTALLATION: Create temporary installation directory
-		gchar *temp_install_path = g_strdup_printf("%s.tmp.%d", user_module_path, getpid());
-
-		// Ensure temp directory doesn't exist from a previous failed attempt
-		if (g_file_test(temp_install_path, G_FILE_TEST_EXISTS)) {
-			GError *cleanup_error = NULL;
-			if (!delete_directory(temp_install_path, &cleanup_error)) {
-				siril_debug_print("Warning: failed to clean up existing temp directory: %s\n",
-								cleanup_error ? cleanup_error->message : "unknown error");
-				g_clear_error(&cleanup_error);
-			}
-		}
-
-		// Create temporary directory
-		int mkdir_result = siril_mkdir_with_parents(temp_install_path, 0755);
-		if (mkdir_result != 0) {
-		g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(errno),
-					"Failed to create temporary directory %s: %s",
-					temp_install_path, g_strerror(errno));
+		// ATOMIC INSTALLATION: Create a uniquely-named temporary installation
+		// directory. g_mkdtemp() creates it atomically with a random suffix and
+		// 0700 permissions, avoiding the predictable "<path>.tmp.<pid>" name and
+		// its check-then-create race with a pre-existing/symlinked directory.
+		gchar *temp_install_path = g_strdup_printf("%s.tmp.XXXXXX", user_module_path);
+		if (!g_mkdtemp(temp_install_path)) {
+			g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(errno),
+						"Failed to create temporary directory %s: %s",
+						temp_install_path, g_strerror(errno));
 			g_free(temp_install_path);
 			g_free(python_path);
 			return FALSE;
@@ -2528,7 +2890,7 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 
 				// Break early if error is not retriable
 				if (!should_retry && retry < PIP_MAX_RETRIES - 1) {
-					siril_debug_print("Non-retriable error detected, stopping retry attempts\n");
+					siril_log_debug("Non-retriable error detected, stopping retry attempts\n");
 					break;
 				}
 			}
@@ -2601,7 +2963,7 @@ gboolean get_python_magic_number(char *out_buf, gsize out_buf_size) {
 	);
 
 	if (!success || exit_status != 0) {
-		siril_log_color_message(_("Error checking python magic number: pyc files will not work"), "salmon");
+		siril_log_warning(_("Error checking python magic number: pyc files will not work"));
 		g_free(stdout_str);
 		return FALSE;
 	}
@@ -2669,19 +3031,20 @@ static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path, GError *
 	gchar *user_module_path = g_build_filename(g_get_user_data_dir(), "siril", ".python_module", NULL);
 	GError *install_error = NULL;
 	if (!install_module_with_pip(module_path, user_module_path, venv_path, &install_error)) {
-		siril_log_color_message(_("Warning: unable to install or update the "
-					"Siril python module.\n"), "salmon");
+		siril_log_warning(_("Warning: unable to install or update the "
+					"Siril python module.\n"));
 		g_warning("Failed to install Python module: %s",
 				install_error ? install_error->message : "Unknown error");
-		g_error_free(install_error);
-		// This is a critical failure - propagate it
+		// Propagate as a critical failure.  Read the message before
+		// freeing install_error to avoid a use-after-free in the %s
+		// argument below.
 		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
 				"Failed to install Python module: %s",
 				install_error ? install_error->message : "Unknown error");
 		g_clear_error(&install_error);
 		goto cleanup;
 	} else {
-		siril_log_color_message(_("Python module is up-to-date\n"), "green");
+		siril_log_info(_("Python module is up-to-date\n"));
 		get_python_magic_number(com.python_magic, 9);
 		// this repopulates gui.repo_scripts and updates the script menu
 		// the reason for doing it on completion of python installation is that pyscript_version_check
@@ -2705,6 +3068,38 @@ cleanup:
 	return NULL;
 }
 
+/* The venv initialisation runs on its own thread, and anything that wants to run
+ * a python script — or to delete the venv from under it — has to know whether
+ * that initialisation has finished.  The handle and that readiness are both
+ * shared state, so both live behind this mutex: the unlocked test-then-join this
+ * replaces raced the initialisation releasing the handle itself, which in
+ * headless mode happens on the venv thread rather than from the GTK main loop.
+ *
+ * Readiness is published as a flag rather than as the liveness of the handle,
+ * because a GThread can only be joined once and only by one caller: handing the
+ * handle to the first waiter would leave every other one free to run ahead of an
+ * initialisation that is still in flight.  The flag releases all of them, and
+ * python_init_cond is broadcast when it clears.  com.python_init_thread is then
+ * bookkeeping only — it holds the reference g_thread_new() returned until
+ * python_init_finished() drops it. */
+static GMutex python_init_mutex;
+static GCond python_init_cond;
+static gboolean python_init_in_flight = FALSE;
+
+/* Block until no venv initialisation is in flight.  A no-op when none is
+ * running, and safe from any thread — including the initialisation thread
+ * itself, which reaches this through execute_startup_scripts() and by then has
+ * already cleared the flag.  waiting_message, when given, is logged only if
+ * there is actually something to wait for. */
+static void wait_for_python_init(const gchar *waiting_message) {
+	g_mutex_lock(&python_init_mutex);
+	if (python_init_in_flight && waiting_message)
+		siril_log_warning("%s", waiting_message);
+	while (python_init_in_flight)
+		g_cond_wait(&python_init_cond, &python_init_mutex);
+	g_mutex_unlock(&python_init_mutex);
+}
+
 //***********************************************************************************
 // WARNING: the following function will IMMEDIATELY kill all running python scripts,
 // delete the siril venv directory and rebuild it. Any call to this MUST be
@@ -2714,14 +3109,10 @@ cleanup:
 //***********************************************************************************
 
 void rebuild_venv() {
-	// Warn if initialization is still in progress
-	if (com.python_init_thread) {
-		siril_log_color_message(
-			_("Warning: Python initialization in progress. Waiting for it to complete...\n"),
-			"salmon");
-		g_thread_join(com.python_init_thread);
-		com.python_init_thread = NULL;
-	}
+	// The venv directory is about to be deleted, so an initialisation still
+	// building it has to be waited out, not just noticed.
+	wait_for_python_init(_("Warning: Python initialization in progress. "
+				"Waiting for it to complete...\n"));
 	gchar* venv_path = g_build_filename(g_get_user_data_dir(), "siril", "venv", NULL);
 	gchar *user_module_path = g_build_filename(g_get_user_data_dir(), "siril", ".python_module", NULL);
 	GError *error = NULL, *error2 = NULL;
@@ -2731,11 +3122,11 @@ void rebuild_venv() {
 	g_free(venv_path);
 	g_free(user_module_path);
 	if (error) {
-		siril_log_color_message(error->message, "red");
+		siril_log_error(error->message);
 		g_error_free(error);
 	}
 	if (error2) {
-		siril_log_color_message(error2->message, "red");
+		siril_log_error(error2->message);
 		g_error_free(error2);
 	}
 	initialize_python_venv_in_thread();
@@ -2744,24 +3135,22 @@ void rebuild_venv() {
 // Updated check_or_create_venv function with health validation
 static gboolean check_or_create_venv(const gchar *project_path, GError **error) {
 	gchar *venv_path = g_build_filename(project_path, "venv", NULL);
-	siril_debug_print("venv path: %s\n", venv_path);
+	siril_log_debug("venv path: %s\n", venv_path);
 
 	// First check if venv exists and is healthy
 	gchar *python_exe = find_venv_python_exe(venv_path, FALSE);
 	if (python_exe) {
-		siril_debug_print("Found python executable in venv: %s\n", python_exe);
+		siril_log_debug("Found python executable in venv: %s\n", python_exe);
 		g_free(python_exe);
 
 		// Validate venv health
 		GError *health_error = NULL;
 		if (validate_venv_health(venv_path, &health_error)) {
-			siril_debug_print("Venv health check passed\n");
+			siril_log_debug("Venv health check passed\n");
 			g_free(venv_path);
 			return TRUE;
 		} else {
-			siril_log_color_message(
-				_("Virtual environment health check failed: %s\n"),
-				"salmon",
+			siril_log_warning(_("Virtual environment health check failed: %s\n"),
 				health_error ? health_error->message : "unknown error");
 			siril_log_message(_("Venv exists but is unhealthy. Recreating the venv...\n"));
 			g_clear_error(&health_error);
@@ -2780,25 +3169,17 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 			python_exe = NULL;
 		}
 	} else {
-		siril_debug_print("Did not find python executable in venv. Creating new venv...\n");
+		siril_log_debug("Did not find python executable in venv. Creating new venv...\n");
 #ifdef _WIN32
 		/* Check we aren't in a msys2 environment for the first init */
 		gchar **env = g_get_environ();
 		const gchar *msys = g_environ_getenv(env, "MSYSTEM");
 		g_strfreev(env);
 		if (msys) {
-			siril_log_color_message(
-				_("Error: msys2 environment detected. Siril Python support cannot be correctly initialized.\n"),
-				"red");
-			siril_log_color_message(
-				_("To complete the process, first make sure you have a Python installation (>=3.9) on your computer.\n"),
-				"red");
-			siril_log_color_message(
-				_("Locate siril.exe (usually located in C:\\msys64\\mingw64\\bin) and start it from there.\n"),
-				"red");
-			siril_log_color_message(
-				_("Next time you need to start siril, you can go back to starting it from msys2 terminal.\n"),
-				"red");
+			siril_log_error(_("Error: msys2 environment detected. Siril Python support cannot be correctly initialized.\n"));
+			siril_log_error(_("To complete the process, first make sure you have a Python installation (>=3.9) on your computer.\n"));
+			siril_log_error(_("Locate siril.exe (usually located in C:\\msys64\\mingw64\\bin) and start it from there.\n"));
+			siril_log_error(_("Next time you need to start siril, you can go back to starting it from msys2 terminal.\n"));
 			g_free(venv_path);
 			return FALSE;
 		}
@@ -2814,9 +3195,9 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 #ifdef _WIN32
 		gchar *bundle_python_exe = NULL;
 		const gchar *sirilrootpath = get_siril_bundle_path();
-		siril_debug_print("Siril bundle path: %s\n", sirilrootpath);
+		siril_log_debug("Siril bundle path: %s\n", sirilrootpath);
 		bundle_python_exe = g_build_filename(sirilrootpath, "python", PYTHON_EXE, NULL);
-		siril_debug_print("Bundle python path: %s\n", bundle_python_exe);
+		siril_log_debug("Bundle python path: %s\n", bundle_python_exe);
 		if (!g_file_test(bundle_python_exe, G_FILE_TEST_IS_EXECUTABLE)) {
 			g_free(bundle_python_exe);
 			bundle_python_exe = NULL;
@@ -2826,7 +3207,7 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 			sys_python_exe = find_executable_in_path(PYTHON_EXE, NULL);
 
 		if (!sys_python_exe && !bundle_python_exe) {
-			siril_log_color_message(
+			siril_log_error(
 				_("ERROR: No Python installation found.\n\n"
 				  "Siril requires Python 3.9 or later for advanced features.\n"
 				  "Please install Python from https://www.python.org/downloads/\n\n"
@@ -2834,8 +3215,7 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 				  "  - 'Add Python to PATH'\n"
 				  "  - 'Install pip'\n"
 				  "  - 'Install py launcher'\n\n"
-				  "After installing Python, restart Siril.\n"),
-				"red");
+				  "After installing Python, restart Siril.\n"));
 			success = FALSE;
 			goto cleanup;
 		}
@@ -2846,13 +3226,13 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 			bundle_python_exe = NULL;
 		}
 
-		siril_debug_print("Python executable: %s\n", sys_python_exe);
+		siril_log_debug("Python executable: %s\n", sys_python_exe);
 		g_free(bundle_python_exe);  /* safe if NULL */
 #else
 		sys_python_exe = g_find_program_in_path(PYTHON_EXE);
 
 		if (!sys_python_exe) {
-			siril_log_color_message(
+			siril_log_error(
 				_("ERROR: Python not found in system PATH.\n\n"
 				  "Siril requires Python 3.9 or later.\n"
 				  "Please install Python using your system package manager:\n\n"
@@ -2861,8 +3241,7 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 				  "  Arch Linux:     sudo pacman -S python python-pip\n"
 				  "  openSUSE:       sudo zypper install python3 python3-pip\n"
 				  "  macOS:          brew install python@3.9\n\n"
-				  "After installing Python, restart Siril.\n"),
-				"red");
+				  "After installing Python, restart Siril.\n"));
 			success = FALSE;
 			goto cleanup;
 		}
@@ -2871,9 +3250,7 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 		// VALIDATE SYSTEM PYTHON before attempting venv creation
 		GError *validation_error = NULL;
 		if (!validate_system_python(sys_python_exe, &validation_error)) {
-			siril_log_color_message(
-				_("ERROR: Python validation failed.\n\n%s\n"),
-				"red",
+			siril_log_error(_("ERROR: Python validation failed.\n\n%s\n"),
 				validation_error ? validation_error->message : "Unknown error");
 			g_propagate_error(error, validation_error);
 			success = FALSE;
@@ -2887,7 +3264,7 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 		argv[3] = g_strdup(venv_path);
 		argv[4] = NULL;
 
-		siril_debug_print("Trying venv creation command: %s %s %s %s\n",
+		siril_log_debug("Trying venv creation command: %s %s %s %s\n",
 						argv[0] ? argv[0] : "(null)",
 						argv[1], argv[2], argv[3]);
 
@@ -2900,20 +3277,17 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 						NULL, NULL,
 						&std_out, &std_err,
 						&exit_status, &local_error)) {
-			siril_log_color_message(_("ERROR: Failed to execute venv creation command.\n%s\n"),
-				"red", local_error ? local_error->message : "Unknown error");
+			siril_log_error(_("ERROR: Failed to execute venv creation command.\n%s\n"), local_error ? local_error->message : "Unknown error");
 			g_propagate_error(error, local_error);
 			success = FALSE;
 			goto cleanup;
 		}
 
 		if (!g_spawn_check_wait_status(exit_status, &local_error)) {
-			siril_log_color_message(
-				_("ERROR: Failed to create virtual environment.\n%s\n"),
-				"red", local_error ? local_error->message : "Unknown error");
+			siril_log_error(_("ERROR: Failed to create virtual environment.\n%s\n"), local_error ? local_error->message : "Unknown error");
 
 			if (std_err && *std_err) {
-				siril_log_color_message(_("Python error output:\n%s\n"), "red", std_err);
+				siril_log_error(_("Python error output:\n%s\n"), std_err);
 			}
 
 			g_propagate_error(error, local_error);
@@ -2938,10 +3312,10 @@ cleanup:
 		sys_python_exe = NULL;
 	}
 
-	if (python_exe) {
-		success = TRUE;  /* venv already existed */
-		g_free(python_exe);
-	}
+	/* The 'venv already existed and is healthy' case returns TRUE early above,
+	 * and the unhealthy / not-found paths set python_exe to NULL before
+	 * reaching here, so python_exe is always NULL at this point. The former
+	 * 'if (python_exe) success = TRUE' cleanup branch was dead code. */
 
 	g_free(venv_path);
 	return success;
@@ -2964,9 +3338,7 @@ static void execute_startup_scripts(void) {
 		* means, e.g. a future config-file import. */
 		if (!g_str_has_suffix(script_path, PYSCRIPT_EXT) &&
 			!g_str_has_suffix(script_path, PYCSCRIPT_EXT)) {
-			siril_log_color_message(
-				_("Startup script skipped (not a Python script): %s\n"),
-				"salmon", script_path);
+			siril_log_warning(_("Startup script skipped (not a Python script): %s\n"), script_path);
 			continue;
 		}
 
@@ -2985,10 +3357,27 @@ static void execute_startup_scripts(void) {
 	}
 }
 
-gboolean python_venv_idle(gpointer user_data) {
-//	g_thread_unref(com.python_init_thread);
+/* Called by the initialisation thread at each of its exit points, once the venv
+ * is either prepared or known to have failed.  Clearing the flag here — before
+ * execute_startup_scripts() runs, and on the failure returns as well as the
+ * successful one — is what makes "not in flight" mean "com.python_version, the
+ * python magic number and the venv's environment variables are final", which is
+ * the property execute_python_script() relies on.
+ *
+ * It takes the same mutex that initialize_python_venv_in_thread() holds across
+ * g_thread_new(), so it cannot run ahead of the assignment it is releasing. */
+static void python_init_finished(void) {
+	g_mutex_lock(&python_init_mutex);
+	GThread *thread = com.python_init_thread;
 	com.python_init_thread = NULL;
-	return FALSE;
+	python_init_in_flight = FALSE;
+	g_cond_broadcast(&python_init_cond);
+	g_mutex_unlock(&python_init_mutex);
+	/* Drop the reference g_thread_new() returned.  It used to be leaked — the
+	 * g_thread_unref() was commented out — and dropping it from the thread
+	 * itself is safe: a running thread holds a reference of its own. */
+	if (thread)
+		g_thread_unref(thread);
 }
 
 /*
@@ -3001,10 +3390,11 @@ static gpointer initialize_python_venv(gpointer user_data) {
 
 	// Check/create venv
 	if (!check_or_create_venv(project_path, &error)) {
-		siril_log_color_message(_("Failed to initialize Python virtual environment: %s\n"), "red",
+		siril_log_error(_("Failed to initialize Python virtual environment: %s\n"),
 				error ? error->message : "Unknown error");
 		g_clear_error(&error);
 		g_free(project_path);
+		python_init_finished();
 		return GINT_TO_POINTER(1);
 	}
 
@@ -3013,10 +3403,11 @@ static gpointer initialize_python_venv(gpointer user_data) {
 	GError *prep_error = NULL;
 	PythonVenvInfo *venv_info = prepare_venv_environment(venv_path, &prep_error);
 	if (!venv_info) {
-		siril_log_color_message(_("Failed to prepare virtual environment: %s\n"), "red",
+		siril_log_error(_("Failed to prepare virtual environment: %s\n"),
 				prep_error ? prep_error->message : "Unknown error");
 		g_clear_error(&prep_error);		g_free(venv_path);
 		g_free(project_path);
+		python_init_finished();
 		return GINT_TO_POINTER(1);
 	}
 
@@ -3042,7 +3433,7 @@ static gpointer initialize_python_venv(gpointer user_data) {
 	for (guint i = 0; i < env_changes->len; i++) {
 		gchar **pair = g_ptr_array_index(env_changes, i);
 		if (!g_setenv(pair[0], pair[1], TRUE))
-			siril_debug_print("Error in g_setenv: key = %s, value = %s\n", pair[0], pair[1]);
+			siril_log_debug("Error in g_setenv: key = %s, value = %s\n", pair[0], pair[1]);
 	}
 	g_mutex_unlock(&com.env_mutex);
 	g_ptr_array_free(env_changes, TRUE);
@@ -3056,45 +3447,42 @@ static gpointer initialize_python_venv(gpointer user_data) {
 	}
 	g_free(venv_path);
 	g_free(project_path);
-	if (!com.headless) {
-		g_idle_add(python_venv_idle, NULL);
+	/* The venv is ready: release the waiters before running the startup
+	 * scripts, which go through execute_python_script() on this very thread and
+	 * would otherwise wait for an initialisation that is already done. */
+	python_init_finished();
+	if (!com.headless)
 		execute_startup_scripts(); // execute any scripts marked as execute-at-startup
-	} else {
-		python_venv_idle(NULL);
-	}
 	return GINT_TO_POINTER(0);
 }
 
 void initialize_python_venv_in_thread() {
-	// Prevent multiple simultaneous initializations
-	static GMutex init_mutex;
-
-	if (!g_mutex_trylock(&init_mutex)) {
-		siril_log_color_message(_("Python initialization already in progress\n"), "salmon");
-		return;
-	}
+	/* Blocking rather than a trylock: the critical section is a flag check and
+	 * a g_thread_new(), and a caller that lost the trylock used to return
+	 * having neither started an initialisation nor waited for one.  Holding the
+	 * lock across the assignment also orders it before the new thread's own
+	 * call to python_init_finished(), which takes the same lock. */
+	g_mutex_lock(&python_init_mutex);
 
 	// Check if already initialized or in progress
-	if (com.python_init_thread) {
-		siril_debug_print("Python initialization thread already exists\n");
-		g_mutex_unlock(&init_mutex);
+	if (python_init_in_flight) {
+		siril_log_debug("Python initialization already in progress\n");
+		g_mutex_unlock(&python_init_mutex);
 		return;
 	}
 
+	python_init_in_flight = TRUE;
 	com.python_init_thread = g_thread_new("initialize python venv", initialize_python_venv, NULL);
-	g_mutex_unlock(&init_mutex);
+	g_mutex_unlock(&python_init_mutex);
 }
 
 void shutdown_python_communication(CommunicationState *commstate) {
-	if (commstate->python_conn) {
-		cleanup_connection(commstate->python_conn);
-		commstate->python_conn = NULL;
-	}
-
-	if (commstate->worker_thread) {
-		g_thread_join(commstate->worker_thread);
-		commstate->worker_thread = NULL;
-	}
+	/* Single-owner teardown: stop the worker, join it, then free conn.  When
+	 * called on the GTK main thread the join is deferred to a detached helper
+	 * to avoid deadlocking against a processing job that needs the main loop. */
+	teardown_connection_and_worker(commstate->python_conn, commstate->worker_thread);
+	commstate->python_conn = NULL;
+	commstate->worker_thread = NULL;
 }
 
 typedef struct {
@@ -3102,6 +3490,7 @@ typedef struct {
     GPid child_pid;        // Process ID of the spawned Python process
     gboolean is_temp_file; // Flag indicating if file should be deleted after execution
     Connection *python_conn; // Python connection for cleanup
+    GThread *worker_thread;  // Comm worker to join before freeing python_conn
 } python_cleanup_info;
 
 static void python_process_cleanup(GPid pid, gint status, gpointer user_data) {
@@ -3110,20 +3499,20 @@ static void python_process_cleanup(GPid pid, gint status, gpointer user_data) {
 	// Log process exit status
 #ifdef G_OS_WIN32
 	if (status == 0) {
-		siril_debug_print("Python process (PID: %d) exited normally\n", pid);
+		siril_log_debug("Python process (PID: %d) exited normally\n", pid);
 	} else {
-		siril_log_color_message(_("Python process (PID: %d) exited with status %d\n"), "salmon",
+		siril_log_warning(_("Python process (PID: %d) exited with status %d\n"),
 			pid, status);
 	}
 #else
 	if (WIFEXITED(status)) {
 		if (WEXITSTATUS(status) == 0)
-			siril_debug_print("Python process (PID: %d) exited normally\n", pid);
+			siril_log_debug("Python process (PID: %d) exited normally\n", pid);
 		else
-			siril_log_color_message(_("Python process (PID: %d) exited with status %d\n"), "salmon",
+			siril_log_warning(_("Python process (PID: %d) exited with status %d\n"),
 				pid, WEXITSTATUS(status));
 	} else if (WIFSIGNALED(status)) {
-		siril_log_color_message(_("Python process (PID: %d) terminated by signal %d\n"), "salmon",
+		siril_log_warning(_("Python process (PID: %d) terminated by signal %d\n"),
 				pid, WTERMSIG(status));
 	}
 #endif
@@ -3134,29 +3523,23 @@ static void python_process_cleanup(GPid pid, gint status, gpointer user_data) {
 			// Check if file exists before attempting removal
 			if (g_file_test(cleanup->temp_filename, G_FILE_TEST_EXISTS)) {
 				if (g_unlink(cleanup->temp_filename) != 0) {
-					siril_debug_print("Failed to delete temporary script file: %s\n",
+					siril_log_debug("Failed to delete temporary script file: %s\n",
 									cleanup->temp_filename);
 				} else {
-					siril_debug_print("Temporary script file deleted: %s\n",
+					siril_log_debug("Temporary script file deleted: %s\n",
 									cleanup->temp_filename);
 				}
 			}
 		}
 
-		// Clean up shared memory resources if connection exists
-		if (cleanup->python_conn) {
-			// If we had the python thread lock and failed to release it, release it now
-			if (cleanup->python_conn->thread_claimed) {
-				python_releases_thread(); /* also calls set_cursor_waiting(FALSE) */
-				gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
-			}
-
-			// Clean up shared memory resources
-			cleanup_shm_resources(cleanup->python_conn);
-
-			// Clean up the Connection
-			free(cleanup->python_conn);
-		}
+		/* The Python process has exited, so the comm worker can be stopped and
+		 * conn torn down.  teardown_connection_and_worker() joins the worker
+		 * before freeing conn (deferred to a helper thread when we are on the
+		 * GTK main loop, as we are here in the async child-watch), so no command
+		 * still executing on the worker can use freed memory. */
+		teardown_connection_and_worker(cleanup->python_conn, cleanup->worker_thread);
+		cleanup->python_conn = NULL;
+		cleanup->worker_thread = NULL;
 
 		// Remove from children list
 		remove_child_from_children(cleanup->child_pid);
@@ -3172,7 +3555,7 @@ static void python_process_cleanup(GPid pid, gint status, gpointer user_data) {
 
 		// Free the cleanup structure
 		if (cleanup->temp_filename && g_unlink(cleanup->temp_filename)) {
-			siril_debug_print("g_unlink() failed in python_process_cleanup()\n");
+			siril_log_debug("g_unlink() failed in python_process_cleanup()\n");
 		}
 		g_free(cleanup->temp_filename);
 		g_free(cleanup);
@@ -3186,7 +3569,7 @@ gboolean pyc_matches_magic(const char *pyc_path, const char *expected_hex_magic)
 
 	// Validate expected_hex_magic length (should be exactly 8 hex chars)
 	if (strlen(expected_hex_magic) != 8) {
-		siril_debug_print("Invalid magic number length: %zu (expected 8)\n",
+		siril_log_debug("Invalid magic number length: %zu (expected 8)\n",
 				strlen(expected_hex_magic));
 		return FALSE;
 	}
@@ -3211,22 +3594,24 @@ gboolean pyc_matches_magic(const char *pyc_path, const char *expected_hex_magic)
 void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync,
 						gchar** argv_script, gboolean is_temp_file, gboolean from_cli,
 						gboolean debug_mode) {
+	/* Wait for the initialisation whenever one is in flight, rather than only
+	 * when com.python_version is still unset: the version is assigned early in
+	 * the venv setup, while the venv's environment variables are only exported
+	 * at the end of it, so testing the version alone let a script launch python
+	 * against a half-prepared environment. */
+	wait_for_python_init(NULL);
+
 	version_number none = { 0 };
 	if (compare_version(none, com.python_version) >= 0) {
-		if (com.python_init_thread) {
-			g_thread_join(com.python_init_thread); // wait for python initialization to start
-			com.python_init_thread = NULL;
-		} else {
-			siril_log_color_message(_("Error: python not ready yet. This may happen at first run "
-					"if the python venv and module setup has not yet completed. Please wait a short "
-					"time for a completion message in the log and try again.\n"), "red");
-			// Clean up the temporary file if it's one
-			if (is_temp_file && script_name) {
-				g_unlink(script_name);
-				g_free(script_name);
-			}
-			return;
-		}
+		siril_log_error(_("Error: python not ready yet. This may happen at first run "
+				"if the python venv and module setup has not yet completed. Please wait a short "
+				"time for a completion message in the log and try again.\n"));
+		// Clean up the temporary file if it's one; script_name is owned by this
+		// function either way, so it is freed on every path
+		if (is_temp_file && script_name)
+			g_unlink(script_name);
+		g_free(script_name);
+		return;
 	}
 
 	// Generate a unique connection path for the pipe or socket for this script
@@ -3244,11 +3629,11 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 	commstate.python_conn = create_connection(connection_path);
 
 	if (!commstate.python_conn) {
-		siril_log_color_message(_("Error: failed to create Python connection.\n"), "red");
+		siril_log_error(_("Error: failed to create Python connection.\n"));
 		// Clean up the temporary file if it's one
 		if (is_temp_file && script_name) {
 			if (g_unlink(script_name))
-				siril_debug_print("g_unlink() failed in execute_python_script()\n");
+				siril_log_debug("g_unlink() failed in execute_python_script()\n");
 			g_free(script_name);
 		}
 		g_free(connection_path);
@@ -3261,7 +3646,7 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 										commstate.python_conn);
 
 	if (!commstate.worker_thread) {
-		siril_log_color_message(_("Error: Python worker thread not available.\n"), "red");
+		siril_log_error(_("Error: Python worker thread not available.\n"));
 		cleanup_connection(commstate.python_conn);
 		// Clean up the temporary file if it's one
 		if (is_temp_file && script_name) {
@@ -3276,13 +3661,16 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 	// Get base environment
 	gchar** env = g_get_environ();
 	if (!env) {
-		siril_log_color_message(_("Error: failed to get environment variables.\n"), "red");
-		cleanup_shm_resources(commstate.python_conn);
-		free(commstate.python_conn);
+		siril_log_error(_("Error: failed to get environment variables.\n"));
+		/* The worker thread is running (idle in accept(), no command in
+		 * flight); stop it, join it and free conn.  Safe to join inline even on
+		 * the main thread since the worker is not executing a command. */
+		teardown_connection_and_worker(commstate.python_conn, commstate.worker_thread);
 		if (is_temp_file && script_name) {
 			g_unlink(script_name);
 		}
 		g_free(script_name);
+		g_free(connection_path);
 		return;
 	}
 
@@ -3344,10 +3732,10 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 	GPid child_pid;
 	gint stdout_fd, stderr_fd;
 	if (!python_path) {
-		siril_log_color_message(_("Error finding venv python path, unable to spawn python.\n"), "red");
-		// Clean up on error
-		cleanup_shm_resources(commstate.python_conn);
-		free(commstate.python_conn);
+		siril_log_error(_("Error finding venv python path, unable to spawn python.\n"));
+		// Clean up on error.  The worker thread is running (idle in accept(),
+		// no command in flight); stop it, join it and free conn.
+		teardown_connection_and_worker(commstate.python_conn, commstate.worker_thread);
 		g_strfreev(env);
 		if (is_temp_file && script_name) {
 			g_unlink(script_name);
@@ -3404,26 +3792,26 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		if (success) {
 			// Set the flag that a python script is running
 			com.python_script = TRUE;
-			siril_debug_print("***** com.python_script flag set\n");
+			siril_log_debug("***** com.python_script flag set\n");
 			// Prepend this process to the list of child processes
 			gchar *script_basename = g_path_get_basename(script_name);
 			gchar *childname = g_strdup_printf("%s %s", PYTHON_EXE, from_file ? script_basename : "script");
 			if (!add_child(child_pid, EXT_PYTHON, childname)) {
-				siril_log_color_message(_("Warning: failed to add %s to child process list\n"), "salmon", childname);
+				siril_log_warning(_("Warning: failed to add %s to child process list\n"), childname);
 			}
 			g_free(script_basename);
 			g_free(childname);
 		} else {
 			// Log spawn failure details
-			siril_log_color_message(_("Failed to spawn Python process: %s\n"), "red",
+			siril_log_error(_("Failed to spawn Python process: %s\n"),
 					error ? error->message : "Unknown error");
 		}
 	}
 
 	if (!success) {
-		// Clean up on error
-		cleanup_shm_resources(commstate.python_conn);
-		free(commstate.python_conn);
+		// Clean up on error.  The worker thread is running (idle in accept(),
+		// no command in flight); stop it, join it and free conn.
+		teardown_connection_and_worker(commstate.python_conn, commstate.worker_thread);
 		g_strfreev(env);
 		if (is_temp_file && script_name) {
 			g_unlink(script_name);
@@ -3432,7 +3820,7 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		g_free(working_dir);
 
 		if (error) {
-			siril_log_color_message(_("Failed to execute Python script: %s\n"), "red", error->message);
+			siril_log_error(_("Failed to execute Python script: %s\n"), error->message);
 			g_error_free(error);
 		}
 
@@ -3444,11 +3832,22 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 	// Create cleanup info structure for either synchronous or async operation
 	python_cleanup_info *cleanup = g_malloc0(sizeof(python_cleanup_info));
 	cleanup->temp_filename = is_temp_file ? g_strdup(script_name) : NULL;
+	/* execute_python_script() owns script_name (all error paths g_free it). On
+	 * the success path it was only borrowed by python_argv (freed with
+	 * free_segment=FALSE) and copied into cleanup->temp_filename, so the
+	 * original must be freed here; the temp file itself is unlinked later by
+	 * python_process_cleanup via temp_filename. */
+	g_free(script_name);
 	cleanup->child_pid = child_pid;
 	cleanup->is_temp_file = is_temp_file;
 	cleanup->python_conn = commstate.python_conn;
+	cleanup->worker_thread = commstate.worker_thread;
 
 	if (sync) {
+		/* sync mode only ever runs on the dedicated pyscript_thread (see
+		 * execute_python_script_wrapper), never on the GTK main thread, so the
+		 * teardown join inside python_process_cleanup() runs inline and cannot
+		 * deadlock the main loop. */
 		// Cross-platform process waiting
 #ifdef _WIN32
 		// Use Windows-specific waiting
@@ -3462,10 +3861,13 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		gint status;
 		waitpid(child_pid, &status, 0);
 #endif
-		// Handle cleanup directly
+		// Handle cleanup directly (joins the worker and frees conn inline).
 		python_process_cleanup(child_pid, 0, cleanup);
 	} else {
-		// Set up child process monitoring with cleanup
+		/* Async: the child-watch fires python_process_cleanup() on the GTK main
+		 * loop when the process exits; it tears the worker + conn down via a
+		 * detached helper.  The worker GThread is joined there, so we must NOT
+		 * unref it here. */
 		g_child_watch_add(child_pid, python_process_cleanup, cleanup);
 	}
 
@@ -3499,13 +3901,18 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		(GThreadFunc)monitor_stream_stderr,
 		g_object_ref(stderr_data));
 
-	// Clean up references
+	// Clean up references. The monitor threads each hold their own g_object_ref
+	// on the data stream and unref it when they finish, so we must drop our
+	// creation ref here too (the thread keeps the object alive meanwhile);
+	// otherwise the GDataInputStream and its underlying fd leak.
 	g_object_unref(stdout_stream);
 	g_object_unref(stderr_stream);
+	g_object_unref(stdout_data);
+	g_object_unref(stderr_data);
 	g_thread_unref(stdout_thread);
 	g_thread_unref(stderr_thread);
 
-	siril_debug_print("Python script launched asynchronously with PID %d\n", child_pid);
+	siril_log_debug("Python script launched asynchronously with PID %d\n", child_pid);
 	g_free(working_dir);
 	g_strfreev(env);
 

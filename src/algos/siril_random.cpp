@@ -60,22 +60,22 @@ static uint32_t siril_rng_seed() {
 
 #if defined(_WIN32) || defined(_WIN64)
     if (BCryptGenRandom(NULL, (PUCHAR)&seed, sizeof(seed), BCRYPT_USE_SYSTEM_PREFERRED_RNG) != 0) {
-        siril_debug_print("Failed to generate random seed on Windows.\n");
+        siril_log_debug("Failed to generate random seed on Windows.\n");
         goto use_timeofday;
     }
 #elif defined(__APPLE__)
     if (SecRandomCopyBytes(kSecRandomDefault, sizeof(seed), (uint8_t*)&seed) != errSecSuccess) {
-        siril_debug_print("Failed to generate random seed on macOS.\n");
+        siril_log_debug("Failed to generate random seed on macOS.\n");
         goto use_timeofday;
     }
 #else
     int fd = open("/dev/urandom", O_RDONLY);
     if (fd == -1) {
-        siril_debug_print("Failed to open /dev/urandom");
+        siril_log_debug("Failed to open /dev/urandom");
         goto use_timeofday;
     }
     if (read(fd, &seed, sizeof(seed)) != sizeof(seed)) {
-        siril_debug_print("Failed to read from /dev/urandom");
+        siril_log_debug("Failed to read from /dev/urandom");
         close(fd);
         goto use_timeofday;
     }

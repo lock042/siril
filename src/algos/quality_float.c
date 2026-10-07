@@ -213,7 +213,7 @@ static double Gradient(const float *buf, int width, int height) {
 			}
 	}
 	if (pixels == 0) {
-		siril_debug_print("Warning: pixels = 0 in Gradient(). Returning -1.0 to avoid div/0\n");
+		siril_log_debug("Warning: pixels = 0 in Gradient(). Returning -1.0 to avoid div/0\n");
 		val = -1.0;
 		goto end;
 	}

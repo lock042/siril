@@ -154,7 +154,6 @@ typedef enum {
 	SCNR_DIALOG = 42,
 	SEQLIST_DIALOG = 43,
 	SPLIT_CFA_DIALOG = 44,
-	STARNET_DIALOG = 45,
 	STARS_LIST_WINDOW = 46,
 	STAT_WINDOW = 47,
 	UNPURPLE_DIALOG = 48,
@@ -166,7 +165,8 @@ typedef enum {
 	LOG_RED = 1,
 	LOG_SALMON = 2,
 	LOG_GREEN = 3,
-	LOG_BLUE = 4
+	LOG_BLUE = 4,
+	LOG_BOLD = 5
 } LogColor;
 
 // Config types matching python side

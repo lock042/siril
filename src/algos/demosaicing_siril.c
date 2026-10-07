@@ -829,7 +829,7 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 		gboolean top_down = get_debayer_orientation(fit, NULL, NULL);
 		int offset = fit->ry % 6;
 		if (offset)
-			siril_debug_print("Image with an X-Trans sensor doesn't have a height multiple of 6\n");
+			siril_log_debug("Image with an X-Trans sensor doesn't have a height multiple of 6\n");
 		if (compile_XTrans_pattern(fit->keywords.bayer_pattern, xtrans, !top_down, offset))
 			return 1;
 	}
@@ -889,7 +889,7 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 		gboolean top_down = get_debayer_orientation(fit, NULL, NULL);
 		int offset = fit->ry % 6;
 		if (offset)
-			siril_debug_print("Image with an X-Trans sensor doesn't have a height multiple of 6\n");
+			siril_log_debug("Image with an X-Trans sensor doesn't have a height multiple of 6\n");
 		if (compile_XTrans_pattern(fit->keywords.bayer_pattern, xtrans, !top_down, offset))
 			return 1;
 	}

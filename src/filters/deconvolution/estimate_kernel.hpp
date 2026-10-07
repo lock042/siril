@@ -24,7 +24,7 @@ SOFTWARE.
 #pragma once
 
 #include <cassert>
-#include "image.hpp"
+#include "algos/img_t/image.hpp"
 #include "fft.hpp"
 #include "utils.hpp"
 #include "edgetaper.hpp"
@@ -46,11 +46,11 @@ void gaussian_downsample(img_t<float>& out, const img_t<float>& _in, float facto
     // process channel by channel
     for (int d = 0; d < in.d; d++) {
         for (int i = 0; i < in.w * in.h; i++) {
-            tmpin[i] = in[i*in.d+d];
+            tmpin[i] = in[i + d * in.w * in.h];
         }
         shrink((float*) &tmpout[0], (float*) &tmpin[0], (int) tmpout.w, (int) tmpout.h, (int) tmpin.w, (int) tmpin.h, (float) factor, (float) sigma);
         for (int i = 0; i < out.w * out.h; i++) {
-            out[i*in.d+d] = tmpout[i];
+            out[i + d * out.w * out.h] = tmpout[i];
         }
     }
 }
@@ -132,8 +132,9 @@ public:
 
         // compute conj(F(k)).F(v)
         img_t<std::complex<T>> Ktf(v.w, v.h);
+        // no simd: complex-valued body, clang can't vectorize it (would warn)
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(com.fftw_max_thread)
+#pragma omp parallel for schedule(static) num_threads(com.fftw_max_thread)
 #endif
         for (int i = 0; i < Ktf.size; i++)
             Ktf[i] = std::conj(K_otf[i]) * fv[i];
@@ -173,8 +174,9 @@ public:
             img_t<std::complex<T>> adj = fft::r2c(divergence);
 
             // solve the 'u' update
+            // no simd: complex-valued body, clang can't vectorize it (would warn)
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(com.fftw_max_thread)
+#pragma omp parallel for schedule(static) num_threads(com.fftw_max_thread)
 #endif
             for (int i = 0; i < div.size; i++) {
                 T denom = T(1) / (KtK[i] + beta * DtD[i]);
@@ -385,8 +387,9 @@ public:
             // solve the linear system
             // opts.use_filters is loop-invariant; branch outside for SIMD
             if (opts.use_filters) {
+                // no simd: complex-valued body, clang can't vectorize it (would warn)
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(com.fftw_max_thread)
+#pragma omp parallel for schedule(static) num_threads(com.fftw_max_thread)
 #endif
                 for (int i = 0; i < div.size; i++) {
                     std::complex<T> num = std::conj(fgu[0][i]) * fgv[0][i] + std::conj(fgu[1][i]) * fgv[1][i] + gamma * k_otf[i];
@@ -394,8 +397,9 @@ public:
                     div[i] = num / denum;
                 }
             } else {
+                // no simd: complex-valued body, clang can't vectorize it (would warn)
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(com.fftw_max_thread)
+#pragma omp parallel for schedule(static) num_threads(com.fftw_max_thread)
 #endif
                 for (int i = 0; i < div.size; i++) {
                     std::complex<T> num = std::conj(fu[i]) * fv[i] + gamma * k_otf[i];
@@ -585,7 +589,7 @@ void preprocess_image(img_t<T>& out, const img_t<T>& _v, struct estimate_kernel_
     v.set_value(0);
     for (int i = 0; i < v.w * v.h; i++) {
         for (int d = 0; d < _v.d; d++) {
-            v[i] += _v[i * _v.d + d];
+            v[i] += _v[i + d * _v.w * _v.h];
         }
         v[i] /= _v.d;
     }
@@ -596,7 +600,7 @@ void preprocess_image(img_t<T>& out, const img_t<T>& _v, struct estimate_kernel_
         v[i] -= min;
     float max = v.max();
     if (!max) {
-        siril_log_color_message(_("Error: zero input maximum\n"), "red");
+        siril_log_error(_("Error: zero input maximum\n"));
         out = std::move(v);
         return;
     }

@@ -104,7 +104,7 @@ int nozero(fits *fit, WORD level) {
 int gaussian_blur_RT(fits *fit, double sigma, int threads) {
 	g_assert(fit->naxes[2] == 1);
 	if (fit->type == DATA_FLOAT) {
-		siril_debug_print("Using RawTherapee in-place Gaussian blur with sigma=%f and %d threads\n", sigma, threads);
+		siril_log_debug("Using RawTherapee in-place Gaussian blur with sigma=%f and %d threads\n", sigma, threads);
 		// RawTherapee gaussianBlur (mono only)
 		int rx = (int)fit->naxes[0];
 		int ry = (int)fit->naxes[1];
@@ -127,7 +127,7 @@ int gaussian_blur_RT(fits *fit, double sigma, int threads) {
 // using a temporary buffer
 int gaussian_blur_RT2(fits *fit, double sigma, int threads) {
 	if (fit->type == DATA_FLOAT) {
-		siril_debug_print("Using RawTherapee out-of-place Gaussian blur with sigma=%f and %d threads\n", sigma, threads);
+		siril_log_debug("Using RawTherapee out-of-place Gaussian blur with sigma=%f and %d threads\n", sigma, threads);
 		// RawTherapee gaussianBlur (mono only)
 		size_t n = fit->naxes[0] * fit->naxes[1];
 		int rx = (int)fit->naxes[0];
@@ -171,7 +171,7 @@ int unsharp(fits *fit, double sigma, double amount, gboolean verbose) {
 	if (sigma <= 0.0)
 		return 1;
 	if (verbose) {
-		siril_log_color_message(_("Unsharp: processing...\n"), "green");
+		siril_log_info(_("Unsharp: processing...\n"));
 		gettimeofday(&t_start, NULL);
 	}
 
@@ -268,11 +268,11 @@ int loglut(fits *fit) {
 int ddp(fits *a, float level, float coeff, float sigma) {
 	fits fit = { 0 };
 	if (a->orig_bitpix == BYTE_IMG) {
-		siril_log_color_message(_("This process cannot be applied to 8b images\n"), "red");
+		siril_log_error(_("This process cannot be applied to 8b images\n"));
 		return 1;
 	}
 	if (level < 0.f || level > USHRT_MAX_SINGLE) {
-		siril_log_color_message(_("ddp level argument must be [0, 65535]\n"), "green");
+		siril_log_info(_("ddp level argument must be [0, 65535]\n"));
 		return 1;
 	}
 	if (level < 1.f && a->type == DATA_FLOAT)
@@ -302,7 +302,7 @@ int visu(fits *fit, int low, int high) {
 		return 1;
 	notify_gfit_data_modified();
 	gui_iface.set_display_range(low, high);
-	gui_iface.redraw_image(REMAP_ALL);
+	gui_iface.redraw_image(REDRAW_ALL);
 	gui_iface.redraw_previews();
 	return 0;
 }
@@ -442,7 +442,7 @@ double background(fits* fit, int reqlayer, rectangle *selection, threading_type 
 
 	imstats* stat = statistics(NULL, -1, fit, layer, selection, STATS_BASIC, threading);
 	if (!stat) {
-		siril_log_message(_("Error: statistics computation failed.\n"));
+		siril_log_error(_("Error: statistics computation failed.\n"));
 		return -1.0;
 	}
 	double bg = stat->median;
@@ -503,11 +503,11 @@ void compute_grey_flat(fits *fit) {
 		}
 	}
 
-	siril_debug_print("Guessed pattern: #%d (%s)\n", guessed_pat, filter_pattern[guessed_pat]);
+	siril_log_debug("Guessed pattern: #%d (%s)\n", guessed_pat, filter_pattern[guessed_pat]);
 
 	coeff1 = ch_mean[guessed_pat][0]/ch_mean[guessed_pat][1];
 	coeff2 = ch_mean[guessed_pat][2]/ch_mean[guessed_pat][1];
-	siril_debug_print("coeff1: %.5f, coeff2: %.5f\n", coeff1, coeff2);
+	siril_log_debug("coeff1: %.5f, coeff2: %.5f\n", coeff1, coeff2);
 
 	/* applies coefficients to cfa image */
 	equalize_cfa_fit_with_coeffs(fit, coeff1, coeff2, filter_pattern[guessed_pat]);

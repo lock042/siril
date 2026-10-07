@@ -65,8 +65,7 @@
 #include "io/sequence.h"
 #include "io/conversion.h"
 #include "io/siril_pythonmodule.h"
-#include "gui/progress_and_log.h"
-#include "gui/photometric_cc.h"
+#include "algos/photometric_cc.h" /* initialize_spcc_mirrors() */
 
 /* the global variables of the whole project */
 cominfo com;	// the core data struct
@@ -149,7 +148,7 @@ static void global_initialization() {
 	initialize_spcc_mirrors();
 	initialize_profiles_and_transforms(); // color management
 
-	siril_debug_print("Initializing processing thread...\n");
+	siril_log_debug("Initializing processing thread...\n");
 	processing_system_init();
 
 #ifdef HAVE_FFTW3F_OMP
@@ -237,6 +236,14 @@ static void siril_app_activate(GApplication *application) {
 	curl_global_init(CURL_GLOBAL_ALL);
 #endif
 
+	/* Start the python venv initialisation BEFORE the script runs.  This used
+	 * to sit after execute_script() / read_pipe(), so com.python_init_thread
+	 * was still NULL for the whole script and every `pyscript` failed with
+	 * "python not ready yet".  See main.c for the details. */
+	initialize_python_venv_in_thread();
+
+	initialize_profiles_and_transforms(); // color management
+
 	if (main_option_script) {
 		GInputStream *input_stream = NULL;
 
@@ -267,6 +274,7 @@ static void siril_app_activate(GApplication *application) {
 		pipe_start(main_option_rpipe_path, main_option_wpipe_path);
 		read_pipe(main_option_rpipe_path);
 	}
+
 
 	g_free(supported_files);
 }

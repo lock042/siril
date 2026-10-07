@@ -38,6 +38,38 @@
 #include <jconfig.h>
 #endif
 
+#include "core/op_descriptors.h"
+
+/* Op descriptors for the ICC profile ops. All flag skip_generic_undo at their
+ * sites (siril_colorspace_transform writes its own FITS history), so no mem
+ * check is needed here. */
+const op_descriptor op_desc_icc_assign = {
+	.id = "icc.assign", .version = 1,
+	.image_hook = icc_assign_hook,
+	.log_hook = icc_assign_log_hook,
+	.description = N_("ICC profile assignment"),
+	.mem_ratio = 0.0f,
+	.flags = 0,
+};
+
+const op_descriptor op_desc_icc_convert = {
+	.id = "icc.convert", .version = 1,
+	.image_hook = icc_convert_to_hook,
+	.log_hook = icc_convert_to_log_hook,
+	.description = N_("ICC color space conversion"),
+	.mem_ratio = 0.0f,
+	.flags = 0,
+};
+
+const op_descriptor op_desc_icc_remove = {
+	.id = "icc.remove", .version = 1,
+	.image_hook = icc_remove_hook,
+	.log_hook = icc_remove_log_hook,
+	.description = N_("ICC profile removal"),
+	.mem_ratio = 0.0f,
+	.flags = 0,
+};
+
 static GMutex monitor_profile_mutex;
 static GMutex soft_proof_profile_mutex;
 static GMutex default_profiles_mutex;
@@ -164,9 +196,9 @@ void export_profile(cmsHPROFILE profile, const char *provided_filename) {
 	path = g_build_filename(com.wd, filename, NULL);
 	free(filename);
 	if (cmsSaveProfileToFile(profile, path)) {
-		siril_log_color_message(_("Exported ICC profile to %s\n"), "green", path);
+		siril_log_info(_("Exported ICC profile to %s\n"), path);
 	} else {
-		siril_log_color_message(_("Failed to export ICC profile to %s\n"), "red", path);
+		siril_log_error(_("Failed to export ICC profile to %s\n"), path);
 	}
 	free(path);
 }
@@ -178,14 +210,98 @@ void unlock_display_transform() {
 	g_mutex_unlock(&display_transform_mutex);
 }
 
-// This must be locked by the display_transform_mutex, but it is done from
-// remap_all_vports() so the mutex lock covers all 3 calls to this function
-void display_index_transform(BYTE* index, int vport) {
-	BYTE buf[3 * (USHRT_MAX + 1)] = { 0 };
-	BYTE* chan = &buf[0] + (vport * (USHRT_MAX + 1));
-	memcpy(chan, index, USHRT_MAX + 1);
-	cmsDoTransformLineStride(com.gui_icc.proofing_transform, &buf, &buf, USHRT_MAX + 1, 1, (USHRT_MAX + 1) * 3, (USHRT_MAX + 1) * 3, USHRT_MAX + 1, USHRT_MAX + 1);
-	memcpy(index, chan, USHRT_MAX + 1);
+static cmsHTRANSFORM build_proofing_transform(gboolean float_input);
+
+/* Number of LUT entries composed per call to lcms2. Keeps the planar scratch
+ * small: the transform wants all 3 planes present even though only one is used. */
+#define LUT_TRANSFORM_CHUNK 4096
+
+/* Composes the display transform into the three freshly built display LUTs.
+ *
+ * index[c] maps 16-bit image values to 8-bit screen values for channel c;
+ * fsrc[] holds the same mapping before quantisation, normalised to [0, 1].
+ * Transforming fsrc rather than index means the encoding curve is evaluated at
+ * full precision and the result is quantised once, at the end.
+ *
+ * The three channels are only ever composed together, from identical input:
+ * per-channel LUTs differ only in unlinked STF, which is never composed. So one
+ * transform with all three planes filled does the work of three, which is worth
+ * having as it is by far the most expensive part of a LUT rebuild.
+ *
+ * Feeding the transform the 8-bit values instead restricts the composed LUT to
+ * those output levels reachable from a 256-entry domain. For a linear-TRC image
+ * on an sRGB-like monitor the encoding curve is near-vertical at the bottom, so
+ * the reachable shadow levels are 0, 13, 22, 28, 34, ... - roughly 40 levels
+ * across the lower half of the range instead of 128. That is the posterisation
+ * reported in #1948.
+ *
+ * fsrc may be NULL, in which case the transform is composed from index[] itself
+ * as it used to be. That is only worth avoiding when the source TRC is much
+ * steeper than the monitor's: a linear TRC leaves gaps of 13 codes, gamma 1.4
+ * and above leaves at most 3, which is not visible. See the caller.
+ *
+ * Only called when the image and monitor primaries match, so the transform is
+ * diagonal and each output plane depends only on its own input plane.
+ *
+ * This must be locked by the display_transform_mutex, which remap_all_vports()
+ * holds around its LUT rebuild */
+void display_index_transform(const float *fsrc, BYTE *index[3]) {
+	cmsHTRANSFORM transform;
+	if (fsrc) {
+		if (!com.gui_icc.proofing_lut_transform)
+			com.gui_icc.proofing_lut_transform = build_proofing_transform(TRUE);
+		transform = com.gui_icc.proofing_lut_transform;
+	} else {
+		transform = com.gui_icc.proofing_transform;
+	}
+	if (!transform)
+		return;
+	const size_t insize = fsrc ? sizeof(float) : sizeof(BYTE);
+	char *in = malloc(3 * LUT_TRANSFORM_CHUNK * insize);
+	BYTE *out = malloc(3 * LUT_TRANSFORM_CHUNK);
+	if (!in || !out) {
+		PRINT_ALLOC_ERR;
+		free(in);
+		free(out);
+		return;
+	}
+	for (int pos = 0; pos <= USHRT_MAX; pos += LUT_TRANSFORM_CHUNK) {
+		int n = min(LUT_TRANSFORM_CHUNK, USHRT_MAX + 1 - pos);
+		/* index[0] is read for every plane, and is only written back below
+		 * once the whole chunk has been read, so the aliasing is safe */
+		for (int c = 0 ; c < 3 ; c++) {
+			char *plane = in + (c * LUT_TRANSFORM_CHUNK * insize);
+			if (fsrc)
+				memcpy(plane, fsrc + pos, n * insize);
+			else
+				memcpy(plane, index[0] + pos, n * insize);
+		}
+		cmsDoTransformLineStride(transform, in, out, n, 1,
+				LUT_TRANSFORM_CHUNK * 3 * insize, LUT_TRANSFORM_CHUNK * 3,
+				LUT_TRANSFORM_CHUNK * insize, LUT_TRANSFORM_CHUNK);
+		for (int c = 0 ; c < 3 ; c++)
+			memcpy(index[c] + pos, out + (c * LUT_TRANSFORM_CHUNK), n);
+	}
+	free(in);
+	free(out);
+}
+
+/* Deletes both cached display transforms. The display_transform_mutex must be
+ * held by the caller wherever the display may be rendering concurrently. */
+void clear_proofing_transforms() {
+	if (com.gui_icc.proofing_transform) {
+		cmsDeleteTransform(com.gui_icc.proofing_transform);
+		com.gui_icc.proofing_transform = NULL;
+	}
+	if (com.gui_icc.proofing_lut_transform) {
+		cmsDeleteTransform(com.gui_icc.proofing_lut_transform);
+		com.gui_icc.proofing_lut_transform = NULL;
+	}
+	if (com.gui_icc.gamut_transform) {
+		cmsDeleteTransform(com.gui_icc.gamut_transform);
+		com.gui_icc.gamut_transform = NULL;
+	}
+	com.gui_icc.gamut_transform_tried = FALSE;
 }
 
 void icc_lock_monitor_profile(void)   { g_mutex_lock(&monitor_profile_mutex); }
@@ -193,18 +309,24 @@ void icc_unlock_monitor_profile(void) { g_mutex_unlock(&monitor_profile_mutex); 
 void icc_lock_soft_proof_profile(void)   { g_mutex_lock(&soft_proof_profile_mutex); }
 void icc_unlock_soft_proof_profile(void) { g_mutex_unlock(&soft_proof_profile_mutex); }
 
-cmsHTRANSFORM initialize_proofing_transform() {
+/* Builds the display transform. float_input selects the variant used to compose
+ * the transform into the display LUT, which is fed unquantised stretch output;
+ * everything else is identical to the 8-bit per-pixel variant. */
+static cmsHTRANSFORM build_proofing_transform(gboolean float_input) {
 	g_assert(com.gui_icc.monitor);
 	if (gfit->icc_profile == NULL || gfit->color_managed == FALSE)
 		return NULL;
 	cmsUInt32Number flags = com.gui_icc.proofing_flags;
 	if (fit_icc_is_linear(gfit))
 		flags |= cmsFLAGS_NOOPTIMIZE;
-	gboolean gamutcheck = gui_iface.get_gamut_check_active();
-	if (gamutcheck) {
+	if (com.gui_icc.gamut_check) {
 		flags |= cmsFLAGS_GAMUTCHECK;
 	}
-	cmsUInt32Number type = (gfit->naxes[2] == 1 ? TYPE_GRAY_8 : TYPE_RGB_8_PLANAR);
+	cmsUInt32Number type;
+	if (float_input)
+		type = (gfit->naxes[2] == 1 ? TYPE_GRAY_FLT : TYPE_RGB_FLT_PLANAR);
+	else
+		type = (gfit->naxes[2] == 1 ? TYPE_GRAY_8 : TYPE_RGB_8_PLANAR);
 	g_mutex_lock(&soft_proof_profile_mutex);
 	g_mutex_lock(&monitor_profile_mutex);
 	cmsHPROFILE proofing_transform = cmsCreateProofingTransformTHR(
@@ -220,6 +342,112 @@ cmsHTRANSFORM initialize_proofing_transform() {
 	g_mutex_unlock(&monitor_profile_mutex);
 	g_mutex_unlock(&soft_proof_profile_mutex);
 	return proofing_transform;
+}
+
+cmsHTRANSFORM initialize_proofing_transform() {
+	return build_proofing_transform(FALSE);
+}
+
+/* Builds the transform for the modes whose output is display-referred but whose
+ * chromaticity still means something - currently linked autostretch.
+ *
+ * It maps the image's primaries onto the monitor's while leaving tone alone, by
+ * transforming from a synthetic profile that carries the image's colorants and
+ * the *monitor's* tone curves. Both ends then share a TRC, so the decode and the
+ * encode cancel and only the colorant matrix survives.
+ *
+ * The full transform is wrong here because its encoding curve would run over
+ * values the autostretch has already mapped to display code values, which is
+ * what makes the TRC half meaningless in those modes. Skipping the transform
+ * altogether is also wrong: it renders the image's numbers through the monitor's
+ * primaries, mis-stating every hue and saturation - very visible on the P3
+ * panels now common in laptops.
+ *
+ * Builds the synthetic profile by copying tags rather than going through
+ * cmsCreateRGBProfile(): the colorant tags are already adapted to the D50 PCS,
+ * so feeding them back as xyY primaries would adapt them a second time.
+ *
+ * Returns NULL if either profile is not a matrix-shaper and so has no colorant
+ * or TRC tags to copy, leaving the caller to fall back. */
+static cmsHTRANSFORM build_gamut_transform() {
+	if (!gfit->icc_profile || !gfit->color_managed || !com.gui_icc.monitor)
+		return NULL;
+
+	g_mutex_lock(&soft_proof_profile_mutex);
+	g_mutex_lock(&monitor_profile_mutex);
+
+	cmsHTRANSFORM transform = NULL;
+	cmsHPROFILE synthetic = NULL;
+	const cmsTagSignature colorants[3] = { cmsSigRedColorantTag,
+			cmsSigGreenColorantTag, cmsSigBlueColorantTag };
+	const cmsTagSignature trcs[3] = { cmsSigRedTRCTag, cmsSigGreenTRCTag,
+			cmsSigBlueTRCTag };
+
+	for (int i = 0 ; i < 3 ; i++) {
+		if (!cmsIsTag(gfit->icc_profile, colorants[i]) ||
+				!cmsIsTag(com.gui_icc.monitor, trcs[i]))
+			goto out;
+	}
+	if (!cmsIsTag(gfit->icc_profile, cmsSigMediaWhitePointTag))
+		goto out;
+
+	synthetic = cmsCreateProfilePlaceholder(com.icc.context_single);
+	if (!synthetic)
+		goto out;
+	cmsSetProfileVersion(synthetic, 4.3);
+	cmsSetDeviceClass(synthetic, cmsSigDisplayClass);
+	cmsSetColorSpace(synthetic, cmsSigRgbData);
+	cmsSetPCS(synthetic, cmsSigXYZData);
+	if (!cmsWriteTag(synthetic, cmsSigMediaWhitePointTag,
+			cmsReadTag(gfit->icc_profile, cmsSigMediaWhitePointTag)))
+		goto out;
+	for (int i = 0 ; i < 3 ; i++) {
+		if (!cmsWriteTag(synthetic, colorants[i],
+					cmsReadTag(gfit->icc_profile, colorants[i])) ||
+				!cmsWriteTag(synthetic, trcs[i],
+					cmsReadTag(com.gui_icc.monitor, trcs[i])))
+			goto out;
+	}
+
+	/* No cmsFLAGS_NOOPTIMIZE: that is set for linear sources to keep precision
+	 * on a steep encoding curve, and this transform has no encoding curve left
+	 * to be steep - the two cancel. */
+	cmsUInt32Number flags = com.gui_icc.proofing_flags;
+	if (com.gui_icc.gamut_check)
+		flags |= cmsFLAGS_GAMUTCHECK;
+	transform = cmsCreateProofingTransformTHR(com.icc.context_single,
+			synthetic, TYPE_RGB_8_PLANAR,
+			com.gui_icc.monitor, TYPE_RGB_8_PLANAR,
+			(com.gui_icc.soft_proof && com.pref.icc.soft_proofing_profile_active)
+				? com.gui_icc.soft_proof : com.gui_icc.monitor,
+			com.pref.icc.rendering_intent, com.pref.icc.proofing_intent, flags);
+
+out:
+	if (synthetic)
+		cmsCloseProfile(synthetic);
+	g_mutex_unlock(&monitor_profile_mutex);
+	g_mutex_unlock(&soft_proof_profile_mutex);
+	if (!transform)
+		siril_log_debug("gamut-only transform unavailable, falling back\n");
+	return transform;
+}
+
+/* Cached accessor for the above. Returns NULL if it could not be built, which
+ * the caller must treat as "use the full transform instead".
+ *
+ * The caller MUST hold the display transform mutex, and must keep holding it
+ * for as long as it uses the returned handle: clear_proofing_transforms()
+ * deletes the cached transforms under the same mutex, so both the lazy build
+ * here and every use of the handle have to sit inside one locked region.
+ * (This used to self-lock with an unlocked fast-path test, but that could
+ * return a handle whose deletion was already in flight, and the fast path
+ * itself raced clear_proofing_transforms() resetting gamut_transform_tried.) */
+cmsHTRANSFORM get_gamut_transform() {
+	if (!com.gui_icc.gamut_transform_tried) {
+		com.gui_icc.gamut_transform = build_gamut_transform();
+		com.gui_icc.gamut_transform_tried = TRUE;
+	}
+	return com.gui_icc.gamut_transform;
 }
 
 //Two functions to check if profiles are RGB or Gray
@@ -282,17 +510,14 @@ gboolean same_primaries(cmsHPROFILE a, cmsHPROFILE b, cmsHPROFILE c) {
 				((com.pref.icc.proofing_intent == INTENT_ABSOLUTE_COLORIMETRIC) && memcmp(a_w, c_w, sizeof(cmsCIEXYZ))))
 			return FALSE;
 	}
-	siril_debug_print("Primaries are the same\n");
+	siril_log_debug("Primaries are the same\n");
 	return TRUE;
 }
 
 void reset_icc_transforms() {
 	g_mutex_lock(&display_transform_mutex);
 //	if (gfit->color_managed) {
-		if (com.gui_icc.proofing_transform) {
-			cmsDeleteTransform(com.gui_icc.proofing_transform);
-			com.gui_icc.proofing_transform = NULL;
-		}
+		clear_proofing_transforms();
 //	}
 	com.gui_icc.same_primaries = FALSE;
 	com.gui_icc.profile_changed = TRUE;
@@ -308,14 +533,14 @@ void validate_custom_profiles() {
 			com.gui_icc.monitor = cmsOpenProfileFromFile(com.pref.icc.icc_path_monitor, "r");
 			if (!com.gui_icc.monitor) {
 				com.gui_icc.monitor = com.pref.icc.rendering_intent == INTENT_PERCEPTUAL ? srgb_monitor_perceptual() : srgb_trc();
-				siril_log_color_message(_("Error opening custom monitor profile. "
-								"Monitor profile set to sRGB.\n"), "red");
+				siril_log_error(_("Error opening custom monitor profile. "
+								"Monitor profile set to sRGB.\n"));
 			}
 		} else {
 			if (com.gui_icc.monitor)
 				cmsCloseProfile(com.gui_icc.monitor);
 			com.gui_icc.monitor = srgb_trc();
-			siril_log_message(_("Warning: custom monitor profile set but could not "
+			siril_log_warning(_("Warning: custom monitor profile set but could not "
 								"be loaded. Display will use a sRGB profile with "
 								"the standard sRGB TRC.\n"));
 		}
@@ -338,7 +563,7 @@ void validate_custom_profiles() {
 			if (com.gui_icc.soft_proof)
 				cmsCloseProfile(com.gui_icc.soft_proof);
 			com.gui_icc.soft_proof = NULL;
-			siril_log_message(_("Warning: soft proofing profile set but could not "
+			siril_log_warning(_("Warning: soft proofing profile set but could not "
 								"be loaded. Soft proofing will be unavailable.\n"));
 		}
 		g_mutex_unlock(&soft_proof_profile_mutex);
@@ -378,7 +603,7 @@ void validate_custom_profiles() {
 			com.icc.working_standard = cmsOpenProfileFromFile(com.pref.icc.custom_icc_trc, "r");
 			if (!com.icc.working_standard) {
 				com.icc.working_standard = srgb_trc();
-				siril_log_color_message(_("Error opening nonlinear working profile. Profile set to sRGB.\n"), "red");
+				siril_log_error(_("Error opening nonlinear working profile. Profile set to sRGB.\n"));
 			}
 		} else {
 			com.icc.working_standard = srgb_trc();
@@ -393,7 +618,7 @@ void validate_custom_profiles() {
 			com.icc.mono_standard = cmsOpenProfileFromFile(com.pref.icc.custom_icc_gray, "r");
 			if (!com.icc.mono_standard) {
 				com.icc.mono_standard = gray_srgbtrc();
-				siril_log_color_message(_("Error opening matched grayscale working profile. Profile set to Gray with sRGB tone response curve.\n"), "red");
+				siril_log_error(_("Error opening matched grayscale working profile. Profile set to Gray with sRGB tone response curve.\n"));
 			}
 		} else {
 			com.icc.mono_standard = gray_srgbtrc();
@@ -438,7 +663,7 @@ void initialize_profiles_and_transforms() {
 	gboolean available = (com.icc.mono_linear && com.icc.working_standard && com.icc.mono_standard && com.icc.working_out && com.icc.mono_out);
 	gboolean gui_available = available && com.gui_icc.monitor;
 	if ((com.headless && !available) || (!com.headless && !gui_available)) {
-		siril_log_message(_("Error: standard color management profiles "
+		siril_log_error(_("Error: standard color management profiles "
 							"could not be loaded. Cannot continue. "
 							"Please report this error.\n"));
 		exit(1);
@@ -477,15 +702,14 @@ void cleanup_common_profiles() {
 		cmsCloseProfile(com.gui_icc.monitor);
 	if (com.gui_icc.soft_proof)
 		cmsCloseProfile(com.gui_icc.soft_proof);
-	if (com.gui_icc.proofing_transform)
-		cmsDeleteTransform(com.gui_icc.proofing_transform);
+	clear_proofing_transforms();
 	memset(&com.gui_icc, 0, sizeof(struct gui_icc));
 	if (com.icc.context_single)
 		cmsDeleteContext(com.icc.context_single);
 	if (com.icc.context_threaded)
 		cmsDeleteContext(com.icc.context_threaded);
 	memset(&com.icc, 0, sizeof(struct common_icc));
-	siril_debug_print("ICC profiles cleaned up\n");
+	siril_log_debug("ICC profiles cleaned up\n");
 }
 
 cmsUInt32Number get_planar_formatter_type(cmsColorSpaceSignature tgt, data_type t, gboolean force_16) {
@@ -524,7 +748,7 @@ cmsHTRANSFORM initialize_display_transform() {
 	g_assert(com.gui_icc.monitor);
 	cmsHTRANSFORM transform = NULL;
 	if (gfit->icc_profile == NULL || !gfit->color_managed) {
-		siril_debug_print("NULL display transform\n");
+		siril_log_debug("NULL display transform\n");
 		return NULL;
 	}
 	cmsUInt32Number gfit_signature = cmsGetColorSpace(gfit->icc_profile);
@@ -534,9 +758,9 @@ cmsHTRANSFORM initialize_display_transform() {
 	transform = cmsCreateTransformTHR(com.icc.context_single, gfit->icc_profile, srctype, com.gui_icc.monitor, TYPE_RGB_16_PLANAR, com.pref.icc.rendering_intent, com.icc.rendering_flags);
 	g_mutex_unlock(&monitor_profile_mutex);
 	if (transform == NULL)
-		siril_log_message("Error: failed to create display_transform!\n");
+		siril_log_error("Error: failed to create display_transform!\n");
 	else
-		siril_debug_print("Display transform created (gfit->icc_profile to com.gui_icc.monitor)\n");
+		siril_log_debug("Display transform created (gfit->icc_profile to com.gui_icc.monitor)\n");
 	return transform;
 }
 
@@ -550,7 +774,7 @@ cmsHTRANSFORM initialize_export8_transform(fits* fit, gboolean threaded) {
 	cmsUInt32Number desttype = (fit->naxes[2] == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR);
 	transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, srctype, (fit->naxes[2] == 3 ? com.icc.working_standard : com.icc.mono_standard), desttype, com.pref.icc.rendering_intent, com.icc.rendering_flags);
 	if (transform == NULL)
-		siril_log_message("Error: failed to create export colorspace transform!\n");
+		siril_log_error("Error: failed to create export colorspace transform!\n");
 	return transform;
 }
 
@@ -559,8 +783,7 @@ void refresh_icc_transforms() {
 	if (!com.headless) {
 		com.gui_icc.same_primaries = same_primaries(gfit->icc_profile, com.gui_icc.monitor, (com.gui_icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? com.gui_icc.soft_proof : NULL);
 		g_mutex_lock(&display_transform_mutex);
-		if (com.gui_icc.proofing_transform)
-			cmsDeleteTransform(com.gui_icc.proofing_transform);
+		clear_proofing_transforms();
 		com.gui_icc.proofing_transform = initialize_proofing_transform();
 		g_mutex_unlock(&display_transform_mutex);
 		com.gui_icc.profile_changed = TRUE;
@@ -583,7 +806,7 @@ unsigned char* get_icc_profile_data(cmsHPROFILE profile, guint32 *len) {
 		ret = cmsSaveProfileToMem(profile, (void*) block, &length);
 	}
 	if (!ret) {
-		siril_debug_print("Error preparing ICC profile for embedding...\n");
+		siril_log_debug("Error preparing ICC profile for embedding...\n");
 		return NULL;
 	}
 	*len = length;
@@ -848,7 +1071,7 @@ void check_profile_correct(fits* fit) {
 			fit->icc_profile = fit->naxes[2] == 1 ? gray_srgbtrc() : srgb_trc();
 			color_manage(fit, TRUE);
 		} else {
-			siril_debug_print("FITS did not contain an ICC profile and no hints were available in the HISTORY header.\n");
+			siril_log_debug("FITS did not contain an ICC profile and no hints were available in the HISTORY header.\n");
 			fit->icc_profile = NULL;
 			color_manage(fit, FALSE);
 		}
@@ -859,12 +1082,12 @@ void check_profile_correct(fits* fit) {
 			cmsCloseProfile(fit->icc_profile);
 			fit->icc_profile = NULL;
 			color_manage(fit, FALSE);
-			siril_log_color_message(_("Warning: embedded ICC profile channel count does not match image channel count. Color management is disabled for this image. To re-enable it, an ICC profile must be assigned using the Color Management menu item.\n"), "salmon");
+			siril_log_warning(_("Warning: embedded ICC profile channel count does not match image channel count. Color management is disabled for this image. To re-enable it, an ICC profile must be assigned using the Color Management menu item.\n"));
 		}
 	}
 	if (fit->color_managed && !fit->icc_profile) {
 		color_manage(fit, FALSE);
-		siril_debug_print("fit->color_managed inconsistent with missing profile");
+		siril_log_debug("fit->color_managed inconsistent with missing profile");
 	}
 }
 
@@ -1004,7 +1227,7 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 			if (fit->icc_profile)
 				cmsCloseProfile(fit->icc_profile);
 			fit->icc_profile = copyICCProfile(profile);
-			siril_debug_print("siril_colorspace_transform() assigned a profile\n");
+			siril_log_debug("siril_colorspace_transform() assigned a profile\n");
 			gchar *desc = siril_color_profile_get_description(profile);
 			fit->history = g_slist_append(fit->history, g_strdup_printf(_("Assigned ICC profile: %s"), desc));
 			g_free(desc);
@@ -1051,7 +1274,7 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 			fit->history = g_slist_append(fit->history, g_strdup_printf(_("Converted to ICC profile: %s"), desc));
 			g_free(desc);
 		color_manage(fit, TRUE);
-		siril_debug_print("siril_colorspace_transform() converted a profile\n");
+		siril_log_debug("siril_colorspace_transform() converted a profile\n");
 	} else {
 		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Error"), _("Failed to create colorspace transform."));
 	}
@@ -1156,7 +1379,7 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 void icc_auto_assign(fits *fit, icc_assign_type occasion) {
 	// Check if the occasion matches the preference
 	if (com.pref.icc.autoassignment & occasion) {
-		siril_debug_print("Auto assigning working profile\n");
+		siril_log_debug("Auto assigning working profile\n");
 		gui_iface.set_busy(TRUE);
 		// siril_colorspace_transform takes care of hitherto non-color managed images, and assigns a profile instead of converting them
 		fit->icc_profile = copyICCProfile((fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard));
@@ -1229,8 +1452,8 @@ static void error_loading_profile() {
 }
 
 static void reset_custom_to_srgb() {
-	siril_log_color_message(_("Error: the preferred colorspace profiles are not all set, or some are not valid. "
-							  "You need to set both a RGB and a Gray profile. Defaulting to sRGB.\n"), "red");
+	siril_log_error(_("Error: the preferred colorspace profiles are not all set, or some are not valid. "
+							  "You need to set both a RGB and a Gray profile. Defaulting to sRGB.\n"));
 	reset_working_profile_to_srgb();
 }
 
@@ -1334,7 +1557,7 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 		return;
 	}
 	if (! siril_color_profile_get_rgb_matrix_colorants_d50 (profile, &XYZtriple, &whitepoint)) {
-		siril_log_message(_("Error reading chromaticities\n"));
+		siril_log_error(_("Error reading chromaticities\n"));
 		free_siril_plot_data(spl_data);
 		return;
 	}
@@ -1386,7 +1609,7 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 	siril_plot_set_nth_color(spl_data, n, (double[3]) { 0.0, 0.0, 0.0 } );
 	n++;
 	if (!siril_plot_set_background(spl_data, "CIE1931xy.svg"))
-		siril_log_color_message(_("Could not load background\n"), "red");
+		siril_log_error(_("Could not load background\n"));
 	if (compare_srgb) {
 		siril_plot_add_xydata(spl_data, _("sRGB"), 4, srgb_x, srgb_y, NULL, NULL);
 		siril_plot_set_nth_plot_type(spl_data, n, KPLOT_LINES);
@@ -1436,7 +1659,7 @@ int icc_assign_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 	}
 	siril_colorspace_transform(fit, args->profile);
 	if (!fit->icc_profile) {
-		siril_log_color_message(_("Error assigning ICC profile.\n"), "red");
+		siril_log_error(_("Error assigning ICC profile.\n"));
 		color_manage(fit, FALSE);
 		return 1;
 	}
@@ -1461,7 +1684,7 @@ int icc_convert_to_hook(struct generic_img_args *gargs, fits *fit, int threads) 
 	siril_colorspace_transform(fit, args->profile);
 	com.pref.icc.processing_intent = temp_intent;
 	if (!fit->icc_profile) {
-		siril_log_color_message(_("Error converting ICC color space.\n"), "red");
+		siril_log_error(_("Error converting ICC color space.\n"));
 		return 1;
 	}
 	return 0;

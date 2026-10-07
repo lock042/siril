@@ -29,6 +29,17 @@
 #include "opencv/opencv.h"
 
 #include "filters/epf.h"
+#include "core/op_descriptors.h"
+
+/* Op descriptor — single source of truth for this operation (op_descriptor.h) */
+const op_descriptor op_desc_epf = {
+	.id = "filters.epf", .version = 1,
+	.image_hook = epf_image_hook,
+	.log_hook = epf_log_hook,
+	.description = N_("Edge Preserving Filter"),
+	.mem_ratio = 3.0f,
+	.flags = OP_MASK_CAPABLE,
+};
 
 /*****************************************************************************
  *      E P F      A L L O C A T O R   A N D   D E S T R U C T O R          *
@@ -210,9 +221,8 @@ static int edge_preserving_filter(struct epfargs *args) {
 		fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, ndata), DATA_USHORT);
 	}
 
-	if (fit == gfit && args->applying && !com.script) {
-		gui_iface.populate_roi();
-	}
+	/* No populate_roi() / notify here: generic_image_worker performs both
+	 * universally when args->fit == gfit. */
 	return 0;
 }
 

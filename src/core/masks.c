@@ -32,6 +32,85 @@
 #include "masks.h"
 #include "opencv/opencv.h" // for mask functions that use OpenCV
 // (feathering, Gaussian blur and set_poly_in_mask())
+#include "core/op_descriptors.h"
+
+/* Op descriptors for the mask operations (generic_mask_worker).  mem_ratio 0
+ * means no memory check (matches the legacy sites).  Sites that create a mask
+ * keep their per-invocation mask_creation flag. */
+const op_descriptor op_desc_mask_from_stars = {
+	.id = "mask.from_stars", .version = 1, .mask_hook = mask_from_stars_hook,
+	.log_hook = mask_from_stars_log, .description = N_("Mask from stars"),
+	.mem_ratio = 1.0f, .flags = 0,
+};
+const op_descriptor op_desc_mask_from_channel = {
+	.id = "mask.from_channel", .version = 1, .mask_hook = mask_from_channel_hook,
+	.log_hook = mask_from_channel_log, .description = N_("Mask from channel"),
+	.mem_ratio = 1.0f, .flags = 0,
+};
+const op_descriptor op_desc_mask_from_luminance = {
+	.id = "mask.from_luminance", .version = 1, .mask_hook = mask_from_lum_hook,
+	.log_hook = mask_from_lum_log, .description = N_("Mask from luminance"),
+	.mem_ratio = 1.0f, .flags = 0,
+};
+/* clear has no log_hook and no memory check */
+const op_descriptor op_desc_mask_clear = {
+	.id = "mask.clear", .version = 1, .mask_hook = mask_clear_hook,
+	.description = N_("Clear mask"), .mem_ratio = 0.0f, .flags = 0,
+};
+/* Default label from the command; the GUI site overrides it. */
+const op_descriptor op_desc_mask_threshold = {
+	.id = "mask.threshold", .version = 1, .mask_hook = mask_thresh_hook,
+	.log_hook = mask_thresh_log, .description = N_("Apply intensity threshold to mask"),
+	.mem_ratio = 1.0f, .flags = 0,
+};
+const op_descriptor op_desc_mask_blur = {
+	.id = "mask.blur", .version = 1, .mask_hook = mask_blur_hook,
+	.log_hook = mask_blur_log, .description = N_("Blur mask"),
+	.mem_ratio = 2.0f, .flags = 0,
+};
+const op_descriptor op_desc_mask_feather = {
+	.id = "mask.feather", .version = 1, .mask_hook = mask_feather_hook,
+	.log_hook = mask_feather_log, .description = N_("Feather mask"),
+	.mem_ratio = 2.0f, .flags = 0,
+};
+const op_descriptor op_desc_mask_multiply = {
+	.id = "mask.multiply", .version = 1, .mask_hook = mask_fmul_hook,
+	.log_hook = mask_fmul_log, .description = N_("Multiply mask"),
+	.mem_ratio = 0.0f, .flags = 0,
+};
+/* invert has no log_hook */
+const op_descriptor op_desc_mask_invert = {
+	.id = "mask.invert", .version = 1, .mask_hook = mask_invert_hook,
+	.description = N_("Invert mask"), .mem_ratio = 0.0f, .flags = 0,
+};
+/* autostretch has no log_hook; the siril_actions site overrides mem_ratio */
+const op_descriptor op_desc_mask_autostretch = {
+	.id = "mask.autostretch", .version = 1, .mask_hook = mask_autostretch_hook,
+	.description = N_("Autostretch mask"), .mem_ratio = 0.0f, .flags = 0,
+};
+const op_descriptor op_desc_mask_bitpix = {
+	.id = "mask.bitpix", .version = 1, .mask_hook = mask_bitpix_hook,
+	.log_hook = mask_bitpix_log, .description = N_("Change mask bitdepth"),
+	.mem_ratio = 1.0f, .flags = 0,
+};
+const op_descriptor op_desc_mask_from_color = {
+	.id = "mask.from_color", .version = 1, .mask_hook = mask_from_color_hook,
+	.log_hook = mask_from_color_log, .description = N_("Mask from color"),
+	.mem_ratio = 1.5f, .flags = 0,
+};
+/* from_gradient has no log_hook */
+const op_descriptor op_desc_mask_from_gradient = {
+	.id = "mask.from_gradient", .version = 1, .mask_hook = mask_from_gradient_hook,
+	.description = N_("Gradient of mask"), .mem_ratio = 0.0f, .flags = 0,
+};
+
+/* Image op (generic_image_worker): the autostretch applied to build a mask,
+ * distinct from the mask.* ops above.  No log_hook (an MTF HISTORY card makes
+ * no sense for mask generation). */
+const op_descriptor op_desc_mask_mtf_autostretch = {
+	.id = "mask.mtf_autostretch", .version = 1, .image_hook = mtf_single_image_hook,
+	.description = N_("Autostretch mask"), .mem_ratio = 1.0f, .flags = 0,
+};
 
 void free_mask(mask_t* mask) {
 	free(mask->data);
@@ -148,7 +227,7 @@ int mask_create_ones_like(fits *fit, uint8_t bitpix) {
 			break;
 		}
 		default:
-			siril_debug_print("Error! Unhandled bitpix in mask_create_ones_like\n");
+			siril_log_debug("Error! Unhandled bitpix in mask_create_ones_like\n");
 			free_mask(fit->mask);
 			fit->mask = NULL;
 			return 1;
@@ -276,7 +355,7 @@ int mask_create_from_luminance(fits *fit, fits *source, float rw, float gw, floa
 	if (!fit || !source) return 1;
 
 	if (source->naxes[2] == 1) {
-		siril_debug_print("mask_create_from_luminance called on mono image, using mono channel as luminance\n");
+		siril_log_debug("mask_create_from_luminance called on mono image, using mono channel as luminance\n");
 		return mask_create_from_channel(fit, source, 0, bitpix);
 	}
 
@@ -407,14 +486,14 @@ int mask_create_from_chromaticity_luminance(fits *fit, fits *source,
                                             uint8_t bitpix) {
 	if (!fit || !source) return 1;
 	if (source->naxes[2] == 1) {
-		siril_log_color_message(_("Color mask requires RGB image\n"), "red");
+		siril_log_error(_("Color mask requires RGB image\n"));
 		return 1;
 	}
 
 	// Normalize chromaticity center (in case user didn't)
 	float chrom_sum = chrom_center_r + chrom_center_g + chrom_center_b;
 	if (chrom_sum < 0.001f) {
-		siril_log_color_message(_("Invalid chromaticity center (sum near zero)\n"), "red");
+		siril_log_error(_("Invalid chromaticity center (sum near zero)\n"));
 		return 1;
 	}
 	chrom_center_r /= chrom_sum;
@@ -564,15 +643,15 @@ FAST_MATH_POP
 int mask_create_from_image(fits *fit, gchar *filename, int chan, uint8_t bitpix,
 						double weight_r, double weight_g, double weight_b, gboolean autostretch) {
 	if (!fit || !filename) {
-		siril_debug_print("mask_create_from_image: invalid parameters\n");
+		siril_log_debug("mask_create_from_image: invalid parameters\n");
 		return 1;
 	}
 	if (!(bitpix == 8 || bitpix == 16 || bitpix == 32)) {
-		siril_debug_print("mask_create_from_image: bitpix must be 8, 16, or 32\n");
+		siril_log_debug("mask_create_from_image: bitpix must be 8, 16, or 32\n");
 		return 1;
 	}
 	if (chan < -1 || chan > 2) {
-		siril_debug_print("mask_create_from_image: chan must be -1 (luminance), 0 (R), 1 (G), or 2 (B)\n");
+		siril_log_debug("mask_create_from_image: chan must be -1 (luminance), 0 (R), 1 (G), or 2 (B)\n");
 		return 1;
 	}
 
@@ -580,8 +659,7 @@ int mask_create_from_image(fits *fit, gchar *filename, int chan, uint8_t bitpix,
 	if (chan == -1) {
 		double weight_sum = weight_r + weight_g + weight_b;
 		if (weight_sum < 0.99 || weight_sum > 1.01) {
-			siril_log_color_message(_("Warning: luminance weights sum to %.3f (should be 1.0), normalizing\n"),
-				"salmon", weight_sum);
+			siril_log_warning(_("Warning: luminance weights sum to %.3f (should be 1.0), normalizing\n"), weight_sum);
 			// Normalize weights
 			if (weight_sum > 0.0) {
 				weight_r /= weight_sum;
@@ -603,15 +681,14 @@ int mask_create_from_image(fits *fit, gchar *filename, int chan, uint8_t bitpix,
 
 	int retval = readfits(filename, source, FALSE, FALSE);
 	if (retval) {
-		siril_log_color_message(_("Failed to load mask image: %s\n"), "red", filename);
+		siril_log_error(_("Failed to load mask image: %s\n"), filename);
 		free(source);
 		return 1;
 	}
 
 	// Check dimensions match
 	if (fit->rx != source->rx || fit->ry != source->ry) {
-		siril_log_color_message(_("Mask image dimensions (%ux%u) do not match target image (%ux%u)\n"),
-			"red", source->rx, source->ry, fit->rx, fit->ry);
+		siril_log_error(_("Mask image dimensions (%ux%u) do not match target image (%ux%u)\n"), source->rx, source->ry, fit->rx, fit->ry);
 		clearfits(source);
 		free(source);
 		return 1;
@@ -619,8 +696,7 @@ int mask_create_from_image(fits *fit, gchar *filename, int chan, uint8_t bitpix,
 
 	// Check channel validity for the source image
 	if (chan >= 0 && chan >= source->naxes[2]) {
-		siril_log_color_message(_("Channel %d not available in source image (has %u channels)\n"),
-			"red", chan, source->naxes[2]);
+		siril_log_error(_("Channel %d not available in source image (has %u channels)\n"), chan, source->naxes[2]);
 		clearfits(source);
 		free(source);
 		return 1;
@@ -653,9 +729,7 @@ int mask_create_from_image(fits *fit, gchar *filename, int chan, uint8_t bitpix,
 		gi_data->params.do_red = gi_data->params.do_green =gi_data->params.do_blue = TRUE;
 
 		gi_args->fit = source;
-		gi_args->mem_ratio = 1.0f;
-		gi_args->image_hook = mtf_single_image_hook;
-		gi_args->description = _("Autostretch mask");
+		gi_args->op = &op_desc_mask_mtf_autostretch;
 		gi_args->idle_function = end_generic_image;
 		gi_args->user = gi_data;
 		gi_args->max_threads = com.max_thread;
@@ -693,7 +767,7 @@ int mask_create_from_image(fits *fit, gchar *filename, int chan, uint8_t bitpix,
 	if (retval == 0) {
 		siril_log_message(_("Mask created successfully from image\n"));
 	} else {
-		siril_log_color_message(_("Failed to create mask from image\n"), "red");
+		siril_log_error(_("Failed to create mask from image\n"));
 	}
 
 	return retval;
@@ -715,11 +789,11 @@ FAST_MATH_PUSH
 int mask_create_from_stars(fits *fit, float n_fwhm, uint8_t bitpix) {
 	if (!fit) return 1;
 	if (n_fwhm <= 0.f) {
-		siril_debug_print("mask_create_from_stars: n_fwhm must be positive\n");
+		siril_log_debug("mask_create_from_stars: n_fwhm must be positive\n");
 		return 1;
 	}
 	if (!(bitpix == 8 || bitpix == 16 || bitpix == 32)) {
-		siril_debug_print("mask_create_from_stars: bitpix must be 8, 16, or 32\n");
+		siril_log_debug("mask_create_from_stars: bitpix must be 8, 16, or 32\n");
 		return 1;
 	}
 
@@ -727,20 +801,26 @@ int mask_create_from_stars(fits *fit, float n_fwhm, uint8_t bitpix) {
 	int nb_stars = 0;
 	gboolean stars_needs_freeing = FALSE;
 
-	// Check if we already have stars in com.stars
-	g_rw_lock_reader_lock(&com.stars_lock);
-	int comstar_count_masks = starcount(com.stars);
-	if (comstar_count_masks >= 1) {
-		stars = com.stars;
-		nb_stars = comstar_count_masks;
-	}
-	g_rw_lock_reader_unlock(&com.stars_lock);
+	// Take a private, reader-locked copy of com.stars so the long mask-fill
+	// loop below doesn't dereference a list another thread may free/replace.
+	stars = snapshot_com_stars(&nb_stars);
+	int comstar_count_masks = nb_stars;
+	if (stars)
+		stars_needs_freeing = TRUE;
 
 	if (comstar_count_masks < 1) {
+		// snapshot_com_stars() can return a non-NULL but empty array (first
+		// duplicate_psf OOM); free it before findstar_worker overwrites stars.
+		if (stars_needs_freeing) {
+			free_fitted_stars(stars);
+			stars = NULL;
+			stars_needs_freeing = FALSE;
+		}
 		// Need to detect stars
 		struct starfinder_data *sf_data = calloc(1, sizeof(struct starfinder_data));
 		if (!sf_data) {
-			siril_log_color_message(_("Memory allocation failed\n"), "red");
+			siril_log_error(_("Memory allocation failed\n"));
+			// snapshot already freed above; stars_needs_freeing is FALSE here.
 			return 1;
 		}
 
@@ -764,7 +844,7 @@ int mask_create_from_stars(fits *fit, float n_fwhm, uint8_t bitpix) {
 		free(sf_data);
 
 		if (retval != 0 || !stars) {
-			siril_log_color_message(_("Star detection failed\n"), "red");
+			siril_log_error(_("Star detection failed\n"));
 			if (stars)
 				free_fitted_stars(stars);
 			return 1;
@@ -773,7 +853,7 @@ int mask_create_from_stars(fits *fit, float n_fwhm, uint8_t bitpix) {
 	}
 
 	if (nb_stars < 1 || !stars) {
-		siril_log_color_message(_("No stars detected in the image.\n"), "red");
+		siril_log_error(_("No stars detected in the image.\n"));
 		if (stars_needs_freeing)
 			free_fitted_stars(stars);
 		return 1;
@@ -973,6 +1053,12 @@ mask_t *fits_to_mask(fits *mfit) {
 
 		/* Was originally 8-bit, expanded to 16-bit */
 		case BYTE_IMG: {
+			/* orig_bitpix is independent of the populated buffer (type): an
+			 * 8/16-bit file loaded as float has data == NULL. Guard before use. */
+			if (!mfit->data) {
+				free(mask);
+				return NULL;
+			}
 			mask->bitpix = 8;
 			mask->data = malloc(npixels * sizeof(uint8_t));
 			if (!mask->data) {
@@ -991,6 +1077,10 @@ mask_t *fits_to_mask(fits *mfit) {
 
 		/* Was originally 16-bit */
 		case USHORT_IMG: {
+			if (!mfit->data) {
+				free(mask);
+				return NULL;
+			}
 			mask->bitpix = 16;
 			mask->data = malloc(npixels * sizeof(uint16_t));
 			if (!mask->data) {
@@ -1004,6 +1094,10 @@ mask_t *fits_to_mask(fits *mfit) {
 
 		/* Was originally 32-bit float */
 		case FLOAT_IMG: {
+			if (!mfit->fdata) {
+				free(mask);
+				return NULL;
+			}
 			mask->bitpix = 32;
 			mask->data = malloc(npixels * sizeof(float));
 			if (!mask->data) {
@@ -1027,16 +1121,16 @@ mask_t *fits_to_mask(fits *mfit) {
 // feather_width: feather zone width on each side of the thresholds
 int mask_threshold(fits *fit, float min_val, float max_val, float feather_width) {
 	if (!fit || !fit->mask || !fit->mask->data) {
-		siril_debug_print("mask_threshold: invalid mask\n");
+		siril_log_debug("mask_threshold: invalid mask\n");
 		return 1;
 	}
 	if (min_val > max_val) {
-		siril_debug_print("mask_threshold: min_val must be <= max_val\n");
+		siril_log_debug("mask_threshold: min_val must be <= max_val\n");
 		return 1;
 	}
 	feather_width /= fit->mask->bitpix == 8 ? 255.f : fit->mask->bitpix == 16 ? 65535.f : 1.f;
 	if (feather_width < 0.f || feather_width > 1.f) {
-		siril_debug_print("mask_threshold: feather_width out of range\n");
+		siril_log_debug("mask_threshold: feather_width out of range\n");
 		return 1;
 	}
 
@@ -1155,7 +1249,7 @@ int mask_threshold(fits *fit, float min_val, float max_val, float feather_width)
 			break;
 		}
 		default:
-			siril_debug_print("mask_threshold: unsupported bitpix %d\n", fit->mask->bitpix);
+			siril_log_debug("mask_threshold: unsupported bitpix %d\n", fit->mask->bitpix);
 			return 1;
 	}
 	return 0;
@@ -1195,7 +1289,7 @@ int mask_invert(fits *fit) {
 			break;
 		}
 		default:
-			siril_debug_print("Error! Unhandled bitpix in mask_create_ones_like\n");
+			siril_log_debug("Error! Unhandled bitpix in mask_create_ones_like\n");
 			return 1;
 	}
 	return 0;
@@ -1237,7 +1331,7 @@ int mask_scale(fits *fit, float f) {
 			break;
 		}
 		default:
-			siril_debug_print("Error! Unhandled bitpix in mask_scale\n");
+			siril_log_debug("Error! Unhandled bitpix in mask_scale\n");
 			return 1;
 	}
 	return 0;
@@ -1429,9 +1523,7 @@ int mask_from_channel_hook(struct generic_mask_args *args) {
 			gi_data->params.do_red = gi_data->params.do_green =gi_data->params.do_blue = TRUE;
 
 			gi_args->fit = ffit;
-			gi_args->mem_ratio = 1.0f;
-			gi_args->image_hook = mtf_single_image_hook;
-			gi_args->description = _("Autostretch mask");
+			gi_args->op = &op_desc_mask_mtf_autostretch;
 			gi_args->idle_function = end_embedded_autostretch;
 			gi_args->user = gi_data;
 			gi_args->max_threads = com.max_thread;
@@ -1498,7 +1590,10 @@ int mask_from_lum_hook(struct generic_mask_args *args) {
 			struct generic_img_args *gi_args = calloc(1, sizeof(struct generic_img_args));
 			if (!gi_args) {
 				PRINT_ALLOC_ERR;
-				destroy_mtf_data(data);
+				/* gi_data (an mtf_data) is the thing to destroy here; 'data' is
+				 * the hook's mask_from_lum_data, owned by the caller. Destroying
+				 * 'data' was both a type-confused free and a leak of gi_data. */
+				destroy_mtf_data(gi_data);
 				clearfits(ffit);
 				free(ffit);
 				return 1;
@@ -1508,9 +1603,7 @@ int mask_from_lum_hook(struct generic_mask_args *args) {
 			gi_data->params.do_red = gi_data->params.do_green =gi_data->params.do_blue = TRUE;
 
 			gi_args->fit = ffit;
-			gi_args->mem_ratio = 1.0f;
-			gi_args->image_hook = mtf_single_image_hook;
-			gi_args->description = _("Autostretch mask");
+			gi_args->op = &op_desc_mask_mtf_autostretch;
 			gi_args->idle_function = end_embedded_autostretch;
 			gi_args->user = gi_data;
 			gi_args->max_threads = com.max_thread;

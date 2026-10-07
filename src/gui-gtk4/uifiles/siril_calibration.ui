@@ -1,0 +1,627 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
+<interface>
+  <!-- interface-name siril_calibration.ui -->
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkAdjustment" id="adjCalCosmeHot">
+    <property name="page-increment">10</property>
+    <property name="step-increment">0.10</property>
+    <property name="upper">50</property>
+    <property name="value">3</property>
+  </object>
+  <object class="GtkAdjustment" id="adjCalSigCosmeCold">
+    <property name="page-increment">10</property>
+    <property name="step-increment">0.10</property>
+    <property name="upper">50</property>
+    <property name="value">3</property>
+  </object>
+  <object class="GtkScrolledWindow" id="calibration_tab">
+    <property name="child">
+      <object class="GtkViewport">
+        <property name="child">
+          <object class="GtkBox" id="vbox22">
+            <property name="orientation">vertical</property>
+            <property name="spacing">10</property>
+            <child>
+              <object class="GtkExpander">
+                <property name="expanded">1</property>
+                <property name="focusable">1</property>
+                <child>
+                  <object class="GtkGrid" id="grid18">
+                    <property name="column-spacing">5</property>
+                    <property name="margin-top">5</property>
+                    <property name="row-spacing">5</property>
+                    <child>
+                      <object class="GtkCheckButton" id="useflat_button">
+                        <property name="focusable">1</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes" comments="Flat is the kind of the picture used here. In french I've decided to not translate the word.">Use flat</property>
+                        <property name="tooltip-text" translatable="yes">All images in the sequence will be divided by the master flat image (each pixel value).</property>
+                        <property name="use-underline">1</property>
+                        <signal name="toggled" handler="update_prepro_interface"/>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="flatname_entry">
+                        <property name="focusable">1</property>
+                        <property name="hexpand">1</property>
+                        <property name="input-hints">no-emoji|none</property>
+                        <property name="text">master-flat.fit</property>
+                        <property name="tooltip-text" translatable="yes">Enter the master flat file name here, or use the browse button.
+All images in the sequence will be divided by the master flat image (each pixel value).</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="flatfile_button">
+                        <property name="focusable">1</property>
+                        <property name="halign">start</property>
+                        <property name="tooltip-text" translatable="yes">All images in the sequence will be divided by the master flat image (each pixel value).</property>
+                        <property name="use-underline">1</property>
+                        <signal name="clicked" handler="on_flatfile_button_clicked"/>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="icon-name">document-open-symbolic</property>
+                          </object>
+                        </child>
+                        <layout>
+                          <property name="column">2</property>
+                          <property name="row">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="usedark_button">
+                        <property name="focusable">1</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes" comments="Dark is the kind of the picture used here. In french I've decided to not translate the word.">Use dark</property>
+                        <property name="tooltip-text" translatable="yes">The dark master image will be removed from all images in the sequence.</property>
+                        <property name="use-underline">1</property>
+                        <signal name="toggled" handler="update_prepro_interface"/>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="darkfile_button">
+                        <property name="focusable">1</property>
+                        <property name="halign">start</property>
+                        <property name="tooltip-text" translatable="yes">The dark master image will be removed from all images in the sequence.</property>
+                        <property name="use-underline">1</property>
+                        <signal name="clicked" handler="on_darkfile_button_clicked"/>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="icon-name">document-open-symbolic</property>
+                          </object>
+                        </child>
+                        <layout>
+                          <property name="column">2</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="darkname_entry">
+                        <property name="focusable">1</property>
+                        <property name="hexpand">1</property>
+                        <property name="input-hints">no-emoji|none</property>
+                        <property name="text">master-dark.fit</property>
+                        <property name="tooltip-text" translatable="yes">Enter the master dark file name here, or use the browse button.
+The dark master image will be removed from all images in the sequence.</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="useoffset_button">
+                        <property name="focusable">1</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes" comments="Offset is the kind of the picture used here. In french I've decided to not translate the word.">Use bias</property>
+                        <property name="tooltip-text" translatable="yes">The bias/offset master image will be removed from all images in the sequence.</property>
+                        <property name="use-underline">1</property>
+                        <signal name="toggled" handler="update_prepro_interface"/>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="offsetname_entry">
+                        <property name="focusable">1</property>
+                        <property name="hexpand">1</property>
+                        <property name="input-hints">no-emoji|none</property>
+                        <property name="text" translatable="yes">master-bias.fit</property>
+                        <property name="tooltip-text" translatable="yes">Enter the master bias/offset file name here, or use the browse button.
+The bias/offset master image will be removed from all images in the sequence.
+Instead of an image, you can also specify a uniform level to be subtracted, starting with an "=" sign, such as =256 or =64*$OFFSET</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="offsetfile_button">
+                        <property name="focusable">1</property>
+                        <property name="halign">start</property>
+                        <property name="tooltip-text" translatable="yes">The bias/offset master image will be removed from all images in the sequence.</property>
+                        <property name="use-underline">1</property>
+                        <signal name="clicked" handler="on_offsetfile_button_clicked"/>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="icon-name">document-open-symbolic</property>
+                          </object>
+                        </child>
+                        <layout>
+                          <property name="column">2</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="checkbutton_equalize_cfa">
+                        <property name="focusable">1</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Equalize CFA</property>
+                        <property name="tooltip-markup" translatable="yes">This option equalizes the mean intensity of RGB layers in a CFA flat image.</property>
+                        <signal name="toggled" handler="on_checkbutton_equalize_cfa_toggled"/>
+                        <layout>
+                          <property name="column">3</property>
+                          <property name="row">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="checkbutton_auto_evaluate">
+                        <property name="active">1</property>
+                        <property name="focusable">1</property>
+                        <property name="halign">end</property>
+                        <property name="label" translatable="yes">Auto evaluate normalisation value</property>
+                        <property name="tooltip-text" translatable="yes">If this box is checked, Siril will auto-evaluate the normalisation value.
+This value is the mean of the master flat calibrated with the master offset.</property>
+                        <signal name="toggled" handler="on_checkbutton_auto_evaluate_toggled" swapped="False" object="entry_flat_norm"/>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="column-span">2</property>
+                          <property name="row">3</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="entry_flat_norm">
+                        <property name="focusable">1</property>
+                        <property name="halign">start</property>
+                        <property name="input-hints">no-emoji|none</property>
+                        <property name="input-purpose">number</property>
+                        <property name="max-length">5</property>
+                        <property name="max-width-chars">5</property>
+                        <property name="sensitive">0</property>
+                        <property name="text">5000</property>
+                        <property name="tooltip-text" translatable="yes">Choose your own normalisation value.</property>
+                        <property name="width-chars">5</property>
+                        <layout>
+                          <property name="column">2</property>
+                          <property name="column-span">2</property>
+                          <property name="row">3</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="fix_xtrans_af">
+                        <property name="focusable">1</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Fix X-Trans AF artifact</property>
+                        <property name="tooltip-text" translatable="yes">This option helps to fix the Fujifilm X-Trans Auto Focus pixels. Indeed, because of the phase detection auto focus system, the photosites used for auto focus get a little less light than the surrounding photosites. The camera compensates for this and increases the values from these specific photosites giving a visible square in the middle of the dark/bias frames.</property>
+                        <signal name="toggled" handler="on_fix_xtrans_af_toggled"/>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="column-span">3</property>
+                          <property name="row">4</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkDropDown" id="comboDarkOptimize">
+                        <property name="model">
+                          <object class="GtkStringList">
+                            <items>
+                              <item translatable="yes">No dark optimization</item>
+                              <item translatable="yes">Auto-evaluation</item>
+                              <item translatable="yes">Use Exposure</item>
+                            </items>
+                          </object>
+                        </property>
+                        <property name="selected">0</property>
+                        <property name="tooltip-markup" translatable="yes">Dark subtraction can be optimized. Siril offers two ways of doing this.
+- The first method automatically evaluates the coefficients to be applied so that the noise of the resulting image (light image minus dark image) is minimized.
+- The second method takes into account exposure times if these have been entered by the capture software.
+
+Dark optimization is useful when dark images have not been captured under optimal conditions. It compensates for differences in temperature and/or exposure time between dark and light images.
+
+&lt;b&gt;WARNING:&lt;/b&gt; Do not apply dark optimization to the master-dark if the master-bias has not been subtracted beforehand.</property>
+                        <layout>
+                          <property name="column">3</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="label" translatable="yes">Image calibration</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"/>
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkExpander">
+                <property name="expanded">1</property>
+                <property name="focusable">1</property>
+                <child>
+                  <object class="GtkBox">
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">5</property>
+                    <child>
+                      <object class="GtkCheckButton" id="cosmEnabledCheck">
+                        <property name="active">1</property>
+                        <property name="focusable">1</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Enable Cosmectic Correction</property>
+                        <property name="margin-top">5</property>
+                        <property name="tooltip-text" translatable="yes">Check if you want to apply a hot pixel removal.
+Hot pixels are located on the master-dark.</property>
+                        <signal name="toggled" handler="on_cosmEnabledCheck_toggled"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkStackSwitcher">
+                        <property name="halign">start</property>
+                        <property name="margin-top">5</property>
+                        <property name="stack">stack_cc</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="cosmCFACheck">
+                        <property name="focusable">1</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">CFA data</property>
+                        <property name="tooltip-text" translatable="yes">Check if the target frames are CFA images.
+Uncheck if images come from a monochrome sensor.</property>
+                        <signal name="toggled" handler="on_cosmCFACheck_toggled"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkStack" id="stack_cc">
+                        <property name="transition-type">slide-left-right</property>
+                        <child>
+                          <object class="GtkStackPage">
+                            <property name="child">
+                              <object class="GtkFrame" id="cc_frame_dark">
+                                <property name="margin-top">5</property>
+                                <child>
+                                  <object class="GtkGrid" id="grid24">
+                                    <property name="column-spacing">5</property>
+                                    <property name="margin-top">5</property>
+                                    <property name="row-spacing">5</property>
+                                    <property name="sensitive">0</property>
+                                    <child>
+                                      <object class="GtkSpinButton" id="spinSigCosmeCold">
+                                        <property name="adjustment">adjCalSigCosmeCold</property>
+                                        <property name="digits">3</property>
+                                        <property name="focusable">1</property>
+                                        <property name="max-width-chars">5</property>
+                                        <property name="numeric">1</property>
+                                        <property name="text">3.000</property>
+                                        <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
+                                        <property name="value">3</property>
+                                        <style>
+                                          <class name="small-spinbutton"/>
+                                        </style>
+                                        <layout>
+                                          <property name="column">1</property>
+                                          <property name="row">0</property>
+                                        </layout>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkCheckButton" id="checkSigCold">
+                                        <property name="active">1</property>
+                                        <property name="focusable">1</property>
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="yes">Cold Sigma:</property>
+                                        <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
+                                        <layout>
+                                          <property name="column">0</property>
+                                          <property name="row">0</property>
+                                        </layout>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkButton" id="GtkButtonEvaluateCC">
+                                        <property name="focusable">1</property>
+                                        <property name="label" translatable="yes">Estimate</property>
+                                        <property name="receives-default">1</property>
+                                        <property name="tooltip-text" translatable="yes">Click on this button to evaluate the number of deviant pixels. If values are higher than 1% of the total of pixels, you will be encouraged to change sigma values.</property>
+                                        <signal name="clicked" handler="on_GtkButtonEvaluateCC_clicked"/>
+                                        <layout>
+                                          <property name="column">0</property>
+                                          <property name="row">2</property>
+                                        </layout>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkCheckButton" id="checkSigHot">
+                                        <property name="active">1</property>
+                                        <property name="focusable">1</property>
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="yes">Hot Sigma:</property>
+                                        <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
+                                        <layout>
+                                          <property name="column">0</property>
+                                          <property name="row">1</property>
+                                        </layout>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkSpinButton" id="spinSigCosmeHot">
+                                        <property name="adjustment">adjCalCosmeHot</property>
+                                        <property name="digits">3</property>
+                                        <property name="focusable">1</property>
+                                        <property name="max-width-chars">6</property>
+                                        <property name="numeric">1</property>
+                                        <property name="text">3.000</property>
+                                        <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
+                                        <property name="value">3</property>
+                                        <style>
+                                          <class name="small-spinbutton"/>
+                                        </style>
+                                        <layout>
+                                          <property name="column">1</property>
+                                          <property name="row">1</property>
+                                        </layout>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel" id="GtkLabelColdCC">
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="yes">0 px</property>
+                                        <layout>
+                                          <property name="column">2</property>
+                                          <property name="row">0</property>
+                                        </layout>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel" id="GtkLabelHotCC">
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="yes">0 px</property>
+                                        <layout>
+                                          <property name="column">2</property>
+                                          <property name="row">1</property>
+                                        </layout>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child type="label">
+                                  <object class="GtkLabel">
+                                    <property name="label" translatable="yes">Master-dark</property>
+                                    <attributes>
+                                      <attribute name="weight" value="bold"/>
+                                    </attributes>
+                                  </object>
+                                </child>
+                              </object>
+                            </property>
+                            <property name="name">cc_page0</property>
+                            <property name="title" translatable="yes">Using Master-Dark</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkStackPage">
+                            <property name="child">
+                              <object class="GtkFrame" id="cc_frame_bad_pixel_map">
+                                <property name="margin-top">5</property>
+                                <child>
+                                  <object class="GtkBox">
+                                    <property name="margin-top">5</property>
+                                    <property name="spacing">5</property>
+                                    <property name="valign">start</property>
+                                    <child>
+                                      <object class="GtkEntry" id="pixelmap_entry">
+                                        <property name="focusable">1</property>
+                                        <property name="hexpand">1</property>
+                                        <property name="input-hints">no-emoji|none</property>
+                                        <property name="tooltip-markup" translatable="yes">Enter the bad pixel map file name here, or use the browse button. This file is generally created by the command &lt;i&gt;find_hot&lt;/i&gt; applied on a dark frame or a master-dark. The file is structured as follow:
+
+* The line &lt;i&gt;P x y type&lt;/i&gt; will fix the pixel at coordinates (x, y), type is an optional character (&lt;i&gt;C&lt;/i&gt;or &lt;i&gt;H&lt;/i&gt;) specifying to Siril if the current pixel is cold or hot.
+* The line &lt;i&gt;C x 0 type&lt;/i&gt; will fix the bad column at coordinates &lt;i&gt;x&lt;/i&gt;.
+* The line &lt;i&gt;L y 0 type&lt;/i&gt; will fix the bad line at coordinates &lt;i&gt;y&lt;/i&gt;.</property>
+                                        <property name="valign">center</property>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkButton" id="pixelmap_button">
+                                        <property name="focusable">1</property>
+                                        <property name="halign">start</property>
+                                        <property name="tooltip-markup" translatable="yes">Load the bad pixel map file. This file must be ended by the &lt;i&gt;*.lst&lt;/i&gt; extension.</property>
+                                        <property name="use-underline">1</property>
+                                        <property name="valign">center</property>
+                                        <signal name="clicked" handler="on_pixelmap_button_clicked"/>
+                                        <child>
+                                          <object class="GtkImage">
+                                            <property name="icon-name">document-open-symbolic</property>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child type="label">
+                                  <object class="GtkLabel">
+                                    <property name="label" translatable="yes">Bad Pixel Map</property>
+                                    <attributes>
+                                      <attribute name="weight" value="bold"/>
+                                    </attributes>
+                                  </object>
+                                </child>
+                              </object>
+                            </property>
+                            <property name="name">cc_page1</property>
+                            <property name="title" translatable="yes">Using Bad Pixel Map</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="label" translatable="yes">Cosmetic correction</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"/>
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkExpander">
+                <property name="expanded">1</property>
+                <property name="focusable">1</property>
+                <child>
+                  <object class="GtkGrid">
+                    <property name="column-spacing">5</property>
+                    <property name="margin-top">5</property>
+                    <property name="row-spacing">5</property>
+                    <child>
+                      <object class="GtkLabel" id="preproseqname_label">
+                        <property name="halign">end</property>
+                        <property name="justify">center</property>
+                        <property name="label" translatable="yes">Output prefix:</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="preproseqname_entry">
+                        <property name="focusable">1</property>
+                        <property name="halign">start</property>
+                        <property name="input-hints">no-emoji|none</property>
+                        <property name="text">pp_</property>
+                        <property name="tooltip-text" translatable="yes">Prefix of the image names resulting from the calibration.</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="prepro_button">
+                        <property name="focusable">1</property>
+                        <property name="label" translatable="yes">Start calibration</property>
+                        <property name="sensitive">0</property>
+                        <property name="tooltip-text" translatable="yes">Pre-process sequence with the above master files, resulting sequence will be in pp_&lt;seq.name&gt; or another prefix given aside.
+Once completed, the sequence of pre-processed images is automatically loaded as the current sequence.
+The next action for DSLR images would be to debayer the preprocessed images, go to the Conversion tab.</property>
+                        <property name="use-underline">1</property>
+                        <signal name="clicked" handler="on_prepro_button_clicked"/>
+                        <style>
+                          <class name="suggested-action"/>
+                        </style>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="checkButton_pp_dem">
+                        <property name="focusable">1</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Debayer before saving</property>
+                        <property name="tooltip-text" translatable="yes">Check this option if you want to apply a demosaicing algorithm to your FITS images right after they were preprocessed. By doing this, you skip one manual step which can take some time.</property>
+                        <signal name="toggled" handler="update_prepro_interface"/>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkDropDown" id="prepro_output_type_combo">
+                        <property name="model">
+                          <object class="GtkStringList">
+                            <items>
+                              <item translatable="yes">FITS images</item>
+                              <item translatable="yes">SER sequence</item>
+                              <item translatable="yes">FITS sequence</item>
+                            </items>
+                          </object>
+                        </property>
+                        <property name="selected">0</property>
+                        <property name="tooltip-text" translatable="yes">This sets the destination sequence type.
+FITS images: one FITS file per image.
+SER sequence: one SER file for the whole sequence (limited to 16 bits per channel).
+FITS sequence: one FITS file for the whole sequence.</property>
+                        <layout>
+                          <property name="column">2</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="toggle_preprocess_excluded">
+                        <property name="focusable">1</property>
+                        <property name="label" translatable="yes">Calibrate all frames</property>
+                        <property name="tooltip-text" translatable="yes">Force calibration of all frames even if marked as excluded.</property>
+                        <layout>
+                          <property name="column">2</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="label" translatable="yes">Output sequence</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"/>
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </property>
+      </object>
+    </property>
+    <property name="focusable">1</property>
+    <property name="hscrollbar-policy">never</property>
+  </object>
+  <object class="GtkLabel" id="label19">
+    <property name="justify">center</property>
+    <property name="label" translatable="yes">Calibration</property>
+    <property name="margin-bottom">2</property>
+    <property name="tooltip-text" translatable="yes">Calibration is an optional step to apply to a sequence of images.</property>
+  </object>
+</interface>

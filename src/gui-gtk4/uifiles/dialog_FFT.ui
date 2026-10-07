@@ -1,0 +1,205 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
+<interface>
+  <!-- interface-name dialog_FFT.ui -->
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkWindow" id="dialog_FFT">
+    <property name="child">
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkBox" id="dialog-vbox20">
+            <property name="margin-bottom">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">6</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">2</property>
+            <child>
+              <object class="GtkNotebook" id="notebook_fft">
+                <property name="vexpand">1</property>
+                <child>
+                  <object class="GtkNotebookPage">
+                    <property name="child">
+                      <object class="GtkGrid" id="grid11">
+                        <property name="column-spacing">10</property>
+                        <property name="row-spacing">10</property>
+                        <child>
+                          <object class="GtkLabel" id="label78">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Name of the magnitude file: </property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="label79">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Name of the phase file: </property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="label80">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Order: </property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">2</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="fftd_mag_entry">
+                            <property name="focusable">1</property>
+                            <property name="hexpand">1</property>
+                            <property name="input-hints">no-emoji|none</property>
+                            <property name="invisible-char">●</property>
+                            <property name="text" translatable="yes">modulus</property>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="fftd_phase_entry">
+                            <property name="focusable">1</property>
+                            <property name="hexpand">1</property>
+                            <property name="input-hints">no-emoji|none</property>
+                            <property name="invisible-char">●</property>
+                            <property name="text" translatable="yes">phase</property>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckButton" id="fft_centered">
+                            <property name="active">1</property>
+                            <property name="focusable">1</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Centered</property>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">2</property>
+                            </layout>
+                          </object>
+                        </child>
+                      </object>
+                    </property>
+                    <property name="tab">
+                      <object class="GtkLabel" id="label74">
+                        <property name="label" translatable="yes">Direct Transform</property>
+                      </object>
+                    </property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkNotebookPage">
+                    <property name="child">
+                      <object class="GtkGrid" id="grid17">
+                        <property name="column-spacing">5</property>
+                        <property name="row-spacing">10</property>
+                        <property name="valign">start</property>
+                        <child>
+                          <object class="GtkLabel" id="label76">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Magnitude of the image: </property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="label77">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Phase of the image: </property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="filechooser_mag">
+                            <property name="hexpand">True</property>
+                            <property name="label">(None)</property>
+                            <property name="valign">center</property>
+                            <property name="visible">True</property>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="filechooser_phase">
+                            <property name="hexpand">True</property>
+                            <property name="label">(None)</property>
+                            <property name="valign">center</property>
+                            <property name="visible">True</property>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                      </object>
+                    </property>
+                    <property name="position">1</property>
+                    <property name="tab">
+                      <object class="GtkLabel" id="label75">
+                        <property name="label" translatable="yes">Inverse Transform</property>
+                      </object>
+                    </property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox" id="dialog-action_area22">
+            <property name="halign">end</property>
+            <property name="margin-bottom">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-top">12</property>
+            <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
+            <child>
+              <object class="GtkButton" id="button_fft_close">
+                <property name="label" translatable="yes">Close</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_button_fft_close_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="button_fft_apply">
+                <property name="label" translatable="yes">Apply</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_button_fft_apply_clicked"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </property>
+    <property name="height-request">200</property>
+    <property name="resizable">0</property>
+    <property name="title" translatable="yes">Fourier Transform</property>
+    <property name="width-request">400</property>
+    <signal name="close-request" handler="fft_hide_on_delete"/>
+  </object>
+</interface>

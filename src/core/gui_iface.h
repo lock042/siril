@@ -68,10 +68,32 @@ extern "C" {
  * including GTK headers.  gui/image_display.h aliases this as remap_type
  * for backward compatibility.
  */
+/* SirilRedrawType — what to refresh on the next paint pass.  All three
+ * cases queue a GtkWidget redraw; the differences are what other
+ * housekeeping piggy-backs on the call:
+ *
+ *   REDRAW_OVERLAY — Cairo buffers are assumed fresh; only the overlay
+ *                    (selection rect, annotations, etc.) needs repainting.
+ *   REDRAW_IMAGE   — Cairo image-render cache is stale; invalidate it
+ *                    first, then queue paint.  Use when pixel data
+ *                    changed but no other panels need refreshing.
+ *   REDRAW_ALL     — Like REDRAW_OVERLAY plus a refresh of subordinate
+ *                    panels (currently the aberration-inspector mosaic).
+ *                    Used at end-of-operation when the actual gfit remap
+ *                    has already been done by notify_gfit_data_modified
+ *                    so the Cairo cache is fresh — only the side panels
+ *                    need a nudge.
+ *
+ * Historically this enum had a REMAP_ALL case that called
+ * remap_all_vports() directly.  When the remap moved into
+ * notify_gfit_data_modified (so the worker thread could do it without
+ * a GUI roundtrip) REMAP_ALL stopped remapping anything — it became
+ * "paint-time housekeeping that includes side panels."  Renamed to
+ * REDRAW_ALL to reflect what it actually does. */
 typedef enum {
-	REDRAW_OVERLAY, /* only annotation/overlay layers changed */
-	REDRAW_IMAGE,   /* image pixel values changed; re-render but no remap */
-	REMAP_ALL,      /* image data or display LUT changed; remap then render */
+	REDRAW_OVERLAY,
+	REDRAW_IMAGE,
+	REDRAW_ALL,
 } SirilRedrawType;
 
 /* ── ActionResult — returned by activate_action() ───────────────────────── */
@@ -114,11 +136,23 @@ typedef struct {
 	void     (*log_message)(const char *msg, const char *color);
 
 	/* C – Modal dialogs ---------------------------------------------------- */
+	/* Fire-and-forget: queues the dialog on the main thread and returns
+	 * immediately, without waiting for the user to dismiss it. */
 	void     (*message_dialog)(SirilMessageType type, const char *title,
+	                           const char *text);
+	/* Same, but blocks the calling thread until the user dismisses the
+	 * dialog (callable from worker threads, e.g. the python bridge). */
+	void     (*message_dialog_modal)(SirilMessageType type, const char *title,
 	                           const char *text);
 	/* Returns TRUE if the user clicked the accept button. */
 	gboolean (*confirm_dialog)(const char *title, const char *msg,
 	                           const char *button_accept);
+	/* Same, but embeds a Bayer-pattern combo. On Accept, fills
+	 * *avi_bayer_pattern with the chosen `enum mpp_avi_bayer` value
+	 * (0..5; 0 = Auto). Headless stub auto-accepts with AUTO. */
+	gboolean (*confirm_dialog_with_avi_bayer)(const char *title, const char *msg,
+	                                          const char *button_accept,
+	                                          int *avi_bayer_pattern);
 	/* id is the GtkBuilder identifier of the dialog widget. */
 	void     (*open_dialog)(const char *id);
 	void     (*close_dialog)(const char *id);
@@ -138,12 +172,18 @@ typedef struct {
 	void     (*redraw_image_sync)(SirilRedrawType remap);
 	/* Clear any active selection rectangle from the image display. */
 	void     (*delete_selection)(void);
-	/* Queue a redraw of the mask overlay only (from any thread). */
-	void     (*queue_redraw_mask)(void);
+	/* Queue a redraw of the mask overlay (from any thread).  remap_tints:
+	 * TRUE when the mask data changed, so tinted image viewports must be
+	 * remapped; FALSE when the caller has just remapped the image buffers
+	 * (tints already current) and only the mask buffer needs refreshing. */
+	void     (*queue_redraw_mask)(gboolean remap_tints);
 	/* Refresh all preview windows (registration / filter previews). */
 	void     (*redraw_previews)(void);
 	/* Remap all display viewports (recalculate display LUT/buffers). */
 	void     (*remap_all_vports)(void);
+	/* Drop stale lazy-tile textures when gfit's pixels are replaced (e.g. a
+	 * sequence frame swap) so the display shows the new content, not the old. */
+	void     (*drop_lazy_tile_textures)(void);
 
 	/* E – Sequence / image state notifications ----------------------------- */
 	/* Called after a sequence is fully opened and ready for use. */
@@ -179,9 +219,18 @@ typedef struct {
 	void     (*update_status_bar)(void);
 	/* Sync menu/toolbar enable-state to current application state. */
 	void     (*update_menu_state)(void);
+	/* Pop down every open autohide popover in the main window; returns TRUE
+	 * if any was dismissed.  Used by the macOS outside-click dismissal path
+	 * (siril_macos_fix_popover_autohide).  May be NULL in headless builds. */
+	gboolean (*dismiss_autohide_popovers)(void);
 	/* Suppress (TRUE) or restore (FALSE) drawarea redraws during processing.
 	 * When suppressing, also disables the display-mode menu button. */
 	void     (*set_suppress_redraws)(gboolean suppress);
+	/* Current state of that flag.  It is a plain boolean and not a counter,
+	 * so a caller that suppresses around a section which can nest inside an
+	 * already-suppressed one must save this and restore it rather than force
+	 * the flag off — see free_image_data(). */
+	gboolean (*get_suppress_redraws)(void);
 	/* Repopulate the ROI display from current gfit data (call while holding
 	 * the gfit read lock). */
 	void     (*populate_roi)(void);
@@ -191,8 +240,10 @@ typedef struct {
 	void     (*invalidate_histogram)(void);
 	/* Recompute histogram if stale (call while holding at least a read lock). */
 	void     (*update_histogram)(void);
-	/* Queue an idle mask redraw (may also trigger a full image redraw). */
-	void     (*redraw_mask_idle)(void);
+	/* Reset the curves tool state after an undo/redo (no-op in headless mode). */
+	void     (*curves_reset_after_undo)(void);
+	/* Run the mask redraw now.  remap_tints as in queue_redraw_mask. */
+	void     (*redraw_mask_idle)(gboolean remap_tints);
 
 	/* F additions – Application lifecycle -------------------------------- */
 	/* Quit the application's main event loop. */
@@ -271,6 +322,9 @@ typedef struct {
 	void     (*on_photometry_changed)(void);
 	/* Open a new siril-plot window for the given siril_plot_data pointer. */
 	void     (*show_siril_plot)(gpointer spl_data);
+	/* Open a new siril-plot window grouping all the plots of the given
+	 * siril_plot_group pointer side by side. */
+	void     (*show_siril_plot_group)(gpointer group);
 
 	/* K – Star list -------------------------------------------------------- */
 	/* Update the star list display and optionally the PSF list panel. */
@@ -346,8 +400,9 @@ typedef struct {
 	 * fit is cast to fits* in the implementation; use gpointer to keep the
 	 * header GTK/siril.h-free. */
 	void     (*update_icc_status_icon)(gpointer fit, gboolean active);
-	/* Return TRUE if the gamut check toggle in the ICC dialog is active. */
-	gboolean (*get_gamut_check_active)(void);
+	/* No gamut-check accessor here on purpose: the transform builders that
+	 * need it run on worker threads, so the toggle is cached into
+	 * com.gui_icc.gamut_check by on_gamutcheck_toggled() instead. */
 
 	/* V – Registration panel status ----------------------------------------- */
 	/* Set the info label text in the 3-star registration panel. */
@@ -557,12 +612,6 @@ typedef struct {
 	int      (*number_of_dialogs)(void);
 	/* Clear all registration-preview windows. */
 	void     (*clear_previews)(void);
-	/* Toggle the StarNet remixer window visibility.
-	 * invocation: CALL_FROM_STARNET (1) or other; fit_left/fit_right are
-	 * cast from fits*. Returns 0 on success. */
-	int      (*toggle_remixer_window_visibility)(int invocation,
-	                                              gpointer fit_left,
-	                                              gpointer fit_right);
 	/* Show the HEIF multi-image selector dialog.
 	 * heif is cast from struct heif_context*; returns TRUE if user selected
 	 * an image, FALSE if cancelled. Stub returns FALSE. */
