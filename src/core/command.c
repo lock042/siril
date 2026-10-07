@@ -14566,21 +14566,21 @@ int process_profile(int nb) {
 	if (err)
 		return err;
 
-	cut_args->display_graph = (!com.script); // we can display the plot if not in a script
+	cut_args->display_graph = !com.script && !com.headless; // we can display the plot if not in a script
 	cut_args->save_png_too = TRUE;
 
 	if (cut_args->cfa) {
-		if (!start_in_new_thread(gui_iface.run_cfa_cut, cut_args)) {
+		if (!start_in_new_thread(cfa_cut, cut_args)) {
 			free_cut_args(cut_args);
 			return CMD_ARG_ERROR;
 		}
 	} else if (cut_args->tri) {
-		if (!start_in_new_thread(gui_iface.run_tri_cut, cut_args)) {
+		if (!start_in_new_thread(tri_cut, cut_args)) {
 			free_cut_args(cut_args);
 			return CMD_ARG_ERROR;
 		}
 	} else {
-		if (!start_in_new_thread(gui_iface.run_cut_profile, cut_args)) {
+		if (!start_in_new_thread(cut_profile, cut_args)) {
 			free_cut_args(cut_args);
 			return CMD_ARG_ERROR;
 		}
@@ -14606,7 +14606,7 @@ int process_seq_profile(int nb) {
 	cut_args->display_graph = FALSE;
 	cut_args->save_png_too = FALSE;
 
-	gui_iface.apply_cut_to_sequence(cut_args);
+	apply_cut_to_sequence(cut_args);
 
 	return CMD_OK;
 }

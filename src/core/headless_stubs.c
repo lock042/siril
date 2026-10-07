@@ -259,24 +259,8 @@ void check_gfit_profile_identical_to_monitor(void) {}
 /* Aberration inspector */
 void compute_aberration_inspector(void) {}
 
-/* sequence-level MTF/GHT — complex GUI+sequence setup; no-op in headless */
-void apply_mtf_to_sequence(struct mtf_data *mtf_args) { (void)mtf_args; }
-void apply_ght_to_sequence(struct ght_data *ght_args) { (void)ght_args; }
-
-/* Cut profile sequence/tri/CFA wrappers */
-void apply_cut_to_sequence(cut_struct *cut_args) { (void)cut_args; }
-gpointer cut_profile(gpointer p) { (void)p; return NULL; }
-gpointer tri_cut(gpointer p) { (void)p; return NULL; }
-gpointer cfa_cut(gpointer p) { (void)p; return NULL; }
+/* Cut profile */
 void reset_cut_gui_filedependent(gpointer user_data) { (void)user_data; }
-
-/* SPCC / photometric */
-int get_favourite_spccobject(GList *list, const gchar *favourite) {
-	(void)list; (void)favourite; return 0;
-}
-int get_favourite_oscsensor(GList *list, const gchar *favourite) {
-	(void)list; (void)favourite; return 0;
-}
 
 /* Livestacking display */
 void livestacking_display(gchar *str, gboolean free_after_display) {
@@ -311,9 +295,6 @@ int match_drawing_area_widget(const GtkWidget *drawing_area, gboolean allow_rgb)
 	(void)drawing_area; (void)allow_rgb; return 0;
 }
 int select_vport(int vport) { return vport < 3 ? vport : 0; }
-gchar *build_save_filename(gchar *prepend, gchar *ext, gboolean forsequence, gboolean add_time_stamp) {
-	(void)prepend; (void)ext; (void)forsequence; (void)add_time_stamp; return NULL;
-}
 
 /* 3-star registration state reset — no-op in headless mode */
 void reset_3stars(void) {}

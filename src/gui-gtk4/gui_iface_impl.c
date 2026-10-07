@@ -1444,14 +1444,7 @@ static gboolean impl_save_siril_plot_to_clipboard(gpointer s, int w, int h) {
 	execute_idle_and_wait_for_it(save_plot_to_clipboard_idle, &args);
 	return args.result;
 }
-static gchar *impl_build_save_filename(gchar *p, gchar *e, gboolean f, gboolean t) {
-	return build_save_filename(p, e, f, t);
-}
 /* Cut */
-static void impl_apply_cut_to_sequence(gpointer a) { apply_cut_to_sequence((cut_struct*)a); }
-static gpointer impl_run_cut_profile(gpointer a) { return cut_profile(a); }
-static gpointer impl_run_tri_cut(gpointer a) { return tri_cut(a); }
-static gpointer impl_run_cfa_cut(gpointer a) { return cfa_cut(a); }
 static void impl_reset_cut_gui_filedependent(gpointer u) {
 	/* reachable from read_single_image on the script/python worker */
 	gui_function(reset_cut_gui_filedependent, u);
@@ -1660,12 +1653,7 @@ void siril_register_gui_iface(void) {
 	gui_iface.notify_new_photometry          = impl_notify_new_photometry;
 	gui_iface.init_plot_colors               = impl_init_plot_colors;
 	gui_iface.save_siril_plot_to_clipboard   = impl_save_siril_plot_to_clipboard;
-	gui_iface.build_save_filename            = impl_build_save_filename;
 	/* Cut */
-	gui_iface.apply_cut_to_sequence          = impl_apply_cut_to_sequence;
-	gui_iface.run_cut_profile                = impl_run_cut_profile;
-	gui_iface.run_tri_cut                    = impl_run_tri_cut;
-	gui_iface.run_cfa_cut                    = impl_run_cfa_cut;
 	gui_iface.reset_cut_gui_filedependent    = impl_reset_cut_gui_filedependent;
 	/* Preview */
 	gui_iface.copy_backup_to_gfit            = impl_copy_backup_to_gfit;
