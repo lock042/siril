@@ -17,39 +17,27 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
-#include <stdio.h>
-#include <stdlib.h>
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <math.h>
-#include <string.h>
-#include <iterator>
-#include <sstream>
-#include <tuple>
 #include <algorithm>
-#include <utility>
 #include <functional>
+#include <iostream>
+#include <math.h>
+#include <stdlib.h>
+#include <utility>
+#include <vector>
 
-#include "filters/da3d/DA3D.hpp"
 #include "algos/img_t/image_ops.hpp"
 #include "algos/img_t/img_fits.hpp"
-#include "Utilities.h"
-#include "NlBayes.h"
-#include "LibImages.h"
+#include "filters/da3d/DA3D.hpp"
+#include "filters/nlbayes/NlBayes.h"
 
 extern "C" {
+#include "algos/anscombe.h"
+#include "algos/statistics.h"
+#include "core/gui_iface.h"
+#include "core/processing.h"
 #include "core/proto.h"
 #include "core/siril.h"
-#include "core/gui_iface.h"
-#include "core/proto.h"
-#include "core/OS_utils.h"
-#include "io/image_format_fits.h"
 #include "core/siril_log.h"
-#include "algos/statistics.h"
-#include "algos/anscombe.h"
-#include "core/processing.h"
-#include "filters/cosmetic_correction.h"
 }
 
 using namespace std;

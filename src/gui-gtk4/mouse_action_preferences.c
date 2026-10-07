@@ -22,10 +22,10 @@
 
 #include "core/initfile.h"
 #include "core/siril_log.h"
-#include "gui-gtk4/image_interactions.h"
-#include "gui-gtk4/mouse_action_functions.h"
 #include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/image_interactions.h"
 #include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/mouse_action_functions.h"
 #include "gui-gtk4/utils.h"
 
 static GtkScrolledWindow *mouse_scrolled_window = NULL;

@@ -20,6 +20,8 @@
 #ifndef SRC_CORE_SIRIL_APP_DIRS_H_
 #define SRC_CORE_SIRIL_APP_DIRS_H_
 
+#include <glib.h>
+
 void initialize_siril_directories();
 const gchar* siril_get_locale_dir();
 const gchar *siril_get_startup_dir();

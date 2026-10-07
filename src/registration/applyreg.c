@@ -18,32 +18,30 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 
+#include "algos/demosaicing.h"
+#include "algos/siril_wcs.h"
 #include "algos/sorting.h"
 #include "algos/statistics.h"
-#include "algos/siril_wcs.h"
-#include "algos/demosaicing.h"
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_alloc.h"
-#include "core/processing.h"
-#include "core/OS_utils.h"
-#include "core/siril_log.h"
 #include "core/gui_iface.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_alloc.h"
+#include "core/siril_log.h"
 #include "drizzle/cdrizzlebox.h"
 #include "drizzle/cdrizzlemap.h"
 #include "drizzle/cdrizzleutil.h"
+#include "io/fits_keywords.h"
+#include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/ser.h"
-#include "io/image_format_fits.h"
-#include "io/fits_keywords.h"
-#include "registration/registration.h"
-
 #include "opencv/opencv.h"
+#include "registration/registration.h"
 
 #define MIN_RATIO 0.1 // minimum fraction of ref image dimensions to validate output sequence is worth creating
 

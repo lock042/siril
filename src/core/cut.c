@@ -24,21 +24,21 @@
  */
 
 #include <math.h>
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
+
+#include "algos/demosaicing.h"
+#include "algos/extraction.h"
+#include "algos/fitting.h"
 #include "core/cut.h"
 #include "core/gui_iface.h"
 #include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_date.h"
-#include "algos/extraction.h"
-#include "algos/fitting.h"
-#include "algos/demosaicing.h"
-#include "algos/PSF.h"
-#include "io/siril_plot.h"
-#include "io/single_image.h"
+#include "core/siril_log.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
+#include "io/single_image.h"
+#include "io/siril_plot.h"
 
 void initialize_cut_struct(cut_struct *arg) {
 	arg->fit = gfit;

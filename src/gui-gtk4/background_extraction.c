@@ -18,25 +18,25 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/siril.h"
+#include "algos/background_extraction.h"
+#include "algos/demosaicing.h"
+#include "algos/statistics.h"
 #include "core/op_descriptors.h"
-#include "core/undo.h"
 #include "core/processing.h"
 #include "core/processing_thread.h"
-#include "algos/background_extraction.h"
-#include "algos/statistics.h"
-#include "algos/demosaicing.h"
+#include "core/siril.h"
+#include "core/undo.h"
+#include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/image_display.h"
+#include "gui-gtk4/image_interactions.h"
+#include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/siril_actions.h"
+#include "gui-gtk4/siril_preview.h"
+#include "gui-gtk4/utils.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
-#include "gui-gtk4/utils.h"
-#include "gui-gtk4/image_display.h"
-#include "gui-gtk4/image_interactions.h"
-#include "gui-gtk4/progress_and_log.h"
-#include "gui-gtk4/message_dialog.h"
-#include "gui-gtk4/dialogs.h"
-#include "gui-gtk4/siril_preview.h"
-#include "gui-gtk4/siril_actions.h"
 
 static GtkDropDown *bkg_poly_order_combo = NULL;
 static GtkDropDown *bkg_correction_combo = NULL;

@@ -25,11 +25,11 @@
 #  include <config.h>
 #endif
 
+#include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
-#include <errno.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -42,9 +42,10 @@
 #include <gio/gwin32inputstream.h>
 #else
 #include <sys/resource.h>
-#include <gio/gunixinputstream.h>
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+
+#include <gio/gunixinputstream.h>
 #endif
 #if defined(__unix__) || defined(OS_OSX)
 #include <sys/param.h>		// define or not BSD macro
@@ -70,13 +71,12 @@
 #include <sys/mount.h>
 #endif
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
 #include "core/gui_iface.h"
+#include "core/OS_utils.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "git-version.h"
-
-#include "OS_utils.h"
 
 /**
  * Find the space remaining in a directory, in bytes.

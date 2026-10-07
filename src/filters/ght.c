@@ -19,17 +19,17 @@
  */
 
 #include <glib.h>
-#include "ght.h"
-#include "core/proto.h"
+
 #include "core/gui_iface.h"
 #include "core/processing.h"
-#include "io/sequence.h"
+#include "core/proto.h"
+#include "filters/ght.h"
 void destroy_ght_data(void *args); /* forward decl */
-#include "core/arithm.h"
-#include "algos/statistics.h"
 #include "algos/colors.h"
-#include "core/siril_log.h"
+#include "algos/statistics.h"
+#include "core/arithm.h"
 #include "core/op_descriptors.h"
+#include "core/siril_log.h"
 
 /* Op descriptors — GHS and AutoGHS are distinct logical ops that share
  * ght_single_image_hook (the mode lives in the user data). mem_ratio defaults

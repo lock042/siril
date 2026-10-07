@@ -19,19 +19,20 @@
  */
 
 #include <glib.h>
+
+#include "algos/colors.h"
 #include "algos/lcms_acceleration/lcms2_fast_float.h"
 #include "algos/lcms_acceleration/lcms2_threaded.h"
-#include "core/siril.h"
-#include "algos/colors.h"
-#include "core/proto.h"
+#include "core/gui_iface.h"
+#include "core/icc_default_profiles.h"
 #include "core/icc_profile.h"
 #include "core/processing.h"
-#include "icc_default_profiles.h"
-#include "core/gui_iface.h"
-#include "io/single_image.h"
-#include "io/image_format_fits.h"
-#include "io/siril_plot.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
+#include "io/image_format_fits.h"
+#include "io/single_image.h"
+#include "io/siril_plot.h"
 
 // For the log message about JPEG ICC profile support at startup
 #ifdef HAVE_LIBJPEG

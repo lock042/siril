@@ -2,10 +2,9 @@
 #define _EXTRACTION_H
 
 #include <glib.h>
-#include "core/siril.h"
+
 #include "core/processing.h"
-#include "io/ser.h"
-#include "io/fits_sequence.h"
+#include "core/siril.h"
 
 struct simple_extract_data {
 	sequence *seq;

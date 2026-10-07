@@ -18,11 +18,12 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <glib.h>
 #include <math.h>
 #include <stdio.h>
 
-#include "siril_world_cs.h"
+#include <glib.h>
+
+#include "core/siril_world_cs.h"
 
 struct _SirilWorldCS {
 	gdouble alpha;

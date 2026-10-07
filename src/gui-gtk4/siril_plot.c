@@ -18,18 +18,15 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "io/siril_plot.h"
+#include <math.h>
 
 #include <cairo.h>
-#include <math.h>
-#include "core/proto.h"
+
 #include "core/siril_log.h"
-#include "core/siril_date.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/utils.h"
-#include "io/sequence.h"
-#include "io/single_image.h"
+#include "io/siril_plot.h"
 
 #define SIRIL_PLOT_ZOOM_OUT 1.5
 #define SIRIL_PLOT_ZOOM_IN 1. / SIRIL_PLOT_ZOOM_OUT

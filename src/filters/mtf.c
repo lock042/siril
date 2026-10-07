@@ -19,15 +19,15 @@
  */
 
 #include <glib.h>
-#include "mtf.h"
-#include "core/proto.h"
+
 #include "core/gui_iface.h"
 #include "core/processing.h"
-#include "io/sequence.h"
+#include "core/proto.h"
+#include "filters/mtf.h"
 void destroy_mtf_data(void *args); /* forward decl */
-#include "core/siril_log.h"
 #include "algos/statistics.h"
 #include "core/op_descriptors.h"
+#include "core/siril_log.h"
 
 /* Op descriptors — single source of truth for the MTF stretch ops.
  * process_mtf picks the forward/inverse descriptor via its `inverse` flag; the

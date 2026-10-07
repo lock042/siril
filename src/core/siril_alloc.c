@@ -28,6 +28,7 @@
 #endif
 
 #include <stddef.h>
+
 #include "core/siril.h"
 	
 /**

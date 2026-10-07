@@ -21,9 +21,11 @@
 #ifndef SRC_IO_SIRIL_PLOT_H_
 #define SRC_IO_SIRIL_PLOT_H_
 
+#include <cairo.h>
+
 #include "core/siril.h"
-#include "core/gtk_forward_decls.h"
 #include "gui-gtk4/plot.h"
+
 #include "kplot.h"
 #include "extern.h"
 

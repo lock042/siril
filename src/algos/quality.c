@@ -20,16 +20,14 @@
 
 /** This code comes from PIPP https://sites.google.com/site/astropipp/ */
 
-#include <ctype.h>
-#include <string.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
 #include "algos/quality.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 
 static double QualityEstimate_ushort(fits *fit, int layer);
 static int32_t SubSample(WORD *ptr, int img_wid, int x_size, int y_size);

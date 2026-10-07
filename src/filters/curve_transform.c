@@ -18,15 +18,16 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <glib.h>
-#include "curve_transform.h"
-#include "core/proto.h"
-#include "core/processing.h"
-#include "io/image_format_fits.h"
 #include <math.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
+
+#include <glib.h>
+
 #include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "filters/curve_transform.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846

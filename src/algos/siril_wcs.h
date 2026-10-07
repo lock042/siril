@@ -22,7 +22,8 @@
 #define SRC_ALGOS_SIRIL_WCS_H_
 
 #include <wcslib.h>
-#include <wcsfix.h>
+
+#include "core/siril.h"
 
 /* we force naxis to 2 */
 #define NAXIS 2

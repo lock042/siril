@@ -1,6 +1,8 @@
 #ifndef SRC_FILTERS_BILAT_H_
 #define SRC_FILTERS_BILAT_H_
 
+#include "core/siril.h"
+
 typedef enum {
 	EP_BILATERAL,
 	EP_GUIDED

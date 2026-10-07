@@ -24,12 +24,10 @@
 
 #include <math.h>
 
-#include "core/siril.h"
 #include "algos/astrometry_solver.h"
+#include "algos/siril_wcs.h"
+#include "core/siril.h"
 #include "io/image_format_fits.h"
-
-#include "siril_wcs.h"
-
 
 // Use this flag to print wcslib related verbose - not for production
 // #define DEBUG_WCS

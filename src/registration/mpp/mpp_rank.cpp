@@ -39,12 +39,13 @@
  *           = frames_normalization_threshold        for  8-bit input.
  */
 
+#include <cstring>
+
+#include <opencv2/imgproc.hpp>
+
 #include "registration/mpp.h"
 #include "registration/mpp/mpp_rank.h"
 #include "registration/mpp/mpp_rank_priv.hpp"
-
-#include <cstring>
-#include <opencv2/imgproc.hpp>
 
 namespace mpp {
 

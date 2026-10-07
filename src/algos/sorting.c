@@ -23,14 +23,11 @@
  */
 
 #include <string.h>
-#include <math.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
+#include "algos/sorting.h"
 #include "core/processing.h"
-
+#include "core/siril.h"
 #include "rt/rt_algo.h"
-#include "sorting.h"
 
 /**
  * In-place insertion sort of array of double a of size n

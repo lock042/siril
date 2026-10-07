@@ -26,13 +26,13 @@
 #define PIPE_PATH_W "/tmp/" PIPE_NAME_W
 #define PIPE_MSG_SZ 512	// max input command length
 
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <string.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 #ifdef _WIN32
 // doc at: https://docs.microsoft.com/en-us/windows/desktop/ipc/named-pipes
 // samples from: https://docs.microsoft.com/en-us/windows/desktop/ipc/using-pipes
@@ -47,12 +47,12 @@
 #include <sys/select.h>
 #endif
 
+#include "core/command_line_processor.h"
+#include "core/pipe.h"
+#include "core/processing_thread.h"
 #include "core/siril.h"
 #include "core/siril_log.h"
-#include "pipe.h"
-#include "command_line_processor.h"
 #include "io/single_image.h"
-#include "core/processing_thread.h"
 
 #ifdef _WIN32
 LPTSTR lpszPipename_r = TEXT("\\\\.\\pipe\\" PIPE_NAME_R);

@@ -20,7 +20,7 @@
 #include <glib.h>
 #include <glib/gprintf.h>
 
-#include "siril_date.h"
+#include "core/siril_date.h"
 
 #define SER_TIME_1970 G_GUINT64_CONSTANT(621355968000000000) // 621.355.968.000.000.000 ticks between 1st Jan 0001 and 1st Jan 1970.
 

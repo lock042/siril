@@ -19,14 +19,13 @@
  */
 
 #include <math.h>
+
+#include "algos/fix_xtrans_af.h"
+#include "algos/siril_random.h"
+#include "algos/statistics.h"
 #include "core/siril.h"
 #include "core/siril_log.h"
-#include "algos/statistics.h"
-#include "algos/siril_random.h"
-#include "io/conversion.h"
 #include "io/image_format_fits.h"
-
-#include "fix_xtrans_af.h"
 
 supported_xtrans_list supported_xtrans[] =
 		{

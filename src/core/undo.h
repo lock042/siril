@@ -20,6 +20,8 @@
 #ifndef UNDO_H_
 #define UNDO_H_
 
+#include "core/siril.h"
+
 #define UNDO		-1
 #define REDO		 1
 

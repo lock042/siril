@@ -5,9 +5,10 @@
 #ifndef SRC_REGISTRATION_MPP_ALIGN_PRIV_HPP_
 #define SRC_REGISTRATION_MPP_ALIGN_PRIV_HPP_
 
-#include <opencv2/core.hpp>
 #include <functional>
 #include <vector>
+
+#include <opencv2/core.hpp>
 
 #include "registration/mpp.h"
 #include "registration/mpp/mpp_config.h"

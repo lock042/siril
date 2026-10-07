@@ -3,8 +3,6 @@
 
 #include <cstdint>
 #include <cstdlib>
-#include <string>
-
 
 class c_pipp_video_write {
     // ------------------------------------------

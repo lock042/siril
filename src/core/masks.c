@@ -18,18 +18,17 @@
 * along with Siril. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "core/siril.h"
-#include "core/gui_iface.h"
-#include "core/proto.h"
-#include "core/processing.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
 #include "algos/statistics.h"
+#include "core/gui_iface.h"
+#include "core/masks.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
-#include "filters/synthstar.h"
 #include "filters/mtf.h"
 #include "io/image_format_fits.h"
-#include "masks.h"
 #include "opencv/opencv.h" // for mask functions that use OpenCV
 // (feathering, Gaussian blur and set_poly_in_mask())
 #include "core/op_descriptors.h"

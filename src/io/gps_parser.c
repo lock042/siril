@@ -1,12 +1,12 @@
-#include <string.h>
 #include <math.h>
-#include "core/siril.h"
-#include "core/siril_log.h"
-#include "core/proto.h"
-#include "core/siril_date.h"
-#include "algos/geometry.h"
-#include "gps_parser.h"
+#include <string.h>
 
+#include "algos/geometry.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_date.h"
+#include "core/siril_log.h"
+#include "io/gps_parser.h"
 
 #if 0
 struct _dvti_struct {

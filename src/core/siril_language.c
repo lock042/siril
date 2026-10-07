@@ -27,11 +27,8 @@
 #include <locale.h>
 
 #include "core/siril.h"
-#include "core/proto.h"
-#include "core/initfile.h"
 #include "core/siril_app_dirs.h"
-
-#include "siril_language.h"
+#include "core/siril_language.h"
 
 static GHashTable *l10n_lang_list = NULL;
 static GHashTable *full_lang_list = NULL;
