@@ -166,11 +166,7 @@ void remap_all(void) {}
 void invalidate_gfit_histogram(void) {}
 void refresh_histogram_if_visible(void) {}
 void update_gfit_histogram_if_needed(void) {}
-gsl_histogram *computeHisto(fits *fit, int layer) { (void)fit; (void)layer; return NULL; }
 void compute_histo_for_fit(fits *thefit) { (void)thefit; }
-gsl_histogram *computeHisto_Selection(fits *fit, int layer, rectangle *selection) {
-	(void)fit; (void)layer; (void)selection; return NULL;
-}
 
 /* Stars / PSF */
 psf_star *add_star(fits *fit, int layer, int *index) {

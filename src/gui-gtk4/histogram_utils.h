@@ -25,12 +25,8 @@
 #include <gsl/gsl_histogram.h>
 #include "core/siril.h"
 
-/* Histogram size */
-size_t get_histo_size(fits *fit);
-
-/* Histogram computation */
-gsl_histogram *computeHisto(fits *fit, int layer);
-gsl_histogram *computeHisto_Selection(fits *fit, int layer, rectangle *selection);
+/* get_histo_size(), computeHisto() and computeHisto_Selection() */
+#include "algos/statistics.h"
 
 /* Global histogram cache management (com.layers_hist[]) */
 void set_histogram(gsl_histogram *histo, int layer);
