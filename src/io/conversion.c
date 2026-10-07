@@ -27,13 +27,9 @@
 #include "core/OS_utils.h" // for siril_real_path()
 #endif
 
-#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
-#include <sys/types.h>
-#include <time.h>
-#include <unistd.h>
 
 #include "algos/demosaicing.h"
 #include "core/gui_iface.h"

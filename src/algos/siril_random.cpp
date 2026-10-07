@@ -29,7 +29,6 @@
 
 #include "core/siril.h"
 #undef TBYTE
-#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,7 +44,6 @@
 #include <bcrypt.h>
 #else
 #include <fcntl.h>
-#include <sys/types.h>
 #include <unistd.h>
 #endif
 

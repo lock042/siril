@@ -42,8 +42,6 @@
 #include <gio/gwin32inputstream.h>
 #else
 #include <sys/resource.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 
 #include <gio/gunixinputstream.h>
 #endif

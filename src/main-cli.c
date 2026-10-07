@@ -26,7 +26,6 @@
 #include <locale.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 
 #include <fftw3.h>
 #include <gsl/gsl_errno.h>

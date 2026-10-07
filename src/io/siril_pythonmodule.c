@@ -13,7 +13,6 @@
 #else
 #include <errno.h>
 #include <fcntl.h>
-#include <netinet/in.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
 #include <sys/stat.h>

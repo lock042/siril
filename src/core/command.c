@@ -26,8 +26,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
 
 #include <glib.h>
 #include <gsl/gsl_histogram.h>
@@ -58,7 +56,6 @@
 #include "core/siril_update.h"
 #include "core/undo.h"
 #include "drizzle/cdrizzleutil.h"
-#include "git-version.h"
 #include "io/annotation_catalogues.h"
 #include "io/Astro-TIFF.h"
 #include "io/conversion.h"

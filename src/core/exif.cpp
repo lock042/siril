@@ -25,9 +25,7 @@ extern "C" {
 }
 
 #include <cassert>
-#include <fstream>
 #include <iostream>
-#include <sstream>
 #include <string>
 
 #include <glib.h>

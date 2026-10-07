@@ -22,8 +22,6 @@
  * on big endian systems.
  */
 
-#include <fcntl.h>
-#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #ifdef _WIN32

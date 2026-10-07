@@ -31,7 +31,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 #include <unistd.h>
 #ifdef _WIN32
 // doc at: https://docs.microsoft.com/en-us/windows/desktop/ipc/named-pipes
