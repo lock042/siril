@@ -46,20 +46,20 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <glib.h>
-#include <gsl/gsl_histogram.h>
 
-#include "core/siril.h"
-#include "core/processing.h"
-#include "core/processing_thread.h"
+#include <glib.h>
+
 #include "algos/astrometry_solver.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
-#include "registration/registration.h"
-#include "filters/mtf.h"
+#include "core/processing.h"
+#include "core/processing_thread.h"
+#include "core/siril.h"
 #include "filters/ght.h"
+#include "filters/mtf.h"
 #include "io/sequence.h"
 #include "io/siril_plot.h"
+#include "registration/registration.h"
 
 /* ── Forward declarations for types not fully defined without GTK ───────── */
 typedef struct _GtkWidget   GtkWidget;

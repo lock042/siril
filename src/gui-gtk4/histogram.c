@@ -18,30 +18,31 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <gsl/gsl_histogram.h>
-#include <string.h>
-#include <math.h>
 #include <float.h>
-#include "core/siril.h"
-#include "core/op_descriptors.h"
-#include "core/proto.h"
-#include "core/processing.h"
-#include "core/icc_profile.h"
-#include "core/siril_log.h"
-#include "algos/statistics.h"
+#include <math.h>
+#include <string.h>
+
+#include <gsl/gsl_histogram.h>
+
 #include "algos/colors.h"
-#include "io/single_image.h"
-#include "io/image_format_fits.h"
-#include "io/sequence.h"
-#include "gui-gtk4/callbacks.h"
-#include "gui-gtk4/utils.h"	// for lookup_widget()
-#include "gui-gtk4/progress_and_log.h"
-#include "gui-gtk4/dialogs.h"
-#include "gui-gtk4/message_dialog.h"
-#include "gui-gtk4/siril_preview.h"
+#include "algos/statistics.h"
+#include "core/icc_profile.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "core/undo.h"
-#include "histogram.h"
-#include "histogram_utils.h"
+#include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/histogram.h"
+#include "gui-gtk4/histogram_utils.h"
+#include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/siril_preview.h"
+#include "gui-gtk4/utils.h"	// for lookup_widget()
+#include "io/sequence.h"
+#include "io/single_image.h"
 
 #define GRADIENT_HEIGHT 12
 

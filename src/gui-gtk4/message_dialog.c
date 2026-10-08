@@ -36,14 +36,11 @@
 #include <string.h>
 
 #include "core/siril.h"
-#include "core/proto.h"
-#include "core/initfile.h"
-#include "gui-gtk4/utils.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/splashscreen.h"
-
-#include "message_dialog.h"
+#include "gui-gtk4/utils.h"
 
 static GtkWindow *msg_control_window = NULL;
 

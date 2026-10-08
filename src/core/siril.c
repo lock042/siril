@@ -18,23 +18,22 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "core/siril.h"
+#include "algos/colors.h"
+#include "algos/demosaicing.h"
+#include "algos/statistics.h"
+#include "core/arithm.h"
 #include "core/gui_iface.h"
 #include "core/proto.h"
-#include "core/processing.h"
-#include "core/arithm.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
-#include "io/sequence.h"
 #include "io/image_format_fits.h"
+#include "io/sequence.h"
 #include "io/single_image.h"
-#include "algos/colors.h"
-#include "algos/statistics.h"
-#include "algos/demosaicing.h"
 #include "opencv/opencv.h"
 #include "rt/gauss.h"
 /* gui_calls.h removed: computeHisto/computeHisto_Selection come from algos/statistics.h */

@@ -22,17 +22,12 @@
 #include <config.h>
 #endif
 #include <glib.h>
-#include <string.h>
 
-#include "core/siril.h"
+#include "core/initfile.h"
 #include "core/proto.h"
-#include "core/siril_log.h"
+#include "core/siril.h"
 #include "core/siril_app_dirs.h"
-#include "algos/photometry.h"
-#include "io/sequence.h"
-#include "stacking/stacking.h"
-
-#include "initfile.h"
+#include "core/siril_log.h"
 
 #define STR_INDIR(x) #x
 #define STR(x) STR_INDIR(x)

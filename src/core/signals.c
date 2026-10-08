@@ -32,11 +32,9 @@
 #include <execinfo.h>
 #endif
 
-#include "core/siril.h"
 #include "core/gui_iface.h"
-#include "core/proto.h"
-
-#include "signals.h"
+#include "core/signals.h"
+#include "core/siril.h"
 
 #define STACK_DEPTH 256
 

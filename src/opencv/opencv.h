@@ -6,12 +6,13 @@
 #endif
 
 #include <stdint.h>
-#include "registration/registration.h"
-#include "registration/distorsion.h"
-#include "registration/matching/misc.h"
-#include "registration/matching/atpmatch.h"
-#include "io/sequence.h"
+
 #include "io/image_format_fits.h"
+#include "io/sequence.h"
+#include "registration/distorsion.h"
+#include "registration/matching/atpmatch.h"
+#include "registration/matching/misc.h"
+#include "registration/registration.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -18,12 +18,13 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <gsl/gsl_histogram.h>
-#include <string.h>
 #include <math.h>
+#include <string.h>
+
+#include <gsl/gsl_histogram.h>
+
 #include "core/siril.h"
-#include "core/proto.h"
-#include "histogram_utils.h"
+#include "gui-gtk4/histogram_utils.h"
 
 /* The gsl_histogram, documented here:
  * http://linux.math.tifr.res.in/manuals/html/gsl-ref-html/gsl-ref_21.html

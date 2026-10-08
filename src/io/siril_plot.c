@@ -18,21 +18,22 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "siril_plot.h"
-
 #include <cairo.h>
+
+#include "io/siril_plot.h"
 #ifdef CAIRO_HAS_SVG_SURFACE
 #include <cairo/cairo-svg.h>
 #endif
-#include <pango/pangocairo.h>
 #include <math.h>
-#include "core/proto.h"
-#include "core/siril_log.h"
-#include "core/siril_date.h"
-#include "io/single_image.h"
-#include "io/sequence.h"
-#include "gui-gtk4/plot.h"
 
+#include <pango/pangocairo.h>
+
+#include "core/proto.h"
+#include "core/siril_date.h"
+#include "core/siril_log.h"
+#include "gui-gtk4/plot.h"
+#include "io/sequence.h"
+#include "io/single_image.h"
 
 // static variables
 

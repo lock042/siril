@@ -21,8 +21,13 @@
 #ifndef SRC_ALGOS_SIRIL_WCS_H_
 #define SRC_ALGOS_SIRIL_WCS_H_
 
+// on Windows wcslib renames wcsset, which these declare: they must come first
+#include <string.h>
+#include <wchar.h>
+
 #include <wcslib.h>
-#include <wcsfix.h>
+
+#include "core/siril.h"
 
 /* we force naxis to 2 */
 #define NAXIS 2

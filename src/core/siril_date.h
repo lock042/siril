@@ -20,8 +20,9 @@
 #ifndef SRC_CORE_SIRIL_DATE_H_
 #define SRC_CORE_SIRIL_DATE_H_
 
-#include <glib.h>
 #include <stdint.h>
+
+#include <glib.h>
 
 gchar *build_timestamp_filename();
 GDateTime *ser_timestamp_to_date_time(guint64 timestamp);

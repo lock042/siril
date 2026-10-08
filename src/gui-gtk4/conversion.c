@@ -18,22 +18,22 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <gtk/gtk.h>
 #include <string.h>
 
-#include "gui-gtk4/conversion.h"
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
+#include <gtk/gtk.h>
+
+#include "algos/sorting.h"
 #include "core/OS_utils.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
-#include "io/conversion.h"
-#include "io/sequence.h"
-#include "gui-gtk4/utils.h"
 #include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/conversion.h"
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/progress_and_log.h"
-#include "algos/sorting.h"
+#include "gui-gtk4/utils.h"
+#include "io/conversion.h"
+#include "io/sequence.h"
 #include "registration/mpp/mpp_config.h"   /* enum mpp_avi_bayer */
 
 static char *destroot = NULL;

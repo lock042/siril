@@ -19,27 +19,19 @@
 */
 
 #include <math.h>
-#include "algos/extraction.h"
-#include "algos/fitting.h"
-#include "core/siril.h"
-#include "core/siril_log.h"
-#include "core/cut.h"
-#include "core/siril_date.h"
-#include "gui-gtk4/message_dialog.h"
-#include "gui-gtk4/image_interactions.h"
-#include "gui-gtk4/dialogs.h"
-#include "gui-gtk4/utils.h"
-#include "io/siril_plot.h"
-#include "gui-gtk4/progress_and_log.h"
-#include "gui-gtk4/siril_plot.h"
+
 #include "algos/demosaicing.h"
 #include "algos/PSF.h"
-#include "core/proto.h"
-#include "core/processing.h"
-#include "io/single_image.h"
-#include "io/image_format_fits.h"
-#include "io/sequence.h"
+#include "core/cut.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/image_display.h"
+#include "gui-gtk4/image_interactions.h"
+#include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/utils.h"
+#include "io/sequence.h"
 
 gboolean reset_cut_gui_filedependent(gpointer user_data) { // Separated out to avoid having to repeat too much after opening a new file
 	GtkWidget *colorbutton = (GtkWidget*) lookup_widget("cut_radio_color");

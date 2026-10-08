@@ -42,26 +42,23 @@
 
 #ifdef HAVE_LIBJXL
 
-#include <glib.h>
-#include <gdk-pixbuf/gdk-pixbuf.h>
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <lcms2.h>
 #include <vector>
-#include <libintl.h>
 
-#include <inttypes.h>
+#include <gdk-pixbuf/gdk-pixbuf.h>
+#include <glib.h>
 #include <jxl/decode.h>
 #include <jxl/decode_cxx.h>
 #include <jxl/encode.h>
 #include <jxl/encode_cxx.h>
-#include <jxl/thread_parallel_runner.h>
-#include <jxl/thread_parallel_runner_cxx.h>
 #include <jxl/resizable_parallel_runner.h>
 #include <jxl/resizable_parallel_runner_cxx.h>
-
-
+#include <jxl/thread_parallel_runner.h>
+#include <jxl/thread_parallel_runner_cxx.h>
+#include <libintl.h>
 
 /** Decodes JPEG XL image to floating point pixels and ICC Profile. Pixel are
  * stored as floating point, as interleaved RGB (3 floating point values per

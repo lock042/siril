@@ -1,6 +1,8 @@
 #ifndef SRC_CORE_COMMAND_H_
 #define SRC_CORE_COMMAND_H_
 
+#include <glib.h>
+
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif

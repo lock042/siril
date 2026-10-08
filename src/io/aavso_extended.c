@@ -18,17 +18,14 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <glib/gprintf.h>
 #include <math.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_date.h"
 #include "algos/PSF.h"
+#include "core/siril.h"
+#include "core/siril_date.h"
 #include "core/siril_log.h"
+#include "io/aavso_extended.h"
 #include "io/siril_plot.h"
-
-#include "aavso_extended.h"
 
 #define MAX_HEADER_LENGTH 1024 // Maximum length for the data string
 #define _NA_ "na"

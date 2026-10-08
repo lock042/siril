@@ -23,6 +23,7 @@
 #define _HISTOGRAM_UTILS_H_
 
 #include <gsl/gsl_histogram.h>
+
 #include "core/siril.h"
 
 /* get_histo_size(), computeHisto() and computeHisto_Selection() */

@@ -2,8 +2,8 @@
 #include <gtk/gtk.h>
 #define _DECONVOLUTION_GUI_H
 
-#include "filters/deconvolution/deconvolution.h"
 #include "core/siril.h"
+#include "filters/deconvolution/deconvolution.h"
 
 /* deconvolution_sequence_data is defined in filters/deconvolution/deconvolution.h */
 

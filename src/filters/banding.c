@@ -26,21 +26,21 @@
 
 #include <float.h>
 #include <string.h>
+
 #include <gsl/gsl_statistics.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/arithm.h"
-#include "core/processing.h"
-#include "core/siril_log.h"
-#include "algos/statistics.h"
 #include "algos/sorting.h"
+#include "algos/statistics.h"
+#include "core/arithm.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "filters/banding.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "opencv/opencv.h"
-
-#include "banding.h"
-#include "core/op_descriptors.h"
 
 /* Op descriptor — single source of truth for this operation (op_descriptor.h) */
 const op_descriptor op_desc_banding = {

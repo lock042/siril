@@ -18,27 +18,26 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
 
-#include "core/siril.h"
-#include "core/gui_iface.h"
 #include "algos/statistics.h"
-#include "core/proto.h"
+#include "core/gui_iface.h"
 #include "core/initfile.h"
 #include "core/OS_utils.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
 /* gui_calls.h removed: no direct calls remain */
-#include "core/processing.h"
+#include "core/command.h"
+#include "core/command_line_processor.h"
 #include "core/command_list.h"
+#include "core/processing.h"
 #include "io/sequence.h"
-#include "io/single_image.h"
 #include "io/ser.h"
+#include "io/single_image.h"
 #include "livestacking/livestacking.h"
-
-#include "command.h"
-#include "command_line_processor.h"
 
 const char *cmd_err_to_str(cmd_errors err) {
 	switch (err) {

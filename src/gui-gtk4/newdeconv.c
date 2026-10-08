@@ -18,32 +18,28 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <fftw3.h>
-#include <math.h>
 #include <locale.h>
-#include <gdk/gdk.h>
-#include "core/siril.h"
+#include <math.h>
+
+#include "algos/PSF.h"
 #include "core/op_descriptors.h"
+#include "core/OS_utils.h"
+#include "core/processing.h"
 #include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_date.h"
-#include "core/command.h"
-#include "io/single_image.h"
-#include "io/image_format_fits.h"
+#include "core/siril_log.h"
+#include "filters/deconvolution/deconvolution.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/message_dialog.h"
-#include "gui-gtk4/registration_preview.h"
-#include "core/processing.h"
-#include "core/siril_log.h"
-#include "core/OS_utils.h"
-#include "gui-gtk4/utils.h"
-#include "gui-gtk4/siril_preview.h"
-#include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/newdeconv.h"
-#include "filters/deconvolution/deconvolution.h"
-#include "algos/PSF.h"
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/siril_preview.h"
+#include "gui-gtk4/utils.h"
 #include "io/sequence.h"
+#include "io/single_image.h"
 
 extern gboolean aperture_warning_given;
 extern gboolean bad_load;

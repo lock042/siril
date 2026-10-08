@@ -39,9 +39,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef CDRIZZLEMAP_H
 #define CDRIZZLEMAP_H
 
-#include "driz_portability.h"
-#include "cdrizzleutil.h"
-#include <wcslib.h>
+#include "drizzle/cdrizzleutil.h"
+#include "drizzle/driz_portability.h"
 
 /* Line segment structure, used for computing overlap
  * The first index on line is the endpoint

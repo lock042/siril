@@ -19,15 +19,16 @@
  */
 
 #include <gtk/gtk.h>
+
+#include "algos/comparison_stars.h"
+#include "core/processing.h"
 #include "core/siril.h"
 #include "core/siril_log.h"
-#include "core/processing.h"
-#include "algos/comparison_stars.h"
+#include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/image_display.h"
 #include "gui-gtk4/message_dialog.h"
-#include "gui-gtk4/utils.h"
-#include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/PSF_list.h"
+#include "gui-gtk4/utils.h"
 #include "io/annotation_catalogues.h"
 #include "io/siril_catalogues.h"
 

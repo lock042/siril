@@ -23,6 +23,8 @@
 #ifndef SRC_CORE_SIRIL_ALLOC_H_
 #define SRC_CORE_SIRIL_ALLOC_H_
 
+#include <stddef.h>
+
 void* siril_malloc(size_t size);
 void* siril_calloc(size_t num, size_t size);
 void siril_free(void* ptr);

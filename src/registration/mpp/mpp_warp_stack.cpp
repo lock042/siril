@@ -53,12 +53,10 @@
 
 #include <opencv2/imgproc.hpp>
 
-#include "registration/mpp.h"
-#include "registration/mpp/mpp_stack_priv.hpp"
-
 #include "core/gui_iface.h"
 #include "core/processing.h"
-#include "core/siril_log.h"
+#include "registration/mpp.h"
+#include "registration/mpp/mpp_stack_priv.hpp"
 
 namespace mpp {
 
