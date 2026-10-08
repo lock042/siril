@@ -21,16 +21,17 @@
 #ifndef FLIS_TEST_HELPERS_H
 #define FLIS_TEST_HELPERS_H
 
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
+
 #include <glib.h>
 #include <glib/gstdio.h>
 
 #include "core/siril.h"
+#include "io/flis_compose.h"
 #include "io/image_format_fits.h"
 #include "io/image_format_flis.h"
-#include "io/flis_compose.h"
 
 /* Minimal com initialisation: set up enough state so single_image_is_loaded
  * works and com.uniq is fresh.  Tests that exercise actual FLIS code paths

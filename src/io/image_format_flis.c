@@ -38,21 +38,22 @@
  *   report_fits_error()        — CFITSIO error reporting
  */
 
+#include "config.h"  /* VERSION */
+
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
+
 #include <glib.h>
+#include <gsl/gsl_blas.h>
+#include <gsl/gsl_linalg.h>
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_vector.h>
-#include <gsl/gsl_linalg.h>
-#include <gsl/gsl_blas.h>
 
-#include "config.h"  /* VERSION */
-
-#include "core/siril.h"
-#include "core/proto.h"
 #include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
 
 /* siril_debug_print no longer exists in mainline master; the FLIS
@@ -61,26 +62,25 @@
  * intact and can be promoted to a real logger later. */
 #define siril_debug_print(...) ((void)0)
 
+#include "algos/colors.h"
+#include "algos/photometric_cc.h"
+#include "algos/statistics.h"
+#include "core/gui_iface.h"
 #include "core/icc_profile.h"
 #include "core/masks.h"
 #include "core/nde/nde_cat.h"
+#include "core/nde/nde_checkpoint.h"
+#include "core/nde/nde_composite.h"
 #include "core/nde/nde_history.h"
 #include "core/nde/nde_joint.h"
 #include "core/nde/nde_replay.h"
 #include "core/nde/nde_script_scope.h"
-#include "core/op_descriptor.h"
-#include "core/nde/nde_checkpoint.h"
-#include "core/nde/nde_composite.h"
 #include "core/nde/nde_snapstore.h"
+#include "core/op_descriptor.h"
 #include "core/undo.h"
-#include "algos/statistics.h"
-#include "algos/colors.h"
-#include "algos/photometric_cc.h"
-#include "core/gui_iface.h"
-#include "image_format_fits.h"
-
-#include "image_format_flis.h"
-#include "flis_compose.h"
+#include "io/flis_compose.h"
+#include "io/image_format_fits.h"
+#include "io/image_format_flis.h"
 
 /* =====================================================================
  * FLIS stack lock (M-F12).

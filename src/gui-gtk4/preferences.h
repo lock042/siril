@@ -20,6 +20,8 @@
 #ifndef SRC_GUI_PREFERENCES_H_
 #define SRC_GUI_PREFERENCES_H_
 
+#include <glib.h>
+
 void notify_script_update();
 void update_libraw_and_debayer_interface();
 void update_photometry_interface();

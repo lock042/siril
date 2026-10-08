@@ -34,11 +34,13 @@
  *     CPU side (position/orientation/tint) which this file exercises.
  */
 
-#include <criterion/criterion.h>
 #include <stdint.h>
 #include <string.h>
-#include "flis_test_helpers.h"
+
+#include <criterion/criterion.h>
+
 #include "io/flis_compose.h"
+#include "tests/flis_test_helpers.h"
 
 cominfo com;
 fits *gfit;

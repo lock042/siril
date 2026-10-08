@@ -20,17 +20,18 @@
 
 /* See nde_joint_editor.h for the contract. */
 
-#include "core/siril.h"
-#include "core/siril_log.h"
+#include <gtk/gtk.h>
+
 #include "core/nde/nde_history.h"
 #include "core/nde/nde_joint.h"
 #include "core/nde/nde_replay.h"
 #include "core/op_descriptor.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "gui-gtk4/nde_joint_editor.h"
 #include "gui-gtk4/photometric_cc.h"
 #include "gui-gtk4/utils.h"
 #include "registration/flis_register.h"
-#include <gtk/gtk.h>
 
 extern GtkWidget *lookup_widget(const gchar *widget_name);
 

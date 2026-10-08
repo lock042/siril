@@ -18,23 +18,19 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "siril_preview.h"
-
-#include "core/siril.h"
-#include "gui-gtk4/gui_state.h"
-#include "core/proto.h"
+#include "algos/statistics.h"
+#include "core/fits_region.h"
 #include "core/icc_profile.h"
 #include "core/OS_utils.h"
-#include "core/processing.h"
-#include "core/fits_region.h"
 #include "core/processing_thread.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
-#include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/callbacks.h"
-#include "io/single_image.h"
+#include "gui-gtk4/gui_state.h"
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/siril_preview.h"
 #include "io/image_format_fits.h"
-#include "algos/statistics.h"
-
+#include "io/single_image.h"
 
 static gboolean notify_is_blocked;
 static gboolean preview_is_active;

@@ -24,13 +24,15 @@
  *     that scripts and the GUI actually use).
  */
 
-#include <criterion/criterion.h>
 #include <unistd.h>
-#include "flis_test_helpers.h"
+
+#include <criterion/criterion.h>
+
 #include "core/command.h"
 #include "core/command_line_processor.h"
-#include "io/image_format_fits.h"
 #include "io/fits_sequence.h"
+#include "io/image_format_fits.h"
+#include "tests/flis_test_helpers.h"
 
 cominfo com;
 fits *gfit;
@@ -229,8 +231,9 @@ Test(flis_open, flis_file_is_not_a_fitseq) {
 
 /* ---- crafted-file hardening (M-F15 regression) ---------------------- */
 
-#include <fitsio.h>
 #include <string.h>
+
+#include <fitsio.h>
 
 /* Craft a FLIS whose metadata table has the columns in a non-standard
  * order AND declares LAYER_NAME as 128A — wider than the loader's fixed

@@ -2,6 +2,7 @@
 #define _NDE_OP_CLASS_H_
 
 #include <glib.h>
+
 #include "core/op_descriptor.h"
 
 #ifdef __cplusplus

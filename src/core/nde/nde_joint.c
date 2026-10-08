@@ -22,22 +22,22 @@
 
 #include <math.h>
 
-#include "core/siril.h"
-#include "core/nde/nde_joint.h"
-#include "core/nde/nde_history.h"
-#include "core/nde/nde_op_class.h"
-#include "core/nde/nde_checkpoint.h"     /* baseline offsets (register L2 anchor) */
-#include "core/nde/nde_compositing.h"
-#include "core/nde/nde_replay.h"
-#include "core/op_descriptors.h"
-#include "core/siril_log.h"
-#include "core/proto.h"          /* get_normalized_value */
-#include "algos/statistics.h"
 #include "algos/colors.h"        /* get_coeff_for_wb */
 #include "algos/photometric_cc.h"    /* photometric_cc_image_hook (group L2) */
+#include "algos/statistics.h"
+#include "core/nde/nde_checkpoint.h"     /* baseline offsets (register L2 anchor) */
+#include "core/nde/nde_compositing.h"
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_joint.h"
+#include "core/nde/nde_op_class.h"
+#include "core/nde/nde_replay.h"
+#include "core/op_descriptors.h"
+#include "core/proto.h"          /* get_normalized_value */
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "io/flis_compose.h"     /* flis_render_layers_ctx */
 #include "io/image_format_fits.h"    /* copy_fits_metadata (WCS donor) */
 #include "io/image_format_flis.h"
-#include "io/flis_compose.h"     /* flis_render_layers_ctx */
 #include "opencv/opencv.h"       /* cvTransformImage (register L1) */
 #include "registration/flis_register.h"  /* the register re-solve (L2) */
 

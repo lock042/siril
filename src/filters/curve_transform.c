@@ -18,16 +18,21 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <glib.h>
-#include "curve_transform.h"
-#include "core/proto.h"
-#include "core/processing.h"
-#include "io/image_format_fits.h"
 #include <math.h>
-#include <string.h>
 #include <stdlib.h>
-#include "core/op_descriptors.h"
+#include <string.h>
+
+#include <glib.h>
+
 #include "core/nde/nde_history.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "filters/curve_transform.h"
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 /* NDE serializers (flis-nde-sketch.md §11, §14).  apply_curve reads the
  * algorithm and, per channel, the points list plus its luminance range mask
@@ -196,10 +201,6 @@ static gpointer curves_deserialize(const gchar *blob, int version) {
 	}
 	return p;
 }
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
 
 /* Op descriptor — single source of truth for this operation (op_descriptor.h).
  * curve_transform.h (included above) declares the hooks referenced here. */

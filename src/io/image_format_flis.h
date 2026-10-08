@@ -22,7 +22,9 @@
 #define IMAGE_FORMAT_FLIS_H
 
 #include <stdint.h>
+
 #include <glib.h>
+
 #include "core/siril.h"   /* fits, single, gfit, com, WORD, DATA_FLOAT etc. */
 
 /* Forward decl for §4.3 worker-hook signatures.  Full definition in

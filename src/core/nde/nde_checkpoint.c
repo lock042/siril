@@ -38,13 +38,13 @@
  * undo-owned and pool snapshots — one lookup path for every source.
  */
 
-#include "core/siril.h"
-#include "core/siril_log.h"
-#include "core/nde/nde_state.h"
-#include "core/nde/nde_snapstore.h"
 #include "core/nde/nde_checkpoint.h"
 #include "core/nde/nde_history.h"
 #include "core/nde/nde_retention.h"
+#include "core/nde/nde_snapstore.h"
+#include "core/nde/nde_state.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "io/image_format_flis.h"
 
 /* ======================================================================= */

@@ -13,8 +13,8 @@
 #ifndef FLIS_GUI_H
 #define FLIS_GUI_H
 
-#include <gtk/gtk.h>
 #include <glib.h>
+#include <gtk/gtk.h>
 
 /*
  * flis_gui — FLIS layers panel (stage 4).

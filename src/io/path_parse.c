@@ -18,12 +18,11 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/siril.h"
 #include "core/proto.h"
-#include "core/siril_log.h"
+#include "core/siril.h"
 #include "core/siril_date.h"
+#include "core/siril_log.h"
 #include "core/siril_world_cs.h"
-#include "io/fits_sequence.h"
 #include "io/image_format_fits.h"
 #include "io/path_parse.h"
 #include "io/sequence.h"

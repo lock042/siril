@@ -40,15 +40,16 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include <glib.h>
 
-#include "core/siril.h"
-#include "core/proto.h"         /* roundf_to_WORD, USHRT_MAX_SINGLE */
-#include "core/siril_log.h"
 #include "core/icc_profile.h"
-#include "io/image_format_flis.h"
+#include "core/proto.h"         /* roundf_to_WORD, USHRT_MAX_SINGLE */
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "io/flis_compose.h"
 #include "io/image_format_fits.h"
-#include "flis_compose.h"
+#include "io/image_format_flis.h"
 
 static fits *flis_render_layers_internal(GSList *layers,
                                          const flis_render_ctx *ctx,

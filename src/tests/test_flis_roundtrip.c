@@ -18,9 +18,11 @@
  * save_flis → load_flis cycle.
  */
 
-#include <criterion/criterion.h>
 #include <unistd.h>
-#include "flis_test_helpers.h"
+
+#include <criterion/criterion.h>
+
+#include "tests/flis_test_helpers.h"
 
 cominfo com;
 fits *gfit;

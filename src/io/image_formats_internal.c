@@ -19,23 +19,18 @@
  */
 
 /* Internal image formats import and export: BMP and PPM */
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <string.h>
-#include <assert.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
-#include "core/icc_profile.h"
-#include "core/processing.h"
 #include "core/gui_iface.h"
-#include "io/image_format_fits.h"
+#include "core/icc_profile.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "io/fits_keywords.h"
+#include "io/image_format_fits.h"
 
 #ifndef O_BINARY
 #define O_BINARY 0

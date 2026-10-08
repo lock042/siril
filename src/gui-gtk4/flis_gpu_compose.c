@@ -56,18 +56,17 @@
  *   scope for this stage).
  */
 
-#include "flis_gpu_compose.h"
-
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "core/siril.h"
 #include "core/proto.h"           /* roundf_to_WORD */
+#include "core/siril.h"
 #include "core/siril_log.h"
-#include "io/image_format_flis.h"
-#include "io/flis_compose.h"       /* flis_compose_bake_tile_bgra8 / _lmask_bgra8 */
+#include "gui-gtk4/flis_gpu_compose.h"
 #include "gui-gtk4/gui_state.h"   /* gui.lo / gui.hi / gui.remap_index */
+#include "io/flis_compose.h"       /* flis_compose_bake_tile_bgra8 / _lmask_bgra8 */
+#include "io/image_format_flis.h"
 
 /* Tile side length, layer-local.  Sized to fit comfortably inside every
  * GPU's max-texture-size limit and to amortise the per-tile bookkeeping

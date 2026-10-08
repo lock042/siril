@@ -17,10 +17,12 @@
  * invalidation, stats.
  */
 
-#include <criterion/criterion.h>
 #include <string.h>
-#include "flis_test_helpers.h"
+
+#include <criterion/criterion.h>
+
 #include "core/nde/nde_snapstore.h"
+#include "tests/flis_test_helpers.h"
 
 cominfo com;
 fits *gfit;

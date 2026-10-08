@@ -25,9 +25,9 @@
  * nde_snap references), which in turn mirrored undo.c's swap machinery.
  */
 
-#include <stdlib.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #ifdef _WIN32
@@ -35,13 +35,13 @@
 #include <io.h>  /* _get_osfhandle */
 #endif
 
+#include "algos/siril_wcs.h"
+#include "algos/statistics.h"
+#include "core/nde/nde_snapstore.h"
+#include "core/nde/nde_state.h"
 #include "core/siril.h"
 #include "core/siril_log.h"
-#include "core/nde/nde_state.h"
-#include "core/nde/nde_snapstore.h"
 #include "io/image_format_fits.h"
-#include "algos/statistics.h"
-#include "algos/siril_wcs.h"
 
 typedef struct wcsprm wcsprm_t;
 

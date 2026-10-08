@@ -22,6 +22,7 @@
 #define FLIS_COMPOSE_H
 
 #include <glib.h>
+
 #include "core/siril.h"   /* for fits */
 
 /**

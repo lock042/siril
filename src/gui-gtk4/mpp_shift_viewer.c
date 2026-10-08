@@ -12,15 +12,12 @@
 #include <gtk/gtk.h>
 
 #include "core/siril.h"
-#include "core/siril_log.h"
-#include "core/proto.h"
-#include "gui-gtk4/utils.h"
 #include "gui-gtk4/image_display.h"
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/mpp_shift_viewer.h"
+#include "gui-gtk4/utils.h"
 #include "io/sequence.h"
 #include "registration/mpp.h"
-#include "registration/mpp/mpp_ap.h"
 #include "registration/mpp/mpp_shift.h"
 
 static GtkWidget       *dialog       = NULL;

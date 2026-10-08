@@ -18,11 +18,11 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/siril.h"
-#include "opencv/opencv.h"
-#include "clahe.h"
-#include "core/op_descriptors.h"
 #include "core/nde/nde_history.h"
+#include "core/op_descriptors.h"
+#include "core/siril.h"
+#include "filters/clahe.h"
+#include "opencv/opencv.h"
 
 /* NDE serializers for filters.clahe.  The hook reads clip and tileSize
  * (cvClahe(fit, clip, tileSize)). */

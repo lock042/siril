@@ -2,8 +2,6 @@
 #include <gtk/gtk.h>
 #define SRC_MESSAGE_DIALOG_H_
 
-#include "core/siril.h"
-
 struct siril_dialog_data {
 	GtkWindow *parent;
 	GtkMessageType type;

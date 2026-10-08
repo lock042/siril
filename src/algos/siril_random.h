@@ -1,8 +1,9 @@
 #ifndef ALGOS_RANDOM_H
 #define ALGOS_RANDOM_H
 
+#include <stdint.h>
+
 #ifdef __cplusplus
-#include <cstdint>
 extern "C" {
 #endif
 

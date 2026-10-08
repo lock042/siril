@@ -29,19 +29,20 @@
  * The engine that does re-run them is nde_replay.c.
  */
 
-#include "core/siril.h"
-#include "core/siril_log.h"
-#include "core/processing.h"
-#include "core/op_descriptor.h"
-#include "core/nde/nde_history.h"
-#include "core/nde/nde_op_class.h"
 #include "core/nde/nde_checkpoint.h"
-#include "core/nde/nde_compositing.h"
 #include "core/nde/nde_composite.h"
+#include "core/nde/nde_compositing.h"
+#include "core/nde/nde_history.h"
 #include "core/nde/nde_joint.h"
+#include "core/nde/nde_op_class.h"
 #include "core/nde/nde_replay.h"
 #include "core/nde/nde_replay_internal.h"
+#include "core/op_descriptor.h"
+#include "core/processing.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "io/image_format_flis.h"
+
 #include "yyjson.h"
 
 static void add_reason(nde_chain *chain, const char *fmt, ...) G_GNUC_PRINTF(2, 3);

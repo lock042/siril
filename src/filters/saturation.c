@@ -2,17 +2,15 @@
  * Refactored saturation using generic_image_worker
  */
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
-#include "core/siril_log.h"
 #include "algos/colors.h"
 #include "algos/statistics.h"
-#include "core/op_descriptors.h"
-
 #include "core/nde/nde_history.h"
-
-#include "saturation.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "filters/saturation.h"
 
 static gchar *satu_serialize(gconstpointer user) {
 	const saturation_params *p = user;

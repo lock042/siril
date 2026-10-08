@@ -22,19 +22,21 @@
  * scaled medians compose to a near-neutral background.
  */
 
-#include <criterion/criterion.h>
 #include <math.h>
-#include "flis_test_helpers.h"
+
+#include <criterion/criterion.h>
+
 #include "core/command.h"
 #include "core/command_line_processor.h"
+#include "core/nde/nde_checkpoint.h"
+#include "core/nde/nde_graph.h"
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_joint.h"
+#include "core/nde/nde_replay.h"
+#include "core/op_descriptor.h"
 #include "core/processing.h"
 #include "core/processing_thread.h"
-#include "core/nde/nde_history.h"
-#include "core/nde/nde_checkpoint.h"
-#include "core/nde/nde_replay.h"
-#include "core/nde/nde_graph.h"
-#include "core/nde/nde_joint.h"
-#include "core/op_descriptor.h"
+#include "tests/flis_test_helpers.h"
 
 cominfo com;
 fits *gfit;

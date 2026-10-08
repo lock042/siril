@@ -5,15 +5,14 @@
 
 #include <math.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/arithm.h"
-#include "core/processing.h"
 #include "algos/statistics.h"
-
-#include "asinh.h"
-#include "core/op_descriptors.h"
+#include "core/arithm.h"
 #include "core/nde/nde_history.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "filters/asinh.h"
 
 /* NDE serializers (flis-nde-sketch.md §11-§12).  asinh_image_hook reads
  * beta, offset, human_luminance, clip_mode — all serialized.  The

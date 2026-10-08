@@ -23,19 +23,19 @@
  * contract and flis-nde-sketch.md §10–20 for the phase-1 plan.
  */
 
-#include "core/siril.h"
-#include "core/siril_log.h"
 #include "core/gui_iface.h"
-#include "core/op_descriptor.h"
-#include "core/nde/nde_history.h"
-#include "core/nde/nde_op_class.h"
+#include "core/nde/nde_cat.h"
 #include "core/nde/nde_checkpoint.h"
 #include "core/nde/nde_composite.h"
-#include "core/nde/nde_snapstore.h"
-#include "core/nde/nde_cat.h"
+#include "core/nde/nde_history.h"
 #include "core/nde/nde_joint.h"
+#include "core/nde/nde_op_class.h"
 #include "core/nde/nde_replay.h"    /* nde_item_is_retained_input() */
+#include "core/nde/nde_snapstore.h"
+#include "core/op_descriptor.h"
 #include "core/processing_thread.h"   /* processing_is_reserved_for_replay() */
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "io/image_format_flis.h"
 
 /* Leaf lock guarding the CURRENT document's log (com.uniq->nde_history and

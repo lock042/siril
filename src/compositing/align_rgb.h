@@ -21,8 +21,10 @@
 #ifndef SRC_COMPOSITING_ALIGN_RGB_H_
 #define SRC_COMPOSITING_ALIGN_RGB_H_
 
-#include "core/siril.h"          /* fits, rectangle, destructor */
+#include <glib.h>
+
 #include "core/processing.h"     /* struct generic_img_args */
+#include "core/siril.h"          /* fits, rectangle, destructor */
 
 /* Values are indices into the reg_methods[] table in align_rgb.c */
 typedef enum {

@@ -20,32 +20,29 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <gsl/gsl_statistics.h>
-#include <gsl/gsl_multifit.h>
-#include <gsl/gsl_linalg.h>
-#include <gsl/gsl_errno.h>
-#include <gsl/gsl_vector.h>
-#include <gsl/gsl_matrix.h>
-#include <gsl/gsl_version.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "algos/siril_random.h"
+#include <gsl/gsl_errno.h>
+#include <gsl/gsl_linalg.h>
+#include <gsl/gsl_multifit.h>
+#include <gsl/gsl_statistics.h>
+
+#include "algos/background_extraction.h"
 #include "algos/demosaicing.h"
 #include "algos/extraction.h"
-#include "core/processing.h"
-#include "core/siril_log.h"
-#include "filters/mtf.h"
-#include "io/image_format_fits.h"
-#include "io/single_image.h"
-#include "io/sequence.h"
+#include "algos/siril_random.h"
 #include "algos/sorting.h"
 #include "algos/statistics.h"
 #include "core/gui_iface.h"
-#include "opencv/opencv.h"
-#include "background_extraction.h"
-#include "core/op_descriptors.h"
 #include "core/nde/nde_history.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "filters/mtf.h"
+#include "io/image_format_fits.h"
+#include "io/sequence.h"
+#include "opencv/opencv.h"
 
 /* NDE serializers (flis-nde-sketch.md §11, §15).  remove_gradient_image_hook
  * reads all the genuine params below plus the autograd sub-struct (flattened

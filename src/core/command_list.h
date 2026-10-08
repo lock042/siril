@@ -1,11 +1,10 @@
 #ifndef SRC_CORE_COMMAND_LIST_H_
 #define SRC_CORE_COMMAND_LIST_H_
 
-
-#include "core/siril.h"
 #include "core/command.h"
 #include "core/command_def.h"
 #include "core/command_extra.h"
+#include "core/siril.h"
 
 #define CMD_CAT(CMD) N_("\n\n<i>- Information from command "#CMD" follows -</i>\n")
 

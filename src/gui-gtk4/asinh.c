@@ -3,29 +3,27 @@
  * Pure processing entry points live in src/filters/asinh.c.
  */
 
-#include <math.h>
 #include <gtk/gtk.h>
 
-#include "core/siril.h"
-#include "core/op_descriptors.h"
-#include "core/proto.h"
+#include "algos/statistics.h"
 #include "core/icc_profile.h"
+#include "core/nde/nde_checkpoint.h"
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_replay.h"
+#include "core/op_descriptors.h"
 #include "core/processing.h"
 #include "core/processing_thread.h"
+#include "core/siril.h"
 #include "core/undo.h"
-#include "core/nde/nde_history.h"
-#include "core/nde/nde_checkpoint.h"
-#include "core/nde/nde_replay.h"
-#include "algos/statistics.h"
-#include "io/single_image.h"
-#include "gui-gtk4/callbacks.h"
-#include "gui-gtk4/nde_editors.h"
-#include "gui-gtk4/utils.h"
-#include "gui-gtk4/progress_and_log.h"
-#include "gui-gtk4/dialogs.h"
-#include "gui-gtk4/siril_preview.h"
 #include "filters/asinh.h"
 #include "gui-gtk4/asinh.h"
+#include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/nde_editors.h"
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/siril_preview.h"
+#include "gui-gtk4/utils.h"
+#include "io/single_image.h"
 
 static GtkSpinButton *asinh_spin_stretch = NULL, *asinh_spin_black = NULL;
 static GtkCheckButton *asinh_toggle_rgb = NULL, *asinh_preview_btn = NULL;

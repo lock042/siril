@@ -20,11 +20,11 @@
 
 /* See nde_compositing.h for the model (a fold, not a replay). */
 
-#include "core/siril.h"
+#include "core/gui_iface.h"
 #include "core/nde/nde_compositing.h"
 #include "core/nde/nde_history.h"
 #include "core/nde/nde_op_class.h"
-#include "core/gui_iface.h"
+#include "core/siril.h"
 #include "io/image_format_flis.h"
 
 #define OP_SET_OPACITY "layer.set_opacity"

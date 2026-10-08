@@ -18,30 +18,24 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <math.h>
-
-#include "core/siril.h"
-#include "core/op_descriptors.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
-#include "core/processing.h"
 #include "algos/statistics.h"
-#include "io/single_image.h"
-#include "io/image_format_fits.h"
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_replay.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/siril.h"
 #include "filters/epf.h"
-#include "gui-gtk4/epf.h"
-#include "gui-gtk4/nde_editors.h"
 #include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/epf.h"
 #include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/message_dialog.h"
-#include "gui-gtk4/utils.h"
+#include "gui-gtk4/nde_editors.h"
 #include "gui-gtk4/progress_and_log.h"
-#include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/siril_preview.h"
-#include "core/undo.h"
-#include "core/nde/nde_replay.h"
-#include "core/nde/nde_history.h"
-#include "opencv/opencv.h"
+#include "gui-gtk4/utils.h"
+#include "io/image_format_fits.h"
+#include "io/single_image.h"
 
 // Statics declarations
 GtkButton *epf_undo = NULL, *epf_cancel = NULL, *epf_apply = NULL;

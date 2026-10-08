@@ -52,9 +52,10 @@
  * its cascades costs a single analysis however many participants replay.
  */
 
-#include "core/siril.h"   /* fits, destructor */
 #include <glib.h>
+
 #include "core/nde/nde_state.h"
+#include "core/siril.h"   /* fits, destructor */
 
 #ifdef __cplusplus
 extern "C" {

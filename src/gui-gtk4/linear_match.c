@@ -18,22 +18,17 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/siril.h"
 #include "core/op_descriptors.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
 #include "core/processing.h"
 #include "core/processing_thread.h"
-#include "io/single_image.h"
-#include "io/image_format_fits.h"
-#include "gui-gtk4/message_dialog.h"
-#include "gui-gtk4/image_display.h"
-#include "gui-gtk4/utils.h"
+#include "core/siril.h"
+#include "filters/linear_match.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/progress_and_log.h"
-
-#include "filters/linear_match.h"
+#include "gui-gtk4/utils.h"
+#include "io/image_format_fits.h"
+#include "io/single_image.h"
 
 static GtkWidget *lm_ref_chooser = NULL;
 static GtkSpinButton *lm_high_spin = NULL;

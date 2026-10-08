@@ -20,11 +20,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "core/fits_region.h"
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "io/image_format_fits.h"
-
-#include "fits_region.h"
 
 /* Bytes per mask element for a given mask bitpix, 0 for an unsupported one. */
 static size_t mask_elem_size(uint8_t bitpix) {

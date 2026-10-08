@@ -1,6 +1,8 @@
 #ifndef _MOUSE_ACTION_FUNCTIONS_H_
 #define _MOUSE_ACTION_FUNCTIONS_H_
 
+#include "gui-gtk4/image_interactions.h"
+
 void cache_widgets();
 
 /* CHECKLIST FOR ADDING NEW MOUSE FUNCTIONS OR SCROLL FUNCTIONS

@@ -21,16 +21,18 @@
  * e2e script, not here.
  */
 
+#include <string.h>
+
 #include <criterion/criterion.h>
 #include <glib.h>
 #include <glib/gstdio.h>
-#include <string.h>
-#include "flis_test_helpers.h"
-#include "core/siril.h"
-#include "core/nde/nde_history.h"
+
 #include "core/nde/nde_checkpoint.h"
+#include "core/nde/nde_history.h"
 #include "core/nde/nde_replay.h"
+#include "core/siril.h"
 #include "io/image_format_fits.h"
+#include "tests/flis_test_helpers.h"
 
 cominfo com;
 fits *gfit;

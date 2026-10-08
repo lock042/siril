@@ -38,40 +38,39 @@
  * adds little.  Construction and refresh stay co-located here.
  */
 
-#include "flis_gui.h"
-
-#include <math.h>
 #include <float.h>
+#include <math.h>
 
+#include "algos/geometry.h"                /* verbose_rotate_image for canvas dialog */
+#include "core/gui_iface.h"
+#include "core/initfile.h"                 /* writeinitfile — persist "don't ask again" */
+#include "core/nde/nde_composite.h"    /* the composite node's own editor */
+#include "core/nde/nde_compositing.h"  /* nde_compositing_is_op */
+#include "core/nde/nde_graph.h"    /* nodes + edges behind the per-item step lists */
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_joint.h"    /* joint records route to their own graph node */
+#include "core/nde/nde_op_class.h"     /* one question per family */
+#include "core/nde/nde_replay.h"   /* nde_record_amendable/deletable, amend/delete_start */
+#include "core/op_descriptor.h" /* op_descriptor_by_id for the edit round-trip check */
+#include "core/processing.h"
+#include "core/proto.h"          /* gui_function */
 #include "core/siril.h"
 #include "core/siril_log.h"
-#include "core/proto.h"          /* gui_function */
-#include "core/processing.h"
 #include "core/undo.h"
-#include "core/nde/nde_history.h"
-#include "core/nde/nde_replay.h"   /* nde_record_amendable/deletable, amend/delete_start */
-#include "core/nde/nde_graph.h"    /* nodes + edges behind the per-item step lists */
-#include "core/nde/nde_joint.h"    /* joint records route to their own graph node */
-#include "gui-gtk4/nde_graph_view.h"   /* the container that places them (#61) */
-#include "core/nde/nde_op_class.h"     /* one question per family */
-#include "core/nde/nde_compositing.h"  /* nde_compositing_is_op */
-#include "core/nde/nde_composite.h"    /* the composite node's own editor */
-#include "gui-gtk4/nde_editors.h"
+#include "gui-gtk4/callbacks.h"            /* set_GUI_CWD (header bar refresh) */
 #include "gui-gtk4/file_browser.h"  /* SirilFileBrowser: the chooser with the preview */
+#include "gui-gtk4/flis_gui.h"
+#include "gui-gtk4/gui_state.h"            /* gui.flis_layer_dragging */
+#include "gui-gtk4/image_interactions.h"   /* mouse_status, MOUSE_ACTION_FLIS_DRAG_LAYER */
+#include "gui-gtk4/masks_gui.h"            /* masks_gui_refresh_target_combos */
+#include "gui-gtk4/message_dialog.h"       /* siril_confirm_dialog */
+#include "gui-gtk4/nde_editors.h"
+#include "gui-gtk4/nde_graph_view.h"   /* the container that places them (#61) */
 #include "gui-gtk4/open_dialog.h"   /* FITS_EXTENSIONS */
-#include "core/op_descriptor.h" /* op_descriptor_by_id for the edit round-trip check */
-#include "core/gui_iface.h"
+#include "gui-gtk4/utils.h"                /* siril_toggle_*, siril_drop_down_* */
 #include "io/image_format_flis.h"
 #include "io/single_image.h"
-#include "gui-gtk4/image_interactions.h"   /* mouse_status, MOUSE_ACTION_FLIS_DRAG_LAYER */
-#include "gui-gtk4/gui_state.h"            /* gui.flis_layer_dragging */
-#include "gui-gtk4/callbacks.h"            /* set_GUI_CWD (header bar refresh) */
-#include "gui-gtk4/message_dialog.h"       /* siril_confirm_dialog */
-#include "gui-gtk4/masks_gui.h"            /* masks_gui_refresh_target_combos */
-#include "core/initfile.h"                 /* writeinitfile — persist "don't ask again" */
-#include "gui-gtk4/utils.h"                /* siril_toggle_*, siril_drop_down_* */
 #include "registration/flis_register.h"    /* flis_register_layers primitive */
-#include "algos/geometry.h"                /* verbose_rotate_image for canvas dialog */
 
 extern GtkWidget *lookup_widget(const gchar *widget_name);
 extern gboolean is_current_image_flis(void);

@@ -19,18 +19,17 @@
  */
 
 #include <glib.h>
-#include "ght.h"
-#include "core/proto.h"
-#include "core/gui_iface.h"
-#include "core/processing.h"
-#include "io/sequence.h"
-void destroy_ght_data(void *args); /* forward decl */
-#include "core/arithm.h"
-#include "algos/statistics.h"
+
 #include "algos/colors.h"
-#include "core/siril_log.h"
-#include "core/op_descriptors.h"
+#include "algos/statistics.h"
+#include "core/arithm.h"
+#include "core/gui_iface.h"
 #include "core/nde/nde_history.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril_log.h"
+#include "filters/ght.h"
 
 /* ---------------------------------------------------------------------- *
  *  NDE serializers (flis-nde-sketch.md §11-§12).  Shared by the GHS and   *

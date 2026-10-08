@@ -3,56 +3,56 @@
 // Reference site is https://siril.org
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <glib.h>
 #include <gio/gio.h>
+#include <glib.h>
 #ifdef _WIN32
 #include <windows.h>
 #include <gio/gwin32inputstream.h>
 #include <process.h>
 #define getpid _getpid
 #else
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/un.h>
+#include <unistd.h>
+
 #include <gio/gunixinputstream.h>
 #include <glib-unix.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <errno.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 #endif
-#include <string.h>
-#include <stdio.h>
 #include <limits.h>
+#include <stdio.h>
+#include <string.h>
 #include <time.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
+#include "algos/background_extraction.h"
+#include "algos/siril_random.h"
+#include "algos/statistics.h"
+#include "core/gui_iface.h"
 #include "core/icc_profile.h"
 #include "core/masks.h"
+#include "core/nde/nde_checkpoint.h"
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_script_scope.h"
 #include "core/OS_utils.h"
 #include "core/processing.h"
-#include "core/nde/nde_history.h"
-#include "core/nde/nde_checkpoint.h"
-#include "core/nde/nde_script_scope.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "core/siril_update.h"
-#include "core/siril_app_dirs.h"
-#include "algos/siril_random.h"
-#include "algos/background_extraction.h"
-#include "algos/statistics.h"
 #include "filters/mtf.h"
+#include "gui-gtk4/user_polygons.h"
 #include "io/image_format_fits.h"
 #include "io/image_format_flis.h"
-#include "io/single_image.h"
 #include "io/sequence.h"
+#include "io/single_image.h"
 #include "io/siril_git.h"
+#include "io/siril_plot.h"
 #include "io/siril_pythoncommands.h"
 #include "io/siril_pythonmodule.h"
-#include "io/siril_plot.h"
-#include "core/gui_iface.h"
-#include "gui-gtk4/user_polygons.h"
 
 // 65k buffer is enough for any object except pixel data and things
 // that could be an arbitrary length. For pixel data, FITS header,

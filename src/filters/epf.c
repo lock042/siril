@@ -18,20 +18,16 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <math.h>
-
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
+#include "core/fits_region.h"
 #include "core/gui_iface.h"
-#include "io/single_image.h"
+#include "core/nde/nde_history.h"
+#include "core/op_descriptors.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "filters/epf.h"
 #include "io/image_format_fits.h"
 #include "opencv/opencv.h"
-
-#include "core/fits_region.h"
-#include "filters/epf.h"
-#include "core/op_descriptors.h"
-#include "core/nde/nde_history.h"
 
 /* NDE serializers (phase 4.5 Convention 1 — file operands).
  *

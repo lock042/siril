@@ -20,8 +20,8 @@
 #ifndef SRC_GUI_LINEAR_MATCH_H_
 #define SRC_GUI_LINEAR_MATCH_H_
 
-#include "core/siril.h"
 #include "core/processing.h"
+#include "core/siril.h"
 
 struct linear_match_data {
 	void (*destroy_fn)(void *); /* Must be first member */

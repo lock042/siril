@@ -25,9 +25,11 @@
  * live in flis_canvas_* and are covered by their own test file.
  */
 
-#include <criterion/criterion.h>
 #include <math.h>
-#include "flis_test_helpers.h"
+
+#include <criterion/criterion.h>
+
+#include "tests/flis_test_helpers.h"
 
 cominfo com;
 fits *gfit;

@@ -19,10 +19,8 @@
  */
 
 #include "core/siril.h"
-#include "core/proto.h"
-
-#include "io/image_format_fits.h"
 #include "io/fits_keywords.h"
+#include "io/image_format_fits.h"
 
 gchar *AstroTiff_build_header(fits *fit) {
 	void *memptr;

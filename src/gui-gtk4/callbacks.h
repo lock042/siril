@@ -1,9 +1,7 @@
 #ifndef CALLBACKS_H
 #include <gtk/gtk.h>
-#include "gui-gtk4/gtk3_event_compat.h"
 #define CALLBACKS_H
 
-#include <sys/time.h>
 #include "core/siril.h"	// for sliders_mode
 
 struct op_descriptor;

@@ -22,19 +22,19 @@
 
 #include <gtk/gtk.h>
 
-#include "core/siril.h"
+#include "core/nde/nde_replay.h"
 #include "core/op_descriptors.h"
 #include "core/processing.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
-#include "core/nde/nde_replay.h"
 #include "filters/scnr.h"
 #include "gui-gtk4/callbacks.h"
-#include "gui-gtk4/nde_editors.h"
 #include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/nde_editors.h"
 #include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/scnr.h"
 #include "gui-gtk4/siril_preview.h"
 #include "gui-gtk4/utils.h"
-#include "gui-gtk4/scnr.h"
 #include "io/single_image.h"
 
 static GtkToggleButton *scnr_roi_preview = NULL;

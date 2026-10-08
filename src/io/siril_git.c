@@ -24,18 +24,18 @@
 * image. Given its use of the third dimension, it's sometimes called FITS cube.
 */
 
-#include "algos/spcc.h"
+#include <assert.h>
+#include <inttypes.h>
+
 #include "core/gui_iface.h"
-#include "core/siril.h"
 #include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "core/siril_networking.h"
 #include "core/siril_update.h" // for the version_number struct
 #include "io/siril_git.h"
 #include "io/siril_pythonmodule.h"
-#include <assert.h>
-#include <inttypes.h>
 
 #define REPO_REPAIRED 999
 

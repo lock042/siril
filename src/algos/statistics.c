@@ -31,25 +31,26 @@
  * function at the bottom of this file which provides this abstraction.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-#include <string.h>
-#include <float.h>
 #include <assert.h>
-#include <gsl/gsl_statistics.h>
+#include <float.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include <gsl/gsl_histogram.h>
+#include <gsl/gsl_statistics.h>
+
+#include "algos/demosaicing.h"
 #include "algos/sorting.h"
-#include "core/siril.h"
-#include "core/proto.h"
+#include "algos/statistics.h"
+#include "algos/statistics_float.h"
 #include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
-#include "statistics.h"
-#include "statistics_float.h"
-#include "demosaicing.h"
-#include "core/OS_utils.h"
 
 // comment to debug statistics
 #undef siril_log_debug

@@ -1,13 +1,13 @@
 #include <math.h>
-#include "line_detection.h"
+
+#include "algos/line_detection.h"
+#include "algos/photometry.h"	// for getMagnitude()
+#include "algos/statistics.h"
+#include "algos/statistics_float.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
-#include "opencv/tracks.h"
-#include "algos/sorting.h"
-#include "algos/statistics_float.h"
-#include "algos/statistics.h"
 #include "io/image_format_fits.h"
-#include "algos/photometry.h"	// for getMagnitude()
+#include "opencv/tracks.h"
 
 /* simple line detection interface, uses the opencv Hough lines algorithm from opencv/tracks.cpp in a
  * loop with decreasing detection thresholds

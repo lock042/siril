@@ -18,15 +18,16 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string.h>
 #include <math.h>
+#include <string.h>
+
 #include <gsl/gsl_statistics_float.h>
 
+#include "algos/sorting.h"
+#include "algos/statistics.h"
 #include "core/siril.h"
 #include "stacking/siril_fit_linear.h"
 #include "stacking/stacking.h"
-#include "algos/sorting.h"
-#include "algos/statistics.h"
 
 static int percentile_clipping(float pixel, const float sig[], float median,
 		int rej[]) {

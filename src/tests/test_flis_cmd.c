@@ -25,16 +25,18 @@
  * verifying its structure here.
  */
 
+#include <stdio.h>
+
 #include <criterion/criterion.h>
 #include <criterion/redirect.h>
-#include <stdio.h>
 #include <glib/gstdio.h>
-#include "flis_test_helpers.h"
+
 #include "core/command.h"
 #include "core/command_line_processor.h"
-#include "core/processing.h"
 #include "core/nde/nde_history.h"
+#include "core/processing.h"
 #include "core/undo.h"
+#include "tests/flis_test_helpers.h"
 
 cominfo com;
 fits *gfit;

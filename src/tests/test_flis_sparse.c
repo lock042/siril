@@ -20,10 +20,12 @@
  * clips rather than crashes / produces garbage.
  */
 
-#include <criterion/criterion.h>
 #include <math.h>
-#include "flis_test_helpers.h"
+
+#include <criterion/criterion.h>
+
 #include "io/flis_compose.h"
+#include "tests/flis_test_helpers.h"
 
 cominfo com;
 fits *gfit;

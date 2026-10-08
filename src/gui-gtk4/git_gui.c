@@ -23,12 +23,10 @@
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/message_dialog.h"
-#include "gui-gtk4/photometric_cc.h" // for reset_spcc_filters() (this is not a GTK function)
 #include "gui-gtk4/preferences.h"
-#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/python_gui.h"
 #include "gui-gtk4/script_menu.h"
 #include "gui-gtk4/utils.h"
-#include "gui-gtk4/python_gui.h"
 #include "io/siril_git.h"
 
 #ifdef HAVE_LIBGIT2

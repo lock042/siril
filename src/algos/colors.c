@@ -18,27 +18,24 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
 #include <assert.h>
 #include <float.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "algos/cie_standard_observer.h" // Do not include this from anywhere else
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/icc_profile.h"
-#include "core/processing.h"
-#include "core/siril_log.h"
-#include "core/OS_utils.h"
-#include "core/undo.h"
-#include "io/single_image.h"
-#include "io/image_format_fits.h"
 #include "algos/colors.h"
-#include "algos/statistics.h"
 #include "algos/extraction.h"
-#include "core/op_descriptors.h"
+#include "algos/statistics.h"
+#include "core/icc_profile.h"
 #include "core/nde/nde_history.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "io/image_format_fits.h"
 
 /* NDE serializers (flis-nde-sketch.md §11-§12).  ccm_process reads the 3x3
  * matrix and power; keys m00..m22 (row-major) + power.  fit/seq/seqEntry are

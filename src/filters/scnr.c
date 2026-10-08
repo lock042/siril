@@ -18,16 +18,15 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
-#include "core/siril_log.h"
-#include "core/gui_iface.h"
 #include "algos/colors.h"
-
-#include "scnr.h"
-#include "core/op_descriptors.h"
+#include "core/gui_iface.h"
 #include "core/nde/nde_history.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "filters/scnr.h"
 
 /* NDE serializers (flis-nde-sketch.md §11-§12).  scnr_process reads type,
  * amount, preserve — all serialized.  verbose/applying are preview/runtime

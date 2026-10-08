@@ -25,10 +25,11 @@
  */
 
 #include <criterion/criterion.h>
-#include "flis_test_helpers.h"
-#include "core/undo.h"
+
 #include "core/nde/nde_history.h"
 #include "core/nde/nde_snapstore.h"
+#include "core/undo.h"
+#include "tests/flis_test_helpers.h"
 
 cominfo com;
 fits *gfit;

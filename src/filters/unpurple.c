@@ -20,18 +20,16 @@
 
 #include <math.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
-#include "io/single_image.h"
-#include "io/image_format_fits.h"
-#include "opencv/opencv.h"
 #include "algos/colors.h"
+#include "core/gui_iface.h"
+#include "core/nde/nde_history.h"
+#include "core/op_descriptors.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "filters/synthstar.h"
 #include "filters/unpurple.h"
-#include "core/gui_iface.h"
-#include "core/op_descriptors.h"
-#include "core/nde/nde_history.h"
+#include "io/image_format_fits.h"
+#include "opencv/opencv.h"
 
 /* NDE serializers (phase 4.5 Convention 2 — captured effective star list).
  *

@@ -19,23 +19,20 @@
  */
 
 #include <string.h>
-#include "core/siril.h"
+
 #include "core/gui_iface.h"
-#include "core/proto.h"
-#include "core/siril_date.h"
-#include "core/siril_log.h"
 #include "core/icc_profile.h"
-#include "sequence.h"
-#include "ser.h"
-#include "stacking/stacking.h"
-#include "registration/registration.h"
-#include "io/image_format_fits.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "io/Astro-TIFF.h"
+#include "io/avi_pipp/avi_writer.h"
+#include "io/image_format_fits.h"
+#include "io/sequence.h"
+#include "io/ser.h"
 #include "opencv/opencv.h"
-#ifdef HAVE_FFMS2
-#include "io/films.h"
-#endif
-#include "avi_pipp/avi_writer.h"
+#include "registration/registration.h"
+#include "stacking/stacking.h"
 #ifdef HAVE_FFMPEG
 #include "io/mp4_output.h"
 #endif

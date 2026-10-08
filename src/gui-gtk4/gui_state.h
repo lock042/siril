@@ -32,6 +32,7 @@
 #define GUI_STATE_H
 
 #include <gtk/gtk.h>    /* GtkWidget, GtkBuilder, GdkRGBA, cairo_*, … */
+
 #include "core/siril.h" /* guiinfo typedef, MAXVPORT, PREVIEW_NB, and all non-GTK types */
 
 /* Convenience alias kept in GUI translation units only. */

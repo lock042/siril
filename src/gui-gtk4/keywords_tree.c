@@ -18,19 +18,16 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/siril.h"
 #include "core/proto.h"
-
-#include "io/image_format_fits.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
-#include "io/fits_keywords.h"
-#include "io/single_image.h"
-#include "io/sequence.h"
-#include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/dialogs.h"
-#include "gui-gtk4/utils.h"
-
-#include "keywords_tree.h"
+#include "gui-gtk4/keywords_tree.h"
+#include "gui-gtk4/message_dialog.h"
+#include "io/fits_keywords.h"
+#include "io/image_format_fits.h"
+#include "io/sequence.h"
+#include "io/single_image.h"
 
 /* ---- Per-row GObject for the keywords list ----------------------- */
 #define SIRIL_TYPE_KEYWORD_ROW (siril_keyword_row_get_type())

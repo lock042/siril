@@ -22,22 +22,21 @@
 #include <config.h>
 #endif
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
-#include "core/siril_date.h"
-#include "core/processing.h"
-#include "core/command_line_processor.h"
+#include "algos/astrometry_solver.h"
+#include "algos/photometric_cc.h"
 #include "algos/PSF.h"
 #include "algos/siril_wcs.h"
-#include "algos/photometric_cc.h"
-#include "io/annotation_catalogues.h"
-#include "algos/astrometry_solver.h"
-#include "algos/comparison_stars.h"
-#include "io/remote_catalogues.h"
-#include "io/local_catalogues.h"
-#include "registration/matching/misc.h"
+#include "core/command_line_processor.h"
 #include "core/gui_iface.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_date.h"
+#include "core/siril_log.h"
+#include "io/annotation_catalogues.h"
+#include "io/local_catalogues.h"
+#include "io/remote_catalogues.h"
+#include "registration/matching/misc.h"
 
 void free_conesearch_params(void *p);
 void free_conesearch_args(void *p);

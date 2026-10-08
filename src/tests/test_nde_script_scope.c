@@ -20,10 +20,11 @@
 
 #include <criterion/criterion.h>
 #include <glib.h>
-#include "flis_test_helpers.h"
-#include "core/siril.h"
+
 #include "core/nde/nde_history.h"
 #include "core/nde/nde_script_scope.h"
+#include "core/siril.h"
+#include "tests/flis_test_helpers.h"
 
 cominfo com;
 fits *gfit;

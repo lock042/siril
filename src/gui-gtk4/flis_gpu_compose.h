@@ -37,8 +37,8 @@
 #ifndef FLIS_GPU_COMPOSE_H
 #define FLIS_GPU_COMPOSE_H
 
-#include <gtk/gtk.h>
 #include <glib.h>
+#include <gtk/gtk.h>
 
 /* Returns TRUE if every layer in @layers can be rendered via the
  * GPU compose path.  When this returns FALSE the caller must fall

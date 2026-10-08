@@ -28,22 +28,21 @@
 #endif
 #include <string.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/initfile.h"
+#include "algos/sorting.h"
 #include "core/command_line_processor.h"
+#include "core/initfile.h"
 #include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
-#include "io/siril_pythonmodule.h"
-#include "io/siril_git.h"
-#include "gui-gtk4/utils.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/message_dialog.h"
-#include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/python_gui.h"
-#include "algos/sorting.h"
-#include "script_menu.h"
+#include "gui-gtk4/script_menu.h"
+#include "gui-gtk4/utils.h"
+#include "io/siril_git.h"
+#include "io/siril_pythonmodule.h"
 
 #define CONFIRM_RUN_SCRIPTS _("You are about to use scripts. Note that scripts execute code with your current user privileges. While Siril Script Files can only execute Siril commands and a very small number of specific external programs, Python scripts are considerably more powerful and execute code not written by the Siril team. Ensure you obtain scripts from a reputable source.")
 

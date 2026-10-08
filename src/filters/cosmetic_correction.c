@@ -20,24 +20,22 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <gsl/gsl_statistics_ushort.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
+#include "algos/median_fast.h"
+#include "algos/sorting.h"
+#include "algos/statistics.h"
+#include "core/nde/nde_history.h"
+#include "core/op_descriptors.h"
 #include "core/optimize_utils.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
+#include "filters/cosmetic_correction.h"
+#include "filters/median.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
-#include "algos/statistics.h"
-#include "algos/sorting.h"
-#include "algos/median_fast.h"
-#include "filters/median.h"
 #include "opencv/opencv.h"
-
-#include "cosmetic_correction.h"
-#include "core/op_descriptors.h"
-#include "core/nde/nde_history.h"
 
 /* NDE serializers for filters.cosmetic (auto-detect path).  autoDetectThreaded
  * reads sigma[2], amount and is_cfa; fit/seq/seqEntry/threading are runtime

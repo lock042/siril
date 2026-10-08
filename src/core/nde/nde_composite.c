@@ -20,17 +20,17 @@
 
 /* See nde_composite.h for what this node is and why its state is recorded. */
 
-#include "core/siril.h"
-#include "core/proto.h"
 #include "core/masks.h"
+#include "core/nde/nde_checkpoint.h"
+#include "core/nde/nde_composite.h"
+#include "core/nde/nde_compositing.h"
 #include "core/nde/nde_history.h"
 #include "core/nde/nde_op_class.h"
-#include "core/nde/nde_checkpoint.h"
-#include "core/nde/nde_compositing.h"
-#include "core/nde/nde_composite.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "io/flis_compose.h"
 #include "io/image_format_fits.h"
 #include "io/image_format_flis.h"
-#include "io/flis_compose.h"
 
 /* Indexed key names: "i3_opacity", "g0_blend".  One buffer per call site. */
 #define KEYBUF 32

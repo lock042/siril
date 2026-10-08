@@ -27,13 +27,15 @@
  *   - worker-thread append vs snapshot smoke test
  */
 
-#include <criterion/criterion.h>
 #include <string.h>
-#include "core/siril.h"
+
+#include <criterion/criterion.h>
+
+#include "algos/geometry.h"
+#include "core/nde/nde_history.h"
 #include "core/op_descriptor.h"
 #include "core/op_descriptors.h"
-#include "core/nde/nde_history.h"
-#include "algos/geometry.h"
+#include "core/siril.h"
 
 cominfo com;	// the core data struct
 fits *gfit;	// currently loaded image

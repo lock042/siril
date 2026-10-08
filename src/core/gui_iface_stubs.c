@@ -31,6 +31,7 @@
  */
 
 #include <stdio.h>
+
 #include "core/gui_iface.h"
 
 /* ── Stub implementations ─────────────────────────────────────────────────── */

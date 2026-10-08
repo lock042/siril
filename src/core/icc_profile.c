@@ -19,30 +19,31 @@
  */
 
 #include <glib.h>
+
+#include "algos/colors.h"
 #include "algos/lcms_acceleration/lcms2_fast_float.h"
 #include "algos/lcms_acceleration/lcms2_threaded.h"
-#include "core/siril.h"
-#include "algos/colors.h"
-#include "core/proto.h"
+#include "core/gui_iface.h"
+#include "core/icc_default_profiles.h"
 #include "core/icc_profile.h"
 #include "core/processing.h"
-#include "core/undo.h"
-#include "icc_default_profiles.h"
-#include "core/gui_iface.h"
-#include "io/single_image.h"
-#include "io/image_format_fits.h"
-#include "io/image_format_flis.h"
-#include "io/siril_plot.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
+#include "io/image_format_fits.h"
+#include "io/single_image.h"
+#include "io/siril_plot.h"
 
 // For the log message about JPEG ICC profile support at startup
 #ifdef HAVE_LIBJPEG
 #include <jconfig.h>
 #endif
 
-#include "core/op_descriptors.h"
-#include "core/nde/nde_history.h"
 #include "core/nde/nde_checkpoint.h"
+#include "core/nde/nde_history.h"
+#include "core/op_descriptors.h"
+#include "core/undo.h"
+#include "io/image_format_flis.h"
 
 /* Op descriptor for ICC colour-space conversion, the one ICC op that still
  * rewrites pixels through generic_image_worker (non-FLIS path). The site flags

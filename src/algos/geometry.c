@@ -18,31 +18,29 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string.h>
 #include <math.h>
+#include <string.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/OS_utils.h"
-#include "core/siril_log.h"
-#include "core/arithm.h"
-#include "core/masks.h"
 #include "algos/astrometry_solver.h"
 #include "algos/demosaicing.h"
-#include "algos/statistics.h"
+#include "algos/geometry.h"
 #include "algos/siril_wcs.h"
+#include "algos/statistics.h"
+#include "core/arithm.h"
+#include "core/gui_iface.h"
+#include "core/masks.h"
+#include "core/nde/nde_history.h"
+#include "core/op_descriptors.h"
 #include "core/processing.h"
-#include "opencv/opencv.h"
-#include "io/sequence.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "io/gps_parser.h"
 #include "io/image_format_fits.h"
 #include "io/image_format_flis.h"
-#include "io/gps_parser.h"
+#include "io/sequence.h"
 #include "io/single_image.h"
-#include "core/gui_iface.h"
-
-#include "geometry.h"
-#include "core/op_descriptors.h"
-#include "core/nde/nde_history.h"
+#include "opencv/opencv.h"
 
 /* ---------------------------------------------------------------------- *
  *  NDE serializers (flis-nde-sketch.md §11-§12).  Each pair serializes    *

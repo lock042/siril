@@ -18,16 +18,15 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/siril.h"
-#include "gui-gtk4/gui_state.h"
-#include "gui-gtk4/utils.h"
-#include "core/proto.h"
-#include "io/annotation_catalogues.h"
-#include "algos/siril_wcs.h"
-#include "gui-gtk4/image_display.h"
 #include <gtk/gtk.h>
 
-#include "annotations_pref.h"
+#include "algos/siril_wcs.h"
+#include "core/siril.h"
+#include "gui-gtk4/annotations_pref.h"
+#include "gui-gtk4/gui_state.h"
+#include "gui-gtk4/image_display.h"
+#include "gui-gtk4/utils.h"
+#include "io/annotation_catalogues.h"
 
 static gchar *astro_catalogue[] = {
 		N_("Messier Catalogue (M)"),

@@ -23,19 +23,20 @@
  */
 
 #include <criterion/criterion.h>
-#include "flis_test_helpers.h"
-#include "core/processing.h"
-#include "core/processing_thread.h"
-#include "core/op_descriptors.h"
-#include "core/op_descriptor.h"
-#include "core/nde/nde_history.h"
+
+#include "algos/siril_wcs.h"
+#include "core/masks.h"
 #include "core/nde/nde_checkpoint.h"
 #include "core/nde/nde_composite.h"
-#include "core/nde/nde_replay.h"
 #include "core/nde/nde_graph.h"
-#include "core/masks.h"
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_replay.h"
+#include "core/op_descriptor.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/processing_thread.h"
 #include "filters/asinh.h"
-#include "algos/siril_wcs.h"
+#include "tests/flis_test_helpers.h"
 
 cominfo com;
 fits *gfit;

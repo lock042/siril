@@ -18,23 +18,16 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <gsl/gsl_statistics.h>
 #include <gsl/gsl_interp.h>
-#include "git-version.h"
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/icc_profile.h"
-#include "core/processing.h"
-#include "core/OS_utils.h"
-#include "core/siril_log.h"
+
 #include "algos/colors.h"
-#include "algos/photometry.h"
-#include "algos/PSF.h"
-#include "algos/astrometry_solver.h"
-#include "algos/siril_wcs.h"
-#include "io/image_format_fits.h" // For the datalink FITS functions
 #include "algos/photometric_cc.h"
+#include "algos/siril_wcs.h"
 #include "algos/spcc.h"
+#include "core/icc_profile.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "git-version.h"
 
 // Uncomment for verbose data on xpsampled_to_xyY
 //#define XYYDEBUG

@@ -18,11 +18,9 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_date.h"
-#include "core/pipe.h"
 #include "core/gui_iface.h"
+#include "core/pipe.h"
+#include "core/siril.h"
 
 /* This function writes a message on Siril's console/log. It is not thread safe.
  * There is a limit in number of characters that it is able to write in one call: 1023.

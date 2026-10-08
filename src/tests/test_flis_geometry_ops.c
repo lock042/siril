@@ -20,11 +20,13 @@
  * operations live in flis_canvas_* and are covered separately.
  */
 
-#include <criterion/criterion.h>
 #include <math.h>
-#include "flis_test_helpers.h"
-#include "core/processing.h"
+
+#include <criterion/criterion.h>
+
 #include "algos/geometry.h"
+#include "core/processing.h"
+#include "tests/flis_test_helpers.h"
 
 cominfo com;
 fits *gfit;

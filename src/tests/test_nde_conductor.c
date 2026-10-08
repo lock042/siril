@@ -28,10 +28,11 @@
 
 #include <criterion/criterion.h>
 #include <glib.h>
-#include "flis_test_helpers.h"
-#include "core/siril.h"
+
 #include "core/processing.h"
 #include "core/processing_thread.h"
+#include "core/siril.h"
+#include "tests/flis_test_helpers.h"
 
 cominfo com;
 fits *gfit;

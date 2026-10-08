@@ -22,15 +22,15 @@
 
 #include <gtk/gtk.h>
 
-#include "core/siril.h"
+#include "core/nde/nde_replay.h"
 #include "core/op_descriptors.h"
 #include "core/processing.h"
-#include "core/nde/nde_replay.h"
+#include "core/siril.h"
 #include "filters/saturation.h"
 #include "gui-gtk4/callbacks.h"
-#include "gui-gtk4/nde_editors.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/image_display.h"
+#include "gui-gtk4/nde_editors.h"
 #include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/saturation.h"
 #include "gui-gtk4/siril_preview.h"

@@ -23,31 +23,30 @@
  * undo state can be saved, to reduce the size of undo states in storage?
  * The "both" state would apply to geometry changing operations. */
 
-#include <stdlib.h>
-#include <stdio.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <wcslib.h>
 #ifdef _WIN32
 #include <windows.h>
 #include <io.h>  /* _get_osfhandle */
 #endif
 
-#include "core/siril.h"
-#include "core/siril_log.h"
-#include "core/icc_profile.h"
+#include "algos/siril_wcs.h"
+#include "algos/statistics.h"
 #include "core/gui_iface.h"
-#include "io/single_image.h"
-#include "io/image_format_fits.h"
-#include "io/image_format_flis.h"
-#include "io/annotation_catalogues.h"
-#include "core/undo.h"
+#include "core/icc_profile.h"
 #include "core/nde/nde_history.h"
 #include "core/nde/nde_snapstore.h"
 #include "core/proto.h"
-#include "algos/statistics.h"
-#include "algos/siril_wcs.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "core/undo.h"
+#include "io/annotation_catalogues.h"
+#include "io/image_format_fits.h"
+#include "io/image_format_flis.h"
+#include "io/single_image.h"
 
 #ifndef O_BINARY
 #define O_BINARY 0

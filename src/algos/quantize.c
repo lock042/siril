@@ -23,16 +23,15 @@
  The code has been updated by Cyril Richard (2016) in order to work with ushort data used by Siril
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <limits.h>
 #include <float.h>
+#include <limits.h>
+#include <math.h>
+#include <stdlib.h>
 
+#include "algos/sorting.h"
+#include "core/processing.h"
 #include "core/proto.h"
 #include "core/siril.h"
-#include "core/processing.h"
-#include "sorting.h"
 
 /* more than this many standard deviations from the mean is an outlier */
 #define SIGMA_CLIP     5.

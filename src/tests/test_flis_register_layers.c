@@ -27,14 +27,15 @@
  */
 
 #include <criterion/criterion.h>
-#include "flis_test_helpers.h"
+
+#include "algos/siril_wcs.h"
 #include "core/command.h"
 #include "core/command_line_processor.h"
 #include "core/processing.h"
-#include "registration/registration.h"
-#include "registration/flis_register.h"
-#include "algos/siril_wcs.h"
 #include "io/image_format_flis.h"
+#include "registration/flis_register.h"
+#include "registration/registration.h"
+#include "tests/flis_test_helpers.h"
 
 cominfo com;
 fits *gfit;

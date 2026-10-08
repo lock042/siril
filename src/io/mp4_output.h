@@ -1,11 +1,11 @@
 #ifndef _MP4_OUTPUT_H
 #define _MP4_OUTPUT_H
 
-#include "core/siril.h"
-
-#include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
 #include <libavutil/frame.h>
+
+#include "core/siril.h"
 
 struct mp4_struct {
 	AVOutputFormat *fmt;

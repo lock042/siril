@@ -41,6 +41,7 @@
  */
 
 #include <glib.h>
+
 #include "io/siril_catalogues.h"
 
 #ifdef __cplusplus

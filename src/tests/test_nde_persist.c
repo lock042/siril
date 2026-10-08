@@ -21,15 +21,17 @@
  *   - FLISNDE=T with the table deleted → warn, empty history
  */
 
-#include <criterion/criterion.h>
 #include <unistd.h>
+
+#include <criterion/criterion.h>
 #include <fitsio.h>
-#include "flis_test_helpers.h"
-#include "core/nde/nde_history.h"
-#include "core/nde/nde_checkpoint.h"
+
 #include "core/nde/nde_cat.h"
+#include "core/nde/nde_checkpoint.h"
+#include "core/nde/nde_history.h"
 #include "core/op_descriptor.h"
 #include "core/processing.h"
+#include "tests/flis_test_helpers.h"
 
 cominfo com;
 fits *gfit;

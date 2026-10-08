@@ -19,16 +19,15 @@
  */
 
 #include <glib.h>
-#include "mtf.h"
-#include "core/proto.h"
-#include "core/gui_iface.h"
-#include "core/processing.h"
-#include "io/sequence.h"
-void destroy_mtf_data(void *args); /* forward decl */
-#include "core/siril_log.h"
+
 #include "algos/statistics.h"
-#include "core/op_descriptors.h"
+#include "core/gui_iface.h"
 #include "core/nde/nde_history.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril_log.h"
+#include "filters/mtf.h"
 
 /* ---------------------------------------------------------------------- *
  *  NDE serializers (flis-nde-sketch.md §11-§12).  Shared by the forward   *

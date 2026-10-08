@@ -29,33 +29,33 @@
  */
 
 #include <math.h>
-#include "core/siril.h"
-#include "core/siril_log.h"
-#include "core/gui_iface.h"
-#include "core/processing.h"
-#include "core/processing_thread.h"
-#include "core/undo.h"
+
 #include "algos/statistics.h"
-#include "io/single_image.h"
-#include "core/op_descriptor.h"
 #include "core/fits_region.h"
-#include "core/nde/nde_history.h"
-#include "core/nde/nde_op_class.h"
-#include "core/nde/nde_checkpoint.h"
+#include "core/gui_iface.h"
 #include "core/masks.h"
-#include "core/nde/nde_compositing.h"
+#include "core/nde/nde_checkpoint.h"
 #include "core/nde/nde_composite.h"
+#include "core/nde/nde_compositing.h"
+#include "core/nde/nde_history.h"
 #include "core/nde/nde_joint.h"
-#include "core/nde/nde_snapstore.h"
+#include "core/nde/nde_op_class.h"
 #include "core/nde/nde_replay.h"
 #include "core/nde/nde_replay_internal.h"
+#include "core/nde/nde_snapstore.h"
+#include "core/op_descriptor.h"
+#include "core/processing.h"
+#include "core/processing_thread.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "core/undo.h"
+#include "io/single_image.h"
 
 static void cascade_joint_targets(GArray *targets);
+#include "core/nde/nde_replay_internal.h"
 #include "io/image_format_fits.h"
 #include "io/image_format_flis.h"
 #include "io/siril_pythonmodule.h"
-
-#include "core/nde/nde_replay_internal.h"
 
 static void cascade_joint_targets(GArray *targets);
 

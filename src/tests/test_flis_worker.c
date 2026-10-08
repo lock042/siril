@@ -26,11 +26,12 @@
  */
 
 #include <criterion/criterion.h>
-#include "flis_test_helpers.h"
+
+#include "core/nde/nde_history.h"
+#include "core/op_descriptor.h"
 #include "core/processing.h"
 #include "core/undo.h"
-#include "core/op_descriptor.h"
-#include "core/nde/nde_history.h"
+#include "tests/flis_test_helpers.h"
 
 cominfo com;
 fits *gfit;

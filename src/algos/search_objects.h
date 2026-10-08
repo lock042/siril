@@ -22,11 +22,11 @@
 #define _SEARCH_OBJECTS_H
 
 #include <glib.h>
+
+#include "algos/PSF.h"
 #include "core/siril.h"
-#include "core/gtk_forward_decls.h"
 #include "core/siril_world_cs.h"
 #include "io/annotation_catalogues.h"
-#include "algos/PSF.h"
 
 #define CDSSESAME "https://cds.unistra.fr/cgi-bin/nph-sesame"
 #define VIZIERSESAME "https://vizier.cfa.harvard.edu/viz-bin/nph-sesame"

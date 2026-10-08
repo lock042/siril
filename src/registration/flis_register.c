@@ -46,22 +46,21 @@
 #include <math.h>
 #include <string.h>
 
-#include "core/siril.h"
-#include "core/siril_log.h"
-#include "core/processing.h"
-#include "core/processing_thread.h"
-#include "core/undo.h"
-#include "core/nde/nde_history.h"
 #include "core/nde/nde_checkpoint.h"
+#include "core/nde/nde_history.h"
 #include "core/nde/nde_joint.h"
 #include "core/nde/nde_replay.h"
 #include "core/nde/nde_script_scope.h"
-#include "io/sequence.h"
+#include "core/processing.h"
+#include "core/processing_thread.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "core/undo.h"
 #include "io/image_format_flis.h"
-#include "registration/registration.h"
+#include "io/sequence.h"
 #include "opencv/opencv.h"
-
-#include "flis_register.h"
+#include "registration/flis_register.h"
+#include "registration/registration.h"
 
 registration_function flis_register_resolve_method(flis_reg_method_id id,
                                                     selection_type *out_sel,

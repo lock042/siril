@@ -29,14 +29,15 @@
 
 #include "core/siril.h"
 #undef TBYTE
-#include "core/proto.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
-#include <errno.h>
 #include <time.h>
-#include <gsl/gsl_rng.h>
 #include <type_traits>
+
+#include <gsl/gsl_rng.h>
+
+#include "core/proto.h"
 
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
@@ -44,7 +45,6 @@
 #else
 #include <fcntl.h>
 #include <unistd.h>
-#include <sys/types.h>
 #endif
 
 #if defined(__APPLE__)

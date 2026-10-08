@@ -25,19 +25,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "core/siril.h"
+#include "compositing/align_rgb.h"
 #include "core/gui_iface.h"
+#include "core/nde/nde_checkpoint.h"
+#include "core/nde/nde_history.h"
+#include "core/op_descriptors.h"
 #include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
-#include "registration/registration.h"
+#include "core/undo.h"
+#include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
-#include "io/image_format_fits.h"
-#include "compositing/align_rgb.h"
-#include "core/op_descriptors.h"
-#include "core/nde/nde_history.h"
-#include "core/nde/nde_checkpoint.h"
-#include "core/undo.h"
+#include "registration/registration.h"
 
 #define REGLAYER 0
 

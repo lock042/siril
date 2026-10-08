@@ -20,30 +20,28 @@
 
 #include <math.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/icc_profile.h"
+#include <gsl/gsl_histogram.h>
+
 #include "algos/statistics.h"
-#include "algos/colors.h"
-#include "io/single_image.h"
-#include "io/image_format_fits.h"
-#include "io/sequence.h"
-#include "gui-gtk4/utils.h"
-#include "gui-gtk4/progress_and_log.h"
-#include "gui-gtk4/dialogs.h"
-#include "gui-gtk4/file_browser.h"
-#include "gui-gtk4/remixer.h"
-#include "gui-gtk4/callbacks.h"
-#include "gui-gtk4/PSF_list.h"
-#include "gui-gtk4/image_interactions.h"
-#include "gui-gtk4/message_dialog.h"
-#include "gui-gtk4/siril_preview.h"
-#include "gui-gtk4/histogram.h"
 #include "core/arithm.h"
+#include "core/icc_profile.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
 #include "filters/ght.h"
-
-#include <gsl/gsl_histogram.h>
+#include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/file_browser.h"
+#include "gui-gtk4/histogram.h"
+#include "gui-gtk4/image_interactions.h"
+#include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/remixer.h"
+#include "gui-gtk4/siril_preview.h"
+#include "gui-gtk4/utils.h"
+#include "io/image_format_fits.h"
+#include "io/sequence.h"
+#include "io/single_image.h"
 
 static clip_mode_t clip_mode = RGBBLEND;
 static float leftD = 0.0f, rightD = 0.0f;

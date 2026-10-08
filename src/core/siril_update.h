@@ -20,6 +20,8 @@
 #ifndef SRC_CORE_SIRIL_UPDATE_H_
 #define SRC_CORE_SIRIL_UPDATE_H_
 
+#include "core/siril.h"
+
 int compare_version(version_number v1, version_number v2);
 version_number get_version_number_from_string(const gchar *string);
 version_number get_current_version_number();

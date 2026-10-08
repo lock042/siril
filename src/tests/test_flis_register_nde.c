@@ -26,23 +26,25 @@
  * that one is weakened.
  */
 
-#include <criterion/criterion.h>
 #include <math.h>
-#include "flis_test_helpers.h"
+
+#include <criterion/criterion.h>
+
+#include "algos/geometry.h"
 #include "core/command.h"
 #include "core/command_line_processor.h"
-#include "core/processing.h"
-#include "core/processing_thread.h"
-#include "core/nde/nde_history.h"
 #include "core/nde/nde_checkpoint.h"
-#include "core/nde/nde_replay.h"
 #include "core/nde/nde_graph.h"
+#include "core/nde/nde_history.h"
 #include "core/nde/nde_joint.h"
+#include "core/nde/nde_replay.h"
 #include "core/op_descriptor.h"
 #include "core/op_descriptors.h"
-#include "algos/geometry.h"
-#include "registration/registration.h"
+#include "core/processing.h"
+#include "core/processing_thread.h"
 #include "registration/flis_register.h"
+#include "registration/registration.h"
+#include "tests/flis_test_helpers.h"
 
 cominfo com;
 fits *gfit;

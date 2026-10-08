@@ -18,26 +18,26 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "gui-gtk4/nde_editors.h"
-#include "core/siril.h"
+#include "algos/background_extraction.h"
 #include "core/nde/nde_replay.h"
 #include "core/op_descriptor.h"
+#include "core/siril.h"
 #include "gui-gtk4/asinh.h"
-#include "gui-gtk4/curves.h"
-#include "gui-gtk4/histogram.h"
-#include "gui-gtk4/scnr.h"
-#include "gui-gtk4/median.h"
-#include "gui-gtk4/saturation.h"
-#include "gui-gtk4/epf.h"
-#include "gui-gtk4/clahe.h"
-#include "gui-gtk4/denoisegui.h"
 #include "gui-gtk4/banding.h"
+#include "gui-gtk4/clahe.h"
 #include "gui-gtk4/colors.h"
 #include "gui-gtk4/cosmetic_correction.h"
-#include "gui-gtk4/rgradient.h"
+#include "gui-gtk4/curves.h"
+#include "gui-gtk4/denoisegui.h"
+#include "gui-gtk4/epf.h"
+#include "gui-gtk4/histogram.h"
+#include "gui-gtk4/median.h"
+#include "gui-gtk4/nde_editors.h"
 #include "gui-gtk4/nde_joint_editor.h"
 #include "gui-gtk4/photometric_cc.h"
-#include "algos/background_extraction.h"
+#include "gui-gtk4/rgradient.h"
+#include "gui-gtk4/saturation.h"
+#include "gui-gtk4/scnr.h"
 
 /* Returns TRUE when the editor takes the record (even if entering amend
  * mode is then refused — the core logs why); FALSE vetoes it, sending the

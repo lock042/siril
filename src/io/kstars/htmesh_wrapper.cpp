@@ -18,10 +18,12 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdlib.h>
+
+#include "io/kstars/htmesh_wrapper.h"
+
 #include "HTMesh.h"
 #include "MeshBuffer.h"
-#include "htmesh_wrapper.h"
-#include <stdlib.h>
 
 int get_htm_index_for_coords(double ra, double dec, int levels) {
 	HTMesh mesh = HTMesh(levels, 0, 1);

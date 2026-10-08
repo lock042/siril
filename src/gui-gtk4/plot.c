@@ -18,36 +18,30 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "plot.h"
-
-#include <cairo.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifndef _WIN32
-#include <sys/wait.h>
-#endif
 
+#include <cairo.h>
+
+#include "algos/PSF.h"
 #include "core/siril.h"
-#include "core/proto.h"
 #include "core/siril_date.h"
-#include "core/processing.h"
 #include "core/siril_log.h"
-#include "gui-gtk4/utils.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/plot.h"
 #include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/sequence_list.h"
 #include "gui-gtk4/siril_plot.h"
-#include "registration/registration.h"
-#include "algos/PSF.h"
+#include "gui-gtk4/utils.h"
 #include "io/aavso_extended.h"
 #include "io/sequence.h"
 #include "io/siril_plot.h"
 #include "opencv/opencv.h"
-#include "algos/comparison_stars.h"
+#include "registration/registration.h"
 
 // TODO: Would probably be more efficient to cache plot surface and add selection as an overlay
 

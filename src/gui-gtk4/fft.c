@@ -22,10 +22,10 @@
 
 #include <gtk/gtk.h>
 
-#include "core/siril.h"
 #include "core/op_descriptors.h"
 #include "core/processing.h"
 #include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
 #include "filters/fft.h"
 #include "gui-gtk4/dialogs.h"
@@ -34,8 +34,8 @@
 #include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/registration_preview.h"
 #include "gui-gtk4/utils.h"
-#include "io/single_image.h"
 #include "io/sequence.h"
+#include "io/single_image.h"
 
 static GtkNotebook *fft_notebook = NULL;
 static GtkCheckButton *fft_centered = NULL;

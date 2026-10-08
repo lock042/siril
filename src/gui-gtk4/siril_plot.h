@@ -21,7 +21,6 @@
 #ifndef SRC_GUI_SIRIL_PLOT_H_
 #define SRC_GUI_SIRIL_PLOT_H_
 
-#include "core/siril.h"
 #include "io/siril_plot.h"
 gboolean create_new_siril_plot_window(gpointer p);
 gboolean create_new_siril_plot_group_window(gpointer p);

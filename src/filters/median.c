@@ -20,19 +20,17 @@
 
 #include <string.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
-#include "core/optimize_utils.h"
-#include "core/siril_log.h"
-#include "core/gui_iface.h"
-#include "algos/statistics.h"
-#include "algos/sorting.h"
-
-#include "median.h"
 #include "algos/median_fast.h"
-#include "core/op_descriptors.h"
+#include "algos/sorting.h"
+#include "algos/statistics.h"
+#include "core/gui_iface.h"
 #include "core/nde/nde_history.h"
+#include "core/op_descriptors.h"
+#include "core/optimize_utils.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "filters/median.h"
 
 /* NDE serializers (flis-nde-sketch.md §11-§12).  The median hook reads ksize,
  * amount, iterations (fit is a runtime pointer, previewing is preview state).

@@ -19,15 +19,16 @@
  */
 
 #include <string.h>
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
+
 #include "algos/fitting.h"
 #include "algos/statistics.h"
-#include "io/image_format_fits.h"
-#include "linear_match.h"
-#include "core/op_descriptors.h"
 #include "core/nde/nde_history.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "filters/linear_match.h"
+#include "io/image_format_fits.h"
 
 /* NDE serializers (phase 4.5 Convention 1 — file operands).  low/high are POD;
  * the reference image is pinned by path (+hash/size at capture) and loaded by

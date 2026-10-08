@@ -18,10 +18,10 @@
  * not local to the file they are looking at.
  */
 
-#include "core/siril.h"
-#include "core/nde/nde_state.h"
 #include "core/nde/nde_history.h"
 #include "core/nde/nde_replay.h"
+#include "core/nde/nde_state.h"
+#include "core/siril.h"
 
 /* ---- nde_chain.c -------------------------------------------------------- */
 

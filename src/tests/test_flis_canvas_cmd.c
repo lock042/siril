@@ -20,10 +20,11 @@
  */
 
 #include <criterion/criterion.h>
-#include "flis_test_helpers.h"
+
 #include "core/command.h"
 #include "core/command_line_processor.h"
 #include "core/processing.h"
+#include "tests/flis_test_helpers.h"
 
 cominfo com;
 fits *gfit;

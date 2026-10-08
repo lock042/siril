@@ -27,11 +27,12 @@
  * separate "crop reads the rows we expect" test which pins the direction
  * rather than just the symmetry. */
 
-#include <criterion/criterion.h>
 #include <stdlib.h>
 
-#include "core/siril.h"
+#include <criterion/criterion.h>
+
 #include "core/fits_region.h"
+#include "core/siril.h"
 #include "io/image_format_fits.h"
 
 cominfo com;	// the core data struct

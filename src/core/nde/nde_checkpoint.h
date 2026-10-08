@@ -48,6 +48,7 @@
  */
 
 #include <glib.h>
+
 #include "core/nde/nde_state.h"
 
 #ifdef __cplusplus

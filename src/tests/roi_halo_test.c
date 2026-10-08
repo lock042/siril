@@ -38,21 +38,22 @@
  * "this halo looks right" into evidence: the curve should fall to zero exactly
  * at the op's declared halo and stay there. */
 
-#include <criterion/criterion.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
+#include <criterion/criterion.h>
+
+#include "core/fits_region.h"
 #include "core/op_descriptor.h"
 #include "core/op_descriptors.h"
-#include "core/fits_region.h"
-#include "io/image_format_fits.h"
-#include "filters/median.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "filters/epf.h"
+#include "filters/median.h"
+#include "io/image_format_fits.h"
 
 cominfo com;	// the core data struct
 fits *gfit;	// currently loaded image

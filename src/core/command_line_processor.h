@@ -3,6 +3,8 @@
 
 #include <glib.h>
 
+#include "core/siril.h"
+
 typedef enum {
 	CMD_NOT_FOUND = 1,
 	CMD_NO_WAIT = 1 << 1,

@@ -25,8 +25,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "guidedfilter.h"
 #include <opencv2/imgproc.hpp>   /* cv::blur */
+
+#include "opencv/guidedfilter.h"
 
 static cv::Mat boxfilter(const cv::Mat &I, int r)
 {

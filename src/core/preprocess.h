@@ -1,9 +1,9 @@
 #ifndef _PREPRO_H_
 #define _PREPRO_H_
 
-#include "siril.h"
-#include "filters/cosmetic_correction.h"
 #include "core/processing.h"
+#include "core/siril.h"
+#include "filters/cosmetic_correction.h"
 
 /* preprocessing data from GUI */
 struct preprocessing_data {

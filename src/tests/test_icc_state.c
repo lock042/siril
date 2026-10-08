@@ -31,9 +31,10 @@
 
 #include <criterion/criterion.h>
 #include <lcms2.h>
-#include "flis_test_helpers.h"
+
 #include "core/icc_profile.h"
 #include "core/processing.h"
+#include "tests/flis_test_helpers.h"
 
 cominfo com;
 fits *gfit;

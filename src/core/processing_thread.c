@@ -18,11 +18,11 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/siril.h"
 #include "core/command_line_processor.h"
-#include "core/processing.h"
-#include "core/siril_log.h"
 #include "core/gui_iface.h"
+#include "core/processing.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 
 /*****************************************************************************
 *    I N T E R N A L   T Y P E S   A N D   S T A T E

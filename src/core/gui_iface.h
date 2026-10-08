@@ -41,7 +41,9 @@
 #define SRC_CORE_GUI_IFACE_H_
 
 #include <stdint.h>        /* uint32_t — used by heif_dialog slot */
+
 #include <glib.h>          /* gboolean, gchar — GLib only, no GTK */
+
 #include "core/settings.h" /* rectangle — used by Group H ROI slots */
 
 /* Forward declaration for Group K — avoids including siril.h or PSF.h */

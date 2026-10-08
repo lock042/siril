@@ -18,27 +18,26 @@
 * along with Siril. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "core/siril.h"
-#include "core/command_line_processor.h" // for load_sequence - TODO: move this to sequence.c
-#include "core/processing.h"
-#include "core/processing_thread.h"
 #include "algos/demosaicing.h"
 #include "algos/extraction.h"
 #include "algos/siril_wcs.h"
-#include "io/sequence.h"
-#include "io/single_image.h"
-#include "io/image_format_fits.h"
+#include "core/command_line_processor.h" // for load_sequence - TODO: move this to sequence.c
+#include "core/processing.h"
+#include "core/processing_thread.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/file_browser.h"
-#include "gui-gtk4/image_interactions.h"
 #include "gui-gtk4/image_display.h"
-#include "gui-gtk4/sequence_list.h"
-#include "gui-gtk4/PSF_list.h"
+#include "gui-gtk4/image_interactions.h"
 #include "gui-gtk4/message_dialog.h"
-#include "core/siril_log.h"
-#include "gui-gtk4/utils.h"
 #include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/sequence_list.h"
+#include "gui-gtk4/utils.h"
+#include "io/image_format_fits.h"
+#include "io/sequence.h"
+#include "io/single_image.h"
 
 static gchar *f_cfa0 = NULL, *f_cfa1 = NULL, *f_cfa2 = NULL, *f_cfa3 = NULL;
 fits cfa0 = { 0 }, cfa1 = { 0 }, cfa2 = { 0 }, cfa3 = { 0 };

@@ -18,12 +18,12 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/siril.h"
-#include "core/nde/nde_op_class.h"
-#include "core/nde/nde_history.h"
 #include "core/nde/nde_composite.h"
 #include "core/nde/nde_compositing.h"
+#include "core/nde/nde_history.h"
+#include "core/nde/nde_op_class.h"
 #include "core/processing.h"   /* destroy_any_args */
+#include "core/siril.h"
 
 /* The ids with no op_descriptor.  THIS IS THE ONLY PLACE THEY APPEAR: every
  * other site asks nde_op_class_for() instead of comparing strings, which is

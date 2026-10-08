@@ -2,7 +2,6 @@
 #define SRC_GUI_DIALOGS_H_
 #include <gtk/gtk.h>
 
-#include "core/siril.h"
 #include "core/proto.h"
 #include "gui-gtk4/gui_state.h"
 

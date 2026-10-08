@@ -20,15 +20,15 @@
 
 #include <math.h>
 
-#include "core/siril.h"
 #include "core/arithm.h"
-#include "core/proto.h"
-#include "core/processing.h"
 #include "core/gui_iface.h"
-#include "io/image_format_fits.h"
-#include "rgradient.h"
-#include "core/op_descriptors.h"
 #include "core/nde/nde_history.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "filters/rgradient.h"
+#include "io/image_format_fits.h"
 
 /* NDE serializers for filters.rgradient.  apply_rgradient_filter reads the
  * centre (xc, yc), radial shift dR and angular shift da; fit is runtime

@@ -5,17 +5,16 @@
 #endif
 
 #include <stdint.h>
+
+#include <gio/gio.h>
 #include <glib.h>
 #include <glib/gstdio.h>
-#include <glib/gprintf.h>
-#include <gio/gio.h>
 #include <gsl/gsl_histogram.h>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
-#include <libintl.h>
-
 #include <fitsio.h>	// fitsfile
+#include <libintl.h>
 
 #include "core/settings.h"
 

@@ -19,17 +19,16 @@
  */
 
 #include <gtk/gtk.h>
-#include "core/siril.h"
-#include "core/siril_log.h"
-#include "core/processing.h"
-#include "core/siril_networking.h"
+
 #include "algos/colors.h"
+#include "core/processing.h"
+#include "core/siril.h"
+#include "core/siril_networking.h"
 //#include "algos/siril_wcs.h"
-#include "io/local_catalogues.h"
+#include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/utils.h"
-#include "gui-gtk4/dialogs.h"
-#include "gui-gtk4/PSF_list.h"
+#include "io/local_catalogues.h"
 
 static GtkWidget *dialog = NULL;	// the window, a GtkDialog
 static GtkWidget *tempbox = NULL;
