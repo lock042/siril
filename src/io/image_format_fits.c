@@ -19,36 +19,32 @@
  */
 
 /* Management of Siril's internal image formats */
+#include <float.h>
+#include <math.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
-#include <math.h>
-#include <ctype.h>
 #include <string.h>
-#include <float.h>
-#include <gsl/gsl_statistics.h>
 #ifdef _WIN32
 #include <windows.h>
 #endif
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_date.h"
-#include "core/siril_log.h"
+#include "algos/demosaicing.h"
+#include "algos/siril_wcs.h"
+#include "algos/statistics.h"
+#include "core/gui_iface.h"
 #include "core/icc_profile.h"
 #include "core/masks.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_date.h"
+#include "core/siril_log.h"
 #include "filters/mtf.h"
-#include "io/sequence.h"
-#include "io/fits_sequence.h"
-#include "core/gui_iface.h"
-#include "io/single_image.h"
-#include "algos/statistics.h"
-#include "algos/demosaicing.h"
-#include "algos/spcc.h"
-#include "algos/siril_wcs.h"
 #include "io/fits_keywords.h"
-#include "image_format_fits.h"
+#include "io/fits_sequence.h"
 #include "io/gps_parser.h"
+#include "io/image_format_fits.h"
+#include "io/single_image.h"
 
 #define RECIPSQRT2 0.70710678f // 1/sqrt(2) as float
 

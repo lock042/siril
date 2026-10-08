@@ -18,29 +18,28 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include "core/op_descriptors.h"
-#include <string.h>
-#include <math.h>
 #include <float.h>
+#include <stdio.h>
+#include <string.h>
 
-#include "core/siril_log.h"
+#include "algos/photometric_cc.h"
+#include "algos/siril_wcs.h"
+#include "algos/spcc.h"
+#include "core/op_descriptors.h"
 #include "core/processing.h"
+#include "core/siril_log.h"
 #include "core/siril_networking.h"
 #include "core/siril_update.h"
-#include "algos/photometric_cc.h"
-#include "algos/spcc.h"
-#include "algos/siril_wcs.h"
+#include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/image_interactions.h"
 #include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/photometric_cc.h"
+#include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/siril_plot.h"
 #include "gui-gtk4/utils.h"
-#include "gui-gtk4/progress_and_log.h"
-#include "gui-gtk4/dialogs.h"
-#include "io/local_catalogues.h"
-#include "io/healpix/healpix_cat.h"
 #include "io/healpix/fluxcache_cat.h"
-#include "photometric_cc.h"
+#include "io/healpix/healpix_cat.h"
+#include "io/local_catalogues.h"
 
 #define MIN_PLOT 336.0
 #define MAX_PLOT 1020.0

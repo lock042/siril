@@ -17,20 +17,20 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <math.h>
 #include <complex.h>
+#include <math.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include <fftw3.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
 #include "algos/statistics.h"
+#include "core/arithm.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "io/image_format_fits.h"
-
-#include "arithm.h"
 
 /*****************************************************************************
  *       S I R I L      A R I T H M E T I C      O P E R A T I O N S         *

@@ -22,6 +22,7 @@
 #define SRC_ALGOS_WAVELET_DENOISE_H_
 
 #include <stddef.h>
+
 #include <glib.h>
 
 /* Per-scale wavelet denoising — noise foundation.

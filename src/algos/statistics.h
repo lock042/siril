@@ -3,6 +3,8 @@
 
 #include <math.h>
 
+#include "core/siril.h"
+
 struct stat_data {
 	destructor destroy_fn;
 	fits *fit;

@@ -12,7 +12,6 @@
 #define COL_EVENLUM 2
 #define COL_SAT 3
 
-#include <math.h>
 #include "core/siril.h"
 
 typedef struct ght_params {

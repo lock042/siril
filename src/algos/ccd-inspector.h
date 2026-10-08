@@ -20,6 +20,8 @@
 #ifndef SRC_ALGOS_CCD_INSPECTOR_H_
 #define SRC_ALGOS_CCD_INSPECTOR_H_
 
+#include "core/siril.h"
+
 struct tilt_struct {
 	point pt[4];
 	double fwhm[4];

@@ -1,10 +1,9 @@
 #ifndef _REGISTRATION_H_
 #define _REGISTRATION_H_
 
-#include "core/siril.h"
-#include "algos/PSF.h"
-#include "core/processing.h"
 #include "algos/star_finder.h"
+#include "core/processing.h"
+#include "core/siril.h"
 #include "registration/distorsion.h"
 
 #ifdef __cplusplus

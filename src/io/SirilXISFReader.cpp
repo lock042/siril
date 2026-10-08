@@ -27,20 +27,21 @@ extern "C" {
 
 #ifdef HAVE_LIBXISF
 
-#include <iostream>
+#include <cstdint>
 #include <iomanip>      // std::setw
+#include <iostream>
+#include <math.h>
 #include <sstream>
 #include <string>
+
 #include <fitsio.h>	// fitsfile
-#include <math.h>
-#include <libintl.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
-#include <cstdint>
+#include <libintl.h>
 
-#include "io/SirilXISFWraper.h"
 #include "io/SirilXISFReader.h"
-#include "libxisf.h"
+#include "io/SirilXISFWraper.h"
 
+#include "libxisf.h"
 
 int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 	try {

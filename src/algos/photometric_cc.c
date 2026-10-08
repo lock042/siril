@@ -18,34 +18,28 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <gsl/gsl_statistics.h>
 #include <gsl/gsl_interp.h>
-#include <gsl/gsl_multifit.h>
-#include <gsl/gsl_fit.h>
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/icc_profile.h"
-#include "core/processing.h"
-#include "core/OS_utils.h"
-#include "core/siril_log.h"
+#include <gsl/gsl_statistics.h>
+
+#include "algos/astrometry_solver.h"
 #include "algos/colors.h"
 #include "algos/fitting.h"
+#include "algos/photometric_cc.h"
+#include "algos/photometry.h"
+#include "algos/PSF.h"
+#include "algos/siril_wcs.h"
 #include "algos/sorting.h"
+#include "algos/spcc.h"
+#include "algos/star_finder.h"
 #include "algos/statistics.h"
 #include "algos/statistics_float.h"
-#include "algos/photometry.h"
-#include "algos/spcc.h"
-#include "algos/PSF.h"
-#include "algos/astrometry_solver.h"
-#include "algos/star_finder.h"
-#include "algos/siril_wcs.h"
-#include "io/single_image.h"
-#include "io/image_format_fits.h" // For the datalink FITS functions
-#include "io/local_catalogues.h"
-#include "io/remote_catalogues.h"
 #include "core/gui_iface.h"
-#include "photometric_cc.h"
+#include "core/icc_profile.h"
 #include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 
 /* Op descriptor — PCC and SPCC are the same logical op; sites keep the
  * spectro?"SPCC":"PCC" ternary as a per-site description override. */

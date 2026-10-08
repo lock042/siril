@@ -37,9 +37,9 @@
 #include <utility>
 #include <vector>
 
-#include "image.hpp"
-#include "image_boundary.hpp"  // symmetric_coordinate / reflect_whole_sample
-#include "image_expr.hpp"  // reduce_axis / broadcast_axis / AXIS_*
+#include "algos/img_t/image.hpp"
+#include "algos/img_t/image_boundary.hpp" // symmetric_coordinate / reflect_whole_sample
+#include "algos/img_t/image_expr.hpp" // reduce_axis / broadcast_axis / AXIS_*
 
 namespace imgops {
 

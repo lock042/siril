@@ -18,20 +18,20 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
-#include "core/siril.h"
-#include "core/siril_log.h"
-#include "core/processing.h"
-#include "core/gui_iface.h"
-#include "io/image_format_fits.h"
-#include "io/sequence.h"
 #include "algos/Def_Wavelet.h"
 #include "algos/wavelet_denoise.h"
-#include "wavelets.h"
+#include "core/gui_iface.h"
 #include "core/op_descriptors.h"
 #include "core/OS_utils.h"
+#include "core/processing.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "filters/wavelets.h"
+#include "io/image_format_fits.h"
+#include "io/sequence.h"
 
 /* Op descriptors — single source of truth for the wavelet ops. The wrecons
  * command / GUI-apply / preview sites use different progress labels, kept as

@@ -21,8 +21,6 @@
 #include <locale.h>
 
 #include "core/siril.h"
-#include "core/proto.h"
-#include "gui-gtk4/message_dialog.h"
 #include "core/siril_log.h"
 #include "gui-gtk4/utils.h"
 

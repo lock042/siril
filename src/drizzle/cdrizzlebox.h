@@ -39,7 +39,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef CDRIZZLEBOX_H
 #define CDRIZZLEBOX_H
 
-#include "cdrizzleutil.h"
+#include "drizzle/cdrizzleutil.h"
 
 /**
 dobox

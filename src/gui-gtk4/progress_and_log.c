@@ -18,20 +18,20 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <gtk/gtk.h>
-#include <unistd.h>
 #include <assert.h>
 #include <string.h>
-#include "gui-gtk4/utils.h"
+
+#include <gtk/gtk.h>
+
+#include "core/command.h"
+#include "core/pipe.h"
+#include "core/proto.h"
+#include "core/siril_date.h"
+#include "core/siril_log.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/message_dialog.h"
-#include "core/proto.h"
-#include "core/pipe.h"
-#include "core/siril_log.h"
-#include "core/siril_date.h"
-#include "core/command.h"
-
-#include "progress_and_log.h"
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/utils.h"
 
 static GtkTextView *plog_output_textview = NULL;
 static GtkWindow *plog_control_window = NULL;

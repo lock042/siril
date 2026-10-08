@@ -19,11 +19,9 @@
  */
 
 #include "core/siril.h"
-#include "core/proto.h"
 #include "core/siril_log.h"
 #include "io/sequence.h"
 #include "opencv/opencv.h"
-
 #include "stacking/stacking.h"
 
 #define MASK_SCALE 0.1

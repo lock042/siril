@@ -2,6 +2,7 @@
 #define HEALPIX_CATALOGUES_H
 
 #include "io/healpix/xp_continuous.h"  /* SourceEntryXPcts + xpcts_to_xpsampled */
+#include "io/siril_catalogues.h"
 
 #ifdef __cplusplus
 extern "C" {

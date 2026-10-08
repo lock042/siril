@@ -24,13 +24,12 @@
 #include "algos/star_finder.h"
 #include "core/siril.h"
 #include "core/siril_log.h"
-#include "gui-gtk4/utils.h"
 #include "gui-gtk4/image_display.h"
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/progress_and_log.h"
-#include "gui-gtk4/PSF_list.h"
-#include "io/single_image.h"
+#include "gui-gtk4/utils.h"
 #include "io/sequence.h"
+#include "io/single_image.h"
 
 static GtkSpinButton *sf_spin_radius = NULL, *sf_spin_sigma = NULL;
 static GtkSpinButton *sf_spin_roundness = NULL, *sf_spin_convergence = NULL;

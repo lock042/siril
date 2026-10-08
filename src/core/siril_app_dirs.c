@@ -18,10 +18,9 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/siril.h"
 #include "core/proto.h"
-
-#include "siril_app_dirs.h"
+#include "core/siril.h"
+#include "core/siril_app_dirs.h"
 
 static GUserDirectory sdir[] = { G_USER_DIRECTORY_PICTURES,
 		G_USER_DIRECTORY_DOCUMENTS };

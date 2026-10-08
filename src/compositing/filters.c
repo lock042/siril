@@ -18,10 +18,11 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "filters.h"
-#include "core/siril.h"
-#include "core/icc_profile.h"
 #include <math.h>
+
+#include "compositing/filters.h"
+#include "core/icc_profile.h"
+#include "core/siril.h"
 
 /* A common narrow-band filter list. */
 narrow_filter narrow_band_filters[] = {
