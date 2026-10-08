@@ -10,6 +10,8 @@
  * those don't go through register_mpp and so don't pull mpp.cpp.o into
  * their link footprint.
  */
+#include <cstdint> // criterion 2.4.1's alloc.h uses SIZE_MAX without including <cstdint>
+
 #include <criterion/criterion.h>
 
 Test(mpp_pipeline, placeholder_real_tests_live_in_phase6_commit5) {
