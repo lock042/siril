@@ -121,10 +121,8 @@ double robust_median_w(fits *fit, rectangle *area, int chan, float lower, float 
 double robust_median_f(fits *fit, rectangle *area, int chan, float lower, float upper);
 int quick_minmax(fits *fit, double *minval, double *maxval);
 
-/* Histogram computation — implemented in gui/histogram_utils.c (GUI build)
- * and headless_stubs.c (headless build).  Declared here so that non-GUI
- * callers (e.g. core/command.c) can include this header rather than
- * core/gui_calls.h. */
+/* Histogram computation */
+size_t get_histo_size(fits *fit);
 gsl_histogram *computeHisto(fits *fit, int layer);
 gsl_histogram *computeHisto_Selection(fits *fit, int layer, rectangle *selection);
 

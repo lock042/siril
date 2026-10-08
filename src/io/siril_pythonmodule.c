@@ -1386,17 +1386,17 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 				// No timestamps are added: since this is for use with python, if timestamps are
 				// required they must be added programatically in python. We just save what we
 				// are given.
-				filename = gui_iface.build_save_filename(basepath, ".png", plot_data->forsequence, FALSE);
+				filename = build_save_filename(basepath, ".png", plot_data->forsequence, FALSE);
 				siril_plot_save_png(plot_data, filename, width, height);
 			} else if (!g_strcmp0(lext, "dat")) {
-				filename = gui_iface.build_save_filename(basepath, ".dat", plot_data->forsequence, FALSE);
+				filename = build_save_filename(basepath, ".dat", plot_data->forsequence, FALSE);
 				siril_plot_save_dat(plot_data, filename, FALSE);
 			} else if (!g_strcmp0(lext, "cb")) {
 				gui_iface.save_siril_plot_to_clipboard(plot_data, width, height);
 			}
 			else if (!g_strcmp0(lext, "svg")) {
 #ifdef CAIRO_HAS_SVG_SURFACE
-				filename = gui_iface.build_save_filename(basepath, ".svg", plot_data->forsequence, FALSE);
+				filename = build_save_filename(basepath, ".svg", plot_data->forsequence, FALSE);
 				siril_plot_save_svg(plot_data, filename, width, height);
 #else
 				siril_log_error(_("Error: Siril has been compiled with a version of Cairo "

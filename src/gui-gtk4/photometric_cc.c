@@ -941,36 +941,6 @@ static int set_spcc_args(struct photometric_cc_data *args) {
 	return 0;
 }
 
-int get_favourite_spccobject(GList *list, const gchar *favourite) {
-	if (!list)
-		return 0;
-
-	GList *current = list;
-	while (current != NULL) {
-		spcc_object *haystack = current->data;
-		if (haystack && g_strcmp0(haystack->name, favourite) == 0) {
-			return g_list_position(list, current);  // Found a match, return the GList node
-		}
-		current = current->next;
-	}
-	return -1;  // No match found
-}
-
-int get_favourite_oscsensor(GList *list, const gchar *favourite) {
-	if (!list)
-		return 0;
-
-	GList *current = list;
-	while (current != NULL) {
-		osc_sensor *haystack = current->data;
-		if (g_strcmp0(haystack->channel[0].model, favourite) == 0) {
-			return g_list_position(list, current);  // Found a match, return the GList node
-		}
-		current = current->next;
-	}
-	return -1;  // No match found
-}
-
 void on_spcc_combo_changed(GObject *obj, GParamSpec *pspec, gpointer user_data);
 
 /**

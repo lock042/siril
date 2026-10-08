@@ -23,6 +23,7 @@
 #include "core/proto.h"
 #include "core/gui_iface.h"
 #include "core/processing.h"
+#include "io/sequence.h"
 void destroy_ght_data(void *args); /* forward decl */
 #include "core/arithm.h"
 #include "algos/statistics.h"
@@ -1156,3 +1157,44 @@ int ght_single_image_hook(struct generic_img_args *args, fits *fit, int threads)
 	return 0;
 }
 
+static int ght_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
+		rectangle *_, int threads) {
+	struct ght_data *m_args = (struct ght_data*) args->user;
+	if (m_args->params_ght->payne_colourstretchmodel == COL_SAT)
+		apply_sat_ght_to_fits(fit, m_args->params_ght, FALSE);
+	else
+		apply_linked_ght_to_fits(fit, fit, m_args->params_ght, FALSE);
+	return 0;
+}
+
+static int ght_finalize_hook(struct generic_seq_args *args) {
+	struct ght_data *data = (struct ght_data *) args->user;
+	struct ght_params *ghtp = (struct ght_params *) data->params_ght;
+	int retval = seq_finalize_hook(args);
+	free(ghtp);
+	free(data);
+	return retval;
+}
+
+void apply_ght_to_sequence(struct ght_data *ght_args) {
+	struct generic_seq_args *args = create_default_seqargs(ght_args->seq);
+	args->filtering_criterion = seq_filter_included;
+	args->nb_filtered_images = ght_args->seq->selnum;
+	args->prepare_hook = seq_prepare_hook;
+	args->finalize_hook = ght_finalize_hook;
+	args->image_hook = ght_image_hook;
+	args->stop_on_error = FALSE;
+	args->description = _("Generalised Hyperbolic Transfer Function");
+	args->has_output = TRUE;
+	args->new_seq_prefix = strdup(ght_args->seqEntry);
+	args->load_new_sequence = TRUE;
+	args->user = ght_args;
+
+	ght_args->fit = NULL;	// not used here
+
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(ght_args->seqEntry);
+		free(ght_args);
+		free_generic_seq_args(args, TRUE);
+	}
+}

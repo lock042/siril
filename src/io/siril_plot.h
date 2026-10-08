@@ -166,6 +166,7 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 gboolean siril_plot_draw_with(cairo_t *cr, siril_plot_data *spl_data, double width, double height, gboolean for_svg, spl_draw_flags flags);
 cairo_surface_t *siril_plot_draw_to_image_surface(siril_plot_data *spl_data, int width, int height);
 gboolean siril_plot_save_png(siril_plot_data *spl_data, char *pngfilename, int width, int height);
+gchar *build_save_filename(gchar *prepend, gchar *ext, gboolean forsequence, gboolean add_time_stamp);
 gboolean siril_plot_save_svg(siril_plot_data *spl_data, char *svgfilename, int width, int height);
 gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename, gboolean add_title);
 

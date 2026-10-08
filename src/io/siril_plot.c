@@ -28,6 +28,9 @@
 #include <math.h>
 #include "core/proto.h"
 #include "core/siril_log.h"
+#include "core/siril_date.h"
+#include "io/single_image.h"
+#include "io/sequence.h"
 #include "gui-gtk4/plot.h"
 
 
@@ -1193,4 +1196,37 @@ clean_and_exit:
 	free(data);
 	free(newfilename);
 	return retval;
+}
+
+/* builds prepend + [_image name] + [_timestamp] + ext, the image name being the
+ * loaded single image or the current image of the sequence */
+gchar *build_save_filename(gchar *prepend, gchar *ext, gboolean forsequence, gboolean add_time_stamp) {
+	gchar *temp = NULL;
+	GString *filename = NULL;
+
+	if (!prepend)
+		return NULL;
+	filename = g_string_new(prepend);
+
+	if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
+		temp = g_path_get_basename(com.uniq->filename);
+	} else if (sequence_is_loaded() && !forsequence) {
+		char seq_image_canonical_name[256] = "";
+		seq_get_image_filename(&com.seq, com.seq.current, seq_image_canonical_name);
+		temp = g_strdup(seq_image_canonical_name);
+	}
+	if (temp) {
+		gchar *tmp = remove_ext_from_filename(temp);
+		g_string_append_printf(filename, "_%s", tmp);
+		g_free(temp);
+		g_free(tmp);
+	}
+
+	if (add_time_stamp) {
+		gchar *timestamp = build_timestamp_filename();
+		g_string_append_printf(filename, "_%s", timestamp);
+		g_free(timestamp);
+	}
+	g_string_append_printf(filename, "%s", ext);
+	return g_string_free(filename, FALSE);
 }
