@@ -5,10 +5,6 @@
  * multilevel_correlation kernel as Phase 2's global aligner but with a
  * smaller search width (alignment_points_search_width = 14 vs 34).
  */
-#include <criterion/criterion.h>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/imgcodecs.hpp>
-
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
@@ -16,6 +12,10 @@
 #include <fstream>
 #include <string>
 #include <vector>
+
+#include <criterion/criterion.h>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include "registration/mpp/mpp_align_priv.hpp"
 #include "registration/mpp/mpp_ap_priv.hpp"
