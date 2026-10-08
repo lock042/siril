@@ -23,14 +23,16 @@
  * (branch harmonize_img_t). Built as a Criterion C++ test.
  */
 
-#include <criterion/criterion.h>
-#include <vector>
 #include <cstdint>
 #include <cstdlib>
+#include <vector>
+
+#include <criterion/criterion.h>
+
 #include "algos/img_t/image.hpp"
+#include "algos/img_t/image_dft.hpp"
 #include "algos/img_t/image_expr.hpp"
 #include "algos/img_t/image_ops.hpp"
-#include "algos/img_t/image_dft.hpp"
 #include "algos/img_t/img_fits.hpp"
 #include "filters/nlbayes/LibMatrix.h"
 
