@@ -227,6 +227,18 @@ static void add_fit_metrics(siril_plot_data *spl_data, const double *x, const do
 	g_free(value);
 }
 
+// the fit line, sampled finely enough to stay a curve once the y axis is in log
+#define FIT_LINE_SAMPLES 128
+static void add_fit_line(siril_plot_data *spl_data, const double *x, int n, double a, double b) {
+	double xmin, xmax, fx[FIT_LINE_SAMPLES], fy[FIT_LINE_SAMPLES];
+	gsl_stats_minmax(&xmin, &xmax, x, 1, n);
+	for (int i = 0; i < FIT_LINE_SAMPLES; i++) {
+		fx[i] = xmin + (xmax - xmin) * i / (FIT_LINE_SAMPLES - 1);
+		fy[i] = a + b * fx[i];
+	}
+	siril_plot_add_xydata(spl_data, _("Best fit"), FIT_LINE_SAMPLES, fx, fy, NULL, NULL);
+}
+
 // the tiles summarizing the whole run, above both plots
 static void add_summary_tiles(siril_plot_group *grp, int nb_stars, int ngood, int ngoodrg, int ngoodbg,
 		const gchar *white_ref, float *kw) {
@@ -581,7 +593,6 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	kw[BLAYER] = kb / maxk;
 
 	if (args->do_plot) {
-		double stat_min, stat_max;
 		spcc_object *object = (spcc_object*) selected_white->data;
 		gchar *caption = generate_caption();
 		int ngoodrg = 0, ngoodbg = 0;
@@ -589,9 +600,6 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		siril_plot_group_set_title(spl_group, _("SPCC Linear Fits"));
 		if (plotrg) {
 			ngoodrg = filtermaskArrays(crg, irg, maskrg, ngood);
-			gsl_stats_minmax(&stat_min, &stat_max, crg, 1, ngoodrg);
-			double best_fit_rgx[2] = {stat_min, stat_max};
-			double best_fit_rgy[2] = {arg + brg * best_fit_rgx[0], arg + brg * best_fit_rgx[1]};
 
 			siril_plot_data *spl_datarg = init_siril_plot_data();
 			if (spl_datarg) {
@@ -607,7 +615,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 				add_fit_metrics(spl_datarg, crg, irg, ngoodrg, arg, brg, deviation[0]);
 				siril_plot_set_ylabel(spl_datarg, _("Image R/G (flux)"));
 				siril_plot_add_xydata(spl_datarg, _("R/G"), ngoodrg, crg, irg, NULL, NULL);
-				siril_plot_add_xydata(spl_datarg, _("Best fit"), 2, best_fit_rgx, best_fit_rgy, NULL, NULL);
+				add_fit_line(spl_datarg, crg, ngoodrg, arg, brg);
 				siril_plot_set_nth_plot_type(spl_datarg, 1, KPLOT_POINTS);
 				siril_plot_set_nth_plot_type(spl_datarg, 2, KPLOT_LINES);
 				siril_plot_set_yfmt(spl_datarg, "%.1lf");
@@ -620,9 +628,6 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 
 		if (plotbg) {
 			ngoodbg = filtermaskArrays(cbg, ibg, maskbg, ngood);
-			gsl_stats_minmax(&stat_min, &stat_max, cbg, 1, ngoodbg);
-			double best_fit_bgx[2] = {stat_min, stat_max};
-			double best_fit_bgy[2] = {abg + bbg * best_fit_bgx[0], abg + bbg * best_fit_bgx[1]};
 			siril_plot_data *spl_databg = init_siril_plot_data();
 			if (spl_databg) {
 				siril_plot_set_xlabel(spl_databg, _("Catalog B/G (flux)"));
@@ -638,7 +643,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 				siril_plot_set_ylabel(spl_databg, _("Image B/G (flux)"));
 				gchar *spl_legendbg = _("B/G");
 				siril_plot_add_xydata(spl_databg, spl_legendbg, ngoodbg, cbg, ibg, NULL, NULL);
-				siril_plot_add_xydata(spl_databg, _("Best fit"), 2, best_fit_bgx, best_fit_bgy, NULL, NULL);
+				add_fit_line(spl_databg, cbg, ngoodbg, abg, bbg);
 				siril_plot_set_nth_plot_type(spl_databg, 1, KPLOT_POINTS);
 				siril_plot_set_nth_plot_type(spl_databg, 2, KPLOT_LINES);
 				siril_plot_set_yfmt(spl_databg, "%.1lf");
