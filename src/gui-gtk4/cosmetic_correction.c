@@ -22,16 +22,16 @@
 
 #include <gtk/gtk.h>
 
-#include "core/siril.h"
 #include "core/op_descriptors.h"
 #include "core/processing.h"
+#include "core/siril.h"
 #include "filters/cosmetic_correction.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/registration_preview.h"
 #include "gui-gtk4/utils.h"
-#include "io/single_image.h"
 #include "io/sequence.h"
+#include "io/single_image.h"
 
 static GtkWidget *cosme_apply_btn = NULL;
 static GtkCheckButton *cosme_check_cold = NULL, *cosme_check_hot = NULL;

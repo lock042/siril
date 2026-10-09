@@ -24,28 +24,22 @@
  * pixelMath/pixel_math_runner.c.
  */
 
-#include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
+#include "algos/demosaicing.h"
+#include "core/gui_iface.h"
 #include "core/icc_profile.h"
 #include "core/initfile.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
-#include "core/gui_iface.h"
-#include "gui-gtk4/utils.h"
 #include "gui-gtk4/dialogs.h"
-#include "gui-gtk4/dialog_preview.h"
 #include "gui-gtk4/file_browser.h"
-#include "gui-gtk4/open_dialog.h"
-#include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/gui_state.h"
-#include "io/single_image.h"
-#include "io/sequence.h"
-#include "io/image_format_fits.h"
+#include "gui-gtk4/open_dialog.h"
+#include "gui-gtk4/utils.h"
 #include "io/conversion.h"
-#include "algos/demosaicing.h"
+#include "io/image_format_fits.h"
 #include "pixelMath/pixel_math_runner.h"
 
 /* ── Operator / function tables (GUI-side; used by tooltips and list views) */

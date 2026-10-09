@@ -2,8 +2,7 @@
 #define _CATALOGUES_H
 
 #include <glib.h>
-#include "core/siril.h"
-#include "core/siril_world_cs.h"
+
 #include "algos/photometry.h"
 #include "io/siril_catalogues.h"
 

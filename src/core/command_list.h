@@ -1,17 +1,17 @@
 #ifndef SRC_CORE_COMMAND_LIST_H_
 #define SRC_CORE_COMMAND_LIST_H_
 
-
-#include "core/siril.h"
 #include "core/command.h"
 #include "core/command_def.h"
 #include "core/command_extra.h"
+#include "core/siril.h"
 
 #define CMD_CAT(CMD) N_("\n\n<i>- Information from command "#CMD" follows -</i>\n")
 
 static command commands[] = {
 	/* name, nbarg, usage, function pointer, description, scriptable, requirements */
 	{"addmax", 1, "addmax filename [-mask]", process_addmax, STR_ADDMAX, FALSE, REQ_CMD_SINGLE_IMAGE},
+	{"addwcs", 0, "addwcs [filename [-flip]]", process_addwcs, STR_ADDWCS, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"asinh", 1, "asinh [-human] stretch { [offset] [-clipmode=] } [-mask]", process_asinh, STR_ASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"atrous", 2, "atrous nbr_layers type [c1 c2 c3 ...] [-anscombe] [-denoise] [-bishrink|-threshold] [-soft|-hard] [-perband] [-k=value] [-f1=value ... -f6=value]", process_atrous, STR_ATROUS, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"autoghs", 2, "autoghs [-linked] shadowsclip stretchamount [-b=] [-hp=] [-lp=] [-clipmode=] [-mask]", process_autoghs, STR_AUTOGHS, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
@@ -26,6 +26,7 @@ static command commands[] = {
 	{"calibrate_single", 1, "calibrate_single imagename [-bias=filename] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt[=exp]] [-prefix=]", process_calibrate_single, STR_CALIBRATE_SINGLE, TRUE, REQ_CMD_NONE},
 	{"capabilities", 0, "capabilities", process_capabilities, STR_CAPABILITIES, TRUE, REQ_CMD_NONE},
 	{"catmag", 0, "catmag [reftemp] [dtemp]", process_catmag_mono, STR_CATMAG, TRUE, REQ_CMD_NO_THREAD | REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
+	{"catquery", 0, "catquery [limit_magnitude] [-cat=] [-ra=] [-dec=] [-radius=] [-obscode=] [-out=filename]", process_catquery, STR_CATQUERY, TRUE, REQ_CMD_NONE},
 	{"catsearch", 1, "catsearch name", process_catsearch, STR_CATSEARCH, TRUE, REQ_CMD_NONE},
 	{"ccm", 9, "ccm m00 m01 m02 m10 m11 m12 m20 m21 m22 [gamma]", process_ccm, STR_CCM, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB},
 	{"cd", 1, "cd directory", process_cd, STR_CD, TRUE, REQ_CMD_NONE},

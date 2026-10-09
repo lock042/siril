@@ -24,11 +24,11 @@
  * image. Given its use of the third dimension, it's sometimes called FITS cube.
  */
 
+#include "algos/spcc.h"
 #include "core/siril.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
-#include "algos/photometric_cc.h"
-#include "algos/spcc.h"
+
 #include "yyjson.h"
 
 // Uncomment the following line for verbose confirmation of loading each JSON object

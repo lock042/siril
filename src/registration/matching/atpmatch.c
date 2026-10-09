@@ -135,16 +135,15 @@
  *           Michael Richmond
  */
 
-#include "core/siril.h"
-
-#include <stdio.h>
 #include <math.h>           /* need this for 'sqrt' in calc_distances */
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
-#include "registration/matching/misc.h"
-#include "registration/matching/atpmatch.h"
+
+#include "core/siril.h"
 #include "opencv/opencv.h"
+#include "registration/matching/atpmatch.h"
+#include "registration/matching/misc.h"
 
 #undef DEBUG           /* get some of diagnostic output */
 #undef DEBUG2          /* get LOTS more diagnostic output */

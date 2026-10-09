@@ -25,8 +25,8 @@
  */
 
 #include <criterion/criterion.h>
-#include <gsl/gsl_statistics_float.h>
 #include <gsl/gsl_cdf.h>
+#include <gsl/gsl_statistics_float.h>
 
 #include "core/siril.h"
 #include "stacking/rejection_float.c"

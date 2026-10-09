@@ -18,18 +18,17 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <ctype.h>
+#include <dirent.h>
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <dirent.h>
-#include <math.h>
 #include <string.h>
-#include <ctype.h>
-#include <gsl/gsl_histogram.h>
-#include <sys/types.h>
 #include <sys/stat.h>
+
 #include <glib.h>
+#include <gsl/gsl_histogram.h>
 #ifdef _WIN32
 #include <windows.h>
 #include <tchar.h>
@@ -37,99 +36,95 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
-#include "yyjson.h"
-
-#include "git-version.h"
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/gui_iface.h"
-#include "core/cut.h"
-#include "core/icc_profile.h"
 #include "core/arithm.h"
+#include "core/cut.h"
+#include "core/gui_iface.h"
+#include "core/icc_profile.h"
 #include "core/initfile.h"
-#include "core/siril_app_dirs.h"
 #include "core/masks.h"
+#include "core/op_descriptors.h"
+#include "core/OS_utils.h"
 #include "core/preprocess.h"
 #include "core/processing.h"
-#include "core/op_descriptors.h"
+#include "core/proto.h"
 #include "core/sequence_filtering.h"
-#include "core/OS_utils.h"
+#include "core/siril.h"
+#include "core/siril_app_dirs.h"
 #include "core/siril_date.h"
 #include "core/siril_log.h"
 #include "core/siril_networking.h"
 #include "core/siril_update.h"
 #include "core/undo.h"
+#include "drizzle/cdrizzleutil.h"
+#include "io/annotation_catalogues.h"
 #include "io/Astro-TIFF.h"
 #include "io/conversion.h"
+#include "io/fits_keywords.h"
+#include "io/FITS_symlink.h"
+#include "io/gps_parser.h"
 #include "io/image_format_fits.h"
+#include "io/local_catalogues.h"
 #include "io/path_parse.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "io/siril_catalogues.h"
-#include "io/local_catalogues.h"
-#include "io/FITS_symlink.h"
-#include "io/fits_keywords.h"
 #include "io/siril_pythonmodule.h"
-#include "io/gps_parser.h"
-#include "drizzle/cdrizzleutil.h"
+
+#include "yyjson.h"
 /* gui_calls.h removed: all former direct calls now route through gui_iface */
+#include "algos/astrometry_solver.h"
+#include "algos/background_extraction.h"
+#include "algos/ccd-inspector.h"
+#include "algos/colors.h"
+#include "algos/comparison_stars.h"
+#include "algos/Def_Wavelet.h"
+#include "algos/demosaicing.h"
+#include "algos/extraction.h"
+#include "algos/fix_xtrans_af.h"
+#include "algos/geometry.h"
+#include "algos/noise.h"
+#include "algos/photometric_cc.h"
+#include "algos/PSF.h"
+#include "algos/quality.h"
+#include "algos/siril_wcs.h"
+#include "algos/sorting.h"
+#include "algos/spcc.h"
+#include "algos/star_finder.h"
+#include "algos/statistics.h"
+#include "algos/streaks.h"
+#include "compositing/align_rgb.h"
+#include "core/command.h"
+#include "core/command_line_processor.h"
+#include "core/command_list.h"
 #include "filters/asinh.h"
 #include "filters/banding.h"
-#include "filters/epf.h"
-#include "filters/nlbayes/call_nlbayes.h"
 #include "filters/clahe.h"
 #include "filters/cosmetic_correction.h"
 #include "filters/deconvolution/deconvolution.h"
+#include "filters/epf.h"
+#include "filters/fft.h"
+#include "filters/ght.h"
 #include "filters/linear_match.h"
 #include "filters/median.h"
 #include "filters/mtf.h"
-#include "filters/ght.h"
-#include "filters/fft.h"
+#include "filters/nlbayes/call_nlbayes.h"
 #include "filters/rgradient.h"
 #include "filters/saturation.h"
 #include "filters/scnr.h"
-#include "filters/synthstar.h"
 #include "filters/unpurple.h"
 #include "filters/wavelets.h"
-#include "algos/PSF.h"
-#include "algos/astrometry_solver.h"
-#include "algos/search_objects.h"
-#include "algos/star_finder.h"
-#include "algos/Def_Wavelet.h"
-#include "algos/background_extraction.h"
-#include "algos/ccd-inspector.h"
-#include "algos/demosaicing.h"
-#include "algos/extraction.h"
-#include "algos/fitting.h"
-#include "algos/colors.h"
-#include "algos/quality.h"
-#include "algos/noise.h"
-#include "algos/statistics.h"
-#include "algos/sorting.h"
-#include "algos/spcc.h"
-#include "algos/siril_wcs.h"
-#include "algos/geometry.h"
-#include "algos/photometric_cc.h"
-#include "algos/fix_xtrans_af.h"
-#include "algos/comparison_stars.h"
-#include "algos/streaks.h"
-#include "stacking/stacking.h"
-#include "stacking/sum.h"
-#include "registration/registration.h"
+#include "io/healpix/healpix_cat.h"
+#include "io/healpix/healpix_image.h"
+#include "livestacking/livestacking.h"
+#include "pixelMath/pixel_math_runner.h"
 #include "registration/mpp.h"
 #include "registration/mpp/mpp_ap.h"
 #include "registration/mpp/mpp_config.h"
 #include "registration/mpp/mpp_shift.h"
 #include "registration/mpp/mpp_sidecar.h"
-#include "compositing/align_rgb.h"
-#include "livestacking/livestacking.h"
-#include "pixelMath/pixel_math_runner.h"
-#include "io/healpix/healpix_cat.h"
-#include "io/healpix/healpix_image.h"
-
-#include "command.h"
-#include "command_list.h"
-#include "command_line_processor.h"
+#include "registration/registration.h"
+#include "stacking/stacking.h"
+#include "stacking/sum.h"
 
 /* The op_descriptors for command.c's ops are declared in core/op_descriptors.h
  * (included above) and defined at the end of this file, after their static
@@ -13841,6 +13836,230 @@ static conesearch_params* parse_conesearch_args(int nb) {
 	return params;
 }
 
+
+int process_catquery(int nb) {
+	// catquery [limit_magnitude] [-cat=] [-ra=] [-dec=] [-radius=] [-obscode=] -out=filename
+	gboolean local_gaia = local_gaia_available();
+	gboolean local_kstars = local_kstars_available();
+	siril_cat_index cat = CAT_AUTO;
+	float limit_mag = -1.0f;
+	gboolean have_limit_mag = FALSE;
+	double ra = 0.0, dec = 0.0, radius = 0.0;
+	gboolean have_ra = FALSE, have_dec = FALSE, have_radius = FALSE;
+	gchar *outfilename = NULL;
+	gchar *obscode = com.pref.astrometry.default_obscode ? g_strdup(com.pref.astrometry.default_obscode) : NULL;
+	gboolean default_obscode_used = obscode != NULL;
+
+	int arg_idx = 1;
+	while (arg_idx < nb) {
+		if (g_str_has_prefix(word[arg_idx], "-cat=")) {
+			char *arg = word[arg_idx] + 5;
+			if (!g_strcmp0(arg, "tycho2"))
+				cat = CAT_TYCHO2;
+			else if (!g_strcmp0(arg, "nomad"))
+				cat = CAT_NOMAD;
+			else if (!g_strcmp0(arg, "gaia"))
+				cat = CAT_GAIADR3;
+			else if (!g_strcmp0(arg, "localgaia"))
+				cat = CAT_LOCAL_GAIA_ASTRO;
+			else if (!g_strcmp0(arg, "ppmxl"))
+				cat = CAT_PPMXL;
+			else if (!g_strcmp0(arg, "bsc"))
+				cat = CAT_BSC;
+			else if (!g_strcmp0(arg, "apass"))
+				cat = CAT_APASS;
+			else if (!g_strcmp0(arg, "gcvs"))
+				cat = CAT_GCVS;
+			else if (!g_strcmp0(arg, "vsx"))
+				cat = CAT_VSX;
+			else if (!g_strcmp0(arg, "varisum"))
+				cat = CAT_VARISUM;
+			else if (!g_strcmp0(arg, "simbad"))
+				cat = CAT_SIMBAD;
+			else if (!g_strcmp0(arg, "exo"))
+				cat = CAT_EXOPLANETARCHIVE;
+			else if (!g_strcmp0(arg, "pgc"))
+				cat = CAT_PGC;
+			else if (!g_strcmp0(arg, "aavso_chart"))
+				cat = CAT_AAVSO_CHART;
+			else if (!g_strcmp0(arg, "solsys"))
+				cat = CAT_IMCCE;
+			else {
+				siril_log_error(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				g_free(obscode);
+				g_free(outfilename);
+				return CMD_ARG_ERROR;
+			}
+		} else if (g_str_has_prefix(word[arg_idx], "-obscode=")) {
+			char *arg = word[arg_idx] + 9;
+			if (strlen(arg) != 3) {
+				siril_log_error(_("The observatory should be coded as a 3-letter word\n"));
+				g_free(obscode);
+				g_free(outfilename);
+				return CMD_ARG_ERROR;
+			}
+			g_free(obscode);
+			obscode = g_strdup(arg);
+			default_obscode_used = FALSE;
+		} else if (g_str_has_prefix(word[arg_idx], "-ra=")) {
+			gchar *end;
+			ra = g_ascii_strtod(word[arg_idx] + 4, &end);
+			if (end == word[arg_idx] + 4 || ra < 0.0 || ra >= 360.0) {
+				siril_log_error(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				g_free(obscode);
+				g_free(outfilename);
+				return CMD_ARG_ERROR;
+			}
+			have_ra = TRUE;
+		} else if (g_str_has_prefix(word[arg_idx], "-dec=")) {
+			gchar *end;
+			dec = g_ascii_strtod(word[arg_idx] + 5, &end);
+			if (end == word[arg_idx] + 5 || dec < -90.0 || dec > 90.0) {
+				siril_log_error(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				g_free(obscode);
+				g_free(outfilename);
+				return CMD_ARG_ERROR;
+			}
+			have_dec = TRUE;
+		} else if (g_str_has_prefix(word[arg_idx], "-radius=")) {
+			gchar *end;
+			radius = g_ascii_strtod(word[arg_idx] + 8, &end);
+			if (end == word[arg_idx] + 8 || radius <= 0.0) {
+				siril_log_error(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				g_free(obscode);
+				g_free(outfilename);
+				return CMD_ARG_ERROR;
+			}
+			have_radius = TRUE;
+		} else if (g_str_has_prefix(word[arg_idx], "-out=")) {
+			char *arg = word[arg_idx] + 5;
+			if (arg[0] == '\0') {
+				siril_log_error(_("Missing argument to %s, aborting.\n"), word[arg_idx]);
+				g_free(obscode);
+				g_free(outfilename);
+				return CMD_ARG_ERROR;
+			}
+			g_free(outfilename);
+			outfilename = g_strdup(arg);
+		} else {
+			gchar *end;
+			limit_mag = g_ascii_strtod(word[arg_idx], &end);
+			if (end == word[arg_idx]) {
+				siril_log_error(_("Invalid argument %s, aborting.\n"), word[arg_idx]);
+				g_free(obscode);
+				g_free(outfilename);
+				return CMD_ARG_ERROR;
+			}
+			have_limit_mag = TRUE;
+		}
+		arg_idx++;
+	}
+
+	if (!outfilename)
+		outfilename = g_strdup("cat.csv");
+
+	if (have_ra != have_dec) {
+		siril_log_error(_("-ra= and -dec= must be provided together, aborting.\n"));
+		g_free(obscode);
+		g_free(outfilename);
+		return CMD_ARG_ERROR;
+	}
+
+	gboolean has_image = (single_image_is_loaded() || (sequence_is_loaded() && com.seq.current >= 0))
+			&& gfit->rx > 0 && gfit->ry > 0;
+
+	if (!have_ra && has_image &&
+			(gfit->keywords.wcsdata.ra > DEFAULT_DOUBLE_VALUE || strlen(gfit->keywords.wcsdata.objctra) > 0) &&
+			(gfit->keywords.wcsdata.dec > DEFAULT_DOUBLE_VALUE || strlen(gfit->keywords.wcsdata.objctdec) > 0)) {
+		if (strlen(gfit->keywords.wcsdata.objctra) > 0 && strlen(gfit->keywords.wcsdata.objctdec) > 0) {
+			ra = parse_hms(gfit->keywords.wcsdata.objctra);
+			dec = parse_dms(gfit->keywords.wcsdata.objctdec);
+		} else {
+			ra = gfit->keywords.wcsdata.ra;
+			dec = gfit->keywords.wcsdata.dec;
+		}
+		have_ra = have_dec = !isnan(ra) && !isnan(dec) && ra >= 0.0 && ra < 360.0 && dec >= -90.0 && dec <= 90.0;
+	}
+
+	if (!have_radius && has_image) {
+		double resolution = get_wcs_image_resolution(gfit) * 3600.0; // arcsec/px
+		if (resolution > 0.0) {
+			radius = get_radius_deg(resolution, gfit->rx, gfit->ry);
+			have_radius = TRUE;
+		}
+	}
+
+	if (!have_ra) {
+		siril_log_error(_("No RA/Dec provided and none could be determined from the loaded image, use -ra= and -dec=, aborting.\n"));
+		g_free(obscode);
+		g_free(outfilename);
+		return CMD_ARG_ERROR;
+	}
+	if (!have_radius) {
+		siril_log_error(_("No radius provided and none could be computed from the loaded image (needs a plate solve, or a focal length and pixel size), use -radius=, aborting.\n"));
+		g_free(obscode);
+		g_free(outfilename);
+		return CMD_ARG_ERROR;
+	}
+
+	if (cat == CAT_AUTO)
+		cat = local_gaia ? CAT_LOCAL_GAIA_ASTRO : local_kstars ? CAT_LOCAL_KSTARS : CAT_NOMAD;
+
+	if (cat == CAT_IMCCE && !(has_image && gfit->keywords.date_obs)) {
+		siril_log_error(_("The solsys catalogue requires observation date information from a loaded image, aborting.\n"));
+		g_free(obscode);
+		g_free(outfilename);
+		return CMD_ARG_ERROR;
+	}
+
+	if (limit_mag == -1.0f) {
+		if (cat == CAT_GAIADR3 || cat == CAT_LOCAL_KSTARS || cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_NOMAD) {
+			limit_mag = (float) compute_mag_limit_from_position_and_fov(ra, dec, radius * 2.0, BRIGHTEST_STARS);
+			have_limit_mag = TRUE;
+		} else {
+			siril_log_warning(_("Limit mag of -1 is only available for GAIA, KStars, and NOMAD catalogues, ignoring.\n"));
+			have_limit_mag = FALSE;
+		}
+}
+	if (!have_limit_mag)
+		limit_mag = siril_catalog_get_default_limit_mag(cat);
+
+	siril_catalogue *siril_cat = siril_catalog_new(cat);
+	siril_cat->center_ra = ra;
+	siril_cat->center_dec = dec;
+	siril_cat->radius = radius * 60.0; // degrees to arcmin
+	siril_cat->limitmag = limit_mag;
+	if (cat == CAT_IMCCE) {
+		siril_cat->dateobs = gfit->keywords.date_obs;
+		if (obscode) {
+			siril_cat->IAUcode = obscode;
+			obscode = NULL;
+			if (default_obscode_used)
+				siril_log_message(_("Using default observatory code %s\n"), siril_cat->IAUcode);
+		} else {
+			siril_cat->IAUcode = g_strdup("500");
+			siril_log_warning(_("Did not specify an observatory code, using geocentric by default, positions may not be accurate\n"));
+		}
+	}
+	g_free(obscode);
+
+	catquery_args *args = calloc(1, sizeof(catquery_args));
+	if (!args) {
+		siril_catalog_free(siril_cat);
+		g_free(outfilename);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->siril_cat = siril_cat;
+	args->outfilename = outfilename;
+
+	if (!start_in_new_thread(catquery_worker, args)) {
+		free_catquery_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK;
+}
+
 int process_conesearch(int nb) {
 	conesearch_params *params = parse_conesearch_args(nb);
 	if (!params)
@@ -14345,21 +14564,21 @@ int process_profile(int nb) {
 	if (err)
 		return err;
 
-	cut_args->display_graph = (!com.script); // we can display the plot if not in a script
+	cut_args->display_graph = !com.script && !com.headless; // we can display the plot if not in a script
 	cut_args->save_png_too = TRUE;
 
 	if (cut_args->cfa) {
-		if (!start_in_new_thread(gui_iface.run_cfa_cut, cut_args)) {
+		if (!start_in_new_thread(cfa_cut, cut_args)) {
 			free_cut_args(cut_args);
 			return CMD_ARG_ERROR;
 		}
 	} else if (cut_args->tri) {
-		if (!start_in_new_thread(gui_iface.run_tri_cut, cut_args)) {
+		if (!start_in_new_thread(tri_cut, cut_args)) {
 			free_cut_args(cut_args);
 			return CMD_ARG_ERROR;
 		}
 	} else {
-		if (!start_in_new_thread(gui_iface.run_cut_profile, cut_args)) {
+		if (!start_in_new_thread(cut_profile, cut_args)) {
 			free_cut_args(cut_args);
 			return CMD_ARG_ERROR;
 		}
@@ -14385,7 +14604,7 @@ int process_seq_profile(int nb) {
 	cut_args->display_graph = FALSE;
 	cut_args->save_png_too = FALSE;
 
-	gui_iface.apply_cut_to_sequence(cut_args);
+	apply_cut_to_sequence(cut_args);
 
 	return CMD_OK;
 }
@@ -14560,6 +14779,78 @@ int process_spcc_list(int nb) {
 		siril_log_message("%s\n", is_osc_sensor ? object->model : object->name);
 		list = list->next;
 	}
+	return CMD_OK;
+}
+
+int process_addwcs(int nb) {
+	if (nb > 3)
+		return CMD_WRONG_N_ARG;
+
+	if (nb == 1) {
+		if (!has_wcs(gfit)) {
+			siril_log_message(_("Image is not plate solved, nothing to remove\n"));
+			return CMD_OK;
+		}
+		free_wcs(gfit);
+		reset_wcsdata(gfit);
+		update_fits_header(gfit);
+		gfit_modified_update_gui();
+		refresh_annotations(TRUE);
+		gui_iface.update_menu_state();
+		gui_iface.redraw_image_async(REDRAW_OVERLAY);
+		siril_log_message(_("WCS solution removed\n"));
+		return CMD_OK;
+	}
+
+	char *filename = word[1];
+	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
+		siril_log_error(_("File [%s] does not exist.\n"), filename);
+		return CMD_FILE_NOT_FOUND;
+	}
+
+	gboolean flip = FALSE;
+	if (nb > 2) {
+		if (!g_strcmp0(word[2], "-flip")) {
+			flip = TRUE;
+		} else {
+			siril_log_error(_("Unknown parameter %s, aborting.\n"), word[2]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	fits result = { 0 };
+	if (read_fits_metadata_from_path_first_HDU(filename, &result)) {
+		siril_log_error(_("Could not read the WCS solution from %s\n"), filename);
+		clearfits(&result);
+		return CMD_FILE_NOT_FOUND;
+	}
+	if (!result.keywords.wcslib) {
+		siril_log_error(_("No WCS solution found in %s\n"), filename);
+		clearfits(&result);
+		return CMD_ARG_ERROR;
+	}
+
+	free_wcs(gfit);
+	gfit->keywords.wcslib = result.keywords.wcslib;
+	wcsset(gfit->keywords.wcslib);
+	result.keywords.wcslib = NULL;
+	clearfits(&result);
+
+	if (flip) {
+		flip_bottom_up_astrometry_data(gfit);
+	}
+
+	if (has_wcsdata(gfit))
+		reset_wcsdata(gfit);
+	gfit->keywords.wcsdata.pltsolvd = TRUE;
+	g_snprintf(gfit->keywords.wcsdata.pltsolvd_comment, FLEN_COMMENT, "WCS loaded from file");
+	update_wcsdata_from_wcs(gfit);
+	update_fits_header(gfit);
+	gfit_modified_update_gui();
+	refresh_annotations(TRUE);
+	gui_iface.update_menu_state();
+	gui_iface.redraw_image_async(REDRAW_OVERLAY);
+	siril_log_message(_("WCS solution loaded from %s\n"), filename);
 	return CMD_OK;
 }
 

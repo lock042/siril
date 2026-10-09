@@ -21,8 +21,9 @@
 #ifndef SIRIL_CURVE_TRANSFORM_H
 #define SIRIL_CURVE_TRANSFORM_H
 
-#include "core/siril.h"
 #include <glib.h>
+
+#include "core/siril.h"
 
 #define MAX_POINTS 100
 #define LUT_SIZE 65536

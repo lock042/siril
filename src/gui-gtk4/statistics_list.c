@@ -18,14 +18,13 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
 #include "algos/statistics.h"
-#include "gui-gtk4/utils.h"
-#include "gui-gtk4/progress_and_log.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/utils.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
 

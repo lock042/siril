@@ -1,6 +1,7 @@
-#include "io/ser.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "io/ser.h"
 
 int main(int argc, char **argv) {
 	struct ser_struct ser_file;

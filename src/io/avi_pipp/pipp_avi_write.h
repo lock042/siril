@@ -6,8 +6,8 @@
 #include <memory>
 #include <string>
 
-#include "pipp_video_write.h"
-#include "pipp_buffer.h"
+#include "io/avi_pipp/pipp_buffer.h"
+#include "io/avi_pipp/pipp_video_write.h"
 
 #define DEBUGF //printf
 

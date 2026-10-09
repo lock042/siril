@@ -22,7 +22,9 @@
 #define SRC_GUI_PLOT_H_
 
 #include <cairo.h>
+
 #include "core/siril.h"
+
 #include "kplot.h"
 
 void clear_all_photometry_and_plot();

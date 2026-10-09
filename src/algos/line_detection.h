@@ -2,6 +2,7 @@
 #define _LINE_DETECTION_H
 
 #include <glib.h>
+
 #include "core/siril.h"
 #include "opencv/tracks.h"
 

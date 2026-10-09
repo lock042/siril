@@ -19,29 +19,28 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
 #include <assert.h>
+#include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
-#include <gsl/gsl_matrix.h>
+
 #include <gsl/gsl_statistics.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
 #include "algos/demosaicing.h"
 #include "algos/PSF.h"
+#include "algos/siril_wcs.h"
+#include "algos/sorting.h"
 #include "algos/star_finder.h"
 #include "algos/statistics.h"
-#include "algos/sorting.h"
-#include "algos/siril_wcs.h"
+#include "core/gui_iface.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
-#include "core/gui_iface.h"
-#include "registration/registration.h"
 #include "opencv/opencv.h"
-#include <wcsfix.h>
+#include "registration/registration.h"
 
 #define _SQRT_EXP1 1.6487212707
 #define KERNEL_SIZE 2.  // sigma of the gaussian smoothing kernel

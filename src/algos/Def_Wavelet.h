@@ -20,6 +20,8 @@
 ******************************************************************************/
 
 /* Wavelet transform algorithm number  */
+#include "core/siril.h"
+
 #define TO_PAVE_LINEAR   1
 #define TO_PAVE_BSPLINE  2
 #define TO_PAVE_BSPLINE_FFT 3

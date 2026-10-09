@@ -24,14 +24,11 @@ extern "C" {
 #endif
 }
 
+#include <cassert>
+#include <iostream>
+#include <string>
 
 #include <glib.h>
-
-#include <cassert>
-#include <fstream>
-#include <iostream>
-#include <sstream>
-#include <string>
 
 #if defined(_WIN32) && defined(EXV_UNICODE_PATH)
   #define WIDEN(s) pugi::as_wide(s)
@@ -43,7 +40,7 @@ extern "C" {
 #include <exiv2/exiv2.hpp>
 #endif
 
-#include "exif.h"
+#include "core/exif.h"
 
 /** code from darktable */
 /**

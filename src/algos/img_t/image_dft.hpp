@@ -36,7 +36,7 @@
 
 #include <complex>
 
-#include "image.hpp"
+#include "algos/img_t/image.hpp"
 
 namespace imgops {
 

@@ -18,20 +18,19 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/siril.h"
-#include "core/proto.h"
+#include "algos/siril_wcs.h"
+#include "core/gui_iface.h"
 #include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_date.h"
 #include "core/siril_log.h"
 #include "core/siril_world_cs.h"
-#include "algos/siril_wcs.h"
-#include "core/gui_iface.h"
-#include "io/image_format_fits.h"
-#include "io/sequence.h"
-#include "io/path_parse.h"
+#include "io/fits_keywords.h"
 #include "io/gps_parser.h"
-
-#include "fits_keywords.h"
+#include "io/image_format_fits.h"
+#include "io/path_parse.h"
+#include "io/sequence.h"
 
 // Uncomment to print debug verbose
 // #define DEBUG_PRINT_HEADER
@@ -97,19 +96,20 @@ static void bzero_handler_read(fits *fit, const char *comment, KeywordInfo *info
 	}
 }
 
-static void pixel_x_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
-	if (fit->keywords.pixel_size_x > 0.0) {
+static void pixel_size_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
+	if (*((double *) info->data) > 0.0) {
 		fit->pixelkey = TRUE;
 	}
 }
 
 static void bayer_pattern_read(fits *fit, const char *comment, KeywordInfo *info) {
 	/* Handle some bad BAYER PATTERN from Maxim DL */
-	if (strstr(fit->keywords.bayer_pattern, "INVALID") ||
-		strstr(fit->keywords.bayer_pattern, "NONE")) {
+	gchar *pattern = g_ascii_strup(fit->keywords.bayer_pattern, -1);
+	if (strstr(pattern, "INVALID") || strstr(pattern, "NONE")) {
 		siril_log_debug("Ignoring INVALID or NONE Bayer pattern\n");
 		fit->keywords.bayer_pattern[0] = '\0';
-		}
+	}
+	g_free(pattern);
 }
 
 static void binning_x_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
@@ -122,18 +122,14 @@ static void binning_y_handler_read(fits *fit, const char *comment, KeywordInfo *
 		fit->keywords.binning_y = 1;
 }
 
-static void roworder_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
-	if (!strcasecmp(fit->keywords.bayer_pattern, "NONE")) {
-		memset(fit->keywords.bayer_pattern, 0, sizeof(char) * FLEN_VALUE);
-	}
-}
-
 static void focal_length_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
 	if (fit->keywords.focal_length > 0.0)
 		fit->focalkey = TRUE;
 }
 
 static void flength_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
+	if (!info->used || fit->keywords.flength <= 0.0)
+		return;
 	fit->keywords.focal_length = fit->keywords.flength * 1000.0; // convert m to mm
 	fit->focalkey = TRUE;
 }
@@ -199,7 +195,7 @@ static void sitelat_handler_read(fits *fit, const char *comment, KeywordInfo *in
 }
 
 static void flo_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
-	if (!fit->keywords.hi && (fit->orig_bitpix == FLOAT_IMG || fit->orig_bitpix == DOUBLE_IMG)) {
+	if (!fit->keywords.lo && (fit->orig_bitpix == FLOAT_IMG || fit->orig_bitpix == DOUBLE_IMG)) {
 		fit->keywords.lo = float_to_ushort_range(fit->keywords.flo);
 	}
 }
@@ -210,25 +206,40 @@ static void fhi_handler_read(fits *fit, const char *comment, KeywordInfo *info) 
 	}
 }
 
+/* RA or DEC given as a string in decimal degrees */
+static gboolean parse_deg_string(const char *str, double *deg) {
+	gchar *end;
+	*deg = g_ascii_strtod(str, &end);
+	return end != str && *end == '\0';
+}
+
 static void ra_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
 	fit->keywords.wcsdata.ra = parse_hms(fit->keywords.wcsdata.objctra);
-	if (isnan(fit->keywords.wcsdata.ra)) {
+	if (!isnan(fit->keywords.wcsdata.ra)) {
+		siril_log_debug("read RA as HMS\n");
+	} else if (parse_deg_string(fit->keywords.wcsdata.objctra, &fit->keywords.wcsdata.ra)) {
+		// OBJCTRA is saved as HMS
+		gchar *ra = siril_world_cs_alpha_format_from_double(fit->keywords.wcsdata.ra, "%02d %02d %.3lf");
+		g_strlcpy(fit->keywords.wcsdata.objctra, ra, FLEN_VALUE);
+		g_free(ra);
+	} else {
 		fit->keywords.wcsdata.ra = DEFAULT_DOUBLE_VALUE;
 		info->used = FALSE;
 	}
-	else
-		siril_log_debug("read RA as HMS\n");
 }
 
 static void dec_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
 	fit->keywords.wcsdata.dec = parse_dms(fit->keywords.wcsdata.objctdec);
-	if (isnan(fit->keywords.wcsdata.dec)) {
+	if (!isnan(fit->keywords.wcsdata.dec)) {
+		siril_log_debug("read DEC as DMS\n");
+	} else if (parse_deg_string(fit->keywords.wcsdata.objctdec, &fit->keywords.wcsdata.dec)) {
+		gchar *dec = siril_world_cs_delta_format_from_double(fit->keywords.wcsdata.dec, "%c%02d %02d %.3lf");
+		g_strlcpy(fit->keywords.wcsdata.objctdec, dec, FLEN_VALUE);
+		g_free(dec);
+	} else {
 		fit->keywords.wcsdata.dec = DEFAULT_DOUBLE_VALUE;
 		info->used = FALSE;
 	}
-	else
-		siril_log_debug("read DEC as DMS\n");
-
 }
 
 static void flo_handler_save(fits *fit, KeywordInfo *info) {
@@ -298,13 +309,7 @@ static void gps_date_handler_save(fits *fit, KeywordInfo *info) {
 /*****************************************************************************/
 /* ── GPS / QHY keyword handlers ─────────────────────────────────────────── */
 
-static void read_qhy_gps_data(fits *fit);
 static void save_gps_keywords(fits *fit);
-
-static void qhy_gps_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
-	/* Trigger for rolling-shutter GPS data: reads all QHY_* / GPS_E* keys at once. */
-	read_qhy_gps_data(fit);
-}
 
 static void qhy_gps_handler_save(fits *fit, KeywordInfo *info) {
 	save_gps_keywords(fit);
@@ -355,7 +360,7 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_PRIMARY( "date",  "DATE-OBS", KTYPE_DATE, "YYYY-MM-DDThh:mm:ss observation start, UT", &(fit->keywords.date_obs), NULL, NULL),
 			KEYWORD_PRIMARY( "image", "IMAGETYP", KTYPE_STR, "Type of image", &(fit->keywords.image_type), NULL, NULL),
 			KEYWORD_SECONDA( "image", "FRAMETYP", KTYPE_STR, "Type of image", &(fit->keywords.image_type), NULL, NULL),
-			KEYWORD_PRIMARY( "image", "ROWORDER", KTYPE_STR, "Order of the rows in image array", &(fit->keywords.row_order), roworder_handler_read, NULL),
+			KEYWORD_PRIMARY( "image", "ROWORDER", KTYPE_STR, "Order of the rows in image array", &(fit->keywords.row_order), NULL, NULL),
 			KEYWORD_PRIMARY( "image", "EXPTIME", KTYPE_DOUBLE, "[s] Exposure time duration", &(fit->keywords.exposure), NULL, NULL),
 			KEYWORD_SECONDA( "image", "EXPOSURE", KTYPE_DOUBLE, "[s] Exposure time duration", &(fit->keywords.exposure), NULL, NULL),
 			KEYWORD_PRIMARY( "telescope", "TELESCOP", KTYPE_STR, "Telescope used to acquire this image", &(fit->keywords.telescop), NULL, NULL),
@@ -375,16 +380,16 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_SECONDA( "camera", "BINX", KTYPE_UINT, "Camera binning mode", &(fit->keywords.binning_x), binning_x_handler_read, NULL),
 			KEYWORD_PRIMARY( "camera", "YBINNING", KTYPE_UINT, "Camera binning mode", &(fit->keywords.binning_y), binning_y_handler_read, NULL),
 			KEYWORD_SECONDA( "camera", "BINY", KTYPE_UINT, "Camera binning mode", &(fit->keywords.binning_y), binning_y_handler_read, NULL),
-			KEYWORD_PRIMARY( "camera", "XPIXSZ", KTYPE_DOUBLE,   "[um] Pixel X axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, pixel_x_handler_save),
-			KEYWORD_SECONDA( "camera", "XPIXELSZ", KTYPE_DOUBLE, "[um] Pixel X axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-			KEYWORD_SECONDA( "camera", "PIXSIZE1", KTYPE_DOUBLE, "[um] Pixel X axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-			KEYWORD_SECONDA( "camera", "PIXSIZEX", KTYPE_DOUBLE, "[um] Pixel X axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-			KEYWORD_SECONDA( "camera", "XPIXSIZE", KTYPE_DOUBLE, "[um] Pixel X axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-			KEYWORD_PRIMARY( "camera", "YPIXSZ", KTYPE_DOUBLE,   "[um] Pixel Y axis size", &(fit->keywords.pixel_size_y), pixel_x_handler_read, pixel_y_handler_save),
-			KEYWORD_SECONDA( "camera", "YPIXELSZ", KTYPE_DOUBLE, "[um] Pixel Y axis size", &(fit->keywords.pixel_size_y), pixel_x_handler_read, NULL),
-			KEYWORD_SECONDA( "camera", "PIXSIZE2", KTYPE_DOUBLE, "[um] Pixel Y axis size", &(fit->keywords.pixel_size_y), pixel_x_handler_read, NULL),
-			KEYWORD_SECONDA( "camera", "PIXSIZEY", KTYPE_DOUBLE, "[um] Pixel Y axis size", &(fit->keywords.pixel_size_y), pixel_x_handler_read, NULL),
-			KEYWORD_SECONDA( "camera", "YPIXSIZE", KTYPE_DOUBLE, "[um] Pixel Y axis size", &(fit->keywords.pixel_size_y), pixel_x_handler_read, NULL),
+			KEYWORD_PRIMARY( "camera", "XPIXSZ", KTYPE_DOUBLE,   "[um] Pixel X axis size", &(fit->keywords.pixel_size_x), pixel_size_handler_read, pixel_x_handler_save),
+			KEYWORD_SECONDA( "camera", "XPIXELSZ", KTYPE_DOUBLE, "[um] Pixel X axis size", &(fit->keywords.pixel_size_x), pixel_size_handler_read, NULL),
+			KEYWORD_SECONDA( "camera", "PIXSIZE1", KTYPE_DOUBLE, "[um] Pixel X axis size", &(fit->keywords.pixel_size_x), pixel_size_handler_read, NULL),
+			KEYWORD_SECONDA( "camera", "PIXSIZEX", KTYPE_DOUBLE, "[um] Pixel X axis size", &(fit->keywords.pixel_size_x), pixel_size_handler_read, NULL),
+			KEYWORD_SECONDA( "camera", "XPIXSIZE", KTYPE_DOUBLE, "[um] Pixel X axis size", &(fit->keywords.pixel_size_x), pixel_size_handler_read, NULL),
+			KEYWORD_PRIMARY( "camera", "YPIXSZ", KTYPE_DOUBLE,   "[um] Pixel Y axis size", &(fit->keywords.pixel_size_y), pixel_size_handler_read, pixel_y_handler_save),
+			KEYWORD_SECONDA( "camera", "YPIXELSZ", KTYPE_DOUBLE, "[um] Pixel Y axis size", &(fit->keywords.pixel_size_y), pixel_size_handler_read, NULL),
+			KEYWORD_SECONDA( "camera", "PIXSIZE2", KTYPE_DOUBLE, "[um] Pixel Y axis size", &(fit->keywords.pixel_size_y), pixel_size_handler_read, NULL),
+			KEYWORD_SECONDA( "camera", "PIXSIZEY", KTYPE_DOUBLE, "[um] Pixel Y axis size", &(fit->keywords.pixel_size_y), pixel_size_handler_read, NULL),
+			KEYWORD_SECONDA( "camera", "YPIXSIZE", KTYPE_DOUBLE, "[um] Pixel Y axis size", &(fit->keywords.pixel_size_y), pixel_size_handler_read, NULL),
 			KEYWORD_PRIMARY( "camera", "INSTRUME", KTYPE_STR, "Instrument name", &(fit->keywords.instrume), NULL, NULL),
 			KEYWORD_PRIMARY( "camera", "CCD-TEMP", KTYPE_DOUBLE, "[degC] CCD temperature", &(fit->keywords.ccd_temp), NULL, NULL),
 			KEYWORD_SECONDA( "camera", "CCD_TEMP", KTYPE_DOUBLE, "[degC] CCD temperature", &(fit->keywords.ccd_temp), NULL, NULL),
@@ -440,8 +445,8 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_SECONDA( "wcsdata", "DEC_D", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec), NULL, NULL),
 
 			// Rolling-shutter GPS (QHY Pro): the keywords are declared to not be put in the
-			// unknown keys list but all are managed by the read and save handlers for QHY_EXP
-			KEYWORD_GPS( "gps", "QHY_EXP", KTYPE_DOUBLE, "GPS/QHY exposure (s)", qhy_gps_handler_read, qhy_gps_handler_save),
+			// unknown keys list, they are read after the header loop and saved by the QHY_EXP handler
+			KEYWORD_GPS( "gps", "QHY_EXP", KTYPE_DOUBLE, "GPS/QHY exposure (s)", NULL, qhy_gps_handler_save),
 			KEYWORD_GPS( "gps", "QHY_LP", KTYPE_INT, "linePeriod (ns)", NULL, NULL),
 			KEYWORD_GPS( "gps", "QHY_OFF0", KTYPE_DOUBLE, "RollingShutterEndOffset row 0 (us)", NULL, NULL),
 			KEYWORD_PRIMARY("gps", "GPS_EUTC", KTYPE_STR, "QHY end time of exposure", &(fit->keywords.gps_eutc), NULL, gps_keys_handler_save),
@@ -747,17 +752,12 @@ int save_wcs_keywords(fits *fit) {
 
 	if (fit->keywords.wcslib) {
 		gboolean has_sip = fit->keywords.wcslib->lin.dispre != NULL; // we don't handle the disseq terms for now
-		if (!has_sip) {// no distortions
-			fits_update_key(fit->fptr, TSTRING, "CTYPE1", "RA---TAN", "TAN (gnomic) projection", &status);
-			status = 0;
-			fits_update_key(fit->fptr, TSTRING, "CTYPE2", "DEC--TAN", "TAN (gnomic) projection", &status);
-			status = 0;
-		} else {
-			fits_update_key(fit->fptr, TSTRING, "CTYPE1", "RA---TAN-SIP", "TAN (gnomic) projection + SIP distortions", &status);
-			status = 0;
-			fits_update_key(fit->fptr, TSTRING, "CTYPE2", "DEC--TAN-SIP", "TAN (gnomic) projection + SIP distortions", &status);
-			status = 0;
-		}
+		gchar *comment = g_strdup_printf("%s projection%s", fit->keywords.wcslib->cel.prj.code,
+						has_sip ? " + SIP distortions" : "");
+		fits_update_key(fit->fptr, TSTRING, "CTYPE1", fit->keywords.wcslib->ctype[0], comment, &status);
+		status = 0;
+		fits_update_key(fit->fptr, TSTRING, "CTYPE2", fit->keywords.wcslib->ctype[1], comment, &status);
+		g_free(comment);
 		status = 0;
 		fits_update_key(fit->fptr, TSTRING, "CUNIT1", "deg","Unit of coordinates", &status);
 		status = 0;
@@ -771,18 +771,18 @@ int save_wcs_keywords(fits *fit) {
 		status = 0;
 		fits_update_key(fit->fptr, TDOUBLE, "CRPIX2", &(fit->keywords.wcslib->crpix[1]), "Axis2 reference pixel", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->keywords.wcslib->crval[0]), "[deg] Axis1 reference value", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->keywords.wcslib->crval[0]), "[deg] Axis1 reference value", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->keywords.wcslib->crval[1]), "[deg] Axis2 reference value", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->keywords.wcslib->crval[1]), "[deg] Axis2 reference value", &status);
 		if (fit->keywords.wcslib->lonpole) {
 			status = 0;
 			fits_update_key(fit->fptr, TDOUBLE, "LONPOLE", &(fit->keywords.wcslib->lonpole), "Native longitude of celestial pole", &status);
 		}
 		if (com.pref.wcs_formalism == WCS_FORMALISM_1) {
 			status = 0;
-			fits_update_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->keywords.wcslib->cdelt[0]), "[deg] X pixel size", &status);
+			fits_update_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->keywords.wcslib->cdelt[0]), "[deg] X pixel size", &status);
 			status = 0;
-			fits_update_key(fit->fptr, TDOUBLE, "CDELT2", &(fit->keywords.wcslib->cdelt[1]), "[deg] Y pixel size", &status);
+			fits_update_key(fit->fptr, TDOUBLE, "CDELT2", &(fit->keywords.wcslib->cdelt[1]), "[deg] Y pixel size", &status);
 			status = 0;
 			fits_update_key(fit->fptr, TDOUBLE, "PC1_1", &(fit->keywords.wcslib->pc[0]), "Linear transformation matrix (1, 1)", &status);
 			status = 0;
@@ -1079,6 +1079,25 @@ const char* fits_type_to_string(const char type) {
 }
 #endif
 
+/* strip the quotes of a FITS string value and unescape its '' */
+static gchar *fits_unquote(const char *value) {
+	const char *p = value;
+	while (*p == ' ')
+		p++;
+	if (*p != '\'')
+		return g_strdup(p);
+	GString *str = g_string_new(NULL);
+	for (p++; *p; p++) {
+		if (*p == '\'') {
+			if (p[1] != '\'')
+				break;
+			p++;
+		}
+		g_string_append_c(str, *p);
+	}
+	return g_string_free(str, FALSE);
+}
+
 int read_fits_keywords(fits *fit) {
 	// Initialize keywords and get hash table
 	GHashTable *keys_hash;
@@ -1091,7 +1110,7 @@ int read_fits_keywords(fits *fit) {
 
 	fits_get_hdrspace(fit->fptr, &key_number, NULL, &status); /* get # of keywords */
 
-	GRegex *wcs_regex = g_regex_new("TR[0-9]+_[0-9]+|CROTA[0-9]", 0, 0, NULL);
+	GRegex *wcs_regex = g_regex_new("^(TR[0-9]+_[0-9]+|CROTA[0-9])$", 0, 0, NULL);
 
 	// Loop through each keyword
 #ifdef DEBUG_PRINT_HEADER
@@ -1108,7 +1127,7 @@ int read_fits_keywords(fits *fit) {
 		char value[FLEN_VALUE] = { 0 };
 		char comment[FLEN_COMMENT];
 		int length = 0;
-		char type;
+		char type = 0;
 
 		fits_get_keyname(card, keyname, &length, &status);
 		fits_parse_value(card, value, comment, &status);
@@ -1137,15 +1156,8 @@ int read_fits_keywords(fits *fit) {
 				continue;
 			}
 
-			GMatchInfo *match_info = NULL;
-			if (g_regex_match(wcs_regex, card, 0, &match_info)) {
-				g_match_info_free(match_info);
+			if (g_regex_match(wcs_regex, keyname, 0, NULL))
 				continue;
-			}
-
-			if (match_info) {
-				g_match_info_free(match_info);
-			}
 
 			unknown_keys = g_string_append(unknown_keys, card);
 			unknown_keys = g_string_append(unknown_keys, "\n");
@@ -1154,6 +1166,19 @@ int read_fits_keywords(fits *fit) {
 
 		// At this point, the keyword is known and we can process it via the KeywordInfo list.
 
+		/* SITELAT, SITELONG, RA and DEC have a numeric and a string entry, the
+		 * hash only holds the last one: use the string one for string values */
+		KeywordInfo *numeric_key = NULL;
+		if (type == 'C' && current_key->type != KTYPE_STR && current_key->type != KTYPE_DATE) {
+			for (KeywordInfo *k = keys; k->key; k++) {
+				if (k->type == KTYPE_STR && !strcmp(k->key, keyname)) {
+					numeric_key = current_key;
+					current_key = k;
+					break;
+				}
+			}
+		}
+
 		if (current_key->fixed_value) {
 			/* For keywords with no data pointer (GPS, WCS), run the read handler
 			 * if present, then skip the standard switch which would deref data. */
@@ -1161,9 +1186,6 @@ int read_fits_keywords(fits *fit) {
 				current_key->special_handler_read(fit, comment, current_key);
 			continue;
 		}
-		int int_value;
-		guint uint_value;
-		gushort ushort_value;
 		double double_value;
 		float float_value;
 		gchar *str_value = NULL, *unquoted = NULL;
@@ -1178,12 +1200,12 @@ int read_fits_keywords(fits *fit) {
 		case KTYPE_INT:
 			double_value = g_ascii_strtod(value, &end);
 			if (value != end) {
-				if (double_value < G_MININT || double_value > G_MAXINT) {
+				if (double_value >= G_MININT && double_value <= G_MAXINT) {
+					*((int*) current_key->data) = (int) double_value;
+					current_key->used = TRUE;
+				} else {
 					siril_log_warning(_("Warning: FITS value for keyname '%s' out of range for INT: %s\n"), keyname, value);
 				}
-				int_value = (int) double_value;
-				*((int*) current_key->data) = int_value;
-				current_key->used = TRUE;
 			} else {
 				PRINT_PARSING_ERROR;
 			}
@@ -1191,12 +1213,12 @@ int read_fits_keywords(fits *fit) {
 		case KTYPE_UINT:
 			double_value = g_ascii_strtod(value, &end);
 			if (value != end) {
-				if (double_value < 0 || double_value > G_MAXUINT) {
+				if (double_value >= 0 && double_value <= G_MAXUINT) {
+					*((guint*) current_key->data) = (guint) double_value;
+					current_key->used = TRUE;
+				} else {
 					siril_log_warning(_("Warning: FITS value for keyname '%s' out of range for UINT: %s\n"), keyname, value);
 				}
-				uint_value = (guint) double_value;
-				*((guint*) current_key->data) = uint_value;
-				current_key->used = TRUE;
 			} else {
 				PRINT_PARSING_ERROR;
 			}
@@ -1204,12 +1226,12 @@ int read_fits_keywords(fits *fit) {
 		case KTYPE_USHORT:
 			double_value = g_ascii_strtod(value, &end);
 			if (value != end) {
-				if (double_value < 0 || double_value > G_MAXUSHORT) {
+				if (double_value >= 0 && double_value <= G_MAXUSHORT) {
+					*((gushort*) current_key->data) = (gushort) double_value;
+					current_key->used = TRUE;
+				} else {
 					siril_log_warning(_("Warning: FITS value for keyname '%s' out of range for USHORT: %s\n"), keyname, value);
 				}
-				ushort_value = (gushort) double_value;
-				*((gushort*) current_key->data) = ushort_value;
-				current_key->used = TRUE;
 			} else {
 				PRINT_PARSING_ERROR;
 			}
@@ -1233,16 +1255,14 @@ int read_fits_keywords(fits *fit) {
 			}
 			break;
 		case KTYPE_STR:
-			unquoted = g_shell_unquote(value, NULL);
-			if (!unquoted) break;
+			unquoted = fits_unquote(value);
 			str_value = g_strstrip(unquoted);
 			(void) g_strlcpy((char*) current_key->data, str_value, FLEN_VALUE);
 			g_free(unquoted);
 			current_key->used = TRUE;
 			break;
 		case KTYPE_DATE:
-			unquoted = g_shell_unquote(value, NULL);
-			if (!unquoted) break;
+			unquoted = fits_unquote(value);
 			str_value = g_strstrip(unquoted);
 			date = FITS_date_to_date_time(str_value);
 			if (date) {
@@ -1266,20 +1286,12 @@ int read_fits_keywords(fits *fit) {
 		if (current_key->special_handler_read != NULL) {
 			current_key->special_handler_read(fit, comment, current_key);
 		}
+		// the handler filled the numeric value, don't reset it to default
+		if (numeric_key && current_key->used)
+			numeric_key->used = TRUE;
 	}
 
 	g_regex_unref(wcs_regex);
-
-	/* Rolling-shutter GPS was handled by qhy_gps_handler_read (triggered when QHY_EXP was
-	 * found in the header).  For global-shutter cameras, DATE-GPS was read by its own
-	 * handler; if it is still unset this is the first open, so try to extract GPS_* keys. */
-	if (!fit->keywords.gps_data && !fit->keywords.date_and_exp_from_gps) {
-		struct _qhy_struct qhy_header = { 0 };
-		if (!parse_gps_from_header(fit, NULL, &qhy_header)) {
-			update_fit_from_qhy_header(fit, &qhy_header);
-			release_qhy_struct(&qhy_header);
-		}
-	}
 
 	gboolean not_from_siril = (strstr(fit->keywords.program, "Siril") == NULL);
 	if ((fit->bitpix == FLOAT_IMG && not_from_siril) || fit->bitpix == DOUBLE_IMG) {
@@ -1297,6 +1309,19 @@ int read_fits_keywords(fits *fit) {
 
 	set_to_default_not_used(fit, keys_hash);
 	fix_keywords_defaults(fit);
+
+	/* GPS data depend on DATE-OBS, exposure, binning and row order, which can
+	 * be anywhere in the header. For global-shutter cameras, GPS-DATE was read
+	 * in the loop; if it is still unset this is the first open, so try to
+	 * extract GPS_* keys. */
+	read_qhy_gps_data(fit);
+	if (!fit->keywords.gps_data && !fit->keywords.date_and_exp_from_gps) {
+		struct _qhy_struct qhy_header = { 0 };
+		if (!parse_gps_from_header(fit, NULL, &qhy_header)) {
+			update_fit_from_qhy_header(fit, &qhy_header);
+			release_qhy_struct(&qhy_header);
+		}
+	}
 
 	// Free the hash table and unknown keys
 	g_hash_table_destroy(keys_hash);
@@ -1494,6 +1519,24 @@ void clear_Bayer_information(fits *fit) {
 	memset(fit->keywords.bayer_pattern, 0, FLEN_VALUE);
 }
 
+/* names of the wcslib group keywords, they don't depend on the image */
+static GHashTable *get_wcslib_keys() {
+	static gsize init = 0;
+	static GHashTable *wcslib_keys = NULL;
+	if (g_once_init_enter(&init)) {
+		fits dummy = { 0 };
+		KeywordInfo *keys = initialize_keywords(&dummy, NULL);
+		wcslib_keys = g_hash_table_new(g_str_hash, g_str_equal);
+		for (KeywordInfo *k = keys; k && k->key; k++) {
+			if (!g_strcmp0(k->group, "wcslib"))
+				g_hash_table_add(wcslib_keys, (gpointer) k->key);
+		}
+		free(keys);
+		g_once_init_leave(&init, 1);
+	}
+	return wcslib_keys;
+}
+
 gboolean keyword_is_protected(char *card, fits *fit) {
 	char keyname[FLEN_KEYWORD];
 	int length = 0;
@@ -1505,31 +1548,11 @@ gboolean keyword_is_protected(char *card, fits *fit) {
 		return TRUE;
 	}
 
-	if (fits_get_keyclass(card) == TYP_STRUC_KEY ||
-		fits_get_keyclass(card) == TYP_CMPRS_KEY ||
-		fits_get_keyclass(card) == TYP_SCAL_KEY ||
-		fits_get_keyclass(card) == TYP_WCS_KEY) {
+	int keyclass = fits_get_keyclass(card);
+	if (keyclass == TYP_STRUC_KEY || keyclass == TYP_CMPRS_KEY ||
+			keyclass == TYP_SCAL_KEY || keyclass == TYP_WCS_KEY) {
 		return TRUE;
-		}
-
-	if (fit) {
-		GHashTable *keys_hash;
-		KeywordInfo *keys = initialize_keywords(fit, &keys_hash);
-
-		KeywordInfo *keyword_info = g_hash_table_lookup(keys_hash, keyname);
-		gboolean is_wcslib = FALSE;
-
-		if (keyword_info && g_strcmp0(keyword_info->group, "wcslib") == 0) {
-			is_wcslib = TRUE;
-		}
-
-		g_hash_table_destroy(keys_hash);
-		free(keys);
-
-		if (is_wcslib) {
-			return TRUE;
-		}
 	}
 
-	return FALSE;
+	return fit && g_hash_table_contains(get_wcslib_keys(), keyname);
 }

@@ -24,24 +24,19 @@
 #endif
 
 #include <math.h>
-#include <gsl/gsl_min.h>
+
 #include <gsl/gsl_math.h>
+#include <gsl/gsl_min.h>
 
-
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_world_cs.h"
-#include "core/siril_log.h"
 #include "algos/siril_wcs.h"
-#include "drizzle/cdrizzlebox.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "drizzle/cdrizzleutil.h"
-#include "io/sequence.h"
-#include "io/siril_catalogues.h"
 #include "io/image_format_fits.h"
+#include "io/sequence.h"
 #include "opencv/opencv.h"
-#include "registration/registration.h"
 #include "registration/matching/degtorad.h"
-
+#include "registration/registration.h"
 
 // #define DEBUG_ASTROREG
 

@@ -18,15 +18,16 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <criterion/criterion.h>
 #include <math.h>
 #include <stdlib.h>
+
+#include <criterion/criterion.h>
 #include <glib/gstdio.h>
 
-#include "core/siril.h"
 #include "algos/Def_Wavelet.h"
 #include "algos/sorting.h"
 #include "algos/wavelet_denoise.h"
+#include "core/siril.h"
 
 cominfo com;	// the core data struct
 fits *gfit;	// currently loaded image (now a pointer)

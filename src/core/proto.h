@@ -1,10 +1,11 @@
 #ifndef PROTO_H_
 #define PROTO_H_
-#include <stdint.h>
 #include <math.h> // for fabs() in test_double_eq
+#include <stdint.h>
 #include <sys/time.h>
-#include "core/siril.h"
+
 #include "core/gtk_forward_decls.h"
+#include "core/siril.h"
 #ifdef HAVE_LIBTIFF
 #define uint64 uint64_hack_
 #define int64 int64_hack_

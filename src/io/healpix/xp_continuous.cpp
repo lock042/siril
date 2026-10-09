@@ -6,10 +6,10 @@
  * dispersion spline, response normalisation), so the runtime has no
  * dependency beyond the static rodata blob in gaia_xp_design.c.
  */
-#include "xp_continuous.h"
-#include "gaia_xp_design.h"
-
 #include <algorithm>
+
+#include "io/healpix/gaia_xp_design.h"
+#include "io/healpix/xp_continuous.h"
 
 extern "C" void xpcts_to_xpsampled(const SourceEntryXPcts *src,
                                    int truncation,

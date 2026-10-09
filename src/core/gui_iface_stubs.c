@@ -31,6 +31,7 @@
  */
 
 #include <stdio.h>
+
 #include "core/gui_iface.h"
 
 /* ── Stub implementations ─────────────────────────────────────────────────── */
@@ -304,12 +305,7 @@ static void stub_draw_plot(void) {}
 static void stub_notify_new_photometry(void) {}
 static void stub_init_plot_colors(void) {}
 static gboolean stub_save_siril_plot_to_clipboard(gpointer s, int w, int h) { (void)s;(void)w;(void)h; return FALSE; }
-static gchar *stub_build_save_filename(gchar *p, gchar *e, gboolean f, gboolean t) { (void)p;(void)e;(void)f;(void)t; return NULL; }
 /* Cut */
-static void stub_apply_cut_to_sequence(gpointer a) { (void)a; }
-static gpointer stub_run_cut_profile(gpointer a) { (void)a; return NULL; }
-static gpointer stub_run_tri_cut(gpointer a) { (void)a; return NULL; }
-static gpointer stub_run_cfa_cut(gpointer a) { (void)a; return NULL; }
 static void stub_reset_cut_gui_filedependent(gpointer u) { (void)u; }
 /* Preview */
 static int stub_copy_backup_to_gfit(void) { return 0; }
@@ -443,12 +439,7 @@ SirilGuiInterface gui_iface = {
 	.notify_new_photometry           = stub_notify_new_photometry,
 	.init_plot_colors                = stub_init_plot_colors,
 	.save_siril_plot_to_clipboard    = stub_save_siril_plot_to_clipboard,
-	.build_save_filename             = stub_build_save_filename,
 	/* Cut */
-	.apply_cut_to_sequence           = stub_apply_cut_to_sequence,
-	.run_cut_profile                 = stub_run_cut_profile,
-	.run_tri_cut                     = stub_run_tri_cut,
-	.run_cfa_cut                     = stub_run_cfa_cut,
 	.reset_cut_gui_filedependent     = stub_reset_cut_gui_filedependent,
 	/* Preview */
 	.copy_backup_to_gfit             = stub_copy_backup_to_gfit,

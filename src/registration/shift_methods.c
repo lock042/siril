@@ -20,18 +20,17 @@
  */
 
 #include <complex.h>
+
 #include <fftw3.h>
 
+#include "algos/demosaicing.h"
+#include "algos/quality.h"
+#include "core/gui_iface.h"
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "drizzle/cdrizzleutil.h"
-#include "algos/quality.h"
-#include "algos/demosaicing.h"
-#include "io/ser.h"
-#include "opencv/opencv.h"
 #include "opencv/kombat/kombat.h"
-#include "core/gui_iface.h"
-
+#include "opencv/opencv.h"
 
 static void normalizeQualityData(struct registration_args *args, double q_min, double q_max) {
 	int frame;

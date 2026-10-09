@@ -19,9 +19,9 @@
  */
 /* functions and variables defined only for linking */
 
-#include "../core/siril.h"
+#include "core/pipe.h"
+#include "core/siril.h"
 #include "gui-gtk4/gui_state.h"
-#include "../core/pipe.h"
 
 /* the global variables of the whole project (replacing main.c) */
 cominfo com;	// the main data struct

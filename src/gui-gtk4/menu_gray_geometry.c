@@ -10,26 +10,23 @@
  * (at your option) any later version.
  */
 
-#include "core/siril.h"
-#include "core/op_descriptors.h"
-#include "algos/geometry.h"
-#include "core/undo.h"
-#include "core/processing.h"
-#include "core/siril_log.h"
-#include "io/single_image.h"
 #include "algos/astrometry_solver.h"
-
+#include "algos/geometry.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/image_display.h"
 #include "gui-gtk4/image_interactions.h"
+#include "gui-gtk4/menu_gray_geometry.h"
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/progress_and_log.h"
-#include "gui-gtk4/PSF_list.h"
 #include "gui-gtk4/registration_preview.h"
 #include "gui-gtk4/siril_preview.h"
 #include "gui-gtk4/utils.h"
-#include "menu_gray_geometry.h"
+#include "io/single_image.h"
 
 static void menu_gray_geometry_init_statics(void);
 
