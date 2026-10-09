@@ -89,7 +89,8 @@ struct export_data {
 	double dxref, dyref;
 	unsigned int out_width, out_height;
 	norm_coeff coeff;
-	cmsHPROFILE ref_icc;
+	unsigned char *ref_icc;	// serialized: lcms profiles can't be shared between threads
+	guint32 ref_icc_len;
 	gint icc_msg_given;
 	gchar *dest;	// single-file output, removed on abort
 	fitseq *fitseq_file;
@@ -187,11 +188,11 @@ static gint64 export_compute_size(struct generic_seq_args *args, int nb_frames) 
 	return frame_size * nb_frames;
 }
 
-static cmsHPROFILE get_ref_icc(sequence *seq, int refindex) {
+static unsigned char *get_ref_icc(sequence *seq, int refindex, guint32 *len) {
 	fits ref = { 0 };
-	cmsHPROFILE icc = NULL;
+	unsigned char *icc = NULL;
 	if (!seq_read_frame(seq, refindex, &ref, FALSE, -1) && ref.icc_profile)
-		icc = copyICCProfile(ref.icc_profile);
+		icc = get_icc_profile_data(ref.icc_profile, len);
 	clearfits(&ref);
 	return icc;
 }
@@ -275,7 +276,7 @@ static int export_prepare(struct generic_seq_args *args) {
 	// create the sequence file for single-file sequence formats
 	switch (ex->output) {
 		case EXPORT_FITS:
-			data->ref_icc = get_ref_icc(args->seq, refindex);
+			data->ref_icc = get_ref_icc(args->seq, refindex, &data->ref_icc_len);
 			if (data->ref_icc)
 				siril_log_message(_("Reference frame has an ICC profile. Will assign / convert other frames to to match.\n"));
 			break;
@@ -306,7 +307,7 @@ static int export_prepare(struct generic_seq_args *args) {
 		case EXPORT_AVI:
 			// Check if the sequence has an ICC profile. If so, we should convert to sRGB
 			// as that's really the only suitable option here
-			data->ref_icc = get_ref_icc(args->seq, refindex);
+			data->ref_icc = get_ref_icc(args->seq, refindex, &data->ref_icc_len);
 			if (data->ref_icc)
 				siril_log_message(_("Reference frame has an ICC profile. Exporting as sRGB.\n"));
 
@@ -326,7 +327,7 @@ static int export_prepare(struct generic_seq_args *args) {
 			siril_log_message(_("MP4 output is not supported because siril was not compiled with ffmpeg support.\n"));
 			return 1;
 #else
-			data->ref_icc = get_ref_icc(args->seq, refindex);
+			data->ref_icc = get_ref_icc(args->seq, refindex, &data->ref_icc_len);
 			if (data->ref_icc)
 				siril_log_message(_("Reference frame has an ICC profile. Exporting as sRGB.\n"));
 
@@ -485,19 +486,24 @@ static int export_image_hook(struct generic_seq_args *args, int o, int i, fits *
 			return 1;
 	}
 
+	cmsHPROFILE ref_icc = NULL;
+	if (data->ref_icc)
+		ref_icc = cmsOpenProfileFromMem(data->ref_icc, data->ref_icc_len);
 	// frames without ICC profile get the one of the reference frame
-	if (!fit->icc_profile && data->ref_icc)
-		fit->icc_profile = copyICCProfile(data->ref_icc);
+	if (!fit->icc_profile && ref_icc)
+		fit->icc_profile = copyICCProfile(ref_icc);
 	color_manage(fit, fit->icc_profile != NULL);
 
 	if (ex->output == EXPORT_FITS) {
-		if (data->ref_icc)
-			siril_colorspace_transform(fit, data->ref_icc);
+		if (ref_icc)
+			siril_colorspace_transform(fit, ref_icc);
 		else if (fit->icc_profile && g_atomic_int_compare_and_exchange(&data->icc_msg_given, FALSE, TRUE))
 			siril_log_message(_("Info: this frame has an ICC profile but the reference frame does not. Profile will be preserved...\n"));
 	}
-	else if (is_film(ex->output) && data->ref_icc)
+	else if (is_film(ex->output) && ref_icc)
 		convert_to_srgb(fit);
+	if (ref_icc)
+		cmsCloseProfile(ref_icc);
 	return 0;
 }
 
@@ -566,8 +572,7 @@ static int export_finalize(struct generic_seq_args *args) {
 	if (aborted && data->dest && g_unlink(data->dest))
 		siril_log_debug("Failed to delete %s\n", data->dest);
 
-	if (data->ref_icc)
-		cmsCloseProfile(data->ref_icc);
+	free(data->ref_icc);
 	free(data->coeff.offset);
 	free(data->coeff.scale);
 	g_free(data->dest);

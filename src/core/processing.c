@@ -75,6 +75,18 @@ static void destroy_any_args(void *obj) {
 		free(obj);
 }
 
+/* with a seqwriter, every frame holding a memory slot must reach the writer,
+ * a NULL image marks it as missing */
+static int seqwriter_skip_frame(struct generic_seq_args *args, int out_index, int in_index) {
+	int retval;
+	if (args->save_hook)
+		retval = args->save_hook(args, out_index, in_index, NULL);
+	else retval = generic_save(args, out_index, in_index, NULL);
+	if (retval)
+		seqwriter_release_memory();
+	return retval;
+}
+
 // called in start_in_new_thread only
 // works in parallel if the arg->parallel is TRUE for FITS or SER sequences
 gpointer generic_sequence_worker(gpointer p) {
@@ -227,8 +239,18 @@ gpointer generic_sequence_worker(gpointer p) {
 			input_idx = index_mapping[frame];
 		else input_idx = frame;
 
+		if (have_seqwriter) {
+			seqwriter_wait_for_memory();
+			if (abort) {
+				seqwriter_skip_frame(args, frame, input_idx);
+				continue;
+			}
+		}
+
 		if (!seq_get_image_filename(args->seq, input_idx, filename)) {
 			abort = 1;
+			if (have_seqwriter)
+				seqwriter_skip_frame(args, frame, input_idx);
 			continue;
 		}
 
@@ -236,13 +258,6 @@ gpointer generic_sequence_worker(gpointer p) {
 		int nb_subthreads = 1;
 #ifdef _OPENMP
 		thread_id = omp_get_thread_num();
-		if (have_seqwriter) {
-			seqwriter_wait_for_memory();
-			if (abort) {
-				seqwriter_release_memory();
-				continue;
-			}
-		}
 		nb_subthreads = threads_per_image[thread_id];
 #endif
 
@@ -252,6 +267,8 @@ gpointer generic_sequence_worker(gpointer p) {
 		if (!fit) {
 			PRINT_ALLOC_ERR;
 			abort = 1;
+			if (have_seqwriter)
+				seqwriter_skip_frame(args, frame, input_idx);
 			continue;
 		}
 
@@ -285,7 +302,8 @@ gpointer generic_sequence_worker(gpointer p) {
 				}
 				clearfits(fit);
 				g_free(fit);
-				// TODO: for seqwriter, we need to notify the failed frame
+				if (have_seqwriter && seqwriter_skip_frame(args, frame, input_idx))
+					abort = 1;
 				continue;
 			}
 			/*char tmpfn[100];	// this is for debug purposes
@@ -297,9 +315,10 @@ gpointer generic_sequence_worker(gpointer p) {
 				abort = 1;
 				clearfits(fit);
 				free(fit);
+				if (have_seqwriter)
+					seqwriter_skip_frame(args, frame, input_idx);
 				continue;
 			}
-			// TODO: for seqwriter, we need to notify the failed frame
 		}
 		// checking nb layers consistency, not for partial image
 		if (read_image && !args->partial_image && (fit->naxes[2] != args->seq->nb_layers)) {
@@ -307,6 +326,8 @@ gpointer generic_sequence_worker(gpointer p) {
 			abort = 1;
 			clearfits(fit);
 			free(fit);
+			if (have_seqwriter)
+				seqwriter_skip_frame(args, frame, input_idx);
 			continue;
 		}
 		// If not reading image, we still load its metadata to fill imgparam
@@ -314,6 +335,8 @@ gpointer generic_sequence_worker(gpointer p) {
 			abort = 1;
 			clearfits(fit);
 			free(fit);
+			if (have_seqwriter)
+				seqwriter_skip_frame(args, frame, input_idx);
 			continue;
 		}
 
@@ -331,15 +354,8 @@ gpointer generic_sequence_worker(gpointer p) {
 			}
 			clearfits(fit);
 			free(fit);
-			// for seqwriter, we need to notify the failed frame
-			if (have_seqwriter) {
-				int retval;
-				if (args->save_hook)
-					retval = args->save_hook(args, frame, input_idx, NULL);
-				else retval = generic_save(args, frame, input_idx, NULL);
-				if (retval)
-					abort = 1;
-			}
+			if (have_seqwriter && seqwriter_skip_frame(args, frame, input_idx))
+				abort = 1;
 			continue;
 		}
 
@@ -352,6 +368,9 @@ gpointer generic_sequence_worker(gpointer p) {
 				abort = 1;
 				clearfits(fit);
 				free(fit);
+				// not queued, the slot is still ours
+				if (have_seqwriter)
+					seqwriter_release_memory();
 				continue;
 			}
 		} else {
@@ -711,7 +730,7 @@ int multi_save(struct generic_seq_args *args, int out_index, int in_index, fits 
 			multi_data = list->data;
 			break;
 		}
-		list = g_list_next(multi_args->processed_images);
+		list = g_list_next(list);
 	}
 	if (multi_data)
 		multi_args->processed_images = g_list_remove(multi_args->processed_images, multi_data);

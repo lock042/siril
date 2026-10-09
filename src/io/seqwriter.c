@@ -72,11 +72,28 @@ int seqwriter_append_write(struct seqwriter_data *writer, fits *image, int index
 	return 0;
 }
 
+static void discard_task(struct seqwriter_data *writer, struct _pending_write *task) {
+	if (task->image) {
+		clearfits(task->image);
+		free(task->image);
+	}
+	notify_data_freed(writer, task->index);
+	free(task);
+}
+
+/* after an error, the writer keeps consuming the queue until stopped, so that
+ * the memory slots of the images still in flight are released */
+static void enter_failed_state(struct seqwriter_data *writer, seq_error *retval) {
+	*retval = SEQ_WRITE_ERROR;
+	g_atomic_int_set(&writer->failed, SEQ_WRITE_ERROR);
+}
+
 static void *write_worker(void *a) {
 	struct seqwriter_data *writer = (struct seqwriter_data *)a;
 	seq_error retval = SEQ_OK;
 	int nb_frames_written = 0, current_index = 0;
 	GList *next_images = NULL;
+	gboolean aborted = FALSE;
 
 	do {
 		struct _pending_write *task = NULL;
@@ -97,7 +114,10 @@ static void *write_worker(void *a) {
 				task = g_async_queue_pop(writer->writes_queue);	// blocking
 				if (task == ABORT_TASK) {
 					siril_log_debug("writer: abort message\n");
-					retval = SEQ_INCOMPLETE;
+					if (retval == SEQ_OK)
+						retval = SEQ_INCOMPLETE;
+					aborted = TRUE;
+					task = NULL;
 					break;
 				}
 				// allowable cases:
@@ -107,14 +127,13 @@ static void *write_worker(void *a) {
 				// - different naxes[0] and naxes[1] for a SER
 				// - different naxes[2]
 				// - different bitpix
-				if (writer->bitpix && task->image &&
+				if (retval == SEQ_OK && writer->bitpix && task->image &&
 					((writer->output_type == SEQ_FITSEQ && !com.pref.allow_heterogeneous_fitseq && memcmp(task->image->naxes, writer->naxes, 2 * sizeof writer->naxes[0])) ||
 					(writer->output_type == SEQ_SER && memcmp(task->image->naxes, writer->naxes, 2 * sizeof writer->naxes[0])) ||
 					task->image->naxes[2] != writer->naxes[2] ||
 					task->image->bitpix != writer->bitpix)) {
 					siril_log_error(_("Cannot add an image with different properties to an existing sequence.\n"));
-					retval = SEQ_WRITE_ERROR;
-					break;
+					enter_failed_state(writer, &retval);
 				}
 				if (!writer->bitpix && task->image)
 					init_images(writer, task->image);
@@ -122,35 +141,31 @@ static void *write_worker(void *a) {
 				if (task->index >= 0 && task->index != current_index) {
 					if (task->index < current_index) {
 						siril_log_error(_("Invalid image index requested for write, aborting file creation\n"));
-						retval = SEQ_WRITE_ERROR;
-						break;
+						enter_failed_state(writer, &retval);
+						discard_task(writer, task);
+					} else {
+						siril_log_debug("writer: image %d put stored for later use\n", task->index);
+						next_images = g_list_append(next_images, task);
 					}
-					siril_log_debug("writer: image %d put stored for later use\n", task->index);
-					next_images = g_list_append(next_images, task);
 					task = NULL;
 				}
 				else siril_log_debug("writer: image %d received\n", task->index);
 			} while (!task);
 		}
-		if (!task)
-			continue;
-		if (retval == SEQ_INCOMPLETE)
+		if (aborted)
 			break;
 		if (retval == SEQ_WRITE_ERROR) {
-			siril_log_debug("writer: failed image %d, aborting\n", task->index);
-			if (task->image)
-				clearfits(task->image);
-			notify_data_freed(writer, task->index);
-			free(task);
-			break;
+			siril_log_debug("writer: discarding image %d after error\n", task->index);
+			discard_task(writer, task);
+			current_index++;
+			continue;
 		}
 		if (!task->image) {
 			// failed image, hole in sequence, skip it
 			siril_log_debug("writer: skipping image %d\n", task->index);
-			notify_data_freed(writer, task->index);
+			discard_task(writer, task);
 			current_index++;
 			writer->frame_count--;
-			free(task);
 			continue;
 		}
 
@@ -159,18 +174,13 @@ static void *write_worker(void *a) {
 				task->image->rx, task->image->ry,
 				task->image->type == DATA_FLOAT ? 32 : 16);
 
-		retval = writer->write_image_hook(writer, task->image, nb_frames_written);
-		clearfits(task->image);
-
-		if (retval != SEQ_WRITE_ERROR) {
-			notify_data_freed(writer, task->index);
-			nb_frames_written++;
-			current_index++;
-		}
-		free(task->image);
-		free(task);
-	} while (retval == SEQ_OK &&
-			(writer->frame_count <= 0 || nb_frames_written < writer->frame_count));
+		if (writer->write_image_hook(writer, task->image, nb_frames_written))
+			enter_failed_state(writer, &retval);
+		else nb_frames_written++;
+		discard_task(writer, task);
+		current_index++;
+	} while (retval != SEQ_OK ||
+			writer->frame_count <= 0 || nb_frames_written < writer->frame_count);
 
 	if (retval == SEQ_INCOMPLETE) {
 		if (next_images) {
@@ -187,6 +197,15 @@ static void *write_worker(void *a) {
 					writer->frame_count, nb_frames_written);
 		}
 	}
+	for (GList *l = next_images; l; l = l->next) {
+		struct _pending_write *stored_task = (struct _pending_write *)l->data;
+		if (stored_task->image) {
+			clearfits(stored_task->image);
+			free(stored_task->image);
+		}
+		free(stored_task);
+	}
+	g_list_free(next_images);
 
 	siril_log_debug("writer exits with retval %d (0: ok, 1: error, 2: incomplete)\n", retval);
 	g_atomic_int_set(&writer->failed, retval);

@@ -1203,6 +1203,13 @@ ERROR_OR_FINISH:
 	return retval;
 }
 
+/* lighter than refresh_icc_transforms() for images other than gfit, may be
+ * called from several processing threads at once */
+static void mark_icc_profile_changed() {
+	if (!com.headless)
+		g_atomic_int_set(&com.gui_icc.profile_changed, TRUE);
+}
+
 void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 
 	// If profile is NULL, we remove the profile from fit to match it. This is an unusual
@@ -1232,7 +1239,9 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 			gchar *desc = siril_color_profile_get_description(profile);
 			fit->history = g_slist_append(fit->history, g_strdup_printf(_("Assigned ICC profile: %s"), desc));
 			g_free(desc);
-			refresh_icc_transforms();
+			if (fit == gfit)
+				refresh_icc_transforms();
+			else mark_icc_profile_changed();	// in case fit becomes gfit
 			color_manage(fit, TRUE);
 			return;
 		} else {
@@ -1270,10 +1279,12 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 		if (fit_colorspace_channels > target_colorspace_channels)
 			fits_change_depth(fit, target_colorspace_channels);
 		fit->icc_profile = copyICCProfile(profile);
-		refresh_icc_transforms();
-			gchar *desc = siril_color_profile_get_description(profile);
-			fit->history = g_slist_append(fit->history, g_strdup_printf(_("Converted to ICC profile: %s"), desc));
-			g_free(desc);
+		if (fit == gfit)
+			refresh_icc_transforms();
+		else mark_icc_profile_changed();
+		gchar *desc = siril_color_profile_get_description(profile);
+		fit->history = g_slist_append(fit->history, g_strdup_printf(_("Converted to ICC profile: %s"), desc));
+		g_free(desc);
 		color_manage(fit, TRUE);
 		siril_log_debug("siril_colorspace_transform() converted a profile\n");
 	} else {
