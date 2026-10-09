@@ -804,9 +804,14 @@ static void impl_update_mask_enable(gboolean state) {
 }
 
 static void impl_set_display_range(int lo, int hi) {
+	/* USER mode so that the next remap does not recompute hi/lo */
+	g_mutex_lock(&com.mutex);
+	gui.sliders = USER;
 	gui.lo = lo;
 	gui.hi = hi;
-	set_cutoff_sliders_values();
+	g_mutex_unlock(&com.mutex);
+	gui_iface.sliders_mode_set_state(USER);
+	dispatch_void_gui_helper(set_cutoff_sliders_values);
 }
 
 static void impl_check_gaia_status(void) {
