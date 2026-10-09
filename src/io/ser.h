@@ -130,7 +130,6 @@ struct ser_struct {			// size and offset from header
 
 gboolean ser_is_cfa(const struct ser_struct *ser_file);
 int ser_reset_to_monochrome(struct ser_struct *ser_file);
-void ser_convertTimeStamp(struct ser_struct *ser_file, GSList *timestamp);
 void ser_init_struct(struct ser_struct *ser_file);
 void ser_display_info(struct ser_struct *ser_file);
 

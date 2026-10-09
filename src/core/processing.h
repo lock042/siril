@@ -45,6 +45,13 @@ extern "C" {
  * image processing.
  */
 
+/** how output images are passed to the files */
+typedef enum {
+	SEQWRITER_AUTO,		// seqwriter for SER and FITS sequence outputs
+	SEQWRITER_NONE,		// the save_hook writes the images itself
+	SEQWRITER_ALWAYS	// the save_hook hands the images to a seqwriter
+} seqwriter_usage;
+
 /** Main structure of the generic function */
 struct generic_seq_args {
 	/** sequence that will be processed */
@@ -122,6 +129,9 @@ struct generic_seq_args {
 	gboolean force_fitseq_output;
 	/** new output SER if seq->type == SEQ_FITSEQ or force_fitseq_output (internal) */
 	fitseq *new_fitseq;
+	/** overrides the seqwriter use deduced from the sequence types, for
+	 *  operations managing their own outputs */
+	seqwriter_usage seqwriter;
 
 	/** user data: pointer to operation-specific data. It is managed by the
 	 * caller and by convention should be freed in the finalize hook */

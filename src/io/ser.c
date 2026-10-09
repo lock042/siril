@@ -569,27 +569,6 @@ gboolean ser_is_cfa(const struct ser_struct *ser_file) {
 	// supported yet so returning false for them here is good
 }
 
-/* set the timestamps of the ser_file using a list of timestamps in string form */
-void ser_convertTimeStamp(struct ser_struct *ser_file, GSList *timestamp) {
-	int i = 0;
-	if (ser_file->ts)
-		free(ser_file->ts);
-	ser_file->ts = calloc(sizeof(guint64), ser_file->frame_count);
-	if (!ser_file->ts) {
-		PRINT_ALLOC_ERR;
-		return;
-	}
-	ser_file->ts_alloc = ser_file->frame_count;
-
-	GSList *t = timestamp;
-	while (t && i < ser_file->frame_count) {
-		guint64 utc = date_time_to_ser_timestamp((GDateTime *)t->data);
-		t = t->next;
-		memcpy(&ser_file->ts[i], &utc, sizeof(guint64));
-		i++;
-	}
-}
-
 void ser_display_info(struct ser_struct *ser_file) {
 	const char *color = convert_color_id_to_char(ser_file->color_id);
 

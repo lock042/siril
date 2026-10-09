@@ -193,9 +193,11 @@ gpointer generic_sequence_worker(gpointer p) {
 		g_free(desc);
 	}
 
-	have_seqwriter = args->has_output &&
-		((args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) ||
-		 (args->force_ser_output || args->seq->type == SEQ_SER));
+	if (args->seqwriter == SEQWRITER_AUTO)
+		have_seqwriter = args->has_output &&
+			((args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) ||
+			 (args->force_ser_output || args->seq->type == SEQ_SER));
+	else have_seqwriter = args->has_output && args->seqwriter == SEQWRITER_ALWAYS;
 #ifdef _OPENMP
 	omp_init_lock(&args->lock);
 	if (have_seqwriter)
