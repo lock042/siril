@@ -569,7 +569,7 @@ Test(mpp_align, multilevel_keeps_phase1_shift_on_phase2_failure) {
 	cr_assert_not(r.success, "phase 2 cannot fit in the cropped frame");
 	cr_assert(r.dy <= -7.0 && r.dy >= -9.0,
 	          "phase-1 estimate should be kept on failure (got dy=%g)", r.dy);
-	cr_assert_float_eq(r.dx, 0.0, 2.1, "dx should stay near zero (got %g)");
+	cr_assert_float_eq(r.dx, 0.0, 2.1, "dx should stay near zero (got %g)", r.dx);
 }
 
 /* mpp_improve: zero-mean correlation (cfg.alignment_points_zero_mean →

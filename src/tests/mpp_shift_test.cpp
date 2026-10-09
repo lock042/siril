@@ -150,13 +150,11 @@ Test(mpp_shift, per_ap_shifts_near_zero_after_global_alignment) {
 	 * resolution, because the global aligner already corrected the bulk
 	 * translation and the simulated scene has no per-AP warp. */
 	int worst_y = 0, worst_x = 0;
-	int worst_count = 0;
 	for (int f = 0; f < out->num_frames; ++f)
 		for (int a = 0; a < aps->count; ++a) {
 			const size_t off = (size_t) (f * aps->count + a) * 2;
 			worst_y = std::max(worst_y, (int) std::abs(out->shifts[off + 0]));
 			worst_x = std::max(worst_x, (int) std::abs(out->shifts[off + 1]));
-			if (out->shifts[off + 0] || out->shifts[off + 1]) ++worst_count;
 		}
 	cr_assert_leq(worst_y, 1);
 	cr_assert_leq(worst_x, 1);
