@@ -18,11 +18,13 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/ >.
  */
 
-#include <criterion/criterion.h>
 #include <string.h>
-#include "core/siril.h"
-#include "core/processing.h"
+
+#include <criterion/criterion.h>
+
 #include "core/op_descriptor.h"
+#include "core/processing.h"
+#include "core/siril.h"
 
 cominfo com;	// the core data struct
 fits *gfit;	// currently loaded image (now a pointer)

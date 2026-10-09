@@ -23,14 +23,15 @@
  * level made it throw, and the exception, crossing the extern "C" boundary,
  * terminated Siril while plate solving. */
 
-#include <criterion/criterion.h>
 #include <stdio.h>
 #include <string.h>
 
+#include <criterion/criterion.h>
+
 #include "core/siril.h"
-#include "io/siril_catalogues.h"
-#include "io/local_catalogues.h"
 #include "io/healpix/healpix_cat.h"
+#include "io/local_catalogues.h"
+#include "io/siril_catalogues.h"
 
 cominfo com;	// the core data struct
 fits *gfit;	// currently loaded image

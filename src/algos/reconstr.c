@@ -104,20 +104,21 @@
  **
  ******************************************************************************/
 
-#include <stdio.h>
 #include <math.h>
-#include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
+
 #include <glib/gstdio.h>
 
-#include "core/siril_log.h"
-#include "core/siril.h"
-#include "core/proto.h"
 #include "algos/Def_Math.h"
 #include "algos/Def_Mem.h"
 #include "algos/Def_Wavelet.h"
 #include "algos/wavelet_denoise.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 
 int reget_rawdata(float *Imag, int Nl, int Nc, WORD *buf, int threads) {
 	threads = wavelet_threads(threads);
