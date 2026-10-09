@@ -338,6 +338,8 @@ static void global_initialization() {
 	processing_system_init();
 
 	initialize_default_settings();	// com.pref
+	com.spcc_remote_catalogue = g_strdup("https://zenodo.org/records/17988559/files");
+	com.spcc_remote_catalogue_xpcts = NULL;	/* No xp_continuous catalogue published yet; remains NULL until initialize_spcc_mirrors() supplies one. */
 #ifdef HAVE_FFTW3F_MULTITHREAD
 	fprintf(stdout, _("Initializing FFTW multithreading support...\n"));
 	fftwf_init_threads(); // Should really only be called once so do it at startup

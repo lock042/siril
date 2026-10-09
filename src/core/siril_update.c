@@ -807,7 +807,7 @@ void siril_check_spcc_mirrors(gboolean verbose, gboolean sync) {
 		return;
 	}
 	if (!is_online()) {
-		siril_log_color_message(_("Siril is in offline mode, cannot check SPCC mirrors.\n"), "red");
+		siril_log_error(_("Siril is in offline mode, cannot check SPCC mirrors.\n"));
 		return;
 	}
 

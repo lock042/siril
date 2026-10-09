@@ -146,6 +146,8 @@ static void global_initialization() {
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
 	initialize_default_settings();	// com.pref
 	initialize_spcc_mirrors();
+	com.spcc_remote_catalogue = g_strdup("https://zenodo.org/records/17988559/files");
+	com.spcc_remote_catalogue_xpcts = NULL;	/* No xp_continuous catalogue published yet. */
 	initialize_profiles_and_transforms(); // color management
 
 	siril_log_debug("Initializing processing thread...\n");
