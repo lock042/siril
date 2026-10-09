@@ -22,9 +22,10 @@
 #include <criterion/criterion.h>
 #endif
 
-#include "../core/siril.h"
-#include "stacking/stacking.h"
 #include <stdio.h>
+
+#include "core/siril.h"
+#include "stacking/stacking.h"
 
 /* This is the test file for the function that allocates data block to thread
  * for siril median or mean stacking.

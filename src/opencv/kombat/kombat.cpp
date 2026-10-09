@@ -1,16 +1,14 @@
-#include "core/siril.h"
-#include "opencv/kombat/kombat.h"
-#include "opencv/opencv.h"
-
-#include "registration/registration.h"
-#include "io/sequence.h"
-#include "io/image_format_fits.h"
-
-#include "core/siril_log.h"
-
 #include <fitsio.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "io/image_format_fits.h"
+#include "io/sequence.h"
+#include "opencv/kombat/kombat.h"
+#include "opencv/opencv.h"
+#include "registration/registration.h"
 
 using namespace cv;
 /****************************************************************************************\

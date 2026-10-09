@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <sys/file.h>
 #include <unistd.h>
-#include "core/siril.h"
+
 #include "core/proto.h"
+#include "core/siril.h"
 #if defined(HAVE_LIBCURL)
 #include <curl/curl.h>
 #endif
-#include "download_files.h"
+#include "tests/download_files.h"
 
 #define TEST_FILES_BUCKET_URL "https://siril-share-public.s3.rbx.io.cloud.ovh.net"
 #define TEST_FILES_DOWNLOAD_DIR "siril/tests" // in user cache dir

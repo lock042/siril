@@ -29,11 +29,14 @@
  * args survive the call for inspection.
  */
 
+#include <string.h>
+
 #include <criterion/criterion.h>
 #include <lcms2.h>
 
 #include "core/icc_profile.h"
 #include "core/processing.h"
+#include "core/siril.h"
 #include "tests/flis_test_helpers.h"
 
 cominfo com;

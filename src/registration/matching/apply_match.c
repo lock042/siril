@@ -98,17 +98,18 @@
 #include <config.h>
 #endif
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
+
+#include "algos/astrometry_solver.h"
+#include "algos/PSF.h"
 #include "core/siril.h"
 #include "core/siril_world_cs.h"
-#include "algos/PSF.h"
-#include "algos/astrometry_solver.h"
-#include "apply_match.h"
-#include "misc.h"
-#include "degtorad.h"
+#include "registration/matching/apply_match.h"
+#include "registration/matching/degtorad.h"
+#include "registration/matching/misc.h"
 
 #undef DEBUG           /* get some of diagnostic output */
 

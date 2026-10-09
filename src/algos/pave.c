@@ -73,16 +73,16 @@
 **
 ******************************************************************************/
 
-#include <stdio.h>
 #include <math.h>
-#include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-#include "core/siril.h"
-#include "core/siril_log.h"
 #include "algos/Def_Math.h"
 #include "algos/Def_Mem.h"
 #include "algos/Def_Wavelet.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 
 /* Half-widths and 1D taps of the à trous scaling functions, given from the
  * centre outwards (t[0] is the centre, t[k] the weight of the ±k*Step

@@ -18,12 +18,13 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "../core/siril.h"
-#include "../core/proto.h"
-#include "../io/image_format_fits.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "core/proto.h"
+#include "core/siril.h"
+#include "io/image_format_fits.h"
 
 int main(int argc, char **argv) {
 	fits fits1 = {0}, fits2 = {0};

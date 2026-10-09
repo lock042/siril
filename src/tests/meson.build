@@ -505,6 +505,15 @@ if criterion_dep.found()
                                 cpp_args : siril_cpp_flag)
      test('test_flis_gpu_compose_bake', test_flis_gpu_compose_bake_exec, suite: 'flis')
 
+     fits_header_exec = executable('fits_header_test',
+                                   'fits_header_test.c',
+                                   dependencies : [siril_dep, criterion_dep],
+                                   link_args : siril_link_arg,
+                                   c_args : siril_c_flag,
+                                   cpp_args : siril_cpp_flag)
+
+     test('fits_header_test', fits_header_exec)
+
      test_icc_state_exec = executable('test_icc_state',
                                 'test_icc_state.c',
                                 dependencies : [siril_dep, criterion_dep],

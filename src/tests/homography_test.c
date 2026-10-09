@@ -29,8 +29,10 @@
  * solve. These tests pin both the shape and the operand order.
  */
 
-#include <criterion/criterion.h>
 #include <math.h>
+
+#include <criterion/criterion.h>
+
 #include "core/siril.h"
 #include "opencv/opencv.h"
 
