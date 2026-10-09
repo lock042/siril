@@ -19,6 +19,7 @@ xx/xx/xx
 * Fixed crash when the `wavelet` or `linear_match` commands were called with too few arguments (#1998)
 * Fixed `cancel` command from pipes to stop a command (#2000)
 * Fixed the display sliders not being reset to 0–65535 when switching to linear display while a stretch tool is open (#2002)
+* Fixed crash when converting files in parallel with a cfitsio built without thread safety (#2003)
 
 **Improvements**
 * Allowed editing FITS keywords of a whole sequence from the UI
