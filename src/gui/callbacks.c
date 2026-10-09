@@ -488,6 +488,15 @@ gboolean set_cutoff_sliders_values_idle(gpointer p) {
 	return FALSE;
 }
 
+static gboolean stretch_dialog_is_open() {
+	const gchar *ids[] = { "histogram_dialog", "asinh_dialog", "curves_dialog", "dialog_star_remix" };
+	for (guint i = 0; i < G_N_ELEMENTS(ids); i++) {
+		if (gtk_widget_get_visible(lookup_widget(ids[i])))
+			return TRUE;
+	}
+	return FALSE;
+}
+
 void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data) {
 	if (!gtk_check_menu_item_get_active(checkmenuitem)) return;
 
@@ -517,6 +526,10 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit.naxes[2] == 3);
 
 	gui.icc.same_primaries = same_primaries(gfit.icc_profile, gui.icc.monitor, gui.icc.soft_proof ? gui.icc.soft_proof : NULL);
+
+	/* same as when a stretch dialog is opened in linear mode */
+	if (gui.rendering_mode == LINEAR_DISPLAY && stretch_dialog_is_open())
+		setup_stretch_sliders();
 
 	if (single_image_is_loaded() || sequence_is_loaded()) {
 		redraw(REMAP_ALL);
