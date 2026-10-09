@@ -75,6 +75,7 @@ xx/xx/xx
 * Fixed the 100% zoom button jumping to the top-left corner of the image instead of keeping the current view center (#1997)
 * Fixed crash when the `wavelet` or `linear_match` commands were called with too few arguments (#1998)
 * Fixed `cancel` command from pipes to stop a command (#2000)
+* Fixed the display sliders not being reset to 0–65535 when switching to linear display while a stretch tool is open
 
 **Improvements**
 * Allowed editing FITS keywords of a whole sequence from the UI
