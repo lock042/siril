@@ -2421,7 +2421,7 @@ gpointer initialize_spcc(gpointer user_data) {
 	// populate_spcc_combos is run from it in an idle in the GTK thread
 	populate_spcc_combos_async(NULL); // controls the GUI mutex
 	// 2. Update the repository
-	if (com.pref.spcc.auto_spcc_update && is_online()) {
+	if (com.pref.spcc.use_spcc_repository && com.pref.spcc.auto_spcc_update && is_online()) {
 #ifdef HAVE_LIBGIT2
 		auto_update_gitspcc(TRUE);
 #endif
@@ -2441,7 +2441,7 @@ gpointer initialize_scripts(gpointer user_data) {
 	execute_idle_and_wait_for_it(initialize_script_menu_idle, GINT_TO_POINTER(1));
 	gui_mutex_unlock();
 	// 2. Update the repository
-	if (com.pref.auto_script_update && is_online()) {
+	if (com.pref.use_scripts_repository && com.pref.auto_script_update && is_online()) {
 #ifdef HAVE_LIBGIT2
 		auto_update_gitscripts(TRUE);
 #endif

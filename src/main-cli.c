@@ -145,13 +145,17 @@ static void global_initialization() {
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
 	initialize_default_settings();	// com.pref
-	initialize_spcc_mirrors();
 	com.spcc_remote_catalogue = g_strdup("https://zenodo.org/records/17988559/files");
 	com.spcc_remote_catalogue_xpcts = NULL;	/* No xp_continuous catalogue published yet. */
+	initialize_spcc_mirrors();
 	initialize_profiles_and_transforms(); // color management
 
 	siril_log_debug("Initializing processing thread...\n");
 	processing_system_init();
+
+#if defined(HAVE_LIBCURL)
+	curl_global_init(CURL_GLOBAL_ALL);
+#endif
 
 #ifdef HAVE_FFTW3F_OMP
 	fftwf_init_threads(); // Should really only be called once so do it at startup
@@ -237,10 +241,6 @@ static void siril_app_activate(GApplication *application) {
 		initialize_python_venv_in_thread();
 	else
 		siril_log_message(_("Python support disabled, running in bare mode.\n"));
-
-#if defined(HAVE_LIBCURL)
-	curl_global_init(CURL_GLOBAL_ALL);
-#endif
 
 	if (main_option_script) {
 		GInputStream *input_stream = NULL;
