@@ -96,17 +96,17 @@
  *
  */
 
-#include "core/siril.h"
-
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
+
 #include "algos/PSF.h"
+#include "core/siril.h"
 #include "opencv/opencv.h"
-#include "registration/matching/misc.h"
-#include "registration/matching/match.h"
 #include "registration/matching/atpmatch.h"
+#include "registration/matching/match.h"
+#include "registration/matching/misc.h"
 
 // #define DEBUG           /* get some of diagnostic output */
 

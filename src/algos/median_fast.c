@@ -27,7 +27,7 @@
  *
 */
  
-#include "median_fast.h"
+#include "algos/median_fast.h"
 
 float median3x3(float* array)
 {

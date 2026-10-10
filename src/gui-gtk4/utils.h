@@ -20,8 +20,8 @@
 #ifndef SRC_GUI_UTILS_H_
 #define SRC_GUI_UTILS_H_
 #include <gtk/gtk.h>
+
 #include "core/siril.h"
-#include "gui-gtk4/gtk3_event_compat.h"
 #include "gui-gtk4/gui_state.h"
 
 /* main_tabs enum moved to core/siril.h */

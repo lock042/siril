@@ -9,22 +9,23 @@
  * a sidebar of standard locations.
  */
 
+#include <string.h>
+
 #include <gtk/gtk.h>
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
-#include "core/initfile.h"
+
 #include "core/exif.h"
-#include "io/avi_preview.h"
-#include "io/SirilJpegXLWrapper.h"
-#include "io/SirilXISFWraper.h"
+#include "core/initfile.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/image_interactions.h"
 #include "gui-gtk4/message_dialog.h"
-#include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/utils.h"
-
-#include <string.h>
+#include "io/avi_preview.h"
+#include "io/SirilJpegXLWrapper.h"
+#include "io/SirilXISFWraper.h"
 
 /* From io/image_format_fits.c — produces a small RGB byte buffer for any
  * FITS file plus a textual description string.  Used by the default

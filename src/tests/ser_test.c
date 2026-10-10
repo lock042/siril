@@ -21,13 +21,14 @@
 #ifndef WITH_MAIN
 #include <criterion/criterion.h>
 #endif
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
+
 #include "core/siril.h"
 #include "core/siril_date.h"
-#include "io/ser.h"
 #include "io/image_format_fits.h"
+#include "io/ser.h"
 
 #ifdef WITH_MAIN
 #define CHECK(cond, ...) \

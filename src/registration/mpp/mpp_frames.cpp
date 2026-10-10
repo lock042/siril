@@ -38,8 +38,6 @@
  * cheaper in transient memory and CPU for a luminance-only consumer).
  */
 
-#include <opencv2/core.hpp>
-
 /* Siril headers don't have `extern "C"` guards; wrap them so the C symbols
  * link from a C++ TU. core/siril.h goes first (outside the wrap) because
  * it pulls in <omp.h>, whose libgomp 15 headers declare C++ templates
@@ -48,10 +46,10 @@
 #include "core/siril.h"
 
 extern "C" {
-#include "io/sequence.h"
-#include "io/ser.h"
 #include "io/fits_sequence.h"
 #include "io/image_format_fits.h"
+#include "io/sequence.h"
+#include "io/ser.h"
 #ifdef HAVE_FFMS2
 #include "io/films.h"
 #endif

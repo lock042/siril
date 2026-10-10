@@ -2,6 +2,7 @@
 #define _IMAGE_FORMAT_FITS_H
 
 #include <fitsio.h>
+
 #include "core/siril.h"
 
 #define FITS_DOUBLE_BLOC_SIZE 2 * IOBUFLEN // 2 * 2880, the size of a double FITS block, used to allocate bigger chunk and avoid reallocating

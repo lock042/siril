@@ -26,7 +26,6 @@
 #include "core/settings.h"
 #include "core/siril.h"
 #include "core/siril_log.h"
-#include "core/icc_profile.h"
 #include "io/local_catalogues.h"
 #include "stacking/stacking.h"
 
@@ -61,6 +60,7 @@ preferences pref_init = {
 	.catalogue_paths[5] = NULL,
 	.rgb_aladin = FALSE,
 	.use_checksum = FALSE,
+	.use_mips_lohi = TRUE,
 	.copyright = NULL,
 	.asnet_dir = NULL,
 	.selected_scripts = NULL,
@@ -372,6 +372,7 @@ struct settings_access all_settings[] = {
 	{ "core", "catalogue_gaia_photo", STYPE_STR, N_("Path of the local Gaia photometric catalogue"), &com.pref.catalogue_paths[5] },
 	{ "core", "rgb_aladin", STYPE_BOOL, N_("add CTYPE3='RGB' in the FITS header"), &com.pref.rgb_aladin },
 	{ "core", "use_checksum", STYPE_BOOL, N_("Verify file checksums if they exist"), &com.pref.use_checksum },
+	{ "core", "use_mips_lohi", STYPE_BOOL, N_("set display sliders from MIPS-LO/HI keywords"), &com.pref.use_mips_lohi },
 	{ "core", "copyright", STYPE_STR, N_("user copyright to put in file header"), &com.pref.copyright },
 #ifdef _WIN32
 	{ "core", "asnet_dir", STYPE_STR, N_("directory of the asnet_ansvr installation"), &com.pref.asnet_dir },

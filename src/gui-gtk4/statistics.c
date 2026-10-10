@@ -19,6 +19,7 @@
  */
 
 #include <gtk/gtk.h>
+
 #include "core/gui_iface.h"
 
 void on_menu_gray_stat_activate(GtkWidget *menuitem, gpointer user_data) {

@@ -2,6 +2,7 @@
 #define SRC_FILTERS_SATURATION_H_
 
 #include <glib.h>
+
 #include "core/processing.h"
 
 typedef struct {

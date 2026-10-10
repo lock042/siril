@@ -19,14 +19,15 @@
  */
 
 #include <string.h>
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
+
 #include "algos/fitting.h"
 #include "algos/statistics.h"
-#include "io/image_format_fits.h"
-#include "linear_match.h"
 #include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "filters/linear_match.h"
+#include "io/image_format_fits.h"
 
 /* Op descriptor — single source of truth for this operation (op_descriptor.h) */
 const op_descriptor op_desc_linear_match = {

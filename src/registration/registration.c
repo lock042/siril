@@ -18,14 +18,12 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-
-#include "core/proto.h"
-#include "core/gui_iface.h"
-#include "core/siril_log.h"
-#include "opencv/opencv.h"
-#include "drizzle/cdrizzleutil.h"
 #include "algos/siril_wcs.h"
+#include "core/gui_iface.h"
+#include "core/proto.h"
+#include "core/siril_log.h"
+#include "drizzle/cdrizzleutil.h"
+#include "opencv/opencv.h"
 
 /* end_register_idle: defined in gui/registration.c (GUI) or
  * core/headless_stubs.c (headless/CLI). */

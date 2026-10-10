@@ -19,16 +19,17 @@
  */
 
 #include <criterion/criterion.h>
-#include "core/siril.h"
-#include "core/proto.h"
-#include "io/image_format_fits.h"
-#include "core/processing_thread.h"
+
+#include "algos/statistics.h"
+#include "core/op_descriptors.h"
 #include "core/processing.h"
+#include "core/processing_thread.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "filters/banding.h"
 #include "filters/cosmetic_correction.h"
-#include "core/op_descriptors.h"
-#include "algos/statistics.h"
-#include "download_files.h"
+#include "io/image_format_fits.h"
+#include "tests/download_files.h"
 
 cominfo com;	// the core data struct
 fits *gfit;	// currently loaded image

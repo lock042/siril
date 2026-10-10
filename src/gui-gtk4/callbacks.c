@@ -18,72 +18,70 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <gtk/gtk.h>
 #include <stdio.h>
 #include <string.h>
 
-#include "core/siril.h"
-#include "core/op_descriptors.h"
-#include "core/processing_thread.h"
-#include "core/proto.h"
-#include "core/icc_profile.h"
-#include "core/initfile.h"
-#include "core/undo.h"
-#include "core/masks.h"
+#include <gtk/gtk.h>
+
+#include "compositing/compositing.h"
 #include "core/command.h"
 #include "core/command_line_processor.h"
-#include "core/siril_language.h"
-#include "core/siril_networking.h"
+#include "core/icc_profile.h"
+#include "core/initfile.h"
+#include "core/op_descriptors.h"
 #include "core/OS_utils.h"
+#include "core/processing_thread.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_language.h"
 #include "core/siril_log.h"
-#include "compositing/compositing.h"
+#include "core/siril_networking.h"
+#include "core/undo.h"
 #include "gui-gtk4/conversion.h"
 #include "gui-gtk4/cut.h"
-#include "gui-gtk4/open_dialog.h"
 #include "gui-gtk4/icc_profile.h"
 #include "gui-gtk4/keywords_tree.h"
-#include "gui-gtk4/registration.h"
 #include "gui-gtk4/mpp_ap_editor.h"
 #include "gui-gtk4/mpp_shift_viewer.h"
+#include "gui-gtk4/open_dialog.h"
+#include "gui-gtk4/photometric_cc.h"
+#include "gui-gtk4/python_gui.h"
+#include "gui-gtk4/registration.h"
+#include "gui-gtk4/stacking.h"
+#include "gui-gtk4/undo_gui.h"
 #include "registration/mpp.h"
 #include "registration/registration.h"
-#include "gui-gtk4/photometric_cc.h"
-#include "gui-gtk4/stacking.h"
-#include "gui-gtk4/python_gui.h"
-#include "gui-gtk4/undo_gui.h"
 /* Forward declaration: defined in gui/sequence_export.c */
 void update_export_crop_label();
+#include "algos/astrometry_solver.h"
 #include "algos/siril_wcs.h"
+#include "filters/mtf.h"
+#include "gui-gtk4/annotations_pref.h"
+#include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/histogram.h"
+#include "gui-gtk4/image_display.h"
+#include "gui-gtk4/image_interactions.h"
+#include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/plot.h"
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/PSF_list.h"
+#include "gui-gtk4/registration_preview.h"
+#include "gui-gtk4/remixer.h"
+#include "gui-gtk4/script_menu.h"
+#include "gui-gtk4/sequence_list.h"
+#include "gui-gtk4/single_image.h"
+#include "gui-gtk4/siril-window.h"
+#include "gui-gtk4/siril_intro.h"
+#include "gui-gtk4/siril_preview.h"
+#include "gui-gtk4/utils.h"
 #include "io/annotation_catalogues.h"
 #include "io/films.h"
+#include "io/healpix/fluxcache_cat.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "io/siril_git.h"
-#include "io/siril_pythonmodule.h"
-#include "annotations_pref.h"
-#include "image_display.h"
-#include "image_interactions.h"
-#include "single_image.h"
-#include "sequence_list.h"
-#include "callbacks.h"
-
-#include "algos/astrometry_solver.h"
-#include "filters/mtf.h"
-#include "utils.h"
-#include "plot.h"
-#include "message_dialog.h"
-#include "PSF_list.h"
-#include "histogram.h"
-#include "remixer.h"
-#include "script_menu.h"
-#include "progress_and_log.h"
-#include "dialogs.h"
-#include "siril_intro.h"
-#include "siril_preview.h"
-#include "siril-window.h"
-#include "registration_preview.h"
-#include "io/healpix/fluxcache_cat.h"
 
 static GList *roi_callbacks = NULL;
 static gchar *display_item_name[] = { "linear_item", "log_item", "square_root_item", "squared_item", "asinh_item", "auto_item", "histo_item", "softproof_item"};
@@ -659,6 +657,15 @@ static gboolean try_remap_for_mode_change_idle(gpointer p) {
 	return FALSE;
 }
 
+static gboolean stretch_dialog_is_open() {
+	const gchar *ids[] = { "histogram_dialog", "asinh_dialog", "curves_dialog", "dialog_star_remix" };
+	for (guint i = 0; i < G_N_ELEMENTS(ids); i++) {
+		if (gtk_widget_get_visible(lookup_widget(ids[i])))
+			return TRUE;
+	}
+	return FALSE;
+}
+
 void on_display_item_toggled(GtkCheckButton *checkmenuitem, gpointer user_data) {
 	if (!siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(checkmenuitem)))) return;
 
@@ -688,6 +695,10 @@ void on_display_item_toggled(GtkCheckButton *checkmenuitem, gpointer user_data) 
 	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY, gfit->naxes[2] == 3);
 
 	com.gui_icc.same_primaries = same_primaries(gfit->icc_profile, com.gui_icc.monitor, com.gui_icc.soft_proof ? com.gui_icc.soft_proof : NULL);
+
+	/* same as when a stretch dialog is opened in linear mode */
+	if (gui.rendering_mode == LINEAR_DISPLAY && stretch_dialog_is_open())
+		setup_stretch_sliders();
 
 	if (single_image_is_loaded() || sequence_is_loaded()) {
 		if (processing_is_job_active()) {

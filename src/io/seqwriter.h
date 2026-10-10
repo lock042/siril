@@ -2,6 +2,7 @@
 #define SEQ_WRITER_H
 
 #include <glib.h>
+
 #include "core/siril.h"
 
 struct seqwriter_data {

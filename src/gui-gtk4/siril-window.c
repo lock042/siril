@@ -19,11 +19,12 @@
  */
 
 #include <gtk/gtk.h>
-#include "gui-gtk4/siril_actions.h"
-#include "gui-gtk4/utils.h"
+
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "gui-gtk4/siril-window.h"
+#include "gui-gtk4/siril_actions.h"
+#include "gui-gtk4/utils.h"
 
 static GActionEntry win_entries[] = {
 	{ "close", close_action_activate },

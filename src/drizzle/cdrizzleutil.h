@@ -38,10 +38,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef CDRIZZLEUTIL_H
 #define CDRIZZLEUTIL_H
-#include "driz_portability.h"
-#include "core/siril.h"
 #include <assert.h>
-#include <errno.h>
+
+#include "core/siril.h"
+#include "drizzle/driz_portability.h"
 #define _USE_MATH_DEFINES       /* needed for MS Windows to define G_PI */
 #include <math.h>
 #if __STDC_VERSION__ >= 199901L
@@ -49,7 +49,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include <stdlib.h>
 
-#include "core/sequence_filtering.h" // for seq_image_filter
 #include "registration/registration.h" // for framing_type
 
 /*****************************************************************

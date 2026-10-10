@@ -20,8 +20,10 @@
 #ifndef _SIRIL_CATALOGUES_H
 #define _SIRIL_CATALOGUES_H
 
-#include <glib.h>
 #include <gio/gio.h>
+#include <glib.h>
+
+#include "core/siril.h"
 #include "core/siril_world_cs.h"
 
 // number of columns that can be defined in a catalogue

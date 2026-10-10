@@ -8,22 +8,19 @@
  * (gfit copy, savefits, GUI refresh) is unchanged.
  */
 
-#include <glib.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include <glib.h>
+
+#include "core/gui_iface.h"
 #include "core/siril.h"
 #include "core/siril_log.h"
-#include "core/proto.h"
-#include "core/gui_iface.h"
-#include "io/sequence.h"
 #include "io/image_format_fits.h"
-
 #include "registration/mpp.h"
 #include "registration/mpp/mpp_ap.h"        /* mpp_aps_t — full type for aps->count */
 #include "registration/mpp/mpp_config.h"
 #include "registration/mpp/mpp_sidecar.h"
-
 #include "stacking/stacking.h"
 
 int stack_mpp_handler(struct stacking_args *args) {

@@ -28,19 +28,17 @@
 
 #include <gtk/gtk.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
-#include "core/gui_iface.h"
-#include "core/processing.h"
 #include "core/command_line_processor.h"
 #include "core/command_list.h"
+#include "core/gui_iface.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/gui_state.h"
 #include "gui-gtk4/image_interactions.h"
-#include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/script_console.h"
 #include "gui-gtk4/utils.h"
 #include "io/single_image.h"
-#include "script_console.h"
 
 /* ── Status-bar logging ──────────────────────────────────────────────────── */
 

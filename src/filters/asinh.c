@@ -5,14 +5,13 @@
 
 #include <math.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/arithm.h"
-#include "core/processing.h"
 #include "algos/statistics.h"
-
-#include "asinh.h"
+#include "core/arithm.h"
 #include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "filters/asinh.h"
 
 /* Op descriptor — single source of truth for this operation (op_descriptor.h) */
 const op_descriptor op_desc_asinh = {

@@ -18,7 +18,6 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 #ifndef SRC_GUI_DIALOG_PREVIEW_H_
-#include <gtk/gtk.h>
 #define SRC_GUI_DIALOG_PREVIEW_H_
 
 /* The GtkFileChooser-based preview pipeline was removed: GTK4 has no

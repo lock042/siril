@@ -3,6 +3,7 @@
 
 #include <glib.h>
 #include <gsl/gsl_matrix.h>
+
 #include "core/processing.h"
 
 struct median_filter_data {

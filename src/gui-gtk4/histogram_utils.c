@@ -18,12 +18,13 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <gsl/gsl_histogram.h>
-#include <string.h>
 #include <math.h>
+#include <string.h>
+
+#include <gsl/gsl_histogram.h>
+
 #include "core/siril.h"
-#include "core/proto.h"
-#include "histogram_utils.h"
+#include "gui-gtk4/histogram_utils.h"
 
 /* The gsl_histogram, documented here:
  * http://linux.math.tifr.res.in/manuals/html/gsl-ref-html/gsl-ref_21.html
@@ -35,96 +36,6 @@
 static const double histo_color_r[] = { 1.0, 0.0, 0.0, 0.0 };
 static const double histo_color_g[] = { 0.0, 1.0, 0.0, 0.0 };
 static const double histo_color_b[] = { 0.0, 0.0, 1.0, 0.0 };
-
-size_t get_histo_size(fits *fit) {
-	if (fit->type == DATA_USHORT) {
-		if (fit->orig_bitpix == BYTE_IMG)
-			return UCHAR_MAX;
-	}
-	return (size_t)USHRT_MAX;
-}
-
-// Create a new histogram object for the passed fit and layer
-gsl_histogram *computeHisto(fits *fit, int layer) {
-	g_assert(layer < 3);
-	size_t i, ndata, size;
-
-	size = get_histo_size(fit);
-	gsl_histogram *histo = gsl_histogram_alloc(size + 1);
-	gsl_histogram_set_ranges_uniform(histo, 0, fit->type == DATA_FLOAT ? 1.0 + 1.0 / size : size + 1);
-	ndata = fit->naxes[0] * fit->naxes[1];
-
-#ifdef _OPENMP
-#pragma omp parallel num_threads(com.max_thread)
-#endif
-	{
-		gsl_histogram *histo_thr = gsl_histogram_alloc(size + 1);
-		gsl_histogram_set_ranges_uniform(histo_thr, 0, fit->type == DATA_FLOAT ? 1.0 + 1.0 / size : size + 1);
-
-		if (fit->type == DATA_USHORT) {
-			WORD *buf = fit->pdata[layer];
-#ifdef _OPENMP
-#pragma omp for private(i) schedule(static)
-#endif
-			for (i = 0; i < ndata; i++) {
-				if (buf[i] == 0)
-					continue;
-				gsl_histogram_increment(histo_thr, (double) buf[i]);
-			}
-		} else if (fit->type == DATA_FLOAT) {
-			float *buf = fit->fpdata[layer];
-#ifdef _OPENMP
-#pragma omp for private(i) schedule(static)
-#endif
-			for (i = 0; i < ndata; i++) {
-				if (buf[i] == 0.f)
-					continue;
-				gsl_histogram_increment(histo_thr, (double) buf[i]);
-			}
-		}
-#ifdef _OPENMP
-#pragma omp critical
-#endif
-		{
-			gsl_histogram_add(histo, histo_thr);
-		}
-		gsl_histogram_free(histo_thr);
-	}
-
-	return histo;
-}
-
-gsl_histogram *computeHisto_Selection(fits *fit, int layer, rectangle *selection) {
-	g_assert(layer < 3);
-
-	size_t size = get_histo_size(fit);
-	gsl_histogram *histo = gsl_histogram_alloc(size + 1);
-	gsl_histogram_set_ranges_uniform(histo, 0, fit->type == DATA_FLOAT ? 1.0 : size);
-	size_t stridefrom = fit->rx - selection->w;
-
-	if (fit->type == DATA_USHORT) {
-		WORD *from = fit->pdata[layer] + (fit->ry - selection->y - selection->h) * fit->rx
-			+ selection->x;
-		for (size_t i = 0; i < selection->h; i++) {
-			for (size_t j = 0; j < selection->w; j++) {
-				gsl_histogram_increment(histo, (double)*from);
-				from++;
-			}
-			from += stridefrom;
-		}
-	} else if (fit->type == DATA_FLOAT) {
-		float *from = fit->fpdata[layer] + (fit->ry - selection->y - selection->h) * fit->rx
-			+ selection->x;
-		for (size_t i = 0; i < selection->h; i++) {
-			for (size_t j = 0; j < selection->w; j++) {
-				gsl_histogram_increment(histo, (double)*from);
-				from++;
-			}
-			from += stridefrom;
-		}
-	}
-	return histo;
-}
 
 void set_histogram(gsl_histogram *histo, int layer) {
 	g_assert(layer >= 0 && layer < MAXVPORT);

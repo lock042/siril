@@ -358,8 +358,8 @@ not_img_expr_t<decltype(to_expr(std::declval<E>()))> operator!(const E& e) {
             ([](auto e1, auto e2, auto e3) { return call(e1, e2, e3); }, to_expr(e1), to_expr(e2), to_expr(e3)); \
     } \
 
-#include "better_than_std.hpp"
-#include "vec2.hpp"
+#include "algos/img_t/better_than_std.hpp"
+#include "algos/img_t/vec2.hpp"
 
 namespace std {
     template <typename E1, typename E2, typename E3>

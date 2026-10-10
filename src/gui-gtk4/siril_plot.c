@@ -18,18 +18,15 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "io/siril_plot.h"
+#include <math.h>
 
 #include <cairo.h>
-#include <math.h>
-#include "core/proto.h"
+
 #include "core/siril_log.h"
-#include "core/siril_date.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/utils.h"
-#include "io/sequence.h"
-#include "io/single_image.h"
+#include "io/siril_plot.h"
 
 #define SIRIL_PLOT_ZOOM_OUT 1.5
 #define SIRIL_PLOT_ZOOM_IN 1. / SIRIL_PLOT_ZOOM_OUT
@@ -43,37 +40,6 @@ static gboolean spl_data_has_any_plot(siril_plot_data *spl_data) {
 	// siril_log_debug("Plot: %d\n", g_list_length(spl_data->plot));
 	// siril_log_debug("Plots: %d\n", g_list_length(spl_data->plots));
 	return (g_list_length(spl_data->plot) + g_list_length(spl_data->plots) > 0);
-}
-
-gchar* build_save_filename(gchar *prepend, gchar *ext, gboolean forsequence, gboolean add_time_stamp){
-	gchar *temp = NULL, *timestamp = NULL;
-	GString *filename = NULL;
-	
-	if (!prepend)
-		return NULL;
-	filename = g_string_new(prepend);
-
-	if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
-		temp = g_path_get_basename(com.uniq->filename);
-	} else if (sequence_is_loaded() && !forsequence) {
-		char seq_image_canonical_name[256] = "";
-		seq_get_image_filename(&com.seq, com.seq.current, seq_image_canonical_name);
-		temp = g_strdup(seq_image_canonical_name);
-	}
-	if (temp) {
-		gchar *tmp = remove_ext_from_filename(temp);
-		g_string_append_printf(filename, "_%s", tmp);
-		g_free(temp);
-		g_free(tmp);
-	}
-
-	timestamp = build_timestamp_filename();
-	if (add_time_stamp) {
-		g_string_append_printf(filename, "_%s", timestamp);
-		g_free(timestamp);
-	}
-	g_string_append_printf(filename, "%s", ext);
-	return g_string_free(filename, FALSE);
 }
 
 static void convert_surface_to_plot(siril_plot_data *spl_data, double x, double y, double *xpl, double *ypl) {

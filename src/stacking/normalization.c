@@ -20,21 +20,21 @@
 
 #include <string.h>
 
-#include "core/siril.h"
-#include "core/gui_iface.h"
-#include "core/proto.h"
-#include "core/OS_utils.h"
-#include "core/siril_log.h"
-#include "algos/statistics.h"
-#include "algos/statistics_float.h"
-#include "algos/sorting.h"
-#include "registration/registration.h"
-#include "stacking.h"
-#include "io/image_format_fits.h"
-#include "io/sequence.h"
-
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_permutation.h>
+
+#include "algos/sorting.h"
+#include "algos/statistics.h"
+#include "algos/statistics_float.h"
+#include "core/gui_iface.h"
+#include "core/OS_utils.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "io/image_format_fits.h"
+#include "io/sequence.h"
+#include "registration/registration.h"
+#include "stacking/stacking.h"
 
 // #define DEBUG_NORM
 

@@ -27,21 +27,19 @@
  * chooser, status labels) lives in gui/pixelmath.c.
  */
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/icc_profile.h"
-#include "core/processing.h"
-#include "core/siril_log.h"
-#include "core/gui_iface.h"
-#include "algos/statistics.h"
-#include "io/single_image.h"
-#include "io/sequence.h"
-#include "io/image_format_fits.h"
-#include "io/conversion.h"
 #include "algos/demosaicing.h"
-
-#include "tinyexpr.h"
-#include "pixel_math_runner.h"
+#include "algos/statistics.h"
+#include "core/gui_iface.h"
+#include "core/icc_profile.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "io/conversion.h"
+#include "io/image_format_fits.h"
+#include "io/sequence.h"
+#include "io/single_image.h"
+#include "pixelMath/pixel_math_runner.h"
+#include "pixelMath/tinyexpr.h"
 
 #define T_CURRENT "gfit"
 

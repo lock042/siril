@@ -1,6 +1,8 @@
 #ifndef SRC_GUI_SCRIPT_MENU_H_
 #define SRC_GUI_SCRIPT_MENU_H_
 
+#include <glib.h>
+
 #define SCRIPT_EXT "ssf"
 #define PYSCRIPT_EXT "py"
 #define PYCSCRIPT_EXT "pyc"

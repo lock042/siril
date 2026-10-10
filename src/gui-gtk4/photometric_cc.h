@@ -1,8 +1,9 @@
 #ifndef SRC_GUI_PHOTOMETRIC_CC_H_
 #define SRC_GUI_PHOTOMETRIC_CC_H_
 
-#include <stdio.h>
 #include <glib.h>
+
+#include "core/siril.h"
 
 void check_gaia_archive_status();
 gpointer gaia_check(gpointer user_data);

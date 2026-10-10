@@ -22,12 +22,14 @@
  * floating point physical values (BSCALE/BZERO), as opposed to the usual
  * unsigned integer offset trick. */
 
-#include <criterion/criterion.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
+
+#include <criterion/criterion.h>
 #include <fitsio.h>
+
 #include "core/siril.h"
 #include "io/image_format_fits.h"
 

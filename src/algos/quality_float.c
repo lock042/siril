@@ -20,15 +20,12 @@
 
 /** This code comes from PIPP https://sites.google.com/site/astropipp/ */
 
-#include <ctype.h>
-#include <string.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
 #include "algos/quality.h"
+#include "core/siril.h"
 
 static float SubSample(float *ptr, int img_wid, int x_size, int y_size);
 static void _smooth_image_float(float *buf, int width, int height);

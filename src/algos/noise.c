@@ -18,18 +18,14 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <math.h>
 #include <string.h>
-#include <gsl/gsl_statistics.h>
 
-#include "core/siril.h"
-#include "core/processing.h"
-#include "core/OS_utils.h"
-#include "core/siril_log.h"
+#include "algos/noise.h"
 #include "algos/statistics.h"
 #include "core/gui_iface.h"
-
-#include "noise.h"
+#include "core/processing.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 
 static GThread *thread;
 

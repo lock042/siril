@@ -19,16 +19,16 @@
  */
 
 #include "io/FITS_symlink.h" // needs to be included before siril.h to avoid type redefinition
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
-#include "core/processing.h"
-#include "io/sequence.h"
-#include "io/image_format_fits.h"
 #include "algos/siril_wcs.h"
-#include "registration.h"
-#include "opencv/opencv.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "drizzle/cdrizzleutil.h"
+#include "io/image_format_fits.h"
+#include "io/sequence.h"
+#include "opencv/opencv.h"
+#include "registration/registration.h"
 
 static int new_ref_index = -1;
 

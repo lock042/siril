@@ -2,7 +2,6 @@
 #define REGISTRATION_DISTORSION_H_
 
 #include "core/siril.h"
-#include "io/path_parse.h"
 
 #define MAX_DISTO_SIZE 7 // need to duplicate MAX_DISTO_SIZE here because of circular refs with opencv
 

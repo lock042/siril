@@ -19,28 +19,27 @@
  */
 
 #include <math.h>
-#include <gsl/gsl_matrix.h>
-#include <gsl/gsl_statistics.h>
 #include <string.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_date.h"
-#include "core/siril_log.h"
-#include "algos/sorting.h"
-#include "algos/PSF.h"
-#include "algos/photometry.h"
-#include "algos/siril_wcs.h"
-#include "algos/statistics_float.h"
-#include "algos/star_finder.h"
+#include <gsl/gsl_statistics.h>
+
 #include "algos/comparison_stars.h"
 #include "algos/photometric_cc.h"
+#include "algos/photometry.h"
+#include "algos/PSF.h"
+#include "algos/siril_wcs.h"
+#include "algos/sorting.h"
+#include "algos/star_finder.h"
+#include "algos/statistics_float.h"
 #include "core/gui_iface.h"
-#include "io/sequence.h"
-#include "io/siril_plot.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_date.h"
+#include "core/siril_log.h"
 #include "io/local_catalogues.h"
+#include "io/sequence.h"
 #include "io/siril_catalogues.h"
-#include "opencv/opencv.h"
+#include "io/siril_plot.h"
 
 #define MIN_SKY    5	// min number of backgroun pixels for valid photometry
 

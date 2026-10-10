@@ -17,16 +17,15 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/gui_iface.h"
-#include "core/siril_log.h"
-#include "core/processing.h"
-#include "comparison_stars.h"
-#include "algos/siril_wcs.h"
+#include "algos/comparison_stars.h"
 #include "algos/search_objects.h"
+#include "algos/siril_wcs.h"
+#include "core/gui_iface.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "io/siril_catalogues.h"
-
 
 #define BORDER_RATIO 0.10 // the amount of image that is considered at border
 #define MAX_VAR_CAT 3 // max number of variable stars catalogues

@@ -1,11 +1,9 @@
 #ifndef SRC_ALGOS_ASTROMETRY_SOLVER_H_
 #define SRC_ALGOS_ASTROMETRY_SOLVER_H_
 
-#include "core/siril.h"
-#include "core/gtk_forward_decls.h"
-#include "core/siril_world_cs.h"
-#include "io/remote_catalogues.h"
 #include "algos/search_objects.h"
+#include "core/siril.h"
+#include "core/siril_world_cs.h"
 #include "registration/matching/degtorad.h"
 
 #define BRIGHTEST_STARS 2000

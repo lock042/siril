@@ -75,11 +75,14 @@ xx/xx/xx
 * Fixed the 100% zoom button jumping to the top-left corner of the image instead of keeping the current view center (#1997)
 * Fixed crash when the `wavelet` or `linear_match` commands were called with too few arguments (#1998)
 * Fixed `cancel` command from pipes to stop a command (#2000)
+* Fixed the display sliders not being reset to 0–65535 when switching to linear display while a stretch tool is open (#2002)
+* Fixed crash when converting files in parallel with a cfitsio built without thread safety (#2003)
 
 **Improvements**
 * Allowed editing FITS keywords of a whole sequence from the UI
 * Reviewed banding reduction command arguments and reimplemented the algorithm for improved speed (!1097)
 * Added 2 commands `addwcs` and `catquery` (!1103)
+* Added a preference to not use the MIPS-LO/HI keywords to set the display sliders
 
 siril-1.4.4
 06/17/26

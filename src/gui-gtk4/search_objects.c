@@ -20,17 +20,16 @@
 
 #include <gtk/gtk.h>
 
-#include "core/siril.h"
+#include "algos/astrometry_solver.h"
+#include "algos/siril_wcs.h"
 #include "core/op_descriptors.h"
 #include "core/processing.h"
 #include "core/processing_thread.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
-#include "algos/search_objects.h"
-#include "algos/astrometry_solver.h"
-#include "algos/siril_wcs.h"
-#include "io/siril_catalogues.h"
-#include "gui-gtk4/utils.h"
 #include "gui-gtk4/search_objects.h"
+#include "gui-gtk4/utils.h"
+#include "io/siril_catalogues.h"
 
 void search_object(GtkEditable *entry) {
 	if (!has_wcs(gfit))

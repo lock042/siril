@@ -29,28 +29,24 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
-#include <time.h>
-#include <unistd.h>
 #include <sys/time.h>
-#include <sys/types.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
-#include "core/OS_utils.h"
-#include "core/siril_log.h"
 #include "algos/demosaicing.h"
+#include "core/gui_iface.h"
+#include "core/OS_utils.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "io/conversion.h"
 #include "io/films.h"
 #include "io/fits_sequence.h"
-#include "io/image_format_fits.h"
-#include "io/ser.h"
-#include "io/seqwriter.h"
-#include "io/sequence.h"
 #include "io/FITS_symlink.h"
-#include "core/gui_iface.h"
+#include "io/image_format_fits.h"
+#include "io/sequence.h"
+#include "io/seqwriter.h"
+#include "io/ser.h"
 #include "registration/mpp/mpp_config.h"  /* enum mpp_avi_bayer */
-#include "conversion.h"
 
 #ifdef HAVE_LIBRAW
 #include <libraw/libraw_version.h>
@@ -1099,6 +1095,8 @@ static void readjust_memory_limits(convert_status *conv, fits *fit) {
 	compute_nb_images_fit_mem(fit, conv->args->debayer, &nb_threads, &nb_images);
 	if (nb_threads <= 0)
 		goto unlock_end;
+	if (!fits_is_reentrant())
+		nb_threads = 1;
 	siril_log_message("%d image(s) can be processed in parallel\n", nb_threads);
 	g_thread_pool_set_max_threads(conv->args->pool, nb_threads, NULL);
 	if (conv->args->output_type == SEQ_SER || conv->args->output_type == SEQ_FITSEQ)

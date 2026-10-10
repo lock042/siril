@@ -22,17 +22,17 @@
 
 #include <gtk/gtk.h>
 
-#include "core/siril.h"
 #include "core/op_descriptors.h"
 #include "core/processing.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
 #include "core/undo.h"
 #include "filters/median.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/median.h"
 #include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/siril_preview.h"
-#include "gui-gtk4/median.h"
 #include "gui-gtk4/utils.h"
 #include "io/single_image.h"
 

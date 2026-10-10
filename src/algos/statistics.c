@@ -31,24 +31,26 @@
  * function at the bottom of this file which provides this abstraction.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-#include <string.h>
-#include <float.h>
 #include <assert.h>
+#include <float.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <gsl/gsl_histogram.h>
 #include <gsl/gsl_statistics.h>
+
+#include "algos/demosaicing.h"
 #include "algos/sorting.h"
-#include "core/siril.h"
-#include "core/proto.h"
+#include "algos/statistics.h"
+#include "algos/statistics_float.h"
 #include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
-#include "statistics.h"
-#include "statistics_float.h"
-#include "demosaicing.h"
-#include "core/OS_utils.h"
 
 // comment to debug statistics
 #undef siril_log_debug
@@ -1247,4 +1249,94 @@ int quick_minmax(fits *fit, double *minval, double *maxval) {
         }
     }
     return retval;
+}
+
+size_t get_histo_size(fits *fit) {
+	if (fit->type == DATA_USHORT) {
+		if (fit->orig_bitpix == BYTE_IMG)
+			return UCHAR_MAX;
+	}
+	return (size_t)USHRT_MAX;
+}
+
+// Create a new histogram object for the passed fit and layer
+gsl_histogram *computeHisto(fits *fit, int layer) {
+	g_assert(layer < 3);
+	size_t i, ndata, size;
+
+	size = get_histo_size(fit);
+	gsl_histogram *histo = gsl_histogram_alloc(size + 1);
+	gsl_histogram_set_ranges_uniform(histo, 0, fit->type == DATA_FLOAT ? 1.0 + 1.0 / size : size + 1);
+	ndata = fit->naxes[0] * fit->naxes[1];
+
+#ifdef _OPENMP
+#pragma omp parallel num_threads(com.max_thread)
+#endif
+	{
+		gsl_histogram *histo_thr = gsl_histogram_alloc(size + 1);
+		gsl_histogram_set_ranges_uniform(histo_thr, 0, fit->type == DATA_FLOAT ? 1.0 + 1.0 / size : size + 1);
+
+		if (fit->type == DATA_USHORT) {
+			WORD *buf = fit->pdata[layer];
+#ifdef _OPENMP
+#pragma omp for private(i) schedule(static)
+#endif
+			for (i = 0; i < ndata; i++) {
+				if (buf[i] == 0)
+					continue;
+				gsl_histogram_increment(histo_thr, (double) buf[i]);
+			}
+		} else if (fit->type == DATA_FLOAT) {
+			float *buf = fit->fpdata[layer];
+#ifdef _OPENMP
+#pragma omp for private(i) schedule(static)
+#endif
+			for (i = 0; i < ndata; i++) {
+				if (buf[i] == 0.f)
+					continue;
+				gsl_histogram_increment(histo_thr, (double) buf[i]);
+			}
+		}
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+		{
+			gsl_histogram_add(histo, histo_thr);
+		}
+		gsl_histogram_free(histo_thr);
+	}
+
+	return histo;
+}
+
+gsl_histogram *computeHisto_Selection(fits *fit, int layer, rectangle *selection) {
+	g_assert(layer < 3);
+
+	size_t size = get_histo_size(fit);
+	gsl_histogram *histo = gsl_histogram_alloc(size + 1);
+	gsl_histogram_set_ranges_uniform(histo, 0, fit->type == DATA_FLOAT ? 1.0 : size);
+	size_t stridefrom = fit->rx - selection->w;
+
+	if (fit->type == DATA_USHORT) {
+		WORD *from = fit->pdata[layer] + (fit->ry - selection->y - selection->h) * fit->rx
+			+ selection->x;
+		for (size_t i = 0; i < selection->h; i++) {
+			for (size_t j = 0; j < selection->w; j++) {
+				gsl_histogram_increment(histo, (double)*from);
+				from++;
+			}
+			from += stridefrom;
+		}
+	} else if (fit->type == DATA_FLOAT) {
+		float *from = fit->fpdata[layer] + (fit->ry - selection->y - selection->h) * fit->rx
+			+ selection->x;
+		for (size_t i = 0; i < selection->h; i++) {
+			for (size_t j = 0; j < selection->w; j++) {
+				gsl_histogram_increment(histo, (double)*from);
+				from++;
+			}
+			from += stridefrom;
+		}
+	}
+	return histo;
 }
