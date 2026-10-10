@@ -106,7 +106,7 @@ class SirilInterface:
         True if Siril is running with CLI args. Set by the script editor.
         Read-only. Available since sirilpy 1.0.26.
         """
-        return self._is_headless
+        return self._is_cli
 
     @property
     def is_headless(self) -> bool:
