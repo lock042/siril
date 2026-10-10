@@ -83,6 +83,7 @@ xx/xx/xx
 * Reviewed banding reduction command arguments and reimplemented the algorithm for improved speed (!1097)
 * Added 2 commands `addwcs` and `catquery` (!1103)
 * Added a preference to not use the MIPS-LO/HI keywords to set the display sliders
+* Add a SirilInterface.is_headless property that scripts can check to avoid running a GUI (!1111)
 
 siril-1.4.4
 06/17/26
