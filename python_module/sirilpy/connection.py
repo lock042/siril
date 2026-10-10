@@ -1150,7 +1150,7 @@ class SirilInterface:
         Request the image selection from Siril.
 
         Returns:
-            A tuple (x, y, height, width) representing the current selection, or
+            A tuple (x, y, width, height) representing the current selection, or
             None if no selection is made.
 
         Raises:
