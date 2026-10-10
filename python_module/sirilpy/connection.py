@@ -83,6 +83,7 @@ class SirilInterface:
 
         self.debug = bool(os.getenv('SIRIL_PYTHON_DEBUG') is not None)
         self._is_cli = bool(os.getenv('SIRIL_PYTHON_CLI') is not None)
+        self._is_headless = bool(os.getenv('SIRIL_HEADLESS') is not None)
 
     def connect(self) -> bool:
         """
