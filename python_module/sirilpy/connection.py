@@ -100,22 +100,6 @@ class SirilInterface:
         """
         return self._debug
 
-    @property
-    def is_cli(self) -> bool:
-        """
-        True if Siril is running with CLI args. Set by the script editor.
-        Read-only. Available since sirilpy 1.0.26.
-        """
-        return self._is_cli
-
-    @property
-    def is_headless(self) -> bool:
-        """
-        True if Siril is running headless, in which case the script should not
-        try to open a GUI. Read-only. Available since sirilpy 1.0.26.
-        """
-        return self._is_headless
-
     def connect(self) -> bool:
         """
         Establish a connection to Siril based on the pipe or socket path.
@@ -4371,15 +4355,26 @@ class SirilInterface:
 
     def is_cli(self) -> bool:
         """
-        Check if the current instance is running in CLI mode. This method is useful
-        to detect how the script was invoked and whether to show or not a GUI.
-        This is False when the script is called by clicking in the Script menu,
-        True otherwise.
+        Check if the current instance is running with command-line args. This
+        method is useful to detect how the script was invoked and whether to
+        show or not a GUI. This is False when the script is called by clicking
+        in the Script menu, True otherwise.
 
         Returns:
             bool: True if running in CLI mode, False otherwise.
         """
         return self._is_cli
+
+    def is_headless(self) -> bool:
+        """
+        True if Siril is running headless, in which case the script should not
+        try to open a GUI. Read-only. Available since sirilpy 1.0.26.
+
+        Returns:
+            bool: True if running headless, False otherwise.
+
+        """
+        return self._is_headless
 
     def load_image_from_file(self, filepath: str, with_pixels: Optional[bool] = True,
                             preview: Optional[bool] = False,
