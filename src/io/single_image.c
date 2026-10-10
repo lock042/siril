@@ -498,7 +498,7 @@ void init_layers_hi_and_lo_values(sliders_mode force_minmax) {
 	if (force_minmax == USER) return;
 	WORD lo = 0, hi = 0xFFFF;
 	sliders_mode sliders;
-	if (gfit->keywords.hi == 0 || force_minmax == MINMAX) {
+	if (gfit->keywords.hi == 0 || force_minmax == MINMAX || !com.pref.use_mips_lohi) {
 		sliders = MINMAX;
 		image_find_minmax(gfit);
 		fit_lohi_to_layers(gfit, gfit->mini, gfit->maxi, &lo, &hi);

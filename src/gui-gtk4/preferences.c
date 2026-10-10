@@ -401,6 +401,7 @@ static void update_FITS_options_preferences() {
 
 	com.pref.rgb_aladin = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("check_button_aladin"))));
 	com.pref.use_checksum = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("checkbutton_fits_chksum"))));
+	com.pref.use_mips_lohi = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("checkbutton_fits_mips_lohi"))));
 	com.pref.binning_update = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("checkbutton_binned_update"))));
 
 	/* IDs aligned with settings_window.ui combobox_ext items */
@@ -587,6 +588,7 @@ void update_preferences_from_model() {
 	/* tab FITS Options */
 	siril_toggle_set_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("check_button_aladin"))), pref->rgb_aladin);
 	siril_toggle_set_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("checkbutton_fits_chksum"))), pref->use_checksum);
+	siril_toggle_set_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("checkbutton_fits_mips_lohi"))), pref->use_mips_lohi);
 	siril_toggle_set_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("checkbutton_binned_update"))), pref->binning_update);
 	siril_toggle_set_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("comp_fits_disabled_radio"))), !pref->comp.fits_enabled);
 	siril_toggle_set_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("comp_fits_enabled_radio"))), pref->comp.fits_enabled);

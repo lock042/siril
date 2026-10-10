@@ -82,6 +82,7 @@ xx/xx/xx
 * Allowed editing FITS keywords of a whole sequence from the UI
 * Reviewed banding reduction command arguments and reimplemented the algorithm for improved speed (!1097)
 * Added 2 commands `addwcs` and `catquery` (!1103)
+* Added a preference to not use the MIPS-LO/HI keywords to set the display sliders
 
 siril-1.4.4
 06/17/26

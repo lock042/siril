@@ -629,6 +629,15 @@
                                         <property name="tooltip-text" translatable="yes">Verify file checksums if they exist. The verification occurs each time the file is read, which may significantly impact Siril's performance when using a sequence.</property>
                                       </object>
                                     </child>
+                                    <child>
+                                      <object class="GtkCheckButton" id="checkbutton_fits_mips_lohi">
+                                        <property name="active">1</property>
+                                        <property name="focusable">1</property>
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="yes">Set display sliders from MIPS-LO and MIPS-HI keywords</property>
+                                        <property name="tooltip-text" translatable="yes">When an image contains the MIPS-LO and MIPS-HI visualization cutoff keywords, use them to set the display sliders. If unchecked, the sliders are set to the minimum and maximum pixel values of the image.</property>
+                                      </object>
+                                    </child>
                                   </object>
                                 </property>
                                 <child type="label">
