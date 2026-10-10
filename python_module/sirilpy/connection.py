@@ -54,7 +54,7 @@ class SirilInterface:
         correct pipe or socket path based on the environment variable and
         operating system. Internal method.
         """
-        self.connected = False
+        self._is_connected = False
 
         if os.name == 'nt':
             self.pipe_path = os.getenv('MY_PIPE')
@@ -81,8 +81,24 @@ class SirilInterface:
         else:
             self.command_lock = threading.Lock()
 
-        self.debug = bool(os.getenv('SIRIL_PYTHON_DEBUG') is not None)
+        self._debug = bool(os.getenv('SIRIL_PYTHON_DEBUG') is not None)
         self._is_cli = bool(os.getenv('SIRIL_PYTHON_CLI') is not None)
+        self._is_headless = bool(os.getenv('SIRIL_HEADLESS') is not None)
+
+    @property
+    def connected(self) -> bool:
+        """
+        True if this SirilInterface is currently connected to Siril. Read-only.
+        """
+        return self._is_connected
+
+    @property
+    def debug(self) -> bool:
+        """
+        True if Siril launched the script in Python debug mode. This is set by
+        Siril and is read-only.
+        """
+        return self._debug
 
     def connect(self) -> bool:
         """
@@ -125,7 +141,7 @@ class SirilInterface:
                         print(f'Current ProcessID is {current_pid}')
                         self.info_messagebox(f'Current ProcessID is {current_pid}', True)
                     SirilInterface._connected = True
-                    self.connected = True
+                    self._is_connected = True
                     atexit.register(self._cleanup)
                     return True
                 except pywintypes.error as e:
@@ -140,7 +156,7 @@ class SirilInterface:
                     print(f'Current ProcessID is {current_pid}')
                     self.info_messagebox(f'Current ProcessID is {current_pid}', False)
                 SirilInterface._connected = True
-                self.connected = True
+                self._is_connected = True
                 atexit.register(self._cleanup)
                 return True
 
@@ -182,13 +198,13 @@ class SirilInterface:
                     win32file.CloseHandle(self.overlap_read.hEvent)
                 if hasattr(self, 'overlap_write'):
                     win32file.CloseHandle(self.overlap_write.hEvent)
-                self.connected = False
+                self._is_connected = False
                 SirilInterface._connected = False
                 return
             raise SirilError(_("No pipe connection to close"))
         if hasattr(self, 'sock'):
             self.sock.close()
-            self.connected = False
+            self._is_connected = False
             SirilInterface._connected = False
             return
         raise SirilConnectionError(_("No socket connection to close"))
@@ -1149,7 +1165,7 @@ class SirilInterface:
         Request the image selection from Siril.
 
         Returns:
-            A tuple (x, y, height, width) representing the current selection, or
+            A tuple (x, y, width, height) representing the current selection, or
             None if no selection is made.
 
         Raises:
@@ -4339,15 +4355,26 @@ class SirilInterface:
 
     def is_cli(self) -> bool:
         """
-        Check if the current instance is running in CLI mode. This method is useful
-        to detect how the script was invoked and whether to show or not a GUI.
-        This is False when the script is called by clicking in the Script menu,
-        True otherwise.
+        Check if the current instance is running with command-line args. This
+        method is useful to detect how the script was invoked and whether to
+        show or not a GUI. This is False when the script is called by clicking
+        in the Script menu, True otherwise.
 
         Returns:
             bool: True if running in CLI mode, False otherwise.
         """
         return self._is_cli
+
+    def is_headless(self) -> bool:
+        """
+        True if Siril is running headless, in which case the script should not
+        try to open a GUI. Read-only. Available since sirilpy 1.0.26.
+
+        Returns:
+            bool: True if running headless, False otherwise.
+
+        """
+        return self._is_headless
 
     def load_image_from_file(self, filepath: str, with_pixels: Optional[bool] = True,
                             preview: Optional[bool] = False,
