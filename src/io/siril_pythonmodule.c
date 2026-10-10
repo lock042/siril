@@ -3155,6 +3155,10 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 	if (from_cli)
 		env = g_environ_setenv(env, "SIRIL_PYTHON_CLI", "1", TRUE);
 
+	//Set siril_headless env
+	if (com.headless)
+		env = g_environ_setenv(env, "SIRIL_HEADLESS", "1", TRUE);
+
 	// Set from_cli env
 	if (debug_mode)
 		env = g_environ_setenv(env, "SIRIL_PYTHON_DEBUG", "1", TRUE);
