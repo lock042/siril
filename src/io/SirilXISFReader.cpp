@@ -88,6 +88,21 @@ int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 			return -1;
 		}
 
+		/* Native XISF colour filter array description. Some writers only
+		 * ship this element and no BAYERPAT FITS keyword, in which case it
+		 * is the only way to know the mosaic. */
+		const LibXISF::ColorFilterArray cfa = image.colorFilterArray();
+		xdata->cfa_pattern[0] = '\0';
+		/* only 2x2 Bayer and 6x6 X-Trans RGB mosaics are usable by Siril; a
+		 * CFA element may also describe white, cyan, magenta or yellow
+		 * filters, or undefined elements */
+		if (((cfa.width == 2 && cfa.height == 2) || (cfa.width == 6 && cfa.height == 6)) &&
+				cfa.pattern.size() == (size_t) cfa.width * cfa.height &&
+				cfa.pattern.find_first_not_of("RGB") == std::string::npos) {
+			memcpy(xdata->cfa_pattern, cfa.pattern.c_str(), cfa.pattern.size());
+			xdata->cfa_pattern[cfa.pattern.size()] = '\0';
+		}
+
 		std::ostringstream fitsHeaderStream;
 		xdata->fitsHeader = NULL;
 
