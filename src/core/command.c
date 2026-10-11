@@ -11738,6 +11738,7 @@ int process_addwcs(int nb) {
 		update_fits_header(&gfit);
 		notify_gfit_modified();
 		refresh_annotations(TRUE);
+		gui_function(update_MenuItem, NULL);
 		queue_redraw(REDRAW_OVERLAY);
 		siril_log_message(_("WCS solution removed\n"));
 		return CMD_OK;
@@ -11789,6 +11790,7 @@ int process_addwcs(int nb) {
 	update_fits_header(&gfit);
 	notify_gfit_modified();
 	refresh_annotations(TRUE);
+	gui_function(update_MenuItem, NULL);
 	queue_redraw(REDRAW_OVERLAY);
 	siril_log_message(_("WCS solution loaded from %s\n"), filename);
 	return CMD_OK;

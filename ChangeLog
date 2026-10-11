@@ -19,11 +19,15 @@ xx/xx/xx
 * Fixed crash when the `wavelet` or `linear_match` commands were called with too few arguments (#1998)
 * Fixed a potential issue with XISF handling of Bayer Pattern stored as XISF-native metadata (#1102)
 * Fixed `cancel` command from pipes to stop a command (#2000)
+* Fixed the display sliders not being reset to 0–65535 when switching to linear display while a stretch tool is open (#2002)
+* Fixed crash when converting files in parallel with a cfitsio built without thread safety (#2003)
+* Fixed MIPS-FHI not being saved in 32-bit FITS files, so their display cutoffs were lost on reopening
 
 **Improvements**
 * Allowed editing FITS keywords of a whole sequence from the UI
 * Reviewed banding reduction command arguments and reimplemented the algorithm for improved speed (!1097)
 * Added 2 commands `addwcs` and `catquery` (!1103)
+* Add a SirilInterface.is_headless property that scripts can check to avoid running a GUI (!1111)
 
 siril-1.4.4
 06/17/26
