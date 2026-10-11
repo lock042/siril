@@ -20,6 +20,7 @@ xx/xx/xx
 * Fixed `cancel` command from pipes to stop a command (#2000)
 * Fixed the display sliders not being reset to 0–65535 when switching to linear display while a stretch tool is open (#2002)
 * Fixed crash when converting files in parallel with a cfitsio built without thread safety (#2003)
+* Fixed MIPS-FHI not being saved in 32-bit FITS files, so their display cutoffs were lost on reopening
 
 **Improvements**
 * Allowed editing FITS keywords of a whole sequence from the UI
