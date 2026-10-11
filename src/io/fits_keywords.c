@@ -54,14 +54,15 @@
 
 static gboolean should_use_keyword(const fits *fit, KeywordInfo keyword) {
 
+	/* depends on the output BITPIX, which may differ from the data type */
 	if (g_strcmp0(keyword.key, "MIPS-HI") == 0) {
-		return (fit->type == DATA_USHORT);
+		return (fit->bitpix != FLOAT_IMG);
 	} else if (g_strcmp0(keyword.key, "MIPS-LO") == 0) {
-		return (fit->type == DATA_USHORT);
+		return (fit->bitpix != FLOAT_IMG);
 	} else if (g_strcmp0(keyword.key, "MIPS-FLO") == 0) {
-		return (fit->type == DATA_FLOAT);
+		return (fit->bitpix == FLOAT_IMG);
 	} else if (g_strcmp0(keyword.key, "MIPS-FHI") == 0) {
-		return (fit->type == DATA_FLOAT);
+		return (fit->bitpix == FLOAT_IMG);
 	} else if (g_strcmp0(keyword.key, "ROWORDER") == 0) {
 		return ((g_strcmp0(fit->keywords.row_order, "BOTTOM-UP") == 0)
 				|| (g_strcmp0(fit->keywords.row_order, "TOP-DOWN") == 0));
@@ -242,19 +243,14 @@ static void dec_handler_read(fits *fit, const char *comment, KeywordInfo *info) 
 	}
 }
 
+/* MIPS-FLO/FHI are derived from hi/lo, which hold the current display cutoffs */
 static void flo_handler_save(fits *fit, KeywordInfo *info) {
-	if (!fit->keywords.hi && (fit->orig_bitpix == FLOAT_IMG || fit->orig_bitpix == DOUBLE_IMG)) {
+	if (fit->bitpix == FLOAT_IMG && fit->keywords.hi) {
 		fit->keywords.flo = ushort_to_float_range(fit->keywords.lo);
-	}
-}
-
-static void fhi_handler_save(fits *fit, KeywordInfo *info) {
-	if (!fit->keywords.hi && (fit->orig_bitpix == FLOAT_IMG || fit->orig_bitpix == DOUBLE_IMG)) {
 		fit->keywords.fhi = ushort_to_float_range(fit->keywords.hi);
-	}
-	if (fit->keywords.fhi == 0.0) {
-		fit->keywords.fhi = DEFAULT_FLOAT_VALUE;
+	} else {
 		fit->keywords.flo = DEFAULT_FLOAT_VALUE;
+		fit->keywords.fhi = DEFAULT_FLOAT_VALUE;
 	}
 }
 
@@ -344,7 +340,7 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_PRIMARY( "image", "MIPS-LO", KTYPE_USHORT, "Upper visualization cutoff", &(fit->keywords.lo), NULL, NULL),
 			KEYWORD_SECONDA( "image", "CBLACK", KTYPE_USHORT, "Upper visualization cutoff", &(fit->keywords.lo), NULL, NULL),
 			KEYWORD_PRIMARY( "image", "MIPS-FLO", KTYPE_FLOAT, "Lower visualization cutoff", &(fit->keywords.flo), flo_handler_read, flo_handler_save),
-			KEYWORD_PRIMARY( "image", "MIPS-FHI", KTYPE_FLOAT, "Upper visualization cutoff", &(fit->keywords.fhi), fhi_handler_read, fhi_handler_save),
+			KEYWORD_PRIMARY( "image", "MIPS-FHI", KTYPE_FLOAT, "Upper visualization cutoff", &(fit->keywords.fhi), fhi_handler_read, NULL),
 			/* ATTENTION: PROGRAM MUST BE BEFORE DATAMAX */
 			KEYWORD_PRIMARY( "image", "PROGRAM", KTYPE_STR, "Software that created this HDU", &(fit->keywords.program), NULL, program_handler_save),
 			KEYWORD_SECONDA( "image", "SWCREATE", KTYPE_STR, "Software that created this HDU", &(fit->keywords.program), NULL, NULL),
