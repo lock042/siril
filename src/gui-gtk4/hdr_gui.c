@@ -87,9 +87,14 @@ static void add_row(const gchar *path, fits *f) {
 
 	double exposure = f->keywords.exposure > 0.0 ? f->keywords.exposure : 0.0;
 	gchar *exptxt = exposure > 0.0 ? g_strdup_printf("%g s", exposure) : g_strdup(_("no exposure"));
+	if (f->keywords.key_gain != DEFAULT_UINT_VALUE) {
+		gchar *tmp = g_strdup_printf(_("%s, gain %u"), exptxt, f->keywords.key_gain);
+		g_free(exptxt);
+		exptxt = tmp;
+	}
 	GtkWidget *exp = gtk_label_new(exptxt);
 	g_free(exptxt);
-	gtk_label_set_width_chars(GTK_LABEL(exp), 10);
+	gtk_label_set_width_chars(GTK_LABEL(exp), 18);
 	gtk_label_set_xalign(GTK_LABEL(exp), 1.f);
 	if (exposure <= 0.0)
 		gtk_widget_set_tooltip_text(exp, _("The exposure time is missing from the header: "

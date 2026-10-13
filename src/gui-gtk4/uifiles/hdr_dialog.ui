@@ -59,7 +59,7 @@
                         <child>
                           <object class="GtkButton" id="hdr_add">
                             <property name="icon-name">list-add-symbolic</property>
-                            <property name="tooltip-text" translatable="yes">Add images to the composition. The exposure time is read from the EXPTIME or EXPOSURE keyword.</property>
+                            <property name="tooltip-text" translatable="yes">Add images to the composition. The exposure time is read from the EXPTIME or EXPOSURE keyword, the gain from the GAIN and CVF or EGAIN keywords.</property>
                             <property name="valign">center</property>
                             <signal name="clicked" handler="on_hdr_add_clicked"/>
                           </object>

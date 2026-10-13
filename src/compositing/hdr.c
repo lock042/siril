@@ -519,6 +519,45 @@ static void flag_deficits(hdr_img *L, const hdr_img *S, int nch, size_t npix) {
 	}
 }
 
+/* Relative sensitivity of each image, in ADU per unit of exposure time. The
+ * GAIN keyword has vendor-specific units and is never converted: only the
+ * e-/ADU value can account for different gains. */
+static gboolean sensitivity_factors(fits **images, int nb, double *factor) {
+	gboolean iso = TRUE, cvf = TRUE, gains_differ = FALSE, same_cvf = TRUE;
+	guint gain = DEFAULT_UINT_VALUE;
+	for (int i = 0; i < nb; i++) {
+		const fits *f = images[i];
+		if (f->keywords.iso_speed <= 0.0)
+			iso = FALSE;
+		if (f->keywords.cvf <= 0.0)
+			cvf = FALSE;
+		else if (f->keywords.cvf != images[0]->keywords.cvf)
+			same_cvf = FALSE;
+		if (f->keywords.key_gain != DEFAULT_UINT_VALUE) {
+			if (gain == DEFAULT_UINT_VALUE)
+				gain = f->keywords.key_gain;
+			else if (f->keywords.key_gain != gain)
+				gains_differ = TRUE;
+		}
+	}
+	/* some drivers write the same e-/ADU value whatever the gain */
+	if (cvf && !(gains_differ && same_cvf)) {
+		for (int i = 0; i < nb; i++)
+			factor[i] = 1.0 / images[i]->keywords.cvf;
+		if (gains_differ)
+			siril_log_message(_("Images taken with different gains: using their e-/ADU values\n"));
+		return TRUE;
+	}
+	if (!gains_differ) {
+		for (int i = 0; i < nb; i++)
+			factor[i] = iso ? images[i]->keywords.iso_speed : 1.0;
+		return TRUE;
+	}
+	siril_log_warning(_("Images taken with different gains and without usable e-/ADU values: images are ordered by "
+				"signal level and the exposure ratios rely on the measurements only\n"));
+	return FALSE;
+}
+
 static void free_hdr_imgs(hdr_img *im, int nb) {
 	for (int i = 0; i < nb; i++) {
 		free(im[i].mask);
@@ -551,21 +590,27 @@ fits *hdr_compose(fits **images, const char **names, int nb, const struct hdr_pa
 		return NULL;
 	}
 
-	gboolean known = TRUE, iso = TRUE;
+	gboolean known = TRUE;
 	for (int i = 0; i < nb; i++) {
 		im[i].fit = images[i];
 		im[i].name = names ? names[i] : "";
 		im[i].exposure = images[i]->keywords.exposure > 0.0 ? images[i]->keywords.exposure : 0.0;
 		if (im[i].exposure <= 0.0)
 			known = FALSE;
-		if (images[i]->keywords.iso_speed <= 0.0)
-			iso = FALSE;
 		channel_stats(&im[i], nch, npix);
+	}
+	double *factor = malloc(nb * sizeof(double));
+	if (!factor) {
+		PRINT_ALLOC_ERR;
+		free(im);
+		return NULL;
 	}
 	if (!known)
 		siril_log_warning(_("Exposure time missing from at least one header: images are ordered by signal level\n"));
+	else known = sensitivity_factors(images, nb, factor);
 	for (int i = 0; i < nb; i++)
-		im[i].eff = known ? im[i].exposure * (iso ? images[i]->keywords.iso_speed : 1.0) : 0.0;
+		im[i].eff = known ? im[i].exposure * factor[i] : 0.0;
+	free(factor);
 	qsort(im, nb, sizeof(hdr_img), cmp_hdr_img);
 	if (images[0]->keywords.bayer_pattern[0] != '\0' && nch == 1)
 		siril_log_warning(_("HDR composition of undebayered CFA images: masks and noise estimates mix the colour channels\n"));
