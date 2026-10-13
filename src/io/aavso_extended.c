@@ -50,6 +50,16 @@ static void generate_aavso_header(const aavso_parameters *data, char *result) {
              data->type, data->obscode, data->software, data->delim, data->date, data->obstype, data->aavso_data_header);
 }
 
+// empty fields must be "na" and the delimiter must not appear in any field
+static gchar *aavso_field(const gchar *str) {
+	gchar *field = g_strstrip(g_strdup(str ? str : ""));
+	if (*field == '\0') {
+		g_free(field);
+		return g_strdup(_NA_);
+	}
+	return g_strdelimit(field, ",", ';');
+}
+
 // save the data to a txt file
 static gboolean siril_plot_save_aavso(siril_plot_data *spl_data,
 		const char *datfilename, const char *head_data, aavso_data *adata) {
@@ -89,21 +99,21 @@ static gboolean siril_plot_save_aavso(siril_plot_data *spl_data,
 
 		int index = 0;
 		for (int i = 0; i < nbpoints; i++) {
-			data[index++] = g_strdup(adata->starid); // NAME
+			data[index++] = aavso_field(adata->starid); // NAME
 			data[index++] = g_strdup_printf("%12.6lf", plots->plots[0]->data[i].x); // DATE
 			for (int k = 0; k < 2; k++) // MAG, MAGERR
 				data[index++] = g_strdup_printf("%.3lf", plots->plots[k]->data[i].y);
 			data[index++] = g_strdup(adata->filter); // FILT
 			data[index++] = g_strdup("NO"); // TRANS
 			data[index++] = g_strdup("STD"); // MTYPE
-			data[index++] = g_strdup(adata->cname); // CNAME
+			data[index++] = aavso_field(adata->cname); // CNAME
 			data[index++] = g_strdup_printf("%.3lf", cplot->data[i].y); // CMAG
-			data[index++] = g_strdup(adata->kname); // KNAME
+			data[index++] = aavso_field(adata->kname); // KNAME
 			data[index++] = kplot->data[i].y == 0 ? g_strdup(_NA_) : g_strdup_printf("%.3lf", kplot->data[i].y); // KMAG
-			data[index++] = airmass->data[i].y == 0 ? g_strdup(_NA_) :  g_strdup_printf("%.3lf", airmass->data[i].y); // AMASS
+			data[index++] = airmass->data[i].y <= 0.0 ? g_strdup(_NA_) :  g_strdup_printf("%.3lf", airmass->data[i].y); // AMASS
 			data[index++] = g_strdup(_NA_); // GROUP
-			data[index++] = g_strdup(adata->chart); // CHART
-			data[index++] = g_strdup(adata->notes); // NOTES
+			data[index++] = aavso_field(adata->chart); // CHART
+			data[index++] = aavso_field(adata->notes); // NOTES
 		}
 
 		FILE *fileout = g_fopen(datfilename, "w");

@@ -310,7 +310,6 @@
 Vstd = (Vins - Cins) + Cstd
 
 where Vins is the instrumental magnitude of the variable, Cins is the instrumental value of the comparison, and Cstd is the chart magnitude for the comparison.</property>
-                <property name="text" translatable="yes">0</property>
                 <property name="input-purpose">number</property>
               </object>
               <packing>

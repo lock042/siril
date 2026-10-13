@@ -1322,7 +1322,13 @@ void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 	aavso_ptr->cname = gtk_entry_get_text(GTK_ENTRY(lookup_widget("cname_entry")));
 	aavso_ptr->filter = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(lookup_widget("aavso_filter_combo")));
 	aavso_ptr->kname = gtk_entry_get_text(GTK_ENTRY(lookup_widget("kname_entry")));
-	aavso_ptr->c_std = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("cstd_entry"))), NULL);
+	const gchar *cstd_text = gtk_entry_get_text(GTK_ENTRY(lookup_widget("cstd_entry")));
+	gchar *cstd_end = NULL;
+	aavso_ptr->c_std = g_ascii_strtod(cstd_text, &cstd_end);
+	gboolean cstd_valid = cstd_end != cstd_text;
+	while (g_ascii_isspace(*cstd_end))
+		cstd_end++;
+	cstd_valid = cstd_valid && *cstd_end == '\0';
 	aavso_ptr->c_idx = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("cstar_combo")));
 	aavso_ptr->k_idx = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("kstar_combo")));
 	aavso_ptr->chart = gtk_entry_get_text(GTK_ENTRY(lookup_widget("chart_entry")));
@@ -1330,6 +1336,15 @@ void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 
 	if (aavso_ptr->c_idx == -1 || aavso_ptr->k_idx == -1) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Incomplete data"), _("You must select a comparison star and a check star."));
+		free(aavso_ptr);
+		return;
+	}
+
+	if (!cstd_valid) {
+		/* without Cstd the MAG column would hold V-C, not a standardized magnitude */
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("Incomplete data"), _("You must enter the catalogue magnitude (Cstd) of the comparison star."));
+		g_free((gchar*) aavso_ptr->obstype);
+		g_free((gchar*) aavso_ptr->filter);
 		free(aavso_ptr);
 		return;
 	}
