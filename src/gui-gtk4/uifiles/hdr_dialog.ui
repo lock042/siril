@@ -1,0 +1,181 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
+<interface>
+  <!-- interface-name hdr_dialog.ui -->
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkAdjustment" id="adj_hdr_feather">
+    <property name="page-increment">5</property>
+    <property name="step-increment">1</property>
+    <property name="upper">100</property>
+    <property name="value">4</property>
+  </object>
+  <object class="GtkWindow" id="hdr_dialog">
+    <property name="child">
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkBox">
+            <property name="margin-bottom">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">6</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">10</property>
+            <child>
+              <object class="GtkFrame">
+                <child>
+                  <object class="GtkBox">
+                    <property name="margin-bottom">6</property>
+                    <property name="margin-end">6</property>
+                    <property name="margin-start">6</property>
+                    <property name="margin-top">6</property>
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">6</property>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Linear, calibrated and registered FITS images of the same field, taken with different exposure times.</property>
+                        <property name="max-width-chars">60</property>
+                        <property name="wrap">1</property>
+                        <property name="xalign">0</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkScrolledWindow">
+                        <property name="hscrollbar-policy">never</property>
+                        <property name="min-content-height">160</property>
+                        <property name="vexpand">1</property>
+                        <property name="child">
+                          <object class="GtkListBox" id="hdr_file_list">
+                            <property name="selection-mode">multiple</property>
+                          </object>
+                        </property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="css-classes">toolbar</property>
+                        <property name="halign">end</property>
+                        <child>
+                          <object class="GtkButton" id="hdr_add">
+                            <property name="icon-name">list-add-symbolic</property>
+                            <property name="tooltip-text" translatable="yes">Add images to the composition. The exposure time is read from the EXPTIME or EXPOSURE keyword.</property>
+                            <property name="valign">center</property>
+                            <signal name="clicked" handler="on_hdr_add_clicked"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="hdr_remove">
+                            <property name="icon-name">list-remove-symbolic</property>
+                            <property name="tooltip-text" translatable="yes">Remove the selected images from the list.</property>
+                            <property name="valign">center</property>
+                            <signal name="clicked" handler="on_hdr_remove_clicked"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="hdr_clear">
+                            <property name="icon-name">edit-clear-symbolic</property>
+                            <property name="tooltip-text" translatable="yes">Remove all images from the list.</property>
+                            <property name="valign">center</property>
+                            <signal name="clicked" handler="on_hdr_clear_clicked"/>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="label" translatable="yes">Input Images</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"/>
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkFrame">
+                <child>
+                  <object class="GtkGrid">
+                    <property name="column-spacing">10</property>
+                    <property name="margin-bottom">6</property>
+                    <property name="margin-end">6</property>
+                    <property name="margin-start">6</property>
+                    <property name="margin-top">6</property>
+                    <property name="row-spacing">6</property>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="halign">start</property>
+                        <property name="hexpand">1</property>
+                        <property name="label" translatable="yes">Feather radius (px)</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="hdr_feather">
+                        <property name="adjustment">adj_hdr_feather</property>
+                        <property name="focusable">1</property>
+                        <property name="tooltip-text" translatable="yes">The masks of saturated pixels are grown and smoothed over this distance, so that transitions between exposures are invisible around bright stars and nebula cores. 0 disables it.</property>
+                        <property name="width-chars">6</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="label" translatable="yes">Options</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"/>
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="halign">end</property>
+            <property name="margin-bottom">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-top">12</property>
+            <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
+            <child>
+              <object class="GtkButton" id="hdr_close">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Close</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_hdr_close_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="hdr_apply">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Apply</property>
+                <property name="receives-default">1</property>
+                <property name="tooltip-text" translatable="yes">Builds the HDR image, which replaces the loaded image.</property>
+                <signal name="clicked" handler="on_hdr_apply_clicked"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </property>
+    <property name="title" translatable="yes">HDR Composition</property>
+    <property name="width-request">520</property>
+    <signal name="close-request" handler="hdr_hide_on_delete"/>
+  </object>
+</interface>
