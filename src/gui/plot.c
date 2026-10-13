@@ -1310,6 +1310,12 @@ void on_button_aavso_close_clicked(GtkButton *button, gpointer user_data) {
 	gtk_widget_hide(lookup_widget("aavso_dialog"));
 }
 
+static void free_aavso_dlg(aavso_dlg *aavso_ptr) {
+	g_free((gchar*) aavso_ptr->obstype);
+	g_free((gchar*) aavso_ptr->filter);
+	free(aavso_ptr);
+}
+
 void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 	gchar *error = NULL;
 	// we want get some information from a dialog
@@ -1336,22 +1342,20 @@ void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 
 	if (aavso_ptr->c_idx == -1 || aavso_ptr->k_idx == -1) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Incomplete data"), _("You must select a comparison star and a check star."));
-		free(aavso_ptr);
+		free_aavso_dlg(aavso_ptr);
 		return;
 	}
 
 	if (!cstd_valid) {
 		/* without Cstd the MAG column would hold V-C, not a standardized magnitude */
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Incomplete data"), _("You must enter the catalogue magnitude (Cstd) of the comparison star."));
-		g_free((gchar*) aavso_ptr->obstype);
-		g_free((gchar*) aavso_ptr->filter);
-		free(aavso_ptr);
+		free_aavso_dlg(aavso_ptr);
 		return;
 	}
 
 	if (aavso_ptr->c_idx == aavso_ptr->k_idx) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Wrong data"), _("The comparison star and the check star must be different."));
-		free(aavso_ptr);
+		free_aavso_dlg(aavso_ptr);
 		return;
 	}
 
@@ -1363,6 +1367,7 @@ void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 		control_window_switch_to_tab(OUTPUT_LOGS);
 	}
 	gtk_widget_hide(lookup_widget("aavso_dialog"));
+	free_aavso_dlg(aavso_ptr);
 
 	set_cursor_waiting(FALSE);
 }
