@@ -269,7 +269,7 @@ siril 1.4.0-beta4
 * Added SirilInterface.get_image_from_file() method
 * Added new sirilpy methods for getting and setting GUI properties (sliders, STF, pan offsets, zoomlevel)
 * Improved sirilpy get_seq_frame() and get_image_from_file() so they now populate FFit.header and .icc_profile
-* Added Search box in the Script treeview
+* Added Search box in the menus treeview (Image processing, Tools, Scripts)
 * Made reading astrometric solution more robust to CDELT/PC matrices not following the expected formalism (#1770)
 * Added SirilInterface.analyse_image_from_file(), .undo(), .redo() and .clear_undo_history()
 * Approved use of PyQt6 for creating python script GUIs (now confident it is problem free on all target OSes)
