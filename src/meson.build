@@ -309,6 +309,7 @@ gui_filenames = [
   'median.c',
   'menu_gray_geometry.c',
   'menu_gray_selection.c',
+  'menu_search.c',
   'merge_cfa.c',
   'message_dialog.c',
   'mouse_action_functions.c',
