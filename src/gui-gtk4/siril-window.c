@@ -175,6 +175,7 @@ static GActionEntry none_processing_entries[] = {
 	{ "rgb-compositing-processing", rgb_compositing_activate },
 	{ "star-remix-processing", star_remix_activate },
 	{ "merge-cfa-processing", merge_cfa_activate },
+	{ "hdr-processing", hdr_activate },
 	{ "pixel-math", pixel_math_activate }
 };
 
@@ -403,6 +404,7 @@ void siril_window_enable_none_proc_actions(GtkApplicationWindow *window, gboolea
 		"rgb-compositing-processing",
 		"star-remix-processing",
 		"merge-cfa-processing",
+		"hdr-processing",
 		"pixel-math",
 		NULL,
 	};

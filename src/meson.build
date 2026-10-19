@@ -85,6 +85,7 @@ src_files = [
 
   'compositing/align_rgb.c',
   'compositing/filters.c',
+  'compositing/hdr.c',
 
   'core/arithm.c',
   'core/command.c',
@@ -297,6 +298,7 @@ gui_filenames = [
   'fix_xtrans_af.c',
   'geometry.c',
   'git_gui.c',
+  'hdr_gui.c',
   'histo_display.c',
   'histogram.c',
   'histogram_utils.c',

@@ -1305,6 +1305,13 @@ Current state: linked.</property>
                     <property name="label" translatable="yes">Merge CFA Channels...</property>
                   </object>
                 </child>
+                <child>
+                  <object class="GtkButton" id="proc_hdr">
+                    <property name="action-name">win.hdr-processing</property>
+                    <property name="label" translatable="yes">HDR Composition...</property>
+                    <property name="tooltip-text" translatable="yes">Combine registered images of different exposure times into a high dynamic range image</property>
+                  </object>
+                </child>
               </object>
             </property>
             <property name="name">composition</property>
