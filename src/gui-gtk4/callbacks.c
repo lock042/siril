@@ -62,6 +62,7 @@ void update_export_crop_label();
 #include "gui-gtk4/histogram.h"
 #include "gui-gtk4/image_display.h"
 #include "gui-gtk4/image_interactions.h"
+#include "gui-gtk4/menu_search.h"
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/plot.h"
 #include "gui-gtk4/progress_and_log.h"
@@ -2781,6 +2782,9 @@ void initialize_all_GUI(gchar *supported_files) {
 	 * navigation buttons and check buttons are already aligned and
 	 * skipped by the walker. */
 	align_menu_popover_labels_left();
+
+	attach_menu_search("processing_menu", "processing", _("Search processing tools\xe2\x80\xa6"));
+	attach_menu_search("tools_menu", "tools", _("Search tools\xe2\x80\xa6"));
 
 	/* Populate the Recent Files dropdown next to the Open button.  GTK4
 	 * removed GtkRecentChooserMenu; we build a GMenuModel from

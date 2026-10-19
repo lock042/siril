@@ -130,6 +130,12 @@ static void on_script_search_changed(GtkSearchEntry *entry, gpointer user_data) 
 		gtk_widget_set_visible(script_search_scroll, FALSE);
 		return;
 	}
+	/* typed from a submenu: the entry lives on the main page */
+	if (!gtk_widget_get_mapped(GTK_WIDGET(entry))) {
+		GtkWidget *popover = gtk_widget_get_ancestor(GTK_WIDGET(entry), GTK_TYPE_POPOVER_MENU);
+		if (popover)
+			g_object_set(popover, "visible-submenu", "main", NULL);
+	}
 
 	gchar *needle = g_utf8_casefold(text, -1);
 	gint count = 0;
@@ -161,6 +167,10 @@ static void on_script_search_changed(GtkSearchEntry *entry, gpointer user_data) 
 
 	g_free(needle);
 	gtk_widget_set_visible(script_search_scroll, count > 0);
+}
+
+static void on_script_popover_closed(GtkEditable *entry) {
+	gtk_editable_set_text(entry, "");
 }
 
 static GtkWidget *create_script_search_widget(void) {
@@ -727,6 +737,14 @@ static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 	GHashTable *py_submenus = g_hash_table_new_full(g_str_hash, g_str_equal,
 	                                                g_free, (GDestroyNotify) g_object_unref);
 
+	GMenu *search_section = g_menu_new();
+	GMenuItem *search_placeholder = g_menu_item_new(NULL, NULL);
+	g_menu_item_set_attribute(search_placeholder, "custom", "s", "scripts-search");
+	g_menu_append_item(search_section, search_placeholder);
+	g_object_unref(search_placeholder);
+	g_menu_append_section(menu, NULL, G_MENU_MODEL(search_section));
+	g_object_unref(search_section);
+
 	/* Wrap the submenu rows in their own (label-less) section so they sit at
 	 * the same GtkPopoverMenu nesting depth as the "Get Scripts" tail
 	 * section below.  A submenu appended directly to the top-level menu and
@@ -746,14 +764,6 @@ static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 	g_menu_append(tail, _("Enable Python debug mode"), "win.script-pythondebug");
 	g_menu_append_section(menu, NULL, G_MENU_MODEL(tail));
 	g_object_unref(tail);
-
-	GMenu *search_section = g_menu_new();
-	GMenuItem *search_placeholder = g_menu_item_new(NULL, NULL);
-	g_menu_item_set_attribute(search_placeholder, "custom", "s", "scripts-search");
-	g_menu_append_item(search_section, search_placeholder);
-	g_object_unref(search_placeholder);
-	g_menu_append_section(menu, NULL, G_MENU_MODEL(search_section));
-	g_object_unref(search_section);
 
 	for (s = script_paths; s; s = s->next) {
 		list = search_script(s->data);
@@ -863,6 +873,10 @@ static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 		GtkWidget *search_widget = create_script_search_widget();
 		gtk_popover_menu_add_child(GTK_POPOVER_MENU(search_popover),
 		                           search_widget, "scripts-search");
+		gtk_search_entry_set_key_capture_widget(GTK_SEARCH_ENTRY(script_search_entry_widget),
+		                                        GTK_WIDGET(search_popover));
+		g_signal_connect_object(search_popover, "closed", G_CALLBACK(on_script_popover_closed),
+		                        script_search_entry_widget, G_CONNECT_SWAPPED);
 	}
 
 	install_script_popover_rmb();

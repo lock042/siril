@@ -1095,6 +1095,8 @@ static void readjust_memory_limits(convert_status *conv, fits *fit) {
 	compute_nb_images_fit_mem(fit, conv->args->debayer, &nb_threads, &nb_images);
 	if (nb_threads <= 0)
 		goto unlock_end;
+	if (!fits_is_reentrant())
+		nb_threads = 1;
 	siril_log_message("%d image(s) can be processed in parallel\n", nb_threads);
 	g_thread_pool_set_max_threads(conv->args->pool, nb_threads, NULL);
 	if (conv->args->output_type == SEQ_SER || conv->args->output_type == SEQ_FITSEQ)

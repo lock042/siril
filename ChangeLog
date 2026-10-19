@@ -76,11 +76,16 @@ xx/xx/xx
 * Fixed crash when the `wavelet` or `linear_match` commands were called with too few arguments (#1998)
 * Fixed `cancel` command from pipes to stop a command (#2000)
 * Fixed the display sliders not being reset to 0–65535 when switching to linear display while a stretch tool is open (#2002)
+* Fixed crash when converting files in parallel with a cfitsio built without thread safety (#2003)
+* Fixed MIPS-FHI not being saved in 32-bit FITS files, so their display cutoffs were lost on reopening
+* Fixed AAVSO export writing V-C instead of the standardized magnitude when Cstd was left at its default of 0: Cstd is now mandatory, and empty text fields and an unknown airmass (previously -999) are written as "na" as the format requires
 
 **Improvements**
 * Allowed editing FITS keywords of a whole sequence from the UI
 * Reviewed banding reduction command arguments and reimplemented the algorithm for improved speed (!1097)
 * Added 2 commands `addwcs` and `catquery` (!1103)
+* Added a preference to not use the MIPS-LO/HI keywords to set the display sliders
+* Add a SirilInterface.is_headless property that scripts can check to avoid running a GUI (!1111)
 
 siril-1.4.4
 06/17/26
@@ -264,7 +269,7 @@ siril 1.4.0-beta4
 * Added SirilInterface.get_image_from_file() method
 * Added new sirilpy methods for getting and setting GUI properties (sliders, STF, pan offsets, zoomlevel)
 * Improved sirilpy get_seq_frame() and get_image_from_file() so they now populate FFit.header and .icc_profile
-* Added Search box in the Script treeview
+* Added Search box in the menus treeview (Image processing, Tools, Scripts)
 * Made reading astrometric solution more robust to CDELT/PC matrices not following the expected formalism (#1770)
 * Added SirilInterface.analyse_image_from_file(), .undo(), .redo() and .clear_undo_history()
 * Approved use of PyQt6 for creating python script GUIs (now confident it is problem free on all target OSes)

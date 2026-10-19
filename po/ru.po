@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-01 13:47+0200\n"
-"PO-Revision-Date: 2026-09-28 08:49+0000\n"
+"PO-Revision-Date: 2026-10-19 11:23+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/ru/>\n"
@@ -18835,7 +18835,7 @@ msgstr ""
 
 #: src/core/command.c:12711
 msgid "OK! This script is compatible with this version of Siril.\n"
-msgstr "ОК! Этот сценарий совместим этой версией Siril.\n"
+msgstr "ОК! Данный сценарий совместим этой версией Siril.\n"
 
 #: src/core/command.c:12719 src/core/command.c:12772
 #, c-format

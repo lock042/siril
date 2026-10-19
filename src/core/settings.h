@@ -425,6 +425,7 @@ struct pref_struct {
 
 	gboolean rgb_aladin;	// Add CTYPE3='RGB' in the FITS header
 	gboolean use_checksum;  // Verify checksum in FITS header
+	gboolean use_mips_lohi; // set display sliders from MIPS-LO/HI keywords
 	gchar *copyright;	// User copyright when saving image as TIFF
 
 	gchar *asnet_dir;	// Location of solve-field or asnet-ansvr installation on Windows
