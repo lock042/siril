@@ -811,6 +811,7 @@ void curves_activate(GSimpleAction *action, GVariant *parameter, gpointer user_d
  * leaving widget pointers NULL and (for fft / linear_match) the file
  * chooser buttons inert until the user clicked Apply. */
 extern void linear_match_init_statics(void);
+extern void hdr_dialog_init_statics(void);
 extern void fft_dialog_init_statics(void);
 extern void banding_dialog_init_statics(void);
 extern void cosmetic_dialog_init_statics(void);
@@ -971,6 +972,11 @@ void denoise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 
 void merge_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("merge_cfa_dialog");
+}
+
+void hdr_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	hdr_dialog_init_statics();
+	siril_open_dialog("hdr_dialog");
 }
 
 void star_desaturate_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
