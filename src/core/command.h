@@ -104,6 +104,7 @@ int	process_grey_flat(int nb);
 
 int	process_healpix(int nb);
 int	process_help(int nb);
+int	process_hdr(int nb);
 int	process_histo(int nb);
 
 int	process_jsonmetadata(int nb);

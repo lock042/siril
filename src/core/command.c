@@ -93,6 +93,7 @@
 #include "algos/statistics.h"
 #include "algos/streaks.h"
 #include "compositing/align_rgb.h"
+#include "compositing/hdr.h"
 #include "core/command.h"
 #include "core/command_line_processor.h"
 #include "core/command_list.h"
@@ -1023,6 +1024,54 @@ int process_rebayer(int nb){
 		return CMD_GENERIC_ERROR;
 	}
 	gui_iface.set_busy(FALSE);
+	return CMD_OK;
+}
+
+int process_hdr(int nb) {
+	struct hdr_args *args = calloc(1, sizeof(struct hdr_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	hdr_params_init(&args->params);
+	for (int i = 1; i < nb; i++) {
+		char *end = NULL;
+		if (g_str_has_prefix(word[i], "-feather=")) {
+			args->params.feather = (int) g_ascii_strtoll(word[i] + 9, &end, 10);
+			if (end == word[i] + 9 || *end || args->params.feather < 0 || args->params.feather > 100) {
+				siril_log_error(_("Invalid argument to %s, aborting.\n"), word[i]);
+				free_hdr_args(args);
+				return CMD_ARG_ERROR;
+			}
+		} else if (word[i][0] == '-') {
+			siril_log_error(_("Invalid argument %s\n"), word[i]);
+			free_hdr_args(args);
+			return CMD_ARG_ERROR;
+		} else {
+			image_type type;
+			char *realname = NULL;
+			long maxpath = get_pathmax();
+			char name[maxpath];
+			normalize_rebayerfilename(name, word[i], maxpath);
+			if (stat_file(name, &type, &realname) || type != TYPEFITS) {
+				siril_log_error(_("%s is not a FITS image\n"), name);
+				free(realname);
+				free_hdr_args(args);
+				return CMD_FILE_NOT_FOUND;
+			}
+			args->files = g_slist_append(args->files, g_strdup(realname));
+			free(realname);
+		}
+	}
+	if (g_slist_length(args->files) < 2) {
+		siril_log_error(_("HDR composition needs at least two images\n"));
+		free_hdr_args(args);
+		return CMD_WRONG_N_ARG;
+	}
+	if (!start_in_new_thread(hdr_worker, args)) {
+		free_hdr_args(args);
+		return CMD_GENERIC_ERROR;
+	}
 	return CMD_OK;
 }
 
