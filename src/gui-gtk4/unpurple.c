@@ -17,25 +17,19 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
-#include <math.h>
 
-#include "core/siril.h"
-#include "core/op_descriptors.h"
-#include "core/proto.h"
-#include "core/processing.h"
-#include "core/siril_log.h"
 #include "algos/statistics.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/siril.h"
+#include "filters/unpurple.h"
+#include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/siril_preview.h"
+#include "gui-gtk4/utils.h"
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
-#include "gui-gtk4/callbacks.h"
-#include "gui-gtk4/utils.h"
-#include "gui-gtk4/progress_and_log.h"
-#include "gui-gtk4/dialogs.h"
-#include "gui-gtk4/siril_preview.h"
-#include "core/undo.h"
-#include "opencv/opencv.h"
-#include "filters/synthstar.h"
-#include "filters/unpurple.h"
 
 static double mod_b = 1.0, thresh = 0.0, old_thresh = 0.0;
 static fits starmask = {0};

@@ -21,6 +21,8 @@
 #ifndef SRC_COMPOSITING_ALIGN_RGB_H_
 #define SRC_COMPOSITING_ALIGN_RGB_H_
 
+#include <glib.h>
+
 /* Values are indices into the reg_methods[] table in align_rgb.c */
 typedef enum {
 	RGBALIGN_PSF = 0,

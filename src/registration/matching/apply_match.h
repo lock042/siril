@@ -22,7 +22,7 @@
 #ifndef SRC_REGISTRATION_MATCHING_APPLY_MATCH_H_
 #define SRC_REGISTRATION_MATCHING_APPLY_MATCH_H_
 
-#include "misc.h"
+#include "registration/matching/misc.h"
 
 void apply_match(double ra, double dec, double xval, double yval, TRANS *trans, double *a, double *d);
 

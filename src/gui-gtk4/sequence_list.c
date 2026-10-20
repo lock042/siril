@@ -21,25 +21,24 @@
 #ifdef _WIN32
 #include <windows.h>
 #endif
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
-#include "gui-gtk4/utils.h"
-#include "gui-gtk4/callbacks.h"
-#include "gui-gtk4/message_dialog.h"
-#include "gui-gtk4/image_display.h"
-#include "gui-gtk4/progress_and_log.h"
-#include "gui-gtk4/registration_preview.h"
-#include "gui-gtk4/plot.h"
-#include "gui-gtk4/registration.h"	// for update_reg_interface
-#include "gui-gtk4/stacking.h"	// for update_stack_interface
-#include "io/sequence.h"
-#include "io/image_format_fits.h"
-#include "algos/PSF.h"
-#include "registration/registration.h"
 #include <dirent.h>
 
-#include "sequence_list.h"
+#include "algos/PSF.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/image_display.h"
+#include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/plot.h"
+#include "gui-gtk4/registration.h"	// for update_reg_interface
+#include "gui-gtk4/registration_preview.h"
+#include "gui-gtk4/sequence_list.h"
+#include "gui-gtk4/stacking.h"	// for update_stack_interface
+#include "gui-gtk4/utils.h"
+#include "io/image_format_fits.h"
+#include "io/sequence.h"
+#include "registration/registration.h"
 
 static gboolean fill_sequence_list_idle(gpointer p);
 static void unselect_select_frame_from_list(gpointer unused);

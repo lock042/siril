@@ -18,17 +18,14 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <glib/gprintf.h>
 #include <math.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_date.h"
 #include "algos/PSF.h"
+#include "core/siril.h"
+#include "core/siril_date.h"
 #include "core/siril_log.h"
+#include "io/aavso_extended.h"
 #include "io/siril_plot.h"
-
-#include "aavso_extended.h"
 
 #define MAX_HEADER_LENGTH 1024 // Maximum length for the data string
 #define _NA_ "na"
@@ -48,6 +45,16 @@ static void generate_aavso_header(const aavso_parameters *data, char *result) {
     snprintf(result, MAX_HEADER_LENGTH,
              "#TYPE=%s\n#OBSCODE=%s\n#SOFTWARE=%s\n#DELIM=%c\n#DATE=%s\n#OBSTYPE=%s\n%s",
              data->type, data->obscode, data->software, data->delim, data->date, data->obstype, data->aavso_data_header);
+}
+
+// empty fields must be "na" and the delimiter must not appear in any field
+static gchar *aavso_field(const gchar *str) {
+	gchar *field = g_strstrip(g_strdup(str ? str : ""));
+	if (*field == '\0') {
+		g_free(field);
+		return g_strdup(_NA_);
+	}
+	return g_strdelimit(field, ",", ';');
 }
 
 // save the data to a txt file
@@ -89,21 +96,21 @@ static gboolean siril_plot_save_aavso(siril_plot_data *spl_data,
 
 		int index = 0;
 		for (int i = 0; i < nbpoints; i++) {
-			data[index++] = g_strdup(adata->starid); // NAME
+			data[index++] = aavso_field(adata->starid); // NAME
 			data[index++] = g_strdup_printf("%12.6lf", plots->plots[0]->data[i].x); // DATE
 			for (int k = 0; k < 2; k++) // MAG, MAGERR
 				data[index++] = g_strdup_printf("%.3lf", plots->plots[k]->data[i].y);
 			data[index++] = g_strdup(adata->filter); // FILT
 			data[index++] = g_strdup("NO"); // TRANS
 			data[index++] = g_strdup("STD"); // MTYPE
-			data[index++] = g_strdup(adata->cname); // CNAME
+			data[index++] = aavso_field(adata->cname); // CNAME
 			data[index++] = g_strdup_printf("%.3lf", cplot->data[i].y); // CMAG
-			data[index++] = g_strdup(adata->kname); // KNAME
+			data[index++] = aavso_field(adata->kname); // KNAME
 			data[index++] = kplot->data[i].y == 0 ? g_strdup(_NA_) : g_strdup_printf("%.3lf", kplot->data[i].y); // KMAG
-			data[index++] = airmass->data[i].y == 0 ? g_strdup(_NA_) :  g_strdup_printf("%.3lf", airmass->data[i].y); // AMASS
+			data[index++] = airmass->data[i].y <= 0.0 ? g_strdup(_NA_) :  g_strdup_printf("%.3lf", airmass->data[i].y); // AMASS
 			data[index++] = g_strdup(_NA_); // GROUP
-			data[index++] = g_strdup(adata->chart); // CHART
-			data[index++] = g_strdup(adata->notes); // NOTES
+			data[index++] = aavso_field(adata->chart); // CHART
+			data[index++] = aavso_field(adata->notes); // NOTES
 		}
 
 		FILE *fileout = g_fopen(datfilename, "w");

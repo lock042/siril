@@ -25,14 +25,13 @@
 
 // #define DEBUG_MAIN
 
-#include <gsl/gsl_errno.h>
-#include <gtk/gtk.h>
-#include <gtksourceview/gtksource.h>
+#include <locale.h>
 #include <stdio.h>
 #include <string.h>
-#include <locale.h>
-#include <unistd.h>
+
 #include <fftw3.h>
+#include <gsl/gsl_errno.h>
+#include <gtk/gtk.h>
 
 #include "gui-gtk4/histo_display.h"
 #ifdef OS_OSX
@@ -58,38 +57,38 @@
 #include <git2.h>
 #endif
 
-#include "siril_resource.h"
-#include "git-version.h"
-#include "core/siril.h"
-#include "gui-gtk4/gui_state.h"
-#include "core/icc_profile.h"
-#include "core/proto.h"
-#include "algos/siril_random.h"
 #include "algos/photometric_cc.h"
-#include "gui-gtk4/siril_actions.h"
-#include "core/initfile.h"
+#include "algos/siril_random.h"
 #include "core/command_line_processor.h"
-#include "core/processing_thread.h"
+#include "core/gui_iface.h"
+#include "core/icc_profile.h"
+#include "core/initfile.h"
+#include "core/OS_utils.h"
 #include "core/pipe.h"
+#include "core/processing_thread.h"
+#include "core/proto.h"
 #include "core/signals.h"
+#include "core/siril.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_language.h"
-#include "core/siril_networking.h"
-#include "io/siril_pythonmodule.h"
-#include "core/siril_update.h"
-#include "core/gui_iface.h"
 #include "core/siril_log.h"
-#include "core/OS_utils.h"
-#include "io/sequence.h"
-#include "io/conversion.h"
-#include "io/single_image.h"
-#include "gui-gtk4/ui_files.h"
-#include "gui-gtk4/utils.h"
+#include "core/siril_networking.h"
+#include "core/siril_update.h"
+#include "git-version.h"
 #include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/file_browser.h"
+#include "gui-gtk4/gui_state.h"
 #include "gui-gtk4/image_display.h"
+#include "gui-gtk4/siril_actions.h"
 #include "gui-gtk4/siril_css.h"
 #include "gui-gtk4/splashscreen.h"
-#include "gui-gtk4/file_browser.h"
+#include "gui-gtk4/ui_files.h"
+#include "gui-gtk4/utils.h"
+#include "io/conversion.h"
+#include "io/sequence.h"
+#include "io/single_image.h"
+#include "io/siril_pythonmodule.h"
+#include "siril_resource.h"
 
 /* initialize_spcc_mirrors() declared in algos/photometric_cc.h (via gui-gtk4/photometric_cc.h) */
 void force_paned_restore();

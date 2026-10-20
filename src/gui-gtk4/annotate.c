@@ -18,23 +18,17 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <ctype.h>
-
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/command_line_processor.h"
-#include "core/processing.h"
-#include "core/siril_log.h"
 #include "algos/siril_wcs.h"
-#include "gui-gtk4/search_objects.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/image_display.h"
-#include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/search_objects.h"
 #include "gui-gtk4/utils.h"
 #include "io/local_catalogues.h"
 #include "io/siril_catalogues.h"
-
 
 enum {
 	CONESEARCH_PAGE,

@@ -22,6 +22,8 @@
 
 #include <glib.h>
 
+#include "core/siril.h"
+
 #ifdef __cplusplus
 #define EXTERNC extern "C"
 #else

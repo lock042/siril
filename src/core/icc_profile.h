@@ -20,7 +20,10 @@
 #ifndef SRC_CORE_ICC_PROFILE_H_
 #define SRC_CORE_ICC_PROFILE_H_
 #include <stdint.h>
+
 #include <lcms2.h>
+
+#include "core/siril.h"
 
 // Define some additional formatters that aren't defined in lcms2.h
 #define TYPE_RGB_FLT_PLANAR (FLOAT_SH(1)|COLORSPACE_SH(PT_RGB)|CHANNELS_SH(3)|BYTES_SH(4)|PLANAR_SH(1))

@@ -21,6 +21,7 @@
 #define SRC_GUI_SIRIL_WINDOW_H_
 
 #include <gtk/gtk.h>
+
 #include "core/gui_iface.h"  /* ActionResult enum */
 
 void siril_window_enable_image_actions(GtkApplicationWindow *window, gboolean enable);

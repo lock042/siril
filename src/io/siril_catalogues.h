@@ -20,8 +20,10 @@
 #ifndef _SIRIL_CATALOGUES_H
 #define _SIRIL_CATALOGUES_H
 
-#include <glib.h>
 #include <gio/gio.h>
+#include <glib.h>
+
+#include "core/siril.h"
 #include "core/siril_world_cs.h"
 
 // number of columns that can be defined in a catalogue
@@ -251,6 +253,11 @@ typedef struct {
 	gboolean display_tag;
 } show_params;
 
+typedef struct {
+	siril_catalogue *siril_cat;
+	gchar *outfilename;
+} catquery_args;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -302,6 +309,9 @@ conesearch_args *init_conesearch_args();
 conesearch_params *init_conesearch_params();
 int execute_conesearch(conesearch_params *params);
 int execute_show_command(show_params *params);
+
+void free_catquery_args(catquery_args *args);
+gpointer catquery_worker(gpointer p);
 
 #ifdef __cplusplus
 }

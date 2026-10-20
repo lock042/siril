@@ -21,15 +21,14 @@
 /* GTK draw callbacks and aberration-inspector UI for the CCD inspector.
  * Processing logic lives in algos/ccd-inspector.c. */
 
-#include <gtk/gtk.h>
 #include <cairo/cairo.h>
+#include <gtk/gtk.h>
 
 #include "core/siril.h"
-#include "io/single_image.h"
-#include "io/sequence.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/image_display.h"
-#include "gui-gtk4/utils.h"
+#include "io/sequence.h"
+#include "io/single_image.h"
 
 /* One small surface per panel, each holding only the corner/edge/centre
  * region that panel displays — never a full-image surface.  Built in

@@ -2,8 +2,7 @@
 #define MATCH_H
 
 #include "core/siril.h"
-#include "atpmatch.h"
-
+#include "registration/matching/atpmatch.h"
 
 #define NB_OF_MATCHING_TRY 3
 

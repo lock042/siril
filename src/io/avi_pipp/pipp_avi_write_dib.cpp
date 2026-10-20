@@ -1,11 +1,9 @@
-#include "pipp_avi_write_dib.h"
-#include "pipp_utf8.h"
-#include <cstdlib>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <cstdint>
-#include <sstream>
+
+#include "io/avi_pipp/pipp_avi_write_dib.h"
+#include "io/avi_pipp/pipp_utf8.h"
 
 #define MONO_DATA_TIGHTLY_PACKED 1
 

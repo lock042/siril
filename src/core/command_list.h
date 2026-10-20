@@ -1,17 +1,17 @@
 #ifndef SRC_CORE_COMMAND_LIST_H_
 #define SRC_CORE_COMMAND_LIST_H_
 
-
-#include "core/siril.h"
 #include "core/command.h"
 #include "core/command_def.h"
 #include "core/command_extra.h"
+#include "core/siril.h"
 
 #define CMD_CAT(CMD) N_("\n\n<i>- Information from command "#CMD" follows -</i>\n")
 
 static command commands[] = {
 	/* name, nbarg, usage, function pointer, description, scriptable, requirements */
 	{"addmax", 1, "addmax filename [-mask]", process_addmax, STR_ADDMAX, FALSE, REQ_CMD_SINGLE_IMAGE},
+	{"addwcs", 0, "addwcs [filename [-flip]]", process_addwcs, STR_ADDWCS, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"asinh", 1, "asinh [-human] stretch { [offset] [-clipmode=] } [-mask]", process_asinh, STR_ASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"atrous", 2, "atrous nbr_layers type [c1 c2 c3 ...] [-anscombe] [-denoise] [-bishrink|-threshold] [-soft|-hard] [-perband] [-k=value] [-f1=value ... -f6=value]", process_atrous, STR_ATROUS, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"autoghs", 2, "autoghs [-linked] shadowsclip stretchamount [-b=] [-hp=] [-lp=] [-clipmode=] [-mask]", process_autoghs, STR_AUTOGHS, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
@@ -26,6 +26,7 @@ static command commands[] = {
 	{"calibrate_single", 1, "calibrate_single imagename [-bias=filename] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt[=exp]] [-prefix=]", process_calibrate_single, STR_CALIBRATE_SINGLE, TRUE, REQ_CMD_NONE},
 	{"capabilities", 0, "capabilities", process_capabilities, STR_CAPABILITIES, TRUE, REQ_CMD_NONE},
 	{"catmag", 0, "catmag [reftemp] [dtemp]", process_catmag_mono, STR_CATMAG, TRUE, REQ_CMD_NO_THREAD | REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
+	{"catquery", 0, "catquery [limit_magnitude] [-cat=] [-ra=] [-dec=] [-radius=] [-obscode=] [-out=filename]", process_catquery, STR_CATQUERY, TRUE, REQ_CMD_NONE},
 	{"catsearch", 1, "catsearch name", process_catsearch, STR_CATSEARCH, TRUE, REQ_CMD_NONE},
 	{"ccm", 9, "ccm m00 m01 m02 m10 m11 m12 m20 m21 m22 [gamma]", process_ccm, STR_CCM, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB},
 	{"cd", 1, "cd directory", process_cd, STR_CD, TRUE, REQ_CMD_NONE},
@@ -71,7 +72,7 @@ static command commands[] = {
 	{"findcompstars", 1, "findcompstars star_name [-narrow|-wide] [-catalog={nomad|apass}] [-dvmag=3] [-dbv=0.5] [-emag=0.03] [-out=nina_file.csv]", process_findcompstars, STR_FINDCOMPSTARS, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"findstar", 0, "findstar [-out=] [-layer=] [-maxstars=]", process_findstar, STR_FINDSTAR, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"fix_xtrans", 0, "fix_xtrans", process_fix_xtrans, STR_FIXXTRANS, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE | REQ_CMD_FOR_MONO},
-	{"fixbanding", 2, "fixbanding amount sigma [-vertical]", process_fixbanding, STR_FIXBANDING, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
+	{"fixbanding", 2, "fixbanding amount sigma [-vert[ical]]", process_fixbanding, STR_FIXBANDING, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
 	{"fmedian", 2, "fmedian ksize modulation [-mask]", process_fmedian, STR_FMEDIAN, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
 	{"fmul", 1, "fmul scalar [-mask]", process_fmul, STR_FMUL, TRUE, REQ_CMD_SINGLE_IMAGE},
 
@@ -83,6 +84,7 @@ static command commands[] = {
 	{"grey_flat", 0, "grey_flat", process_grey_flat, STR_GREY_FLAT, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"healpix", 0, "healpix", process_healpix, STR_HEALPIX, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"hdr", 2, "hdr image1 image2 [image3 ...] [-feather=]", process_hdr, STR_HDR, TRUE, REQ_CMD_NONE},
 	{"help", 0, "help [command]", process_help, STR_HELP, TRUE, REQ_CMD_NONE},
 	{"histo", 1, "histo channel (channel=0, 1, 2 with 0: red, 1: green, 2: blue)", process_histo, STR_HISTO, TRUE, REQ_CMD_SINGLE_IMAGE},
 
@@ -218,7 +220,7 @@ static command commands[] = {
 	{"seqfind_cosme", 3, "seqfind_cosme sequencename cold_sigma hot_sigma [-prefix=]", process_findcosme, STR_SEQFIND_COSME CMD_CAT(FIND_COSME) STR_FIND_COSME, TRUE, REQ_CMD_NONE},
 	{"seqfind_cosme_cfa", 3, "seqfind_cosme_cfa sequencename cold_sigma hot_sigma [-prefix=]", process_findcosme, STR_SEQFIND_COSME_CFA CMD_CAT(FIND_COSME_CFA) STR_FIND_COSME_CFA, TRUE, REQ_CMD_NONE},
 	{"seqfindstar", 1, "seqfindstar sequencename [-layer=] [-maxstars=]", process_seq_findstar, STR_SEQFINDSTAR CMD_CAT(FINDSTAR) STR_FINDSTAR, TRUE, REQ_CMD_NONE},
-	{"seqfixbanding", 3, "seqfixbanding sequencename amount sigma [-prefix=] [-vertical]", process_seq_fixbanding, STR_SEQFIXBANDING CMD_CAT(FIXBANDING) STR_FIXBANDING, TRUE, REQ_CMD_NONE},
+	{"seqfixbanding", 3, "seqfixbanding sequencename amount sigma [-prefix=] [-vert[ical]]", process_seq_fixbanding, STR_SEQFIXBANDING CMD_CAT(FIXBANDING) STR_FIXBANDING, TRUE, REQ_CMD_NONE},
 	{"seqght", 2, "seqght sequence -D= [-B=] [-LP=] [-SP=] [-HP=] [-clipmode=] [-human | -even | -independent | -sat] [channels] [-prefix=]", process_seq_ght, STR_SEQGHT CMD_CAT(GHT) STR_GHT, TRUE, REQ_CMD_NONE},
 	{"seqgps", 1, "seqgps sequencename [-crop=]", process_seq_gps_extract, STR_SEQGPS, TRUE, REQ_CMD_NO_THREAD},
 	{"seqheader", 2, "seqheader sequencename keyword [keyword2 ...] [-sel] [-out=file.csv]", process_seq_header, STR_SEQHEADER, TRUE, REQ_CMD_NONE},

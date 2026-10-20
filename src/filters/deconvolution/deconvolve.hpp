@@ -21,16 +21,15 @@
 #pragma once
 
 #include <cstdio>
+
 #include "algos/img_t/image.hpp"
-#include "algos/img_t/vec2.hpp"
-#include "optimization.hpp"
-#include "deconvolution.h"
-#include "fft.hpp"
-#include "utils.hpp"
-#include "core/siril.h"
-#include "core/processing.h" // for processing_should_continue()
-#include "core/siril_log.h" // for siril_log_message()
 #include "core/gui_iface.h"
+#include "core/processing.h" // for processing_should_continue()
+#include "core/siril.h"
+#include "core/siril_log.h" // for siril_log_message()
+#include "filters/deconvolution/deconvolution.h"
+#include "filters/deconvolution/fft.hpp"
+#include "filters/deconvolution/optimization.hpp"
 
 namespace deconvolve {
     template <typename T>

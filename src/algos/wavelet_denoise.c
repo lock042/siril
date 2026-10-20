@@ -21,17 +21,18 @@
 /* Per-scale wavelet denoising — noise foundation (see wavelet_denoise.h). */
 
 #include <math.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
+
 #include <glib.h>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
-#include "core/siril.h"
 #include "algos/Def_Wavelet.h"
 #include "algos/sorting.h"
 #include "algos/wavelet_denoise.h"
+#include "core/siril.h"
 
 /* 1 / 0.6744897501960817 — scales the MAD to a Gaussian standard deviation. */
 #define MAD_TO_SIGMA 1.482602218505602

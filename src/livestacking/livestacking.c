@@ -24,11 +24,11 @@
 
 #include <sys/time.h>
 
-#include "core/siril.h"
 #include "core/gui_iface.h"
-#include "core/proto.h"
-#include "core/processing.h"
 #include "core/preprocess.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
 #include "io/conversion.h"
 #include "io/FITS_symlink.h"
@@ -37,16 +37,15 @@
 #include "io/single_image.h"
 /* global registration */
 #include "algos/star_finder.h"
-#include "registration/registration.h"
-#include "registration/matching/atpmatch.h"
 #include "opencv/opencv.h"
+#include "registration/registration.h"
 /* ******************* */
-#include "stacking/stacking.h"
+#include "algos/demosaicing.h"
 #include "algos/noise.h"
 #include "algos/statistics.h"
-#include "algos/demosaicing.h"
-#include "livestacking.h"
-#include "gui.h"
+#include "livestacking/gui.h"
+#include "livestacking/livestacking.h"
+#include "stacking/stacking.h"
 
 /* hard-coded configuration */
 #define REGISTRATION_INTERPOLATION OPENCV_AREA

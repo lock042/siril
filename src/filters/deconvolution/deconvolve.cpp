@@ -21,10 +21,10 @@
 #include <iostream>
 #include <random>
 
-#include "deconvolve.hpp"
-#include "utils.hpp"
-#include "edgetaper.hpp"
 #include "core/OS_utils.h"
+#include "filters/deconvolution/deconvolve.hpp"
+#include "filters/deconvolution/edgetaper.hpp"
+#include "filters/deconvolution/utils.hpp"
 
 extern "C" int wienerdec(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, unsigned kchans, float sigma, int max_threads) {
     const int num_copies_required = 8;

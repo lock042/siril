@@ -2,6 +2,7 @@
 #define SRC_REGISTRATION_MPP_CONFIG_H_
 
 #include <stdbool.h>
+
 #include "registration/mpp.h"
 
 #ifdef __cplusplus

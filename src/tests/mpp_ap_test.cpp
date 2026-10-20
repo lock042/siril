@@ -4,19 +4,20 @@
  * Covers PSS-faithful staggered AP grid placement + filtering via the
  * private C++ entry points, plus the C-level mpp_ap_place stub.
  */
-#include <criterion/criterion.h>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/imgcodecs.hpp>
-
 #include <algorithm>
+#include <cstdint> // criterion 2.4.1's alloc.h uses SIZE_MAX without including <cstdint>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <string>
 #include <vector>
 
-#include "registration/mpp/mpp_ap_priv.hpp"
+#include <criterion/criterion.h>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
+
 #include "registration/mpp/mpp_align_priv.hpp"
+#include "registration/mpp/mpp_ap_priv.hpp"
 #include "registration/mpp/mpp_rank_priv.hpp"
 
 extern "C" {

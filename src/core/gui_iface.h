@@ -41,7 +41,9 @@
 #define SRC_CORE_GUI_IFACE_H_
 
 #include <stdint.h>        /* uint32_t — used by heif_dialog slot */
+
 #include <glib.h>          /* gboolean, gchar — GLib only, no GTK */
+
 #include "core/settings.h" /* rectangle — used by Group H ROI slots */
 
 /* Forward declaration for Group K — avoids including siril.h or PSF.h */
@@ -454,16 +456,8 @@ typedef struct {
 	void     (*init_plot_colors)(void);
 	/* Save the siril_plot_data pointed to by spl_data as an image to clipboard. */
 	gboolean (*save_siril_plot_to_clipboard)(gpointer spl_data, int width, int height);
-	/* Build a save filename (wraps build_save_filename). Returns newly allocated string. */
-	gchar   *(*build_save_filename)(gchar *prepend, gchar *ext, gboolean forsequence, gboolean add_time_stamp);
 
 	/* ── Cut / spectral profile operations ──────────────────────────────────── */
-	/* Apply cut to all images in the sequence. spl_data is cut_struct*. */
-	void     (*apply_cut_to_sequence)(gpointer cut_args);
-	/* Launch profile / tri-cut / CFA cut thread; returns newly allocated GThread or NULL stub. */
-	gpointer (*run_cut_profile)(gpointer args);
-	gpointer (*run_tri_cut)(gpointer args);
-	gpointer (*run_cfa_cut)(gpointer args);
 	/* Reset per-file cut GUI state (depth/spectro labels). No-op in headless. */
 	void     (*reset_cut_gui_filedependent)(gpointer user_data);
 

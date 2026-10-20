@@ -21,20 +21,19 @@
 /* GTK callbacks, preview logic and idle functions for the Wavelets dialogs. */
 
 #include <math.h>
+
 #include <gtk/gtk.h>
 
-#include "core/siril.h"
-#include "core/op_descriptors.h"
-#include "core/siril_log.h"
-#include "core/processing.h"
-#include "core/processing_thread.h"
-#include "core/undo.h"
 #include "algos/Def_Wavelet.h"
 #include "algos/wavelet_denoise.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/processing_thread.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "filters/wavelets.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
-#include "gui-gtk4/image_display.h"
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/siril_preview.h"

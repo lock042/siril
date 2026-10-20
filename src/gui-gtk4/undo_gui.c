@@ -40,12 +40,11 @@
 #include <gtk/gtk.h>
 
 #include "core/siril.h"
-#include "core/siril_language.h"
 #include "core/undo.h"
-#include "gui-gtk4/utils.h"
-#include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/mpp_ap_editor.h"
-#include "undo_gui.h"
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/undo_gui.h"
+#include "gui-gtk4/utils.h"
 
 static gboolean unparent_popover_idle(gpointer data) {
 	GtkWidget *popover = GTK_WIDGET(data);

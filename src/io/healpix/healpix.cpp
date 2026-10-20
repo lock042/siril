@@ -9,40 +9,34 @@
 #ifdef HAVE_LIBCURL
 #include <curl/curl.h> // needs to be included before siril.h for Windows
 #endif
-#include "core/siril_log.h"
-#include "core/siril.h"
-#include "core/siril_networking.h"
-#include "io/local_catalogues.h"
-#include "io/siril_catalogues.h"
-#include "io/healpix/fluxcache.h"
-#include "io/healpix/healpix_cat.h"
-#include "io/healpix/xp_continuous.h"
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
-#include <healpix_base.h>
-#include <iomanip>
 #include <iostream>
 #include <map>
-#include <pointing.h>
+#include <optional>
 #include <regex>
 #include <set>
-#include <stdexcept>
 #include <utility>
 #include <vector>
-#include <optional>
-#include <string_view>
+
+#include <healpix_base.h>
+#include <pointing.h>
+
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "core/siril_networking.h"
+#include "io/healpix/fluxcache.h"
+#include "io/healpix/healpix_cat.h"
+#include "io/healpix/xp_continuous.h"
+#include "io/local_catalogues.h"
+#include "io/siril_catalogues.h"
 #ifndef G_PI
 #define G_PI 3.14159265358979323846  /* pi */
 #endif
-
-extern "C" {
-#include "core/siril_app_dirs.h"
-}
 
 //#define HEALPIX_DEBUG
 

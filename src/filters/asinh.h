@@ -1,6 +1,8 @@
 #ifndef SRC_FILTERS_ASINH_H_
 #define SRC_FILTERS_ASINH_H_
 
+#include "core/siril.h"
+
 /* Structure to hold asinh-specific parameters */
 typedef struct {
 	destructor destroy_fn;  // generic deallocator

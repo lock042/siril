@@ -2,8 +2,8 @@
 #include <gtk/gtk.h>
 #define _HIST_H_
 
-#include "filters/mtf.h"
 #include "filters/ght.h"
+#include "filters/mtf.h"
 #include "gui-gtk4/histogram_utils.h"
 
 #define NO_STRETCH_SET_YET 0

@@ -25,27 +25,25 @@
 *
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <string.h>
 #include <assert.h>
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #ifdef _WIN32
 #include <windows.h>
 #endif
-#include <glib.h>
 #include <errno.h>
 
-#include "core/siril.h"
+#include <glib.h>
+
+#include "core/arithm.h"
+#include "core/gui_iface.h"
 #include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
 #include "io/conversion.h"
-#include "io/ser.h"
 #include "io/sequence.h"
-#include "core/gui_iface.h"
-#include "core/arithm.h"
-#include "algos/statistics.h"
 #include "io/single_image.h"
 
 #if GLIB_CHECK_VERSION(2,68,0)

@@ -20,6 +20,8 @@
 #ifndef SRC_GUI_REGISTRATION_H_
 #define SRC_GUI_REGISTRATION_H_
 
+#include "core/siril.h"
+
 typedef enum {
 	REG_PAGE_GLOBAL,
 	REG_PAGE_COMET,

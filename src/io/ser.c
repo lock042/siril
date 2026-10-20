@@ -22,22 +22,19 @@
  * on big endian systems.
  */
 
-#include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
-#include <math.h>
 #ifdef _WIN32
 #include <io.h>
 #endif
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_date.h"
-#include "core/icc_profile.h"
-#include "core/siril_log.h"
-#include "filters/mtf.h"
 #include "algos/demosaicing.h"
+#include "core/icc_profile.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_date.h"
+#include "core/siril_log.h"
 #include "io/image_format_fits.h"
-#include "ser.h"
+#include "io/ser.h"
 
 static gboolean user_warned = FALSE;
 

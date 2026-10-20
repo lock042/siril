@@ -18,30 +18,24 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <float.h>
 #include <stdlib.h>
 #include <string.h>
-#include <float.h>
-#include <sys/stat.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
+#include "algos/noise.h"
+#include "core/arithm.h"
 #include "core/gui_iface.h"
 #include "core/icc_profile.h"
-#include "core/initfile.h"
 #include "core/OS_utils.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_date.h"
 #include "core/siril_log.h"
-#include "core/arithm.h"
 #include "io/image_format_fits.h"
 #include "io/path_parse.h"
-#include "io/sequence.h"
 #include "io/single_image.h"
-#include "registration/registration.h"
-#include "algos/noise.h"
+#include "stacking/stacking.h"
 #include "stacking/sum.h"
-#include "opencv/opencv.h"
-
-#include "stacking.h"
 
 static gboolean end_stacking(gpointer p);
 

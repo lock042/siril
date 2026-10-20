@@ -19,18 +19,18 @@
  */
 
 #include <math.h>
+
+#include "algos/astrometry_solver.h"
 #include "algos/search_objects.h"
-#include "core/proto.h"
+#include "algos/siril_wcs.h"
 #include "core/gui_iface.h"
-#include "core/siril_log.h"
-#include "core/siril_date.h"
+#include "core/op_descriptors.h"
 #include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril_date.h"
+#include "core/siril_log.h"
 #include "core/siril_networking.h"
 #include "io/annotation_catalogues.h"
-#include "algos/siril_wcs.h"
-#include "algos/astrometry_solver.h"
-#include "io/remote_catalogues.h"
-#include "core/op_descriptors.h"
 
 /* Op descriptor for the catalog-search command. */
 const op_descriptor op_desc_catsearch = {

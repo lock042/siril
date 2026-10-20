@@ -1,6 +1,8 @@
 #ifndef SINGLE_H_
 #define SINGLE_H_
 
+#include "core/siril.h"
+
 void close_single_image();
 void free_image_data();
 int create_uniq_from_gfit(char *filename, gboolean exists);

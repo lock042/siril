@@ -19,17 +19,18 @@
  */
 
 #include <gtk/gtk.h>
-#include "core/siril.h"
-#include "core/siril_log.h"
+
+#include "algos/comparison_stars.h"
 #include "algos/photometry.h"
 #include "algos/siril_wcs.h"
-#include "algos/comparison_stars.h"
-#include "nina_light_curve.h"
-#include "io/sequence.h"
-#include "gui-gtk4/message_dialog.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/nina_light_curve.h"
 #include "gui-gtk4/plot.h"
 #include "gui-gtk4/utils.h"
+#include "io/sequence.h"
 
 static GtkWidget *dialog = NULL;	// the window, a GtkDialog
 static GtkWidget *file_chooser = NULL;

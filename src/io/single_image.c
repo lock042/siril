@@ -18,27 +18,19 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <string.h>
-
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/undo.h"
-#include "core/OS_utils.h"
-#include "core/siril_log.h"
-#include "core/icc_profile.h"
-#include "algos/statistics.h"
-#include "io/annotation_catalogues.h"
-#include "algos/ccd-inspector.h"
-#include "algos/background_extraction.h"
-#include "algos/astrometry_solver.h"
 #include "algos/demosaicing.h"
+#include "algos/statistics.h"
 #include "core/gui_iface.h"
-#include "io/conversion.h"
-#include "io/sequence.h"
-#include "io/image_format_fits.h"
-#include "io/single_image.h"
-#include "core/undo.h"
+#include "core/icc_profile.h"
 #include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "core/undo.h"
+#include "io/conversion.h"
+#include "io/image_format_fits.h"
+#include "io/sequence.h"
+#include "io/single_image.h"
 
 /* Progress gate for image readers.  The FITS / TIFF / PNG / JPEG readers are
  * shared between the interactive single-image open and batch paths (stacking,
@@ -506,7 +498,7 @@ void init_layers_hi_and_lo_values(sliders_mode force_minmax) {
 	if (force_minmax == USER) return;
 	WORD lo = 0, hi = 0xFFFF;
 	sliders_mode sliders;
-	if (gfit->keywords.hi == 0 || force_minmax == MINMAX) {
+	if (gfit->keywords.hi == 0 || force_minmax == MINMAX || !com.pref.use_mips_lohi) {
 		sliders = MINMAX;
 		image_find_minmax(gfit);
 		fit_lohi_to_layers(gfit, gfit->mini, gfit->maxi, &lo, &hi);

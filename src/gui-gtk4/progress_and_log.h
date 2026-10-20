@@ -1,7 +1,6 @@
 #ifndef _PROGRESSLOG_H
 #define _PROGRESSLOG_H
 
-#include <sys/time.h>
 #include <glib.h>
 /* PROGRESS_* constants are defined in core/gui_iface.h and re-exported here
  * so existing callers of this header continue to compile unchanged. */

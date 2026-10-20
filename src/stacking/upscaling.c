@@ -20,19 +20,17 @@
 
 #include <string.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/OS_utils.h"
+#include "core/gui_iface.h"
 #include "core/processing.h"
+#include "core/proto.h"
 #include "core/sequence_filtering.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
+#include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/ser.h"
-#include "io/image_format_fits.h"
-#include "core/gui_iface.h"
 #include "opencv/opencv.h"
-
-#include "stacking.h"
+#include "stacking/stacking.h"
 
 #define TMP_UPSCALED_PREFIX "tmp_upscaled_"
 

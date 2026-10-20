@@ -21,6 +21,8 @@
 #define SRC_CORE_OPTIMIZE_UTILS_H_
 
 #include <glib.h>
+
+#include "core/siril.h"
 #ifdef __SSE2__
 #include <x86intrin.h>
 #endif

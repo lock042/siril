@@ -50,8 +50,6 @@
 #include <cstdlib>
 #include <cstring>
 
-#include <opencv2/imgproc.hpp>
-
 #include "registration/mpp.h"
 #include "registration/mpp/mpp_align_priv.hpp"
 #include "registration/mpp/mpp_shift.h"

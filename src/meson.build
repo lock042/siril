@@ -85,6 +85,7 @@ src_files = [
 
   'compositing/align_rgb.c',
   'compositing/filters.c',
+  'compositing/hdr.c',
 
   'core/arithm.c',
   'core/command.c',
@@ -297,6 +298,7 @@ gui_filenames = [
   'fix_xtrans_af.c',
   'geometry.c',
   'git_gui.c',
+  'hdr_gui.c',
   'histo_display.c',
   'histogram.c',
   'histogram_utils.c',
@@ -309,6 +311,7 @@ gui_filenames = [
   'median.c',
   'menu_gray_geometry.c',
   'menu_gray_selection.c',
+  'menu_search.c',
   'merge_cfa.c',
   'message_dialog.c',
   'mouse_action_functions.c',

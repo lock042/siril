@@ -18,12 +18,13 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <criterion/criterion.h>
-#include "../core/siril.h"
-#include "../algos/sorting.h"
-
 #include <stdlib.h>
 #include <time.h>
+
+#include <criterion/criterion.h>
+
+#include "algos/sorting.h"
+#include "core/siril.h"
 
 /* This program tests the new implementation of the quickselect from Emmanuel
  * and the old from statistics.

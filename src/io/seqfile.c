@@ -22,21 +22,18 @@
 #include <config.h>
 #endif
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <assert.h>
 
-#include "core/siril.h"
-#include "core/OS_utils.h"
-#include "core/siril_log.h"
 #include "algos/statistics.h"
-#include "io/fits_sequence.h"
-#include "io/ser.h"
-#include "io/sequence.h"
 #include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "io/fits_sequence.h"
+#include "io/sequence.h"
+#include "io/ser.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"
 #ifdef HAVE_FFMS2

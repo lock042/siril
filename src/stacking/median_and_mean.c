@@ -18,28 +18,29 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string.h>
 #include <math.h>
-#include <gsl/gsl_statistics_ushort.h>
-#include <gsl/gsl_cdf.h>
+#include <string.h>
 
-#include "core/siril.h"
-#include "core/gui_iface.h"
-#include "core/proto.h"
-#include "core/OS_utils.h"
-#include "core/siril_log.h"
-#include "core/siril_alloc.h"
-#include "io/sequence.h"
-#include "io/ser.h"
-#include "io/image_format_fits.h"
+#include <gsl/gsl_cdf.h>
+#include <gsl/gsl_statistics_ushort.h>
+
+#include "algos/siril_wcs.h"
 #include "algos/sorting.h"
 #include "algos/statistics.h"
-#include "algos/siril_wcs.h"
-#include "stacking/stacking.h"
-#include "stacking/siril_fit_linear.h"
-#include "stacking/blending.h"
-#include "registration/registration.h"
+#include "core/gui_iface.h"
+#include "core/OS_utils.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_alloc.h"
+#include "core/siril_log.h"
+#include "io/image_format_fits.h"
+#include "io/sequence.h"
+#include "io/ser.h"
 #include "opencv/opencv.h"
+#include "registration/registration.h"
+#include "stacking/blending.h"
+#include "stacking/siril_fit_linear.h"
+#include "stacking/stacking.h"
 
 static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean);
 

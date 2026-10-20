@@ -19,10 +19,9 @@
  */
 
 #include <gtk/gtk.h>
-#include "core/siril.h"
-#include "core/proto.h"
 
-#include "siril_css.h"
+#include "core/siril.h"
+#include "gui-gtk4/siril_css.h"
 
 #define CSS_FILENAME "siril.css"
 

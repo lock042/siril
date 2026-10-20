@@ -23,6 +23,7 @@ SOFTWARE.
 */
 #pragma once
 #include <limits>
+
 #include <fftw3.h>
 
 template <class T>

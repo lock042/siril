@@ -27,51 +27,51 @@
  */
 
 #include <gtk/gtk.h>
-#include "core/gui_iface.h"
-#include "core/proto.h"
-#include "core/icc_profile.h"
-#include "core/processing.h"
-#include "gui-gtk4/progress_and_log.h"
-#include "gui-gtk4/message_dialog.h"
-#include "gui-gtk4/dialogs.h"
-#include "gui-gtk4/open_dialog.h"
+
 #include "algos/background_extraction.h"
 #include "algos/ccd-inspector.h"
-#include "gui-gtk4/ccd-inspector.h"
-#include "gui-gtk4/cut.h"
-#include "gui-gtk4/histogram.h"
-#include "gui-gtk4/icc_profile.h"
-#include "gui-gtk4/keywords_tree.h"
-#include "gui-gtk4/image_display.h"
-#include "gui-gtk4/image_interactions.h"
+#include "core/gui_iface.h"
+#include "core/icc_profile.h"
+#include "core/processing.h"
+#include "core/proto.h"
 #include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/ccd-inspector.h"
+#include "gui-gtk4/curves.h"
+#include "gui-gtk4/cut.h"
+#include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/geometry.h"
 #include "gui-gtk4/gui_state.h"
+#include "gui-gtk4/histogram.h"
+#include "gui-gtk4/histogram_utils.h"
+#include "gui-gtk4/icc_profile.h"
+#include "gui-gtk4/image_display.h"
+#include "gui-gtk4/image_interactions.h"
+#include "gui-gtk4/keywords_tree.h"
 #include "gui-gtk4/masks_gui.h"
+#include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/mpp_shift_viewer.h"
+#include "gui-gtk4/open_dialog.h"
 #include "gui-gtk4/photometric_cc.h"
 #include "gui-gtk4/plot.h"
+#include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/PSF_list.h"
+#include "gui-gtk4/registration.h"
 #include "gui-gtk4/registration_preview.h"
+#include "gui-gtk4/script_console.h"
+#include "gui-gtk4/script_menu.h"
 #include "gui-gtk4/sequence_list.h"
+#include "gui-gtk4/siril-window.h"
+#include "gui-gtk4/siril_actions.h"
 #include "gui-gtk4/siril_plot.h"
 #include "gui-gtk4/siril_preview.h"
-#include "gui-gtk4/script_console.h"
-#include "gui-gtk4/user_polygons.h"
-#include "io/annotation_catalogues.h"
-#include "io/sequence.h"
-#include "livestacking/gui.h"
-#include "gui-gtk4/registration.h"
-#include "gui-gtk4/mpp_shift_viewer.h"
-#include "gui-gtk4/script_menu.h"
-#include "gui-gtk4/siril_actions.h"
-#include "gui-gtk4/siril-window.h"
 #include "gui-gtk4/stacking.h"
+#include "gui-gtk4/user_polygons.h"
 #include "gui-gtk4/utils.h"
-#include "gui-gtk4/histogram_utils.h"
-#include "gui-gtk4/remixer.h"
-#include "gui-gtk4/curves.h"
-#include "io/single_image.h"
+#include "io/annotation_catalogues.h"
 #include "io/image_format_fits.h"
+#include "io/sequence.h"
+#include "io/single_image.h"
+#include "livestacking/gui.h"
 
 /* ── Main-thread dispatch helpers ────────────────────────────────────────────
  *
@@ -804,9 +804,14 @@ static void impl_update_mask_enable(gboolean state) {
 }
 
 static void impl_set_display_range(int lo, int hi) {
+	/* USER mode so that the next remap does not recompute hi/lo */
+	g_mutex_lock(&com.mutex);
+	gui.sliders = USER;
 	gui.lo = lo;
 	gui.hi = hi;
-	set_cutoff_sliders_values();
+	g_mutex_unlock(&com.mutex);
+	gui_iface.sliders_mode_set_state(USER);
+	dispatch_void_gui_helper(set_cutoff_sliders_values);
 }
 
 static void impl_check_gaia_status(void) {
@@ -1444,14 +1449,7 @@ static gboolean impl_save_siril_plot_to_clipboard(gpointer s, int w, int h) {
 	execute_idle_and_wait_for_it(save_plot_to_clipboard_idle, &args);
 	return args.result;
 }
-static gchar *impl_build_save_filename(gchar *p, gchar *e, gboolean f, gboolean t) {
-	return build_save_filename(p, e, f, t);
-}
 /* Cut */
-static void impl_apply_cut_to_sequence(gpointer a) { apply_cut_to_sequence((cut_struct*)a); }
-static gpointer impl_run_cut_profile(gpointer a) { return cut_profile(a); }
-static gpointer impl_run_tri_cut(gpointer a) { return tri_cut(a); }
-static gpointer impl_run_cfa_cut(gpointer a) { return cfa_cut(a); }
 static void impl_reset_cut_gui_filedependent(gpointer u) {
 	/* reachable from read_single_image on the script/python worker */
 	gui_function(reset_cut_gui_filedependent, u);
@@ -1660,12 +1658,7 @@ void siril_register_gui_iface(void) {
 	gui_iface.notify_new_photometry          = impl_notify_new_photometry;
 	gui_iface.init_plot_colors               = impl_init_plot_colors;
 	gui_iface.save_siril_plot_to_clipboard   = impl_save_siril_plot_to_clipboard;
-	gui_iface.build_save_filename            = impl_build_save_filename;
 	/* Cut */
-	gui_iface.apply_cut_to_sequence          = impl_apply_cut_to_sequence;
-	gui_iface.run_cut_profile                = impl_run_cut_profile;
-	gui_iface.run_tri_cut                    = impl_run_tri_cut;
-	gui_iface.run_cfa_cut                    = impl_run_cfa_cut;
 	gui_iface.reset_cut_gui_filedependent    = impl_reset_cut_gui_filedependent;
 	/* Preview */
 	gui_iface.copy_backup_to_gfit            = impl_copy_backup_to_gfit;

@@ -22,11 +22,11 @@
 
 #include <gtk/gtk.h>
 
-#include "core/siril.h"
+#include "algos/PSF.h"
 #include "core/op_descriptors.h"
 #include "core/processing.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
-#include "algos/PSF.h"
 #include "filters/rgradient.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/message_dialog.h"

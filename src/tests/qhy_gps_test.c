@@ -18,16 +18,18 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <criterion/criterion.h>
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
-#include <math.h>
+
+#include <criterion/criterion.h>
+
+#include "algos/geometry.h"
 #include "core/siril.h"
 #include "core/siril_date.h"
 #include "io/gps_parser.h"
 #include "io/image_format_fits.h"
-#include "algos/geometry.h"
-#include "download_files.h"
+#include "tests/download_files.h"
 
 cominfo com;	// the core data struct
 fits *gfit;	// currently loaded image

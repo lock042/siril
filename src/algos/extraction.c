@@ -19,19 +19,20 @@
  */
 
 #include <string.h>
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
-#include "core/siril_log.h"
-#include "algos/siril_wcs.h"
+
 #include "algos/demosaicing.h"
-#include "algos/statistics.h"
+#include "algos/extraction.h"
 #include "algos/geometry.h"
+#include "algos/siril_wcs.h"
+#include "algos/statistics.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "io/fits_keywords.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
-#include "io/fits_keywords.h"
-#include "extraction.h"
-#include "core/op_descriptors.h"
 
 /* Op descriptors — the four single-image CFA extractions are distinct logical
  * ops sharing cfa_extract_image_hook (the mode lives in the user data). No log

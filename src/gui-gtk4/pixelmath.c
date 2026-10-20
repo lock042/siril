@@ -24,28 +24,22 @@
  * pixelMath/pixel_math_runner.c.
  */
 
-#include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
+#include "algos/demosaicing.h"
+#include "core/gui_iface.h"
 #include "core/icc_profile.h"
 #include "core/initfile.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
-#include "core/gui_iface.h"
-#include "gui-gtk4/utils.h"
 #include "gui-gtk4/dialogs.h"
-#include "gui-gtk4/dialog_preview.h"
 #include "gui-gtk4/file_browser.h"
-#include "gui-gtk4/open_dialog.h"
-#include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/gui_state.h"
-#include "io/single_image.h"
-#include "io/sequence.h"
-#include "io/image_format_fits.h"
+#include "gui-gtk4/open_dialog.h"
+#include "gui-gtk4/utils.h"
 #include "io/conversion.h"
-#include "algos/demosaicing.h"
+#include "io/image_format_fits.h"
 #include "pixelMath/pixel_math_runner.h"
 
 /* ── Operator / function tables (GUI-side; used by tooltips and list views) */
@@ -440,7 +434,7 @@ static void init_widgets() {
 		g_signal_connect(facvar, "setup",  G_CALLBACK(pm_var_setup_var_cb),  NULL);
 		g_signal_connect(facvar, "bind",   G_CALLBACK(pm_var_bind_var_cb),   NULL);
 		g_signal_connect(facvar, "unbind", G_CALLBACK(pm_var_unbind_var_cb), NULL);
-		GtkColumnViewColumn *cvar = gtk_column_view_column_new(N_("Variable"), GTK_LIST_ITEM_FACTORY(facvar));
+		GtkColumnViewColumn *cvar = gtk_column_view_column_new(_("Variable"), GTK_LIST_ITEM_FACTORY(facvar));
 		gtk_column_view_column_set_resizable(cvar, TRUE);
 		gtk_column_view_append_column(pm_var_view, cvar);
 		g_object_unref(cvar);
@@ -448,7 +442,7 @@ static void init_widgets() {
 		GtkSignalListItemFactory *facpath = GTK_SIGNAL_LIST_ITEM_FACTORY(gtk_signal_list_item_factory_new());
 		g_signal_connect(facpath, "setup", G_CALLBACK(pm_var_setup_path_cb), NULL);
 		g_signal_connect(facpath, "bind",  G_CALLBACK(pm_var_bind_path_cb),  NULL);
-		GtkColumnViewColumn *cpath = gtk_column_view_column_new(N_("Path"), GTK_LIST_ITEM_FACTORY(facpath));
+		GtkColumnViewColumn *cpath = gtk_column_view_column_new(_("Path"), GTK_LIST_ITEM_FACTORY(facpath));
 		gtk_column_view_column_set_resizable(cpath, TRUE);
 		gtk_column_view_column_set_expand(cpath, TRUE);
 		gtk_column_view_append_column(pm_var_view, cpath);
@@ -468,7 +462,7 @@ static void init_widgets() {
 		GtkSignalListItemFactory *fac = GTK_SIGNAL_LIST_ITEM_FACTORY(gtk_signal_list_item_factory_new());
 		g_signal_connect(fac, "setup", G_CALLBACK(pm_string_setup_cb), NULL);
 		g_signal_connect(fac, "bind",  G_CALLBACK(pm_string_bind_cb),  NULL);
-		GtkColumnViewColumn *c = gtk_column_view_column_new(N_("expression"), GTK_LIST_ITEM_FACTORY(fac));
+		GtkColumnViewColumn *c = gtk_column_view_column_new(_("expression"), GTK_LIST_ITEM_FACTORY(fac));
 		gtk_column_view_column_set_expand(c, TRUE);
 		gtk_column_view_append_column(pm_preset_view, c);
 		g_object_unref(c);
@@ -494,7 +488,7 @@ static void init_widgets() {
 		GtkSignalListItemFactory *facop = GTK_SIGNAL_LIST_ITEM_FACTORY(gtk_signal_list_item_factory_new());
 		g_signal_connect(facop, "setup", G_CALLBACK(pm_string_setup_cb), NULL);
 		g_signal_connect(facop, "bind",  G_CALLBACK(pm_op_bind_cb),      NULL);
-		GtkColumnViewColumn *cop = gtk_column_view_column_new(N_("Operator"), GTK_LIST_ITEM_FACTORY(facop));
+		GtkColumnViewColumn *cop = gtk_column_view_column_new(_("Operator"), GTK_LIST_ITEM_FACTORY(facop));
 		gtk_column_view_column_set_expand(cop, TRUE);
 		gtk_column_view_append_column(pm_op_view, cop);
 		g_object_unref(cop);
@@ -513,7 +507,7 @@ static void init_widgets() {
 		GtkSignalListItemFactory *facfn = GTK_SIGNAL_LIST_ITEM_FACTORY(gtk_signal_list_item_factory_new());
 		g_signal_connect(facfn, "setup", G_CALLBACK(pm_string_setup_cb), NULL);
 		g_signal_connect(facfn, "bind",  G_CALLBACK(pm_fn_bind_cb),      NULL);
-		GtkColumnViewColumn *cfn = gtk_column_view_column_new(N_("Function"), GTK_LIST_ITEM_FACTORY(facfn));
+		GtkColumnViewColumn *cfn = gtk_column_view_column_new(_("Function"), GTK_LIST_ITEM_FACTORY(facfn));
 		gtk_column_view_column_set_expand(cfn, TRUE);
 		gtk_column_view_append_column(pm_fn_view, cfn);
 		g_object_unref(cfn);
@@ -1077,7 +1071,7 @@ static void select_image(int nb) {
 				gchar *name = g_path_get_basename(filename);
 				gchar *str = g_strdup_printf("%s will not be added in the pixel math tool because its size is different from the other loaded images"
 						" (width, height or number of channels).", name);
-				gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Image must have same dimension"), str);
+				gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Image must have same dimension"), _(str));
 				g_free(name);
 				g_free(str);
 			} else {

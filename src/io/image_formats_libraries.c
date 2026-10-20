@@ -20,10 +20,11 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
+
 #include <lcms2.h>
 
 #ifdef HAVE_LIBTIFF
@@ -34,13 +35,14 @@
 #undef int64
 #endif
 #ifdef HAVE_LIBJPEG
-#include <jpeglib.h>
 #include <jconfig.h>
 #include <jerror.h>
+#include <jpeglib.h>
 #endif
 #ifdef HAVE_LIBPNG
-#include <png.h>
 #include <setjmp.h>
+
+#include <png.h>
 #endif
 #ifdef HAVE_LIBRAW
 #include <libraw/libraw.h>
@@ -56,20 +58,18 @@
 #include "io/SirilJpegXLWrapper.h"
 #endif
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
-#include "core/icc_profile.h"
-#include "core/siril_log.h"
+#include "algos/geometry.h"
 #include "core/exif.h"
+#include "core/gui_iface.h"
+#include "core/icc_profile.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "io/fits_keywords.h"
 #include "io/gps_parser.h"
-#include "algos/geometry.h"
-#include "algos/demosaicing.h"
-#include "core/gui_iface.h"
 #include "io/single_image.h"
 /* gui_calls.h removed: heif_dialog now routes through gui_iface */
-#include "image_format_fits.h"
+#include "io/image_format_fits.h"
 
 static void fill_date_obs_if_any(fits *fit, const char *file) {
 	gchar *date_time = NULL;

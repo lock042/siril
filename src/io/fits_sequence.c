@@ -24,13 +24,12 @@
  * image. Given its use of the third dimension, it's sometimes called FITS cube.
  */
 
-#include "core/siril.h"
-#include "core/proto.h"
 #include "core/icc_profile.h"
-#include "io/image_format_fits.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
-
-#include "fits_sequence.h"
+#include "io/fits_sequence.h"
+#include "io/image_format_fits.h"
 
 static int fitseq_write_image_for_writer(struct seqwriter_data *writer, fits *image, int index);
 static int fitseq_prepare_for_multiple_read(fitseq *fitseq, int iomode);

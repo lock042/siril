@@ -1,11 +1,11 @@
 #ifndef _OPENCV_TRACKS_H_
 #define _OPENCV_TRACKS_H_
 
+#include "core/siril.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "core/siril.h"
 
 struct track {
 	pointi start;	// display coordinates

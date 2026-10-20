@@ -18,26 +18,23 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
 #include <assert.h>
 #include <float.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "algos/cie_standard_observer.h" // Do not include this from anywhere else
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/icc_profile.h"
-#include "core/processing.h"
-#include "core/siril_log.h"
-#include "core/OS_utils.h"
-#include "core/undo.h"
-#include "io/single_image.h"
-#include "io/image_format_fits.h"
 #include "algos/colors.h"
-#include "algos/statistics.h"
 #include "algos/extraction.h"
+#include "algos/statistics.h"
+#include "core/icc_profile.h"
 #include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "io/image_format_fits.h"
 
 /* Op descriptor — single source of truth for this operation (op_descriptor.h) */
 const op_descriptor op_desc_ccm = {

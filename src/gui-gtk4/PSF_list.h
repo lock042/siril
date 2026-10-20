@@ -1,8 +1,8 @@
 #ifndef FWHM_LIST_H_
 #define FWHM_LIST_H_
 
-#include "core/siril.h"
 #include "algos/PSF.h"
+#include "core/siril.h"
 
 void refresh_star_list();
 /* clear_stars_list and clear_stars_list_as_idle are in algos/PSF.h */

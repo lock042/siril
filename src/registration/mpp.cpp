@@ -41,7 +41,6 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
-#include <numeric>
 #include <queue>
 #include <utility>
 #include <vector>
@@ -55,16 +54,14 @@
 #include "core/siril.h"
 
 extern "C" {
-#include "core/siril_log.h"
-#include "core/proto.h"
+#include "algos/demosaicing.h"
 #include "core/gui_iface.h"
 #include "core/OS_utils.h"
 #include "core/processing.h"
-#include "algos/demosaicing.h"
-#include "io/sequence.h"
+#include "core/proto.h"
+#include "core/siril_log.h"
 #include "io/image_format_fits.h"
 #include "io/ser.h"
-
 #include "registration/mpp.h"
 #include "registration/mpp/mpp_ap.h"
 #include "registration/mpp/mpp_config.h"

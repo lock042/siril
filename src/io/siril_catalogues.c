@@ -22,22 +22,21 @@
 #include <config.h>
 #endif
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
-#include "core/siril_date.h"
-#include "core/processing.h"
-#include "core/command_line_processor.h"
+#include "algos/astrometry_solver.h"
+#include "algos/photometric_cc.h"
 #include "algos/PSF.h"
 #include "algos/siril_wcs.h"
-#include "algos/photometric_cc.h"
-#include "io/annotation_catalogues.h"
-#include "algos/astrometry_solver.h"
-#include "algos/comparison_stars.h"
-#include "io/remote_catalogues.h"
-#include "io/local_catalogues.h"
-#include "registration/matching/misc.h"
+#include "core/command_line_processor.h"
 #include "core/gui_iface.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_date.h"
+#include "core/siril_log.h"
+#include "io/annotation_catalogues.h"
+#include "io/local_catalogues.h"
+#include "io/remote_catalogues.h"
+#include "registration/matching/misc.h"
 
 void free_conesearch_params(void *p);
 void free_conesearch_args(void *p);
@@ -1702,4 +1701,39 @@ conesearch_params *init_conesearch_params() {
 		params->default_obscode_used = TRUE;
 	}
 	return params;
+}
+
+void free_catquery_args(catquery_args *args) {
+	if (!args)
+		return;
+	siril_catalog_free(args->siril_cat);
+	g_free(args->outfilename);
+	free(args);
+}
+
+gpointer catquery_worker(gpointer p) {
+	catquery_args *args = (catquery_args *) p;
+	siril_catalogue *siril_cat = args->siril_cat;
+
+	siril_log_message(_("Querying the %s catalogue at RA: %.5f, Dec: %.5f, radius: %.3f deg, limit mag: %.2f\n"),
+			catalog_to_str(siril_cat->cat_index), siril_cat->center_ra, siril_cat->center_dec,
+			siril_cat->radius / 60.0, siril_cat->limitmag);
+
+	int nbstars = siril_catalog_conesearch(siril_cat);
+	if (!nbstars) {
+		siril_log_error(_("Catalogue query failed\n"));
+	} else if (nbstars == -1) {
+		siril_log_message(_("Catalogue query returned no object\n"));
+	} else {
+		siril_log_message(_("%d objects returned by the %s catalogue\n"),
+				siril_cat->nbitems, catalog_to_str(siril_cat->cat_index));
+		if (siril_catalog_write_to_file(siril_cat, args->outfilename))
+			siril_log_message(_("List saved to %s\n"), args->outfilename);
+		else
+			siril_log_error(_("Failed to save list to %s\n"), args->outfilename);
+	}
+
+	free_catquery_args(args);
+	end_generic(NULL);
+	return GINT_TO_POINTER(0);
 }

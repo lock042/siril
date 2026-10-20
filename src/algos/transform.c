@@ -106,16 +106,15 @@
  **
  ******************************************************************************/
 
-#include <stdio.h>
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-#include <stdlib.h>
-
-#include "core/siril.h"
-#include "core/siril_log.h"
 #include "algos/Def_Wavelet.h"
 #include "algos/wavelet_denoise.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 
 int prepare_rawdata(float *Imag, int Nl, int Nc, WORD *buf, int threads) {
 	threads = wavelet_threads(threads);

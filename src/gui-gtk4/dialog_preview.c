@@ -22,29 +22,12 @@
 #include <config.h>
 #endif
 
+#include "core/proto.h"
 #include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
-#include "core/exif.h"
-#include "gui-gtk4/histogram.h"
-#include "gui-gtk4/progress_and_log.h"
-#include "gui-gtk4/utils.h"
-#include "io/ser.h"
-#include "io/image_format_fits.h"
-
-#ifdef HAVE_LIBHEIF
-#include <libheif/heif.h>
-#endif
-#ifdef HAVE_LIBXISF
-#include "io/SirilXISFWraper.h"
-#endif
-#ifdef HAVE_LIBJXL
-#include "io/SirilJpegXLWrapper.h"
-#endif
-
-#include "dialog_preview.h"
-#include "core/proto.h"
 #include "filters/mtf.h"
+#include "gui-gtk4/dialog_preview.h"
+#include "io/image_format_fits.h"
+#include "io/ser.h"
 
 /* extract_thumbnail_from_fits is the raw-byte FITS thumbnail extractor;
  * its declaration is intentionally not in io/image_format_fits.h to

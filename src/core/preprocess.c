@@ -18,28 +18,24 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdlib.h>
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/arithm.h"
-#include "core/processing.h"
-#include "core/OS_utils.h"
-#include "core/siril_log.h"
-#include "algos/statistics.h"
-#include "algos/fix_xtrans_af.h"
-#include "filters/cosmetic_correction.h"
-#include "core/gui_iface.h"
-#include "io/single_image.h"
-#include "io/sequence.h"
 #include "algos/demosaicing.h"
+#include "algos/fix_xtrans_af.h"
+#include "algos/statistics.h"
+#include "core/arithm.h"
+#include "core/gui_iface.h"
+#include "core/preprocess.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "filters/cosmetic_correction.h"
 #include "io/image_format_fits.h"
-#include "io/path_parse.h"
-#include "io/ser.h"
-
-#include "preprocess.h"
+#include "io/sequence.h"
+#include "io/single_image.h"
 
 #define SQUARE_SIZE 512
 

@@ -1,8 +1,8 @@
 #ifndef SRC_FILTERS_CLAHE_H_
 #define SRC_FILTERS_CLAHE_H_
 
-#include "core/siril.h"
 #include "core/processing.h"
+#include "core/siril.h"
 
 typedef struct {
 	destructor destroy_fn;  /* Must be first member */

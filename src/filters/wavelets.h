@@ -1,9 +1,9 @@
 #ifndef SRC_FILTERS_WAVELETS_H_
 #define SRC_FILTERS_WAVELETS_H_
 
-#include "core/siril.h"
-#include "core/processing.h"
 #include "algos/wavelet_denoise.h"
+#include "core/processing.h"
+#include "core/siril.h"
 
 /* wavelets filter data from GUI */
 struct wavelets_filter_data {

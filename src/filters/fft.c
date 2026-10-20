@@ -18,23 +18,23 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <math.h>
-#include <complex.h>
-#include <string.h>
 #include <assert.h>
+#include <complex.h>
+#include <math.h>
+#include <stdio.h>
+#include <string.h>
+
 #include <fftw3.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
-#include "core/gui_iface.h"
-#include "core/processing.h"
-#include "io/image_format_fits.h"
 #include "algos/statistics.h"
-
-#include "fft.h"
+#include "core/gui_iface.h"
 #include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "filters/fft.h"
+#include "io/image_format_fits.h"
 
 /* Op descriptor — single source of truth for this operation (op_descriptor.h) */
 const op_descriptor op_desc_fft = {

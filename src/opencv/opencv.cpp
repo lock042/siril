@@ -25,30 +25,27 @@
 #endif
 #include <assert.h>
 #include <iostream>
-#include <iomanip>
+
 #include <opencv2/core/core.hpp>
-#include <opencv2/core/matx.hpp>
 #define CV_RANSAC FM_RANSAC
 #include <opencv2/calib3d.hpp>
 
 // for mosaics
 #include <opencv2/stitching/warpers.hpp>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/masks.h"
-#include "core/siril_log.h"
-#include "core/settings.h"
 #include "core/gui_iface.h"
-#include "registration/registration.h"
+#include "core/masks.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "opencv/guidedfilter.h"
+#include "opencv/opencv.h"
 #include "registration/matching/atpmatch.h"
-#include "opencv.h"
-#include "guidedfilter.h"
+#include "registration/registration.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include "io/image_format_fits.h"
 #include "algos/statistics.h"
 #include "registration/distorsion.h"
 #ifdef __cplusplus

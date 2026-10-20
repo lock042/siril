@@ -22,49 +22,43 @@
 #include <config.h>
 #endif
 
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-#include <time.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <sys/time.h>
-#include <ctype.h>
 #include <assert.h>
-#include <math.h>
+#include <ctype.h>
 #include <libgen.h>
+#include <math.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <time.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/OS_utils.h"
-#include "core/initfile.h"
-#include "core/undo.h"
-#include "core/siril_log.h"
-#include "io/conversion.h"
 #include "core/gui_iface.h"
-#include "ser.h"
-#include "fits_sequence.h"
+#include "core/initfile.h"
+#include "core/OS_utils.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "core/undo.h"
+#include "io/conversion.h"
+#include "io/fits_sequence.h"
+#include "io/ser.h"
 #ifdef HAVE_FFMS2
-#include "films.h"
+#include "io/films.h"
 #endif
-#include "single_image.h"
-#include "image_format_fits.h"
+#include "algos/demosaicing.h"
 #include "algos/PSF.h"
+#include "algos/siril_wcs.h"
 #include "algos/star_finder.h"
 #include "algos/statistics.h"
-#include "algos/siril_wcs.h"
-#include "algos/demosaicing.h"
-#include "registration/registration.h"
-#include "registration/mpp.h"
-#include "registration/mpp/mpp_sidecar.h"
-#include "registration/mpp/mpp_ap.h"
-#include "stacking/stacking.h"	// for stack_method and related types
-#include "opencv/opencv.h"
 #include "core/siril_date.h"
-
-#include "sequence.h"
-
+#include "io/image_format_fits.h"
+#include "io/sequence.h"
+#include "io/single_image.h"
+#include "opencv/opencv.h"
+#include "registration/mpp.h"
+#include "registration/mpp/mpp_ap.h"
+#include "registration/mpp/mpp_sidecar.h"
+#include "registration/registration.h"
 
 /* com.seq is a static struct containing the sequence currently selected by the
  * user from the interface. It may change to be a pointer to any sequence

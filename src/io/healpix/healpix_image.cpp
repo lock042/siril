@@ -21,7 +21,6 @@ void pix2wcs(fits *fit, double pixel_x, double pixel_y, double *world_x, double 
 
 #include <algorithm>
 #include <cmath>
-#include <cstdint>
 #include <cstdio>
 #include <map>
 #include <string>

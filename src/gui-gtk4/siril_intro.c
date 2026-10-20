@@ -19,10 +19,8 @@
  */
 
 #include "core/siril.h"
-#include "core/proto.h"
+#include "gui-gtk4/siril_intro.h"
 #include "gui-gtk4/utils.h"
-
-#include "siril_intro.h"
 
 #define INTRO_DELAY 1000
 

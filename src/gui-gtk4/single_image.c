@@ -18,21 +18,19 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
 #include "core/gui_iface.h"
-#include "gui-gtk4/utils.h"
-#include "gui-gtk4/callbacks.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/utils.h"
 #include "io/conversion.h"
-#include "io/single_image.h"
 #include "io/sequence.h"
+#include "io/single_image.h"
 
 #if HAVE_X11_DND_FALLBACK
 #include <gdk/x11/gdkx.h>
 #include <X11/Xlib.h>
-#include <X11/Xatom.h>
 #endif
 
 static const char *drawing_area[] = { "drawingarear", "drawingareag", "drawingareab", "drawingareargb"};

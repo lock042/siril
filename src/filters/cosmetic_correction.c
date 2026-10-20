@@ -20,23 +20,21 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <gsl/gsl_statistics_ushort.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
+#include "algos/median_fast.h"
+#include "algos/sorting.h"
+#include "algos/statistics.h"
+#include "core/op_descriptors.h"
 #include "core/optimize_utils.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
+#include "filters/cosmetic_correction.h"
+#include "filters/median.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
-#include "algos/statistics.h"
-#include "algos/sorting.h"
-#include "algos/median_fast.h"
-#include "filters/median.h"
 #include "opencv/opencv.h"
-
-#include "cosmetic_correction.h"
-#include "core/op_descriptors.h"
 
 /* Op descriptors — single source of truth for these ops (op_descriptor.h) */
 const op_descriptor op_desc_cosmetic = {

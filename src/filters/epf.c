@@ -18,18 +18,13 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <math.h>
-
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
 #include "core/gui_iface.h"
-#include "io/single_image.h"
+#include "core/op_descriptors.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "filters/epf.h"
 #include "io/image_format_fits.h"
 #include "opencv/opencv.h"
-
-#include "filters/epf.h"
-#include "core/op_descriptors.h"
 
 /* Op descriptor — single source of truth for this operation (op_descriptor.h) */
 const op_descriptor op_desc_epf = {

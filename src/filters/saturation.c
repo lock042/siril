@@ -2,15 +2,14 @@
  * Refactored saturation using generic_image_worker
  */
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
-#include "core/siril_log.h"
 #include "algos/colors.h"
 #include "algos/statistics.h"
 #include "core/op_descriptors.h"
-
-#include "saturation.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "filters/saturation.h"
 
 /* Op descriptor — single source of truth for this operation (op_descriptor.h) */
 const op_descriptor op_desc_saturation = {

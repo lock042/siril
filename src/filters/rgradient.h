@@ -1,8 +1,8 @@
 #ifndef SRC_ALGOS_RGRADIENT_H_
 #define SRC_ALGOS_RGRADIENT_H_
 
-#include "core/siril.h"
 #include "core/processing.h"
+#include "core/siril.h"
 
 /* rgradient filter data */
 struct rgradient_data {

@@ -18,51 +18,43 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <math.h>
 #include <ctype.h>
+#include <math.h>
 
-#include "git-version.h"
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
-#include "core/processing.h"
-#include "core/icc_profile.h"
-#include "algos/astrometry_solver.h"
-#include "algos/colors.h"
-#include "algos/ccd-inspector.h"
-#include "gui-gtk4/ccd-inspector.h"
 #include "algos/background_extraction.h"
-#include "algos/PSF.h"
+#include "algos/ccd-inspector.h"
+#include "algos/colors.h"
 #include "algos/siril_wcs.h"
 #include "algos/sorting.h"
-#include "io/annotation_catalogues.h"
+#include "core/icc_profile.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "filters/mtf.h"
-#include "io/single_image.h"
-#include "registration/mpp.h"
-#include "registration/mpp/mpp_ap.h"
-#include "registration/mpp/mpp_config.h"
-#include "registration/mpp/mpp_shift.h"
+#include "git-version.h"
+#include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/ccd-inspector.h"
+#include "gui-gtk4/histo_display.h"
+#include "gui-gtk4/histogram.h"
+#include "gui-gtk4/image_display.h"
+#include "gui-gtk4/image_interactions.h"
 #include "gui-gtk4/mpp_ap_editor.h"
 #include "gui-gtk4/mpp_shift_viewer.h"
+#include "gui-gtk4/registration_preview.h"
+#include "gui-gtk4/siril_preview.h"
+#include "gui-gtk4/utils.h"
+#include "io/annotation_catalogues.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
-#include "gui-gtk4/image_interactions.h"
-#include "gui-gtk4/registration_preview.h"
-#include "gui-gtk4/callbacks.h"
-#include "gui-gtk4/utils.h"
-#include "gui-gtk4/siril_preview.h"
-#include "gui-gtk4/user_polygons.h"
-#include "gui-gtk4/histo_display.h"
+#include "io/single_image.h"
 #include "livestacking/livestacking.h"
-#include "histogram.h"
-#include "registration/matching/degtorad.h"
-#include "registration/registration.h"
 #include "opencv/opencv.h"
-
-#include <wcslib.h>
-#include <wcsfix.h>
-
-#include "image_display.h"
+#include "registration/matching/degtorad.h"
+#include "registration/mpp.h"
+#include "registration/mpp/mpp_ap.h"
+#include "registration/mpp/mpp_shift.h"
+#include "registration/registration.h"
 
 /* is gfit->icc_profile identical to the monitor profile, if so we can avoid the
  * transform */
@@ -506,6 +498,24 @@ static int allocate_full_surface(struct image_view *view) {
  * All functions in this block must be called with gui.cairo_mutex held. */
 
 static void materialise_tile_evict_until(struct image_view *view, gsize headroom);
+static int make_index_for_rainbow(BYTE index[][3]);
+
+/* Colormap a finished BGRX buffer in place: gray tiles have R=G=B so each
+ * pixel gets rainbow[val]; the RGB composite keeps one component per
+ * channel, like remaprgb(). */
+static void apply_rainbow(guchar *data, gsize npix) {
+	static BYTE rainbow[UCHAR_MAX + 1][3];
+	static gsize init = 0;
+	if (g_once_init_enter(&init)) {
+		make_index_for_rainbow(rainbow);
+		g_once_init_leave(&init, 1);
+	}
+	for (gsize i = 0; i < npix; i++, data += 4) {
+		data[0] = rainbow[data[0]][2];
+		data[1] = rainbow[data[1]][1];
+		data[2] = rainbow[data[2]][0];
+	}
+}
 
 /* Apply the LUT + flags to a tile rect of a gray (R/G/B) viewport and
  * build a fresh texture from a freshly-malloc'd byte buffer.  The
@@ -622,6 +632,8 @@ static gboolean materialise_tile_gray(struct image_view *view, int vport,
 	/* The new GBytes owns `data` — when the texture's last reference
 	 * drops (anywhere from this scope to many frames later, once GSK is
 	 * done with it), free(data) will be called automatically. */
+	if (view->render_rainbow)
+		apply_rainbow(data, (gsize)out_w * out_h);
 	GBytes *bytes = g_bytes_new_with_free_func(data, tile_bytes, free, data);
 	GdkTexture *new_tex = gdk_memory_texture_new(out_w, out_h, GDK_MEMORY_B8G8R8X8,
 	                                              bytes, out_w * 4);
@@ -750,6 +762,8 @@ static gboolean materialise_tile_rgb(struct image_view *view,
 
 	free(lb);
 
+	if (view->render_rainbow)
+		apply_rainbow(data, (gsize)out_w * out_h);
 	GBytes *bytes = g_bytes_new_with_free_func(data, tile_bytes, free, data);
 	GdkTexture *new_tex = gdk_memory_texture_new(out_w, out_h, GDK_MEMORY_B8G8R8X8,
 	                                              bytes, out_w * 4);
@@ -1056,6 +1070,8 @@ static void ensure_proxy(struct image_view *view, int vport) {
 		return;
 	}
 
+	if (view->render_rainbow)
+		apply_rainbow(data, (gsize)pw * ph);
 	GBytes *bytes = g_bytes_new_with_free_func(data, bytes_len, free, data);
 	GdkTexture *tex = gdk_memory_texture_new(pw, ph, GDK_MEMORY_B8G8R8X8,
 	                                          bytes, pw * 4);
@@ -1483,6 +1499,7 @@ static void materialise_worker(gpointer data, gpointer user) {
 		const int out_h = MAX(1, gtex_h >> jmip);
 		const gsize tile_bytes = (gsize)out_w * out_h * 4;
 		const gboolean neg = view->render_neg;
+		const gboolean rainbow = view->render_rainbow;
 		const int gtype = gfit->type;
 		const guint hd_max = gui.hd_remap_max;
 		const BYTE *idx[3];
@@ -1521,6 +1538,8 @@ static void materialise_worker(gpointer data, gpointer user) {
 		if (icc_tf)
 			unlock_display_transform();   /* last use of the handle was the fill */
 
+		if (rainbow)
+			apply_rainbow(buf, (gsize)out_w * out_h);
 		GBytes *bytes = g_bytes_new_with_free_func(buf, tile_bytes, free, buf);
 		GdkTexture *tex = gdk_memory_texture_new(out_w, out_h,
 			GDK_MEMORY_B8G8R8X8, bytes, out_w * 4);
@@ -2884,6 +2903,13 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 			g_variant_unref(st);
 		}
 		view->render_neg = neg_now;
+		GAction *ac = g_action_map_lookup_action(G_ACTION_MAP(imgdisp_app_win),
+		                                         "color-map");
+		if (ac) {
+			GVariant *st = g_action_get_state(ac);
+			view->render_rainbow = g_variant_get_boolean(st);
+			g_variant_unref(st);
+		}
 	}
 
 	GdkTexture **tiles_snapshot = NULL;

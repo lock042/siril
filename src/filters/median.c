@@ -20,18 +20,16 @@
 
 #include <string.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
-#include "core/optimize_utils.h"
-#include "core/siril_log.h"
-#include "core/gui_iface.h"
-#include "algos/statistics.h"
-#include "algos/sorting.h"
-
-#include "median.h"
 #include "algos/median_fast.h"
+#include "algos/sorting.h"
+#include "algos/statistics.h"
+#include "core/gui_iface.h"
 #include "core/op_descriptors.h"
+#include "core/optimize_utils.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "filters/median.h"
 
 /* Op descriptor — single source of truth for this operation (op_descriptor.h) */
 const op_descriptor op_desc_median = {

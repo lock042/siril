@@ -3,9 +3,7 @@
 
 #include <cstdint>
 
-#include "pipp_video_write.h"
-#include "pipp_avi_write.h"
-
+#include "io/avi_pipp/pipp_avi_write.h"
 
 class c_pipp_avi_write_dib: public c_pipp_avi_write {
 private:

@@ -37,19 +37,17 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 * AURA code by team free-astro. */
 
 #include <assert.h>
+#include <float.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "core/siril.h"
 #include "core/siril_alloc.h"
-#include "core/siril_log.h"
+#include "drizzle/cdrizzlemap.h"
+#include "drizzle/cdrizzleutil.h"
+#include "drizzle/driz_portability.h"
 #include "opencv/opencv.h"
-#include "driz_portability.h"
-#include "cdrizzlemap.h"
-#include "cdrizzleutil.h"
-
-#include <float.h>
 
 static const float VERTEX_ATOL = 1.0e-12;
 static const float APPROX_ZERO = 1000 * FLT_MIN;

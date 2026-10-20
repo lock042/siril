@@ -1,5 +1,8 @@
 #ifndef _FILMS_H_
 #define _FILMS_H_
+
+#include "core/siril.h"
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif

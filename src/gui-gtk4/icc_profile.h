@@ -19,10 +19,10 @@
  */
 #ifndef SRC_GUI_ICC_PROFILE_H_
 #include <gtk/gtk.h>
+
 #include "gui-gtk4/gtk3_event_compat.h"
 #define SRC_GUI_ICC_PROFILE_H_
 #include <stdint.h>
-#include <lcms2.h>
 
 void set_icc_description_in_TIFF();
 void initialize_icc_preferences_widgets();

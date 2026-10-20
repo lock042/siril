@@ -18,23 +18,20 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <math.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "core/siril.h"
 #include "core/siril_log.h"
-#include "gui-gtk4/utils.h"
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/stacking.h"
+#include "gui-gtk4/utils.h"
 #include "io/sequence.h"
-#include "registration/registration.h"
 #include "registration/mpp.h"
 #include "registration/mpp/mpp_config.h"
-#include "stacking/sum.h"
+#include "registration/registration.h"
 #include "stacking/stacking.h"
-
-#include "gui-gtk4/stacking.h"
+#include "stacking/sum.h"
 
 static struct stacking_args stackparam = { 0 };
 

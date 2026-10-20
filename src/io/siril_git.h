@@ -1,6 +1,10 @@
 #ifndef _GITSCRIPTS_H_
 #define _GITSCRIPTS_H_
 
+#include <config.h>
+
+#include <glib.h>
+
 #ifdef HAVE_LIBGIT2
 int auto_update_gitscripts(gboolean sync);
 int auto_update_gitspcc(gboolean sync);

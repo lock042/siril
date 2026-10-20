@@ -25,12 +25,7 @@
 
 gboolean reset_cut_gui(gpointer user_data);
 gboolean reset_cut_gui_filedependent(gpointer user_data);
-double get_conversion_factor(fits *fit);
 void measure_line(fits* fit, point start, point finish, gboolean pref_as);
-gpointer cut_profile(gpointer p);
-gpointer tri_cut(gpointer p);
-gpointer cfa_cut(gpointer p);
-void apply_cut_to_sequence(cut_struct *cut_args);
 void update_spectro_labels();
 
 #endif

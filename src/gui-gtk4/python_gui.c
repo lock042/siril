@@ -3,27 +3,25 @@
 // Reference site is https://siril.org
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <string.h>
-#include <stdint.h>
 #include <assert.h>
+#include <stdint.h>
+#include <string.h>
 
 #include <gtksourceview/gtksource.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
-#include "core/processing.h"
 #include "core/command_line_processor.h"
+#include "core/processing.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/documentation.h"
+#include "gui-gtk4/image_interactions.h"
 #include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/python_gui.h"
 #include "gui-gtk4/script_menu.h"
 #include "gui-gtk4/utils.h"
-#include "gui-gtk4/callbacks.h"
-#include "gui-gtk4/image_interactions.h"
 #include "io/siril_pythonmodule.h"
-
-#include "python_gui.h"
 
 // Statics declarations
 enum {

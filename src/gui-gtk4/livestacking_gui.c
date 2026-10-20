@@ -1,15 +1,15 @@
-#include "livestacking/gui.h"
-#include "livestacking/livestacking.h"
 #include <gtk/gtk.h>
-#include "io/image_format_fits.h"
-#include "gui-gtk4/utils.h"
+
+#include "core/preprocess.h"
+#include "core/proto.h"
+#include "core/siril_log.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/image_display.h"
-#include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/siril_actions.h"
-#include "core/proto.h"
-#include "core/preprocess.h"
-#include "core/siril_log.h"
+#include "gui-gtk4/utils.h"
+#include "io/image_format_fits.h"
+#include "livestacking/gui.h"
+#include "livestacking/livestacking.h"
 
 static gchar *pause_play_button[] = {"media-playback-pause-symbolic", "media-playback-start-symbolic" };
 

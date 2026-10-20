@@ -1,13 +1,15 @@
 #ifndef FLUX_CACHE_H
 #define FLUX_CACHE_H
 
-#include <vector>
-#include <string>
-#include <memory>
-#include <map>
+#include <config.h>
+
 #include <cstdint>
-#include <mutex>
 #include <filesystem>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <vector>
 
 // Forward declare the header so we don't need the whole project header here
 struct HealpixCatHeader;

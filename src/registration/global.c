@@ -18,30 +18,28 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
-#include "core/OS_utils.h"
-#include "core/siril_log.h"
+#include "algos/PSF.h"
 #include "algos/siril_wcs.h"
 #include "algos/star_finder.h"
-#include "algos/PSF.h"
 #include "core/gui_iface.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "drizzle/cdrizzleutil.h"
+#include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/ser.h"
-#include "io/image_format_fits.h"
-#include "drizzle/cdrizzleutil.h"
-#include "registration/registration.h"
+#include "opencv/opencv.h"
 #include "registration/distorsion.h"
-#include "registration/matching/atpmatch.h"
 #include "registration/matching/match.h"
 #include "registration/matching/misc.h"
-#include "opencv/opencv.h"
+#include "registration/registration.h"
 
 # define MIN_RATIO_INLIERS 30 //percentage of inliers after transformation fitting (shift, affine or homography)
 # define AMPLITUDE_CUT 0.05 // percentile to clip the lower tail of amplitudes distribtion when filtering out stars for 2pass reg

@@ -26,23 +26,22 @@
  * See also ../../subprojects/htmesh/README for complete information.
  */
 
-#include "io/kstars/binfile.h"
-#include "io/kstars/htmesh_wrapper.h"
-#include "core/siril.h"
-#include "core/arithm.h" // for half_to_float()
-#include "core/siril_log.h"
-#include "core/siril_date.h"
-#include "core/proto.h"
-#include "core/OS_utils.h"
-#include "core/processing.h"
-#include "algos/photometry.h"
-#include "algos/siril_wcs.h"
-#include "registration/matching/degtorad.h"
-#include "siril_catalogues.h"
-#include "local_catalogues.h"
-#include "io/healpix/healpix_cat.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "algos/siril_wcs.h"
+#include "core/arithm.h" // for half_to_float()
+#include "core/OS_utils.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "io/healpix/healpix_cat.h"
+#include "io/kstars/binfile.h"
+#include "io/kstars/htmesh_wrapper.h"
+#include "io/local_catalogues.h"
+#include "io/siril_catalogues.h"
+#include "registration/matching/degtorad.h"
 
 #ifndef fseek64
 #ifdef _WIN32

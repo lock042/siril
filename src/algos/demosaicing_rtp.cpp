@@ -4,8 +4,8 @@
 #include "librtprocess.h"
 #endif
 
-#include "core/siril.h"
 #include "algos/demosaicing.h"
+#include "core/siril.h"
 
 #ifdef __cplusplus
 extern "C" {

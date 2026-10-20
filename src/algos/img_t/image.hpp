@@ -40,19 +40,18 @@ free-astro 2022-2023.
 #define HAVE_FFTW3F_MULTITHREAD
 #endif
 
-#include <unordered_map>
-
 #include <cassert>
 #include <complex>
-#include <limits>
 #include <functional>
-#include <vector>
 #include <numeric>
-#include <memory>
-#include "core/siril.h"
+#include <unordered_map>
+#include <vector>
+
 #include <fftw3.h>
-#include "fftw_allocator.hpp"
-#include "image_boundary.hpp"
+
+#include "algos/img_t/fftw_allocator.hpp"
+#include "algos/img_t/image_boundary.hpp"
+#include "core/siril.h"
 
 #ifdef _OPENMP
 #include <omp.h>

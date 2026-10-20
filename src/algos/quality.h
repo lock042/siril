@@ -20,6 +20,8 @@
 #ifndef SRC_QUALITY_H_
 #define SRC_QUALITY_H_
 
+#include "core/siril.h"
+
 // How many bright pixels do we average to get the real maximum value
 #define MAXP 6
 #define QMARGIN 0.1

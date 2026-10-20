@@ -18,33 +18,31 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string.h>
+#include <float.h>
 #include <math.h>
 #include <stdlib.h>
-#include <float.h>
+#include <string.h>
 
-#include "core/siril.h"
+#include "core/icc_profile.h"
 #include "core/op_descriptors.h"
-#include "core/proto.h"
 #include "core/processing.h"
 #include "core/processing_thread.h"
-#include "core/icc_profile.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
 #include "core/undo.h"
-#include "io/single_image.h"
+#include "filters/curve_transform.h"
+#include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/curves.h"
+#include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/histogram_utils.h"
+#include "gui-gtk4/image_interactions.h"
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/siril_preview.h"
+#include "gui-gtk4/utils.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
-#include "gui-gtk4/image_display.h"
-#include "gui-gtk4/image_interactions.h"
-#include "gui-gtk4/callbacks.h"
-#include "gui-gtk4/utils.h"
-#include "gui-gtk4/progress_and_log.h"
-#include "gui-gtk4/dialogs.h"
-#include "gui-gtk4/siril_preview.h"
-#include "curves.h"
-#include "histogram.h"
-#include "histogram_utils.h"
-#include "filters/curve_transform.h"
+#include "io/single_image.h"
 
 // ---------------------------------------------------------------------------
 // FORWARD DECLARATIONS

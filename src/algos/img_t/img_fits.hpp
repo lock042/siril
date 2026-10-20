@@ -37,7 +37,7 @@
 #include <cstdlib>
 #include <type_traits>
 
-#include "image.hpp"  // img_t + core/siril.h (fits, data_type, WORD, USHRT_MAX_SINGLE,
+#include "algos/img_t/image.hpp" // img_t + core/siril.h (fits, data_type, WORD, USHRT_MAX_SINGLE,
                       // BYTE_IMG/USHORT_IMG/FLOAT_IMG, PRINT_ALLOC_ERR)
 
 // fit_replace_buffer is defined in image_format_fits.c (C linkage); it swaps in

@@ -18,22 +18,21 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 
-#include "core/siril.h"
+#include "algos/siril_wcs.h"
 #include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_alloc.h"
 #include "core/siril_log.h"
-#include "algos/siril_wcs.h"
-#include "algos/PSF.h"
 #include "io/fits_keywords.h"
 #include "io/image_format_fits.h"
 #include "io/path_parse.h"
 #include "io/sequence.h"
-#include "distorsion.h"
+#include "registration/distorsion.h"
 
 // applies a distortion correction to the xpos/ypos members of psf_star list
 int disto_correct_stars(psf_star **stars, disto_data *disto) {

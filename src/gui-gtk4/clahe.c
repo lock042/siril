@@ -22,10 +22,10 @@
 
 #include <gtk/gtk.h>
 
-#include "core/siril.h"
+#include "algos/statistics.h"
 #include "core/op_descriptors.h"
 #include "core/processing.h"
-#include "algos/statistics.h"
+#include "core/siril.h"
 #include "filters/clahe.h"
 #include "gui-gtk4/clahe.h"
 #include "gui-gtk4/dialogs.h"

@@ -1,7 +1,6 @@
 #ifndef STACKING_H_
 #define STACKING_H_
 
-#include "core/processing.h"
 #include "core/sequence_filtering.h"
 
 //#define STACK_DEBUG

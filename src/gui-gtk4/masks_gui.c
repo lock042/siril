@@ -17,21 +17,22 @@
 */
 
 #include <gtk/gtk.h>
-#include "core/siril.h"
-#include "core/op_descriptors.h"
+
 #include "core/masks.h"
+#include "core/op_descriptors.h"
 #include "core/processing.h"
+#include "core/siril.h"
 #include "core/undo.h"
-#include "gui-gtk4/image_display.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/histogram.h"
+#include "gui-gtk4/image_display.h"
 #include "gui-gtk4/image_interactions.h"
+#include "gui-gtk4/masks_gui.h"
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/utils.h"
 #include "io/image_format_fits.h"
-#include "masks_gui.h"
 #include "opencv/opencv.h"
 
 /* Static widget pointers */

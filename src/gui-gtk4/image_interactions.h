@@ -1,6 +1,7 @@
 #ifndef _IMAGE_INTERACTIONS_H_
-#include <gtk/gtk.h>
 #define _IMAGE_INTERACTIONS_H_
+
+#include <gtk/gtk.h>
 
 #include "core/siril.h"
 #include "gui-gtk4/gtk3_event_compat.h"

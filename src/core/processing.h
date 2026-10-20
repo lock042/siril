@@ -1,10 +1,10 @@
 #ifndef _PROCESSING_H_
 #define _PROCESSING_H_
 
-#include "sequence_filtering.h"
+#include "core/processing_thread.h"
+#include "core/sequence_filtering.h"
 #include "io/fits_sequence.h" // for fitseq
 #include "io/ser.h" // for struct ser_struct
-#include "processing_thread.h"
 
 #ifdef __cplusplus
 extern "C" {

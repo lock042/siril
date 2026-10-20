@@ -18,9 +18,9 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "seqwriter.h"
 #include "core/siril_log.h"
 #include "io/image_format_fits.h"
+#include "io/seqwriter.h"
 
 typedef enum {
 	SEQ_OK = 0,

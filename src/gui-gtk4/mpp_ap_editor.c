@@ -11,17 +11,15 @@
  */
 
 #include <gtk/gtk.h>
-#include <gdk/gdkkeysyms.h>
 
 #include "core/siril.h"
 #include "core/siril_log.h"
-#include "core/proto.h"
-#include "gui-gtk4/utils.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/image_display.h"
 #include "gui-gtk4/image_interactions.h"
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/mpp_ap_editor.h"
+#include "gui-gtk4/utils.h"
 #include "registration/mpp.h"
 #include "registration/mpp/mpp_ap.h"
 #include "registration/mpp/mpp_config.h"

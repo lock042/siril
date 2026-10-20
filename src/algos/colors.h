@@ -1,6 +1,6 @@
 #ifndef _COLORS_H_
 #define _COLORS_H_
-#include <math.h>
+#include "core/siril.h"
 
 typedef enum {
 	EXTRACT_RGB,

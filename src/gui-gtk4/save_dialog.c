@@ -18,32 +18,27 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
 #include <ctype.h>
 #include <string.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/icc_profile.h"
 #include "core/processing.h"
-#include "core/siril_log.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_date.h"
-#include "gui-gtk4/progress_and_log.h"
-#include "gui-gtk4/utils.h"
-#include "gui-gtk4/message_dialog.h"
-#include "gui-gtk4/dialog_preview.h"
+#include "core/siril_log.h"
+#include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/icc_profile.h"
 #include "gui-gtk4/image_display.h"
-#include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/save_dialog.h"
+#include "gui-gtk4/utils.h"
 #include "io/Astro-TIFF.h"
-#include "io/conversion.h"
+#include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
-#include "io/image_format_fits.h"
-
-#include "save_dialog.h"
 
 static image_type type_of_image = TYPEUNDEF;
 

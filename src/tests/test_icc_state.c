@@ -20,11 +20,13 @@
  * identical to the branch copy to ease merges.
  */
 
-#include <criterion/criterion.h>
 #include <string.h>
+
+#include <criterion/criterion.h>
 #include <lcms2.h>
-#include "core/siril.h"
+
 #include "core/icc_profile.h"
+#include "core/siril.h"
 
 cominfo com;
 fits *gfit;

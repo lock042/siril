@@ -101,14 +101,14 @@
  **
  ******************************************************************************/
 
-#include <stdio.h>
 #include <math.h>
+#include <stdio.h>
 #include <string.h>
 
-#include "core/siril.h"
 #include "algos/Def_Math.h"
 #include "algos/Def_Mem.h"
 #include "algos/Def_Wavelet.h"
+#include "core/siril.h"
 
 // This is bigger than the actual supported maximum, it is only used as a
 // sanitization value to prevent memory allocation issues when using a number

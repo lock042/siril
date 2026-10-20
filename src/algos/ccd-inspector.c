@@ -20,17 +20,16 @@
 
 #include <math.h>
 
-#include "core/siril.h"
-#include "core/processing.h"
-#include "core/siril_log.h"
-#include "core/gui_iface.h"
+#include "algos/ccd-inspector.h"
 #include "algos/PSF.h"
+#include "algos/sorting.h"
 #include "algos/star_finder.h"
 #include "algos/statistics.h"
-#include "algos/sorting.h"
+#include "core/gui_iface.h"
+#include "core/processing.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "io/image_format_fits.h"
-
-#include "ccd-inspector.h"
 
 static void draw_polygon(float rx, float ry, float m1, float m2, float m3, float m4, float mcentre) {
 	float r1, r2, r3, r4;

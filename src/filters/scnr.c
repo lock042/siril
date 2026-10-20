@@ -18,15 +18,14 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
-#include "core/siril_log.h"
-#include "core/gui_iface.h"
 #include "algos/colors.h"
-
-#include "scnr.h"
+#include "core/gui_iface.h"
 #include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "filters/scnr.h"
 
 /* Op descriptor — single source of truth for this operation (op_descriptor.h) */
 const op_descriptor op_desc_scnr = {

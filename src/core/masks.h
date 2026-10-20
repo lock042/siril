@@ -1,6 +1,8 @@
 #ifndef SIRIL_MASKS_H
 #define SIRIL_MASKS_H
 
+#include "core/siril.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

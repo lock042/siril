@@ -20,7 +20,7 @@
  * so the runtime needs no edge handling.
  */
 
-#include "gaia_xp_design.h"
+#include "io/healpix/gaia_xp_design.h"
 
 const double gaia_xp_bp_design[18865] = {
     1.09449055598914721e-20, 1.00589069764360314e-20, 9.41182547674527784e-21, 8.97766232983705729e-21,

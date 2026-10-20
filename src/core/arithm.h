@@ -22,6 +22,8 @@
 
 #include <math.h>
 
+#include "core/siril.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

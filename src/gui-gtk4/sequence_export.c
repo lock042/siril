@@ -19,24 +19,19 @@
  */
 
 #include <gtk/gtk.h>
-#include "core/siril.h"
-#include "core/proto.h"
+
 #include "core/gui_iface.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
-#include "core/icc_profile.h"
-#include "gui-gtk4/utils.h"
 #include "gui-gtk4/callbacks.h"
-#include "gui-gtk4/message_dialog.h"
-#include "gui-gtk4/progress_and_log.h"
-#include "gui-gtk4/stacking.h"
 #include "gui-gtk4/gui_state.h"
 #include "gui-gtk4/save_dialog.h"
+#include "gui-gtk4/stacking.h"
+#include "gui-gtk4/utils.h"
 #include "io/sequence.h"
 #include "io/sequence_export.h"
 #include "registration/registration.h"
-#ifdef HAVE_LIBTIFF
-#include "io/Astro-TIFF.h"
-#endif
 
 void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 	int selected = gtk_drop_down_get_selected(GTK_DROP_DOWN(GTK_WIDGET(gtk_builder_get_object(gui.builder, "comboExport"))));

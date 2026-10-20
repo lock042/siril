@@ -2,6 +2,7 @@
 #define GUI_USER_POLYGONS_H
 
 #include <stdint.h>
+
 #include "core/siril.h"
 
 // Very liberal limit, purely to avoid unlimited g_malloc0 calls

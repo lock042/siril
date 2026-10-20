@@ -18,27 +18,21 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
-#include <gsl/gsl_statistics_double.h>
-#include <gsl/gsl_matrix.h>
-#include <gsl/gsl_vector.h>
+
 #include <gsl/gsl_linalg.h>
-#include <gsl/gsl_rng.h>
 #include <gsl/gsl_multifit_nlinear.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/gui_iface.h"
-#include "core/siril_log.h"
-#include "core/siril_world_cs.h"
 #include "algos/photometry.h"
+#include "algos/PSF.h"
 #include "algos/siril_wcs.h"
+#include "core/gui_iface.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_world_cs.h"
 #include "filters/median.h"
-
-#include "PSF.h"
-
 
 #define MAX_ITER_NO_ANGLE  20		//Number of iterations in the minimization with no angle
 #define MAX_ITER_ANGLE     20		//Number of iterations in the minimization with angle

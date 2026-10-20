@@ -5,16 +5,17 @@
  * quality_measure_threshold_weighted) and two-phase MultiLevelCorrelation
  * via the private C++ entry points, plus the C-level mpp_align_global stub.
  */
-#include <criterion/criterion.h>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/imgcodecs.hpp>
-
 #include <algorithm>
+#include <cstdint> // criterion 2.4.1's alloc.h uses SIZE_MAX without including <cstdint>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <string>
 #include <vector>
+
+#include <criterion/criterion.h>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include "registration/mpp/mpp_align_priv.hpp"
 #include "registration/mpp/mpp_rank_priv.hpp"
@@ -568,7 +569,7 @@ Test(mpp_align, multilevel_keeps_phase1_shift_on_phase2_failure) {
 	cr_assert_not(r.success, "phase 2 cannot fit in the cropped frame");
 	cr_assert(r.dy <= -7.0 && r.dy >= -9.0,
 	          "phase-1 estimate should be kept on failure (got dy=%g)", r.dy);
-	cr_assert_float_eq(r.dx, 0.0, 2.1, "dx should stay near zero (got %g)");
+	cr_assert_float_eq(r.dx, 0.0, 2.1, "dx should stay near zero (got %g)", r.dx);
 }
 
 /* mpp_improve: zero-mean correlation (cfg.alignment_points_zero_mean →

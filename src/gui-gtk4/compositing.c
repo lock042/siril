@@ -21,41 +21,37 @@
 #  include <config.h>
 #endif
 
-#include <string.h>
 #include <assert.h>
-#include <stdlib.h>
 #include <math.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/icc_profile.h"
-#include "core/command.h" // process_close
-#include "core/OS_utils.h"
-#include "core/siril_log.h"
-#include "compositing/compositing.h"
 #include "algos/colors.h"
 #include "algos/fitting.h"
 #include "algos/geometry.h"
+#include "compositing/compositing.h"
+#include "compositing/filters.h"
+#include "core/command.h" // process_close
+#include "core/icc_profile.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "filters/linear_match.h"
-#include "io/sequence.h"
-#include "io/single_image.h"
-#include "io/image_format_fits.h"
+#include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/image_display.h"
 #include "gui-gtk4/image_interactions.h"
-#include "gui-gtk4/PSF_list.h"
-#include "gui-gtk4/utils.h"
-#include "gui-gtk4/callbacks.h"
-#include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/message_dialog.h"
-#include "gui-gtk4/dialogs.h"
-#include "gui-gtk4/photometric_cc.h"
 #include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/sequence_list.h"
+#include "gui-gtk4/utils.h"
+#include "io/image_format_fits.h"
+#include "io/sequence.h"
+#include "io/single_image.h"
+#include "opencv/opencv.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"
-#include "opencv/opencv.h"
-
-#include "compositing/filters.h"
 
 #undef DEBUG
 

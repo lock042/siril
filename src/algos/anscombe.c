@@ -18,10 +18,11 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stddef.h>
 #include <math.h>
-#include "core/siril.h"
+#include <stddef.h>
+
 #include "algos/anscombe.h"
+#include "core/siril.h"
 
 void generalized_anscombe_array(float *x, const float mu, const float sigma, const float gain, const size_t ndata) {
     /*

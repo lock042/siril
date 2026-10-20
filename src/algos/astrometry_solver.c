@@ -22,10 +22,10 @@
 #include <config.h>
 #endif
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 #ifdef _WIN32
 #include <windows.h>
 #include <io.h>
@@ -34,30 +34,28 @@
 #include <gio/gunixinputstream.h>
 #endif
 
-#include "astrometry_solver.h"
+#include "algos/astrometry_solver.h"
+#include "algos/PSF.h"
+#include "algos/siril_wcs.h"
+#include "algos/star_finder.h"
 #include "core/gui_iface.h"
-#include "core/proto.h"
 #include "core/processing.h"
-#include "core/OS_utils.h"
+#include "core/proto.h"
 #include "core/siril_log.h"
 #include "core/siril_spawn.h"
 #include "core/undo.h"
-#include "algos/PSF.h"
-#include "algos/star_finder.h"
-#include "algos/photometry.h"
-#include "algos/siril_wcs.h"
+#include "io/gps_parser.h"
 #include "io/image_format_fits.h"
+#include "io/local_catalogues.h"
+#include "io/path_parse.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "io/siril_catalogues.h"
-#include "io/local_catalogues.h"
-#include "io/gps_parser.h"
-#include "io/path_parse.h"
 #include "opencv/opencv.h"
-#include "registration/registration.h"
-#include "registration/matching/match.h"
 #include "registration/matching/apply_match.h"
 #include "registration/matching/atpmatch.h"
+#include "registration/matching/match.h"
+#include "registration/registration.h"
 
 #define DOWNSAMPLE_FACTOR 0.25
 #define CONV_TOLERANCE 1E-2 // convergence tolerance in arcsec from the projection center
@@ -1923,10 +1921,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	if (solution->wcslib->lin.dispre) { // some distortions were calculated, checked that the terms are not all null
 		int N = extract_SIP_order_and_matrices(solution->wcslib->lin.dispre, NULL, NULL, NULL, NULL);
 		if (!N) { // the computation of the distortions has failed for the order specified, we remove it and warn the user
-			disfree(solution->wcslib->lin.dispre);
-			solution->wcslib->lin.dispre = NULL;
-			solution->wcslib->flag = 0;
-			wcsset(solution->wcslib);
+			remove_dis_from_wcs(solution->wcslib);
 			return SOLVE_LINONLY;
 		}
 	}

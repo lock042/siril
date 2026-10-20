@@ -18,10 +18,12 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/ >.
  */
 
-#include <criterion/criterion.h>
 #include <math.h>
-#include "core/siril.h"
+
+#include <criterion/criterion.h>
+
 #include "core/arithm.h"
+#include "core/siril.h"
 #include "io/image_format_fits.h"
 
 cominfo com;	// the core data struct

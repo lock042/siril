@@ -5,10 +5,6 @@
  * coverage in lock-step with the implementation so divergences from PSS
  * surface at the smallest unit they appear at.
  */
-#include <criterion/criterion.h>
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/imgproc.hpp>
-
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
@@ -20,6 +16,10 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+#include <criterion/criterion.h>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include "registration/mpp/mpp_align_priv.hpp"
 #include "registration/mpp/mpp_ap_priv.hpp"

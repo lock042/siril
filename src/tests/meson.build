@@ -175,6 +175,16 @@ if criterion_dep.found()
 
      test('streaks_test', streaks_exec)
 
+     banding_exec = executable('unbanding_test',
+                           ['unbanding_test.c', 'download_files.c'],
+                           dependencies : [siril_dep, criterion_dep],
+                           link_args : siril_link_arg,
+                           c_args : siril_c_flag,
+                           cpp_args : siril_cpp_flag)
+
+     test('unbanding_test', banding_exec)
+
+
      harmonize_img_t_exec = executable('harmonize_img_t_test',
                                        'harmonize_img_t_test.cpp',
                                        dependencies : [siril_dep, criterion_dep],
@@ -201,6 +211,15 @@ if criterion_dep.found()
                                     cpp_args : siril_cpp_flag)
 
      test('fits_scaling_test', fits_scaling_exec)
+
+     fits_header_exec = executable('fits_header_test',
+                                   'fits_header_test.c',
+                                   dependencies : [siril_dep, criterion_dep],
+                                   link_args : siril_link_arg,
+                                   c_args : siril_c_flag,
+                                   cpp_args : siril_cpp_flag)
+
+     test('fits_header_test', fits_header_exec)
 
      test_icc_state_exec = executable('test_icc_state',
                                 'test_icc_state.c',

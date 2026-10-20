@@ -5,16 +5,16 @@
  * plus the C-level mpp_rank_sequence stub (NB: sequence integration ships in
  * Phase 1.3; the stub still returns ENOTIMPL).
  */
-#include <criterion/criterion.h>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/imgcodecs.hpp>
-
 #include <cstdint>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <string>
 #include <vector>
+
+#include <criterion/criterion.h>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include "registration/mpp/mpp_align_priv.hpp"
 #include "registration/mpp/mpp_rank_priv.hpp"

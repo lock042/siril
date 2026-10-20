@@ -18,36 +18,30 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "plot.h"
-
-#include <cairo.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifndef _WIN32
-#include <sys/wait.h>
-#endif
 
+#include <cairo.h>
+
+#include "algos/PSF.h"
 #include "core/siril.h"
-#include "core/proto.h"
 #include "core/siril_date.h"
-#include "core/processing.h"
 #include "core/siril_log.h"
-#include "gui-gtk4/utils.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/plot.h"
 #include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/sequence_list.h"
 #include "gui-gtk4/siril_plot.h"
-#include "registration/registration.h"
-#include "algos/PSF.h"
+#include "gui-gtk4/utils.h"
 #include "io/aavso_extended.h"
 #include "io/sequence.h"
 #include "io/siril_plot.h"
 #include "opencv/opencv.h"
-#include "algos/comparison_stars.h"
+#include "registration/registration.h"
 
 // TODO: Would probably be more efficient to cache plot surface and add selection as an overlay
 
@@ -1423,7 +1417,13 @@ void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 	aavso_ptr->cname = gtk_editable_get_text(GTK_EDITABLE(plot_cname_entry));
 	aavso_ptr->filter = siril_drop_down_get_active_text(plot_filter_combo);
 	aavso_ptr->kname = gtk_editable_get_text(GTK_EDITABLE(plot_kname_entry));
-	aavso_ptr->c_std = g_ascii_strtod(gtk_editable_get_text(GTK_EDITABLE(plot_cstd_entry)), NULL);
+	const gchar *cstd_text = gtk_editable_get_text(GTK_EDITABLE(plot_cstd_entry));
+	gchar *cstd_end = NULL;
+	aavso_ptr->c_std = g_ascii_strtod(cstd_text, &cstd_end);
+	gboolean cstd_valid = cstd_end != cstd_text;
+	while (g_ascii_isspace(*cstd_end))
+		cstd_end++;
+	cstd_valid = cstd_valid && *cstd_end == '\0';
 	aavso_ptr->c_idx = gtk_drop_down_get_selected(GTK_DROP_DOWN(plot_cstar_combo));
 	aavso_ptr->k_idx = gtk_drop_down_get_selected(GTK_DROP_DOWN(plot_kstar_combo));
 	aavso_ptr->chart = gtk_editable_get_text(GTK_EDITABLE(plot_chart_entry));
@@ -1431,6 +1431,15 @@ void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 
 	if (aavso_ptr->c_idx == -1 || aavso_ptr->k_idx == -1) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Incomplete data"), _("You must select a comparison star and a check star."));
+		g_free((gchar*) aavso_ptr->obstype);
+		g_free((gchar*) aavso_ptr->filter);
+		free(aavso_ptr);
+		return;
+	}
+
+	if (!cstd_valid) {
+		/* without Cstd the MAG column would hold V-C, not a standardized magnitude */
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("Incomplete data"), _("You must enter the catalogue magnitude (Cstd) of the comparison star."));
 		g_free((gchar*) aavso_ptr->obstype);
 		g_free((gchar*) aavso_ptr->filter);
 		free(aavso_ptr);

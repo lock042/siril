@@ -5,10 +5,10 @@
  * image-processing framework.  See op_descriptor.h for the design rationale.
  */
 
-#include "core/siril.h"
-#include "core/processing.h"
 #include "core/op_descriptor.h"
 #include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/siril.h"
 
 /* Fill args fields from args->op, if set.  Called at the top of
  * generic_image_worker before any of the affected fields are read.  When

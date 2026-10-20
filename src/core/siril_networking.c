@@ -28,13 +28,12 @@
 #include <curl/curl.h>
 #endif
 
-#include "core/siril.h"
-#include "core/siril_networking.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
-#include "core/processing.h"
 #include "core/gui_iface.h"
 #include "core/OS_utils.h"
+#include "core/processing.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "core/siril_networking.h"
 
 #define STR_INDIR(x) #x 
 #define STR(x) STR_INDIR(x)

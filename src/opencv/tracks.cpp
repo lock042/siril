@@ -23,19 +23,19 @@
 #ifndef SELF_CONTAINED
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+
 #include "core/siril.h"	// include outside extern "C" so omp.h templates get C++ linkage
 #ifdef __cplusplus
 extern "C" {
 #endif
 #include <gsl/gsl_histogram.h>
-#include "algos/sorting.h"
 #ifdef __cplusplus
 }
 #endif
-#include "tracks.h"
+#include "opencv/tracks.h"
 #endif // not SELF_CONTAINED
-#include "core/siril_log.h"
 #include "core/proto.h"	// for roundf_to_int
+#include "core/siril_log.h"
 
 #ifdef SELF_CONTAINED
 #include <vector>
