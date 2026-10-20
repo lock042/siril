@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-19 20:37+0200\n"
-"PO-Revision-Date: 2026-10-19 11:23+0000\n"
+"PO-Revision-Date: 2026-10-20 12:39+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/ru/>\n"
@@ -3444,9 +3444,8 @@ msgid "Restrict the curve to a luminance range with a soft feathered roll-off"
 msgstr ""
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:339
-#, fuzzy
 msgid "Show mask"
-msgstr "Показать статистику"
+msgstr "Показать маску"
 
 #: src/gui-gtk4/uifiles/curves_dialog.ui:340
 msgid ""
@@ -4927,9 +4926,8 @@ msgid ""
 msgstr ""
 
 #: src/gui-gtk4/uifiles/hdr_dialog.ui:134
-#, fuzzy
 msgid "Options"
-msgstr "Параметры:"
+msgstr "Параметры"
 
 #: src/gui-gtk4/uifiles/hdr_dialog.ui:166
 #, fuzzy
@@ -4937,9 +4935,8 @@ msgid "Builds the HDR image, which replaces the loaded image."
 msgstr "Возвращает значение уровня фона изображения, загруженного в память"
 
 #: src/gui-gtk4/uifiles/hdr_dialog.ui:177
-#, fuzzy
 msgid "HDR Composition"
-msgstr "Совмещение"
+msgstr "Совмещение HDR"
 
 #: src/gui-gtk4/uifiles/histogram_dialog.ui:130
 msgid "Horizontal Zoom"
