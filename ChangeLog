@@ -11,6 +11,10 @@ siril-1.5.0
 * Fixed a crash when closing a large image: the pixel data was freed without the gfit writer lock, and the display's tile grid without the mutex guarding it, while the tile-materialisation threads were still reading both (#1975)
 * Fixed a race in the Python venv initialisation: the shared initialisation handle was read and cleared without a lock, and pyscript could launch python before the virtual environment's variables had been exported (#1977)
 * Fixed crash when using PCC in a script with siril-cli. (!1100)
+* Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
+* Fixed blurry image display on HiDPI and Wayland fractional-scaling displays (!1052)
+* Fixed command help popover being too tall on low-resolution screens
+* Fixed freeze when previewing JPEG XL files in the open dialog (#1961)
 
 **Improvements**
 * Vectorized rejection stacking hotspot with portable SIMD, ~13% cold / ~22% warm stacking speedup (!1032)
@@ -50,12 +54,7 @@ siril-1.5.0
 * Improved à trous wavelets tool: better strength control, per-scale denoising, faster (!1049, !1085)
 * Improved the Curves tool with the VeraLux engine: R, G, B, L*, chroma and saturation curves, Akima splines, luminance range masking and non-destructive stages (!983)
 * Improved plot windows: SPCC fits grouped in a single window with summary tiles and key figures, y-axis log scale and whole-window PNG export
-
-**Fixes**
-* Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
-* Fixed blurry image display on HiDPI and Wayland fractional-scaling displays (!1052)
-* Fixed command help popover being too tall on low-resolution screens
-* Fixed freeze when previewing JPEG XL files in the open dialog (#1961)
+* Added HDR composition of registered linear images taken with different exposure times, with exposure ratios measured on the data, noise-optimal weighting and feathered saturation masks (hdr command and Image Processing > Composition menu)
 
 siril-1.4.5
 xx/xx/xx
@@ -323,7 +322,6 @@ siril 1.4.0-beta3
 * Make SIP and WCS as protected keywords (#1696)
 * Added -followstar to the seqpsf command: previously this could only be set from the GUI. (!905)
 * Added ability to open previous revisions of scripts in the repository (!911)
-* Added HDR composition of registered linear images taken with different exposure times, with exposure ratios measured on the data, noise-optimal weighting and feathered saturation masks (hdr command and Image Processing > Composition menu)
 
 siril 1.4.0-beta2
 05/21/25
