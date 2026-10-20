@@ -616,9 +616,6 @@ gboolean set_seq(gpointer user_data){
 
 	/* Sequence is stored in com.seq for now */
 	memcpy(&com.seq, seq, sizeof(sequence));
-	g_rw_lock_reader_lock(&gfit->rwlock);
-	update_gain_from_gfit();
-	g_rw_lock_reader_unlock(&gfit->rwlock);
 
 	/* If a .mpp sidecar exists next to this sequence, load it into the
 	 * cached run so the AP overlay (and shift arrows, when shifts were

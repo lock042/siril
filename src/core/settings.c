@@ -341,11 +341,6 @@ void initialize_default_settings() {
 	initialize_configurable_colors();
 }
 
-void update_gain_from_gfit() {
-	if (gfit->keywords.cvf > 0.0)
-		com.pref.phot_set.gain = gfit->keywords.cvf;
-}
-
 struct settings_access all_settings[] = {
 	{ "core", "wd", STYPE_STRDIR, N_("current working directory"), &com.pref.wd },
 	{ "core", "extension", STYPE_STR, N_("FITS file extension"), &com.pref.ext },

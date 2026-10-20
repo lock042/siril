@@ -200,7 +200,6 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 	else
 		free(realname);
 	gui_iface.set_last_opened_filetype((int)imagetype);
-	update_gain_from_gfit();
 	siril_add_idle(end_read_single_image, NULL);
 	return retval;
 }
