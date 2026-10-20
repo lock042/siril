@@ -305,7 +305,6 @@ static void streak_photometry(fits *fit, struct track *track, struct track *resu
 	int bkg_count = 0, ap_count = 0;
 	gboolean saturated = FALSE;
 	if (fit->type == DATA_USHORT) {
-		double invnorm = fit->bitpix == BYTE_IMG ? INV_UCHAR_MAX_DOUBLE : INV_USHRT_MAX_DOUBLE;
 		WORD sat = fit->bitpix == BYTE_IMG ?
 			round_to_WORD(pset->maxval / INV_UCHAR_MAX_DOUBLE) :
 			round_to_WORD(pset->maxval);
@@ -313,13 +312,13 @@ static void streak_photometry(fits *fit, struct track *track, struct track *resu
 			for (int x = 0; x < fit->rx; x++) {
 				if (streak_mask[i]) {
 					WORD pixel = fit->data[i];
-					flux += pixel * invnorm;
+					flux += pixel;
 					ap_count++;
 					if (pixel >= sat)
 						saturated = TRUE;
 				}
 				else if (bkg_mask[i])
-					bkg[bkg_count++] = fit->data[i] * invnorm;
+					bkg[bkg_count++] = fit->data[i];
 				i++;
 			}
 		}
@@ -348,14 +347,12 @@ static void streak_photometry(fits *fit, struct track *track, struct track *resu
 	} else {
 		siril_log_debug("photometry background computed to %f (flux sum: %f)\n", background, flux);
 		flux -= background * ap_count;
-		if (flux < 0.0)
+		if (flux <= 0.0)
 			siril_log_message("Error in flux computation (negative)\n");
 		else {
-			if (fit->type == DATA_USHORT)
-				flux *= fit->bitpix == BYTE_IMG ? UCHAR_MAX_DOUBLE : USHRT_MAX_DOUBLE;
 			double mag = getMagnitude(flux);
 			double snr;
-			double mag_err = getMagErr(flux, ap_count, bkg_count, stdev, pset->gain, &snr);
+			double mag_err = getMagErr(flux, ap_count, ap_count, bkg_count, stdev, pset->gain, &snr);
 			siril_log_message("streak mag%s: %.3f (%.3f corrected) +/- %.3f, (flux %f from %d pixels)\n",
 					saturated? " (saturated)" : "",
 					mag, mag+com.magOffset, mag_err, flux, ap_count);

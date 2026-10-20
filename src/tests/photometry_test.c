@@ -204,7 +204,7 @@ void test_photometry_ushort() {
 	 * is perfectly normal.
 	 */
 	cr_expect_float_eq(psf->mag, -15.492f, 1e-3, "Mag: Value was %.7f vs %.7f at %3.1e\n", psf->mag, -15.492f, 1e-3);
-	cr_expect_float_eq(psf->s_mag, 0.000947f, 1e-6, "SMag: Value was %.7f vs %.7f at %3.1e\n", psf->s_mag, 0.000947f, 1e-6);
+	cr_expect_float_eq(psf->s_mag, 0.000934f, 1e-6, "SMag: Value was %.7f vs %.7f at %3.1e\n", psf->s_mag, 0.000934f, 1e-6);
 
 	/* These values are almost identical to float case.
 	 * This is due to the tolerance being set in the psf fit solver.
@@ -226,5 +226,63 @@ void test_photometry_ushort() {
 	free_psf(psf);
 }
 
+/* out of range pixels must only invalidate the measurement when they are in the aperture */
+void test_photometry_out_of_range() {
+	initialize_photometric_param();
+	gsl_matrix *matrix = fill_star(star, DATA_USHORT);
+	psf_error error;
+	psf_star *psf = psf_global_minimisation(matrix, BG, USHRT_MAX_DOUBLE, 1, FALSE, TRUE, &com.pref.phot_set, FALSE, PSF_GAUSSIAN, &error);
+	cr_assert(psf && psf->phot_is_valid, "reference photometry failed");
+	double ref_mag = psf->mag;
+
+	gsl_matrix_set(matrix, 54, 76, 65000.0);	// in the annulus
+	gsl_matrix_set(matrix, 80, 78, 65000.0);	// in the box, beyond the outer radius
+	photometry *phot = getPhotometryData(matrix, psf, &com.pref.phot_set, FALSE, &error);
+	cr_assert(phot, "photometry failed");
+	cr_expect(phot->valid, "saturated pixels outside the aperture invalidated the photometry");
+	cr_expect(error == PSF_NO_ERR, "error was set: %s", psf_error_to_string(error));
+	cr_expect_float_eq(phot->mag, ref_mag, 1e-3, "Mag: Value was %.7f vs %.7f\n", phot->mag, ref_mag);
+	free(phot);
+
+	gsl_matrix_set(matrix, 54, 51, 65000.0);	// in the aperture
+	phot = getPhotometryData(matrix, psf, &com.pref.phot_set, FALSE, &error);
+	cr_assert(phot, "photometry failed");
+	cr_expect(!phot->valid, "saturated pixel in the aperture did not invalidate the photometry");
+	cr_expect(error == PSF_ERR_INVALID_PIX_VALUE, "unexpected error: %s", psf_error_to_string(error));
+	free(phot);
+
+	gsl_matrix_free(matrix);
+	free_psf(psf);
+}
+
+/* the gain used for the Poisson noise is the effective gain of the stack */
+void test_photometry_stacked_gain() {
+	initialize_photometric_param();
+	fits fit = { 0 };
+	fit.type = DATA_USHORT;
+	fit.keywords.cvf = 2.0;
+	fit.keywords.stackcnt = 1;
+	struct phot_config *ps = phot_set_adjusted_for_image(&fit);
+	cr_expect_float_eq(ps->gain, 2.0, 1e-9, "single frame gain: %f\n", ps->gain);
+	free(ps);
+
+	fit.keywords.stackcnt = 10;
+	ps = phot_set_adjusted_for_image(&fit);
+	cr_expect_float_eq(ps->gain, 20.0, 1e-9, "stack gain: %f\n", ps->gain);
+	free(ps);
+
+	fit.type = DATA_FLOAT;
+	ps = phot_set_adjusted_for_image(&fit);
+	cr_expect_float_eq(ps->gain, 20.0 * USHRT_MAX_DOUBLE, 1e-6, "float stack gain: %f\n", ps->gain);
+	free(ps);
+
+	fit.keywords.stackcnt = DEFAULT_UINT_VALUE;
+	ps = phot_set_adjusted_for_image(&fit);
+	cr_expect_float_eq(ps->gain, 2.0 * USHRT_MAX_DOUBLE, 1e-6, "unknown stack count gain: %f\n", ps->gain);
+	free(ps);
+}
+
 Test(science, psf_float) { test_photometry_float(); }
+Test(science, psf_stacked_gain) { test_photometry_stacked_gain(); }
+Test(science, psf_out_of_range) { test_photometry_out_of_range(); }
 Test(science, psf_ushort) { test_photometry_ushort(); }

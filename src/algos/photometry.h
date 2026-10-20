@@ -12,12 +12,12 @@
 struct photometry_struct {
 	double mag;	// magnitude
 	double s_mag;	// magnitude uncertainty
-	gboolean valid;	// TRUE if no pixel outside of the range
+	gboolean valid;	// TRUE if no aperture pixel outside of the range
 	double SNR;	// SNR estimation
 };
 
 double getMagnitude(double intensity);
-double getMagErr(double intensity, double area, int nsky, double skysig, double cvf, double *SNR);
+double getMagErr(double intensity, double area, double area_sq, int nsky, double skysig, double cvf, double *SNR);
 
 struct phot_config *phot_set_adjusted_for_image(const fits *fit);
 

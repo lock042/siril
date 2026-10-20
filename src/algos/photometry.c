@@ -47,10 +47,15 @@ double getMagnitude(double intensity) {
 	return -2.5 * log10(intensity);
 }
 
-double getMagErr(double intensity, double area, int nsky, double skysig, double cvf, double *SNR) {
+/* area is the sum of the aperture pixel weights, area_sq the sum of their squares */
+double getMagErr(double intensity, double area, double area_sq, int nsky, double skysig, double cvf, double *SNR) {
+	if (intensity <= 0.0) {
+		*SNR = 0.0;
+		return 9.999;
+	}
 	double skyvar = skysig * skysig;/* variance of the sky brightness */
 	double sigsq = skyvar / nsky;	/* square of the standard error of the mean sky brightness */
-	double err1 = area * skyvar;
+	double err1 = area_sq * skyvar;
 	double err2 = intensity / cvf;
 	double err3 = sigsq * area * area;
 	double noise = sqrt(err1 + err2 + err3);
@@ -71,6 +76,9 @@ struct phot_config *phot_set_adjusted_for_image(const fits *fit) {
 		// always overwrite with value from the image if available
 		retval->gain = fit->keywords.cvf;
 	}
+	/* a mean of N frames has N times more electrons per ADU */
+	if (fit->keywords.stackcnt > 1 && fit->keywords.stackcnt != DEFAULT_UINT_VALUE)
+		retval->gain *= fit->keywords.stackcnt;
 	if (fit->type == DATA_FLOAT) {
 		retval->gain *= USHRT_MAX_DOUBLE;
 		retval->minval /= USHRT_MAX_DOUBLE;
@@ -88,7 +96,7 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 	int n_sky = 0, ret;
 	int x, y, x1, y1, x2, y2;
 	double r1, r2, r, rmin_sq, appRadius;
-	double apmag = 0.0, mean = 0.0, stdev = 0.0, area = 0.0;
+	double apmag = 0.0, mean = 0.0, stdev = 0.0, area = 0.0, area_sq = 0.0;
 	gboolean valid = TRUE;
 	photometry *phot;
 
@@ -118,21 +126,22 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 		return NULL;
 	}
 
-	/* compute the bounding box of the outer radius around the star */
-	x1 = xc - r2;
-	if (x1 < 1)
-		x1 = 1;
-	x2 = xc + r2;
+	/* compute the bounding box of the outer radius around the star,
+	 * pixel x is centred on x + 0.5 as in the PSF fit */
+	x1 = floor(xc - 0.5 - r2);
+	if (x1 < 0)
+		x1 = 0;
+	x2 = ceil(xc - 0.5 + r2);
 	if (x2 > width - 1)
 		x2 = width - 1;
-	y1 = yc - r2;
-	if (y1 < 1)
-		y1 = 1;
-	y2 = yc + r2;
+	y1 = floor(yc - 0.5 - r2);
+	if (y1 < 0)
+		y1 = 0;
+	y2 = ceil(yc - 0.5 + r2);
 	if (y2 > height - 1)
 		y2 = height - 1;
 
-	int ndata = (y2 - y1) * (x2 - x1);
+	int ndata = (y2 - y1 + 1) * (x2 - x1 + 1);
 	if (ndata <= 0) {
 		siril_log_error(_("An error occurred in your selection. Please make another selection.\n"));
 		if (error) *error = PSF_ERR_OUT_OF_WINDOW;
@@ -154,24 +163,28 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 	 * limits of pixel value and of distance to the star centre for
 	 * background evaluation */
 	for (y = y1; y <= y2; ++y) {
-		int yp = (y - yc) * (y - yc);
+		double dy = y + 0.5 - yc;
+		double yp = dy * dy;
 		for (x = x1; x <= x2; ++x) {
-			r = yp + (x - xc) * (x - xc);
+			double dx = x + 0.5 - xc;
+			r = yp + dx * dx;
 			double pixel = gsl_matrix_get(z, y, x);
-			if (pixel > lo && pixel < hi) {
-				double f = (r < rmin_sq ? 1 : appRadius - sqrt(r) + 0.5);
-				if (f >= 0) {
+			gboolean in_range = pixel > lo && pixel < hi;
+			double f = (r < rmin_sq ? 1 : appRadius - sqrt(r) + 0.5);
+			if (f > 0) {
+				if (in_range) {
 					area += f;
+					area_sq += f * f;
 					apmag += pixel * f;
+				} else {
+					valid = FALSE;
+					if (error) *error = PSF_ERR_INVALID_PIX_VALUE;
 				}
-				/* annulus */
-				if (r < r2 && r > r1) {
-					data[n_sky] = pixel;
-					n_sky++;
-				}
-			} else {
-				valid = FALSE;
-				if (error) *error = PSF_ERR_INVALID_PIX_VALUE;
+			}
+			/* annulus: out of range pixels are just excluded */
+			if (in_range && r < r2 && r > r1) {
+				data[n_sky] = pixel;
+				n_sky++;
 			}
 		}
 	}
@@ -206,8 +219,8 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 		double SNR = 0.0;
 		double signalIntensity = apmag - (area * mean);
 
-		phot->mag = getMagnitude(signalIntensity);
-		phot->s_mag = getMagErr(signalIntensity, area, n_sky, stdev, phot_set->gain, &SNR);
+		phot->mag = signalIntensity > 0.0 ? getMagnitude(signalIntensity) : 0.0;
+		phot->s_mag = getMagErr(signalIntensity, area, area_sq, n_sky, stdev, phot_set->gain, &SNR);
 		if (phot->s_mag < 9.999) {
 			phot->SNR = SNR;
 			if (valid && error) *error = PSF_NO_ERR;
@@ -456,7 +469,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 		double target_mag = seq->photometry[0][i]->mag;
 		double target_err = seq->photometry[0][i]->s_mag;
 
-		double cmag = 0.0, cerr = 0.0;
+		double cflux = 0.0, cvar = 0.0;
 		int nb_ref = 0;
 		/* First data plotted are variable data, others are references
 		 * Variable is done above, now we compute references */
@@ -465,8 +478,10 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 				/* inversion of Pogson's law to get back to the flux
 				 * Flux = 10^(-0.4 * mag)
 				 */
-				cmag += pow(10, -0.4 * seq->photometry[ref][i]->mag);
-				cerr += seq->photometry[ref][i]->s_mag;
+				double flux = pow(10, -0.4 * seq->photometry[ref][i]->mag);
+				double s_flux = flux * seq->photometry[ref][i]->s_mag;
+				cflux += flux;
+				cvar += s_flux * s_flux;
 				++nb_ref;
 			}
 		}
@@ -474,8 +489,8 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 		if (nb_ref == nb_ref_stars) {
 			/* we consider an image to be invalid if all references are not valid,
 			 * because it changes the mean otherwise and makes nonsense data */
-			cmag = -2.5 * log10(cmag / nb_ref);
-			cerr = (cerr / nb_ref) / sqrt((double) nb_ref);
+			double cmag = -2.5 * log10(cflux / nb_ref);
+			double cerr = sqrt(cvar) / cflux;
 
 			vmag[j] = target_mag - cmag;
 			err[j] = fmin(9.999, sqrt(target_err * target_err + cerr * cerr));
@@ -485,17 +500,26 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	}
 	int nb_valid_images = j;
 	int julian0 = 0;
+	if (nb_valid_images == 0) {
+		siril_log_error(_("No image has a valid photometry for the variable and all the reference stars\n"));
+		free(date); free(vmag); free(err); free(snr_opt);
+		free_siril_plot_data(spl_data);
+		return -1;
+	}
 
 	// Additionnal information on the error bars and variable SNR
 	// distributions if the auto aperture option is set
 	if (!lcargs->force_rad) {
-		double median_err, largest_err, smallest_err;
-		gsl_stats_minmax (&smallest_err, &largest_err, err, 1, nb_valid_images);
-		median_err = quickmedian_double(err, nb_valid_images);
-
+		// quickmedian_double reorders its input: snr_opt is not needed
+		// afterwards, but err is plotted, so its median uses a copy
 		double median_snr, largest_snr, smallest_snr;
 		gsl_stats_minmax (&smallest_snr, &largest_snr, snr_opt, 1, nb_valid_images);
 		median_snr = quickmedian_double(snr_opt, nb_valid_images);
+
+		double median_err, largest_err, smallest_err;
+		gsl_stats_minmax (&smallest_err, &largest_err, err, 1, nb_valid_images);
+		memcpy(snr_opt, err, nb_valid_images * sizeof(double));
+		median_err = quickmedian_double(snr_opt, nb_valid_images);
 
 		siril_log_status(_("Error bars-- (%d images) median: %.2lfmmag, max: %.2lfmmag, min: %.2lfmmag\n"),
 			nb_valid_images,
@@ -530,13 +554,11 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	spl_data->revertY = TRUE;
 	siril_plot_set_savename(spl_data, "light_curve");
 	spl_data->forsequence = TRUE;
-	double *date0 = malloc(nb_valid_images * sizeof(double));
 	for (int k = 0; k < nb_valid_images; k++)
-		date0[k] = date[k] - julian0;
-	siril_plot_add_xydata(spl_data, _("V-C"), nb_valid_images, date0, vmag, err, NULL);
+		date[k] -= julian0;
+	siril_plot_add_xydata(spl_data, _("V-C"), nb_valid_images, date, vmag, err, NULL);
 	splxyerrdata *lc = (splxyerrdata *)spl_data->plots->data;
 	lc->plots[0]->x_offset = (double)julian0;
-	free(date0);
 
 	// now we sort to have all dates ascending
 	siril_plot_sort_x(spl_data);
@@ -569,6 +591,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	free(date);
 	free(vmag);
 	free(err);
+	free(snr_opt);
 	return ret;
 }
 
@@ -655,7 +678,7 @@ gpointer catmag_mono_worker(gpointer arg) {
 	// we want to get more stars than the default, they will be discarded later if they are too faint
 	// we add +1 just to be sure we have enough, as the limitmag calc is an approximation.
 	// Anyway, as it is based on local catalogues only, the query is fast.
-	cat->limitmag = compute_mag_limit_from_position_and_fov(cat->center_ra, cat->center_ra, cat->radius * 2.0 / 60., nb_stars_in_image) + 1.;
+	cat->limitmag = compute_mag_limit_from_position_and_fov(cat->center_ra, cat->center_dec, cat->radius * 2.0 / 60., nb_stars_in_image) + 1.;
 	siril_log_debug("catalogue limit magnitude set to %.1f\n", cat->limitmag);
 	cat->phot = TRUE;
 
