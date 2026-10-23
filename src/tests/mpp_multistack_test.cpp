@@ -11,14 +11,15 @@
  * the C3 split-disk derotation map, using provider-injected synthetic frames so
  * no sequence I/O is needed.
  */
-#include <criterion/criterion.h>
-#include <opencv2/imgproc.hpp>
-
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <vector>
+
+#include <criterion/criterion.h>
+#include <opencv2/imgproc.hpp>
 
 #include "registration/mpp/mpp_derot_geom.h"
 #include "registration/mpp/mpp_multistack.hpp"
@@ -195,7 +196,7 @@ Test(mpp_multistack, combines_two_sources_into_reference_canvas) {
 	cfg.frames_normalization = false;
 	cfg.alignment_points_frame_percent = 100;
 	cfg.stack_method = MPP_STACK_WARP;
-	cfg.drizzle_scale = 1.0;
+	cfg.output_scale = 1.0;
 
 	mpp_derot_t *d0 = make_plan(N, ref_disk, W, H, B, CM0, dCM);
 	mpp_derot_t *d1 = make_plan(N, s1_disk,  W, H, B, CM0, dCM);
@@ -272,7 +273,7 @@ Test(mpp_multistack, drift_cropped_intersection_recovers) {
 	cfg.alignment_points_frame_percent = 100;
 	cfg.align_frames_mode = MPP_ALIGN_SURFACE;   /* tracks integer translation */
 	cfg.stack_method = MPP_STACK_WARP;
-	cfg.drizzle_scale = 1.0;
+	cfg.output_scale = 1.0;
 
 	mpp_derot_t *d = mpp_derot_alloc(N);
 	d->num_frames = N; d->frame_rows = H; d->frame_cols = W;
@@ -364,7 +365,7 @@ Test(mpp_multistack, gap_drift_fit_error_keeps_disk_bright_and_limb_soft) {
 	cfg.frames_normalization = false;
 	cfg.alignment_points_frame_percent = 100;
 	cfg.stack_method = MPP_STACK_WARP;
-	cfg.drizzle_scale = 1.0;
+	cfg.output_scale = 1.0;
 
 	mpp_derot_t *d0 = make_plan(N, ref_disk, W, H, B, CM0, 0.0);
 	mpp_derot_t *d1 = make_plan(N, s1_fit,  W, H, B, CM0, 0.0);

@@ -9,7 +9,7 @@
     <property name="upper">4</property>
     <property name="value">1</property>
   </object>
-  <object class="GtkAdjustment" id="adj_fixbanding_invsigma">
+  <object class="GtkAdjustment" id="adj_fixbanding_ksigma">
     <property name="lower">0.01</property>
     <property name="page-increment">1</property>
     <property name="step-increment">0.10</property>
@@ -41,7 +41,7 @@
                     <property name="adjustment">adj_fixbanding_amount</property>
                     <property name="digits">1</property>
                     <property name="focusable">1</property>
-                    <property name="tooltip-text" translatable="yes">Defines the strength of the correction.</property>
+                    <property name="tooltip-text" translatable="yes">Defines the strength of the correction (1 is normal).</property>
                   </object>
                 </child>
               </object>
@@ -53,7 +53,7 @@
                 <property name="focusable">1</property>
                 <property name="hexpand">1</property>
                 <property name="round-digits">2</property>
-                <property name="tooltip-text" translatable="yes">Defines the strength of the correction.</property>
+                <property name="tooltip-text" translatable="yes">Defines the strength of the correction (1 is normal).</property>
                 <property name="value-pos">bottom</property>
               </object>
             </child>
@@ -71,28 +71,28 @@
                 <child>
                   <object class="GtkLabel" id="label157">
                     <property name="halign">start</property>
-                    <property name="label" translatable="yes">1/Sigma Factor</property>
+                    <property name="label" translatable="yes">Sigma Factor</property>
                   </object>
                 </child>
                 <child>
-                  <object class="GtkSpinButton" id="spin_fixbanding_invsigma">
-                    <property name="adjustment">adj_fixbanding_invsigma</property>
+                  <object class="GtkSpinButton" id="spin_fixbanding_ksigma">
+                    <property name="adjustment">adj_fixbanding_ksigma</property>
                     <property name="digits">1</property>
                     <property name="focusable">1</property>
                     <property name="sensitive">0</property>
-                    <property name="tooltip-text" translatable="yes">Background for lines is computed using pixels in SigmaFactor * StdDev only. Higher value will give a better protection.</property>
+                    <property name="tooltip-text" translatable="yes">Background for lines is computed by rejecting pixels brighter than SigmaFactor * StdDev.</property>
                   </object>
                 </child>
               </object>
             </child>
             <child>
-              <object class="GtkScale" id="scale_fixbanding_invsigma">
-                <property name="adjustment">adj_fixbanding_invsigma</property>
+              <object class="GtkScale" id="scale_fixbanding_ksigma">
+                <property name="adjustment">adj_fixbanding_ksigma</property>
                 <property name="digits">2</property>
                 <property name="focusable">1</property>
                 <property name="round-digits">2</property>
                 <property name="sensitive">0</property>
-                <property name="tooltip-text" translatable="yes">Background for lines is computed using pixels in SigmaFactor * StdDev only. Higher value will give a better protection.</property>
+                <property name="tooltip-text" translatable="yes">Background for lines is computed by rejecting pixels brighter than SigmaFactor * StdDev.</property>
                 <property name="value-pos">bottom</property>
               </object>
             </child>

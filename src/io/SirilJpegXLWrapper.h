@@ -29,8 +29,8 @@ extern "C" {
 #endif
 #ifdef HAVE_LIBJXL
 
-#include <glib.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
+#include <glib.h>
 
 int DecodeJpegXlOneShotWrapper(const uint8_t* jxl, size_t size,
                          float** pixels, size_t* xsize,

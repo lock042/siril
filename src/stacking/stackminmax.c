@@ -19,17 +19,17 @@
  */
 
 #include <stdlib.h>
-#include "core/siril.h"
-#include "core/proto.h"
+
+#include "algos/siril_wcs.h"
 #include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/ser.h"
-#include "registration/registration.h"
-#include "algos/siril_wcs.h"
 #include "opencv/opencv.h"
-
+#include "registration/registration.h"
 #include "stacking/stacking.h"
 
 /******************************* ADDMIN AND ADDMAX STACKING ******************************

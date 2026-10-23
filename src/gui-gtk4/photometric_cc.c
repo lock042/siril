@@ -18,28 +18,28 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <float.h>
 #include <stdio.h>
 #include <string.h>
-#include <math.h>
-#include <float.h>
 
-#include "core/siril_log.h"
+#include "algos/photometric_cc.h"
+#include "algos/siril_wcs.h"
+#include "algos/spcc.h"
+#include "core/op_descriptors.h"
 #include "core/processing.h"
+#include "core/siril_log.h"
 #include "core/siril_networking.h"
 #include "core/siril_update.h"
-#include "algos/photometric_cc.h"
-#include "algos/spcc.h"
-#include "algos/siril_wcs.h"
+#include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/image_interactions.h"
 #include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/photometric_cc.h"
+#include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/siril_plot.h"
 #include "gui-gtk4/utils.h"
-#include "gui-gtk4/progress_and_log.h"
-#include "gui-gtk4/dialogs.h"
-#include "io/local_catalogues.h"
-#include "io/healpix/healpix_cat.h"
 #include "io/healpix/fluxcache_cat.h"
-#include "photometric_cc.h"
+#include "io/healpix/healpix_cat.h"
+#include "io/local_catalogues.h"
 
 #define MIN_PLOT 336.0
 #define MAX_PLOT 1020.0
@@ -244,9 +244,8 @@ static void start_photometric_cc(gboolean spcc) {
 
 	struct generic_img_args *img_args = calloc(1, sizeof(struct generic_img_args));
 	img_args->fit = gfit;
-	img_args->image_hook = photometric_cc_image_hook;
-	img_args->log_hook = photometric_cc_log_hook;
-	img_args->description = spcc ? _("SPCC") : _("PCC");
+	img_args->op = &op_desc_photometric_cc;
+	img_args->description = spcc ? _("SPCC") : _("PCC");  // override: variant label
 	img_args->verbose = TRUE;
 	img_args->user = pcc_args;
 	if (!start_in_new_thread(generic_image_worker, img_args)) {
@@ -399,7 +398,7 @@ void initialize_spectrophotometric_cc_dialog() {
 	gtk_widget_set_visible(frame_cc_bkg, TRUE);
 	gtk_widget_set_visible(spcc_options, TRUE);
 	gtk_widget_set_visible(spcc_do_plot, TRUE);
-	gtk_widget_grab_focus(button_cc_ok);
+	gtk_widget_grab_focus(button_spcc_ok);
 	gtk_widget_set_visible(gaia_status_check, TRUE);
 	gtk_widget_set_visible(spcc_nb_controls, com.pref.spcc.nb_mode);
 	siril_toggle_set_active(GTK_WIDGET(spcc_toggle_nb), com.pref.spcc.nb_mode);
@@ -662,36 +661,6 @@ static int set_spcc_args(struct photometric_cc_data *args) {
 		}
 	}
 	return 0;
-}
-
-int get_favourite_spccobject(GList *list, const gchar *favourite) {
-	if (!list)
-		return 0;
-
-	GList *current = list;
-	while (current != NULL) {
-		spcc_object *haystack = current->data;
-		if (haystack && g_strcmp0(haystack->name, favourite) == 0) {
-			return g_list_position(list, current);  // Found a match, return the GList node
-		}
-		current = current->next;
-	}
-	return -1;  // No match found
-}
-
-int get_favourite_oscsensor(GList *list, const gchar *favourite) {
-	if (!list)
-		return 0;
-
-	GList *current = list;
-	while (current != NULL) {
-		osc_sensor *haystack = current->data;
-		if (g_strcmp0(haystack->channel[0].model, favourite) == 0) {
-			return g_list_position(list, current);  // Found a match, return the GList node
-		}
-		current = current->next;
-	}
-	return -1;  // No match found
 }
 
 void on_spcc_combo_changed(GObject *obj, GParamSpec *pspec, gpointer user_data);

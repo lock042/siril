@@ -18,15 +18,16 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string.h>
 #include <math.h>
+#include <string.h>
+
 #include <gsl/gsl_statistics_float.h>
 
+#include "algos/sorting.h"
+#include "algos/statistics.h"
 #include "core/siril.h"
 #include "stacking/siril_fit_linear.h"
 #include "stacking/stacking.h"
-#include "algos/sorting.h"
-#include "algos/statistics.h"
 
 static int percentile_clipping(float pixel, const float sig[], float median,
 		int rej[]) {
@@ -95,6 +96,23 @@ static void grubbs_stat(float *stack, int N, float *GCal, int *max_ind) {
 		*max_ind = 0;
 	}
 	*GCal = max_of_deviations / sd;
+}
+
+/* w_stack is sorted and consumed; out[].i are indices in the original sorted stack */
+static void find_ESD_candidates(float *w_stack, int size, int max_outliers,
+		const float *critical_value, struct ESD_outliers *out) {
+	int cold = 0;
+	for (int iter = 0; iter < max_outliers; iter++, size--) {
+		float Gstat;
+		int max_index = 0;
+
+		grubbs_stat(w_stack, size, &Gstat, &max_index);
+		out[iter].out = check_G_values(Gstat, critical_value[iter]);
+		out[iter].x = w_stack[max_index];
+		/* w_stack has lost the cold values already removed from its head */
+		out[iter].i = (max_index == 0) ? cold++ : max_index + cold;
+		remove_element(w_stack, max_index, size);
+	}
 }
 
 int apply_rejection_float(struct _data_block *data, int nb_frames,
@@ -322,17 +340,7 @@ int apply_rejection_float(struct _data_block *data, int nb_frames,
 
 		memcpy(w_stack, stack, N * sizeof(float));
 		memset(rejected, 0, N * sizeof(int));
-		int cold = 0;
-		for (int iter = 0, size = N; iter < max_outliers; iter++, size--) {
-			float Gstat;
-			int max_index = 0;
-
-			grubbs_stat(w_stack, size, &Gstat, &max_index);
-			out[iter].out = check_G_values(Gstat, args->critical_value[iter + removed]);
-			out[iter].x = w_stack[max_index];
-			out[iter].i = (max_index == 0) ? cold++ : max_index;
-			remove_element(w_stack, max_index, size);
-		}
+		find_ESD_candidates(w_stack, N, max_outliers, args->critical_value + removed, out);
 		confirm_outliers(out, max_outliers, median, rejected, crej);
 		free(out);
 

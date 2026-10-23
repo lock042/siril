@@ -232,15 +232,33 @@ cv::Vec2d center_of_gravity(const cv::Mat &frame_mono_blurred) {
 	weights -= threshold;
 	cv::max(weights, 0.0, weights);   /* clip(frame, thr, None) - thr */
 
-	const cv::Moments m = cv::moments(weights, /*binaryImage=*/false);
-	if (m.m00 <= 0.0) {
+#if CV_VERSION_MAJOR >= 5
+	/* cv::moments() was moved out of imgproc in OpenCV 5; compute the raw
+	 * moments m00, m10, m01 we need directly. */
+	double m00 = 0.0, m10 = 0.0, m01 = 0.0;
+	for (int y = 0; y < weights.rows; ++y) {
+		const double *row = weights.ptr<double>(y);
+		double row_sum = 0.0, row_xsum = 0.0;
+		for (int x = 0; x < weights.cols; ++x) {
+			row_sum  += row[x];
+			row_xsum += row[x] * x;
+		}
+		m00 += row_sum;
+		m10 += row_xsum;
+		m01 += row_sum * y;
+	}
+#else
+	const cv::Moments mom = cv::moments(weights, /*binaryImage=*/false);
+	const double m00 = mom.m00, m10 = mom.m10, m01 = mom.m01;
+#endif
+	if (m00 <= 0.0) {
 		/* Blank/flat frame: no centroid. Fall back to the geometric
 		 * centre so a uniform sequence yields zero relative shift. */
 		return cv::Vec2d((frame_mono_blurred.rows - 1) / 2.0,
 		                 (frame_mono_blurred.cols - 1) / 2.0);
 	}
-	const double cog_x = m.m10 / m.m00;
-	const double cog_y = m.m01 / m.m00;
+	const double cog_x = m10 / m00;
+	const double cog_y = m01 / m00;
 	return cv::Vec2d(cog_y, cog_x);
 }
 
@@ -294,8 +312,10 @@ MultilevelShiftResult multilevel_correlation(const cv::Mat &ref_full_f32,
                                              int x_low, int x_high,
                                              int gauss_width, int search_width,
                                              bool subpixel_solve,
-                                             const cv::Mat &weight_matrix_first_phase) {
+                                             const cv::Mat &weight_matrix_first_phase,
+                                             bool zero_mean) {
 	MultilevelShiftResult result;
+	const int method = zero_mean ? cv::TM_CCOEFF_NORMED : cv::TM_CCORR_NORMED;
 	const int sw2 = 4;
 	const int sw1 = (search_width - sw2) / 2;
 	const int index_ext = sw1 * 2;
@@ -317,7 +337,7 @@ MultilevelShiftResult multilevel_correlation(const cv::Mat &ref_full_f32,
 	fwin_blurred.convertTo(fwin_f32, CV_32F);
 
 	cv::Mat ccr1;
-	cv::matchTemplate(fwin_f32, ref_first_phase_f32, ccr1, cv::TM_CCORR_NORMED);
+	cv::matchTemplate(fwin_f32, ref_first_phase_f32, ccr1, method);
 	cv::Point max1;
 	if (!weight_matrix_first_phase.empty()) {
 		cv::Mat weighted;
@@ -357,7 +377,7 @@ MultilevelShiftResult multilevel_correlation(const cv::Mat &ref_full_f32,
 	fwin2.convertTo(fwin2_f32, CV_32F);
 
 	cv::Mat ccr2;
-	cv::matchTemplate(fwin2_f32, ref_full_f32, ccr2, cv::TM_CCORR_NORMED);
+	cv::matchTemplate(fwin2_f32, ref_full_f32, ccr2, method);
 	cv::Point max2;
 	cv::minMaxLoc(ccr2, nullptr, nullptr, nullptr, &max2);
 	const int shift_y2 = sw2 - max2.y;
@@ -394,9 +414,9 @@ AlignShiftResult align_shift_one_frame(const cv::Mat &ref_window_f32,
                                        int y_low, int y_high,
                                        int x_low, int x_high,
                                        const mpp_config_t &cfg) {
-	/* Sub-pixel ON unconditionally: the parabolic-fit residual is the
-	 * only thing that gives Bayer drizzle's cross-frame CFA-phase
-	 * coverage. Cheap (4 extra reads per frame on the phase-2 correlation
+	/* Sub-pixel ON unconditionally: the parabolic-fit residual is what
+	 * keeps global registration accurate enough for cv::resize output
+	 * upscaling. Cheap (4 extra reads per frame on the phase-2 correlation
 	 * surface, gated on the same success path). The previous integer
 	 * rounding wasted that information. */
 	const MultilevelShiftResult r = multilevel_correlation(

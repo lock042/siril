@@ -20,38 +20,37 @@
 
 #include <math.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/command_line_processor.h"
-#include "core/masks.h"
-#include "core/siril_log.h"
-#include "gui-gtk4/cut.h"
-#include "gui-gtk4/icc_profile.h"
-#include "core/processing.h"
-#include "core/undo.h"
 #include "algos/background_extraction.h"
 #include "algos/photometry.h"
-#include "io/single_image.h"
-#include "io/sequence.h"
-#include "io/image_format_fits.h"
-#include "gui-gtk4/open_dialog.h"
+#include "core/masks.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "core/undo.h"
+#include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/curves.h"
+#include "gui-gtk4/cut.h"
+#include "gui-gtk4/derotation.h"
 #include "gui-gtk4/dialogs.h"
-#include "gui-gtk4/PSF_list.h"
-#include "image_interactions.h"
+#include "gui-gtk4/icc_profile.h"
+#include "gui-gtk4/image_display.h"
+#include "gui-gtk4/image_interactions.h"
+#include "gui-gtk4/masks_gui.h"
 #include "gui-gtk4/mouse_action_functions.h"
 #include "gui-gtk4/mpp_ap_editor.h"
-#include "gui-gtk4/derotation.h"
-#include "registration/mpp.h"
-#include "registration/mpp/mpp_ap.h"
-#include "gui-gtk4/masks_gui.h"
-#include "image_display.h"
-#include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/open_dialog.h"
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/PSF_list.h"
+#include "gui-gtk4/registration_preview.h"
 #include "gui-gtk4/save_dialog.h"
 #include "gui-gtk4/siril_actions.h"
-#include "gui-gtk4/utils.h"
-#include "progress_and_log.h"
-#include "registration_preview.h"
 #include "gui-gtk4/user_polygons.h"
+#include "gui-gtk4/utils.h"
+#include "io/image_format_fits.h"
+#include "io/sequence.h"
+#include "io/single_image.h"
+#include "registration/mpp.h"
+#include "registration/mpp/mpp_ap.h"
 
 // Tracks whether double middle click will zoom to fit or zoom to 1:1, for the
 // toggle
@@ -595,6 +594,11 @@ static gboolean sample_mask_color_release(mouse_data *data) {
 	return TRUE;
 }
 
+static gboolean curves_pipette_release(mouse_data *data) {
+	curves_handle_pipette_click(data->zoomed.x, data->zoomed.y);
+	return TRUE;
+}
+
 static gboolean show_popup_menu(mouse_data *data) {
 	if (gui.cvport == MASK_VPORT) {
 		do_popup_maskmenu(data->widget, data->x, data->y);
@@ -778,6 +782,7 @@ gboolean main_action_click(mouse_data *data) {
 					com.grad_samples = add_background_sample(com.grad_samples, gfit, pt, gd);
 					sample_mutex_unlock();
 
+					update_bkg_compute_button_sensitivity();
 					redraw(REDRAW_OVERLAY);
 					gui_function(redraw_previews, NULL);
 				}
@@ -934,6 +939,10 @@ gboolean main_action_click(mouse_data *data) {
 				register_release_callback(sample_mask_color_release, data->button);
 				break;
 			}
+			case MOUSE_ACTION_CURVES_PIPETTE: {
+				register_release_callback(curves_pipette_release, data->button);
+				break;
+			}
 			default: {
 				break;
 			}
@@ -965,6 +974,7 @@ gboolean second_action_click(mouse_data *data) {
 				com.grad_samples = remove_background_sample(com.grad_samples, gfit, pt);
 				sample_mutex_unlock();
 
+				update_bkg_compute_button_sensitivity();
 				redraw(REDRAW_OVERLAY);
 				gui_function(redraw_previews, NULL);
 			}

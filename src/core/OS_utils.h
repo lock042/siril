@@ -20,8 +20,10 @@
 #ifndef SRC_CORE_OS_UTILS_H_
 #define SRC_CORE_OS_UTILS_H_
 
-#include <glib.h>
+#include <config.h>
+
 #include <gio/gio.h>
+#include <glib.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -69,6 +71,7 @@ void siril_watch_system_appearance_changes(void (*callback)(gboolean dark));
 
 #ifdef OS_OSX
 void siril_macos_fix_keyboard_shortcuts(void);
+void siril_macos_fix_popover_autohide(void);
 #endif
 
 #ifdef __cplusplus

@@ -36,17 +36,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
  * The code as integrated into Siril is modified from the original
  * AURA code by team free-astro. */
 
-#include "driz_portability.h"
-#include "cdrizzlemap.h"
-#include "cdrizzlebox.h"
-#include "cdrizzleutil.h"
-#include "algos/demosaicing.h"
-
 #include <assert.h>
+
+#include "algos/demosaicing.h"
+#include "drizzle/cdrizzlebox.h"
+#include "drizzle/cdrizzlemap.h"
+#include "drizzle/cdrizzleutil.h"
+#include "drizzle/driz_portability.h"
 #define _USE_MATH_DEFINES       /* needed for MS Windows to define G_PI */
 #include <math.h>
 #include <stdlib.h>
-
 
 //static char buf[1024];
 

@@ -40,4 +40,13 @@ void free_cut_args(cut_struct *arg);
  * the first constraint violation, TRUE if everything is in order. */
 gboolean cut_struct_is_valid(cut_struct *arg);
 
+/* intensity profiles and spectrograms, run in a processing thread */
+gchar *cut_make_title(cut_struct *arg, gboolean spectro);
+double get_conversion_factor(fits *fit);
+gboolean spectroscopy_selections_are_valid(cut_struct *arg);
+gpointer cut_profile(gpointer p);
+gpointer tri_cut(gpointer p);
+gpointer cfa_cut(gpointer p);
+void apply_cut_to_sequence(cut_struct *cut_args);
+
 #endif /* SRC_CORE_CUT_H_ */

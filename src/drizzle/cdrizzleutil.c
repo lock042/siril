@@ -36,12 +36,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
  * The code as integrated into Siril is modified from the original
  * AURA code by team free-astro. */
 
-#include "cdrizzlemap.h"
-#include "cdrizzleutil.h"
+#include <assert.h>
 
 #include "core/siril_log.h"
-
-#include <assert.h>
+#include "drizzle/cdrizzleutil.h"
 #define _USE_MATH_DEFINES       /* needed for MS Windows to define G_PI */
 #include <math.h>
 #include <stdarg.h>

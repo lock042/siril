@@ -23,13 +23,14 @@
 #ifndef BINFILE_H
 #define BINFILE_H
 
-#include <stdint.h>
-#include <sys/types.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <math.h>
-#include "byteorder.h"
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+
+#include "io/kstars/byteorder.h"
 
 /* NOTE: HTM_LEVEL and other HTM-related stuff must be defined before using this header */
 

@@ -5,10 +5,6 @@
  * coverage in lock-step with the implementation so divergences from PSS
  * surface at the smallest unit they appear at.
  */
-#include <criterion/criterion.h>
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/imgproc.hpp>
-
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
@@ -21,6 +17,10 @@
 #include <utility>
 #include <vector>
 
+#include <criterion/criterion.h>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
+
 #include "registration/mpp/mpp_align_priv.hpp"
 #include "registration/mpp/mpp_ap_priv.hpp"
 #include "registration/mpp/mpp_rank_priv.hpp"
@@ -32,7 +32,6 @@ extern "C" {
 #include "registration/mpp/mpp_ap.h"
 #include "registration/mpp/mpp_config.h"
 #include "registration/mpp/mpp_shift.h"
-#include "registration/mpp/mpp_stack.h"
 }
 
 cominfo com;
@@ -90,12 +89,6 @@ cv::Mat shifted(const cv::Mat &mono, int dy, int dx) {
 
 /* ------------------------------------------------------------------------- */
 
-Test(mpp_stack, stub_returns_enotimpl) {
-	cr_assert_eq(mpp_stack(nullptr, nullptr, nullptr, nullptr, nullptr,
-	                       MPP_RESAMPLE_BICUBIC, 1, nullptr),
-	             MPP_ENOTIMPL);
-}
-
 Test(mpp_stack, default_config_phase5a) {
 	const auto cfg = default_cfg();
 	cr_assert_eq(cfg.alignment_points_frame_percent, 100);
@@ -106,7 +99,7 @@ Test(mpp_stack, default_config_phase5a) {
 	cr_assert_float_eq(cfg.stack_frames_background_fraction, 0.3, 1e-12);
 	cr_assert_float_eq(cfg.stack_frames_background_blend_threshold, 0.2, 1e-12);
 	cr_assert_eq(cfg.stack_frames_background_patch_size, 100);
-	cr_assert_float_eq(cfg.drizzle_scale, 1.0, 1e-12);
+	cr_assert_float_eq(cfg.output_scale, 1.0, 1e-12);
 }
 
 /* one_dim_weight: PSS's linear ramp t is mapped through the raised-cosine
@@ -398,4 +391,139 @@ Test(mpp_stack, warp_engine_applies_derot_base) {
 
 	mpp_shift_free(shifts);
 	mpp_ap_free(aps);
+}
+
+/* ---- Warp-field stacking engine (mpp_warp_stack.cpp) ---- */
+
+namespace {
+
+/* Full-pipeline fixture shared by the warp-engine tests: frames -> global
+ * align -> mean frame -> AP grid -> per-AP qualities + Stage-B shifts. */
+struct WarpFixture {
+	std::vector<cv::Mat> frames_raw, frames_blurred;
+	std::vector<double> q, brightness;
+	std::vector<int> sorted;
+	mpp_aps_t *aps = nullptr;
+	mpp_shifts_t *shifts = nullptr;
+	mpp::APQualities apq;
+	std::vector<mpp::FrameOffset> offsets;
+	cv::Vec4i intersection;
+	cv::Mat mean_frame;
+	~WarpFixture() {
+		if (shifts) mpp_shift_free(shifts);
+		if (aps) mpp_ap_free(aps);
+	}
+	bool build(const mpp_config_t &cfg) {
+		const int N = (int) frames_raw.size();
+		for (const auto &f : frames_raw)
+			frames_blurred.push_back(blurred(f, cfg));
+		q.assign(N, 0.5);
+		q[0] = 1.0;
+		const auto align = mpp::align_global_from_frames(frames_blurred, q, cfg);
+		auto cfg_no_fc = cfg;
+		cfg_no_fc.align_frames_fast_changing_object = false;
+		const auto avg = mpp::align_average_frame(frames_raw, q, align.shifts, cfg_no_fc);
+		mean_frame = avg.mean_frame;
+		intersection = avg.intersection;
+		const cv::Mat mean_blurred = mpp::blur_mean_frame_for_ap(avg.mean_frame, cfg);
+		aps = mpp::ap_create_grid(mean_blurred, cfg);
+		if (!aps || aps->count < 2) return false;
+		offsets = mpp::shift_frame_offsets(align.shifts, avg.intersection);
+		for (const auto &f : frames_raw)
+			brightness.push_back(mpp::rank_average_brightness(f, cfg));
+		apq = mpp::ap_compute_frame_qualities(frames_raw, brightness, *aps,
+		                                      offsets, frames_raw[0].rows,
+		                                      frames_raw[0].cols, cfg);
+		shifts = mpp::stack_compute_shifts(frames_blurred, avg.mean_frame,
+		                                   *aps, apq, offsets, cfg, nullptr);
+		if (!shifts) return false;
+		sorted.assign(N, 0);
+		std::iota(sorted.begin(), sorted.end(), 0);
+		std::sort(sorted.begin(), sorted.end(),
+		          [this](int a, int b) { return q[a] > q[b]; });
+		return true;
+	}
+};
+
+}  // namespace
+
+/* Frames distorted by a known smooth per-frame displacement field: the warp
+ * engine must undo it — the stack should match the undistorted truth on the
+ * interior far more closely than the distortion amplitude would allow if it
+ * were left in. */
+Test(mpp_stack, warp_engine_recovers_smooth_warp) {
+	const auto cfg = default_cfg();
+	const cv::Mat truth = make_textured_frame();
+	const int H = truth.rows, W = truth.cols;
+
+	WarpFixture fx;
+	const int N = 6;
+	for (int f = 0; f < N; ++f) {
+		/* Smooth sinusoidal displacement, amplitude up to ±2.5 px, varying
+		 * per frame (including sign flips so the mean distortion is small
+		 * but individual frames are strongly warped). */
+		const double amp = 2.5 * std::sin(2.0 * M_PI * f / N + 0.7);
+		cv::Mat my(H, W, CV_32F), mx(H, W, CV_32F);
+		for (int y = 0; y < H; ++y) {
+			float *ry = my.ptr<float>(y);
+			float *rx = mx.ptr<float>(y);
+			for (int x = 0; x < W; ++x) {
+				ry[x] = (float) (y + amp * std::sin(2.0 * M_PI * x / W));
+				rx[x] = (float) (x + amp * std::cos(2.0 * M_PI * y / H));
+			}
+		}
+		cv::Mat warped;
+		cv::remap(truth, warped, mx, my, cv::INTER_LANCZOS4,
+		          cv::BORDER_REPLICATE);
+		fx.frames_raw.push_back(warped);
+	}
+	cr_assert(fx.build(cfg));
+
+	const auto wr = mpp::stack_warp_apply_streamed(
+	    [&fx](int i) { return fx.frames_raw[i]; },
+	    N, 1, *fx.aps, fx.apq, fx.shifts, fx.offsets,
+	    fx.brightness, fx.sorted, fx.intersection, cfg, nullptr, 4, true);
+	cr_assert(!wr.oom);
+	cr_assert(!wr.image.empty());
+
+	/* Reference point for the truth comparison: the naive average of the
+	 * distorted frames (global alignment only), which the de-warping engine
+	 * must clearly beat, proving the distortion actually got removed.
+	 * MPP reconstructs the REFERENCE geometry — the mean frame, which with 6 frames and ref-percent 5 is frame 0 alone,
+	 * carrying its own distortion. The correct comparison target is
+	 * therefore frame 0, not the absolute truth: a perfect de-warp makes
+	 * every other frame agree with frame 0's geometry, sharply. (The
+	 * naive average is measured against the same target.) */
+	const cv::Mat tcrop = fx.frames_raw[0](
+	    cv::Range(fx.intersection[0], fx.intersection[1]),
+	    cv::Range(fx.intersection[2], fx.intersection[3]));
+	const int DY = tcrop.rows, DX = tcrop.cols;
+	const int m = 30;
+	auto interior_mad = [&](const cv::Mat &img, int oy, int ox) {
+		cv::Mat a, b;
+		img(cv::Range(m - oy, img.rows + (DY - img.rows) - m - oy),
+		    cv::Range(m - ox, img.cols + (DX - img.cols) - m - ox))
+		    .convertTo(a, CV_32F);
+		tcrop(cv::Range(m, DY - m), cv::Range(m, DX - m)).convertTo(b, CV_32F);
+		return cv::mean(cv::abs(a - b))[0];
+	};
+	const double warp_mad  = interior_mad(wr.image, 0, 0);
+	/* Naive global-only average of the distorted frames. */
+	cv::Mat naive = cv::Mat::zeros(DY, DX, CV_32F);
+	for (int f = 0; f < N; ++f) {
+		cv::Mat crop;
+		const int dy = (int) std::lround(fx.offsets[f].dy);
+		const int dx = (int) std::lround(fx.offsets[f].dx);
+		fx.frames_raw[f](cv::Range(dy, dy + DY), cv::Range(dx, dx + DX))
+		    .convertTo(crop, CV_32F);
+		naive += crop;
+	}
+	naive /= (float) N;
+	cv::Mat naive_u16;
+	naive.convertTo(naive_u16, CV_16U);
+	const double naive_mad = interior_mad(naive_u16, 0, 0);
+
+	cr_assert_lt(warp_mad, naive_mad * 0.75,
+	             "warp stack should beat the un-dewarped average "
+	             "(warp %.1f vs naive %.1f ADU)", warp_mad, naive_mad);
 }

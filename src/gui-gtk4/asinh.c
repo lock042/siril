@@ -3,24 +3,23 @@
  * Pure processing entry points live in src/filters/asinh.c.
  */
 
-#include <math.h>
 #include <gtk/gtk.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
+#include "algos/statistics.h"
 #include "core/icc_profile.h"
+#include "core/op_descriptors.h"
 #include "core/processing.h"
 #include "core/processing_thread.h"
+#include "core/siril.h"
 #include "core/undo.h"
-#include "algos/statistics.h"
-#include "io/single_image.h"
-#include "gui-gtk4/callbacks.h"
-#include "gui-gtk4/utils.h"
-#include "gui-gtk4/progress_and_log.h"
-#include "gui-gtk4/dialogs.h"
-#include "gui-gtk4/siril_preview.h"
 #include "filters/asinh.h"
 #include "gui-gtk4/asinh.h"
+#include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/siril_preview.h"
+#include "gui-gtk4/utils.h"
+#include "io/single_image.h"
 
 static GtkSpinButton *asinh_spin_stretch = NULL, *asinh_spin_black = NULL;
 static GtkCheckButton *asinh_toggle_rgb = NULL, *asinh_preview_btn = NULL;
@@ -83,10 +82,8 @@ static int asinh_process_with_worker(gboolean for_preview) {
 	}
 
 	args->fit = gui.roi.active ? &gui.roi.fit : gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = asinh_image_hook;
+	args->op = &op_desc_asinh;
 	args->idle_function = for_preview ? NULL : asinh_apply_idle;
-	args->description = _("Asinh stretch");
 	args->verbose = !for_preview;
 	args->user = params;
 	args->mask_aware = TRUE;
@@ -254,13 +251,10 @@ void on_asinh_ok_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = asinh_image_hook;
+	args->op = &op_desc_asinh;
 	args->idle_function = asinh_apply_idle;
-	args->description = _("Asinh stretch");
 	args->verbose = TRUE;
 	args->user = params;
-	args->log_hook = asinh_log_hook;
 	args->max_threads = com.max_thread;
 	args->mask_aware = TRUE;
 	args->for_preview = FALSE;

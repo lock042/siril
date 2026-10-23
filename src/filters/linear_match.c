@@ -19,13 +19,25 @@
  */
 
 #include <string.h>
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
+
 #include "algos/fitting.h"
 #include "algos/statistics.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "filters/linear_match.h"
 #include "io/image_format_fits.h"
-#include "linear_match.h"
+
+/* Op descriptor — single source of truth for this operation (op_descriptor.h) */
+const op_descriptor op_desc_linear_match = {
+	.id = "color.linear_match", .version = 1,
+	.image_hook = linear_match_image_hook,
+	.log_hook = linear_match_log_hook,
+	.description = N_("Linear Match"),
+	.mem_ratio = 0.0f,
+	.flags = 0,
+};
 
 static void apply_linear_to_fits_ushort(fits *fit, const double *a, const double *b) {
 	size_t size = fit->rx * fit->ry;

@@ -1,6 +1,8 @@
 #ifndef SRC_GUI_OPEN_DIALOG_H_
 #define SRC_GUI_OPEN_DIALOG_H_
 
+#include <gio/gio.h>
+
 /* cookies for the file chooser */
 #define OD_NULL 	0
 #define OD_FLAT 	1

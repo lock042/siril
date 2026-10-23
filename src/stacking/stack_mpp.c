@@ -8,23 +8,20 @@
  * (gfit copy, savefits, GUI refresh) is unchanged.
  */
 
-#include <glib.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include <glib.h>
+
+#include "core/gui_iface.h"
 #include "core/siril.h"
 #include "core/siril_log.h"
-#include "core/proto.h"
-#include "core/gui_iface.h"
-#include "io/sequence.h"
 #include "io/image_format_fits.h"
-
 #include "registration/mpp.h"
 #include "registration/mpp/mpp_ap.h"        /* mpp_aps_t — full type for aps->count */
 #include "registration/mpp/mpp_config.h"
-#include "registration/mpp/mpp_sidecar.h"
 #include "registration/mpp/mpp_derot_sidecar.h"
-
+#include "registration/mpp/mpp_sidecar.h"
 #include "stacking/stacking.h"
 
 int stack_mpp_handler(struct stacking_args *args) {
@@ -72,14 +69,13 @@ int stack_mpp_handler(struct stacking_args *args) {
 	 * into the sidecar and not adjustable here. */
 	if (args->mpp_cfg) {
 		const mpp_config_t *gui = (const mpp_config_t *) args->mpp_cfg;
-		run->cfg->drizzle_scale                           = gui->drizzle_scale;
-		run->cfg->drizzle_mode                            = gui->drizzle_mode;
-		run->cfg->drizzle_pixfrac                         = gui->drizzle_pixfrac;
-		run->cfg->drizzle_kernel                          = gui->drizzle_kernel;
+		run->cfg->output_scale                            = gui->output_scale;
 		run->cfg->stack_frame_percent                     = gui->stack_frame_percent;
 		run->cfg->stack_frame_number                      = gui->stack_frame_number;
 		run->cfg->stack_frames_background_fraction        = gui->stack_frames_background_fraction;
 		run->cfg->stack_frames_background_blend_threshold = gui->stack_frames_background_blend_threshold;
+		run->cfg->stack_skip_failed_aps                   = gui->stack_skip_failed_aps;
+		run->cfg->stack_method                            = gui->stack_method;
 	}
 
 	/* The stacking tab's "Force 32b output" checkbutton (and the auto
@@ -130,7 +126,7 @@ int stack_mpp_handler(struct stacking_args *args) {
 	siril_log_message(_("Stack (mpp): %d frames, %dx%d, %d APs, bitdepth=%d%s\n"),
 	                  run->num_frames, run->frame_cols, run->frame_rows,
 	                  run->aps->count, run->bitdepth,
-	                  run->cfg->drizzle_scale > 1.001 ? " (upscaled)" : "");
+	                  run->cfg->output_scale > 1.001 ? " (upscaled)" : "");
 
 	/* Optional derotation plan: if <seqname>.derot exists, force the warp
 	 * engine and derotate every frame to the reference epoch as part of the

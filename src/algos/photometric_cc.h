@@ -1,15 +1,11 @@
 #ifndef SRC_ALGOS_PHOTOMETRIC_CC_H_
 #define SRC_ALGOS_PHOTOMETRIC_CC_H_
 
-#include <stdio.h>
 #include <glib.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
-#include "algos/PSF.h"
-#include "algos/photometry.h"
 #include "algos/astrometry_solver.h"
+#include "core/processing.h"
+#include "core/siril.h"
 
 __inline __attribute__((always_inline)) int xisnanf(float x) { return x != x; }
 
@@ -73,4 +69,3 @@ void initialize_spcc_mirrors(void);
 siril_cat_index siril_select_remote_gaia_xp_kind(void);
 
 #endif /* SRC_GUI_PHOTOMETRIC_CC_H_ */
-

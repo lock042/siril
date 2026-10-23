@@ -18,19 +18,15 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
 #include <glib.h>
 
 #include "algos/statistics.h"
-#include "core/arithm.h"
-#include "io/single_image.h"
-#include "gui-gtk4/callbacks.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "gui-gtk4/dialogs.h"
-#include "core/siril_log.h"
-#include "utils.h"
-#include "message_dialog.h"
+#include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/utils.h"
 
 struct _label_data {
 	const char *label_name;

@@ -20,28 +20,24 @@
 
 #include <math.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/icc_profile.h"
-#include "core/processing.h"
-#include "core/siril_world_cs.h"
 #include "algos/demosaicing.h"
 #include "algos/siril_wcs.h"
-#include "algos/photometry.h"
-#include "io/single_image.h"
-#include "io/sequence.h"
-#include "io/image_format_fits.h"
-#include "image_interactions.h"
-#include "gui-gtk4/mouse_action_functions.h"
-#include "gui-gtk4/image_display.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_world_cs.h"
 #include "gui-gtk4/callbacks.h"
-#include "gui-gtk4/utils.h"
-#include "gui-gtk4/histo_display.h"
-#include "gui-gtk4/mpp_ap_editor.h"
 #include "gui-gtk4/derotation.h"
+#include "gui-gtk4/histo_display.h"
+#include "gui-gtk4/image_display.h"
+#include "gui-gtk4/image_interactions.h"
+#include "gui-gtk4/mouse_action_functions.h"
+#include "gui-gtk4/mpp_ap_editor.h"
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/utils.h"
+#include "io/sequence.h"
+#include "io/single_image.h"
 #include "registration/mpp.h"
 #include "registration/mpp/mpp_ap.h"
-#include "progress_and_log.h"
 
 //#define DEBUG_SCROLL
 
@@ -339,7 +335,7 @@ gboolean is_inside_of_sel(pointi zoomed, double zoom) {
 	return FALSE;
 }
 
-/* Clamp given coordinates to image boundaries.
+/* Clamp given coordinates to [0, rx] x [0, ry] (selection ends are exclusive).
    Returns true if point was inside, false otherwise.
 */
 static gboolean clamp2image(pointi* pt) {
@@ -347,7 +343,7 @@ static gboolean clamp2image(pointi* pt) {
 	if (pt->x < 0) {
 		pt->x = 0;
 	} else if (pt->x > gfit->rx) {
-		pt->x = gfit->rx - 1;
+		pt->x = gfit->rx;
 	} else {
 		x_inside = pt->x < gfit->rx;
 	}
@@ -356,7 +352,7 @@ static gboolean clamp2image(pointi* pt) {
 	if (pt->y < 0) {
 		pt->y = 0;
 	} else if (pt->y > gfit->ry) {
-		pt->y = gfit->ry - 1;
+		pt->y = gfit->ry;
 	} else {
 		y_inside = pt->y < gfit->ry;
 	}
@@ -428,8 +424,9 @@ void enforce_ratio_and_clamp() {
 	}
 
 	// clamp the selection inside the image (needed when enforcing a ratio or moving)
-	com.selection.x = set_int_in_interval(com.selection.x, 0, gfit->rx - com.selection.w);
-	com.selection.y = set_int_in_interval(com.selection.y, 0, gfit->ry - com.selection.h);
+	// keep the origin inside the image even when a side is empty
+	com.selection.x = set_int_in_interval(com.selection.x, 0, gfit->rx - max(com.selection.w, 1));
+	com.selection.y = set_int_in_interval(com.selection.y, 0, gfit->ry - max(com.selection.h, 1));
 
 	// If the image is CFA ensure the selection is aligned to a Bayer repeat
 	// This ensures CFA statistics (for Bayer patterns) will be valid
@@ -462,6 +459,9 @@ void enforce_ratio_and_clamp() {
 			com.selection.w = 2;
 		if (com.selection.h < 2)
 			com.selection.h = 2;
+		// the rounding above can grow the selection past the image edge
+		com.selection.x = set_int_in_interval(com.selection.x, 0, ((int) gfit->rx - com.selection.w) & ~1);
+		com.selection.y = set_int_in_interval(com.selection.y, 0, ((int) gfit->ry - com.selection.h) & ~1);
 	}
 }
 
@@ -477,6 +477,12 @@ static void on_drawingarea_pressed_cb(GtkGestureClick *gesture, int n_press,
 	GdkModifierType gdk_state = gtk_event_controller_get_current_event_state(GTK_EVENT_CONTROLLER(gesture));
 	SirilEventType type = siril_event_type_from_n_press(n_press);
 	SirilModifierMask mods = siril_mods_from_gdk(gdk_state);
+
+	/* GTK4 does not move keyboard focus to a clicked widget by itself
+	 * (GTK3 didn't either, but its window ran accelerators before the
+	 * focus widget).  Take the focus explicitly so clicking the image
+	 * pulls it out of entries/spin buttons, as users expect. */
+	gtk_widget_grab_focus(widget);
 
 	cache_widgets();
 	if (!gui.mouse_actions)
@@ -741,6 +747,10 @@ static void update_drawingarea_cursor(const drawingarea_ctx *c) {
 	}
 	if (mouse_status == MOUSE_ACTION_DRAW_SAMPLES) {
 		set_cursor("cell");
+		return;
+	}
+	if (mouse_status == MOUSE_ACTION_CURVES_PIPETTE) {
+		set_cursor("crosshair");
 		return;
 	}
 	const pointi zoomed = c->zoomed;
@@ -1020,10 +1030,22 @@ gboolean update_zoom_label_idle(gpointer user_data) {
 	return FALSE;
 }
 
-gboolean update_zoom(gdouble x, gdouble y, double scale) {
+/* set the zoom to value while keeping the point (x, y) of the widget fixed */
+void set_zoom_at(gdouble x, gdouble y, double value) {
 	// event position in image coordinates before changing the zoom value
 	point evpos = { x, y };
 	cairo_matrix_transform_point(&gui.image_matrix, &evpos.x, &evpos.y);
+	gui.zoom_value = value;
+	update_zoom_label();
+	adjust_vport_size_to_image();
+	cairo_matrix_transform_point(&gui.display_matrix, &evpos.x, &evpos.y);
+	gui.display_offset.x += x - evpos.x;
+	gui.display_offset.y += y - evpos.y;
+	adjust_vport_size_to_image();
+	redraw(REDRAW_IMAGE);
+}
+
+gboolean update_zoom(gdouble x, gdouble y, double scale) {
 	gdouble factor;
 	gboolean zoomed = FALSE;
 
@@ -1051,14 +1073,7 @@ gboolean update_zoom(gdouble x, gdouble y, double scale) {
 
 	if (factor >= min_zoom && factor <= ZOOM_MAX) {
 		zoomed = TRUE;
-		gui.zoom_value = factor;
-		update_zoom_label();
-		adjust_vport_size_to_image();
-		cairo_matrix_transform_point(&gui.display_matrix, &evpos.x, &evpos.y);
-		gui.display_offset.x += x - evpos.x;
-		gui.display_offset.y += y - evpos.y;
-		adjust_vport_size_to_image();
-		redraw(REDRAW_IMAGE);
+		set_zoom_at(x, y, factor);
 	}
 	return zoomed;
 }

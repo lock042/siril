@@ -2,6 +2,7 @@
 #define _LIVESTACK_H
 
 #include <glib.h>
+
 #include "core/preprocess.h"
 
 void on_livestacking_start();

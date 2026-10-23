@@ -16,11 +16,12 @@
 // ---------------------------------------------------------------------
 
 
-#include <cstring>
-#include <cstdlib>
 #include <cstdint>
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
-#include "pipp_buffer.h"
+
+#include "io/avi_pipp/pipp_buffer.h"
 
 
 using namespace std;

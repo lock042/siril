@@ -6,12 +6,13 @@
  * non-derotated stack of the same frames is visibly smeared. This exercises
  * C2 (geometry) + C4 (warp engine) + C5 (bridge) together.
  */
-#include <criterion/criterion.h>
-#include <opencv2/imgproc.hpp>
-
 #include <cmath>
+#include <cstdint>
 #include <numeric>
 #include <vector>
+
+#include <criterion/criterion.h>
+#include <opencv2/imgproc.hpp>
 
 #include "registration/mpp/mpp_derot_geom.h"
 #include "registration/mpp/mpp_derot.h"   /* C++ (cv::Mat) — outside extern "C" */

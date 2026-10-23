@@ -21,9 +21,9 @@
 #include <criterion/criterion.h>
 #include <gsl/gsl_matrix.h>
 
-#include "core/siril.h"
-#include "algos/PSF.h"
 #include "algos/photometry.h"
+#include "algos/PSF.h"
+#include "core/siril.h"
 
 cominfo com;	// the core data struct
 fits *gfit;	// currently loaded image

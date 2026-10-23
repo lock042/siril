@@ -27,51 +27,84 @@
  */
 
 #include <gtk/gtk.h>
-#include "core/gui_iface.h"
-#include "core/proto.h"
-#include "core/icc_profile.h"
-#include "core/processing.h"
-#include "gui-gtk4/progress_and_log.h"
-#include "gui-gtk4/message_dialog.h"
-#include "gui-gtk4/dialogs.h"
-#include "gui-gtk4/derotation.h"
-#include "gui-gtk4/open_dialog.h"
+
 #include "algos/background_extraction.h"
 #include "algos/ccd-inspector.h"
-#include "gui-gtk4/ccd-inspector.h"
-#include "gui-gtk4/cut.h"
-#include "gui-gtk4/histogram.h"
-#include "gui-gtk4/icc_profile.h"
-#include "gui-gtk4/keywords_tree.h"
-#include "gui-gtk4/image_display.h"
-#include "gui-gtk4/image_interactions.h"
+#include "core/gui_iface.h"
+#include "core/icc_profile.h"
+#include "core/processing.h"
+#include "core/proto.h"
 #include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/ccd-inspector.h"
+#include "gui-gtk4/curves.h"
+#include "gui-gtk4/cut.h"
+#include "gui-gtk4/derotation.h"
+#include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/geometry.h"
 #include "gui-gtk4/gui_state.h"
+#include "gui-gtk4/histogram.h"
+#include "gui-gtk4/histogram_utils.h"
+#include "gui-gtk4/icc_profile.h"
+#include "gui-gtk4/image_display.h"
+#include "gui-gtk4/image_interactions.h"
+#include "gui-gtk4/keywords_tree.h"
 #include "gui-gtk4/masks_gui.h"
+#include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/mpp_shift_viewer.h"
+#include "gui-gtk4/open_dialog.h"
 #include "gui-gtk4/photometric_cc.h"
 #include "gui-gtk4/plot.h"
+#include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/PSF_list.h"
+#include "gui-gtk4/registration.h"
 #include "gui-gtk4/registration_preview.h"
+#include "gui-gtk4/script_console.h"
+#include "gui-gtk4/script_menu.h"
 #include "gui-gtk4/sequence_list.h"
+#include "gui-gtk4/siril-window.h"
+#include "gui-gtk4/siril_actions.h"
 #include "gui-gtk4/siril_plot.h"
 #include "gui-gtk4/siril_preview.h"
-#include "gui-gtk4/script_console.h"
-#include "gui-gtk4/user_polygons.h"
-#include "io/annotation_catalogues.h"
-#include "io/sequence.h"
-#include "livestacking/gui.h"
-#include "gui-gtk4/registration.h"
-#include "gui-gtk4/mpp_shift_viewer.h"
-#include "gui-gtk4/script_menu.h"
-#include "gui-gtk4/siril_actions.h"
-#include "gui-gtk4/siril-window.h"
 #include "gui-gtk4/stacking.h"
+#include "gui-gtk4/user_polygons.h"
 #include "gui-gtk4/utils.h"
-#include "gui-gtk4/histogram_utils.h"
-#include "gui-gtk4/remixer.h"
-#include "io/single_image.h"
+#include "io/annotation_catalogues.h"
 #include "io/image_format_fits.h"
+#include "io/sequence.h"
+#include "io/single_image.h"
+#include "livestacking/gui.h"
+
+/* ── Main-thread dispatch helpers ────────────────────────────────────────────
+ *
+ * Script and python-bridge commands execute on worker threads (the python
+ * connection worker, the script thread), and several core paths call into
+ * this vtable from processing threads.  GTK/cairo/pixman are main-thread-only:
+ * touching a widget from a worker corrupts pixman's shared state and crashes
+ * (SIGBUS/SIGSEGV under pixman_op / composite, see the process_save →
+ * display_filename → gtk_label_set_text crash reports).  Every impl that
+ * touches GTK must therefore dispatch: asynchronously via gui_function() for
+ * fire-and-forget display updates, or synchronously via
+ * execute_idle_and_wait_for_it() when the caller needs a result or relies on
+ * the update completing before it continues.  Both helpers run the callback
+ * directly when already on the main thread, so main-thread callers are
+ * unaffected. */
+
+/* Idle trampoline for void(void) GUI helpers: the target function pointer
+ * travels through the gpointer (GLib guarantees function pointers round-trip
+ * through gpointer — GModule relies on it). */
+static gboolean run_void_gui_helper(gpointer func) {
+	((void (*)(void)) func)();
+	return FALSE;
+}
+
+/* Run a void(void) GUI helper now if on the main thread, else as an idle. */
+static void dispatch_void_gui_helper(void (*func)(void)) {
+	gui_function(run_void_gui_helper, (gpointer) func);
+}
+
+static gboolean in_main_thread(void) {
+	return g_main_context_is_owner(g_main_context_default());
+}
 
 /* ── Group A: Progress ───────────────────────────────────────────────────── */
 
@@ -105,16 +138,43 @@ static void impl_message_dialog(SirilMessageType type, const char *title,
 	queue_message_dialog(to_gtk_msg_type(type), title, text);
 }
 
+static void impl_message_dialog_modal(SirilMessageType type, const char *title,
+                                      const char *text) {
+	/* callable from worker threads (python bridge): blocks until the user
+	 * dismisses the dialog, mirroring the confirm_dialog_async pattern */
+	siril_message_dialog_modal(to_gtk_msg_type(type), (gchar *)title, (gchar *)text);
+}
+
 static gboolean impl_confirm_dialog(const char *title, const char *msg,
                                     const char *button_accept) {
-	return siril_confirm_dialog((gchar *)title, (gchar *)msg,
-	                            (gchar *)button_accept);
+	/* callable from worker threads (python bridge, icc command handlers):
+	 * the _async variant runs the dialog in a main-thread idle and blocks
+	 * until answered; it runs directly when already on the main thread */
+	return siril_confirm_dialog_async((gchar *)title, (gchar *)msg,
+	                                  (gchar *)button_accept);
+}
+
+struct avi_bayer_dialog_args {
+	const char *title, *msg, *button_accept;
+	int *avi_bayer_pattern;
+	gboolean result;
+};
+
+static gboolean confirm_dialog_with_avi_bayer_idle(gpointer p) {
+	struct avi_bayer_dialog_args *args = p;
+	args->result = siril_confirm_dialog_with_avi_bayer((gchar *)args->title,
+			(gchar *)args->msg, (gchar *)args->button_accept,
+			args->avi_bayer_pattern);
+	return FALSE;
 }
 
 static gboolean impl_confirm_dialog_with_avi_bayer(const char *title,
 		const char *msg, const char *button_accept, int *avi_bayer_pattern) {
-	return siril_confirm_dialog_with_avi_bayer((gchar *)title, (gchar *)msg,
-			(gchar *)button_accept, avi_bayer_pattern);
+	/* reachable from the script/python worker via sequence loading */
+	struct avi_bayer_dialog_args args = { title, msg, button_accept,
+		avi_bayer_pattern, FALSE };
+	execute_idle_and_wait_for_it(confirm_dialog_with_avi_bayer_idle, &args);
+	return args.result;
 }
 
 static void impl_open_dialog(const char *id) {
@@ -132,7 +192,13 @@ static gboolean impl_is_dialog_open(void) {
 /* ── Group D: Image display ──────────────────────────────────────────────── */
 
 static void impl_redraw_image(SirilRedrawType remap) {
-	redraw((remap_type)remap);
+	/* redraw() ends in gtk_widget_queue_draw and must stay on the main
+	 * thread; worker callers (visu/register/show commands, python polygon
+	 * handler) get the queued equivalent */
+	if (in_main_thread())
+		redraw((remap_type)remap);
+	else
+		queue_redraw((remap_type)remap);
 }
 
 static void impl_redraw_image_async(SirilRedrawType remap) {
@@ -143,8 +209,16 @@ static void impl_redraw_image_sync(SirilRedrawType remap) {
 	queue_redraw_and_wait_for_it((remap_type)remap);
 }
 
-static void impl_delete_selection(void) {
+static gboolean delete_selected_area_idle(gpointer p) {
 	delete_selected_area();
+	return FALSE;
+}
+
+static void impl_delete_selection(void) {
+	/* synchronous: worker callers (upscaling, 3stars, fft, boxselect)
+	 * continue on the assumption that com.selection is already cleared,
+	 * and the ROI-auto branch inside ends in redraw() */
+	execute_idle_and_wait_for_it(delete_selected_area_idle, NULL);
 }
 
 static void impl_queue_redraw_mask(gboolean remap_tints) {
@@ -260,14 +334,30 @@ static void impl_set_suppress_redraws(gboolean suppress) {
 	}
 }
 
+static gboolean impl_get_suppress_redraws(void) {
+	return g_atomic_int_get(&gui.suppress_drawarea_redraw) != 0;
+}
+
 static void impl_populate_roi(void) {
 	populate_roi();
 }
 
 /* ── Group H: Geometry / ROI / Mask state ────────────────────────────────── */
 
-static void impl_on_geometry_changed(void) {
+static gboolean clear_roi_idle(gpointer p) {
 	on_clear_roi();
+	return FALSE;
+}
+
+/* Synchronous: geometry ops (rotate/mirror/crop) clear the ROI before
+ * mutating gfit, so the ROI must not outlive the old geometry; on_clear_roi
+ * also ends in redraw() which is main-thread-only. */
+static void clear_roi_threadsafe(void) {
+	execute_idle_and_wait_for_it(clear_roi_idle, NULL);
+}
+
+static void impl_on_geometry_changed(void) {
+	clear_roi_threadsafe();
 }
 
 static void impl_on_mask_state_changed(void) {
@@ -285,6 +375,10 @@ static void impl_on_stats_ready(void) {
 	siril_open_dialog("StatWindow");
 }
 
+static void impl_curves_reset_after_undo(void) {
+	curves_reset_after_undo();
+}
+
 /* ── Group J: Photometry ─────────────────────────────────────────────────── */
 
 static void impl_on_photometry_changed(void) {
@@ -295,6 +389,10 @@ static void impl_on_photometry_changed(void) {
 
 static void impl_show_siril_plot(gpointer spl_data) {
 	siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
+}
+
+static void impl_show_siril_plot_group(gpointer group) {
+	siril_add_pythonsafe_idle(create_new_siril_plot_group_window, group);
 }
 
 /* ── Group M: Thread utilities ───────────────────────────────────────────── */
@@ -503,6 +601,22 @@ static gboolean free_image_data_gui(gpointer p) {
 	g_signal_handlers_unblock_by_func(binning,       on_combobinning_changed, NULL);
 	siril_log_debug("free_image_data_idle() complete\n");
 
+	/* Hold gui.cairo_mutex across the whole teardown.  This is the same race
+	 * free_image_data() closes with gfit's writer lock, one indirection out:
+	 * materialise_worker() (image_display.c) walks view->tiles under this
+	 * mutex, so g_free()ing the array from here without it hands a worker a
+	 * freed tile grid.  It is narrower than the pixel-data window — the worker
+	 * only touches the grid in its short pick/assign sections, not across the
+	 * fill — which is why the reported backtraces land in the remap instead.
+	 *
+	 * Nulling the pointers under the mutex is enough on its own: every worker
+	 * phase re-tests view->tiles and view->lazy after re-acquiring it, so an
+	 * in-flight fill simply discards its finished texture and exits.  Nothing
+	 * has to drain, and there is no lock inversion — workers take gfit's
+	 * reader lock BEFORE this mutex, and this runs from on_image_closed(),
+	 * i.e. before free_image_data() takes the writer lock, so no lock a worker
+	 * could be waiting on is held here. */
+	g_mutex_lock(&gui.cairo_mutex);
 	for (int vport = 0; vport < MAXVPORT; vport++) {
 		struct image_view *view = &gui.view[vport];
 		/* Drop tile textures.  Per-tile bytes (lazy mode) and the eager
@@ -534,6 +648,7 @@ static gboolean free_image_data_gui(gpointer p) {
 		view->view_width = -1;
 		view->view_height = -1;
 	}
+	g_mutex_unlock(&gui.cairo_mutex);
 	clear_previews();
 	free_reference_image();
 	siril_log_debug("free_image_data_gui() complete\n");
@@ -692,13 +807,19 @@ static void impl_update_mask_enable(gboolean state) {
 }
 
 static void impl_set_display_range(int lo, int hi) {
+	/* USER mode so that the next remap does not recompute hi/lo */
+	g_mutex_lock(&com.mutex);
+	gui.sliders = USER;
 	gui.lo = lo;
 	gui.hi = hi;
-	set_cutoff_sliders_values();
+	g_mutex_unlock(&com.mutex);
+	gui_iface.sliders_mode_set_state(USER);
+	dispatch_void_gui_helper(set_cutoff_sliders_values);
 }
 
 static void impl_check_gaia_status(void) {
-	check_gaia_archive_status();
+	/* the offline branch sets a GtkImage; caller is the update-check thread */
+	dispatch_void_gui_helper(check_gaia_archive_status);
 }
 
 static void impl_trigger_gaia_check(void) {
@@ -732,21 +853,42 @@ static void impl_clear_backup(void) {
 	clear_backup();
 }
 
-static void impl_livestacking_setup_gui(gboolean has_dark, gboolean has_flat,
-                                        int reg_type) {
+struct ls_setup_args {
+	gboolean has_dark, has_flat;
+	int reg_type;
+};
+
+static gboolean livestacking_setup_gui_idle(gpointer p) {
+	struct ls_setup_args *args = p;
 	gui.rendering_mode = STF_DISPLAY;
 	set_display_mode();
 	force_unlinked_channels();
 	GtkWidget *toolbar = GTK_WIDGET(gtk_builder_get_object(gui.builder, "GtkToolMainBar"));
 	if (gtk_widget_is_visible(toolbar))
 		show_hide_toolbox();
-	livestacking_display_config(has_dark, has_flat, (transformation_type)reg_type);
+	livestacking_display_config(args->has_dark, args->has_flat,
+			(transformation_type)args->reg_type);
+	return FALSE;
 }
 
-static void impl_livestacking_teardown_gui(void) {
+static void impl_livestacking_setup_gui(gboolean has_dark, gboolean has_flat,
+                                        int reg_type) {
+	/* reachable from the start_ls command handler (script/python worker);
+	 * synchronous so the display is configured before frames arrive */
+	struct ls_setup_args args = { has_dark, has_flat, reg_type };
+	execute_idle_and_wait_for_it(livestacking_setup_gui_idle, &args);
+}
+
+static gboolean livestacking_teardown_gui_idle(gpointer p) {
 	GtkWidget *toolbar = GTK_WIDGET(gtk_builder_get_object(gui.builder, "GtkToolMainBar"));
 	if (!gtk_widget_is_visible(toolbar))
 		show_hide_toolbox();
+	return FALSE;
+}
+
+static void impl_livestacking_teardown_gui(void) {
+	/* reachable from the stop_ls command handler */
+	gui_function(livestacking_teardown_gui_idle, NULL);
 }
 
 /* ── Group D additions: Histogram / image modification state ─────────────── */
@@ -756,11 +898,16 @@ static void impl_invalidate_histogram(void) {
 }
 
 static void impl_update_histogram(void) {
-	update_gfit_histogram_if_needed();
+	dispatch_void_gui_helper(update_gfit_histogram_if_needed);
 }
 
 static void impl_redraw_mask_idle(gboolean remap_tints) {
-	redraw_mask_idle(GINT_TO_POINTER(remap_tints));
+	/* called synchronously from the python worker; off-main, queue the
+	 * idle instead of invoking the callback (which ends in redraw()) */
+	if (in_main_thread())
+		redraw_mask_idle(GINT_TO_POINTER(remap_tints));
+	else
+		queue_redraw_mask(remap_tints);
 }
 
 /* ── Group G additions: Channel / precision display state ────────────────── */
@@ -792,7 +939,7 @@ static void impl_get_roi_selection(rectangle *rect) {
 }
 
 static void impl_clear_roi(void) {
-	on_clear_roi();
+	clear_roi_threadsafe();
 }
 
 static void impl_restore_roi(const rectangle *rect) {
@@ -802,10 +949,7 @@ static void impl_restore_roi(const rectangle *rect) {
 
 static void impl_reset_display_transform(void) {
 	lock_display_transform();
-	if (com.gui_icc.proofing_transform) {
-		cmsDeleteTransform(com.gui_icc.proofing_transform);
-		com.gui_icc.proofing_transform = NULL;
-	}
+	clear_proofing_transforms();
 	unlock_display_transform();
 }
 
@@ -834,7 +978,7 @@ static void impl_check_icc_identical_to_monitor(void) {
 }
 
 static void impl_set_source_information(void) {
-	set_source_information();
+	dispatch_void_gui_helper(set_source_information);
 }
 
 /* ── Groups K, L: Star list / Registration state ─────────────────────────── */
@@ -845,7 +989,7 @@ static void impl_update_star_list(psf_star **stars, gboolean update_psf_list,
 }
 
 static void impl_clear_star_list(void) {
-	clear_psf_list_display();
+	dispatch_void_gui_helper(clear_psf_list_display);
 }
 
 static int impl_get_reg_layer(void) {
@@ -925,15 +1069,21 @@ static void impl_update_icc_status_icon(gpointer p, gboolean active) {
 	}
 }
 
-static gboolean impl_get_gamut_check_active(void) {
-	GtkCheckButton *checkgamut = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "checkgamut"));
-	return siril_toggle_get_active(GTK_WIDGET(checkgamut));
-}
-
 /* ── V: Registration panel status ────────────────────────────────────────── */
 
-static void impl_update_registration_status(const gchar *msg) {
+static gboolean update_registration_status_idle(gpointer p) {
+	gchar *msg = (gchar *) p;
 	registration_update_label(msg);
+	g_free(msg);
+	return FALSE;
+}
+
+static void impl_update_registration_status(const gchar *msg) {
+	/* called from sequence finalize hooks on the processing thread */
+	if (in_main_thread())
+		registration_update_label(msg);
+	else
+		siril_add_pythonsafe_idle(update_registration_status_idle, g_strdup(msg));
 }
 
 /* ── Group S: Pixel-math status ──────────────────────────────────────────── */
@@ -990,8 +1140,22 @@ static void impl_update_zoom_label(void) {
 	execute_idle_and_wait_for_it(update_zoom_label_idle, NULL);
 }
 
+static gboolean get_zoom_value_idle(gpointer p) {
+	*((double *) p) = get_zoom_val();
+	return FALSE;
+}
+
 static double impl_get_zoom_value(void) {
-	return get_zoom_val();
+	/* explicit zoom is a plain read, but fit-to-window makes get_zoom_val()
+	 * read widget allocations; python zoom queries arrive on the connection
+	 * worker thread */
+	if (gui.zoom_value > 0.)
+		return gui.zoom_value;
+	if (in_main_thread())
+		return get_zoom_val();
+	double zoom = 1.0;
+	execute_idle_and_wait_for_it(get_zoom_value_idle, &zoom);
+	return zoom;
 }
 
 static int impl_activate_action(const char *name, gboolean appmap) {
@@ -1084,20 +1248,25 @@ static void impl_update_display_range_after_load(int sliders, int lo, int hi) {
 
 /* ── Phase 3: display / slider / sequence state slots ────────────────────── */
 
+static gboolean sliders_mode_set_state_gint_idle(gpointer p) {
+	sliders_mode_set_state((sliders_mode) GPOINTER_TO_INT(p));
+	return FALSE;
+}
+
 static void impl_sliders_mode_set_state(int mode) {
-	sliders_mode_set_state((sliders_mode)mode);
+	gui_function(sliders_mode_set_state_gint_idle, GINT_TO_POINTER(mode));
 }
 
 static void impl_set_cutoff_sliders_max_values(void) {
-	set_cutoff_sliders_max_values();
+	dispatch_void_gui_helper(set_cutoff_sliders_max_values);
 }
 
 static void impl_set_cutoff_sliders_values(void) {
-	set_cutoff_sliders_values();
+	dispatch_void_gui_helper(set_cutoff_sliders_values);
 }
 
 static void impl_update_display_mode_state(void) {
-	set_display_mode();
+	gui_function(set_display_mode_idle, NULL);
 }
 
 static void impl_compute_histo_for_fit(gpointer fit) {
@@ -1105,7 +1274,7 @@ static void impl_compute_histo_for_fit(gpointer fit) {
 }
 
 static void impl_refresh_histogram_if_visible(void) {
-	refresh_histogram_if_visible();
+	dispatch_void_gui_helper(refresh_histogram_if_visible);
 }
 
 static void impl_fill_sequence_list(gpointer seq, int layer, gboolean as_idle) {
@@ -1113,11 +1282,16 @@ static void impl_fill_sequence_list(gpointer seq, int layer, gboolean as_idle) {
 }
 
 static void impl_sequence_list_change_current(void) {
-	sequence_list_change_current();
+	dispatch_void_gui_helper(sequence_list_change_current);
+}
+
+static gboolean enable_view_reference_checkbox_idle(gpointer p) {
+	enable_view_reference_checkbox(GPOINTER_TO_INT(p));
+	return FALSE;
 }
 
 static void impl_enable_view_reference_checkbox(gboolean status) {
-	enable_view_reference_checkbox(status);
+	gui_function(enable_view_reference_checkbox_idle, GINT_TO_POINTER(status));
 }
 
 static void impl_close_tab(void) {
@@ -1129,35 +1303,57 @@ static void impl_init_right_tab(void) {
 }
 
 static void impl_initialize_display_mode(void) {
-	initialize_display_mode();
+	dispatch_void_gui_helper(initialize_display_mode);
 }
 
+/* The crash path from the bug reports: script/python `save` runs process_save
+ * on the connection worker thread, which called display_filename() →
+ * gtk_label_set_text() concurrently with main-thread painting, corrupting
+ * pixman state (SIGBUS/SIGSEGV in pixman_op / composite_boxes). */
 static void impl_display_filename(void) {
-	display_filename();
+	dispatch_void_gui_helper(display_filename);
 }
 
 static void impl_update_display_fwhm(void) {
-	update_display_fwhm();
+	dispatch_void_gui_helper(update_display_fwhm);
+}
+
+static gboolean update_prepro_interface_idle(gpointer p) {
+	update_prepro_interface(GPOINTER_TO_INT(p));
+	return FALSE;
 }
 
 static void impl_update_prepro_interface(gboolean allow_debayer) {
-	update_prepro_interface(allow_debayer);
+	gui_function(update_prepro_interface_idle, GINT_TO_POINTER(allow_debayer));
 }
 
 static void impl_adjust_sellabel(void) {
-	adjust_sellabel();
+	dispatch_void_gui_helper(adjust_sellabel);
 }
 
 static void impl_adjust_reginfo(void) {
-	adjust_reginfo();
+	dispatch_void_gui_helper(adjust_reginfo);
+}
+
+static gboolean adjust_refimage_idle(gpointer p) {
+	adjust_refimage(GPOINTER_TO_INT(p));
+	return FALSE;
 }
 
 static void impl_adjust_refimage(int n) {
-	adjust_refimage(n);
+	gui_function(adjust_refimage_idle, GINT_TO_POINTER(n));
+}
+
+static gboolean set_layers_for_registration_idle(gpointer p) {
+	*((int *) p) = set_layers_for_registration();
+	return FALSE;
 }
 
 static int impl_set_layers_for_registration(void) {
-	return set_layers_for_registration();
+	/* reads a GtkDropDown; synchronous because it returns a value */
+	int result = -1;
+	execute_idle_and_wait_for_it(set_layers_for_registration_idle, &result);
+	return result;
 }
 
 static void impl_set_precision_switch(void) {
@@ -1165,15 +1361,20 @@ static void impl_set_precision_switch(void) {
 }
 
 static void impl_set_GUI_CAMERA(void) {
-	set_GUI_CAMERA();
+	dispatch_void_gui_helper(set_GUI_CAMERA);
 }
 
 static void impl_update_menu_item(void) {
 	gui_function(update_MenuItem, NULL);
 }
 
+static gboolean update_seqlist_idle(gpointer p) {
+	update_seqlist(GPOINTER_TO_INT(p));
+	return FALSE;
+}
+
 static void impl_update_seqlist(int layer) {
-	update_seqlist(layer);
+	gui_function(update_seqlist_idle, GINT_TO_POINTER(layer));
 }
 
 static void impl_update_sequence_overlay_async(void) {
@@ -1211,7 +1412,7 @@ static int impl_number_of_dialogs(void) {
 }
 
 static void impl_clear_previews(void) {
-	clear_previews();
+	dispatch_void_gui_helper(clear_previews);
 }
 
 static gboolean impl_heif_dialog(gpointer heif, uint32_t *selected_image) {
@@ -1224,30 +1425,58 @@ static gboolean impl_heif_dialog(gpointer heif, uint32_t *selected_image) {
 }
 
 /* ── Display / plot ─────────────────────────────────────────────── */
-static void impl_clear_all_photometry_and_plot(void) { clear_all_photometry_and_plot(); }
-static void impl_draw_plot(void) { drawPlot(); }
-static void impl_notify_new_photometry(void) { notify_new_photometry(); }
-static void impl_init_plot_colors(void) { init_plot_colors(); }
-static gboolean impl_save_siril_plot_to_clipboard(gpointer s, int w, int h) {
-	return save_siril_plot_to_clipboard((siril_plot_data*)s, w, h);
+static void impl_clear_all_photometry_and_plot(void) {
+	dispatch_void_gui_helper(clear_all_photometry_and_plot);
 }
-static gchar *impl_build_save_filename(gchar *p, gchar *e, gboolean f, gboolean t) {
-	return build_save_filename(p, e, f, t);
+static void impl_draw_plot(void) { dispatch_void_gui_helper(drawPlot); }
+static void impl_notify_new_photometry(void) {
+	dispatch_void_gui_helper(notify_new_photometry);
+}
+static void impl_init_plot_colors(void) { init_plot_colors(); }
+
+struct plot_clipboard_args {
+	siril_plot_data *spl_data;
+	int w, h;
+	gboolean result;
+};
+
+static gboolean save_plot_to_clipboard_idle(gpointer p) {
+	struct plot_clipboard_args *args = p;
+	args->result = save_siril_plot_to_clipboard(args->spl_data, args->w, args->h);
+	return FALSE;
+}
+
+static gboolean impl_save_siril_plot_to_clipboard(gpointer s, int w, int h) {
+	/* GdkClipboard access; called from the python connection worker */
+	struct plot_clipboard_args args = { (siril_plot_data*)s, w, h, FALSE };
+	execute_idle_and_wait_for_it(save_plot_to_clipboard_idle, &args);
+	return args.result;
 }
 /* Cut */
-static void impl_apply_cut_to_sequence(gpointer a) { apply_cut_to_sequence((cut_struct*)a); }
-static gpointer impl_run_cut_profile(gpointer a) { return cut_profile(a); }
-static gpointer impl_run_tri_cut(gpointer a) { return tri_cut(a); }
-static gpointer impl_run_cfa_cut(gpointer a) { return cfa_cut(a); }
-static void impl_reset_cut_gui_filedependent(gpointer u) { reset_cut_gui_filedependent(u); }
+static void impl_reset_cut_gui_filedependent(gpointer u) {
+	/* reachable from read_single_image on the script/python worker */
+	gui_function(reset_cut_gui_filedependent, u);
+}
 /* Preview */
 static int impl_copy_backup_to_gfit(void) { return copy_backup_to_gfit(); }
 static gpointer impl_get_preview_gfit_backup(void) { return (gpointer)get_preview_gfit_backup(); }
 /* Registration */
-static void impl_update_reg_interface(gboolean b) { update_reg_interface(b); }
-static void impl_reset_3stars_gui(void) { reset_3stars(); }
+static gboolean update_reg_interface_idle(gpointer p) {
+	update_reg_interface(GPOINTER_TO_INT(p));
+	return FALSE;
+}
+static void impl_update_reg_interface(gboolean b) {
+	gui_function(update_reg_interface_idle, GINT_TO_POINTER(b));
+}
+static void impl_reset_3stars_gui(void) { dispatch_void_gui_helper(reset_3stars); }
 /* Stacking */
-static void impl_update_stack_interface(gboolean b) { update_stack_interface(b); }
+static gboolean update_stack_interface_idle(gpointer p) {
+	update_stack_interface(GPOINTER_TO_INT(p));
+	return FALSE;
+}
+static void impl_update_stack_interface(gboolean b) {
+	gui_function(update_stack_interface_idle, GINT_TO_POINTER(b));
+}
 /* Scripts */
 static void impl_refresh_scripts_in_thread(void) {
 	g_thread_unref(g_thread_new("refresh_scripts", refresh_scripts_in_thread, NULL));
@@ -1257,7 +1486,9 @@ static void impl_script_widgets_async(gboolean e) {
 }
 static gchar *impl_get_log_as_string(void) { return get_log_as_string(); }
 /* CCD */
-static void impl_compute_aberration_inspector(void) { compute_aberration_inspector(); }
+static void impl_compute_aberration_inspector(void) {
+	dispatch_void_gui_helper(compute_aberration_inspector);
+}
 
 /* ── Registration ────────────────────────────────────────────────────────── */
 
@@ -1268,6 +1499,7 @@ void siril_register_gui_iface(void) {
 	gui_iface.set_busy              = impl_set_busy;
 	gui_iface.log_message           = impl_log_message;
 	gui_iface.message_dialog        = impl_message_dialog;
+	gui_iface.message_dialog_modal  = impl_message_dialog_modal;
 	gui_iface.confirm_dialog        = impl_confirm_dialog;
 	gui_iface.confirm_dialog_with_avi_bayer = impl_confirm_dialog_with_avi_bayer;
 	gui_iface.open_dialog            = impl_open_dialog;
@@ -1302,14 +1534,18 @@ void siril_register_gui_iface(void) {
 	gui_iface.set_seq_browser_active = impl_set_seq_browser_active;
 	gui_iface.update_status_bar      = impl_update_status_bar;
 	gui_iface.update_menu_state      = impl_update_menu_state;
+	gui_iface.dismiss_autohide_popovers = close_open_autohide_popovers;
 	gui_iface.set_suppress_redraws   = impl_set_suppress_redraws;
+	gui_iface.get_suppress_redraws   = impl_get_suppress_redraws;
 	gui_iface.populate_roi           = impl_populate_roi;
 	gui_iface.on_geometry_changed    = impl_on_geometry_changed;
 	gui_iface.on_mask_state_changed  = impl_on_mask_state_changed;
 	gui_iface.on_crop_complete       = impl_on_crop_complete;
 	gui_iface.on_stats_ready         = impl_on_stats_ready;
+	gui_iface.curves_reset_after_undo = impl_curves_reset_after_undo;
 	gui_iface.on_photometry_changed  = impl_on_photometry_changed;
 	gui_iface.show_siril_plot        = impl_show_siril_plot;
+	gui_iface.show_siril_plot_group  = impl_show_siril_plot_group;
 	gui_iface.update_star_list       = impl_update_star_list;
 	gui_iface.clear_star_list        = impl_clear_star_list;
 	gui_iface.get_reg_layer          = impl_get_reg_layer;
@@ -1355,7 +1591,6 @@ void siril_register_gui_iface(void) {
 	gui_iface.update_pixel_math_status    = impl_update_pixel_math_status;
 	gui_iface.activate_annotation_display = impl_activate_annotation_display;
 	gui_iface.update_icc_status_icon      = impl_update_icc_status_icon;
-	gui_iface.get_gamut_check_active      = impl_get_gamut_check_active;
 	gui_iface.update_registration_status  = impl_update_registration_status;
 	gui_iface.update_single_image_display = impl_update_single_image_display;
 	gui_iface.seq_redisplay_frame         = impl_seq_redisplay_frame;
@@ -1426,12 +1661,7 @@ void siril_register_gui_iface(void) {
 	gui_iface.notify_new_photometry          = impl_notify_new_photometry;
 	gui_iface.init_plot_colors               = impl_init_plot_colors;
 	gui_iface.save_siril_plot_to_clipboard   = impl_save_siril_plot_to_clipboard;
-	gui_iface.build_save_filename            = impl_build_save_filename;
 	/* Cut */
-	gui_iface.apply_cut_to_sequence          = impl_apply_cut_to_sequence;
-	gui_iface.run_cut_profile                = impl_run_cut_profile;
-	gui_iface.run_tri_cut                    = impl_run_tri_cut;
-	gui_iface.run_cfa_cut                    = impl_run_cfa_cut;
 	gui_iface.reset_cut_gui_filedependent    = impl_reset_cut_gui_filedependent;
 	/* Preview */
 	gui_iface.copy_backup_to_gfit            = impl_copy_backup_to_gfit;

@@ -18,20 +18,19 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-#include <string.h>
-#include <float.h>
 #include <assert.h>
-#include <gsl/gsl_sort.h>
-#include <gsl/gsl_statistics.h>
-#include <gsl/gsl_multifit.h>
+#include <float.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include <gsl/gsl_fit.h>
-#include "core/siril.h"
+#include <gsl/gsl_multifit.h>
+
 #include "algos/sorting.h"
 #include "core/optimize_utils.h"
-#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
 
 /************* robust 1D polynomial fit *****************/

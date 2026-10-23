@@ -3,6 +3,8 @@
  * sequences' frames into one FrameProvider index space (Option B, C4). Pure
  * index arithmetic + provider dispatch; no I/O.
  */
+#include <cstdint>
+
 #include <criterion/criterion.h>
 
 #include "registration/mpp/mpp_multisource.hpp"

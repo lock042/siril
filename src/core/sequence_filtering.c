@@ -18,20 +18,22 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <stdarg.h>
-#include <float.h> // DBL_MIN, DBL_MAX
 #include <assert.h>
 #include <ctype.h>
+#include <float.h> // DBL_MIN, DBL_MAX
+#include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
+
 #include <gsl/gsl_statistics.h>
-#include "sequence_filtering.h"
-#include "proto.h" // is_readable_file()
-#include "registration/registration.h"
-#include "io/sequence.h"
-#include "stacking/stacking.h"
+
 #include "algos/sorting.h"
+#include "core/proto.h" // is_readable_file()
+#include "core/sequence_filtering.h"
 #include "core/siril_log.h"
+#include "io/sequence.h"
+#include "registration/registration.h"
+#include "stacking/stacking.h"
 
 /******************* IMAGE FILTERING CRITERIA *******************/
 

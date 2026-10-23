@@ -24,18 +24,18 @@
 
 #include <string.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
-#include "core/siril_app_dirs.h"
-#include "core/gui_iface.h"
-#include "core/siril_update.h"
 #include "algos/photometric_cc.h" /* spcc_mirrors, initialize_spcc_mirrors */
+#include "core/gui_iface.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_app_dirs.h"
+#include "core/siril_log.h"
+#include "core/siril_update.h"
 
 #if defined(HAVE_LIBCURL)
-#include "yyjson.h"
 #include "core/siril_networking.h"
-#include "core/processing.h"
+
+#include "yyjson.h"
 
 #define SIRIL_DOMAIN "https://siril.org/"
 #define SIRIL_VERSIONS SIRIL_DOMAIN"siril_versions.json"

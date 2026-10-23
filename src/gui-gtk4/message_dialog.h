@@ -2,8 +2,6 @@
 #include <gtk/gtk.h>
 #define SRC_MESSAGE_DIALOG_H_
 
-#include "core/siril.h"
-
 struct siril_dialog_data {
 	GtkWindow *parent;
 	GtkMessageType type;
@@ -21,6 +19,10 @@ struct message_data {
 
 gboolean siril_message_dialog_idle(gpointer p);
 void siril_message_dialog(GtkMessageType type, char *title, char *text);
+/* Same as siril_message_dialog(), but callable from a worker thread: it
+ * dispatches to the main thread and blocks the caller until the dialog is
+ * dismissed (same pattern as siril_confirm_dialog_async()). */
+void siril_message_dialog_modal(GtkMessageType type, gchar *title, gchar *msg);
 void queue_message_dialog(GtkMessageType type, const char *title, const char *text);
 void queue_error_message_dialog(const char *title, const char *text);
 void queue_warning_message_dialog(const char *title, const char *text);

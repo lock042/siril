@@ -85,6 +85,25 @@ void siril_file_browser_default_preview(const gchar *path,
                                         GtkLabel    *metadata_label,
                                         gpointer     user_data);
 
+/* ── Save mode ──────────────────────────────────────────────────────────
+ *
+ * Turns the browser into a Save dialog: the accept button reads "Save", a
+ * "Name:" entry appears below the file list, and the filter dropdown doubles
+ * as a "Save as type" selector that rewrites the entry's extension live as it
+ * changes.  Unlike open mode, accept builds the path from the current folder
+ * plus the filename entry (appending the selected type's extension when the
+ * user typed none) and prompts before overwriting an existing file.  The
+ * chosen path — always carrying a valid extension — is read back with
+ * siril_file_browser_get_path().  All save state resets on the next _new();
+ * call the setters before _run().
+ *
+ * The extension appended for each format is the first "*.ext" token of that
+ * filter's pattern, so the caller controls it by ordering the pattern (e.g.
+ * put the user's preferred FITS extension first).  Add one filter per format
+ * (no combined "all" filter) so the dropdown reads as a type selector. */
+void siril_file_browser_set_save_mode      (SirilFileBrowser *fb, gboolean save);
+void siril_file_browser_set_suggested_name (SirilFileBrowser *fb, const gchar *name);
+
 /* Synchronous run.  Returns GTK_RESPONSE_ACCEPT or GTK_RESPONSE_CANCEL. */
 gint     siril_file_browser_run      (SirilFileBrowser *fb);
 gchar   *siril_file_browser_get_path (SirilFileBrowser *fb);

@@ -19,8 +19,8 @@
  */
 
 #include <gtk/gtk.h>
-#include "splashscreen.h"
-#include "core/siril.h"
+
+#include "gui-gtk4/splashscreen.h"
 #include "gui-gtk4/utils.h"
 
 static GtkWidget *splash_window = NULL;

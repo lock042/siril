@@ -5,8 +5,10 @@
  * projection, identity at zero rotation, the r_eq * dCM displacement of a
  * central feature, emission-angle behaviour, and limb/off-disk masking.
  */
-#include <criterion/criterion.h>
 #include <cmath>
+#include <cstdint>
+
+#include <criterion/criterion.h>
 
 #include "registration/mpp/mpp_derot_geom.h"
 #include "registration/mpp/mpp_derot.h"

@@ -18,14 +18,16 @@
 // avi_writer.cpp : Defines the exported functions for the DLL application.
 //
 
-#include "pipp_video_write.h"  // AVI write class
-#include "pipp_avi_write.h"  // AVI write class
-#include "pipp_avi_write_dib.h"  // AVI write class
-#include "avi_writer.h"
 #include <cstdlib>
-#include <new>
 //#include <mutex>
+#include <new>
+
 #include <glib.h>
+
+#include "io/avi_pipp/avi_writer.h"
+#include "io/avi_pipp/pipp_avi_write.h"  // AVI write class
+#include "io/avi_pipp/pipp_avi_write_dib.h"  // AVI write class
+#include "io/avi_pipp/pipp_video_write.h"  // AVI write class
 
 using namespace std;
 

@@ -2,9 +2,10 @@
 #define _SEQUENCE_H_
 
 #include <stdint.h>
-#include "../core/siril.h"
-#include "../core/processing.h"
-#include "../algos/PSF.h"
+
+#include "algos/PSF.h"
+#include "core/processing.h"
+#include "core/siril.h"
 
 typedef enum {
 	CACHE_OLDER = -1,

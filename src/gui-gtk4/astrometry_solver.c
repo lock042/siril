@@ -20,26 +20,24 @@
 
 #include <glib.h>
 #include <gtk/gtk.h>
+
 #include "algos/astrometry_solver.h"
-#include "algos/siril_wcs.h"
-#include "registration/registration.h"
-#include "io/annotation_catalogues.h"
 #include "algos/search_objects.h"
+#include "algos/siril_wcs.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
-#include "gui-gtk4/utils.h"
 #include "gui-gtk4/callbacks.h"
-#include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/dialogs.h"
-#include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/image_display.h"
 #include "gui-gtk4/image_interactions.h"
-#include "gui-gtk4/PSF_list.h"
-#include "gui-gtk4/photometric_cc.h"
-#include "io/single_image.h"
-#include "io/sequence.h"
-#include "io/siril_catalogues.h"
+#include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/utils.h"
+#include "io/annotation_catalogues.h"
 #include "io/local_catalogues.h"
+#include "io/sequence.h"
+#include "io/single_image.h"
+#include "io/siril_catalogues.h"
 
 /* forward-declared here after being removed from algos/astrometry_solver.h (plan 1.4) */
 void on_GtkButton_IPS_metadata_clicked(GtkButton *button, gpointer user_data);

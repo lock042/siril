@@ -2,11 +2,11 @@
 #define SRC_ALGOS_PHOTOMETRY_H_
 
 #include <glib.h>
-#include <gsl/gsl_matrix.h>
-#include "core/siril.h"
-#include "core/settings.h"
+
 #include "algos/astrometry_solver.h"
 #include "algos/PSF.h"
+#include "core/settings.h"
+#include "core/siril.h"
 #include "io/siril_plot.h"
 
 struct photometry_struct {
@@ -15,6 +15,9 @@ struct photometry_struct {
 	gboolean valid;	// TRUE if no pixel outside of the range
 	double SNR;	// SNR estimation
 };
+
+double getMagnitude(double intensity);
+double getMagErr(double intensity, double area, int nsky, double skysig, double cvf, double *SNR);
 
 struct phot_config *phot_set_adjusted_for_image(const fits *fit);
 

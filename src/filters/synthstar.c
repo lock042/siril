@@ -20,22 +20,40 @@
 
 #include <assert.h>
 #include <math.h>
-#include "core/siril.h"
-#include "core/gui_iface.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
-#include "core/processing.h"
-#include "core/OS_utils.h"
+
 #include "algos/colors.h"
-#include "algos/median_fast.h"
-#include "algos/star_finder.h"
-#include "algos/PSF.h"
 #include "algos/extraction.h"
+#include "algos/median_fast.h"
+#include "algos/PSF.h"
 #include "algos/siril_random.h"
-#include "io/single_image.h"
-#include "io/image_format_fits.h"
+#include "algos/star_finder.h"
+#include "core/gui_iface.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "filters/synthstar.h"
-#include "opencv/opencv.h"
+#include "io/image_format_fits.h"
+
+/* Op descriptors — single source of truth for these ops (op_descriptor.h) */
+const op_descriptor op_desc_synthstar = {
+	.id = "star.synthstar", .version = 1,
+	.image_hook = synthstar_image_hook,
+	.log_hook = synthstar_log_hook,
+	.description = N_("Synthetic stars"),
+	.mem_ratio = 0.0f,
+	.flags = 0,
+};
+
+const op_descriptor op_desc_unclip = {
+	.id = "star.unclip", .version = 1,
+	.image_hook = unclip_image_hook,
+	.log_hook = unclip_log_hook,
+	.description = N_("Unclip stars"),
+	.mem_ratio = 0.0f,
+	.flags = 0,
+};
 
 int generate_synthstars(fits *fit);
 int reprofile_saturated_stars(fits *fit);

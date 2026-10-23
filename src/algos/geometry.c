@@ -18,28 +18,86 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string.h>
 #include <math.h>
+#include <string.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/OS_utils.h"
-#include "core/siril_log.h"
-#include "core/arithm.h"
-#include "core/masks.h"
 #include "algos/astrometry_solver.h"
 #include "algos/demosaicing.h"
-#include "algos/statistics.h"
+#include "algos/geometry.h"
 #include "algos/siril_wcs.h"
-#include "core/processing.h"
-#include "opencv/opencv.h"
-#include "io/sequence.h"
-#include "io/image_format_fits.h"
-#include "io/gps_parser.h"
-#include "io/single_image.h"
+#include "algos/statistics.h"
+#include "core/arithm.h"
 #include "core/gui_iface.h"
+#include "core/masks.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "io/gps_parser.h"
+#include "io/image_format_fits.h"
+#include "io/sequence.h"
+#include "io/single_image.h"
+#include "opencv/opencv.h"
 
-#include "geometry.h"
+/* Op descriptors — single source of truth for the geometry operations.
+ * All change image dimensions, hence OP_GEOMETRY_CHANGING (the master worker
+ * uses it to reproject annotations, the FLIS branch for more). */
+const op_descriptor op_desc_crop = {
+	.id = "geometry.crop", .version = 1,
+	.image_hook = crop_image_hook_single,
+	.log_hook = crop_log_hook,
+	.description = N_("Crop"),
+	.mem_ratio = 1.0f,
+	.flags = OP_GEOMETRY_CHANGING,
+};
+
+const op_descriptor op_desc_binning = {
+	.id = "geometry.binning", .version = 1,
+	.image_hook = binning_image_hook,
+	.log_hook = binning_log_hook,
+	.description = N_("Binning"),
+	.mem_ratio = 1.5f,
+	.flags = OP_GEOMETRY_CHANGING,
+};
+
+/* mem_ratio is always computed per-site (from the scale factors), so the
+ * descriptor default of 0 is never used — every site overrides it. */
+const op_descriptor op_desc_resample = {
+	.id = "geometry.resample", .version = 1,
+	.image_hook = resample_image_hook,
+	.log_hook = resample_log_hook,
+	.description = N_("Resample"),
+	.mem_ratio = 0.0f,
+	.flags = OP_GEOMETRY_CHANGING,
+};
+
+/* Default mem_ratio 2.0 (arbitrary-angle rotation); the 90°/180° variants
+ * override it (and the description) at their sites. */
+const op_descriptor op_desc_rotation = {
+	.id = "geometry.rotation", .version = 1,
+	.image_hook = rotation_image_hook,
+	.log_hook = rotation_log_hook,
+	.description = N_("Rotation"),
+	.mem_ratio = 2.0f,
+	.flags = OP_GEOMETRY_CHANGING,
+};
+
+const op_descriptor op_desc_mirrorx = {
+	.id = "geometry.mirrorx", .version = 1,
+	.image_hook = mirrorx_image_hook,
+	.description = N_("Mirror X"),
+	.mem_ratio = 1.0f,
+	.flags = OP_GEOMETRY_CHANGING,
+};
+
+const op_descriptor op_desc_mirrory = {
+	.id = "geometry.mirrory", .version = 1,
+	.image_hook = mirrory_image_hook,
+	.description = N_("Mirror Y"),
+	.mem_ratio = 1.0f,
+	.flags = OP_GEOMETRY_CHANGING,
+};
 
 /* Mask helper functions */
 // Helper function to resize mask
@@ -751,7 +809,6 @@ int fits_binning(fits *fit, int factor, gboolean mean) {
 		cvApplyFlips(&H, old_ry, fit->ry);
 		reframe_astrometry_data(fit, &H);
 		update_fits_header(fit);
-		refresh_annotations(FALSE);
 	}
 
 	return 0;
@@ -826,11 +883,9 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation 
 			cvApplyFlips(&H, old_ry, toY);
 			reframe_astrometry_data(image, &H);
 			update_fits_header(image);
-			refresh_annotations(FALSE);
 		} else {
 			free_wcs(image);
 			reset_wcsdata(image);
-			refresh_annotations(TRUE);
 		}
 	}
 
@@ -889,7 +944,6 @@ int verbose_rotate_fast(fits *image, int angle) {
 		reframe_astrometry_data(image, &H);
 		update_wcsdata_from_wcs(image);
 		update_fits_header(image);
-		refresh_annotations(FALSE);
 	}
 	return 0;
 }
@@ -930,7 +984,6 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 		reframe_astrometry_data(image, &H);
 		update_wcsdata_from_wcs(image);
 		update_fits_header(image);
-		refresh_annotations(FALSE);
 	}
 	return 0;
 }
@@ -977,7 +1030,6 @@ void mirrorx(fits *fit, gboolean verbose) {
 		reframe_astrometry_data(fit, &H);
 		update_wcsdata_from_wcs(fit);
 		update_fits_header(fit);
-		refresh_annotations(FALSE);
 	}
 }
 
@@ -1023,7 +1075,6 @@ void mirrory(fits *fit, gboolean verbose) {
 		reframe_astrometry_data(fit, &H);
 		update_wcsdata_from_wcs(fit);
 		update_fits_header(fit);
-		refresh_annotations(FALSE);
 	}
 }
 
@@ -1232,7 +1283,6 @@ int crop(fits *fit, rectangle *bounds) {
 		reframe_astrometry_data(fit, &H);
 		update_wcsdata_from_wcs(fit);
 		update_fits_header(fit);
-		refresh_annotations(FALSE);
 	}
 	return 0;
 }

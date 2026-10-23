@@ -18,9 +18,20 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "core/op_descriptors.h"
 #include "core/siril.h"
+#include "filters/clahe.h"
 #include "opencv/opencv.h"
-#include "clahe.h"
+
+/* Op descriptor — single source of truth for this operation (op_descriptor.h) */
+const op_descriptor op_desc_clahe = {
+	.id = "filters.clahe", .version = 1,
+	.image_hook = clahe_image_hook,
+	.log_hook = clahe_log_hook,
+	.description = N_("CLAHE"),
+	.mem_ratio = 2.0f,
+	.flags = OP_MASK_CAPABLE,
+};
 
 /* The actual CLAHE processing hook */
 int clahe_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {

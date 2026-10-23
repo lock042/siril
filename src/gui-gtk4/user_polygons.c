@@ -20,8 +20,8 @@
 
 #include "core/siril.h"
 #include "gui-gtk4/gui_state.h"
-#include "gui-gtk4/user_polygons.h"
 #include "gui-gtk4/image_display.h"
+#include "gui-gtk4/user_polygons.h"
 
 #define FROM_BE64_INTO(dest, val, type) \
 do { \

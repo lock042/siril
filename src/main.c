@@ -25,14 +25,13 @@
 
 // #define DEBUG_MAIN
 
-#include <gsl/gsl_errno.h>
-#include <gtk/gtk.h>
-#include <gtksourceview/gtksource.h>
+#include <locale.h>
 #include <stdio.h>
 #include <string.h>
-#include <locale.h>
-#include <unistd.h>
+
 #include <fftw3.h>
+#include <gsl/gsl_errno.h>
+#include <gtk/gtk.h>
 
 #include "gui-gtk4/histo_display.h"
 #ifdef OS_OSX
@@ -58,38 +57,38 @@
 #include <git2.h>
 #endif
 
-#include "siril_resource.h"
-#include "git-version.h"
-#include "core/siril.h"
-#include "gui-gtk4/gui_state.h"
-#include "core/icc_profile.h"
-#include "core/proto.h"
-#include "algos/siril_random.h"
 #include "algos/photometric_cc.h"
-#include "gui-gtk4/siril_actions.h"
-#include "core/initfile.h"
+#include "algos/siril_random.h"
 #include "core/command_line_processor.h"
-#include "core/processing_thread.h"
+#include "core/gui_iface.h"
+#include "core/icc_profile.h"
+#include "core/initfile.h"
+#include "core/OS_utils.h"
 #include "core/pipe.h"
+#include "core/processing_thread.h"
+#include "core/proto.h"
 #include "core/signals.h"
+#include "core/siril.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_language.h"
-#include "core/siril_networking.h"
-#include "io/siril_pythonmodule.h"
-#include "core/siril_update.h"
-#include "core/gui_iface.h"
 #include "core/siril_log.h"
-#include "core/OS_utils.h"
-#include "io/sequence.h"
-#include "io/conversion.h"
-#include "io/single_image.h"
-#include "gui-gtk4/ui_files.h"
-#include "gui-gtk4/utils.h"
+#include "core/siril_networking.h"
+#include "core/siril_update.h"
+#include "git-version.h"
 #include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/file_browser.h"
+#include "gui-gtk4/gui_state.h"
 #include "gui-gtk4/image_display.h"
+#include "gui-gtk4/siril_actions.h"
 #include "gui-gtk4/siril_css.h"
 #include "gui-gtk4/splashscreen.h"
-#include "gui-gtk4/file_browser.h"
+#include "gui-gtk4/ui_files.h"
+#include "gui-gtk4/utils.h"
+#include "io/conversion.h"
+#include "io/sequence.h"
+#include "io/single_image.h"
+#include "io/siril_pythonmodule.h"
+#include "siril_resource.h"
 
 /* initialize_spcc_mirrors() declared in algos/photometric_cc.h (via gui-gtk4/photometric_cc.h) */
 void force_paned_restore();
@@ -287,7 +286,6 @@ void load_ui_files() {
 	i = 0;
 	while (*ui_files_with_primary_accelerator[i]) {
 		retval = builder_add_from_resource_with_replace(gui.builder, ui_files_with_primary_accelerator[i], &err);
-		retval = gtk_builder_add_from_resource(gui.builder, ui_files[i], &err);
 		if (!retval) {
 			g_error(_("%s was not found or contains errors, "
 			"cannot render GUI:\n%s\n Exiting.\n"), ui_files[i], err->message);
@@ -405,6 +403,10 @@ static void siril_app_startup(GApplication *application) {
 	 * performKeyEquivalent: to keyDown:.  Re-install it so Cmd+key shortcuts
 	 * reach GTK4's shortcut controller without requiring a native menu bar. */
 	siril_macos_fix_keyboard_shortcuts();
+	/* GTK4's macOS backend leaves autohide popovers stuck open once their
+	 * outside-click grab is lost; a local NSEvent monitor restores click-to-
+	 * dismiss (see siril_macos_fix_popover_autohide). */
+	siril_macos_fix_popover_autohide();
 #endif
 }
 
@@ -493,6 +495,16 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	if (com.headless) {
+		/* Start the python venv initialisation BEFORE the script runs.  The
+		 * initialize_python_venv_in_thread() call further down is only reached
+		 * once execute_script() / read_pipe() has already finished, so on the
+		 * headless path com.python_init_thread stayed NULL for the whole run
+		 * and every `pyscript` failed with "python not ready yet" no matter how
+		 * long the script waited.  execute_python_script() joins
+		 * com.python_init_thread when one exists, so starting it here is all
+		 * `pyscript` needs to wait for the venv instead of erroring out. */
+		initialize_python_venv_in_thread();
+
 		if (main_option_script) {
 			GInputStream *input_stream = NULL;
 
@@ -631,7 +643,11 @@ static void siril_app_activate(GApplication *application) {
 		siril_check_spcc_mirrors(TRUE, TRUE);
 		exit(EXIT_SUCCESS);
 	}
-	initialize_python_venv_in_thread();
+	/* Headless already started it above, before the script ran; by now that
+	 * initialisation has completed and cleared com.python_init_thread, so an
+	 * unconditional call here would kick off a second, pointless one. */
+	if (!com.headless)
+		initialize_python_venv_in_thread();
 
 	g_free(supported_files);
 }

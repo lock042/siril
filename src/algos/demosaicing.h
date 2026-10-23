@@ -1,6 +1,8 @@
 #ifndef _DEMOSAICING_H
 #define _DEMOSAICING_H
 
+#include "core/siril.h"
+
 // set to 1 to save green_interpolated fits
 #define BAYER_DEBUG 0
 extern const char *filter_pattern[];

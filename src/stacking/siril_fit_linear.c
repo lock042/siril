@@ -18,7 +18,7 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "siril_fit_linear.h"
+#include "stacking/siril_fit_linear.h"
 
 /* code from gsl */
 /* changed for siril */

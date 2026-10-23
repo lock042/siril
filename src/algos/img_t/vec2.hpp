@@ -12,7 +12,7 @@ Licenced under the GNU AFFERO GENERAL PUBLIC LICENSE, Version 3, 19 November 200
 #include <array>
 #include <numeric>
 
-#include "better_than_std.hpp"
+#include "algos/img_t/better_than_std.hpp"
 
 template <typename T>
 struct vec2 : public std::array<T, 2> {

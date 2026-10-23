@@ -19,11 +19,12 @@
  */
 
 #include <gtk/gtk.h>
-#include "gui-gtk4/siril_actions.h"
-#include "gui-gtk4/utils.h"
+
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "gui-gtk4/siril-window.h"
+#include "gui-gtk4/siril_actions.h"
+#include "gui-gtk4/utils.h"
 
 static GActionEntry win_entries[] = {
 	{ "close", close_action_activate },
@@ -174,6 +175,7 @@ static GActionEntry none_processing_entries[] = {
 	{ "rgb-compositing-processing", rgb_compositing_activate },
 	{ "star-remix-processing", star_remix_activate },
 	{ "merge-cfa-processing", merge_cfa_activate },
+	{ "hdr-processing", hdr_activate },
 	{ "pixel-math", pixel_math_activate }
 };
 
@@ -352,6 +354,7 @@ void siril_window_enable_any_proc_actions(GtkApplicationWindow *window, gboolean
 		"fix-banding-processing",
 		"cosmetic-processing",
 		"background-extr-processing",
+		"wavelets-processing",
 		"icc-tool",
 		"clear_roi",
 		"mask_from_image",
@@ -383,7 +386,6 @@ void siril_window_enable_single_proc_actions(GtkApplicationWindow *window, gbool
 		"rotation270-processing",
 		"mirrorx-processing",
 		"mirrory-processing",
-		"wavelets-processing",
 		"split-wavelets-processing",
 		"medianfilter-processing",
 		"rgradient-processing",
@@ -402,6 +404,7 @@ void siril_window_enable_none_proc_actions(GtkApplicationWindow *window, gboolea
 		"rgb-compositing-processing",
 		"star-remix-processing",
 		"merge-cfa-processing",
+		"hdr-processing",
 		"pixel-math",
 		NULL,
 	};

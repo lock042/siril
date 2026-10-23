@@ -18,23 +18,20 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdlib.h>
-#include <math.h>
-#include <string.h>
 #include <assert.h>
-#include "core/siril.h"
-#include "core/proto.h"
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "registration.h"
-#include "registration/3stars.h"
 #include "algos/PSF.h"
-#include "algos/star_finder.h"
-#include "io/sequence.h"
-#include "io/image_format_fits.h"
-#include "core/siril_log.h"
-#include "core/processing.h"
-#include "opencv/opencv.h"
 #include "core/gui_iface.h"
+#include "core/processing.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "io/sequence.h"
+#include "opencv/opencv.h"
+#include "registration/3stars.h"
+#include "registration/registration.h"
 
 int awaiting_star = 0;
 int selected_stars = 0;

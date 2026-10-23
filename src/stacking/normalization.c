@@ -20,21 +20,21 @@
 
 #include <string.h>
 
-#include "core/siril.h"
-#include "core/gui_iface.h"
-#include "core/proto.h"
-#include "core/OS_utils.h"
-#include "core/siril_log.h"
-#include "algos/statistics.h"
-#include "algos/statistics_float.h"
-#include "algos/sorting.h"
-#include "registration/registration.h"
-#include "stacking.h"
-#include "io/image_format_fits.h"
-#include "io/sequence.h"
-
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_permutation.h>
+
+#include "algos/sorting.h"
+#include "algos/statistics.h"
+#include "algos/statistics_float.h"
+#include "core/gui_iface.h"
+#include "core/OS_utils.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "io/image_format_fits.h"
+#include "io/sequence.h"
+#include "registration/registration.h"
+#include "stacking/stacking.h"
 
 // #define DEBUG_NORM
 
@@ -652,7 +652,7 @@ static int normalization_overlap_get_max_number_of_threads(struct stacking_args 
 	fprintf(stdout, "Memory per pair: %u MB. Max memory: %d MB\n", memory_per_pair_MB, max_memory_MB);
 
 	if (memory_per_pair_MB > max_memory_MB) {
-		siril_log_error(_("Your system does not have enough memory to normalize images overlaps for stacking operation (%d MB free for %d MB required)\n"), max_memory_MB, memory_per_pair_MB);
+		siril_log_error(_("Your system does not have enough memory to normalize image overlaps for stacking operation (%d MB free for %d MB required)\n"), max_memory_MB, memory_per_pair_MB);
 		return 0;
 	}
 

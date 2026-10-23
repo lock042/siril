@@ -20,22 +20,41 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <gsl/gsl_statistics_ushort.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
+#include "algos/median_fast.h"
+#include "algos/sorting.h"
+#include "algos/statistics.h"
+#include "core/op_descriptors.h"
 #include "core/optimize_utils.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
+#include "filters/cosmetic_correction.h"
+#include "filters/median.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
-#include "algos/statistics.h"
-#include "algos/sorting.h"
-#include "algos/median_fast.h"
-#include "filters/median.h"
 #include "opencv/opencv.h"
 
-#include "cosmetic_correction.h"
+/* Op descriptors — single source of truth for these ops (op_descriptor.h) */
+const op_descriptor op_desc_cosmetic = {
+	.id = "filters.cosmetic", .version = 1,
+	.image_hook = cosmetic_image_hook_generic,
+	.log_hook = cosmetic_log_hook,
+	.description = N_("Cosmetic Correction"),
+	.mem_ratio = 0.0f,
+	.flags = 0,
+};
+
+const op_descriptor op_desc_cosme = {
+	.id = "filters.cosme", .version = 1,
+	.image_hook = cosme_image_hook_generic,
+	.log_hook = cosme_log_hook,
+	.description = N_("Cosmetic Correction"),
+	.mem_ratio = 1.0f,
+	.flags = 0,
+};
+
 static int autoDetect(fits *fit, int layer, const double sig[2], long *icold, long *ihot,
 		double amount, gboolean is_cfa, threading_type threads);
 

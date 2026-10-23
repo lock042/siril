@@ -1,6 +1,8 @@
 #ifndef ANSCOMBE_H_
 #define ANSCOMBE_H_
 
+#include <stddef.h>
+
 void generalized_anscombe_array(float *x, const float mu, const float sigma, const float gain, const size_t ndata);
 
 void inverse_generalized_anscombe_array(float *x, const float mu, const float sigma, const float gain, const size_t ndata);

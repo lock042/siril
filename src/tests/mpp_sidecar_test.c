@@ -7,12 +7,13 @@
  * by-one in field ordering, mis-sized arrays, etc.) before they show up
  * in an end-to-end CLI test.
  */
-#include <criterion/criterion.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+#include <criterion/criterion.h>
 
 #include "registration/mpp.h"
 #include "registration/mpp/mpp_ap.h"

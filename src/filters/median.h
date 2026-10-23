@@ -3,6 +3,7 @@
 
 #include <glib.h>
 #include <gsl/gsl_matrix.h>
+
 #include "core/processing.h"
 
 struct median_filter_data {
@@ -16,6 +17,7 @@ struct median_filter_data {
 
 int median_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
 gchar* median_log_hook(gpointer p, log_hook_detail detail);
+
 double get_median_ushort(const WORD *buf, const int xx, const int yy, const int w,
 		const int h, int radius, gboolean is_cfa, gboolean include_self);
 double get_median_float(const float *buf, const int xx, const int yy, const int w,

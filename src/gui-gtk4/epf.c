@@ -18,26 +18,21 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <math.h>
-
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
-#include "core/processing.h"
 #include "algos/statistics.h"
-#include "io/single_image.h"
-#include "io/image_format_fits.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/siril.h"
 #include "filters/epf.h"
-#include "gui-gtk4/epf.h"
 #include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/epf.h"
 #include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/message_dialog.h"
-#include "gui-gtk4/utils.h"
 #include "gui-gtk4/progress_and_log.h"
-#include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/siril_preview.h"
-#include "core/undo.h"
-#include "opencv/opencv.h"
+#include "gui-gtk4/utils.h"
+#include "io/image_format_fits.h"
+#include "io/single_image.h"
 
 // Statics declarations
 GtkButton *epf_undo = NULL, *epf_cancel = NULL, *epf_apply = NULL;
@@ -149,13 +144,10 @@ static int epf_process_with_worker(gboolean for_preview, gboolean for_roi) {
 
 	// Set the fit based on whether ROI is active
 	args->fit = for_roi ? &gui.roi.fit : gfit;
-	args->mem_ratio = 3.0f; // EPF needs memory for conversions and modulation
-	args->image_hook = epf_image_hook;
+	args->op = &op_desc_epf;
 	args->idle_function = NULL;
-	args->description = _("Edge Preserving Filter");
 	args->verbose = !for_preview;
 	args->user = params;
-	args->log_hook = epf_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
 	args->for_roi = for_roi;

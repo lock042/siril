@@ -42,6 +42,7 @@ bad=0
 
 for pattern in '#include <gtk/gtk.h>' '#include <gdk/gdk.h>'; do
     while IFS=: read -r file line content; do
+        [ -z "$file" ] && continue   # grep found nothing
         case "$file" in
             "$SRC_ROOT/gui-gtk4/"*) continue ;;
         esac
@@ -84,6 +85,7 @@ io/siril_pythonmodule.c:user_polygons.h
 #     or io/.
 
 while IFS=: read -r file line content; do
+    [ -z "$file" ] && continue   # grep found nothing
     # Skip files under src/gui-gtk4/ (the GUI tree)
     case "$file" in
         "$SRC_ROOT/gui-gtk4/"*) continue ;;

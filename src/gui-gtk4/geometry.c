@@ -23,11 +23,9 @@
  * Compiled only in GUI builds.  Pure processing stays in algos/geometry.c.
  */
 
-#include <gtk/gtk.h>
-#include "core/siril.h"
-#include "gui-gtk4/PSF_list.h"
-#include "gui-gtk4/image_interactions.h"
 #include "gui-gtk4/geometry.h"
+#include "gui-gtk4/image_interactions.h"
+#include "gui-gtk4/PSF_list.h"
 
 /* Idle callback that refreshes GUI state after a crop.
  * Scheduled via gui_iface.on_crop_complete() from algos/geometry.c and

@@ -116,6 +116,7 @@ void curves_activate(GSimpleAction *action, GVariant *parameter, gpointer user_d
 void fix_banding_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void cosmetic_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void background_extr_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void update_bkg_compute_button_sensitivity(void);
 void asinh_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void epf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void unpurple_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
@@ -150,6 +151,7 @@ void align_kombat_activate(GSimpleAction *action, GVariant *parameter, gpointer 
 void align_dft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void align_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void merge_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void hdr_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void icc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void set_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void clear_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data);

@@ -1,10 +1,10 @@
 #if !defined(ATPMATCH_H)
 #define ATPMATCH_H
 
-#include "core/siril.h"
 #include "algos/photometry.h"
+#include "core/siril.h"
+#include "registration/matching/misc.h"
 #include "registration/registration.h"
-#include "misc.h"
 
 /*
  *

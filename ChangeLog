@@ -6,6 +6,15 @@ siril-1.5.0
 
 **Fixes**
 * Fixed issue with bgnoise calculation that could result in a small overestimate (#1817)
+* Fixed reading of FITS images storing floating point data as BSCALE/BZERO-scaled integers, which loaded as pure black and white: they are now read as 32-bit float and normalized to Siril's [0, 1] range, the normalization being recorded in HISTORY and the DATA* keywords describing the original physical data dropped
+* Fixed pyscript failing with "python not ready yet" in scripts run with -s: the python venv initialisation was ordered after script execution and could never be reached (#1976)
+* Fixed a crash when closing a large image: the pixel data was freed without the gfit writer lock, and the display's tile grid without the mutex guarding it, while the tile-materialisation threads were still reading both (#1975)
+* Fixed a race in the Python venv initialisation: the shared initialisation handle was read and cleared without a lock, and pyscript could launch python before the virtual environment's variables had been exported (#1977)
+* Fixed crash when using PCC in a script with siril-cli. (!1100)
+* Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
+* Fixed blurry image display on HiDPI and Wayland fractional-scaling displays (!1052)
+* Fixed command help popover being too tall on low-resolution screens
+* Fixed freeze when previewing JPEG XL files in the open dialog (#1961)
 
 **Improvements**
 * Vectorized rejection stacking hotspot with portable SIMD, ~13% cold / ~22% warm stacking speedup (!1032)
@@ -14,6 +23,7 @@ siril-1.5.0
 * Added caching of online GAIA database (!985)
 * Added image masks (!981)
 * Added QHY GPS timestamps support (!891)
+* Added streak detection for satellite observations (!1037)
 * Added eqcrop command (!889)
 * Added catmag command (!888)
 * Added draggable histogram overlay with cursor tracking (!986)
@@ -21,6 +31,8 @@ siril-1.5.0
 * Improved management of the processing thread and separation of image data processing and GUI update code (!998)
 * Improved locking of data structs that may be accessed by multiple threads (!1014)
 * Added background sample optimization, random sample placement and sample constraint by area (!1017)
+* Added an automatic, sample-free background/gradient removal model to Background Extraction and the `subsky` command (`-auto`): the background is fitted on every pixel surviving an iterative robust rejection of structures, using a multiscale surface with structure protection, optionally preceded by a simplified model (`-simplified`): a stiff polynomial fitted and removed first, the multiscale surface then working on what it leaves, which helps on strong gradients whose amplitude rivals the objects of interest
+* Background Extraction: replaced the press-and-hold "show original" button with a view selector to switch the display between the processed image, the removed background model and the original
 * Parallelize min/max stacking algorithms (#194)
 * Update astrometry solution when resampling or binning instead of deleting it
 * Separation of GUI and processing code (!1025)
@@ -38,17 +50,42 @@ siril-1.5.0
 * Added multipoint registration (for planetary, lunar and solar use) (!1034)
 * Removed original Starnet C interface (now covered by the new python script) (!tbc)
 * Added static autostretch mode to keep display stretch parameters fixed across images
-
-**Fixes**
-* Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
-* Fixed blurry image display on HiDPI and Wayland fractional-scaling displays (!1052)
-* Fixed command help popover being too tall on low-resolution screens
+* Improve speed of extract_thumbnail_from_fits (!1066)
+* Improved à trous wavelets tool: better strength control, per-scale denoising, faster (!1049, !1085)
+* Improved the Curves tool with the VeraLux engine: R, G, B, L*, chroma and saturation curves, Akima splines, luminance range masking and non-destructive stages (!983)
+* Improved plot windows: SPCC fits grouped in a single window with summary tiles and key figures, y-axis log scale and whole-window PNG export
+* Added HDR composition of registered linear images taken with different exposure times, with exposure ratios measured on the data, noise-optimal weighting and feathered saturation masks (hdr command and Image Processing > Composition menu)
 
 siril-1.4.5
 xx/xx/xx
 
 **Fixes**
 * Fixed constellation names in annotations (#1055)
+* Fixed opening JPEG XL files wrapped in an ISO/IEC 18181-2 container (#1961)
+* Fixed compilation when the version of opencv is >= 5
+* Fixed an invalid EQUINOX value written in the FITS header when the astrometric solution came from a solver that does not write an EQUINOX card (#1979)
+* Fixed FITS extension truncation (e.g., .fit.) causing corrupted filenames like foo.fit..fit..fz; invalid extensions are now rejected (#1984)
+* Fixed garbage characters in the save dialog file name when a sequence is loaded and the displayed image is not one of its frames (#1980)
+* Fixed GESDT rejection always rejecting the two most extreme samples of each pixel whatever the significance, and rejecting the neighbour of a high outlier instead of the outlier itself when a low outlier had been found first (#1993)
+* Fixed the `stack` command refusing rejection parameters written in scientific notation, such as 1e-8 (#1993)
+* Fixed stacking of images having fewer rows than threads, which processed uninitialized blocks (#1993)
+* Fixed crash when exporting monochrome sequence as mp4 (#1992)
+* Fixed a selection dragged past the right or bottom edge of the image losing its last column and row, which made the crop one pixel smaller than expected (#1996)
+* Fixed the 100% zoom button jumping to the top-left corner of the image instead of keeping the current view center (#1997)
+* Fixed crash when the `wavelet` or `linear_match` commands were called with too few arguments (#1998)
+* Fixed Curves dropping the ICC profile of the image on undo or cancel, which made it appear and save very dark (#1978)
+* Fixed `cancel` command from pipes to stop a command (#2000)
+* Fixed the display sliders not being reset to 0–65535 when switching to linear display while a stretch tool is open (#2002)
+* Fixed crash when converting files in parallel with a cfitsio built without thread safety (#2003)
+* Fixed MIPS-FHI not being saved in 32-bit FITS files, so their display cutoffs were lost on reopening
+* Fixed AAVSO export writing V-C instead of the standardized magnitude when Cstd was left at its default of 0: Cstd is now mandatory, and empty text fields and an unknown airmass (previously -999) are written as "na" as the format requires
+
+**Improvements**
+* Allowed editing FITS keywords of a whole sequence from the UI
+* Reviewed banding reduction command arguments and reimplemented the algorithm for improved speed (!1097)
+* Added 2 commands `addwcs` and `catquery` (!1103)
+* Added a preference to not use the MIPS-LO/HI keywords to set the display sliders
+* Add a SirilInterface.is_headless property that scripts can check to avoid running a GUI (!1111)
 
 siril-1.4.4
 06/17/26
@@ -232,7 +269,7 @@ siril 1.4.0-beta4
 * Added SirilInterface.get_image_from_file() method
 * Added new sirilpy methods for getting and setting GUI properties (sliders, STF, pan offsets, zoomlevel)
 * Improved sirilpy get_seq_frame() and get_image_from_file() so they now populate FFit.header and .icc_profile
-* Added Search box in the Script treeview
+* Added Search box in the menus treeview (Image processing, Tools, Scripts)
 * Made reading astrometric solution more robust to CDELT/PC matrices not following the expected formalism (#1770)
 * Added SirilInterface.analyse_image_from_file(), .undo(), .redo() and .clear_undo_history()
 * Approved use of PyQt6 for creating python script GUIs (now confident it is problem free on all target OSes)

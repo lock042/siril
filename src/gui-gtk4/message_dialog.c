@@ -36,14 +36,11 @@
 #include <string.h>
 
 #include "core/siril.h"
-#include "core/proto.h"
-#include "core/initfile.h"
-#include "gui-gtk4/utils.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/splashscreen.h"
-
-#include "message_dialog.h"
+#include "gui-gtk4/utils.h"
 
 static GtkWindow *msg_control_window = NULL;
 
@@ -153,8 +150,23 @@ static void alert_sync_choose_cb(GObject *src, GAsyncResult *res, gpointer ud) {
 		g_main_loop_quit(st->loop);
 }
 
+/* If a modal dialog's parent toplevel is mapped but not the active window —
+ * e.g. the user switched to another application while a dialog was queued
+ * during startup — raise it so the modal appears in front of the user.  A
+ * modal anchored to a background window can otherwise hold input focus behind
+ * an unrelated window, which on KDE reads as a frozen desktop (the same class
+ * as a leaked grab).  No-op when parent is NULL, unmapped, or already active,
+ * so it never steals focus during normal foreground use. */
+static void raise_parent_if_backgrounded(GtkWindow *parent) {
+	if (parent && GTK_IS_WINDOW(parent)
+			&& gtk_widget_get_mapped(GTK_WIDGET(parent))
+			&& !gtk_window_is_active(parent))
+		gtk_window_present(parent);
+}
+
 static int alert_choose_sync(GtkAlertDialog *ad, GtkWindow *parent) {
 	struct alert_sync_state st = { g_main_loop_new(NULL, FALSE), -1 };
+	raise_parent_if_backgrounded(parent);
 	gtk_alert_dialog_choose(ad, parent, NULL, alert_sync_choose_cb, &st);
 	g_main_loop_run(st.loop);
 	g_main_loop_unref(st.loop);
@@ -279,6 +291,7 @@ static int run_custom_message_window(GtkWindow *parent,
 
 	g_signal_connect(win, "close-request", G_CALLBACK(custom_dlg_close_request_cb), &st);
 
+	raise_parent_if_backgrounded(parent);
 	gtk_window_present(GTK_WINDOW(win));
 	g_main_loop_run(st.loop);
 	g_main_loop_unref(st.loop);
@@ -576,6 +589,7 @@ gboolean siril_confirm_dialog_with_avi_bayer(gchar *title, gchar *msg,
 
 	g_signal_connect(win, "close-request", G_CALLBACK(custom_dlg_close_request_cb), &st);
 
+	raise_parent_if_backgrounded(parent);
 	gtk_window_present(GTK_WINDOW(win));
 	g_main_loop_run(st.loop);
 	g_main_loop_unref(st.loop);
@@ -616,4 +630,24 @@ gboolean siril_confirm_dialog_async(gchar *title, gchar *msg, gchar *button_acce
 
 gboolean siril_confirm_dialog_and_remember(gchar *title, gchar *msg, gchar *button_accept, gboolean *user_data) {
 	return siril_confirm_dialog_internal(title, msg, button_accept, TRUE, user_data);
+}
+
+struct message_dialog_modal_data {
+	GtkMessageType type;
+	gchar *title;
+	gchar *msg;
+};
+
+static gboolean message_dialog_modal_idle(gpointer arg) {
+	struct message_dialog_modal_data *data = (struct message_dialog_modal_data *)arg;
+	siril_message_dialog(data->type, data->title, data->msg);
+	return FALSE;
+}
+
+/* Blocks the calling (worker) thread until the user dismisses the dialog,
+ * by running siril_message_dialog() — which already spins its own nested
+ * GMainLoop while shown — inside execute_idle_and_wait_for_it(). */
+void siril_message_dialog_modal(GtkMessageType type, gchar *title, gchar *msg) {
+	struct message_dialog_modal_data data = { type, title, msg };
+	execute_idle_and_wait_for_it(message_dialog_modal_idle, &data);
 }

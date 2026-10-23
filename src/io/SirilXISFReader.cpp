@@ -27,20 +27,21 @@ extern "C" {
 
 #ifdef HAVE_LIBXISF
 
-#include <iostream>
+#include <cstdint>
 #include <iomanip>      // std::setw
+#include <iostream>
+#include <math.h>
 #include <sstream>
 #include <string>
+
 #include <fitsio.h>	// fitsfile
-#include <math.h>
-#include <libintl.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
-#include <cstdint>
+#include <libintl.h>
 
-#include "io/SirilXISFWraper.h"
 #include "io/SirilXISFReader.h"
-#include "libxisf.h"
+#include "io/SirilXISFWraper.h"
 
+#include "libxisf.h"
 
 int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 	try {
@@ -88,6 +89,21 @@ int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 			return -1;
 		}
 
+		/* Native XISF colour filter array description. Some writers only
+		 * ship this element and no BAYERPAT FITS keyword, in which case it
+		 * is the only way to know the mosaic. */
+		const LibXISF::ColorFilterArray cfa = image.colorFilterArray();
+		xdata->cfa_pattern[0] = '\0';
+		/* only 2x2 Bayer and 6x6 X-Trans RGB mosaics are usable by Siril; a
+		 * CFA element may also describe white, cyan, magenta or yellow
+		 * filters, or undefined elements */
+		if (((cfa.width == 2 && cfa.height == 2) || (cfa.width == 6 && cfa.height == 6)) &&
+				cfa.pattern.size() == (size_t) cfa.width * cfa.height &&
+				cfa.pattern.find_first_not_of("RGB") == std::string::npos) {
+			memcpy(xdata->cfa_pattern, cfa.pattern.c_str(), cfa.pattern.size());
+			xdata->cfa_pattern[cfa.pattern.size()] = '\0';
+		}
+
 		std::ostringstream fitsHeaderStream;
 		xdata->fitsHeader = NULL;
 
@@ -110,6 +126,30 @@ int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 		xdata->width = image.width();
 		xdata->height = image.height();
 		xdata->channelCount = image.channelCount();
+
+		// Validate that the reported geometry is consistent with the actual
+		// image data size: the consumer indexes width*height*channels samples
+		// out of this buffer, so a crafted XISF declaring dimensions larger
+		// than the data it ships would over-read the heap.
+		size_t bytes_per_sample;
+		switch (image.sampleFormat()) {
+			case LibXISF::Image::UInt8:   bytes_per_sample = 1; break;
+			case LibXISF::Image::UInt16:  bytes_per_sample = 2; break;
+			case LibXISF::Image::UInt32:
+			case LibXISF::Image::Float32: bytes_per_sample = 4; break;
+			case LibXISF::Image::Float64: bytes_per_sample = 8; break;
+			default:                      bytes_per_sample = 0; break;
+		}
+		const uint64_t max_dim = 100000; // matches MAX_IMAGE_DIM
+		if (bytes_per_sample == 0 || xdata->width == 0 || xdata->height == 0 ||
+				xdata->channelCount == 0 || xdata->width > max_dim ||
+				xdata->height > max_dim || xdata->channelCount > 3 ||
+				(uint64_t) image.imageDataSize() <
+					(uint64_t) xdata->width * xdata->height *
+					xdata->channelCount * bytes_per_sample) {
+			xisfReader.close();
+			return -1;
+		}
 
 		xdata->data = (uint8_t*) malloc(image.imageDataSize());
 		if (!xdata->data) {

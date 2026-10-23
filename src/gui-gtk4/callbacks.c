@@ -18,71 +18,71 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <gtk/gtk.h>
 #include <stdio.h>
 #include <string.h>
 
-#include "core/siril.h"
-#include "core/processing_thread.h"
-#include "core/proto.h"
-#include "core/icc_profile.h"
-#include "core/initfile.h"
-#include "core/undo.h"
-#include "core/masks.h"
+#include <gtk/gtk.h>
+
+#include "compositing/compositing.h"
 #include "core/command.h"
 #include "core/command_line_processor.h"
-#include "core/siril_language.h"
-#include "core/siril_networking.h"
+#include "core/icc_profile.h"
+#include "core/initfile.h"
+#include "core/op_descriptors.h"
 #include "core/OS_utils.h"
+#include "core/processing_thread.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_language.h"
 #include "core/siril_log.h"
-#include "compositing/compositing.h"
+#include "core/siril_networking.h"
+#include "core/undo.h"
 #include "gui-gtk4/conversion.h"
 #include "gui-gtk4/cut.h"
-#include "gui-gtk4/open_dialog.h"
 #include "gui-gtk4/icc_profile.h"
 #include "gui-gtk4/keywords_tree.h"
-#include "gui-gtk4/registration.h"
 #include "gui-gtk4/mpp_ap_editor.h"
 #include "gui-gtk4/mpp_shift_viewer.h"
+#include "gui-gtk4/open_dialog.h"
+#include "gui-gtk4/photometric_cc.h"
+#include "gui-gtk4/python_gui.h"
+#include "gui-gtk4/registration.h"
+#include "gui-gtk4/stacking.h"
+#include "gui-gtk4/undo_gui.h"
 #include "registration/mpp.h"
 #include "registration/registration.h"
-#include "gui-gtk4/photometric_cc.h"
-#include "gui-gtk4/stacking.h"
-#include "gui-gtk4/python_gui.h"
-#include "gui-gtk4/undo_gui.h"
 /* Forward declaration: defined in gui/sequence_export.c */
 void update_export_crop_label();
+#include "algos/astrometry_solver.h"
 #include "algos/siril_wcs.h"
+#include "filters/mtf.h"
+#include "gui-gtk4/annotations_pref.h"
+#include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/histogram.h"
+#include "gui-gtk4/image_display.h"
+#include "gui-gtk4/image_interactions.h"
+#include "gui-gtk4/menu_search.h"
+#include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/plot.h"
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/PSF_list.h"
+#include "gui-gtk4/registration_preview.h"
+#include "gui-gtk4/remixer.h"
+#include "gui-gtk4/script_menu.h"
+#include "gui-gtk4/sequence_list.h"
+#include "gui-gtk4/single_image.h"
+#include "gui-gtk4/siril-window.h"
+#include "gui-gtk4/siril_intro.h"
+#include "gui-gtk4/siril_preview.h"
+#include "gui-gtk4/utils.h"
 #include "io/annotation_catalogues.h"
 #include "io/films.h"
+#include "io/healpix/fluxcache_cat.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "io/siril_git.h"
-#include "io/siril_pythonmodule.h"
-#include "annotations_pref.h"
-#include "image_display.h"
-#include "image_interactions.h"
-#include "single_image.h"
-#include "sequence_list.h"
-#include "callbacks.h"
-
-#include "algos/astrometry_solver.h"
-#include "filters/mtf.h"
-#include "utils.h"
-#include "plot.h"
-#include "message_dialog.h"
-#include "PSF_list.h"
-#include "histogram.h"
-#include "remixer.h"
-#include "script_menu.h"
-#include "progress_and_log.h"
-#include "dialogs.h"
-#include "siril_intro.h"
-#include "siril_preview.h"
-#include "siril-window.h"
-#include "registration_preview.h"
-#include "io/healpix/fluxcache_cat.h"
 
 static GList *roi_callbacks = NULL;
 static gchar *display_item_name[] = { "linear_item", "log_item", "square_root_item", "squared_item", "asinh_item", "auto_item", "histo_item", "softproof_item"};
@@ -658,6 +658,15 @@ static gboolean try_remap_for_mode_change_idle(gpointer p) {
 	return FALSE;
 }
 
+static gboolean stretch_dialog_is_open() {
+	const gchar *ids[] = { "histogram_dialog", "asinh_dialog", "curves_dialog", "dialog_star_remix" };
+	for (guint i = 0; i < G_N_ELEMENTS(ids); i++) {
+		if (gtk_widget_get_visible(lookup_widget(ids[i])))
+			return TRUE;
+	}
+	return FALSE;
+}
+
 void on_display_item_toggled(GtkCheckButton *checkmenuitem, gpointer user_data) {
 	if (!siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(checkmenuitem)))) return;
 
@@ -687,6 +696,10 @@ void on_display_item_toggled(GtkCheckButton *checkmenuitem, gpointer user_data) 
 	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY, gfit->naxes[2] == 3);
 
 	com.gui_icc.same_primaries = same_primaries(gfit->icc_profile, com.gui_icc.monitor, com.gui_icc.soft_proof ? com.gui_icc.soft_proof : NULL);
+
+	/* same as when a stretch dialog is opened in linear mode */
+	if (gui.rendering_mode == LINEAR_DISPLAY && stretch_dialog_is_open())
+		setup_stretch_sliders();
 
 	if (single_image_is_loaded() || sequence_is_loaded()) {
 		if (processing_is_job_active()) {
@@ -751,8 +764,7 @@ void on_mask_clear_clicked(GtkButton *button, gpointer user_data) {
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit = gfit;
-	args->mask_hook = mask_clear_hook;
-	args->description = _("Clear mask");
+	args->op = &op_desc_mask_clear;
 	args->verbose = TRUE;
 	args->max_threads = com.max_thread;
 
@@ -2090,8 +2102,49 @@ static void load_accels() {
 	set_accel_map(accelmap);
 }
 
+/* GTK4 dispatches application accelerators in the bubble phase at the
+ * window, i.e. AFTER the focused widget has seen the key event.  Whenever
+ * the focus sits in a widget that consumes keys (command entry, spin
+ * buttons, text views...), the shortcuts silently stop working until the
+ * user clicks a widget that gives focus back.  GTK3 did the opposite:
+ * gtk_window_activate_key() ran the accelerators BEFORE propagating the
+ * event to the focus widget.  To restore that priority, the accel map is
+ * mirrored into a capture-phase GtkShortcutController on the main window,
+ * which sees every key event first.  The
+ * gtk_application_set_accels_for_action() calls are kept alongside so menu
+ * items still display their shortcut labels (and as a fallback dispatch
+ * path).  A shortcut whose action is currently disabled or missing is not
+ * consumed by the controller, so normal propagation still happens then. */
+static GtkShortcutController *rebuild_capture_accel_controller(void) {
+	GtkWidget *win = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
+	if (!win)
+		return NULL;
+	GtkEventController *old = g_object_get_data(G_OBJECT(win), "siril-accel-capture");
+	if (old)
+		gtk_widget_remove_controller(win, old);
+	GtkEventController *ctrl = gtk_shortcut_controller_new();
+	gtk_event_controller_set_propagation_phase(ctrl, GTK_PHASE_CAPTURE);
+	gtk_widget_add_controller(win, ctrl);
+	g_object_set_data(G_OBJECT(win), "siril-accel-capture", ctrl);
+	return GTK_SHORTCUT_CONTROLLER(ctrl);
+}
+
+static void add_capture_accels(GtkShortcutController *ctrl,
+		const gchar *detailed_action, const gchar * const *accels) {
+	if (!ctrl)
+		return;
+	for (const gchar * const *a = accels; *a; a++) {
+		GtkShortcutTrigger *trigger = gtk_shortcut_trigger_parse_string(*a);
+		if (!trigger)
+			continue;
+		gtk_shortcut_controller_add_shortcut(ctrl,
+				gtk_shortcut_new(trigger, gtk_named_action_new(detailed_action)));
+	}
+}
+
 void set_accel_map(const gchar * const *accelmap) {
 	GApplication *application = g_application_get_default();
+	GtkShortcutController *capture = rebuild_capture_accel_controller();
 
 	for (const gchar *const *it = accelmap; it[0]; it += g_strv_length((gchar**) it) + 1) {
 #ifdef OS_OSX
@@ -2103,9 +2156,11 @@ void set_accel_map(const gchar * const *accelmap) {
 			remapped[i] = siril_remap_accel(it[1 + i]);
 		gtk_application_set_accels_for_action(GTK_APPLICATION(application), it[0],
 		                                      (const gchar * const *) remapped);
+		add_capture_accels(capture, it[0], (const gchar * const *) remapped);
 		g_strfreev(remapped);
 #else
 		gtk_application_set_accels_for_action(GTK_APPLICATION(application), it[0], &it[1]);
+		add_capture_accels(capture, it[0], &it[1]);
 #endif
 	}
 }
@@ -2546,6 +2601,106 @@ static void attach_autostretch_target_bg_reset(void) {
 	gtk_widget_add_controller(scale, GTK_EVENT_CONTROLLER(click));
 }
 
+/* GTK4 + Wayland: an autohide GtkPopover maps as an xdg_popup that only closes
+ * on an outside click while it holds an explicit compositor grab (keyboard +
+ * pointer, requested with a recent input serial).  mutter intermittently
+ * refuses or drops that grab; when it does, the popover stays up and clicking
+ * elsewhere in the window no longer dismisses it — only Escape still works,
+ * because that is handled by the popover's own key controller, independent of
+ * the grab.  GTK3 always closed a popover on an outside click.  This is not
+ * specific to any one menu: every autohide popover relies on the same grab.
+ *
+ * Restore the GTK3 behaviour with a capture-phase click controller on the main
+ * window that pops down any mapped autohide popover when the user presses
+ * somewhere in the window.  When the grab IS active this handler never fires
+ * (the compositor consumes the outside click itself, before it ever reaches
+ * our surface), so it only kicks in when autohide has failed — and clicks
+ * inside a popover go to the popover's own surface, so they never reach here
+ * either.  Popovers with autohide=FALSE (script console help, the save-format
+ * and mouse-action popovers) are deliberately persistent and left untouched. */
+static void popdown_mapped_popovers_recursive(GtkWidget *widget,
+                                              GtkWidget *skip_subtree,
+                                              gboolean *dismissed) {
+	/* Don't touch the clicked menu button's own subtree (see below): its
+	 * popover — explicit or the internal one a GMenuModel builds — lives in
+	 * there, and the button is about to toggle it shut by itself. */
+	if (widget == skip_subtree)
+		return;
+	if (GTK_IS_POPOVER(widget)) {
+		if (gtk_widget_get_mapped(widget)
+		    && gtk_popover_get_autohide(GTK_POPOVER(widget))) {
+			gtk_popover_popdown(GTK_POPOVER(widget));
+			*dismissed = TRUE;
+		}
+		/* Any nested popover closes together with its parent. */
+		return;
+	}
+	for (GtkWidget *child = gtk_widget_get_first_child(widget); child;
+	     child = gtk_widget_get_next_sibling(child))
+		popdown_mapped_popovers_recursive(child, skip_subtree, dismissed);
+}
+
+/* Pop down every mapped autohide popover in the main window, unconditionally.
+ * Returns TRUE if at least one was dismissed.  Used by the macOS backend (see
+ * siril_macos_fix_popover_autohide in OS_utils.c): there the capture-phase
+ * click handler below never fires, because AppKit does not deliver the outside
+ * mouseDown to control_window's GTK controllers while a popover NSWindow holds
+ * focus.  A local NSEvent monitor catches that click instead and calls this to
+ * run the same dismissal the Wayland path gets from on_window_press_dismiss_
+ * popovers().  Exposed through gui_iface so the Cocoa code (core layer) need
+ * not pull in GTK headers. */
+gboolean close_open_autohide_popovers(void) {
+	GtkWidget *win = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
+	if (!win)
+		return FALSE;
+	gboolean dismissed = FALSE;
+	popdown_mapped_popovers_recursive(win, NULL, &dismissed);
+	return dismissed;
+}
+
+static void on_window_press_dismiss_popovers(GtkGestureClick *gesture,
+                                             int n_press, double x, double y,
+                                             gpointer user_data) {
+	(void) n_press; (void) user_data;
+	GtkWidget *win = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(gesture));
+
+	/* If the press landed on a GtkMenuButton, leave that button's own popover
+	 * alone so it can toggle itself shut; dismissing it here as well would make
+	 * the button immediately pop it back up.  Works for both explicit-popover
+	 * and GMenuModel menu buttons since we skip the whole button subtree. */
+	GtkWidget *skip_subtree = NULL;
+	GtkWidget *picked = gtk_widget_pick(win, x, y, GTK_PICK_DEFAULT);
+	for (GtkWidget *w = picked; w && w != win; w = gtk_widget_get_parent(w)) {
+		if (GTK_IS_MENU_BUTTON(w)) {
+			skip_subtree = w;
+			break;
+		}
+	}
+
+	gboolean dismissed = FALSE;
+	popdown_mapped_popovers_recursive(win, skip_subtree, &dismissed);
+
+	/* Mirror GTK3: the click that dismisses a popover is consumed and does not
+	 * also activate the widget underneath.  Only claim when we actually closed
+	 * something, so ordinary clicks (the normal, grab-working case) are left
+	 * completely untouched.  Never claim when the press is on a menu button:
+	 * that lets the click go on to open/toggle it, so switching straight from
+	 * one open menu to another still works in a single click. */
+	if (dismissed && !skip_subtree)
+		gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_CLAIMED);
+}
+
+static void install_global_popover_autodismiss(void) {
+	GtkWidget *win = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
+	if (!win)
+		return;
+	GtkGesture *click = gtk_gesture_click_new();
+	gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(click), 0); /* any button */
+	gtk_event_controller_set_propagation_phase(GTK_EVENT_CONTROLLER(click), GTK_PHASE_CAPTURE);
+	g_signal_connect(click, "pressed", G_CALLBACK(on_window_press_dismiss_popovers), NULL);
+	gtk_widget_add_controller(win, GTK_EVENT_CONTROLLER(click));
+}
+
 /* GTK4: GtkEventBox and button-press-event no longer exist, so the "click the
  * sequence/image field to copy its name to the clipboard" behaviour lost its
  * wiring during the port. Re-create it with a GtkGestureClick on press_field
@@ -2628,6 +2783,9 @@ void initialize_all_GUI(gchar *supported_files) {
 	 * skipped by the walker. */
 	align_menu_popover_labels_left();
 
+	attach_menu_search("processing_menu", "processing", _("Search processing tools\xe2\x80\xa6"));
+	attach_menu_search("tools_menu", "tools", _("Search tools\xe2\x80\xa6"));
+
 	/* Populate the Recent Files dropdown next to the Open button.  GTK4
 	 * removed GtkRecentChooserMenu; we build a GMenuModel from
 	 * GtkRecentManager (still present in GTK4) and attach it to the
@@ -2655,6 +2813,10 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	/* Double-click the autostretch target-background slider to reset it. */
 	attach_autostretch_target_bg_reset();
+
+	/* Restore GTK3 "click outside closes the popover" when the Wayland
+	 * autohide grab is refused/dropped by the compositor. */
+	install_global_popover_autodismiss();
 
 	/* Select combo boxes that trigger some text display or other things */
 	gtk_drop_down_set_selected(GTK_DROP_DOWN(lookup_widget("comboboxstack_methods")), 0);
@@ -2927,10 +3089,12 @@ void on_checkcut_toggled(GtkCheckButton *togglebutton, gpointer user_data) {
 }
 /* gamut check was toggled. */
 void on_gamutcheck_toggled(GtkCheckButton *togglebutton, gpointer user_data) {
+	/* Cache the toggle for the transform builders, which run on worker
+	 * threads and must not read the widget themselves (see struct gui_icc). */
+	com.gui_icc.gamut_check = gtk_check_button_get_active(togglebutton);
 	if (gfit->color_managed) {
 		lock_display_transform();
-		if (com.gui_icc.proofing_transform)
-			cmsDeleteTransform(com.gui_icc.proofing_transform);
+		clear_proofing_transforms();
 		com.gui_icc.proofing_transform = initialize_proofing_transform();
 		unlock_display_transform();
 	}

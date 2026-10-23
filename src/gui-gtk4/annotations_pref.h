@@ -20,6 +20,8 @@
 #ifndef SRC_GUI_ANNOTATIONS_PREF_H_
 #define SRC_GUI_ANNOTATIONS_PREF_H_
 
+#include <glib.h>
+
 void fill_astrometry_catalogue(gboolean *catalog);
 void get_astrometry_catalogue_values();
 

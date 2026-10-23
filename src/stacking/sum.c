@@ -18,20 +18,21 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
 #include <assert.h>
-#include "core/siril.h"
-#include "core/proto.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "algos/siril_wcs.h"
 #include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
+#include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/ser.h"
-#include "io/image_format_fits.h"
-#include "stacking.h"
-#include "registration/registration.h"
-#include "algos/siril_wcs.h"
 #include "opencv/opencv.h"
+#include "registration/registration.h"
+#include "stacking/stacking.h"
 
 struct sum_stacking_data {
 	guint64 *sum[3];	// the new image's channels

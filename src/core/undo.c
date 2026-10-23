@@ -23,28 +23,27 @@
  * undo state can be saved, to reduce the size of undo states in storage?
  * The "both" state would apply to geometry changing operations. */
 
-#include <stdlib.h>
-#include <stdio.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <wcslib.h>
 #ifdef _WIN32
 #include <windows.h>
 #include <io.h>  /* _get_osfhandle */
 #endif
 
+#include "algos/siril_wcs.h"
+#include "algos/statistics.h"
+#include "core/gui_iface.h"
+#include "core/icc_profile.h"
+#include "core/proto.h"
 #include "core/siril.h"
 #include "core/siril_log.h"
-#include "core/icc_profile.h"
-#include "core/gui_iface.h"
-#include "io/single_image.h"
-#include "io/image_format_fits.h"
-#include "io/annotation_catalogues.h"
 #include "core/undo.h"
-#include "core/proto.h"
-#include "algos/statistics.h"
-#include "algos/siril_wcs.h"
+#include "io/annotation_catalogues.h"
+#include "io/image_format_fits.h"
+#include "io/single_image.h"
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -489,6 +488,7 @@ int undo_display_data(int dir) {
 			g_rw_lock_writer_unlock(&gfit->rwlock); // Finished with writer lock
 			g_rw_lock_reader_lock(&gfit->rwlock);   // But still need reader lock
 			gui_iface.update_histogram();
+			gui_iface.curves_reset_after_undo();
 			gui_iface.on_channel_count_changed(); // These 2 lines account for possible change from mono to RGB
 			g_rw_lock_reader_unlock(&gfit->rwlock);
 			gui_iface.update_menu_state();
@@ -560,6 +560,7 @@ int undo_display_data(int dir) {
 			g_rw_lock_writer_unlock(&gfit->rwlock); // Finished with writer lock
 			g_rw_lock_reader_lock(&gfit->rwlock);   // But still need reader lock
 			gui_iface.update_histogram();
+			gui_iface.curves_reset_after_undo();
 			g_rw_lock_reader_unlock(&gfit->rwlock);
 			gui_iface.update_menu_state();
 			refresh_annotations(TRUE);

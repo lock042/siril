@@ -25,30 +25,27 @@
 #endif
 #include <assert.h>
 #include <iostream>
-#include <iomanip>
+
 #include <opencv2/core/core.hpp>
-#include <opencv2/core/matx.hpp>
 #define CV_RANSAC FM_RANSAC
 #include <opencv2/calib3d.hpp>
 
 // for mosaics
 #include <opencv2/stitching/warpers.hpp>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/masks.h"
-#include "core/siril_log.h"
-#include "core/settings.h"
 #include "core/gui_iface.h"
-#include "registration/registration.h"
+#include "core/masks.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "opencv/guidedfilter.h"
+#include "opencv/opencv.h"
 #include "registration/matching/atpmatch.h"
-#include "opencv.h"
-#include "guidedfilter.h"
+#include "registration/registration.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include "io/image_format_fits.h"
 #include "algos/statistics.h"
 #include "registration/distorsion.h"
 #ifdef __cplusplus
@@ -319,11 +316,13 @@ int cvRotateImage(fits *image, int angle) {
 }
 
 void cvTransformImageRefPoint(Homography Hom, point refpointin, point *refpointout) {
-	Mat refptout;
-	Point3d refptin(refpointin.x, refpointin.y, 1);
 	Mat H = Mat(3, 3, CV_64FC1);
 	convert_H_to_MatH(&Hom, H);
-	refptout = H * Mat(refptin);
+	/* the homogeneous point must be built as an explicit 3x1 column vector:
+	 * Mat(Point3d) is 3x1 with OpenCV 4 but 1x3 with OpenCV 5, which makes
+	 * the matrix product throw */
+	Mat refptin = (Mat_<double>(3, 1) << refpointin.x, refpointin.y, 1.);
+	Mat refptout = H * refptin;
 	refpointout->x = refptout.at<double>(0) / refptout.at<double>(2);
 	refpointout->y = refptout.at<double>(1) / refptout.at<double>(2);
 }

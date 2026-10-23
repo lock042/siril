@@ -16,11 +16,12 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "gui-gtk4/utils.h"
-#include "histo_display.h"
 #include <math.h>
+
+#include "core/proto.h"
+#include "core/siril.h"
+#include "gui-gtk4/histo_display.h"
+#include "gui-gtk4/utils.h"
 
 /* Global histogram overlay state */
 histo_overlay_state histo_state = {

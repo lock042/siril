@@ -39,16 +39,16 @@
  *
  */
 
-#include "core/siril.h"
-
+#include <ctype.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <string.h>
-#include <ctype.h>
+
 #include "algos/PSF.h"
-#include "registration/matching/misc.h"
+#include "core/siril.h"
 #include "registration/matching/atpmatch.h"
+#include "registration/matching/misc.h"
 
 #undef DEBUG
 

@@ -18,29 +18,31 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <gsl/gsl_histogram.h>
-#include <string.h>
-#include <math.h>
 #include <float.h>
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
-#include "core/icc_profile.h"
-#include "core/siril_log.h"
-#include "algos/statistics.h"
+#include <math.h>
+#include <string.h>
+
+#include <gsl/gsl_histogram.h>
+
 #include "algos/colors.h"
-#include "io/single_image.h"
-#include "io/image_format_fits.h"
-#include "io/sequence.h"
-#include "gui-gtk4/callbacks.h"
-#include "gui-gtk4/utils.h"	// for lookup_widget()
-#include "gui-gtk4/progress_and_log.h"
-#include "gui-gtk4/dialogs.h"
-#include "gui-gtk4/message_dialog.h"
-#include "gui-gtk4/siril_preview.h"
+#include "algos/statistics.h"
+#include "core/icc_profile.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "core/undo.h"
-#include "histogram.h"
-#include "histogram_utils.h"
+#include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/histogram.h"
+#include "gui-gtk4/histogram_utils.h"
+#include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/siril_preview.h"
+#include "gui-gtk4/utils.h"	// for lookup_widget()
+#include "io/sequence.h"
+#include "io/single_image.h"
 
 #define GRADIENT_HEIGHT 12
 
@@ -56,7 +58,6 @@
 static int invocation = NO_STRETCH_SET_YET;
 
 static gboolean closing = FALSE;
-static gboolean sequence_working = FALSE;
 // Parameters for use in calculations
 static float _B = 0.5f, _D = 0.0f, _BP = 0.0f, _LP = 0.0f, _SP = 0.0f, _HP = 1.0f;
 static clip_mode_t _clip_mode = RGBBLEND;
@@ -226,25 +227,33 @@ static void histo_startup() {
 		}
 	}
 	// also get the backup histogram
+	/* histogram_mutex guards layers_hist[]/sat_hist against the worker thread,
+	 * which frees and recomputes them in notify_gfit_data_modified(). */
+	g_mutex_lock(&com.histogram_mutex);
 	stretch_dialog_compute_histograms(fit);
 	for (int i = 0; i < fit->naxes[2]; i++)
-		hist_backup[i] = gsl_histogram_clone(com.layers_hist[i]);
+		hist_backup[i] = com.layers_hist[i] ? gsl_histogram_clone(com.layers_hist[i]) : NULL;
 	if (com.sat_hist) {
 		if (hist_sat_backup)
 			gsl_histogram_free(hist_sat_backup);
 		hist_sat_backup = gsl_histogram_clone(com.sat_hist);
 	}
+	g_mutex_unlock(&com.histogram_mutex);
 }
 
 static void histo_close(gboolean revert, gboolean update_image_if_needed, gboolean revert_icc_profile) {
 	if (revert) {
 
+		/* Ownership of the backups transfers to com.layers_hist[]/sat_hist;
+		 * take histogram_mutex so no reader sees a half-swapped array. */
+		g_mutex_lock(&com.histogram_mutex);
 		for (int i = 0; i < fit->naxes[2]; i++) {
 			set_histogram(hist_backup[i], i);
 			hist_backup[i] = NULL;
 		}
 		set_sat_histogram(hist_sat_backup);
 		hist_sat_backup = NULL;
+		g_mutex_unlock(&com.histogram_mutex);
 		if (is_preview_active() && !copy_backup_to_gfit() && update_image_if_needed) {
 			set_cursor_waiting(TRUE);
 			/* Remap the Cairo display buffers from the restored gfit.
@@ -255,7 +264,7 @@ static void histo_close(gboolean revert, gboolean update_image_if_needed, gboole
 		}
 	}
 	// free data
-	if(!sequence_working && !revert) {
+	if (!revert) {
 		clear_hsl();
 	}
 	if (revert_icc_profile && !single_image_stretch_applied) {
@@ -336,11 +345,9 @@ static void histo_recompute(gboolean for_preview) {
 		}
 
 		args->fit = fit;
-		args->mem_ratio = 1.0f;
-		args->image_hook = mtf_single_image_hook;
-		args->log_hook = mtf_log_hook;
+		args->op = &op_desc_mtf;
 		args->idle_function = mtf_single_image_idle;
-		args->description = _("Midtone Transfer Function");
+		args->description = _("Midtone Transfer Function");  // override: variant label
 		args->verbose = FALSE;
 		args->user = data;
 		args->max_threads = com.max_thread;
@@ -387,11 +394,10 @@ static void histo_recompute(gboolean for_preview) {
 		}
 
 		args->fit = fit;
-		args->mem_ratio = (_payne_colourstretchmodel == COL_SAT) ? 2.0f : 1.0f;
-		args->image_hook = ght_single_image_hook;
-		args->log_hook = ght_log_hook;
+		args->op = &op_desc_ghs;
+		args->mem_ratio = (_payne_colourstretchmodel == COL_SAT) ? 2.0f : 1.0f;  // override: computed
 		args->idle_function = ght_single_image_idle;
-		args->description = _("Generalized Hyperbolic Transform");
+		args->description = _("Generalized Hyperbolic Transform");  // override: variant label
 		args->verbose = FALSE;
 		args->user = data;
 		args->max_threads = com.max_thread;
@@ -955,11 +961,16 @@ static void stretch_dialog_compute_histograms(fits *thefit) {
 
 /* call from main thread */
 void update_gfit_histogram_if_needed() {
+	/* Hold histogram_mutex across the invalidate+recompute pair so no other
+	 * thread observes a partially-nullified layers_hist[]. */
+	g_mutex_lock(&com.histogram_mutex);
 	invalidate_gfit_histogram();
-	if (is_histogram_visible()) {
+	gboolean visible = is_histogram_visible();
+	if (visible)
 		stretch_dialog_compute_histograms(fit);
+	g_mutex_unlock(&com.histogram_mutex);
+	if (visible)
 		queue_window_redraw();
-	}
 }
 
 /* Trigger a visual refresh of the histogram window if it is currently visible.
@@ -982,7 +993,9 @@ gboolean mtf_single_image_idle(gpointer p) {
 	// Check if processing succeeded
 	if (args->retval == 0) {
 		// Update histograms
+		g_mutex_lock(&com.histogram_mutex);
 		stretch_dialog_compute_histograms(fit);
+		g_mutex_unlock(&com.histogram_mutex);
 		queue_window_redraw();
 
 		// Notify that gfit was modified
@@ -1019,7 +1032,9 @@ gboolean ght_single_image_idle(gpointer p) {
 	// Check if processing succeeded
 	if (args->retval == 0) {
 		// Update histograms
+		g_mutex_lock(&com.histogram_mutex);
 		stretch_dialog_compute_histograms(fit);
+		g_mutex_unlock(&com.histogram_mutex);
 		queue_window_redraw();
 
 		// Notify that gfit was modified
@@ -1042,23 +1057,6 @@ gboolean ght_single_image_idle(gpointer p) {
 	free_generic_img_args(args);
 	stop_processing_thread();
 	return FALSE;
-}
-
-static int mtf_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
-		rectangle *_, int threads) {
-	struct mtf_data *m_args = (struct mtf_data*) args->user;
-	apply_linked_mtf_to_fits(fit, fit, m_args->params, FALSE);
-	return 0;
-}
-
-static int ght_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
-		rectangle *_, int threads) {
-	struct ght_data *m_args = (struct ght_data*) args->user;
-	if (m_args->params_ght->payne_colourstretchmodel == COL_SAT)
-		apply_sat_ght_to_fits(fit, m_args->params_ght, FALSE);
-	else
-		apply_linked_ght_to_fits(fit, fit, m_args->params_ght, FALSE);
-	return 0;
 }
 
 static void setup_hsl() {
@@ -1088,10 +1086,12 @@ static void setup_hsl() {
 		lumbuf = malloc(fit->rx * fit->ry * sizeof(WORD));
 	}
 	fit_to_hsl();
+	g_mutex_lock(&com.histogram_mutex);
 	set_sat_histogram(computeHistoSat(satbuf_working));
 	if (hist_sat_backup)
 		gsl_histogram_free(hist_sat_backup);
-	hist_sat_backup = gsl_histogram_clone(com.sat_hist);
+	hist_sat_backup = com.sat_hist ? gsl_histogram_clone(com.sat_hist) : NULL;
+	g_mutex_unlock(&com.histogram_mutex);
 }
 
 static void clear_hsl() {
@@ -1103,10 +1103,12 @@ static void clear_hsl() {
 	satbuf_working = NULL;
 	free(lumbuf);
 	lumbuf = NULL;
+	g_mutex_lock(&com.histogram_mutex);
 	gsl_histogram_free(com.sat_hist);
 	com.sat_hist = NULL;
 	gsl_histogram_free(hist_sat_backup);
 	hist_sat_backup = NULL;
+	g_mutex_unlock(&com.histogram_mutex);
 }
 
 /* Callback functions */
@@ -1148,14 +1150,19 @@ gboolean redraw_histo(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	erase_histo_display(cr, width, height - GRADIENT_HEIGHT);
 
 	gboolean is_mono = (fit->naxes[2] == 1);
+	/* Lock against notify_gfit_data_modified() on the worker thread, which
+	 * frees and recomputes layers_hist[]/sat_hist under the same mutex.  A
+	 * preview stretch launched by a slider move runs concurrently with this
+	 * draw handler, so without the lock the worker can free a histogram while
+	 * display_histo() is still walking its bins, causing a SIGSEGV inside
+	 * gsl_histogram_get(). */
+	g_mutex_lock(&com.histogram_mutex);
 	for (i = 0; i < RGB_VPORT; i++) {
-		if (com.layers_hist[i]) {
-			if (siril_toggle_get_active(GTK_WIDGET(toggleOrig))) {
-				display_histo(hist_backup[i], cr, i, width, height - GRADIENT_HEIGHT, zoomH, zoomV, TRUE, is_log_scale(), is_mono);
-			}
-			if (!toggles[i] || siril_toggle_get_active(GTK_WIDGET(toggles[i]))) {
-				display_histo(com.layers_hist[i], cr, i, width, height - GRADIENT_HEIGHT, zoomH, zoomV, FALSE, is_log_scale(), is_mono);
-			}
+		if (siril_toggle_get_active(GTK_WIDGET(toggleOrig))) {
+			display_histo(hist_backup[i], cr, i, width, height - GRADIENT_HEIGHT, zoomH, zoomV, TRUE, is_log_scale(), is_mono);
+		}
+		if (!toggles[i] || siril_toggle_get_active(GTK_WIDGET(toggles[i]))) {
+			display_histo(com.layers_hist[i], cr, i, width, height - GRADIENT_HEIGHT, zoomH, zoomV, FALSE, is_log_scale(), is_mono);
 		}
 	}
 	if (invocation == GHT_STRETCH && _payne_colourstretchmodel == COL_SAT && fit->naxes[2] == 3) {
@@ -1163,6 +1170,7 @@ gboolean redraw_histo(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		if (siril_toggle_get_active(GTK_WIDGET(toggleOrig)))
 			display_histo(hist_sat_backup, cr, -2, width, height - GRADIENT_HEIGHT, zoomH, zoomV, FALSE, is_log_scale(), FALSE);
 	}
+	g_mutex_unlock(&com.histogram_mutex);
 	display_scale(cr, width, height);
 	return FALSE;
 }
@@ -1198,7 +1206,9 @@ void on_histogram_window_show(GtkWidget *object, gpointer user_data) {
 	histo_startup();
 	_initialize_clip_text();
 	reset_cursors_and_values(TRUE);
+	g_mutex_lock(&com.histogram_mutex);
 	stretch_dialog_compute_histograms(fit);
+	g_mutex_unlock(&com.histogram_mutex);
 }
 
 gboolean on_button_histo_close_clicked(GtkButton *button, gpointer user_data) {
@@ -1250,7 +1260,6 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 
 	if (siril_toggle_get_active(GTK_WIDGET(seq_button)) && sequence_is_loaded()) {
 		/* Apply to the whole sequence */
-		sequence_working = TRUE;
 
 		if (invocation == HISTO_STRETCH) {
 			struct mtf_data *args = create_mtf_data();
@@ -1274,6 +1283,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 
 			// Close the window for sequence processing
 			histo_close(TRUE, FALSE, FALSE);
+			clear_hsl();
 			siril_close_dialog("histogram_dialog");
 
 			// Apply the process
@@ -1317,6 +1327,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 
 			// Close the window for sequence processing
 			histo_close(TRUE, FALSE, TRUE);
+			clear_hsl();
 			siril_close_dialog("histogram_dialog");
 
 			// Apply the process
@@ -1500,11 +1511,9 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			}
 
 			args->fit = gfit;
-			args->mem_ratio = 1.0f;
-			args->image_hook = mtf_single_image_hook;
-			args->log_hook = mtf_log_hook;
+			args->op = &op_desc_mtf;
 			args->idle_function = mtf_single_image_idle;
-			args->description = _("Histogram Transformation");
+			args->description = _("Histogram Transformation");  // override: variant label
 			args->verbose = TRUE;
 			args->user = data;
 			args->max_threads = com.max_thread;
@@ -1550,11 +1559,9 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			}
 
 			args->fit = gfit;
-			args->mem_ratio = (_payne_colourstretchmodel == COL_SAT) ? 2.0f : 1.0f;
-			args->image_hook = ght_single_image_hook;
-			args->log_hook = ght_log_hook;
+			args->op = &op_desc_ghs;
+			args->mem_ratio = (_payne_colourstretchmodel == COL_SAT) ? 2.0f : 1.0f;  // override: computed
 			args->idle_function = ght_single_image_idle;
-			args->description = _("Generalised Hyperbolic Stretch");
 			args->verbose = TRUE;
 			args->user = data;
 			args->max_threads = com.max_thread;
@@ -2257,70 +2264,6 @@ void on_histoHighEntry_activate(GtkEntry *entry, gpointer user_data) {
 	gtk_editable_set_text(GTK_EDITABLE(entry), str);
 	g_free(str);
 	set_cursor_waiting(FALSE);
-}
-
-int mtf_finalize_hook(struct generic_seq_args *args) {
-	struct mtf_data *data = (struct mtf_data *) args->user;
-	int retval = seq_finalize_hook(args);
-	free(data);
-	return retval;
-}
-
-void apply_mtf_to_sequence(struct mtf_data *mtf_args) {
-	struct generic_seq_args *args = create_default_seqargs(mtf_args->seq);
-	args->filtering_criterion = seq_filter_included;
-	args->nb_filtered_images = mtf_args->seq->selnum;
-	args->prepare_hook = seq_prepare_hook;
-	args->finalize_hook = mtf_finalize_hook;
-	args->image_hook = mtf_image_hook;
-	args->stop_on_error = FALSE;
-	args->description = _("Midtone Transfer Function");
-	args->has_output = TRUE;
-	args->new_seq_prefix = strdup(mtf_args->seqEntry);
-	args->load_new_sequence = TRUE;
-	args->user = mtf_args;
-
-	mtf_args->fit = NULL;	// not used here
-
-	if (!start_in_new_thread(generic_sequence_worker, args)) {
-		free(mtf_args->seqEntry);
-		free(mtf_args);
-		free_generic_seq_args(args, TRUE);
-	}
-}
-
-int ght_finalize_hook(struct generic_seq_args *args) {
-	struct ght_data *data = (struct ght_data *) args->user;
-	struct ght_params *ghtp = (struct ght_params *) data->params_ght;
-	int retval = seq_finalize_hook(args);
-	free(ghtp);
-	free(data);
-	clear_hsl();
-	sequence_working = FALSE;
-	return retval;
-}
-
-void apply_ght_to_sequence(struct ght_data *ght_args) {
-	struct generic_seq_args *args = create_default_seqargs(ght_args->seq);
-	args->filtering_criterion = seq_filter_included;
-	args->nb_filtered_images = ght_args->seq->selnum;
-	args->prepare_hook = seq_prepare_hook;
-	args->finalize_hook = ght_finalize_hook;
-	args->image_hook = ght_image_hook;
-	args->stop_on_error = FALSE;
-	args->description = _("Generalised Hyperbolic Transfer Function");
-	args->has_output = TRUE;
-	args->new_seq_prefix = strdup(ght_args->seqEntry);
-	args->load_new_sequence = TRUE;
-	args->user = ght_args;
-
-	ght_args->fit = NULL;	// not used here
-
-	if(!start_in_new_thread(generic_sequence_worker, args)) {
-		free(ght_args->seqEntry);
-		free(ght_args);
-		free_generic_seq_args(args, TRUE);
-	}
 }
 
 void on_histo_preview_toggled(GtkCheckButton *button, gpointer user_data) {

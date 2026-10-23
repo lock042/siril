@@ -20,7 +20,6 @@
 #ifndef SRC_IO_ANNOTATION_CATALOGUES_H_
 #define SRC_IO_ANNOTATION_CATALOGUES_H_
 
-#include "core/siril_world_cs.h"
 #include "io/siril_catalogues.h"
 
 typedef struct {

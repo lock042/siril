@@ -18,21 +18,17 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
+#include "core/op_descriptors.h"
 #include "core/processing.h"
 #include "core/processing_thread.h"
-#include "io/single_image.h"
-#include "io/image_format_fits.h"
-#include "gui-gtk4/message_dialog.h"
-#include "gui-gtk4/image_display.h"
-#include "gui-gtk4/utils.h"
+#include "core/siril.h"
+#include "filters/linear_match.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/progress_and_log.h"
-
-#include "filters/linear_match.h"
+#include "gui-gtk4/utils.h"
+#include "io/image_format_fits.h"
+#include "io/single_image.h"
 
 static GtkWidget *lm_ref_chooser = NULL;
 static GtkSpinButton *lm_high_spin = NULL;
@@ -109,10 +105,8 @@ void on_linearmatch_apply_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 	args->fit = gfit;
-	args->image_hook = linear_match_image_hook;
-	args->log_hook = linear_match_log_hook;
+	args->op = &op_desc_linear_match;
 	args->idle_function = end_generic_image_reset_cursor;
-	args->description = _("Linear Match");
 	args->verbose = TRUE;
 	args->user = data;
 	set_cursor_waiting(TRUE);

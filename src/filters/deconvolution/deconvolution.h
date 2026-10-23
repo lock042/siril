@@ -22,11 +22,16 @@
 
 #include <glib.h>
 
+#include "core/siril.h"
+
 #ifdef __cplusplus
 #define EXTERNC extern "C"
 #else
 #define EXTERNC
 #endif
+
+// wcslib has this symbol
+#undef UNDEFINED
 
 typedef enum { DECONV_SB, DECONV_RL, DECONV_WIENER } nonblind_t;
 typedef enum { PSF_BLIND, PSF_SELECTION, PSF_STARS, PSF_MANUAL, PSF_PREVIOUS } psftype_t;

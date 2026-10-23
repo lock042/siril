@@ -59,6 +59,24 @@ if criterion_dep.found()
 
      test('soper_test', soper_exec, suite: 'arithmetic')
 
+     op_descriptor_exec = executable('test_op_descriptor',
+                                     'test_op_descriptor.c',
+                                     dependencies : [siril_dep, criterion_dep],
+                                     link_args : siril_link_arg,
+                                     c_args : siril_c_flag,
+                                     cpp_args : siril_cpp_flag)
+
+     test('test_op_descriptor', op_descriptor_exec)
+
+     wavelet_denoise_exec = executable('wavelet_denoise_test',
+                                       'wavelet_denoise_test.c',
+                                       dependencies : [siril_dep, criterion_dep],
+                                       link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                       c_args : siril_c_flag,
+                                       cpp_args : siril_cpp_flag)
+
+     test('wavelet_denoise_test', wavelet_denoise_exec, suite: 'science')
+
      photometry_exec = executable('photometry_test',
                                   'photometry_test.c',
                                   dependencies : [siril_dep, criterion_dep],
@@ -85,6 +103,15 @@ if criterion_dep.found()
                            cpp_args : siril_cpp_flag)
 
      test('ser_test', ser_exec)
+
+     healpix_cat_exec = executable('healpix_cat_test',
+                                   'healpix_cat_test.c',
+                                   dependencies : [siril_dep, criterion_dep],
+                                   link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                   c_args : siril_c_flag,
+                                   cpp_args : siril_cpp_flag)
+
+     test('healpix_cat_test', healpix_cat_exec)
 
      siril_spawn_test_exec = executable('siril_spawn_test',
                                         'siril_spawn_test.c',
@@ -159,14 +186,42 @@ if criterion_dep.found()
 
      test('planet_ephem_test', planet_ephem_exec, suite: 'mpp')
 
+     homography_exec = executable('homography_test',
+                                  'homography_test.c',
+                                  dependencies : [siril_dep, criterion_dep],
+                                  link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                  c_args : siril_c_flag,
+                                  cpp_args : siril_cpp_flag)
+
+     test('homography_test', homography_exec, suite: 'arithmetic')
+
      gps_exec = executable('qhy_gps_test',
-                           'qhy_gps_test.c',
+                           ['qhy_gps_test.c', 'download_files.c'],
                            dependencies : [siril_dep, criterion_dep],
                            link_args : siril_link_arg,
                            c_args : siril_c_flag,
                            cpp_args : siril_cpp_flag)
 
      test('qhy_gps_test', gps_exec)
+
+     streaks_exec = executable('streaks_test',
+                           ['streaks_test.c', 'download_files.c'],
+                           dependencies : [siril_dep, criterion_dep],
+                           link_args : siril_link_arg,
+                           c_args : siril_c_flag,
+                           cpp_args : siril_cpp_flag)
+
+     test('streaks_test', streaks_exec)
+
+     banding_exec = executable('unbanding_test',
+                           ['unbanding_test.c', 'download_files.c'],
+                           dependencies : [siril_dep, criterion_dep],
+                           link_args : siril_link_arg,
+                           c_args : siril_c_flag,
+                           cpp_args : siril_cpp_flag)
+
+     test('unbanding_test', banding_exec)
+
 
      harmonize_img_t_exec = executable('harmonize_img_t_test',
                                        'harmonize_img_t_test.cpp',
@@ -185,6 +240,32 @@ if criterion_dep.found()
                                      cpp_args : siril_cpp_flag)
 
      test('da3d_dft_perf', da3d_dft_perf_exec, suite: 'perfs', protocol: 'exitcode', is_parallel : false)
+
+     fits_scaling_exec = executable('fits_scaling_test',
+                                    'fits_scaling_test.c',
+                                    dependencies : [siril_dep, criterion_dep],
+                                    link_args : siril_link_arg,
+                                    c_args : siril_c_flag,
+                                    cpp_args : siril_cpp_flag)
+
+     test('fits_scaling_test', fits_scaling_exec)
+
+     fits_header_exec = executable('fits_header_test',
+                                   'fits_header_test.c',
+                                   dependencies : [siril_dep, criterion_dep],
+                                   link_args : siril_link_arg,
+                                   c_args : siril_c_flag,
+                                   cpp_args : siril_cpp_flag)
+
+     test('fits_header_test', fits_header_exec)
+
+     test_icc_state_exec = executable('test_icc_state',
+                                'test_icc_state.c',
+                                dependencies : [siril_dep, criterion_dep],
+                                link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                c_args : siril_c_flag,
+                                cpp_args : siril_cpp_flag)
+     test('test_icc_state', test_icc_state_exec)
 
      # Performance testing
      sorting_perf_exec = executable('sorting_perf',

@@ -18,59 +18,56 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/command.h"
-#include "core/processing.h"
-#include "core/undo.h"
-#include "core/masks.h"
-#include "gui-gtk4/mpp_ap_editor.h"
-#include "core/siril_update.h"
-#include "gui-gtk4/siril_cmd_help.h"
-#include "core/siril_log.h"
-#include "core/initfile.h"
-#include "compositing/align_rgb.h"
-#include "io/annotation_catalogues.h"
-#include "io/single_image.h"
-#include "io/sequence.h"
 #include "algos/astrometry_solver.h"
+#include "algos/ccd-inspector.h"
 #include "algos/noise.h"
 #include "algos/photometry.h"
 #include "algos/siril_wcs.h"
-#include "algos/ccd-inspector.h"
-#include "gui-gtk4/ccd-inspector.h"
+#include "compositing/align_rgb.h"
 #include "compositing/compositing.h"
-#include "filters/synthstar.h"
+#include "core/command.h"
+#include "core/initfile.h"
+#include "core/masks.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "core/siril_update.h"
+#include "core/undo.h"
 #include "gui-gtk4/about_dialog.h"
-#include "gui-gtk4/utils.h"
-#include "gui-gtk4/colors.h"
 #include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/ccd-inspector.h"
+#include "gui-gtk4/colors.h"
 #include "gui-gtk4/curves.h"
-#include "gui-gtk4/documentation.h"
-#include "gui-gtk4/histogram.h"
-#include "gui-gtk4/histo_display.h"
-#include "gui-gtk4/icc_profile.h"
-#include "gui-gtk4/image_interactions.h"
-#include "gui-gtk4/open_dialog.h"
-#include "gui-gtk4/message_dialog.h"
-#include "gui-gtk4/PSF_list.h"
-#include "gui-gtk4/save_dialog.h"
-#include "gui-gtk4/script_menu.h"
-#include "gui-gtk4/python_gui.h"
-#include "gui-gtk4/sequence_list.h"
-#include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/documentation.h"
+#include "gui-gtk4/histo_display.h"
+#include "gui-gtk4/histogram.h"
+#include "gui-gtk4/icc_profile.h"
 #include "gui-gtk4/image_display.h"
-#include "gui-gtk4/photometric_cc.h"
+#include "gui-gtk4/image_interactions.h"
 #include "gui-gtk4/menu_gray_geometry.h"
+#include "gui-gtk4/mpp_ap_editor.h"
+#include "gui-gtk4/open_dialog.h"
+#include "gui-gtk4/photometric_cc.h"
+#include "gui-gtk4/PSF_list.h"
+#include "gui-gtk4/python_gui.h"
 #include "gui-gtk4/registration.h"
 #include "gui-gtk4/registration_preview.h"
 #include "gui-gtk4/remixer.h"
+#include "gui-gtk4/save_dialog.h"
+#include "gui-gtk4/script_menu.h"
+#include "gui-gtk4/sequence_list.h"
+#include "gui-gtk4/siril_actions.h"
+#include "gui-gtk4/siril_cmd_help.h"
 #include "gui-gtk4/user_polygons.h"
-#include "registration/registration.h"
+#include "gui-gtk4/utils.h"
+#include "io/annotation_catalogues.h"
+#include "io/sequence.h"
+#include "io/single_image.h"
 #include "io/siril_catalogues.h"
-
-#include "siril_actions.h"
+#include "registration/registration.h"
 
 #define CHECK_FOR_OPENED_DIALOG \
     do { \
@@ -423,11 +420,9 @@ void zoom_out_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 }
 
 void zoom_one_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	point center = get_center_of_vport();
 	update_zoom_fit_button();
-	gui.zoom_value = ZOOM_NONE;
-	reset_display_offset();
-	update_zoom_label();
-	gui_iface.redraw_image(REDRAW_IMAGE);
+	set_zoom_at(center.x, center.y, ZOOM_NONE);
 }
 
 void negative_view_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
@@ -816,6 +811,7 @@ void curves_activate(GSimpleAction *action, GVariant *parameter, gpointer user_d
  * leaving widget pointers NULL and (for fft / linear_match) the file
  * chooser buttons inert until the user clicked Apply. */
 extern void linear_match_init_statics(void);
+extern void hdr_dialog_init_statics(void);
 extern void fft_dialog_init_statics(void);
 extern void banding_dialog_init_statics(void);
 extern void cosmetic_dialog_init_statics(void);
@@ -978,15 +974,18 @@ void merge_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 	siril_open_dialog("merge_cfa_dialog");
 }
 
+void hdr_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	hdr_dialog_init_statics();
+	siril_open_dialog("hdr_dialog");
+}
+
 void star_desaturate_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	CHECK_FOR_OPENED_DIALOG;
 	if (!check_ok_if_cfa()) return;
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
-	args->image_hook = unclip_image_hook;
-	args->log_hook = unclip_log_hook;
-	args->description = _("Unclip stars");
+	args->op = &op_desc_unclip;
 	args->verbose = TRUE;
 	if (!start_in_new_thread(generic_image_worker, args))
 		free_generic_img_args(args);
@@ -999,36 +998,35 @@ void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointe
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
-	args->image_hook = synthstar_image_hook;
-	args->log_hook = synthstar_log_hook;
-	args->description = _("Synthetic stars");
+	args->op = &op_desc_synthstar;
 	args->verbose = TRUE;
 	if (!start_in_new_thread(generic_image_worker, args))
 		free_generic_img_args(args);
 }
 
+/* the undo state must only be pushed once the prerequisites are known to be
+ * met, otherwise an aborted alignment leaves a no-op entry on the undo stack */
+static void align_activate(rgb_align_method m, const char *undo_message) {
+	if (!rgb_align_prerequisites_met(m))
+		return;
+	undo_save_state(gfit, undo_message);
+	rgb_align(m);
+}
+
 void align_dft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	undo_save_state(gfit, _("RGB alignment (DFT)"));
-	rgb_align(1);
+	align_activate(RGBALIGN_DFT, _("RGB alignment (DFT)"));
 }
 
 void align_global_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	undo_save_state(gfit, _("RGB alignment (Global stars)"));
-	rgb_align(2);
+	align_activate(RGBALIGN_GLOBAL, _("RGB alignment (Global stars)"));
 }
 
 void align_kombat_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	undo_save_state(gfit, _("RGB alignment (KOMBAT)"));
-	rgb_align(3);
+	align_activate(RGBALIGN_KOMBAT, _("RGB alignment (KOMBAT)"));
 }
 
 void align_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	undo_save_state(gfit, _("RGB alignment (PSF)"));
-	if (com.selection.w > 300 || com.selection.h > 300) {
-		siril_log_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
-		return;
-	}
-	rgb_align(0);
+	align_activate(RGBALIGN_PSF, _("RGB alignment (PSF)"));
 }
 
 void icc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -1099,8 +1097,7 @@ void clear_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit = gfit;
-	args->mask_hook = mask_clear_hook;
-	args->description = _("Clear mask");
+	args->op = &op_desc_mask_clear;
 	args->verbose = TRUE;
 	args->max_threads = com.max_thread;
 
@@ -1116,9 +1113,8 @@ void autostretch_mask_activate(GSimpleAction *action, GVariant *parameter, gpoin
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->mask_hook = mask_autostretch_hook;
-	args->description = _("Autostretch mask");
+	args->op = &op_desc_mask_autostretch;
+	args->mem_ratio = 1.0f;  // override: descriptor default is 0
 	args->verbose = TRUE;
 	args->max_threads = com.max_thread;
 
@@ -1146,10 +1142,7 @@ void invert_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer u
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit = gfit;
-	args->mem_ratio = 0.0f;
-	args->mask_hook = mask_invert_hook;
-	args->log_hook = NULL;
-	args->description = _("Invert mask");
+	args->op = &op_desc_mask_invert;
 	args->verbose = TRUE;
 	args->user = NULL;
 	args->max_threads = com.max_thread;
@@ -1172,8 +1165,7 @@ void mask_from_gradient_activate(GSimpleAction *action, GVariant *parameter, gpo
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit = gfit;
-	args->mask_hook = mask_from_gradient_hook;
-	args->description = _("Gradient of mask");
+	args->op = &op_desc_mask_from_gradient;
 	args->verbose = TRUE;
 	args->max_threads = com.max_thread;
 

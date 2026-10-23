@@ -41,7 +41,9 @@
 #define SRC_CORE_GUI_IFACE_H_
 
 #include <stdint.h>        /* uint32_t — used by heif_dialog slot */
+
 #include <glib.h>          /* gboolean, gchar — GLib only, no GTK */
+
 #include "core/settings.h" /* rectangle — used by Group H ROI slots */
 
 /* Forward declaration for Group K — avoids including siril.h or PSF.h */
@@ -136,7 +138,13 @@ typedef struct {
 	void     (*log_message)(const char *msg, const char *color);
 
 	/* C – Modal dialogs ---------------------------------------------------- */
+	/* Fire-and-forget: queues the dialog on the main thread and returns
+	 * immediately, without waiting for the user to dismiss it. */
 	void     (*message_dialog)(SirilMessageType type, const char *title,
+	                           const char *text);
+	/* Same, but blocks the calling thread until the user dismisses the
+	 * dialog (callable from worker threads, e.g. the python bridge). */
+	void     (*message_dialog_modal)(SirilMessageType type, const char *title,
 	                           const char *text);
 	/* Returns TRUE if the user clicked the accept button. */
 	gboolean (*confirm_dialog)(const char *title, const char *msg,
@@ -213,9 +221,18 @@ typedef struct {
 	void     (*update_status_bar)(void);
 	/* Sync menu/toolbar enable-state to current application state. */
 	void     (*update_menu_state)(void);
+	/* Pop down every open autohide popover in the main window; returns TRUE
+	 * if any was dismissed.  Used by the macOS outside-click dismissal path
+	 * (siril_macos_fix_popover_autohide).  May be NULL in headless builds. */
+	gboolean (*dismiss_autohide_popovers)(void);
 	/* Suppress (TRUE) or restore (FALSE) drawarea redraws during processing.
 	 * When suppressing, also disables the display-mode menu button. */
 	void     (*set_suppress_redraws)(gboolean suppress);
+	/* Current state of that flag.  It is a plain boolean and not a counter,
+	 * so a caller that suppresses around a section which can nest inside an
+	 * already-suppressed one must save this and restore it rather than force
+	 * the flag off — see free_image_data(). */
+	gboolean (*get_suppress_redraws)(void);
 	/* Repopulate the ROI display from current gfit data (call while holding
 	 * the gfit read lock). */
 	void     (*populate_roi)(void);
@@ -225,6 +242,8 @@ typedef struct {
 	void     (*invalidate_histogram)(void);
 	/* Recompute histogram if stale (call while holding at least a read lock). */
 	void     (*update_histogram)(void);
+	/* Reset the curves tool state after an undo/redo (no-op in headless mode). */
+	void     (*curves_reset_after_undo)(void);
 	/* Run the mask redraw now.  remap_tints as in queue_redraw_mask. */
 	void     (*redraw_mask_idle)(gboolean remap_tints);
 
@@ -305,6 +324,9 @@ typedef struct {
 	void     (*on_photometry_changed)(void);
 	/* Open a new siril-plot window for the given siril_plot_data pointer. */
 	void     (*show_siril_plot)(gpointer spl_data);
+	/* Open a new siril-plot window grouping all the plots of the given
+	 * siril_plot_group pointer side by side. */
+	void     (*show_siril_plot_group)(gpointer group);
 
 	/* K – Star list -------------------------------------------------------- */
 	/* Update the star list display and optionally the PSF list panel. */
@@ -380,8 +402,9 @@ typedef struct {
 	 * fit is cast to fits* in the implementation; use gpointer to keep the
 	 * header GTK/siril.h-free. */
 	void     (*update_icc_status_icon)(gpointer fit, gboolean active);
-	/* Return TRUE if the gamut check toggle in the ICC dialog is active. */
-	gboolean (*get_gamut_check_active)(void);
+	/* No gamut-check accessor here on purpose: the transform builders that
+	 * need it run on worker threads, so the toggle is cached into
+	 * com.gui_icc.gamut_check by on_gamutcheck_toggled() instead. */
 
 	/* V – Registration panel status ----------------------------------------- */
 	/* Set the info label text in the 3-star registration panel. */
@@ -433,16 +456,8 @@ typedef struct {
 	void     (*init_plot_colors)(void);
 	/* Save the siril_plot_data pointed to by spl_data as an image to clipboard. */
 	gboolean (*save_siril_plot_to_clipboard)(gpointer spl_data, int width, int height);
-	/* Build a save filename (wraps build_save_filename). Returns newly allocated string. */
-	gchar   *(*build_save_filename)(gchar *prepend, gchar *ext, gboolean forsequence, gboolean add_time_stamp);
 
 	/* ── Cut / spectral profile operations ──────────────────────────────────── */
-	/* Apply cut to all images in the sequence. spl_data is cut_struct*. */
-	void     (*apply_cut_to_sequence)(gpointer cut_args);
-	/* Launch profile / tri-cut / CFA cut thread; returns newly allocated GThread or NULL stub. */
-	gpointer (*run_cut_profile)(gpointer args);
-	gpointer (*run_tri_cut)(gpointer args);
-	gpointer (*run_cfa_cut)(gpointer args);
 	/* Reset per-file cut GUI state (depth/spectro labels). No-op in headless. */
 	void     (*reset_cut_gui_filedependent)(gpointer user_data);
 

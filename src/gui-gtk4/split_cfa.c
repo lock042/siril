@@ -18,18 +18,18 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
-#include "core/siril_log.h"
 #include "algos/demosaicing.h"
 #include "algos/extraction.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/utils.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
-#include "gui-gtk4/dialogs.h"
-#include "gui-gtk4/utils.h"
-#include "gui-gtk4/progress_and_log.h"
-
 
 static GtkCheckButton *split_cfa_seq_btn = NULL;
 static GtkEntry *split_cfa_entry = NULL;
@@ -194,9 +194,9 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 
 		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 		args->fit = gfit;
-		args->image_hook = cfa_extract_image_hook;
+		args->op = &op_desc_cfa_split;
 		args->idle_function = end_generic_image_reset_cursor;
-		args->description = _("CFA Extraction");
+		args->description = _("CFA Extraction");  // override: variant label
 		args->verbose = TRUE;
 		args->skip_generic_undo = TRUE;
 		args->user = cfa_args;

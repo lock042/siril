@@ -43,22 +43,19 @@
 #include <cstdlib>
 #include <cstring>
 #include <numeric>
+#include <set>
 #include <vector>
 
 #include <opencv2/imgproc.hpp>
 
+#include "core/gui_iface.h"                    /* set_progress (no-op stub in headless) */
+#include "core/processing.h"                   /* processing_should_continue */
+#include "core/siril_log.h"
 #include "registration/mpp.h"
 #include "registration/mpp/mpp_align_priv.hpp"     /* multilevel_correlation */
 #include "registration/mpp/mpp_rank_priv.hpp"
 #include "registration/mpp/mpp_shift_priv.hpp"     /* shift_prepare_ref_boxes */
-#include "registration/mpp/mpp_stack.h"
 #include "registration/mpp/mpp_stack_priv.hpp"
-
-#include "core/gui_iface.h"                    /* set_progress (no-op stub in headless) */
-#include "core/processing.h"                   /* processing_should_continue */
-#include "core/siril_log.h"
-
-#include <set>
 
 namespace mpp {
 
@@ -304,10 +301,10 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
 		try {
 			const cv::Mat frame = provider(f);
 			if (!frame.empty()) {
-				const cv::Mat lap = rank_blurred_laplacian_u8(frame, cfg);
+				const cv::Mat lap = rank_blurred_laplacian(frame, cfg);
 				/* Round sub-pixel offsets — Stage A's box-slicing math wants
 				 * integer indices; the sub-pixel residual matters only at the
-				 * drizzle pixmap stage. */
+				 * output-resample stage. */
 				const int dy = (int) std::lround(offsets[f].dy);
 				const int dx = (int) std::lround(offsets[f].dx);
 				for (int a = 0; a < M; ++a) {
@@ -316,10 +313,16 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
 					 * y_high = int(min(frame_h, patch_y_high + dy) / stride);
 					 * Python `int()` truncates toward zero. C integer division
 					 * does the same for non-negatives, so / stride matches. */
-					const int yl_raw = ap.patch_y_low  + dy;
-					const int yh_raw = ap.patch_y_high + dy;
-					const int xl_raw = ap.patch_x_low  + dx;
-					const int xh_raw = ap.patch_x_high + dx;
+					/* Rank over the patch ∪ box union: with a decoupled AP
+					 * pitch (alignment_points_step) the paste patch can be
+					 * smaller than the measurement box, and ranking on the
+					 * shrunken patch alone would be noise. Legacy geometry
+					 * has patch ⊇ box, so the union reduces to the patch —
+					 * bit-identical to PSS there. */
+					const int yl_raw = std::min(ap.patch_y_low,  ap.box_y_low)  + dy;
+					const int yh_raw = std::max(ap.patch_y_high, ap.box_y_high) + dy;
+					const int xl_raw = std::min(ap.patch_x_low,  ap.box_x_low)  + dx;
+					const int xh_raw = std::max(ap.patch_x_high, ap.box_x_high) + dx;
 					const int yl = std::max(0, yl_raw) / stride;
 					const int yh = std::min(frame_rows, yh_raw) / stride;
 					const int xl = std::max(0, xl_raw) / stride;
@@ -632,7 +635,7 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
 			 *   AP content sits at ap.box_y_low + 0.3 → correlation peak
 			 *     at +0.3 from search centre → r.dy = -0.3 (matches the
 			 *     algorithm's sign convention).
-			 *   We want stored per-AP shift = 0 so that drizzle's
+			 *   We want stored per-AP shift = 0 so that the resample's
 			 *     gdy + weighted_ap = -0.3 + 0 = -0.3 (matches the true
 			 *     alignment correction). That means r.dy + sub_y = 0. ✓
 			 * If we used r.dy − sub_y the sub-pixel global residual would
@@ -658,7 +661,8 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
 					    ap.box_y_low + dy, ap.box_y_high + dy,
 					    ap.box_x_low + dx, ap.box_x_high + dx,
 					    cfg.frames_gauss_width, cfg.alignment_points_search_width,
-					    use_subpixel, weight_matrix);
+					    use_subpixel, weight_matrix,
+					    cfg.alignment_points_zero_mean);
 					if (!r.success) {
 						const MultilevelShiftResult r2 = multilevel_correlation(
 						    ref_boxes[a].second_phase, ref_boxes[a].first_phase,
@@ -667,7 +671,8 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
 						    ap.box_x_low + dx, ap.box_x_high + dx,
 						    cfg.frames_gauss_width,
 						    cfg_retry.alignment_points_search_width,
-						    use_subpixel, weight_matrix_retry);
+						    use_subpixel, weight_matrix_retry,
+						    cfg.alignment_points_zero_mean);
 						/* Keep the original coarse estimate over a retry
 						 * that produced none (railed again / window
 						 * off-frame). */
@@ -743,17 +748,3 @@ double dc_signal_floor(const mpp_config_t &cfg) {
 }
 
 }  // namespace mpp
-
-/* ----------------- Public C interface (still stubbed) ----------------- */
-
-extern "C" mpp_status_t mpp_stack(sequence *seq,
-                                  const mpp_config_t *cfg,
-                                  const mpp_aps_t *aps,
-                                  const mpp_shifts_t *shifts,
-                                  const int *global_shifts,
-                                  mpp_resample_kind_t backend, int upscale,
-                                  fits *stacked_out) {
-	(void) seq; (void) cfg; (void) aps; (void) shifts; (void) global_shifts;
-	(void) backend; (void) upscale; (void) stacked_out;
-	return MPP_ENOTIMPL;
-}

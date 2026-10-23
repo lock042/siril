@@ -27,25 +27,28 @@
 
 #include <assert.h>
 #include <string.h>
+
 #include <glib.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
-#include "core/siril_log.h"
-#include "core/sequence_filtering.h"
-#include "core/command_line_processor.h"
-#include "core/masks.h"
-#include "core/OS_utils.h"
-#include "core/undo.h"
+#include "algos/siril_wcs.h"
+#include "algos/statistics.h"
 #include "core/gui_iface.h"
-#include "io/single_image.h"
-#include "io/sequence.h"
-#include "io/ser.h"
-#include "io/seqwriter.h"
+#include "core/masks.h"
+#include "core/op_descriptor.h"
+#include "core/OS_utils.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/sequence_filtering.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "core/undo.h"
+#include "io/annotation_catalogues.h"
 #include "io/fits_sequence.h"
 #include "io/image_format_fits.h"
-#include "algos/statistics.h"
+#include "io/sequence.h"
+#include "io/seqwriter.h"
+#include "io/ser.h"
+#include "io/single_image.h"
 #include "registration/registration.h"
 
 static GMutex child_mutex = { 0 };
@@ -1545,6 +1548,9 @@ gpointer generic_image_worker(gpointer p) {
 
 	assert(args);
 	assert(args->fit);
+	/* Populate image_hook/log_hook/description/mem_ratio from args->op (if any)
+	 * before anything reads those fields. No-op for un-migrated sites. */
+	op_descriptor_fill_img_args(args);
 	assert(args->image_hook);
 
 	/* Stack copies of args fields — args is freed by the sync-idle at
@@ -1651,7 +1657,9 @@ gpointer generic_image_worker(gpointer p) {
 
 	gboolean using_mask = args->mask_aware && hook_fit->mask && hook_fit->mask_active;
 
-	// Set default max_threads if not specified
+	/* An unset (zero) max_threads means "use the whole machine"; callers only
+	 * set it when they want fewer. Resolve it here so the hook always receives
+	 * a usable positive count. */
 	if (args->max_threads < 1)
 		args->max_threads = com.max_thread;
 
@@ -1757,6 +1765,14 @@ the_end:;
 	}
 	g_rw_lock_reader_unlock(&com.pref_rwlock);
 
+	/* Geometry hooks reframe the WCS of their private copy, so annotations
+	 * can only be reprojected once the swap has installed it in gfit.
+	 * After the swap, orig holds the pre-op image. */
+	if (use_swap && !retval && args->op && (args->op->flags & OP_GEOMETRY_CHANGING)
+			&& has_wcs(orig)) {
+		refresh_annotations(!has_wcs(gfit));
+	}
+
 	/* Carry out data updates (statistics, histograms, update Cairo
 	 * buffers in GUI mode).  Only invoke on success; on failure gfit
 	 * was not validly modified.  Runs outside the writer-lock window. */
@@ -1845,6 +1861,8 @@ gpointer generic_mask_worker(gpointer p) {
 
 	assert(args);
 	assert(args->fit);
+	/* Populate mask_hook/log_hook/description/mem_ratio from args->op (if any). */
+	op_descriptor_fill_mask_args(args);
 	assert(args->mask_hook);
 
 	gboolean verbose = args->verbose;

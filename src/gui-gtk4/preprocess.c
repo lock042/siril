@@ -22,21 +22,19 @@
  * Moved here from core/preprocess.c to keep core/ free of GTK dependencies. */
 
 #include <gtk/gtk.h>
-#include "core/siril.h"
-#include "core/proto.h"
-#include "gui-gtk4/utils.h"
-#include "core/processing.h"
-#include "core/siril_log.h"
+
+#include "core/arithm.h"
 #include "core/gui_iface.h"
 #include "core/preprocess.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "filters/cosmetic_correction.h"
 #include "gui-gtk4/gui_state.h"
-#include "io/single_image.h"
-#include "io/sequence.h"
+#include "gui-gtk4/utils.h"
 #include "io/image_format_fits.h"
 #include "io/path_parse.h"
-#include "filters/cosmetic_correction.h"
-#include "algos/statistics.h"
-#include "core/arithm.h"
+#include "io/sequence.h"
+#include "io/single_image.h"
 
 /* Reads widget values to populate a preprocessing_data struct.
  * Returns TRUE on error. */

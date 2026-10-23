@@ -18,20 +18,17 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/proto.h"
-#include "core/OS_utils.h"
-#include "core/processing.h"
-#include "core/undo.h"
 #include "algos/statistics.h"
-#include "io/image_format_fits.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
 #include "core/siril_log.h"
+#include "core/undo.h"
 #include "filters/nlbayes/call_nlbayes.h"
-#include "gui-gtk4/image_display.h"
-#include "gui-gtk4/utils.h"
-#include "gui-gtk4/siril_preview.h"
-#include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/siril_preview.h"
+#include "gui-gtk4/utils.h"
 #include "io/single_image.h"
 
 // Widgets
@@ -162,13 +159,10 @@ static int denoise_process_with_worker(gboolean for_preview, gboolean for_roi) {
 
 	// Set the fit based on whether ROI is active
 	args->fit = for_roi ? &gui.roi.fit : gfit;
-	args->mem_ratio = 3.0f; // Denoising needs extra memory
-	args->image_hook = denoise_image_hook;
+	args->op = &op_desc_denoise;
 	args->idle_function = for_preview ? denoise_preview_idle : denoise_apply_idle;
-	args->description = _("NL-Bayes Denoising");
 	args->verbose = !for_preview;
 	args->user = params;
-	args->log_hook = denoise_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
 	args->for_roi = for_roi;

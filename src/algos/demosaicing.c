@@ -18,22 +18,19 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string.h>
-#include <math.h>
-#include <stdint.h>
 #include <assert.h>
+#include <stdint.h>
+#include <string.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/icc_profile.h"
-#include "core/processing.h"
-#include "core/siril_log.h"
-#include "io/sequence.h"
-#include "io/image_format_fits.h"
-#include "io/fits_keywords.h"
 #include "algos/demosaicing.h"
 #include "algos/extraction.h"
-
+#include "core/icc_profile.h"
+#include "core/processing.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "io/fits_keywords.h"
+#include "io/image_format_fits.h"
+#include "io/sequence.h"
 
 const char *filter_pattern[] = {
 	"RGGB",

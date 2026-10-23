@@ -18,12 +18,12 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "../core/siril.h"
-#include "../algos/sorting.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+
+#include "algos/sorting.h"
+#include "core/siril.h"
 
 #define THREADING_TYPE MULTI_THREADED
 

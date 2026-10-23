@@ -1,6 +1,7 @@
 #ifndef _IMAGE_INTERACTIONS_H_
-#include <gtk/gtk.h>
 #define _IMAGE_INTERACTIONS_H_
+
+#include <gtk/gtk.h>
 
 #include "core/siril.h"
 #include "gui-gtk4/gtk3_event_compat.h"
@@ -8,6 +9,7 @@
 typedef void (*selection_update_callback)();
 typedef void (*star_selection_callback)(pointi);
 
+void set_zoom_at(gdouble x, gdouble y, double value);
 gboolean update_zoom(gdouble x, gdouble y, double scale);
 void update_zoom_fit_button();
 
@@ -83,8 +85,9 @@ typedef enum {
 	MOUSE_ACTION_ADD_POLY_TO_MASK, // 11
 	MOUSE_ACTION_CLEAR_POLY_FROM_MASK, // 12
 	MOUSE_ACTION_SAMPLE_MASK_COLOR, // 13
-	MOUSE_ACTION_EDIT_APS, // 14 — multipoint AP grid editor (left=add, right=remove, drag=move)
-	MOUSE_ACTION_FIT_DISK // 15 — derotation planet-disk fit (drag disc to move, drag handles to resize)
+	MOUSE_ACTION_CURVES_PIPETTE, // 14
+	MOUSE_ACTION_EDIT_APS, // 15 — multipoint AP grid editor (left=add, right=remove, drag=move)
+	MOUSE_ACTION_FIT_DISK // 16 — derotation planet-disk fit (drag disc to move, drag handles to resize)
 } mouse_status_enum;
 
 typedef enum {

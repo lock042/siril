@@ -5,13 +5,23 @@
 
 #include <math.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/arithm.h"
-#include "core/processing.h"
 #include "algos/statistics.h"
+#include "core/arithm.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "filters/asinh.h"
 
-#include "asinh.h"
+/* Op descriptor — single source of truth for this operation (op_descriptor.h) */
+const op_descriptor op_desc_asinh = {
+	.id = "stretch.asinh", .version = 1,
+	.image_hook = asinh_image_hook,
+	.log_hook = asinh_log_hook,
+	.description = N_("Asinh stretch"),
+	.mem_ratio = 1.0f,
+	.flags = OP_MASK_CAPABLE,
+};
 
 /* The actual asinh processing hook */
 int asinh_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {

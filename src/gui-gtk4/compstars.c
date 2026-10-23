@@ -19,15 +19,16 @@
  */
 
 #include <gtk/gtk.h>
+
+#include "algos/comparison_stars.h"
+#include "core/processing.h"
 #include "core/siril.h"
 #include "core/siril_log.h"
-#include "core/processing.h"
-#include "algos/comparison_stars.h"
+#include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/image_display.h"
 #include "gui-gtk4/message_dialog.h"
-#include "gui-gtk4/utils.h"
-#include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/PSF_list.h"
+#include "gui-gtk4/utils.h"
 #include "io/annotation_catalogues.h"
 #include "io/siril_catalogues.h"
 
@@ -94,9 +95,6 @@ static void build_the_dialog() {
 	gtk_window_set_title(GTK_WINDOW(dialog), _("Create a comparison stars list"));
 	gtk_window_set_default_size(GTK_WINDOW(dialog), 400, 200);
 	gtk_window_set_resizable(GTK_WINDOW(dialog), FALSE);
-	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
-	/* A modal GtkWindow with no transient parent grabs input with no anchor
-	 * and can wedge the whole session on Wayland/Xorg. */
 	gtk_window_set_transient_for(GTK_WINDOW(dialog), GTK_WINDOW(lookup_widget("control_window")));
 	gtk_window_set_hide_on_close(GTK_WINDOW(dialog), TRUE);
 	g_signal_connect(G_OBJECT(dialog), "close-request", G_CALLBACK(siril_widget_hide_on_delete), NULL);

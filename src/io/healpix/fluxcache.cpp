@@ -1,20 +1,22 @@
 #include "config.h"
-#include "fluxcache.h"
+
 #include <cstdint>
+
+#include "io/healpix/fluxcache.h"
 
 #ifdef HAVE_SQLITE
 #include <sqlite3.h>
 #endif
 
+#include <algorithm>
+#include <cstring>
 #include <ctime>
 #include <filesystem>
-#include <mutex>
 #include <fstream>
-#include <cstring>
-#include <algorithm>
-#include <omp.h>
-#include "core/siril_log.h"
+#include <mutex>
+
 #include "core/siril.h"
+#include "core/siril_log.h"
 
 extern "C" {
 #include "core/siril_app_dirs.h"

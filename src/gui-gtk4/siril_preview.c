@@ -18,22 +18,18 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "siril_preview.h"
-
-#include "core/siril.h"
-#include "gui-gtk4/gui_state.h"
-#include "core/proto.h"
+#include "algos/statistics.h"
 #include "core/icc_profile.h"
 #include "core/OS_utils.h"
-#include "core/processing.h"
 #include "core/processing_thread.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
-#include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/callbacks.h"
-#include "io/single_image.h"
+#include "gui-gtk4/gui_state.h"
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/siril_preview.h"
 #include "io/image_format_fits.h"
-#include "algos/statistics.h"
-
+#include "io/single_image.h"
 
 static gboolean notify_is_blocked;
 static gboolean preview_is_active;
@@ -166,7 +162,7 @@ int restore_roi() {
 }
 
 void copy_gfit_to_backup() {
-	guint64 gfit_size = gfit->rx * gfit->ry * gfit->naxes[2] * gfit->type == DATA_FLOAT ? 4 : 2;
+	guint64 gfit_size = (guint64) gfit->rx * gfit->ry * gfit->naxes[2] * (gfit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD));
 	if (!preview_is_active && (get_available_memory() < (gfit_size * 2))) {
 		siril_log_warning(_("Warning: insufficient memory available to create a preview.\n"));
 		return;

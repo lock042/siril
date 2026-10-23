@@ -22,49 +22,43 @@
 #include <config.h>
 #endif
 
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-#include <time.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <sys/time.h>
-#include <ctype.h>
 #include <assert.h>
-#include <math.h>
+#include <ctype.h>
 #include <libgen.h>
+#include <math.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <time.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/OS_utils.h"
-#include "core/initfile.h"
-#include "core/undo.h"
-#include "core/siril_log.h"
-#include "io/conversion.h"
 #include "core/gui_iface.h"
-#include "ser.h"
-#include "fits_sequence.h"
+#include "core/initfile.h"
+#include "core/OS_utils.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "core/undo.h"
+#include "io/conversion.h"
+#include "io/fits_sequence.h"
+#include "io/ser.h"
 #ifdef HAVE_FFMS2
-#include "films.h"
+#include "io/films.h"
 #endif
-#include "single_image.h"
-#include "image_format_fits.h"
+#include "algos/demosaicing.h"
 #include "algos/PSF.h"
+#include "algos/siril_wcs.h"
 #include "algos/star_finder.h"
 #include "algos/statistics.h"
-#include "algos/siril_wcs.h"
-#include "algos/demosaicing.h"
-#include "registration/registration.h"
-#include "registration/mpp.h"
-#include "registration/mpp/mpp_sidecar.h"
-#include "registration/mpp/mpp_ap.h"
-#include "stacking/stacking.h"	// for stack_method and related types
-#include "opencv/opencv.h"
 #include "core/siril_date.h"
-
-#include "sequence.h"
-
+#include "io/image_format_fits.h"
+#include "io/sequence.h"
+#include "io/single_image.h"
+#include "opencv/opencv.h"
+#include "registration/mpp.h"
+#include "registration/mpp/mpp_ap.h"
+#include "registration/mpp/mpp_sidecar.h"
+#include "registration/registration.h"
 
 /* com.seq is a static struct containing the sequence currently selected by the
  * user from the interface. It may change to be a pointer to any sequence
@@ -424,12 +418,15 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 		 * subsequent reads use the correct extension.  Write under pref_rwlock
 		 * since workers may be reading com.pref.ext concurrently. */
 		if (strcasecmp(ext, com_ext + 1)) {
-			gchar *new_ext = g_strdup_printf(".%s", ext);
-			if (is_fz) new_ext[strlen(new_ext) - 2] = '\0';
+			/* ext holds the compression suffix too (like "fit.fz"), com.pref.ext must not */
+			gchar *base = g_ascii_strdown(ext, is_fz ? (gssize)strlen(ext) - 3 : -1);
+			gchar *new_ext = g_strconcat(".", base, NULL);
+			g_free(base);
 			g_rw_lock_writer_lock(&com.pref_rwlock);
 			g_free(com.pref.ext);
 			com.pref.ext = new_ext;
 			g_rw_lock_writer_unlock(&com.pref_rwlock);
+			com_ext = get_com_ext(is_fz);	// com.pref.ext was reallocated
 		}
 
 		fitseq *fitseq_file = malloc(sizeof(fitseq));
@@ -563,10 +560,13 @@ gboolean set_seq(gpointer user_data){
 	close_sequence(TRUE);
 
 #ifdef HAVE_FFMS2
-	int convert = (int)((com.headless));
+	/* Only film (AVI) sequences are deprecated and convertible: SER / FITSEQ
+	 * load normally. Guard the whole block on the type — convert_single_film_
+	 * to_ser dereferences seq->film_file, which is NULL for anything else. */
+	int convert = 0;
 	int avi_bayer_pattern = 0;   /* MPP_AVI_BAYER_AUTO */
-	if (!com.headless) {
-		if (seq->type == SEQ_AVI) {
+	if (seq->type == SEQ_AVI) {
+		if (!com.headless) {
 			convert = gui_iface.confirm_dialog_with_avi_bayer(_("Deprecated sequence"),
 					_("Film sequences are now deprecated in Siril: some features are disabled and others may crash."
 							" We strongly encourage you to convert this sequence into a SER file."
@@ -575,12 +575,13 @@ gboolean set_seq(gpointer user_data){
 							" Bayer pattern below — it will be stamped into the SER ColorID so future runs"
 							" see the right mosaic layout. Leave Auto if you don't know or the AVI is true mono."),
 					_("Convert to SER"), &avi_bayer_pattern);
+		} else {
+			siril_log_warning(_("Warning: deprecated sequence. Film sequences are now deprecated "
+				"in Siril: some features are disabled and others may crash. Continuing, but "
+								"we strongly encourage you to convert this sequence into a SER file."
+								"SER file format is a simple image sequence format, similar to uncompressed films.\n"));
+			convert = TRUE;
 		}
-	} else {
-		siril_log_warning(_("Warning: deprecated sequence. Film sequences are now deprecated "
-			"in Siril: some features are disabled and others may crash. Continuing, but "
-							"we strongly encourage you to convert this sequence into a SER file."
-							"SER file format is a simple image sequence format, similar to uncompressed films.\n"));
 	}
 	if (convert) {
 		close_sequence(FALSE);

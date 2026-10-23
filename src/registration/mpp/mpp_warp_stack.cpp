@@ -53,12 +53,10 @@
 
 #include <opencv2/imgproc.hpp>
 
-#include "registration/mpp.h"
-#include "registration/mpp/mpp_stack_priv.hpp"
-
 #include "core/gui_iface.h"
 #include "core/processing.h"
-#include "core/siril_log.h"
+#include "registration/mpp.h"
+#include "registration/mpp/mpp_stack_priv.hpp"
 
 namespace mpp {
 
@@ -106,7 +104,7 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 	const int M = aps.count;
 	const int N = num_frames;
 	const int C = num_layers;
-	const double S = std::max(1.0, cfg.drizzle_scale);
+	const double S = std::max(1.0, cfg.output_scale);
 	const int dim_y = intersection[1] - intersection[0];
 	const int dim_x = intersection[3] - intersection[2];
 	const int DY = (int) std::lround(dim_y * S);
@@ -277,6 +275,7 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 		std::vector<float> syA(M, 0.0f), sxA(M, 0.0f);
 		std::vector<uint8_t> okA(M, 0);
 		cv::Mat Wc(Gy, Gx, CV_32F), Dyc(Gy, Gx, CV_32F), Dxc(Gy, Gx, CV_32F);
+		std::vector<uint8_t> sup((size_t) Gy * Gx), supn((size_t) Gy * Gx);
 
 #ifdef _OPENMP
 #pragma omp for schedule(dynamic) nowait
@@ -300,16 +299,16 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 			} else {
 				frame_raw.convertTo(frame_f32, CV_32F);
 			}
-			cv::Mat frame_drizzled;
+			cv::Mat frame_scaled;
 			if (S != 1.0)
-				cv::resize(frame_f32, frame_drizzled,
+				cv::resize(frame_f32, frame_scaled,
 				           cv::Size((int) std::lround(frame_f32.cols * S),
 				                    (int) std::lround(frame_f32.rows * S)),
 				           0, 0, cv::INTER_LINEAR);
 			else
-				frame_drizzled = frame_f32;
-			const int Hd = frame_drizzled.rows;
-			const int Wd_f = frame_drizzled.cols;
+				frame_scaled = frame_f32;
+			const int Hd = frame_scaled.rows;
+			const int Wd_f = frame_scaled.cols;
 
 			/* Per-frame AP weights and shifts. A failed pair whose stored
 			 * shift differs from the frame's sub-pixel global residual
@@ -319,7 +318,11 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 			 * the displacement field (the robust neighbour-median clamp
 			 * below still snaps any wild value). Pairs with NO estimate
 			 * (stored shift == the bare residual) stay excluded and take
-			 * the interpolated field. */
+			 * the interpolated field. When Stage B's shift-field smoothing
+			 * is active every failed pair votes: smoothing has already
+			 * replaced its stored value with a robust fit prediction from
+			 * the neighbouring successful APs. */
+			const bool trust_failed = cfg.alignment_points_smooth_radius > 0.0;
 			const double sub_y = offsets[f].dy
 			                   - (double) std::lround(offsets[f].dy);
 			const double sub_x = offsets[f].dx
@@ -332,7 +335,8 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 					syA[u.ap] = (float) shifts->shifts[soff + 0];
 					sxA[u.ap] = (float) shifts->shifts[soff + 1];
 					uint8_t ok = shifts->success[(size_t) f * M + u.ap];
-					if (!ok && (shifts->shifts[soff + 0] != sub_y
+					if (!ok && (trust_failed
+					         || shifts->shifts[soff + 0] != sub_y
 					         || shifts->shifts[soff + 1] != sub_x))
 						ok = 1;
 					okA[u.ap] = ok;
@@ -390,6 +394,69 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 					wrow[gx] = (float) wsum_n;
 					yrow[gx] = den > 1e-12 ? (float) (ny / den) : 0.0f;
 					xrow[gx] = den > 1e-12 ? (float) (nx / den) : 0.0f;
+					sup[(size_t) gy * Gx + gx] = den > 1e-12;
+				}
+			}
+
+			/* Extrapolate the displacement into zero-support nodes. Nodes
+			 * no AP window reaches (sky beyond the last AP row) — and, for
+			 * this frame, nodes whose APs all left it unselected — hold no
+			 * measurement; leaving them at zero makes the upsampled field
+			 * decay from the rim APs' real shifts to identity across a
+			 * couple of coarse cells, so anything hanging just off the
+			 * limb (prominences, spicule tops) is resampled with a
+			 * partially applied, frame-varying shift: ghosted detail with
+			 * a hard edge along the coverage boundary. The patch engine
+			 * has no such decay — its boundary patches apply the nearest
+			 * AP's full shift. Grow the field outward instead (Jacobi
+			 * passes: an empty node takes the mean of its filled
+			 * 8-neighbours), so off-support content rides the nearest
+			 * measured shift. Weights are deliberately NOT extended:
+			 * beyond the outermost patch bounds the composite hands over
+			 * to the background exactly like the patch engine, and the
+			 * accumulation's frame subset (the nearest APs' sharpest
+			 * picks, which carry measurably less scattered light than the
+			 * full set) never leaks into the faint sky. */
+			{
+				int remaining = 0;
+				for (size_t i = 0; i < sup.size(); ++i)
+					if (!sup[i]) ++remaining;
+				while (remaining > 0) {
+					supn = sup;
+					int prev = remaining;
+					for (int gy = 0; gy < Gy; ++gy) {
+						float *yrow = Dyc.ptr<float>(gy);
+						float *xrow = Dxc.ptr<float>(gy);
+						for (int gx = 0; gx < Gx; ++gx) {
+							if (sup[(size_t) gy * Gx + gx]) continue;
+							float sy = 0.0f, sx = 0.0f;
+							int cnt = 0;
+							for (int dy = -1; dy <= 1; ++dy) {
+								const int ny_ = gy + dy;
+								if (ny_ < 0 || ny_ >= Gy) continue;
+								const float *nyr = Dyc.ptr<float>(ny_);
+								const float *nxr = Dxc.ptr<float>(ny_);
+								for (int dx = -1; dx <= 1; ++dx) {
+									const int nx_ = gx + dx;
+									if (nx_ < 0 || nx_ >= Gx || (!dy && !dx))
+										continue;
+									if (!sup[(size_t) ny_ * Gx + nx_])
+										continue;
+									sy += nyr[nx_];
+									sx += nxr[nx_];
+									++cnt;
+								}
+							}
+							if (cnt) {
+								yrow[gx] = sy / (float) cnt;
+								xrow[gx] = sx / (float) cnt;
+								supn[(size_t) gy * Gx + gx] = 1;
+								--remaining;
+							}
+						}
+					}
+					sup.swap(supn);
+					if (remaining == prev) break;   /* no support anywhere */
 				}
 			}
 
@@ -400,12 +467,19 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 				okA[u.ap] = 0;
 			}
 
-			/* Dense weight + displacement fields. */
+			/* Dense weight + displacement fields. The weight upsample must
+			 * be monotone: bicubic rings on the sharp coverage edge above
+			 * the outermost AP row, and the resulting fixed-position
+			 * ripple in the fg/bg blend ramp paints a line along the
+			 * boundary wherever the accumulation and background levels
+			 * differ (visible in a stretched solar halo). The displacement
+			 * keeps the smoother cubic — it is measurement data, not a
+			 * support envelope, and post-extrapolation it has no step to
+			 * ring on. */
 			cv::Mat Wd, Dyd, Dxd;
-			cv::resize(Wc, Wd, cv::Size(DX, DY), 0, 0, cv::INTER_CUBIC);
+			cv::resize(Wc, Wd, cv::Size(DX, DY), 0, 0, cv::INTER_LINEAR);
 			cv::resize(Dyc, Dyd, cv::Size(DX, DY), 0, 0, cv::INTER_CUBIC);
 			cv::resize(Dxc, Dxd, cv::Size(DX, DY), 0, 0, cv::INTER_CUBIC);
-			cv::max(Wd, 0.0f, Wd);   /* cubic overshoot */
 
 			/* Optional per-frame derotation base. dmx/dmy give, for each
 			 * epoch-canvas pixel, the source position in the MPP-aligned frame
@@ -443,7 +517,7 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 			cv::multiply(Wd, vis, Wd);
 
 			cv::Mat warped;
-			cv::remap(frame_drizzled, warped, mapx, mapy,
+			cv::remap(frame_scaled, warped, mapx, mapy,
 			          cv::INTER_LANCZOS4, cv::BORDER_REPLICATE);
 
 			cv::Mat tmp;
@@ -521,9 +595,26 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 		cv::Mat fg;
 		const double blend_denom = cfg.stack_frames_background_blend_threshold
 		                         * (double) apq.stack_size;
-		wsum.convertTo(fg, CV_32F, 1.0 / blend_denom);
+		/* The blend ramp is a C1 smoothstep of the coverage rather than a
+		 * hard clamp. A hard clamp saturates across the first blend_t
+		 * fraction of the outermost window taper: the whole hand-off
+		 * concentrates into a few pixels and its inner edge (fg = 1) is a
+		 * derivative discontinuity, so any residual accumulation/
+		 * background level difference prints as a line — or AP-pitch
+		 * scallops, since the contours trace the scalloped window
+		 * envelope — along the coverage boundary. smoothstep(t/2) has
+		 * zero slope at both ends (the outer end compounds with the Hann
+		 * taper's own smooth tail), reaches 1 at twice the blend
+		 * threshold, and keeps the support exactly equal to the raw
+		 * coverage (an fg wider than the accumulation's support pulls
+		 * empty acc pixels into the composite). */
+		wsum.convertTo(fg, CV_32F, 0.5 / blend_denom);
 		cv::min(fg, 1.0f, fg);
 		cv::max(fg, 0.0f, fg);
+		cv::Mat fg2;
+		cv::multiply(fg, fg, fg2);
+		cv::Mat fg3 = fg2.mul(fg);
+		fg = 3.0f * fg2 - 2.0f * fg3;
 		/* Brightness-aware boost (parity with the patch-engine merge):
 		 * bright content with any real W coverage stays on the warped
 		 * accumulation instead of being diluted toward the background

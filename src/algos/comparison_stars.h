@@ -2,9 +2,9 @@
 #define _COMPARISON_STARS_H
 
 #include <glib.h>
-#include "io/remote_catalogues.h"
-#include "algos/PSF.h"
+
 #include "algos/photometry.h"
+#include "io/remote_catalogues.h"
 #include "io/siril_catalogues.h"
 
 struct compstars_arg {

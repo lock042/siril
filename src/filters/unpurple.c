@@ -20,16 +20,25 @@
 
 #include <math.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
-#include "io/single_image.h"
-#include "io/image_format_fits.h"
-#include "opencv/opencv.h"
 #include "algos/colors.h"
+#include "core/gui_iface.h"
+#include "core/op_descriptors.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "filters/synthstar.h"
 #include "filters/unpurple.h"
-#include "core/gui_iface.h"
+#include "io/image_format_fits.h"
+#include "opencv/opencv.h"
+
+/* Op descriptor — single source of truth for this operation (op_descriptor.h) */
+const op_descriptor op_desc_unpurple = {
+	.id = "filters.unpurple", .version = 1,
+	.image_hook = unpurple_image_hook,
+	.log_hook = unpurple_log_hook,
+	.description = N_("Unpurple Filter"),
+	.mem_ratio = 2.0f,
+	.flags = OP_MASK_CAPABLE,
+};
 
 /*****************************************************************************
  *      U N P U R P L E   A L L O C A T O R   A N D   D E S T R U C T O R    *

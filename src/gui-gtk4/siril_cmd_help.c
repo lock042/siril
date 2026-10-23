@@ -19,8 +19,6 @@
  */
 
 #include <gtk/gtk.h>
-#include "core/siril.h"
-#include "core/proto.h"
 
 #include "gui-gtk4/siril_cmd_help.h"
 

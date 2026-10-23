@@ -29,14 +29,18 @@ double rank_average_brightness(const cv::Mat &mono, const mpp_config_t &cfg);
 /* σ / brightness if cfg.frames_normalization, otherwise just σ. */
 double rank_score_normalized(const cv::Mat &mono, const mpp_config_t &cfg);
 
-/* Blurred Laplacian as uint8: upscale 8-bit→16-bit-range (× 256),
- * GaussianBlur(7×7) → stride-2 sub-sample → cv::Laplacian(CV_32F)
- * → cv::convertScaleAbs(α=1/256). Returns CV_8U.
+/* Blurred |Laplacian| quality image: upscale 8-bit→16-bit-range (× 256),
+ * GaussianBlur(7×7) → stride-2 sub-sample → cv::Laplacian(CV_32F), then
+ * either |lap|·α as CV_32F (cfg.rank_float_precision, the mpp_improve
+ * default — full ordering precision) or PSS's
+ * cv::convertScaleAbs(α=1/256) CV_8U (quantised to steps of 1/α,
+ * saturating at 255/α; equivalence fixtures pin this path).
  *
  * The upscale step is critical for 8-bit data — without it, blurred-frame
  * Laplacian magnitudes are < 256 and convertScaleAbs(α=1/256) zeroes
- * the entire image. */
-cv::Mat rank_blurred_laplacian_u8(const cv::Mat &mono, const mpp_config_t &cfg);
+ * the entire image (and the float path's magnitudes would be ~256×
+ * smaller than 16-bit input's, breaking score comparability). */
+cv::Mat rank_blurred_laplacian(const cv::Mat &mono, const mpp_config_t &cfg);
 
 /* Blur the mono frame. For 8-bit mono: upcast to CV_16U with × 256
  * scaling so the blurred output (and everything derived from it —

@@ -18,37 +18,32 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/siril.h"
-#include "core/proto.h"
+#include "algos/astrometry_solver.h"
 #include "core/icc_profile.h"
 #include "core/initfile.h"
+#include "core/settings.h"
+#include "core/siril.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_language.h"
-#include "core/settings.h"
 #include "core/siril_log.h"
-#include "algos/astrometry_solver.h"
-#include "io/annotation_catalogues.h"
-#include "io/siril_pythonmodule.h"
 #include "gui-gtk4/annotations_pref.h"
 #include "gui-gtk4/callbacks.h"
-#include "gui-gtk4/icc_profile.h"
-#include "gui-gtk4/utils.h"
-#include "gui-gtk4/message_dialog.h"
-#include "gui-gtk4/progress_and_log.h"
-#include "gui-gtk4/script_menu.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/fix_xtrans_af.h"
+#include "gui-gtk4/icc_profile.h"
+#include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/preferences.h"
 #include "gui-gtk4/PSF_list.h"
-#include "gui-gtk4/photometric_cc.h"
 #include "gui-gtk4/python_gui.h"
 #include "gui-gtk4/registration.h"
+#include "gui-gtk4/script_menu.h"
 #include "gui-gtk4/siril_intro.h"
-#include "io/single_image.h"
+#include "gui-gtk4/utils.h"
+#include "io/annotation_catalogues.h"
 #include "io/sequence.h"
-#include "stacking/stacking.h"
+#include "io/single_image.h"
 #include "io/siril_git.h"
-
-#include "preferences.h"
+#include "io/siril_pythonmodule.h"
 
 /* ── Language combo (moved from core/siril_language.c) ────────────────────── */
 
@@ -406,6 +401,7 @@ static void update_FITS_options_preferences() {
 
 	com.pref.rgb_aladin = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("check_button_aladin"))));
 	com.pref.use_checksum = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("checkbutton_fits_chksum"))));
+	com.pref.use_mips_lohi = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("checkbutton_fits_mips_lohi"))));
 	com.pref.binning_update = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("checkbutton_binned_update"))));
 
 	/* IDs aligned with settings_window.ui combobox_ext items */
@@ -592,6 +588,7 @@ void update_preferences_from_model() {
 	/* tab FITS Options */
 	siril_toggle_set_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("check_button_aladin"))), pref->rgb_aladin);
 	siril_toggle_set_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("checkbutton_fits_chksum"))), pref->use_checksum);
+	siril_toggle_set_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("checkbutton_fits_mips_lohi"))), pref->use_mips_lohi);
 	siril_toggle_set_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("checkbutton_binned_update"))), pref->binning_update);
 	siril_toggle_set_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("comp_fits_disabled_radio"))), !pref->comp.fits_enabled);
 	siril_toggle_set_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("comp_fits_enabled_radio"))), pref->comp.fits_enabled);

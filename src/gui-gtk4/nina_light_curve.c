@@ -19,17 +19,18 @@
  */
 
 #include <gtk/gtk.h>
-#include "core/siril.h"
-#include "core/siril_log.h"
+
+#include "algos/comparison_stars.h"
 #include "algos/photometry.h"
 #include "algos/siril_wcs.h"
-#include "algos/comparison_stars.h"
-#include "nina_light_curve.h"
-#include "io/sequence.h"
-#include "gui-gtk4/message_dialog.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/nina_light_curve.h"
 #include "gui-gtk4/plot.h"
 #include "gui-gtk4/utils.h"
+#include "io/sequence.h"
 
 static GtkWidget *dialog = NULL;	// the window, a GtkDialog
 static GtkWidget *file_chooser = NULL;
@@ -58,16 +59,13 @@ static void build_the_dialog() {
 	gtk_window_set_title(GTK_WINDOW(dialog), _("Automated light curve"));
 	gtk_window_set_default_size(GTK_WINDOW(dialog), 400, 200);
 	gtk_window_set_resizable(GTK_WINDOW(dialog), FALSE);
-	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
-	/* A modal GtkWindow with no transient parent grabs input with no anchor
-	 * and can wedge the whole session on Wayland/Xorg. */
 	gtk_window_set_transient_for(GTK_WINDOW(dialog), GTK_WINDOW(lookup_widget("control_window")));
 	gtk_window_set_hide_on_close(GTK_WINDOW(dialog), TRUE);
 	g_signal_connect(G_OBJECT(dialog), "close-request", G_CALLBACK(siril_widget_hide_on_delete), NULL);
 
-	/* Phase 14: GtkFileChooserButton removed in GTK4.  Use a placeholder
-	 * GtkButton until Phase 18 routes this through GtkFileDialog. */
 	file_chooser = gtk_button_new_with_label(_("Select the comparison star list file"));
+	siril_path_button_init(file_chooser, _("Select the comparison star list file"), "filter_csv", FALSE);
+	siril_file_chooser_set_current_folder_path(file_chooser, com.wd);
 	gtk_widget_set_margin_start(GTK_WIDGET(file_chooser), 15);
 	gtk_widget_set_margin_end(GTK_WIDGET(file_chooser), 15);
 	gtk_widget_set_margin_top(GTK_WIDGET(file_chooser), 15);
@@ -255,7 +253,8 @@ static void on_nina_lc_response(GtkWindow *self, gint response_id, gpointer user
 	if (g_strcmp0(dirname, com.wd) != 0) {	// Tests if the file is in the CWD
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("The current comparison stars file is not located in the CWD"));
 		siril_file_chooser_set_current_folder_path(file_chooser, com.wd);
-		/* GTK4: gtk_file_chooser_unselect_all removed */;
+		g_object_set_data(G_OBJECT(file_chooser), "siril-path", NULL);
+		gtk_button_set_label(GTK_BUTTON(file_chooser), _("Select the comparison star list file"));
 		g_free(dirname);
 		g_free(nina_file);
 		return;

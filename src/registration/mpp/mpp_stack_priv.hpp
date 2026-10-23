@@ -6,16 +6,17 @@
 #ifndef SRC_REGISTRATION_MPP_STACK_PRIV_HPP_
 #define SRC_REGISTRATION_MPP_STACK_PRIV_HPP_
 
-#include <opencv2/core.hpp>
 #include <functional>
 #include <vector>
 
+#include <opencv2/core.hpp>
+
 #include "registration/mpp.h"
+#include "registration/mpp/mpp_align_priv.hpp"   /* for progress_cb_fn */
 #include "registration/mpp/mpp_ap.h"
 #include "registration/mpp/mpp_config.h"
 #include "registration/mpp/mpp_shift.h"
 #include "registration/mpp/mpp_shift_priv.hpp"   /* for FrameOffset */
-#include "registration/mpp/mpp_align_priv.hpp"   /* for progress_cb_fn */
 
 namespace mpp {
 
@@ -50,7 +51,7 @@ double dc_signal_floor(const mpp_config_t &cfg);
 
 /* Per-AP per-frame quality for the default Laplace (frame-rank) +
  * Laplace (AP-rank) path. The strided LoG of each frame is computed
- * once via rank_blurred_laplacian_u8 (shared with mpp_rank), then each
+ * once via rank_blurred_laplacian (shared with mpp_rank), then each
  * AP's patch is sliced from it and meanStdDev gives σ. With
  * frames_normalization on, σ is divided by frame avg_brightness. */
 /* A (frame → AP) selection entry: the AP index plus the frame's selection
@@ -166,7 +167,7 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
 cv::Mat stack_float_to_uint16(const cv::Mat &buf, int num_layers, int bitdepth);
 
 /* Optional per-frame derotation hook for the warp engine. Fills, in the
- * engine's drizzled canvas (rows=DY, cols=DX):
+ * engine's scaled canvas (rows=DY, cols=DX):
  *   mapx/mapy (CV_32F) — source position in the MPP-aligned frame canvas of the
  *                        surface point seen at each epoch-canvas pixel (replaces
  *                        the identity base of the remap);

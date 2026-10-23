@@ -1335,7 +1335,7 @@ static void apply_gui_mpp_config(mpp_config_t *cfg) {
 		GObject *o = gtk_builder_get_object(b, "mdp_scale");
 		if (o) {
 			const guint i = gtk_drop_down_get_selected(GTK_DROP_DOWN(o));
-			cfg->drizzle_scale = (i < G_N_ELEMENTS(scales)) ? scales[i] : 1.0;
+			cfg->output_scale = (i < G_N_ELEMENTS(scales)) ? scales[i] : 1.0;
 		}
 	}
 	#undef MPP_SPIN_I

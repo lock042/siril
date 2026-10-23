@@ -19,31 +19,27 @@
  */
 
 #include <assert.h>
-#include <math.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
 #include "algos/colors.h"
+#include "algos/statistics.h"
 #include "core/icc_profile.h"
-#include "core/processing.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
 #include "core/undo.h"
-#include "core/OS_utils.h"
-#include "io/single_image.h"
-#include "io/sequence.h"
-#include "io/image_format_fits.h"
-#include "algos/statistics.h"
-
-#include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/colors.h"
+#include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/histogram.h"
 #include "gui-gtk4/image_display.h"
 #include "gui-gtk4/image_interactions.h"
-#include "gui-gtk4/registration_preview.h"
 #include "gui-gtk4/message_dialog.h"
-#include "gui-gtk4/histogram.h"
-#include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/registration_preview.h"
 #include "gui-gtk4/utils.h"
-#include "gui-gtk4/colors.h"
+#include "io/image_format_fits.h"
+#include "io/sequence.h"
+#include "io/single_image.h"
 
 void on_button_bkg_selection_clicked(GtkButton *button, gpointer user_data) {
 	static GtkSpinButton *selection_black_value[4] = { NULL, NULL, NULL, NULL };
@@ -404,6 +400,7 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 		// Not RGB, so we need to value_check the image to avoid out-of-range pixels
 		if (!value_check(gfit)) {
 			siril_log_error(_("Error in value_check(). This should not happen...\n"));
+			free(args);
 			return;
 		}
 	}

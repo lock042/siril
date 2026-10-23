@@ -19,10 +19,8 @@
  */
 
 #include "core/siril.h"
-#include "core/proto.h"
+#include "gui-gtk4/siril_intro.h"
 #include "gui-gtk4/utils.h"
-
-#include "siril_intro.h"
 
 #define INTRO_DELAY 1000
 
@@ -95,6 +93,23 @@ static void on_window_destroyed_weakref(gpointer user_data, GObject *where_was) 
 	}
 }
 
+/* Dismiss an intro tip surface.  For a GtkPopover this MUST go through
+ * gtk_popover_popdown(): popdown is the path that releases the autohide
+ * seat grab the popover took on popup.  Hiding it with
+ * gtk_widget_set_visible(FALSE) drops the surface without releasing the
+ * grab, which on KDE/Xorg leaves the whole seat captured — pointer moves
+ * but clicks land nowhere on the desktop until Siril is killed.  The
+ * SIRIL_INTRO_WORKAROUND_POPOVER tips use a plain GtkWindow, for which
+ * hiding is the correct teardown (no grab involved). */
+static void dismiss_intro_surface(GtkWidget *surface) {
+	if (!surface)
+		return;
+	if (GTK_IS_POPOVER(surface))
+		gtk_popover_popdown(GTK_POPOVER(surface));
+	else
+		gtk_widget_set_visible(surface, FALSE);
+}
+
 /* Global key handler for any window */
 static gboolean on_key_press(GtkEventControllerKey *ctrl, guint keyval, guint keycode,
                               GdkModifierType state, gpointer user_data) {
@@ -107,7 +122,7 @@ static gboolean on_key_press(GtkEventControllerKey *ctrl, guint keyval, guint ke
 		}
 
 		if (keyval == GDK_KEY_Right && tip_index < G_N_ELEMENTS(intro_tips)) {
-			gtk_widget_set_visible(current_ui->popover, FALSE);
+			dismiss_intro_surface(current_ui->popover);
 			gtk_widget_remove_css_class(current_ui->widget, "siril-intro-highlight");
 			g_free(current_ui);
 			current_ui = NULL;
@@ -116,7 +131,7 @@ static gboolean on_key_press(GtkEventControllerKey *ctrl, guint keyval, guint ke
 			go_next = TRUE;
 			go_prev = FALSE;
 		} else if (keyval == GDK_KEY_Left && tip_index > 1) {
-			gtk_widget_set_visible(current_ui->popover, FALSE);
+			dismiss_intro_surface(current_ui->popover);
 			gtk_widget_remove_css_class(current_ui->widget, "siril-intro-highlight");
 			g_free(current_ui);
 			current_ui = NULL;
@@ -126,7 +141,7 @@ static gboolean on_key_press(GtkEventControllerKey *ctrl, guint keyval, guint ke
 			go_next = TRUE;
 			go_prev = TRUE;
 		} else if (keyval == GDK_KEY_Escape) {
-			gtk_widget_set_visible(current_ui->popover, FALSE);
+			dismiss_intro_surface(current_ui->popover);
 			gtk_widget_remove_css_class(current_ui->widget, "siril-intro-highlight");
 			g_free(current_ui);
 			current_ui = NULL;
@@ -303,7 +318,7 @@ static gboolean intro_popover_close(gpointer user_data) {
 	SirilUIIntro *ui = (SirilUIIntro*) user_data;
 
 	if (ui == current_ui) {
-		gtk_widget_set_visible(ui->popover, FALSE);
+		dismiss_intro_surface(ui->popover);
 		gtk_widget_remove_css_class(ui->widget, "siril-intro-highlight");
 		g_free(ui);
 		current_ui = NULL;

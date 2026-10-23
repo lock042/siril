@@ -23,8 +23,8 @@
 #define _WIN32_WINNT _WIN32_WINNT_WIN10
 #include <windows.h>
 #else
-#include <string.h>
 #include <errno.h>
+#include <string.h>
 #endif
 #include <stdio.h>
 
@@ -34,12 +34,8 @@
 
 #include "core/siril.h"
 #include "core/siril_log.h"
-#include "core/processing.h"
-#include "io/sequence.h"
-#include "io/conversion.h"
+#include "io/FITS_symlink.h"
 #include "io/image_format_fits.h"
-
-#include "FITS_symlink.h"
 
 #ifdef _WIN32
 #define PATH_APPMODEUNLOCK      TEXT("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\AppModelUnlock" )

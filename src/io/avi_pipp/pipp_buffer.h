@@ -19,8 +19,8 @@
 #ifndef PIPP_BUFFER_H
 #define PIPP_BUFFER_H
 
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 
 
 //#define DEBUG

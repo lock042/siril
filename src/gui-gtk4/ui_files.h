@@ -1,5 +1,4 @@
 #ifndef UI_FILES_H
-#include <gtk/gtk.h>
 #define UI_FILES_H
 
 /***************************************************************
@@ -57,6 +56,7 @@ const char* ui_files[] = {
 	"/org/siril/ui/extract_channel_dialog.ui",
 	"/org/siril/ui/extract_wavelet_layers_dialog.ui",
 	"/org/siril/ui/file_information_dialog.ui",
+	"/org/siril/ui/hdr_dialog.ui",
 	"/org/siril/ui/histogram_dialog.ui",
 	"/org/siril/ui/keywords_dialog.ui",
 	"/org/siril/ui/icc_dialog.ui",
@@ -98,6 +98,7 @@ const char* ui_files[] = {
 // The multipoint AP editor and shift viewer reference the adj_mpp_* adjustments
 // defined in siril_registration.ui / siril_stacking.ui, so they must load after
 // those center-notebook tab files.
+	"/org/siril/ui/mpp_advanced_dialog.ui",
 	"/org/siril/ui/mpp_ap_editor_dialog.ui",
 	"/org/siril/ui/mpp_shift_viewer_dialog.ui",
 	"/org/siril/ui/spcc_details.ui",

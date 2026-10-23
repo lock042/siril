@@ -24,12 +24,10 @@
 
 #include <math.h>
 
-#include "core/siril.h"
 #include "algos/astrometry_solver.h"
+#include "algos/siril_wcs.h"
+#include "core/siril.h"
 #include "io/image_format_fits.h"
-
-#include "siril_wcs.h"
-
 
 // Use this flag to print wcslib related verbose - not for production
 // #define DEBUG_WCS
@@ -291,6 +289,11 @@ int *wcs2pix_array(fits *fit, int n, double *world, double *x, double *y) {
 			if (!status[i]) {
 				double xx = pixcrd[c++];
 				double yy = pixcrd[c++];
+				// can happen with SIP for points far from the field
+				if (isnan(xx) || isnan(yy)) {
+					status[i] = WCSERR_NO_SOLUTION;
+					continue;
+				}
 				// return values even if outside (required for celestial grid display)
 				// In WCS convention, origin of the grid is at (-0.5, -0.5) wrt siril grid
 				if (x) x[i] = xx - 0.5;
@@ -435,7 +438,7 @@ double get_wcs_image_resolution(fits *fit) {
 		resolution = (fabs(fit->keywords.wcslib->cdelt[0]) + fabs(fit->keywords.wcslib->cdelt[1])) * 0.5;
 	}
 	if (resolution <= 0.0) {
-		if (fit->keywords.focal_length >= 0.0 && fit->keywords.pixel_size_x >= 0.0 && fit->keywords.pixel_size_y == fit->keywords.pixel_size_x)
+		if (fit->keywords.focal_length > 0.0 && fit->keywords.pixel_size_x > 0.0 && fit->keywords.pixel_size_y == fit->keywords.pixel_size_x)
 			resolution = (RADCONV / fit->keywords.focal_length * fit->keywords.pixel_size_x) / 3600.0;
 		// what about pix size x != y?
 	}
@@ -557,6 +560,12 @@ void wcs_print(wcsprm_t *prm) {
 void remove_dis_from_wcs(wcsprm_t *prm) {
 	disfree(prm->lin.dispre);
 	prm->lin.dispre = NULL;
+	for (int i = 0; i < 2; i++) {
+		char *sip_ptr = strstr(prm->ctype[i], "-SIP");
+		if (sip_ptr != NULL) {
+			*sip_ptr = '\0';
+		}
+	}
 	prm->flag = 0;
 	wcsset(prm);
 }

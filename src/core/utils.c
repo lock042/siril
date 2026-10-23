@@ -25,27 +25,25 @@
 *
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <string.h>
 #include <assert.h>
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #ifdef _WIN32
 #include <windows.h>
 #endif
-#include <glib.h>
 #include <errno.h>
 
-#include "core/siril.h"
+#include <glib.h>
+
+#include "core/arithm.h"
+#include "core/gui_iface.h"
 #include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
 #include "io/conversion.h"
-#include "io/ser.h"
 #include "io/sequence.h"
-#include "core/gui_iface.h"
-#include "core/arithm.h"
-#include "algos/statistics.h"
 #include "io/single_image.h"
 
 #if GLIB_CHECK_VERSION(2,68,0)
@@ -485,8 +483,15 @@ static image_type determine_image_type_from_magic(const uint8_t *magic, size_t b
 		return TYPEHEIF;
 	if (bytes_read >= 12 && memcmp(magic + 4, "ftypavif", 8) == 0)
 		return TYPEAVIF;
-	if (bytes_read >= 12 && ((memcmp(magic, "RIFF", 4) == 0 && memcmp(magic + 8, "JXL ", 4) == 0) ||
-		(magic[0] == 0xFF && magic[1] == 0x0A)))
+	// JPEG XL comes in two flavours: a raw codestream starting with the
+	// 2-byte marker FF 0A, or an ISO/IEC 18181-2 container whose first box
+	// is the 12-byte signature box 00 00 00 0C "JXL " 0D 0A 87 0A. libjxl
+	// decodes both, but only the codestream was recognised here, so
+	// containerised files (e.g. saved by GIMP or libjxl >= 0.12 for high
+	// bit-depth images) were rejected before reaching the decoder.
+	if (bytes_read >= 2 && magic[0] == 0xFF && magic[1] == 0x0A)
+		return TYPEJXL;
+	if (bytes_read >= 12 && memcmp(magic, "\x00\x00\x00\x0C\x4A\x58\x4C\x20\x0D\x0A\x87\x0A", 12) == 0)
 		return TYPEJXL;
 #ifdef HAVE_FFMS2
 	// Film containers — all routed to TYPEAVI since films.c handles every flavor via FFMS2.
@@ -1049,22 +1054,12 @@ void remove_trailing_eol(char *str) {
 }
 
 gboolean string_is_a_number(const char *str) {
-	if (str[0] != '-' && str[0] != '.' && (str[0] < '0' || str[0] > '9'))
+	/* the first character check rejects leading spaces, inf and nan */
+	if (!str || (str[0] != '-' && str[0] != '+' && str[0] != '.' && !g_ascii_isdigit(str[0])))
 		return FALSE;
-	int i = 0;
-	gboolean had_a_dot = FALSE;
-	while (str[i] != '\0') {
-		if (str[i] == '.') {
-			if (had_a_dot)
-				return FALSE;
-			had_a_dot = TRUE;
-			i++;
-		}
-		else if (str[i] >= '0' && str[i] <= '9')
-			i++;
-		else return FALSE;
-	}
-	return TRUE;
+	gchar *end;
+	double value = g_ascii_strtod(str, &end);
+	return end != str && *end == '\0' && isfinite(value);
 }
 
 #if !GLIB_CHECK_VERSION(2,68,0)
@@ -1318,14 +1313,27 @@ gchar * siril_any_to_utf8 (const gchar *str, gssize len, const gchar *warning_fo
 * @param fz flag to know if the fz extension must be appended.
 * @return a string that must not be freed
 */
-static const gchar *ext[] = { ".fit.fz", ".fits.fz", ".fts.fz" };
+static const gchar *ext_fz[] = { ".fit.fz", ".fits.fz", ".fts.fz" };
 const gchar *get_com_ext(gboolean fz) {
 	if (fz) {
-		for (int i = 0; i < G_N_ELEMENTS(ext); i++) {
-			if (g_str_has_prefix(ext[i], com.pref.ext)) return ext[i];
+		for (int i = 0; i < G_N_ELEMENTS(ext_fz); i++) {
+			if (g_str_has_prefix(ext_fz[i], com.pref.ext)) return ext_fz[i];
 		}
 	}
 	return com.pref.ext;
+}
+
+/* com.pref.ext ends up in the name of every FITS file we write, it can only be
+ * one of the extensions we know how to read back, in lower case and with its
+ * leading dot */
+gboolean is_valid_fits_extension(const gchar *extension) {
+	static const gchar *ext[] = { ".fit", ".fits", ".fts" };
+	if (!extension)
+		return FALSE;
+	for (int i = 0; i < G_N_ELEMENTS(ext); i++) {
+		if (!strcmp(extension, ext[i])) return TRUE;
+	}
+	return FALSE;
 }
 
 /*

@@ -18,18 +18,17 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "core/siril.h"
 #include "core/proto.h"
-#include "io/sequence.h"
-#include "gui-gtk4/utils.h"
+#include "core/siril.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/image_display.h"
-#include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/image_interactions.h"
 #include "gui-gtk4/registration_preview.h"
 #include "gui-gtk4/sequence_list.h"
-#include "registration/registration.h"
+#include "gui-gtk4/utils.h"
+#include "io/sequence.h"
 #include "opencv/opencv.h"
+#include "registration/registration.h"
 
 /* Dimensions of the persisted reference-frame pixel buffer
  * (gui.refimage_regbuffer).  The buffer holds the whole reference frame's

@@ -2,6 +2,7 @@
 #define _LIVESTACK_GUI_
 
 #include <glib.h>
+
 #include "registration/registration.h"
 
 void show_hide_toolbox();

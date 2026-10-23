@@ -384,7 +384,7 @@ MultiStackResult multistack_stack(const std::vector<MsSource> &srcs,
 	 * origin whenever it is cropped (sharp on a full-frame intersection, smeared
 	 * otherwise). The source sequence still contributes its OWN disk centre via
 	 * srcs[s].derot, so a displaced sequence is still relocated correctly. */
-	const double S = std::max(1.0, cfg.drizzle_scale);
+	const double S = std::max(1.0, cfg.output_scale);
 	DerotMapProvider derot_provider =
 	    [&](int g, int DY, int DX, cv::Mat &mx, cv::Mat &my, cv::Mat &mu) -> bool {
 		int s, l;

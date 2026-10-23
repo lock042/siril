@@ -18,31 +18,28 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <fftw3.h>
-#include <math.h>
 #include <locale.h>
-#include <gdk/gdk.h>
-#include "core/siril.h"
+#include <math.h>
+
+#include "algos/PSF.h"
+#include "core/op_descriptors.h"
+#include "core/OS_utils.h"
+#include "core/processing.h"
 #include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_date.h"
-#include "core/command.h"
-#include "io/single_image.h"
-#include "io/image_format_fits.h"
+#include "core/siril_log.h"
+#include "filters/deconvolution/deconvolution.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/message_dialog.h"
-#include "gui-gtk4/registration_preview.h"
-#include "core/processing.h"
-#include "core/siril_log.h"
-#include "core/OS_utils.h"
-#include "gui-gtk4/utils.h"
-#include "gui-gtk4/siril_preview.h"
-#include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/newdeconv.h"
-#include "filters/deconvolution/deconvolution.h"
-#include "algos/PSF.h"
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/siril_preview.h"
+#include "gui-gtk4/utils.h"
 #include "io/sequence.h"
+#include "io/single_image.h"
 
 extern gboolean aperture_warning_given;
 extern gboolean bad_load;
@@ -831,14 +828,12 @@ void on_bdeconv_roi_preview_clicked(GtkButton *button, gpointer user_data) {
 		}
 
 		worker_args->fit = args->fit;
-		worker_args->mem_ratio = 4.0f; // Deconvolution needs significant memory
-		worker_args->image_hook = deconvolve_image_hook;
+		worker_args->op = &op_desc_deconvolve;
 		worker_args->idle_function = deconvolve_img_idle;
-		worker_args->description = _("Deconvolution Preview");
+		worker_args->description = _("Deconvolution Preview");  // override: variant label
 		worker_args->verbose = TRUE;
 		// worker_args->mask_aware = TRUE; // TODO: Need to implement mask setup in gui.roi.fit
 		worker_args->user = args; // Passed to deconvolve
-		worker_args->log_hook = deconvolve_log_hook;
 		worker_args->max_threads = com.max_thread;
 		worker_args->for_preview = TRUE;
 		worker_args->for_roi = is_roi;
@@ -889,14 +884,11 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 		worker_args->fit = gfit; // Apply always runs on gfit unless ROI is active
 		args->fit = gfit;
 
-		worker_args->mem_ratio = 4.0f; // Deconvolution needs significant memory
-		worker_args->image_hook = deconvolve_image_hook;
+		worker_args->op = &op_desc_deconvolve;
 		worker_args->idle_function = deconvolve_img_idle;
-		worker_args->description = _("Deconvolution");
 		worker_args->verbose = TRUE;
 		worker_args->mask_aware = TRUE;
 		worker_args->user = args;
-		worker_args->log_hook = deconvolve_log_hook;
 		worker_args->max_threads = com.max_thread;
 		worker_args->for_preview = FALSE;
 		worker_args->for_roi = FALSE;
@@ -935,14 +927,11 @@ void on_bdeconv_estimate_clicked(GtkButton *button, gpointer user_data) {
 		}
 
 		worker_args->fit = gfit;
-		worker_args->mem_ratio = 3.0f; // PSF estimation memory requirement
-		worker_args->image_hook = estimate_only_image_hook;
+		worker_args->op = &op_desc_psf_estimate;
 		worker_args->idle_function = estimate_img_idle;
-		worker_args->description = _("PSF Estimation");
 		worker_args->verbose = TRUE;
 		worker_args->user = args;
 		worker_args->for_preview = TRUE; // not really for preview but it prevents undo_save_state being called
-		worker_args->log_hook = makepsf_log_hook;
 		worker_args->max_threads = com.max_thread;
 
 		start_in_new_thread(generic_image_worker, worker_args);

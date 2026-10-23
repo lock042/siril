@@ -18,17 +18,23 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <math.h>
-
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_log.h"
 #include "core/gui_iface.h"
-#include "io/single_image.h"
+#include "core/op_descriptors.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "filters/epf.h"
 #include "io/image_format_fits.h"
 #include "opencv/opencv.h"
 
-#include "filters/epf.h"
+/* Op descriptor — single source of truth for this operation (op_descriptor.h) */
+const op_descriptor op_desc_epf = {
+	.id = "filters.epf", .version = 1,
+	.image_hook = epf_image_hook,
+	.log_hook = epf_log_hook,
+	.description = N_("Edge Preserving Filter"),
+	.mem_ratio = 3.0f,
+	.flags = OP_MASK_CAPABLE,
+};
 
 /*****************************************************************************
  *      E P F      A L L O C A T O R   A N D   D E S T R U C T O R          *

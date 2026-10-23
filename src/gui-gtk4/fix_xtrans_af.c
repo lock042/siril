@@ -19,10 +19,10 @@
  */
 
 #include <gtk/gtk.h>
+
 #include "core/siril.h"
-#include "core/proto.h"
-#include "gui-gtk4/gui_state.h"
 #include "gui-gtk4/fix_xtrans_af.h"
+#include "gui-gtk4/gui_state.h"
 
 static GtkEntry *xtrans_af_x = NULL, *xtrans_af_y = NULL;
 static GtkEntry *xtrans_af_w = NULL, *xtrans_af_h = NULL;

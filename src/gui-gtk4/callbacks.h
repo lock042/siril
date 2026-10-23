@@ -1,9 +1,7 @@
 #ifndef CALLBACKS_H
 #include <gtk/gtk.h>
-#include "gui-gtk4/gtk3_event_compat.h"
 #define CALLBACKS_H
 
-#include <sys/time.h>
 #include "core/siril.h"	// for sliders_mode
 
 #ifdef __cplusplus
@@ -38,6 +36,9 @@ void register_toolkit_app_actions(GApplication *app);
 void siril_set_theme(int active);
 void load_prefered_theme(gint theme);
 gboolean siril_current_theme_is_dark(void);
+/* Pop down every mapped autohide popover in the main window (macOS outside-click
+ * dismissal path); returns TRUE if any was dismissed. */
+gboolean close_open_autohide_popovers(void);
 void set_cutoff_sliders_max_values();		// was set_upper_minmax
 void set_cutoff_sliders_values();		// was set_ranges
 gboolean set_cutoff_sliders_values_idle(gpointer p);

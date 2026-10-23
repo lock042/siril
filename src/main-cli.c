@@ -23,12 +23,12 @@
 #  include <config.h>
 #endif
 
-#include <gsl/gsl_errno.h>
+#include <locale.h>
 #include <stdio.h>
 #include <string.h>
-#include <locale.h>
-#include <unistd.h>
+
 #include <fftw3.h>
+#include <gsl/gsl_errno.h>
 #ifdef OS_OSX
 #import <AppKit/AppKit.h>
 #if defined(ENABLE_RELOCATABLE_RESOURCES)
@@ -48,24 +48,24 @@
 #include <omp.h>
 #endif
 
-#include "git-version.h"
-#include "core/siril.h"
-#include "core/icc_profile.h"
-#include "core/proto.h"
-#include "core/initfile.h"
+#include "algos/photometric_cc.h" /* initialize_spcc_mirrors() */
+#include "algos/siril_random.h"
 #include "core/command_line_processor.h"
+#include "core/icc_profile.h"
+#include "core/initfile.h"
+#include "core/OS_utils.h"
 #include "core/pipe.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_language.h"
 #include "core/siril_log.h"
 #include "core/siril_networking.h"
 #include "core/siril_update.h"
-#include "core/OS_utils.h"
-#include "algos/siril_random.h"
-#include "io/sequence.h"
+#include "git-version.h"
 #include "io/conversion.h"
+#include "io/sequence.h"
 #include "io/siril_pythonmodule.h"
-#include "algos/photometric_cc.h" /* initialize_spcc_mirrors() */
 
 /* the global variables of the whole project */
 cominfo com;	// the core data struct
@@ -217,6 +217,14 @@ static void siril_app_activate(GApplication *application) {
 	curl_global_init(CURL_GLOBAL_ALL);
 #endif
 
+	/* Start the python venv initialisation BEFORE the script runs.  This used
+	 * to sit after execute_script() / read_pipe(), so com.python_init_thread
+	 * was still NULL for the whole script and every `pyscript` failed with
+	 * "python not ready yet".  See main.c for the details. */
+	initialize_python_venv_in_thread();
+
+	initialize_profiles_and_transforms(); // color management
+
 	if (main_option_script) {
 		GInputStream *input_stream = NULL;
 
@@ -248,8 +256,6 @@ static void siril_app_activate(GApplication *application) {
 		read_pipe(main_option_rpipe_path);
 	}
 
-	initialize_python_venv_in_thread();
-	initialize_profiles_and_transforms(); // color management
 	initialize_spcc_mirrors();
 	if (main_option_sync_spcc) {
 		siril_check_spcc_mirrors(TRUE, TRUE);

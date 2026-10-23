@@ -25,20 +25,18 @@
 /* useful if no libcurl */
 #include <stdlib.h>
 
-#include "yyjson.h"
-
-#include "core/siril.h"
-#include "core/proto.h"
 #include "core/arithm.h"
-#include "core/siril_networking.h"
+#include "core/proto.h"
+#include "core/siril.h"
 #include "core/siril_app_dirs.h"
-#include "core/siril_log.h"
 #include "core/siril_date.h"
-#include "core/processing.h"
-#include "algos/astrometry_solver.h"
-#include "io/siril_catalogues.h"
-#include "io/remote_catalogues.h"
+#include "core/siril_log.h"
+#include "core/siril_networking.h"
 #include "io/healpix/healpix_cat.h"
+#include "io/remote_catalogues.h"
+#include "io/siril_catalogues.h"
+
+#include "yyjson.h"
 
 // These statics define the formatting for some fields used when writing catalog names
 static const gchar *catcodefmt = "%02d", *rafmt = "%08.4f", *decfmt = "%+08.4f",

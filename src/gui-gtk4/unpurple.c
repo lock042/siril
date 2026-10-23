@@ -17,24 +17,19 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
-#include <math.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
-#include "core/siril_log.h"
 #include "algos/statistics.h"
+#include "core/op_descriptors.h"
+#include "core/processing.h"
+#include "core/siril.h"
+#include "filters/unpurple.h"
+#include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/siril_preview.h"
+#include "gui-gtk4/utils.h"
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
-#include "gui-gtk4/callbacks.h"
-#include "gui-gtk4/utils.h"
-#include "gui-gtk4/progress_and_log.h"
-#include "gui-gtk4/dialogs.h"
-#include "gui-gtk4/siril_preview.h"
-#include "core/undo.h"
-#include "opencv/opencv.h"
-#include "filters/synthstar.h"
-#include "filters/unpurple.h"
 
 static double mod_b = 1.0, thresh = 0.0, old_thresh = 0.0;
 static fits starmask = {0};
@@ -124,13 +119,10 @@ static int unpurple_process_with_worker(gboolean for_preview, gboolean for_roi) 
 
 	// Set the fit based on whether ROI is active
 	args->fit = for_roi ? &gui.roi.fit : gfit;
-	args->mem_ratio = 2.0f; // unpurple needs some extra memory
-	args->image_hook = unpurple_image_hook;
+	args->op = &op_desc_unpurple;
 	args->idle_function = NULL;
-	args->description = _("Unpurple Filter");
 	args->verbose = !for_preview;
 	args->user = params;
-	args->log_hook = unpurple_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
 	args->for_roi = for_roi;

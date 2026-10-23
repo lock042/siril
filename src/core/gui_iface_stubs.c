@@ -31,6 +31,7 @@
  */
 
 #include <stdio.h>
+
 #include "core/gui_iface.h"
 
 /* ── Stub implementations ─────────────────────────────────────────────────── */
@@ -61,6 +62,11 @@ static void stub_message_dialog(SirilMessageType type, const char *title,
 	}
 	fprintf(stderr, "siril [%s] %s: %s\n", prefix,
 	        title ? title : "", text ? text : "");
+}
+
+static void stub_message_dialog_modal(SirilMessageType type, const char *title,
+                                      const char *text) {
+	stub_message_dialog(type, title, text);
 }
 
 static gboolean stub_confirm_dialog(const char *title, const char *msg,
@@ -103,6 +109,7 @@ static void stub_set_seq_browser_active(gboolean active) { (void)active; }
 static void stub_update_status_bar(void) {}
 static void stub_update_menu_state(void) {}
 static void stub_set_suppress_redraws(gboolean suppress) { (void)suppress; }
+static gboolean stub_get_suppress_redraws(void) { return FALSE; }
 static void stub_populate_roi(void) {}
 static void stub_on_geometry_changed(void) {}
 static void stub_on_mask_state_changed(void) {}
@@ -110,6 +117,7 @@ static void stub_on_crop_complete(void) {}
 static void stub_on_stats_ready(void) {}
 static void stub_on_photometry_changed(void) {}
 static void stub_show_siril_plot(gpointer spl_data) { (void)spl_data; }
+static void stub_show_siril_plot_group(gpointer group) { (void)group; }
 static void stub_update_star_list(psf_star **stars, gboolean update_psf_list,
                                   gboolean wait) {
 	(void)stars; (void)update_psf_list; (void)wait;
@@ -123,6 +131,7 @@ static GPid stub_select_child_process(GSList *children) { (void)children; return
 /* D additions */
 static void stub_invalidate_histogram(void) {}
 static void stub_update_histogram(void) {}
+static void stub_curves_reset_after_undo(void) {}
 static void stub_redraw_mask_idle(gboolean remap_tints) { (void)remap_tints; }
 
 /* G additions */
@@ -203,7 +212,6 @@ static void stub_activate_annotation_display(void) {}
 
 /* U – ICC status */
 static void stub_update_icc_status_icon(gpointer fit, gboolean active) { (void)fit; (void)active; }
-static gboolean stub_get_gamut_check_active(void) { return FALSE; }
 
 /* V – Registration panel status */
 static void stub_update_registration_status(const gchar *msg) { (void)msg; }
@@ -297,12 +305,7 @@ static void stub_draw_plot(void) {}
 static void stub_notify_new_photometry(void) {}
 static void stub_init_plot_colors(void) {}
 static gboolean stub_save_siril_plot_to_clipboard(gpointer s, int w, int h) { (void)s;(void)w;(void)h; return FALSE; }
-static gchar *stub_build_save_filename(gchar *p, gchar *e, gboolean f, gboolean t) { (void)p;(void)e;(void)f;(void)t; return NULL; }
 /* Cut */
-static void stub_apply_cut_to_sequence(gpointer a) { (void)a; }
-static gpointer stub_run_cut_profile(gpointer a) { (void)a; return NULL; }
-static gpointer stub_run_tri_cut(gpointer a) { (void)a; return NULL; }
-static gpointer stub_run_cfa_cut(gpointer a) { (void)a; return NULL; }
 static void stub_reset_cut_gui_filedependent(gpointer u) { (void)u; }
 /* Preview */
 static int stub_copy_backup_to_gfit(void) { return 0; }
@@ -326,6 +329,7 @@ SirilGuiInterface gui_iface = {
 	.set_busy             = stub_set_busy,
 	.log_message          = stub_log_message,
 	.message_dialog       = stub_message_dialog,
+	.message_dialog_modal = stub_message_dialog_modal,
 	.confirm_dialog       = stub_confirm_dialog,
 	.confirm_dialog_with_avi_bayer = stub_confirm_dialog_with_avi_bayer,
 	.open_dialog            = stub_open_dialog,
@@ -347,6 +351,7 @@ SirilGuiInterface gui_iface = {
 	.update_status_bar      = stub_update_status_bar,
 	.update_menu_state      = stub_update_menu_state,
 	.set_suppress_redraws   = stub_set_suppress_redraws,
+	.get_suppress_redraws   = stub_get_suppress_redraws,
 	.populate_roi           = stub_populate_roi,
 	.on_geometry_changed    = stub_on_geometry_changed,
 	.on_mask_state_changed  = stub_on_mask_state_changed,
@@ -354,6 +359,7 @@ SirilGuiInterface gui_iface = {
 	.on_stats_ready         = stub_on_stats_ready,
 	.on_photometry_changed  = stub_on_photometry_changed,
 	.show_siril_plot        = stub_show_siril_plot,
+	.show_siril_plot_group  = stub_show_siril_plot_group,
 	.update_star_list       = stub_update_star_list,
 	.clear_star_list        = stub_clear_star_list,
 	.get_reg_layer          = stub_get_reg_layer,
@@ -361,6 +367,7 @@ SirilGuiInterface gui_iface = {
 	.select_child_process        = stub_select_child_process,
 	.invalidate_histogram        = stub_invalidate_histogram,
 	.update_histogram            = stub_update_histogram,
+	.curves_reset_after_undo     = stub_curves_reset_after_undo,
 	.redraw_mask_idle            = stub_redraw_mask_idle,
 	.on_channel_count_changed    = stub_on_channel_count_changed,
 	.on_precision_changed        = stub_on_precision_changed,
@@ -412,7 +419,6 @@ SirilGuiInterface gui_iface = {
 	.update_pixel_math_status    = stub_update_pixel_math_status,
 	.activate_annotation_display = stub_activate_annotation_display,
 	.update_icc_status_icon      = stub_update_icc_status_icon,
-	.get_gamut_check_active      = stub_get_gamut_check_active,
 	.update_registration_status  = stub_update_registration_status,
 	.update_single_image_display = stub_update_single_image_display,
 	.seq_redisplay_frame         = stub_seq_redisplay_frame,
@@ -433,12 +439,7 @@ SirilGuiInterface gui_iface = {
 	.notify_new_photometry           = stub_notify_new_photometry,
 	.init_plot_colors                = stub_init_plot_colors,
 	.save_siril_plot_to_clipboard    = stub_save_siril_plot_to_clipboard,
-	.build_save_filename             = stub_build_save_filename,
 	/* Cut */
-	.apply_cut_to_sequence           = stub_apply_cut_to_sequence,
-	.run_cut_profile                 = stub_run_cut_profile,
-	.run_tri_cut                     = stub_run_tri_cut,
-	.run_cfa_cut                     = stub_run_cfa_cut,
 	.reset_cut_gui_filedependent     = stub_reset_cut_gui_filedependent,
 	/* Preview */
 	.copy_backup_to_gfit             = stub_copy_backup_to_gfit,

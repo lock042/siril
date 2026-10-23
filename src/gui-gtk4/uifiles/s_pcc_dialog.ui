@@ -53,12 +53,6 @@
     <property name="upper">1100</property>
     <property name="value">1013.25</property>
   </object>
-  <object class="GtkImage" id="gaia_status_widget">
-    <property name="resource">/org/siril/ui/pixmaps/status_grey.svg</property>
-    <property name="sensitive">0</property>
-    <property name="tooltip-text" translatable="yes">Checking Gaia archive status...</property>
-    <property name="valign">center</property>
-  </object>
   <object class="GtkAdjustment" id="nb_b_bw">
     <property name="lower">1</property>
     <property name="page-increment">10</property>
@@ -200,6 +194,11 @@
                         <child>
                           <object class="GtkDropDown" id="combo_spcc_sensors_osc">
                             <property name="tooltip-text" translatable="yes">Select an OSC sensor</property>
+                            <property name="enable-search">1</property>
+                            <property name="search-match-mode">substring</property>
+                            <property name="expression">
+                              <lookup name="string" type="GtkStringObject"/>
+                            </property>
                             <signal name="notify::selected" handler="on_spcc_combo_changed"/>
                             <layout>
                               <property name="column">1</property>
@@ -211,6 +210,11 @@
                         <child>
                           <object class="GtkDropDown" id="combo_spcc_sensors_mono">
                             <property name="tooltip-text" translatable="yes">Select a mono sensor</property>
+                            <property name="enable-search">1</property>
+                            <property name="search-match-mode">substring</property>
+                            <property name="expression">
+                              <lookup name="string" type="GtkStringObject"/>
+                            </property>
                             <signal name="notify::selected" handler="on_spcc_combo_changed"/>
                             <layout>
                               <property name="column">1</property>
@@ -222,6 +226,11 @@
                         <child>
                           <object class="GtkDropDown" id="combo_spcc_filters_osc">
                             <property name="tooltip-text" translatable="yes">Select an OSC filter (e.g. a broadband light pollution filter)</property>
+                            <property name="enable-search">1</property>
+                            <property name="search-match-mode">substring</property>
+                            <property name="expression">
+                              <lookup name="string" type="GtkStringObject"/>
+                            </property>
                             <signal name="notify::selected" handler="on_spcc_combo_changed"/>
                             <layout>
                               <property name="column">1</property>
@@ -233,6 +242,11 @@
                         <child>
                           <object class="GtkDropDown" id="combo_spcc_filters_r">
                             <property name="tooltip-text" translatable="yes">Select a red filter used with composited mono images</property>
+                            <property name="enable-search">1</property>
+                            <property name="search-match-mode">substring</property>
+                            <property name="expression">
+                              <lookup name="string" type="GtkStringObject"/>
+                            </property>
                             <signal name="notify::selected" handler="on_spcc_combo_changed"/>
                             <layout>
                               <property name="column">1</property>
@@ -244,6 +258,11 @@
                         <child>
                           <object class="GtkDropDown" id="combo_spcc_filters_g">
                             <property name="tooltip-text" translatable="yes">Select a green filter used with composited mono images</property>
+                            <property name="enable-search">1</property>
+                            <property name="search-match-mode">substring</property>
+                            <property name="expression">
+                              <lookup name="string" type="GtkStringObject"/>
+                            </property>
                             <signal name="notify::selected" handler="on_spcc_combo_changed"/>
                             <layout>
                               <property name="column">1</property>
@@ -255,6 +274,11 @@
                         <child>
                           <object class="GtkDropDown" id="combo_spcc_filters_b">
                             <property name="tooltip-text" translatable="yes">Select a blue filter used with composited mono images</property>
+                            <property name="enable-search">1</property>
+                            <property name="search-match-mode">substring</property>
+                            <property name="expression">
+                              <lookup name="string" type="GtkStringObject"/>
+                            </property>
                             <signal name="notify::selected" handler="on_spcc_combo_changed"/>
                             <layout>
                               <property name="column">1</property>
@@ -367,6 +391,11 @@
                         <child>
                           <object class="GtkDropDown" id="combo_spcc_filters_lpf">
                             <property name="tooltip-text" translatable="yes">For unmodified DSLRs, select the LPF most closely matching your model (many Canon LPFs are almost identical so there may not be an exact match for your model). For modified DSLRs, select the replacement LPF (if there isn't an exact match the Baader BCF is probably close).</property>
+                            <property name="enable-search">1</property>
+                            <property name="search-match-mode">substring</property>
+                            <property name="expression">
+                              <lookup name="string" type="GtkStringObject"/>
+                            </property>
                             <signal name="notify::selected" handler="on_spcc_combo_changed"/>
                             <layout>
                               <property name="column">1</property>
@@ -1082,11 +1111,30 @@
             <child>
               <object class="GtkButton" id="button_gaia_status_check">
                 <property name="focusable">1</property>
-                <property name="label" translatable="yes">Status: </property>
                 <property name="receives-default">1</property>
                 <property name="tooltip-text" translatable="yes">Click to update Gaia archive status check</property>
                 <property name="valign">center</property>
                 <signal name="clicked" handler="on_button_gaia_status_check_clicked"/>
+                <!-- GTK4 removed GtkButton's "image" property; the status
+                     "traffic light" (gaia_status_widget) is now packed as a
+                     custom child next to the label. -->
+                <property name="child">
+                  <object class="GtkBox">
+                    <property name="spacing">6</property>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="label" translatable="yes">Status: </property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkImage" id="gaia_status_widget">
+                        <property name="resource">/org/siril/ui/pixmaps/status_grey.svg</property>
+                        <property name="tooltip-text" translatable="yes">Checking Gaia archive status...</property>
+                        <property name="valign">center</property>
+                      </object>
+                    </child>
+                  </object>
+                </property>
               </object>
             </child>
             <child>

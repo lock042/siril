@@ -18,15 +18,13 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/siril.h"
-#include "gui-gtk4/gui_state.h"
-#include "gui-gtk4/utils.h"
 #include "core/proto.h"
-
-#include "io/sequence.h"
-#include "gui-gtk4/image_interactions.h"
-#include "gui-gtk4/image_display.h"
+#include "core/siril.h"
 #include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/gui_state.h"
+#include "gui-gtk4/image_display.h"
+#include "gui-gtk4/image_interactions.h"
+#include "gui-gtk4/utils.h"
 
 static void set_selection_ratio(double ratio) {
 	gui.ratio = ratio;

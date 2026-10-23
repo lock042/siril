@@ -2,6 +2,7 @@
 #define _IMAGE_FORMAT_FITS_H
 
 #include <fitsio.h>
+
 #include "core/siril.h"
 
 #define FITS_DOUBLE_BLOC_SIZE 2 * IOBUFLEN // 2 * 2880, the size of a double FITS block, used to allocate bigger chunk and avoid reallocating
@@ -70,17 +71,14 @@ void fit_debayer_buffer(fits *fit, void *newbuf);
  * extract_thumbnail_from_fits returns a malloc'd RGB888 byte buffer plus
  * the thumbnail's dimensions and a g_malloc'd description string.  The
  * caller frees the byte buffer with free() and the description with
- * g_free().  Use this from the GTK4 build where a raw byte buffer can be
- * wrapped directly as a GdkTexture.
- *
- * get_thumbnail_from_fits is a thin GdkPixbuf wrapper around the above,
- * kept for the GTK3 build and any other caller that still wants a
- * GdkPixbuf.
+ * g_free().  The GTK4 browser wraps that raw buffer directly as a
+ * GdkTexture, so this stays gdk-pixbuf-free.
  *
  * Forward-declared in callers rather than included here to keep this
  * core header gdk-pixbuf-free. */
 
 // internal read of FITS file, for FITS images and FITS sequences
+gboolean fits_uses_physical_scaling(fitsfile *fptr, double *scale, double *zero);
 void manage_bitpix(fitsfile *fptr, int *bitpix, int *orig_bitpix);
 int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float);
 int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,

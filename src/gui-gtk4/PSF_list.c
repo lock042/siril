@@ -18,27 +18,24 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/OS_utils.h"
-#include "core/siril_world_cs.h"
-#include "core/siril_log.h"
+#include "algos/PSF.h"
+#include "algos/siril_wcs.h"
+#include "algos/star_finder.h"
 #include "core/processing.h"
-#include "gui-gtk4/utils.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "core/siril_world_cs.h"
 #include "gui-gtk4/callbacks.h"
-#include "gui-gtk4/image_display.h"
 #include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/image_display.h"
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/PSF_list.h"
-#include "gui-gtk4/progress_and_log.h"
-#include "algos/siril_wcs.h"
-#include "algos/PSF.h"
-#include "algos/star_finder.h"
+#include "gui-gtk4/utils.h"
 
 static GtkLabel *psf_statusbar = NULL;
 static GtkScrolledWindow *psf_scrolled = NULL;

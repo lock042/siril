@@ -1,6 +1,8 @@
 #ifndef SRC_CORE_COMMAND_H_
 #define SRC_CORE_COMMAND_H_
 
+#include <glib.h>
+
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
@@ -34,6 +36,7 @@ extern char *word[MAX_COMMAND_WORDS];  // NULL terminated
 gboolean image_cfa_warning_check();
 
 int	process_addmax(int nb);
+int	process_addwcs(int nb);
 int	process_autostretch(int nb);
 int	process_autostretch_mask(int nb);
 int	process_autoghs(int nb);
@@ -51,6 +54,7 @@ int	process_calibrate(int nb);
 int	process_calibrate_single(int nb);
 int	process_capabilities(int nb);
 int	process_catmag_mono(int nb);
+int	process_catquery(int nb);
 int	process_catsearch(int nb);
 int	process_ccm(int nb);
 int	process_cd(int nb);
@@ -66,6 +70,7 @@ int	process_convert(int nb);
 int	process_cosme(int nb);
 
 int	process_ddp(int nb);
+int	process_detect_streaks(int nb);
 int	process_disto(int nb);
 int	process_dumpheader(int nb);
 
@@ -99,6 +104,7 @@ int	process_grey_flat(int nb);
 
 int	process_healpix(int nb);
 int	process_help(int nb);
+int	process_hdr(int nb);
 int	process_histo(int nb);
 
 int	process_jsonmetadata(int nb);
@@ -167,6 +173,7 @@ int	process_ser_fix_timestamps(int nb);
 int	process_resample(int nb);
 int	process_reloadscripts(int nb);
 int	process_requires(int nb);
+int	process_rgbalign(int nb);
 int	process_rgbcomp(int nb);
 int	process_rgradient(int nb);
 int	process_rl(int nb);
@@ -241,15 +248,16 @@ int	process_set_mag_seq(int nb);
 int	process_set_mem(int nb);
 int	process_set_photometry(int nb);
 int	process_set_ref(int nb);
-int	process_subsky(int nb);
 int	process_spcc(int nb);
 int	process_spcc_list(int nb);
 int	process_split(int nb);
 int	process_split_cfa(int nb);
+int	process_ssr(int nb);
 int	process_stat(int nb);
 int	process_stackall(int nb);
 int	process_stack_mpp(int nb);
 int	process_stackone(int nb);
+int	process_subsky(int nb);
 int	process_synthstar(int nb);
 
 int	process_thresh(int nb);
@@ -268,6 +276,8 @@ int process_update_key(int nb);
 
 int	process_visu(int nb);
 
+int	process_atrous(int nb);
+int	process_seqatrous(int nb);
 int	process_wavelet(int nb);
 int	process_wiener(int nb);
 int	process_wrecons(int nb);

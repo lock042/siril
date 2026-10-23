@@ -2,6 +2,7 @@
 #define CONVERSION_H
 
 #include <glib.h>
+
 #include "core/siril.h" // for image_type
 
 #define XTRANS_1 4

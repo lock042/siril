@@ -4,7 +4,6 @@
 #include <stdbool.h>
 
 #include "core/siril.h"            /* for `sequence` and `fits` typedefs */
-#include "registration/mpp.h"
 
 #ifdef __cplusplus
 extern "C" {

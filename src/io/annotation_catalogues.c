@@ -21,17 +21,16 @@
 #include <math.h>
 #include <string.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/siril_world_cs.h"
-#include "core/siril_app_dirs.h"
-#include "core/siril_log.h"
-#include "core/siril_date.h"
 #include "algos/siril_wcs.h"
+#include "core/proto.h"
+#include "core/siril.h"
+#include "core/siril_app_dirs.h"
+#include "core/siril_date.h"
+#include "core/siril_log.h"
+#include "core/siril_world_cs.h"
+#include "io/annotation_catalogues.h"
 #include "io/sequence.h"
 #include "io/siril_catalogues.h"
-
-#include "annotation_catalogues.h"
 
 #define CATALOG_DIST_EPSILON (1/3600.0)	// 1 arcsec or 1s in hrs
 

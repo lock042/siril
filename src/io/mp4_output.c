@@ -24,22 +24,20 @@
 
 #ifdef HAVE_FFMPEG
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include <libavutil/avassert.h>
-#include <libavutil/channel_layout.h>
-#include <libavutil/opt.h>
 #include <libavutil/mathematics.h>
+#include <libavutil/opt.h>
 #include <libavutil/timestamp.h>
-#include <libswscale/swscale.h>
 #include <libswresample/swresample.h>
+#include <libswscale/swscale.h>
 
-#include "io/mp4_output.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
+#include "io/mp4_output.h"
 
 //#define STREAM_DURATION   10.0
 #define STREAM_PIX_FMT    AV_PIX_FMT_YUV420P /* default output pix_fmt */
@@ -370,6 +368,11 @@ static AVFrame *get_video_frame(struct mp4_struct *ost, fits *input_image)
 
 	/* if (target != input_image format) */
 	if (c->pix_fmt != AV_PIX_FMT_RGB24) {
+		if (input_image->rx != ost->src_w || input_image->ry != ost->src_h ||
+				src_format != ost->tmp_frame->format) {
+			siril_log_error(_("Image does not match the film input format\n"));
+			return NULL;
+		}
 		if (!ost->sws_ctx) {
 			ost->sws_ctx = sws_getContext(ost->src_w, ost->src_h, src_format,
 					c->width, c->height, c->pix_fmt,
@@ -403,10 +406,13 @@ static int write_video_frame(struct mp4_struct *ost, fits *input_image)
 
 	siril_log_debug("writing video frame\n");
 
-	ost->frame = get_video_frame(ost, input_image);
+	/* a NULL frame would put the encoder in draining mode */
+	AVFrame *frame = get_video_frame(ost, input_image);
+	if (!frame)
+		return 1;
 
 	/* encode the image */
-	int ret = avcodec_send_frame(c, ost->frame);
+	int ret = avcodec_send_frame(c, frame);
 	if (ret < 0) {
 		av_packet_unref(ost->pkt);
 		siril_log_error("Error encoding video frame: %s\n", av_err2str(ret));
