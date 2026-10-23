@@ -6609,10 +6609,7 @@ int process_light_curve(int nb) {
 	siril_log_debug("starting PSF analysis of %d stars\n", args->nb);
 
 	if (!start_in_new_thread(light_curve_worker, args)) {
-		g_free(args->target_descr);
-		free(args->areas);
-		free(args->target_descr);
-		free(args);
+		free_light_curve_args(args);
 		return CMD_GENERIC_ERROR;
 	}
 	return CMD_OK;

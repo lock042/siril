@@ -312,7 +312,7 @@ static void on_nina_lc_response(GtkWindow *self, gint response_id, gpointer user
 	siril_log_debug("starting PSF analysis of %d stars\n", args->nb);
 
 	if (!start_in_new_thread(light_curve_worker, args)) {
-		free(args);
+		free_light_curve_args(args);
 		return;
 	}
 	// Update of the UI
