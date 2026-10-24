@@ -697,15 +697,34 @@ static void add_star_to_list(psf_star *star, int i) {
 	units = star->units;
 }
 
+/* The model is detached from the view and left unsorted while the rows are
+ * added: otherwise each row is handled by the view (and re-sorted if a
+ * column sort is active), which blocks the main thread for seconds with
+ * thousands of stars. */
 static void fill_stars_list(fits *fit, psf_star **stars) {
 	int i = 0;
 	if (!stars) return;
+	get_stars_list_store();
+	GtkTreeView *treeview = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "Stars_stored"));
+	GtkTreeSortable *sortable = GTK_TREE_SORTABLE(liststore_stars);
+	gint sort_id;
+	GtkSortType sort_order;
+	gboolean sorted = gtk_tree_sortable_get_sort_column_id(sortable, &sort_id, &sort_order);
+	g_object_ref(liststore_stars);
+	gtk_tree_view_set_model(treeview, NULL);
+	if (sorted)
+		gtk_tree_sortable_set_sort_column_id(sortable,
+				GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, sort_order);
 	while (stars[i]) {
 		/* update units if needed */
 		fwhm_to_arcsec_if_needed(fit, stars[i]);
 		add_star_to_list(stars[i], i);
 		i++;
 	}
+	if (sorted)
+		gtk_tree_sortable_set_sort_column_id(sortable, sort_id, sort_order);
+	gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(liststore_stars));
+	g_object_unref(liststore_stars);
 	gui.selected_star = -1;
 	display_status();
 }
@@ -848,6 +867,8 @@ void on_treeview_selection_changed(GtkTreeSelection *selection, gpointer user_da
 
 	GtkTreeView *treeView = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "Stars_stored"));
 	GtkTreeModel *treeModel = gtk_tree_view_get_model(treeView);
+	if (!treeModel)
+		return;	// model detached while fill_stars_list() refills it
 
 	if (gtk_tree_model_get_iter_first(treeModel, &iter) == FALSE)
 		return;	//The tree is empty
