@@ -61,6 +61,13 @@
       <pattern>unnamedstars.dat</pattern>
     </patterns>
   </object>
+  <object class="GtkFileFilter" id="filter_csv">
+    <property name="name" translatable="yes">CSV file (*.csv)</property>
+    <patterns>
+      <pattern>*.csv</pattern>
+      <pattern>*.CSV</pattern>
+    </patterns>
+  </object>
   <object class="GtkFileFilter" id="icc_filter">
     <mime-types>
       <mime-type>application/vnd.iccprofile</mime-type>

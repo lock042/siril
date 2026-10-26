@@ -193,13 +193,13 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			if (args->use_cosmetic_correction) {
 				tbutton = GTK_CHECK_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "checkSigCold")));
 				if (siril_toggle_get_active(GTK_WIDGET(tbutton))) {
-					GtkSpinButton *sigCold = GTK_SPIN_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "spinSigCosmeColdBox")));
+					GtkSpinButton *sigCold = GTK_SPIN_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "spinSigCosmeCold")));
 					args->sigma[0] = gtk_spin_button_get_value(sigCold);
 				} else args->sigma[0] = -1.0;
 
 				tbutton = GTK_CHECK_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "checkSigHot")));
 				if (siril_toggle_get_active(GTK_WIDGET(tbutton))) {
-					GtkSpinButton *sigHot = GTK_SPIN_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "spinSigCosmeHotBox")));
+					GtkSpinButton *sigHot = GTK_SPIN_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "spinSigCosmeHot")));
 					args->sigma[1] = gtk_spin_button_get_value(sigHot);
 				} else args->sigma[1] = -1.0;
 
