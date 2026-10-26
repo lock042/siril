@@ -236,12 +236,12 @@ void init_preprocessing_from_GUI() {
 					if (prepro->cc_from_dark) { // cosmetic correction from masterdark
 						tbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkSigCold"));
 						if (gtk_toggle_button_get_active(tbutton)) {
-							GtkSpinButton *sigCold = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeColdBox"));
+							GtkSpinButton *sigCold = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeCold"));
 							prepro->sigma[0] = gtk_spin_button_get_value(sigCold);
 						} else prepro->sigma[0] = -1.0;
 						tbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkSigHot"));
 						if (gtk_toggle_button_get_active(tbutton)) {
-							GtkSpinButton *sigHot = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeHotBox"));
+							GtkSpinButton *sigHot = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeHot"));
 							prepro->sigma[1] = gtk_spin_button_get_value(sigHot);
 						} else prepro->sigma[1] = -1.0;
 					} else {

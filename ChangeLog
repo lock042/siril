@@ -22,6 +22,7 @@ xx/xx/xx
 * Fixed the display sliders not being reset to 0–65535 when switching to linear display while a stretch tool is open (#2002)
 * Fixed crash when converting files in parallel with a cfitsio built without thread safety (#2003)
 * Fixed MIPS-FHI not being saved in 32-bit FITS files, so their display cutoffs were lost on reopening
+* Fixed cosmetic correction in calibration and live stacking ignoring the hot and cold sigma values of the Calibration tab and using those of the Cosmetic Correction dialog instead (#2009)
 * Fixed AAVSO export writing V-C instead of the standardized magnitude when Cstd was left at its default of 0: Cstd is now mandatory, and empty text fields and an unknown airmass (previously -999) are written as "na" as the format requires
 
 **Improvements**

@@ -827,13 +827,13 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			if (args->use_cosmetic_correction) {
 				tbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkSigCold"));
 				if (gtk_toggle_button_get_active(tbutton)) {
-					GtkSpinButton *sigCold = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeColdBox"));
+					GtkSpinButton *sigCold = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeCold"));
 					args->sigma[0] = gtk_spin_button_get_value(sigCold);
 				} else args->sigma[0] = -1.0;
 
 				tbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkSigHot"));
 				if (gtk_toggle_button_get_active(tbutton)) {
-					GtkSpinButton *sigHot = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeHotBox"));
+					GtkSpinButton *sigHot = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeHot"));
 					args->sigma[1] = gtk_spin_button_get_value(sigHot);
 				} else args->sigma[1] = -1.0;
 
