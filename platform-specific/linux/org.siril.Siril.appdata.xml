@@ -93,12 +93,33 @@
    </screenshot>
   </screenshots>
   <url type="homepage">https://www.siril.org</url>
-  <url type="bugtracker">https://gitlab.com/free-astro/siril/-/issues</url>
+  <url type="bugtracker">https://siril.readthedocs.io/en/stable/Issues.html</url>
   <url type="donation">https://siril.org/donate/</url>
   <url type="help">https://siril.rtfd.io/</url>
   <update_contact>cyril_at_free-astro.org</update_contact>
   <content_rating type="oars-1.0"/>
   <releases>
+    <release version="1.4.5" type="stable" date="2026-10-28">
+      <url type="details">https://siril.org/download/1.4.5</url>
+      <description>
+        <p>
+          Maintenance release for the 1.4.x series. This version focuses on bug fixes and stability
+          improvements, with a few new features for sequences, scripting and banding reduction.
+        </p>
+        <ul>
+          <li>Fixed several crashes (exporting monochrome sequences as mp4, wavelet and linear_match commands with too few arguments, parallel conversion with a cfitsio built without thread safety)</li>
+          <li>Fixed Python-related issues: thread contention (#1959) and a race in the virtual environment initialisation (#1977)</li>
+          <li>Fixed GESDT rejection rejecting valid samples, and stacking of images having fewer rows than threads (#1993)</li>
+          <li>Fixed cosmetic correction in calibration and live stacking ignoring the hot and cold sigma values of the Calibration tab (#2009)</li>
+          <li>Fixed file handling issues: JPEG XL files in an ISO/IEC 18181-2 container (#1961), invalid FITS extensions corrupting filenames (#1984), invalid EQUINOX value in the FITS header (#1979), MIPS-FHI not saved in 32-bit FITS files, and Bayer pattern stored as XISF-native metadata (#1102)</li>
+          <li>Fixed display and selection issues: 100% zoom losing the view center (#1997), selection losing its last column and row at the image edge (#1996), display sliders not reset when switching to linear display (#2002)</li>
+          <li>Fixed AAVSO export writing V-C instead of the standardized magnitude, and the cancel command sent through pipes (#2000)</li>
+          <li>Allowed editing FITS keywords of a whole sequence from the UI</li>
+          <li>Reimplemented the banding reduction algorithm for improved speed</li>
+          <li>Added the addwcs and catquery commands, and a SirilInterface.is_headless property for Python scripts</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.4.4" type="stable" date="2026-06-17">
       <url type="details">https://siril.org/download/1.4.4</url>
       <description>
