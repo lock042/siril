@@ -1,3 +1,9 @@
+siril-1.4.6
+--/--/--
+
+**Fixes**
+* Fixed snapshots including the empty canvas area around the image when the image is smaller than the display area
+
 siril-1.4.5
 10/28/26
 

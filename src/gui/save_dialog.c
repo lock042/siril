@@ -932,10 +932,11 @@ void on_header_snapshot_button_clicked(gboolean clipboard) {
 	gint x1 = max(0, (int) gui.display_offset.x);
 	gint y1 = max(0, (int) gui.display_offset.y);
 
-	gint x2 = min(width * z + (int) gui.display_offset.x, gtk_widget_get_allocated_width(widget));
-	gint y2 = min(height * z + (int) gui.display_offset.y, gtk_widget_get_allocated_height(widget));
+	/* crop to the displayed image, not the canvas around it */
+	gint x2 = min(gfit.rx * z + (int) gui.display_offset.x, gtk_widget_get_allocated_width(widget));
+	gint y2 = min(gfit.ry * z + (int) gui.display_offset.y, gtk_widget_get_allocated_height(widget));
 
-	GdkPixbuf *pixbuf = gdk_pixbuf_get_from_surface(surface, x1, y1, x2 - x1, y2 - y1);
+	GdkPixbuf *pixbuf = (x2 > x1 && y2 > y1) ? gdk_pixbuf_get_from_surface(surface, x1, y1, x2 - x1, y2 - y1) : NULL;
 	if (pixbuf) {
 		if (clipboard) {
 			GtkClipboard *cb = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
