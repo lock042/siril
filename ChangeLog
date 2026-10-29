@@ -56,6 +56,12 @@ siril-1.5.0
 * Improved plot windows: SPCC fits grouped in a single window with summary tiles and key figures, y-axis log scale and whole-window PNG export
 * Added HDR composition of registered linear images taken with different exposure times, with exposure ratios measured on the data, noise-optimal weighting and feathered saturation masks (hdr command and Image Processing > Composition menu)
 
+siril-1.4.6
+--/--/--
+
+**Fixes**
+* Fixed snapshots including the empty canvas area around the image when the image is smaller than the display area
+
 siril-1.4.5
 10/28/26
 
