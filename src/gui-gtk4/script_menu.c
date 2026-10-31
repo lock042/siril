@@ -169,8 +169,9 @@ static void on_script_search_changed(GtkSearchEntry *entry, gpointer user_data) 
 	gtk_widget_set_visible(script_search_scroll, count > 0);
 }
 
-static void on_script_popover_closed(GtkEditable *entry) {
-	gtk_editable_set_text(entry, "");
+/* keep the last query, selected so that typing replaces it */
+static void on_script_popover_show(GtkEditable *entry) {
+	gtk_editable_select_region(entry, 0, -1);
 }
 
 static GtkWidget *create_script_search_widget(void) {
@@ -875,7 +876,7 @@ static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 		                           search_widget, "scripts-search");
 		gtk_search_entry_set_key_capture_widget(GTK_SEARCH_ENTRY(script_search_entry_widget),
 		                                        GTK_WIDGET(search_popover));
-		g_signal_connect_object(search_popover, "closed", G_CALLBACK(on_script_popover_closed),
+		g_signal_connect_object(search_popover, "show", G_CALLBACK(on_script_popover_show),
 		                        script_search_entry_widget, G_CONNECT_SWAPPED);
 	}
 
