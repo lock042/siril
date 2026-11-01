@@ -42,6 +42,33 @@
 static const gchar *catcodefmt = "%02d", *rafmt = "%08.4f", *decfmt = "%+08.4f",
 					*radiusfmt = "%3.2f", *limitmagfmt = "%3.1f";
 
+#define PGC_DIAMETER_EXPR "EXP(logD25)/10"
+
+static const gchar *simbad_servers[SIMBAD_MIRROR_NB] = {
+	"https://simbad.cds.unistra.fr",
+	"https://simbad.cfa.harvard.edu",
+	"https://simbad.idia.ac.za"
+};
+
+// NULL for the CDS: queried with TAPVizieR, which the mirrors don't provide (they use ASU)
+static const gchar *vizier_mirrors[VIZIER_MIRROR_NB] = {
+	NULL,
+	"https://vizier.cfa.harvard.edu",
+	"https://vizier.idia.ac.za",
+	"https://vizier.nao.ac.jp",
+	"https://vizier.china-vo.org"
+};
+
+const gchar *get_simbad_server() {
+	int i = com.pref.astrometry.simbad_mirror;
+	return simbad_servers[(i > 0 && i < SIMBAD_MIRROR_NB) ? i : SIMBAD_MIRROR_CDS];
+}
+
+const gchar *get_vizier_mirror() {
+	int i = com.pref.astrometry.vizier_mirror;
+	return vizier_mirrors[(i > 0 && i < VIZIER_MIRROR_NB) ? i : VIZIER_MIRROR_CDS];
+}
+
 // this function returns a heap-allocated structure cat_tap_query_fields
 // cointaining the fields to be queried through TAP (only!)
 // to be freed by the caller
@@ -142,7 +169,7 @@ static cat_tap_query_fields *catalog_to_tap_fields(siril_cat_index cat) {
 			break;
 		case CAT_SIMBAD:
 			tap->catcode = g_strdup("basic+JOIN+allfluxes+ON+oidref+=+oid");
-			tap->tap_server = g_strdup(SIMBAD_TAP_QUERY);
+			tap->tap_server = g_strdup_printf("%s%s", get_simbad_server(), SIMBAD_TAP_PATH);
 			tap->tap_columns[CAT_FIELD_RA] = g_strdup("ra");
 			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("dec");
 			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("V");
@@ -165,7 +192,7 @@ static cat_tap_query_fields *catalog_to_tap_fields(siril_cat_index cat) {
 			tap->tap_columns[CAT_FIELD_RA] = g_strdup("RAJ2000");
 			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("DEJ2000");
 			tap->tap_columns[CAT_FIELD_NAME] = g_strdup("PGC");
-			tap->tap_columns[CAT_FIELD_DIAMETER] = g_strdup("EXP(logD25)/10"); // diameter in arcmin
+			tap->tap_columns[CAT_FIELD_DIAMETER] = g_strdup(PGC_DIAMETER_EXPR); // diameter in arcmin
 			break;
 		case CAT_EXOPLANETARCHIVE:
 			tap->catcode = g_strdup("pscomppars"); // we query pscomppars instead of ps to get a single entry per planet
@@ -195,6 +222,43 @@ static void free_cat_tap_query_fields(cat_tap_query_fields *tap) {
 	free(tap);
 }
 
+// TRUE if the VizieR catalogue must be queried with ASU on a mirror instead of TAPVizieR
+static gboolean use_vizier_asu(siril_cat_index cat) {
+	if (!get_vizier_mirror())
+		return FALSE;
+	cat_tap_query_fields *fields = catalog_to_tap_fields(cat);
+	gboolean asu = fields && !g_strcmp0(fields->tap_server, VIZIER_TAP_QUERY);
+	free_cat_tap_query_fields(fields);
+	return asu;
+}
+
+// ASU cannot evaluate ADQL expressions: the raw column is fetched and converted when parsing
+static const gchar *asu_column(const gchar *tap_column) {
+	return g_strcmp0(tap_column, PGC_DIAMETER_EXPR) ? tap_column : "logD25";
+}
+
+static gchar *vizier_asu_get_url(siril_catalogue *siril_cat, cat_tap_query_fields *fields, uint32_t catcols) {
+	const gchar *code = fields->catcode;
+	gsize len = strlen(code);
+	gchar *source = (len > 6 && g_str_has_prefix(code, "%22") && g_str_has_suffix(code, "%22")) ?
+		g_strndup(code + 3, len - 6) : g_strdup(code);
+	GString *url = g_string_new(get_vizier_mirror());
+	g_string_append_printf(url, "/viz-bin/asu-tsv?-source=%s&-out.max=unlimited&-out=", source);
+	g_free(source);
+	gboolean first = TRUE;
+	for (int i = 0; i < MAX_TAP_QUERY_COLUMNS; i++) {
+		if (fields->tap_columns[i]) {
+			g_string_append_printf(url, "%s%s", first ? "" : ",", asu_column(fields->tap_columns[i]));
+			first = FALSE;
+		}
+	}
+	g_string_append_printf(url, "&-c.ra=%.6f&-c.dec=%.6f&-c.rd=%.4f",
+			siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius / 60.);
+	if (siril_cat->limitmag > 0 && catcols & (1 << CAT_FIELD_MAG))
+		g_string_append_printf(url, "&%s=%%3C%%3D%.1f", fields->tap_columns[CAT_FIELD_MAG], siril_cat->limitmag);
+	return g_string_free(url, FALSE);
+}
+
 /// Returns url to be queried based on catalog type and query
 static gchar *siril_catalog_conesearch_get_url(siril_catalogue *siril_cat) {
 	GString *url;
@@ -207,6 +271,11 @@ static gchar *siril_catalog_conesearch_get_url(siril_catalogue *siril_cat) {
 		case CAT_TYCHO2 ... CAT_EXOPLANETARCHIVE:;
 			cat_tap_query_fields *fields = catalog_to_tap_fields(siril_cat->cat_index);
 			uint32_t catcols = siril_catalog_columns(siril_cat->cat_index);
+			if (use_vizier_asu(siril_cat->cat_index)) {
+				gchar *asu_url = vizier_asu_get_url(siril_cat, fields, catcols);
+				free_cat_tap_query_fields(fields);
+				return asu_url;
+			}
 			url = g_string_new(fields->tap_server);
 			gboolean first = TRUE;
 			for (int i = 0; i < MAX_TAP_QUERY_COLUMNS; i++) {
@@ -263,6 +332,91 @@ static gchar *siril_catalog_conesearch_get_url(siril_catalogue *siril_cat) {
 }
 
 // Parsers for non-TAP queries
+// VizieR ASU tsv (mirrors) converted to the csv returned by TAPVizieR
+static gboolean parse_ASU_buffer(const gchar *buffer, siril_cat_index cat, GOutputStream *output_stream) {
+	if (!buffer || buffer[0] != '#') {
+		siril_log_error(_("VizieR mirror returned an unexpected answer\n"));
+		return FALSE;
+	}
+	cat_tap_query_fields *fields = catalog_to_tap_fields(cat);
+	if (!fields)
+		return FALSE;
+	const gchar **cat_columns = get_cat_colums_names();
+	int fieldidx[MAX_TAP_QUERY_COLUMNS];
+	gboolean sexa[MAX_TAP_QUERY_COLUMNS] = { FALSE };
+	int nbfields = 0;
+	GString *out = g_string_new(NULL);
+	for (int i = 0; i < MAX_TAP_QUERY_COLUMNS; i++) {
+		if (fields->tap_columns[i]) {
+			g_string_append_printf(out, "%s%s", nbfields ? "," : "", cat_columns[i]);
+			fieldidx[nbfields++] = i;
+		}
+	}
+	g_string_append_c(out, '\n');
+
+	// after comments: column names, units, dashes, then data
+	int header_lines = 0;
+	gchar **lines = g_strsplit(buffer, "\n", -1);
+	for (int l = 0; lines[l]; l++) {
+		gchar *line = lines[l];
+		g_strchomp(line);
+		if (line[0] == '#' || line[0] == '\0')
+			continue;
+		gchar **vals = g_strsplit(line, "\t", -1);
+		if (g_strv_length(vals) != nbfields) {
+			g_strfreev(vals);
+			continue;
+		}
+		if (header_lines < 3) {
+			if (header_lines == 1) {
+				for (int j = 0; j < nbfields; j++)
+					sexa[j] = strstr(vals[j], "h:m:s") || strstr(vals[j], "d:m:s");
+			}
+			header_lines++;
+			g_strfreev(vals);
+			continue;
+		}
+		for (int j = 0; j < nbfields; j++) {
+			gchar *v = g_strstrip(vals[j]);
+			int field = fieldidx[j];
+			if (j)
+				g_string_append_c(out, ',');
+			if (v[0] == '\0')
+				continue;
+			gchar num[G_ASCII_DTOSTR_BUF_SIZE];
+			if (sexa[j]) {
+				double val = (field == CAT_FIELD_RA) ? parse_hms(v) : parse_dms(v);
+				if (!isnan(val))
+					g_string_append(out, g_ascii_formatd(num, sizeof(num), "%.7f", val));
+			} else if (!g_strcmp0(fields->tap_columns[field], PGC_DIAMETER_EXPR)) {
+				g_string_append(out, g_ascii_formatd(num, sizeof(num), "%.4f", exp(g_ascii_strtod(v, NULL)) / 10.));
+			} else {
+				gchar *end = NULL;
+				g_ascii_strtod(v, &end);
+				if (end && *end == '\0') {
+					g_string_append(out, v);
+				} else { // quoted like TAP strings, commas would break the csv
+					g_strdelimit(v, ",\"", ' ');
+					g_string_append_printf(out, "\"%s\"", v);
+				}
+			}
+		}
+		g_string_append_c(out, '\n');
+		g_strfreev(vals);
+	}
+	g_strfreev(lines);
+	free_cat_tap_query_fields(fields);
+
+	GError *error = NULL;
+	gboolean ret = g_output_stream_write_all(output_stream, out->str, out->len, NULL, NULL, &error);
+	if (!ret) {
+		g_warning("%s\n", error->message);
+		g_clear_error(&error);
+	}
+	g_string_free(out, TRUE);
+	return ret;
+}
+
 // IMCCE skybot - txt input delimited with " | " parsed to csv
 static gboolean parse_IMCCE_buffer(gchar *buffer, GOutputStream *output_stream) {
 	if (!buffer || buffer[0] == '\0' || !g_str_has_prefix(buffer, "# Flag:"))
@@ -607,6 +761,13 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 	if (buffer && !error) {
 		switch (siril_cat->cat_index) {
 			case CAT_TYCHO2 ... CAT_EXOPLANETARCHIVE: // TAP query, no parsing, we just write the whole buffer to the output stream
+				if (use_vizier_asu(siril_cat->cat_index)) {
+					if (!parse_ASU_buffer(buffer, siril_cat->cat_index, output_stream)) {
+						remove_file = TRUE;
+						goto download_error;
+					}
+					break;
+				}
 				if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
 					g_warning("%s\n", error->message);
 					remove_file = TRUE;

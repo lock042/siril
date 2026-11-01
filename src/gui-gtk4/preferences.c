@@ -143,6 +143,8 @@ static void update_astrometry_preferences() {
 	}
 
 	com.pref.astrometry.gaia_cache_duration = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("gaia_cache_duration")));
+	com.pref.astrometry.simbad_mirror = gtk_drop_down_get_selected(GTK_DROP_DOWN(lookup_widget("simbad_mirror_combo")));
+	com.pref.astrometry.vizier_mirror = gtk_drop_down_get_selected(GTK_DROP_DOWN(lookup_widget("vizier_mirror_combo")));
 
 	com.pref.astrometry.sip_correction_order = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_sip_order")));
 	com.pref.astrometry.percent_scale_range = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("spin_sampling_tolerance")));
@@ -639,6 +641,8 @@ void update_preferences_from_model() {
 		siril_file_chooser_set_filename(button, pref->catalogue_paths[5]);
 	}
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("gaia_cache_duration")), pref->astrometry.gaia_cache_duration);
+	gtk_drop_down_set_selected(GTK_DROP_DOWN(lookup_widget("simbad_mirror_combo")), pref->astrometry.simbad_mirror);
+	gtk_drop_down_set_selected(GTK_DROP_DOWN(lookup_widget("vizier_mirror_combo")), pref->astrometry.vizier_mirror);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_sip_order")), pref->astrometry.sip_correction_order);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_sampling_tolerance")), pref->astrometry.percent_scale_range);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_radius")), pref->astrometry.radius_degrees);

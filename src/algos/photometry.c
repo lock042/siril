@@ -41,7 +41,7 @@
 #include "io/siril_catalogues.h"
 #include "io/siril_plot.h"
 
-#define MIN_SKY    5	// min number of backgroun pixels for valid photometry
+#define MIN_SKY    5	// min number of background pixels for valid photometry
 
 double getMagnitude(double intensity) {
 	return -2.5 * log10(intensity);
