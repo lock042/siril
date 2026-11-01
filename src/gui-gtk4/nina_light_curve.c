@@ -42,8 +42,7 @@ static GtkWidget *apert = NULL;
 static GtkWidget *apert_value = NULL;
 static GtkWidget *inner_value = NULL;
 static GtkWidget *outer_value = NULL;
-static double radius_value = 0.;
-const char *radius_label = NULL;
+static GtkWidget *max_refs_spin = NULL;
 
 static void on_nina_lc_response(GtkWindow *self, gint response_id, gpointer user_data);
 
@@ -52,6 +51,21 @@ static GtkWidget *nina_ok_button = NULL;
 /* Phase 14G.4: GtkDialog → GtkWindow.  Per-button "clicked" → response shape. */
 static void nina_btn_ok_clicked(GtkButton *btn, gpointer ud)    { (void)btn; on_nina_lc_response(GTK_WINDOW(dialog), GTK_RESPONSE_ACCEPT, ud); }
 static void nina_btn_close_clicked(GtkButton *btn, gpointer ud) { (void)btn; on_nina_lc_response(GTK_WINDOW(dialog), GTK_RESPONSE_REJECT, ud); }
+
+// shows the current photometry settings, refreshed each time the dialog is shown
+static void update_aperture_info() {
+	gboolean forced = com.pref.phot_set.force_radius;
+	gtk_label_set_text(GTK_LABEL(apert), forced ? _("Aperture radius (px):") : _("Radius/half-FWHM ratio:"));
+	gchar *txt = g_strdup_printf("%1.2lf", forced ? com.pref.phot_set.aperture : com.pref.phot_set.auto_aperture_factor);
+	gtk_editable_set_text(GTK_EDITABLE(apert_value), txt);
+	g_free(txt);
+	txt = g_strdup_printf("%1.2lf", com.pref.phot_set.inner);
+	gtk_editable_set_text(GTK_EDITABLE(inner_value), txt);
+	g_free(txt);
+	txt = g_strdup_printf("%1.2lf", com.pref.phot_set.outer);
+	gtk_editable_set_text(GTK_EDITABLE(outer_value), txt);
+	g_free(txt);
+}
 
 static void build_the_dialog() {
 	/* Phase 14G.4: GtkDialog → GtkWindow. */
@@ -109,6 +123,17 @@ static void build_the_dialog() {
 	gtk_widget_set_margin_bottom(GTK_WIDGET(display_curve), 0);
 	siril_toggle_set_active(GTK_WIDGET(display_curve), TRUE);
 	gtk_box_append(GTK_BOX(options_box), display_curve);
+	// Maximum number of reference stars
+	GtkWidget *max_refs_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	gtk_widget_set_margin_start(GTK_WIDGET(max_refs_box), 15);
+	gtk_widget_set_margin_end(GTK_WIDGET(max_refs_box), 15);
+	GtkWidget *max_refs_label = gtk_label_new(_("Maximum number of reference stars:"));
+	gtk_box_append(GTK_BOX(max_refs_box), max_refs_label);
+	max_refs_spin = gtk_spin_button_new_with_range(1, MAX_REF_STARS - 1, 1);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(max_refs_spin), 19);
+	gtk_widget_set_tooltip_text(max_refs_spin, _("The reference stars are taken in the order of the list file, which Siril sorts by quality"));
+	gtk_box_append(GTK_BOX(max_refs_box), max_refs_spin);
+	gtk_box_append(GTK_BOX(options_box), max_refs_box);
 
 	// Horizontal Separator
 	sep = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
@@ -136,8 +161,7 @@ static void build_the_dialog() {
 
 	/* Fill the 1st box */
 	/* The label */
-	radius_label = !com.pref.phot_set.force_radius ? "Radius/half-FWHM ratio:" : "Aperture radius (px):";
-	apert = gtk_label_new(radius_label);	// The label depends on the "force_radius" value
+	apert = gtk_label_new(NULL);	// The label depends on the "force_radius" value
 	gtk_label_set_wrap(GTK_LABEL(apert), TRUE);
 	gtk_widget_set_margin_start(GTK_WIDGET(apert), 15);
 	gtk_widget_set_margin_top(GTK_WIDGET(apert), 0);
@@ -149,8 +173,6 @@ static void build_the_dialog() {
 	gtk_widget_set_margin_start(GTK_WIDGET(apert_value), 15);
 	gtk_widget_set_margin_top(GTK_WIDGET(apert_value), 0);
 	gtk_widget_set_halign(apert_value, GTK_ALIGN_START);
-	radius_value = !com.pref.phot_set.force_radius ? com.pref.phot_set.auto_aperture_factor : com.pref.phot_set.aperture;
-	gtk_editable_set_text(GTK_EDITABLE(apert_value), g_strdup_printf("%1.2lf", radius_value));
 	gtk_box_append(GTK_BOX(aperture_box), apert_value);
 
 	/* Fill the 2nd box */
@@ -167,7 +189,6 @@ static void build_the_dialog() {
 	gtk_widget_set_margin_start(GTK_WIDGET(inner_value), 15);
 	gtk_widget_set_margin_top(GTK_WIDGET(inner_value), 0);
 	gtk_widget_set_halign(inner_value, GTK_ALIGN_START);
-	gtk_editable_set_text(GTK_EDITABLE(inner_value), g_strdup_printf("%1.2lf", com.pref.phot_set.inner));
 	gtk_box_append(GTK_BOX(inner_box), inner_value);
 
 	/* Fill the 3rd box */
@@ -184,7 +205,6 @@ static void build_the_dialog() {
 	gtk_widget_set_margin_start(GTK_WIDGET(outer_value), 15);
 	gtk_widget_set_margin_top(GTK_WIDGET(outer_value), 0);
 	gtk_widget_set_halign(outer_value, GTK_ALIGN_START);
-	gtk_editable_set_text(GTK_EDITABLE(outer_value), g_strdup_printf("%1.2lf", com.pref.phot_set.outer));
 	gtk_box_append(GTK_BOX(outer_box), outer_value);
 
 	// Gather the graphical elements //
@@ -216,6 +236,8 @@ static void build_the_dialog() {
 	gtk_window_set_default_widget(GTK_WINDOW(dialog), nina_ok_button);
 
 	gtk_window_set_child(GTK_WINDOW(dialog), content_area);
+	update_aperture_info();
+	g_signal_connect(G_OBJECT(dialog), "show", G_CALLBACK(update_aperture_info), NULL);
 }
 
 // the public getter
@@ -229,12 +251,6 @@ static void on_nina_lc_response(GtkWindow *self, gint response_id, gpointer user
 	(void)self; (void)user_data;
 	siril_log_debug("got response event\n");
 	if (response_id != GTK_RESPONSE_ACCEPT) {
-		radius_label = !com.pref.phot_set.force_radius ? "Radius/half-FWHM ratio:" : "Aperture radius (px):";
-		gtk_label_set_text(GTK_LABEL(apert), radius_label);
-		radius_value = !com.pref.phot_set.force_radius ? com.pref.phot_set.auto_aperture_factor : com.pref.phot_set.aperture;
-		gtk_editable_set_text(GTK_EDITABLE(apert_value), g_strdup_printf("%1.2lf", radius_value));
-		gtk_editable_set_text(GTK_EDITABLE(inner_value), g_strdup_printf("%1.2lf", com.pref.phot_set.inner));
-		gtk_editable_set_text(GTK_EDITABLE(outer_value), g_strdup_printf("%1.2lf", com.pref.phot_set.outer));
 		gtk_widget_set_visible(dialog, FALSE);
 		reactivate_parent(dialog);
 		return;
@@ -298,7 +314,8 @@ static void on_nina_lc_response(GtkWindow *self, gint response_id, gpointer user
 	gboolean use_c1 = siril_toggle_get_active(GTK_WIDGET(use_comp1));
 	gboolean use_c2 = siril_toggle_get_active(GTK_WIDGET(use_comp2));
 
-	if (parse_nina_stars_file_using_WCS(args, nina_file, use_c1, use_c2, gfit)) {
+	int max_refs = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(max_refs_spin));
+	if (parse_nina_stars_file_using_WCS(args, nina_file, use_c1, use_c2, max_refs, gfit)) {
 		// fail
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Something went wrong while saving plot"));
 		free(args);
@@ -315,12 +332,4 @@ static void on_nina_lc_response(GtkWindow *self, gint response_id, gpointer user
 		free_light_curve_args(args);
 		return;
 	}
-	// Update of the UI
-	radius_label = !com.pref.phot_set.force_radius ? "Radius/half-FWHM ratio:" : "Aperture radius (px):";
-	gtk_label_set_text(GTK_LABEL(apert), radius_label);
-	radius_value = !com.pref.phot_set.force_radius ? com.pref.phot_set.auto_aperture_factor : com.pref.phot_set.aperture;
-	gtk_editable_set_text(GTK_EDITABLE(apert_value), g_strdup_printf("%1.2lf", radius_value));
-	gtk_editable_set_text(GTK_EDITABLE(inner_value), g_strdup_printf("%1.2lf", com.pref.phot_set.inner));
-	gtk_editable_set_text(GTK_EDITABLE(outer_value), g_strdup_printf("%1.2lf", com.pref.phot_set.outer));
-
 }

@@ -117,10 +117,12 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 	r1 = phot_set->inner;
 	r2 = phot_set->outer;
 	appRadius = phot_set->force_radius ? phot_set->aperture : 0.5 * psf->fwhmx * phot_set->auto_aperture_factor;
-	if (appRadius >= r1 && !phot_set->force_radius) {
+	if (appRadius >= r1) {
 		if (verbose) {
+			if (phot_set->force_radius)
+				siril_log_message(_("The aperture radius (%.1f) must be smaller than the inner radius (%.1f). Please update values in preferences or with setphot.\n"), appRadius, r1);
 			/* Translator note: radii is plural for radius */
-			siril_log_message(_("Inner and outer radii are too small (%d required for inner). Please update values in preferences or with setphot.\n"), round_to_int(appRadius));
+			else siril_log_message(_("Inner and outer radii are too small (%d required for inner). Please update values in preferences or with setphot.\n"), round_to_int(appRadius));
 		}
 		if (error) *error = PSF_ERR_INNER_TOO_SMALL;
 		return NULL;
@@ -602,6 +604,10 @@ static gboolean end_light_curve_worker(gpointer p) {
 }
 
 void free_light_curve_args(struct light_curve_args *args) {
+	if (args->restore_rings) {
+		com.pref.phot_set.inner = args->saved_inner;
+		com.pref.phot_set.outer = args->saved_outer;
+	}
 	if (args->seq && !check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
 	free(args->areas);

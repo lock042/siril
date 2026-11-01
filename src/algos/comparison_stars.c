@@ -87,7 +87,7 @@ static int get_photo_area_from_ra_dec(fits *fit, double ra, double dec, rectangl
 
 /* com.pref.phot_set.outer needs to be set at this point */
 int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *file_path,
-		gboolean use_comp1, gboolean use_comp2, fits *first) {
+		gboolean use_comp1, gboolean use_comp2, int max_refs, fits *first) {
 	/* The file is a CSV with at least these fields:
 	 * Type,Name, Ra,Dec
 	 *
@@ -128,9 +128,12 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 		g_strfreev(tokens);
 	}
 
+	// the target uses one of the MAX_REF_STARS slots
+	if (max_refs < 1 || max_refs > MAX_REF_STARS - 1)
+		max_refs = MAX_REF_STARS - 1;
 	rectangle *areas = malloc(MAX_REF_STARS * sizeof(rectangle));
 	areas[0].x = 0; areas[0].y = 0;
-	int stars_count = 0;
+	int stars_count = 0, nb_refs = 0;
 	gboolean target_acquired = FALSE;
 
 	for (int i = 0; i < siril_cat->nbitems; i++) {
@@ -145,18 +148,20 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 				siril_log_error(_("There was a problem finding the target star in the image, cannot continue with the light curve\n"));
 				break;
 			}
-		} else if ((use_comp1 && !g_ascii_strcasecmp(item->type, "comp1")) || (use_comp2 && !g_ascii_strcasecmp(item->type, "comp2"))) {
+		} else if (nb_refs < max_refs &&
+				((use_comp1 && !g_ascii_strcasecmp(item->type, "comp1")) || (use_comp2 && !g_ascii_strcasecmp(item->type, "comp2")))) {
 			int index = target_acquired ? stars_count : stars_count + 1;
 			if (!get_photo_area_from_ra_dec(first, item->ra, item->dec, &areas[index])) {
 				if (area_is_unique(&areas[index], areas, index)) {
 					stars_count++;
+					nb_refs++;
 					siril_log_message(_("star %s [%s] added as a reference star\n"), item->name, item->type);
 				}
 				else siril_log_message(_("Star %s ignored because it was too close to another\n"), item->name);
 			}
 			else siril_log_warning(_("Star %s could not be used because it's on the borders or outside\n"), item->name);
 		}
-		if (stars_count == MAX_REF_STARS)
+		if (target_acquired && nb_refs == max_refs)
 			break;
 	}
 

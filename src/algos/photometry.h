@@ -47,6 +47,8 @@ struct light_curve_args {
 	char *target_descr;	// the description to put in the data file and graph
 	gboolean display_graph;	// if true, show it, if false, generate png
 	gboolean force_rad;	// if true, fixed aperture radius, if false, dynamic aperture radius
+	gboolean restore_rings;	// -autoring: ring radii to put back in the preferences at the end
+	double saved_inner, saved_outer;
 
 	// metadata from the NINA file created by Siril
 	struct compstars_arg *metadata;

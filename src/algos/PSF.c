@@ -396,6 +396,8 @@ static int psf_Gaussian_df_ang(const gsl_vector * x, void *PSF_data,
 	double x0 = gsl_vector_get(x, 2);
 	double y0 = gsl_vector_get(x, 3);
 	double SX = fabs(gsl_vector_get(x, 4));
+	// the model uses |SX|, the derivative must follow its sign
+	double sgn = gsl_vector_get(x, 4) < 0. ? -1. : 1.;
 	double r = 0.5 * (cos(gsl_vector_get(x, 5)) + 1.);
 	double SY = SQR(r) * SX;
 	double alpha = gsl_vector_get(x, 6);
@@ -416,7 +418,7 @@ static int psf_Gaussian_df_ang(const gsl_vector * x, void *PSF_data,
 				gsl_matrix_set(J, k, 2, tmpd);
 				tmpd = 2 * A * tmpc * ( -tmpx / SX * sa + tmpy / SY * ca); // dy0
 				gsl_matrix_set(J, k, 3, tmpd);
-				tmpd = tmpc * A * (SQR(tmpx / SX) + SQR(tmpy / SX / r)); // dSX
+				tmpd = sgn * tmpc * A * (SQR(tmpx / SX) + SQR(tmpy / SX / r)); // dSX
 				gsl_matrix_set(J, k, 4, tmpd);
 				tmpd = -A * tmpc * sc * SQR(tmpy) / SY / r; // dfc
 				gsl_matrix_set(J, k, 5, tmpd);
@@ -481,6 +483,8 @@ static int psf_Moffat_df_ang(const gsl_vector * x, void *PSF_data, gsl_matrix * 
 	double x0 = gsl_vector_get(x, 2);
 	double y0 = gsl_vector_get(x, 3);
 	double SX = fabs(gsl_vector_get(x, 4)); // Ro_x ^ 2
+	// the model uses |SX|, the derivative must follow its sign
+	double sgn = gsl_vector_get(x, 4) < 0. ? -1. : 1.;
 	double r = 0.5 * (cos(gsl_vector_get(x, 5)) + 1.);
 	double SY = SQR(r) * SX; // Ro_y ^ 2
 	double sc = sin(gsl_vector_get(x, 5));
@@ -509,7 +513,7 @@ static int psf_Moffat_df_ang(const gsl_vector * x, void *PSF_data, gsl_matrix * 
 				gsl_matrix_set(J, k, 2, tmpd);
 				tmpd = 2 * tmpc * ( -tmpx / SX * sa + tmpy / SY * ca); // dy0
 				gsl_matrix_set(J, k, 3, tmpd);
-				tmpd = tmpc * (SQR(tmpx / SX) + SQR(tmpy / SX / r));
+				tmpd = sgn * tmpc * (SQR(tmpx / SX) + SQR(tmpy / SX / r));
 				gsl_matrix_set(J, k, 4, tmpd); // dSX
 				tmpd = -tmpc * sc * SQR(tmpy) / SY / r;
 				gsl_matrix_set(J, k, 5, tmpd); // dfc
@@ -752,9 +756,17 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 	//Units
 	psf->units = "px";
 	// Photometry
-	if (for_photometry)
+	if (for_photometry) {
 		psf->phot = getPhotometryData(z, psf, phot_set, verbose, error);
-	else {
+		// a fit that did not converge gives unreliable centre and FWHM, the
+		// photometry must not report it as valid
+		if (status != GSL_SUCCESS) {
+			if (psf->phot)
+				psf->phot->valid = FALSE;
+			if (error)
+				*error = PSF_ERR_DIVERGED;
+		}
+	} else {
 		psf->phot = NULL;
 		psf->phot_is_valid = FALSE;
 	}
