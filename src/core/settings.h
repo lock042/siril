@@ -121,6 +121,8 @@ struct astrometry_config {
 	gboolean update_default_scale;	// update default focal length and pixel size from the result
 	int percent_scale_range;	// percent below and above the expected sampling to allow
 	int gaia_cache_duration;        // duration in days to keep the gaia local cache
+	int simbad_mirror;		// SIMBAD server, see simbad_mirror enum
+	int vizier_mirror;		// VizieR server, see vizier_mirror enum
 	int sip_correction_order;	// degrees of the polynomial correction
 	double radius_degrees;		// radius around the target coordinates (degrees)
 	int max_seconds_run;		// maximum seconds of CPU time to try solving

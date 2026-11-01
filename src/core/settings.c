@@ -27,6 +27,7 @@
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "io/local_catalogues.h"
+#include "io/remote_catalogues.h"
 #include "stacking/stacking.h"
 
 /* the settings as initialized in static.
@@ -215,6 +216,8 @@ preferences pref_init = {
 		.update_default_scale = TRUE,
 		.percent_scale_range = 20,
 		.gaia_cache_duration = 90,
+		.simbad_mirror = 0,
+		.vizier_mirror = 0,
 		.sip_correction_order = 3,
 		.radius_degrees = 10.0,
 		.keep_xyls_files = FALSE,
@@ -428,6 +431,8 @@ struct settings_access all_settings[] = {
 	{ "astrometry", "asnet_keep_wcs", STYPE_BOOL, N_("do not delete .wcs result files"), &com.pref.astrometry.keep_wcs_files },
 	{ "astrometry", "asnet_show_output", STYPE_BOOL, N_("show solve-field output in main log"), &com.pref.astrometry.show_asnet_output },
 	{ "astrometry", "gaia_cache_duration", STYPE_INT, N_("Lifetime in days of items in Gaia online cache"), &com.pref.astrometry.gaia_cache_duration, { .range_int = { 7, 3650 } } },
+	{ "astrometry", "simbad_mirror", STYPE_INT, N_("SIMBAD server (0: CDS, 1: CfA, 2: IDIA)"), &com.pref.astrometry.simbad_mirror, { .range_int = { 0, SIMBAD_MIRROR_NB - 1 } } },
+	{ "astrometry", "vizier_mirror", STYPE_INT, N_("VizieR server (0: CDS, 1: CfA, 2: IDIA, 3: NAOJ, 4: China-VO)"), &com.pref.astrometry.vizier_mirror, { .range_int = { 0, VIZIER_MIRROR_NB - 1 } } },
 	{ "astrometry", "sip_order", STYPE_INT, N_("degrees of the polynomial correction"), &com.pref.astrometry.sip_correction_order, { .range_int = { 1, 5 } } },
 	{ "astrometry", "radius", STYPE_DOUBLE, N_("radius around the target coordinates (degrees)"), &com.pref.astrometry.radius_degrees, { .range_double = { 0.01, 30.0 } } },
 	{ "astrometry", "max_seconds_run", STYPE_INT, N_("maximum seconds to try solving"), &com.pref.astrometry.max_seconds_run, { .range_int = { 0, 100000 } } },

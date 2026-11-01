@@ -31,6 +31,7 @@
 #include "core/siril_log.h"
 #include "core/siril_networking.h"
 #include "io/annotation_catalogues.h"
+#include "io/remote_catalogues.h"
 
 /* Op descriptor for the catalog-search command. */
 const op_descriptor op_desc_catsearch = {
@@ -450,20 +451,31 @@ char *search_in_online_catalogs(sky_object_query_args *args) {
 	g_string_free(adql, TRUE);
 	switch(args->server) {
 	case QUERY_SERVER_CDS:
-		string_url = g_string_new(CDSSESAME);
+		if (get_vizier_mirror()) {
+			string_url = g_string_new(get_vizier_mirror());
+			g_string_append(string_url, MIRRORSESAME);
+		} else {
+			string_url = g_string_new(CDSSESAME);
+		}
 		g_string_append(string_url, "/-oI/A?");
 		g_string_append(string_url, encoded_name);
 		siril_log_message(_("Searching %s in CDSESAME...\n"), name);
 		break;
 	case QUERY_SERVER_VIZIER:
-		string_url = g_string_new(VIZIERSESAME);
+		if (get_vizier_mirror()) {
+			string_url = g_string_new(get_vizier_mirror());
+			g_string_append(string_url, MIRRORSESAME);
+		} else {
+			string_url = g_string_new(VIZIERSESAME);
+		}
 		g_string_append(string_url, "/-oI/A?");
 		g_string_append(string_url, encoded_name);
 		siril_log_message(_("Searching %s in VIZIER...\n"), name);
 		break;
 	default:
 	case QUERY_SERVER_SIMBAD:
-		string_url = g_string_new(SIMBADSESAME);
+		string_url = g_string_new(get_simbad_server());
+		g_string_append(string_url, SIMBADSESAME);
 		g_string_append(string_url, encoded_adql_name);
 		g_string_append(string_url, "';");
 		siril_log_message(_("Searching %s in SIMBAD...\n"), name);
@@ -497,7 +509,8 @@ char *search_in_online_catalogs(sky_object_query_args *args) {
 		break;
 	case QUERY_SERVER_SIMBAD_PHOTO:
 		// SIMBAD request to get the magnitudes (BVRIJ) in addition to coordinates for a particular star/object
-		string_url = g_string_new(SIMBAD);
+		string_url = g_string_new(get_simbad_server());
+		g_string_append(string_url, SIMBAD);
 		g_string_append(string_url, encoded_name);
 		siril_log_message(_("Searching %s in SIMBAD\n"), name);
 		break;

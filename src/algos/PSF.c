@@ -33,6 +33,7 @@
 #include "core/siril.h"
 #include "core/siril_world_cs.h"
 #include "filters/median.h"
+#include "io/remote_catalogues.h"
 
 #define MAX_ITER_NO_ANGLE  20		//Number of iterations in the minimization with no angle
 #define MAX_ITER_ANGLE     20		//Number of iterations in the minimization with angle
@@ -919,7 +920,8 @@ static gchar *build_wcs_url(gchar *ra, gchar *dec) {
 
 	gchar *tol = g_strdup_printf("%lf", resolution * 3600 * 15);
 
-	GString *url = g_string_new("https://simbad.u-strasbg.fr/simbad/sim-coo?Coord=");
+	GString *url = g_string_new(get_simbad_server());
+	url = g_string_append(url, "/simbad/sim-coo?Coord=");
 	url = g_string_append(url, ra);
 	url = g_string_append(url, dec);
 	url = g_string_append(url, "&Radius=");
