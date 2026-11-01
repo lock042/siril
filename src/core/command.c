@@ -5527,51 +5527,36 @@ int process_set_photometry(int nb) {
 	g_rw_lock_writer_lock(&com.pref_rwlock);
 
 	if (nb > 0) {
+		// rings and aperture are validated together and applied only if all valid
+		double new_inner = inner > 0.0 ? inner : com.pref.phot_set.inner;
+		double new_outer = outer > 0.0 ? outer : com.pref.phot_set.outer;
+		gboolean rings_ok = new_inner < new_outer;
+		if ((inner > 0.0 || outer > 0.0) && !rings_ok) {
+			siril_log_message(_("Inner radius value must be less than outer. Please change the value."));
+			error = TRUE;
+		}
 		// the aperture mode only changes if requested: a ratio in range makes it
-		// dynamic, a ratio out of range or an explicit aperture forces it
+		// dynamic, a ratio out of range (or NaN) or an explicit aperture forces it
 		gboolean new_force = com.pref.phot_set.force_radius;
 		if (has_dyn_ratio)
-			new_force = force < 1.0 || force > 5.0;
+			new_force = !(force >= 1.0 && force <= 5.0);
 		else if (aperture > 0.0)
 			new_force = TRUE;
 		double new_aperture = aperture > 0.0 ? aperture : com.pref.phot_set.aperture;
-		double new_inner = inner > 0.0 ? inner : com.pref.phot_set.inner;
-		if (new_force && new_aperture >= new_inner) {
-			g_rw_lock_writer_unlock(&com.pref_rwlock);
+		// only checked if one of the related values is changed, to not break unrelated calls
+		if (!error && (inner > 0.0 || aperture > 0.0 || has_dyn_ratio) &&
+				new_force && new_aperture >= new_inner) {
 			siril_log_message(_("The aperture radius must be smaller than the inner radius of the background annulus.\n"));
-			siril_log_error(_("Error parsing arguments, aborting.\n"));
-			return CMD_ARG_ERROR;
+			error = TRUE;
 		}
-		if (inner > 0) {
-			if (outer > 0) {
-				if (outer > inner) {
-					com.pref.phot_set.inner = inner;
-					com.pref.phot_set.outer = outer;
-				} else {
-					siril_log_message(_("Inner radius value must be less than outer. Please change the value."));
-					error = TRUE;
-				}
-			} else {
-				if (com.pref.phot_set.outer > inner) {
-					com.pref.phot_set.inner = inner;
-				} else {
-					siril_log_message(_("Inner radius value must be less than outer. Please change the value."));
-					error = TRUE;
-				}
-			}
+		if (!error) {
+			com.pref.phot_set.inner = new_inner;
+			com.pref.phot_set.outer = new_outer;
+			com.pref.phot_set.aperture = new_aperture;
+			com.pref.phot_set.force_radius = new_force;
+			if (!new_force && has_dyn_ratio)
+				com.pref.phot_set.auto_aperture_factor = force;
 		}
-		else if (outer > 0) {
-			if (outer > com.pref.phot_set.inner) {
-				com.pref.phot_set.outer = outer;
-			} else {
-					siril_log_message(_("Inner radius value must be less than outer. Please change the value."));
-					error = TRUE;
-				}
-		}
-		com.pref.phot_set.aperture = new_aperture;
-		com.pref.phot_set.force_radius = new_force;
-		if (!new_force && has_dyn_ratio)
-			com.pref.phot_set.auto_aperture_factor = force;
 
 		if (gain > 0.0)
 			com.pref.phot_set.gain = gain;
@@ -6220,8 +6205,8 @@ int process_seq_tilt(int nb) {
 	return CMD_OK;
 }
 
-/* com.pref.phot_set.outer needs to be set at this point */
-static int parse_star_position_arg(char *arg, sequence *seq, fits *first, rectangle *seqpsf_area, gchar **target_descr) {
+/* outer is the outer ring radius used for the run, it sets the size of the area */
+static int parse_star_position_arg(char *arg, sequence *seq, fits *first, double outer, rectangle *seqpsf_area, gchar **target_descr) {
 	rectangle area;
 	if (g_str_has_prefix(arg, "-at=") || g_str_has_prefix(arg, "-refat=")) {
 		gchar *value, *end;
@@ -6236,8 +6221,8 @@ static int parse_star_position_arg(char *arg, sequence *seq, fits *first, rectan
 		int y = g_ascii_strtoull(value, &end, 10);
 		if (end == value) return CMD_ARG_ERROR;
 
-		double start = 1.5 * com.pref.phot_set.outer;
-		double size = 3 * com.pref.phot_set.outer;
+		double start = 1.5 * outer;
+		double size = 3 * outer;
 
 		area.x = x - start;
 		area.y = y - start;
@@ -6292,8 +6277,8 @@ static int parse_star_position_arg(char *arg, sequence *seq, fits *first, rectan
 		}
 		double dx, dy;
 		siril_to_display(fx, fy, &dx, &dy, first->ry);
-		double start = 1.5 * com.pref.phot_set.outer;
-		double size = 3 * com.pref.phot_set.outer;
+		double start = 1.5 * outer;
+		double size = 3 * outer;
 		area.x = dx - start;
 		area.y = dy - start;
 		area.w = size;
@@ -6377,7 +6362,7 @@ int process_seq_psf(int nb) {
 					}
 					seq->current = 0;
 
-					if (parse_star_position_arg(word[i], seq, &first, &area, NULL) == 0) {
+					if (parse_star_position_arg(word[i], seq, &first, com.pref.phot_set.outer, &area, NULL) == 0) {
 						has_area = TRUE;
 						clearfits(&first);
 					} else {
@@ -6410,7 +6395,7 @@ int process_seq_psf(int nb) {
 			}
 			seq->current = 0;
 
-			if (parse_star_position_arg(word[i], seq, &first, &area, NULL) == 0) {
+			if (parse_star_position_arg(word[i], seq, &first, com.pref.phot_set.outer, &area, NULL) == 0) {
 				has_area = TRUE;
 				clearfits(&first);
 			} else {
@@ -6542,6 +6527,7 @@ int process_light_curve(int nb) {
 	fits reffit = { 0 };
 	double ring_inner = com.pref.phot_set.inner, ring_outer = com.pref.phot_set.outer;
 	if (autoring) { // we detect the stars in the reference frame
+		// reffit is kept until the end: its WCS is used to find the stars in headless mode
 		if (seq_read_frame(seq, refimage, &reffit, FALSE, -1)) {
 			if (seq != &com.seq)
 				free_sequence(seq, TRUE);
@@ -6561,7 +6547,14 @@ int process_light_curve(int nb) {
 		ring_outer = com.pref.phot_set.auto_outer_factor * fwhm;
 		siril_log_message(_("Setting inner and outer photometry ring radii to %.1f and %.1f (FWHM is %f)\n"),
 				ring_inner, ring_outer, fwhm);
-		clearfits(&reffit);
+		if (com.pref.phot_set.force_radius && com.pref.phot_set.aperture >= ring_inner) {
+			siril_log_error(_("The forced aperture radius (%.1f) is not smaller than the inner radius computed by -autoring (%.1f). Use a dynamic or a smaller aperture, aborting.\n"),
+					com.pref.phot_set.aperture, ring_inner);
+			if (seq != &com.seq)
+				free_sequence(seq, TRUE);
+			clearfits(&reffit);
+			return CMD_ARG_ERROR;
+		}
 	} else {
 		if (seq_read_frame_metadata(seq, refimage, &reffit)) {
 			if (seq != &com.seq)
@@ -6578,24 +6571,35 @@ int process_light_curve(int nb) {
 		PRINT_ALLOC_ERR;
 		if (seq != &com.seq)
 			free_sequence(seq, TRUE);
+		clearfits(&reffit);
 		return CMD_ALLOC_ERROR;
 	}
-	if (autoring) { // only for this run, restored by free_light_curve_args()
-		args->restore_rings = TRUE;
-		args->saved_inner = com.pref.phot_set.inner;
-		args->saved_outer = com.pref.phot_set.outer;
-		com.pref.phot_set.inner = ring_inner;
-		com.pref.phot_set.outer = ring_outer;
-	}
+	// the settings are not modified, the radii are only used for this run
+	args->inner = ring_inner;
+	args->outer = ring_outer;
 
 	/* we have a sequence and channel, now we iterate with seqpsf on the list of stars */
 	if (g_str_has_prefix(word[argidx], "-ninastars=")) {
 		char *file = word[argidx] + 11;
+		int max_refs = DEFAULT_MAX_REF_STARS;
+		if (argidx + 1 < nb && g_str_has_prefix(word[argidx + 1], "-maxrefs=")) {
+			gchar *value = word[argidx + 1] + 9, *end_val;
+			max_refs = g_ascii_strtoll(value, &end_val, 10);
+			if (end_val == value || *end_val != '\0' || max_refs < 1 || max_refs > MAX_REF_STARS - 1) {
+				siril_log_error(_("Invalid argument to %s, it must be between 1 and %d, aborting.\n"), "-maxrefs=", MAX_REF_STARS - 1);
+				free_light_curve_args(args);
+				if (seq != &com.seq)
+					free_sequence(seq, TRUE);
+				clearfits(&reffit);
+				return CMD_ARG_ERROR;
+			}
+		}
 		if (file[0] == '\0') {
 			siril_log_error(_("Missing argument to %s, aborting.\n"), word[argidx]);
 			free_light_curve_args(args);
 			if (seq != &com.seq)
 				free_sequence(seq, TRUE);
+			clearfits(&reffit);
 			return CMD_GENERIC_ERROR;
 		}
 		if (!seq_has_wcs) {
@@ -6603,21 +6607,26 @@ int process_light_curve(int nb) {
 			free_light_curve_args(args);
 			if (seq != &com.seq)
 				free_sequence(seq, TRUE);
+			clearfits(&reffit);
 			return CMD_FOR_PLATE_SOLVED;
 		}
-		if (parse_nina_stars_file_using_WCS(args, file, TRUE, TRUE, MAX_REF_STARS - 1, has_GUI ? gfit : &reffit)) {
+		if (parse_nina_stars_file_using_WCS(args, file, TRUE, TRUE, max_refs, has_GUI ? gfit : &reffit)) {
 			if (seq != &com.seq)
 				free_sequence(seq, TRUE);
 			free_light_curve_args(args);
+			clearfits(&reffit);
 			return CMD_GENERIC_ERROR;
 		}
 	} else {
 		args->areas = malloc((nb - argidx) * sizeof(rectangle));
 		for (int arg_index = argidx; arg_index < nb; arg_index++) {
-			if (parse_star_position_arg(word[arg_index], seq, has_GUI ? gfit : &reffit,
+			if (parse_star_position_arg(word[arg_index], seq, has_GUI ? gfit : &reffit, ring_outer,
 						&args->areas[arg_index - argidx], &args->target_descr)) {
 				free_light_curve_args(args);
-				return CMD_ARG_ERROR;;
+				if (seq != &com.seq)
+					free_sequence(seq, TRUE);
+				clearfits(&reffit);
+				return CMD_ARG_ERROR;
 			}
 		}
 		args->nb = nb - argidx;

@@ -57,7 +57,7 @@ static int area_is_unique(rectangle *area, rectangle *areas, int nb_areas) {
 	return 1;
 }
 
-static int get_photo_area_from_ra_dec(fits *fit, double ra, double dec, rectangle *ret_area) {
+static int get_photo_area_from_ra_dec(fits *fit, double ra, double dec, double outer, rectangle *ret_area) {
 	double fx, fy;
 	if (wcs2pix(fit, ra, dec, &fx, &fy)) {
 		siril_log_debug("star is outside image\n");
@@ -66,8 +66,8 @@ static int get_photo_area_from_ra_dec(fits *fit, double ra, double dec, rectangl
 	double dx, dy;
 	siril_to_display(fx, fy, &dx, &dy, fit->ry);
 	// some margin needs to be allowed for star centroid movement
-	double start = 1.5 * com.pref.phot_set.outer;
-	double size = 3.0 * com.pref.phot_set.outer;
+	double start = 1.5 * outer;
+	double size = 3.0 * outer;
 	rectangle area;
 	area.x = round_to_int(dx - start);
 	area.y = round_to_int(dy - start);
@@ -85,7 +85,7 @@ static int get_photo_area_from_ra_dec(fits *fit, double ra, double dec, rectangl
 	return 0;
 }
 
-/* com.pref.phot_set.outer needs to be set at this point */
+/* args->outer, or com.pref.phot_set.outer if 0, needs to be set at this point */
 int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *file_path,
 		gboolean use_comp1, gboolean use_comp2, int max_refs, fits *first) {
 	/* The file is a CSV with at least these fields:
@@ -128,6 +128,7 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 		g_strfreev(tokens);
 	}
 
+	double outer = args->outer > 0.0 ? args->outer : com.pref.phot_set.outer;
 	// the target uses one of the MAX_REF_STARS slots
 	if (max_refs < 1 || max_refs > MAX_REF_STARS - 1)
 		max_refs = MAX_REF_STARS - 1;
@@ -140,7 +141,7 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 		cat_item *item = &siril_cat->cat_items[i];
 		if (!g_ascii_strcasecmp(item->type, "target")) {
 			args->target_descr = g_strdup(item->name);
-			if (!get_photo_area_from_ra_dec(first, item->ra, item->dec, &areas[0])) {
+			if (!get_photo_area_from_ra_dec(first, item->ra, item->dec, outer, &areas[0])) {
 				target_acquired = TRUE;
 				stars_count++;
 				siril_log_message(_("Target star identified: %s\n"), item->name);
@@ -151,7 +152,7 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 		} else if (nb_refs < max_refs &&
 				((use_comp1 && !g_ascii_strcasecmp(item->type, "comp1")) || (use_comp2 && !g_ascii_strcasecmp(item->type, "comp2")))) {
 			int index = target_acquired ? stars_count : stars_count + 1;
-			if (!get_photo_area_from_ra_dec(first, item->ra, item->dec, &areas[index])) {
+			if (!get_photo_area_from_ra_dec(first, item->ra, item->dec, outer, &areas[index])) {
 				if (area_is_unique(&areas[index], areas, index)) {
 					stars_count++;
 					nb_refs++;

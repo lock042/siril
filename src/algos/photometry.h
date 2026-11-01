@@ -14,6 +14,7 @@ struct photometry_struct {
 	double s_mag;	// magnitude uncertainty
 	gboolean valid;	// TRUE if no aperture pixel outside of the range
 	double SNR;	// SNR estimation
+	double aperture, inner, outer;	// radii used for the measurement
 };
 
 double getMagnitude(double intensity);
@@ -47,8 +48,7 @@ struct light_curve_args {
 	char *target_descr;	// the description to put in the data file and graph
 	gboolean display_graph;	// if true, show it, if false, generate png
 	gboolean force_rad;	// if true, fixed aperture radius, if false, dynamic aperture radius
-	gboolean restore_rings;	// -autoring: ring radii to put back in the preferences at the end
-	double saved_inner, saved_outer;
+	double inner, outer;	// ring radii for this run (-autoring), 0 to use the settings
 
 	// metadata from the NINA file created by Siril
 	struct compstars_arg *metadata;

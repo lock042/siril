@@ -31,6 +31,7 @@
 #include "core/gui_iface.h"
 #include "core/proto.h"
 #include "core/siril.h"
+#include "core/siril_log.h"
 #include "core/siril_world_cs.h"
 #include "filters/median.h"
 #include "io/remote_catalogues.h"
@@ -757,15 +758,9 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 	psf->units = "px";
 	// Photometry
 	if (for_photometry) {
+		if (status != GSL_SUCCESS && verbose)
+			siril_log_warning(_("The PSF fit did not converge, the photometry may be less accurate\n"));
 		psf->phot = getPhotometryData(z, psf, phot_set, verbose, error);
-		// a fit that did not converge gives unreliable centre and FWHM, the
-		// photometry must not report it as valid
-		if (status != GSL_SUCCESS) {
-			if (psf->phot)
-				psf->phot->valid = FALSE;
-			if (error)
-				*error = PSF_ERR_DIVERGED;
-		}
 	} else {
 		psf->phot = NULL;
 		psf->phot_is_valid = FALSE;

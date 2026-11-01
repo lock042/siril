@@ -130,7 +130,7 @@ static void build_the_dialog() {
 	GtkWidget *max_refs_label = gtk_label_new(_("Maximum number of reference stars:"));
 	gtk_box_append(GTK_BOX(max_refs_box), max_refs_label);
 	max_refs_spin = gtk_spin_button_new_with_range(1, MAX_REF_STARS - 1, 1);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(max_refs_spin), 19);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(max_refs_spin), DEFAULT_MAX_REF_STARS);
 	gtk_widget_set_tooltip_text(max_refs_spin, _("The reference stars are taken in the order of the list file, which Siril sorts by quality"));
 	gtk_box_append(GTK_BOX(max_refs_box), max_refs_spin);
 	gtk_box_append(GTK_BOX(options_box), max_refs_box);

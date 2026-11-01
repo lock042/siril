@@ -2019,8 +2019,13 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 	rectangle psfarea = { .x = 0, .y = 0, .w = fit->rx, .h = fit->ry };
 	psf_error error;
 	struct phot_config *ps = NULL;
-	if (spsfargs->for_photometry)
+	if (spsfargs->for_photometry) {
 		ps = phot_set_adjusted_for_image(fit);
+		if (ps && spsfargs->inner > 0.0 && spsfargs->outer > 0.0) {
+			ps->inner = spsfargs->inner;
+			ps->outer = spsfargs->outer;
+		}
+	}
 	data->psf = psf_get_minimisation(fit, 0, &psfarea, spsfargs->for_photometry, spsfargs->init_from_center, ps, TRUE, com.pref.starfinder_conf.profile, &error);
 	free(ps);
 	if (data->psf) {
@@ -2256,6 +2261,15 @@ proper_ending:
 int seqpsf(sequence *seq, int layer, gboolean for_registration,
 		gboolean init_from_center, gboolean regall, framing_mode framing,
 		gboolean run_in_thread, gboolean no_GUI) {
+	return seqpsf_with_rings(seq, layer, for_registration, init_from_center, regall,
+			framing, run_in_thread, no_GUI, 0.0, 0.0);
+}
+
+/* same as seqpsf() with the photometry ring radii given instead of taken from
+ * the settings, if inner and outer are > 0 */
+int seqpsf_with_rings(sequence *seq, int layer, gboolean for_registration,
+		gboolean init_from_center, gboolean regall, framing_mode framing,
+		gboolean run_in_thread, gboolean no_GUI, double inner, double outer) {
 
 	if (framing == REGISTERED_FRAME && !layer_has_usable_registration(seq, layer))
 		framing = ORIGINAL_FRAME;
@@ -2275,6 +2289,8 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration,
 	spsfargs->framing = framing;
 	spsfargs->list = NULL;	// GSList init is NULL
 	spsfargs->init_from_center = init_from_center;
+	spsfargs->inner = inner;
+	spsfargs->outer = outer;
 
 	args->partial_image = TRUE;
 	memcpy(&args->area, &com.selection, sizeof(rectangle));

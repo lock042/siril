@@ -233,6 +233,9 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 				*error = PSF_ERR_INVALID_STD_ERROR;
 		}
 		phot->valid = valid;
+		phot->aperture = appRadius;
+		phot->inner = phot_set->inner;
+		phot->outer = phot_set->outer;
 	}
 
 	return phot;
@@ -604,10 +607,6 @@ static gboolean end_light_curve_worker(gpointer p) {
 }
 
 void free_light_curve_args(struct light_curve_args *args) {
-	if (args->restore_rings) {
-		com.pref.phot_set.inner = args->saved_inner;
-		com.pref.phot_set.outer = args->saved_outer;
-	}
 	if (args->seq && !check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
 	free(args->areas);
@@ -630,7 +629,7 @@ gpointer light_curve_worker(gpointer arg) {
 		g_mutex_lock(&com.mutex);
 		com.selection = args->areas[star_index];
 		g_mutex_unlock(&com.mutex);
-		if (seqpsf(args->seq, args->layer, FALSE, TRUE, FALSE, framing, FALSE, TRUE)) {
+		if (seqpsf_with_rings(args->seq, args->layer, FALSE, TRUE, FALSE, framing, FALSE, TRUE, args->inner, args->outer)) {
 			if (star_index == 0) {
 				siril_log_error(_("Failed to analyse the variable star photometry\n"));
 				retval = 1;
