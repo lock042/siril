@@ -249,12 +249,12 @@ void init_preprocessing_from_GUI() {
 					if (prepro->cc_from_dark) { // cosmetic correction from masterdark
 						tbutton = GTK_CHECK_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "checkSigCold")));
 						if (siril_toggle_get_active(GTK_WIDGET(tbutton))) {
-							GtkSpinButton *sigCold = GTK_SPIN_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "spinSigCosmeColdBox")));
+							GtkSpinButton *sigCold = GTK_SPIN_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "spinSigCosmeCold")));
 							prepro->sigma[0] = gtk_spin_button_get_value(sigCold);
 						} else prepro->sigma[0] = -1.0;
 						tbutton = GTK_CHECK_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "checkSigHot")));
 						if (siril_toggle_get_active(GTK_WIDGET(tbutton))) {
-							GtkSpinButton *sigHot = GTK_SPIN_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "spinSigCosmeHotBox")));
+							GtkSpinButton *sigHot = GTK_SPIN_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "spinSigCosmeHot")));
 							prepro->sigma[1] = gtk_spin_button_get_value(sigHot);
 						} else prepro->sigma[1] = -1.0;
 					} else {

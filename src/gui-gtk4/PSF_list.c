@@ -594,14 +594,7 @@ int get_ra_and_dec_from_star_pos(psf_star *star, gdouble *alpha, gdouble *delta)
 	return ret;
 }
 
-static void add_star_to_list(psf_star *star, int i) {
-	psf_list_init_statics();
-	if (!psf_store) return;
-	if (star == NULL) {
-		g_list_store_remove_all(psf_store);
-		return;
-	}
-
+static SirilPSFRow *new_psf_row(psf_star *star, int i) {
 	double fwhmx = star->fwhmx_arcsec < 0 ? star->fwhmx : star->fwhmx_arcsec;
 	double fwhmy = star->fwhmy_arcsec < 0 ? star->fwhmy : star->fwhmy_arcsec;
 
@@ -621,21 +614,44 @@ static void add_star_to_list(psf_star *star, int i) {
 	row->angle     = -star->angle;
 	row->rmse      = star->rmse;
 	row->index     = i + 1;
-	g_list_store_append(psf_store, row);
-	g_object_unref(row);
 
 	units = star->units;
+	return row;
 }
 
+static void add_star_to_list(psf_star *star, int i) {
+	psf_list_init_statics();
+	if (!psf_store) return;
+	if (star == NULL) {
+		g_list_store_remove_all(psf_store);
+		return;
+	}
+
+	SirilPSFRow *row = new_psf_row(star, i);
+	g_list_store_append(psf_store, row);
+	g_object_unref(row);
+}
+
+/* Replaces the whole list with a single g_list_store_splice(): appending the
+ * rows one by one emits one items-changed per star, which blocks the main
+ * thread for seconds with thousands of stars and gets slower with each
+ * refill in a session. */
 static void fill_stars_list(fits *fit, psf_star **stars) {
 	int i = 0;
 	if (!stars) return;
+	psf_list_init_statics();
+	GPtrArray *rows = g_ptr_array_new_with_free_func(g_object_unref);
 	while (stars[i]) {
 		/* update units if needed */
 		fwhm_to_arcsec_if_needed(fit, stars[i]);
-		add_star_to_list(stars[i], i);
+		if (psf_store)
+			g_ptr_array_add(rows, new_psf_row(stars[i], i));
 		i++;
 	}
+	if (psf_store)
+		g_list_store_splice(psf_store, 0, g_list_model_get_n_items(G_LIST_MODEL(psf_store)),
+				rows->pdata, rows->len);
+	g_ptr_array_unref(rows);
 	gui.selected_star = -1;
 	display_status();
 }
