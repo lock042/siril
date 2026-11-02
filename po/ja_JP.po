@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-01 13:48+0200\n"
-"PO-Revision-Date: 2026-09-17 13:10+0000\n"
-"Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
+"PO-Revision-Date: 2026-11-02 21:20+0000\n"
+"Last-Translator: Tomoya Maeda <yumyum.ytm6020@gmail.com>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
 "Language: ja_JP\n"
@@ -3447,13 +3447,21 @@ msgid ""
 "which applies the stretch independently to each channel of the pixel.\n"
 "Note that luminance based models are not generally invertible."
 msgstr ""
+"カラー画像に対するストレッチ方式を選択します。利用できるモードは以下のとおり"
+"です。\n"
+"均等加重輝度（Evenly Weighted Luminance）: RGB 各チャンネルを同じ重みで扱い、"
+"算出した輝度値を基準にストレッチを行います。\n"
+"視覚加重輝度（Human Weighted Luminance）: 人間の視覚感度に基づいて RGB を重み"
+"付けした輝度値を用いてストレッチを行います。\n"
+"チャンネル独立処理（Independent Channel Values）: RGB の各チャンネルへ個別に"
+"ストレッチを適用します。\n"
+"注意：輝度ベースのストレッチは一般的に逆変換ができません。"
 
 #: src/gui/uifiles/dialog_star_remix.ui:373
 #: src/gui/uifiles/dialog_star_remix.ui:1010
 #: src/gui/uifiles/histogram_dialog.ui:912
-#, fuzzy
 msgid "Independent channel values"
-msgstr "緑チャンネル"
+msgstr ""
 
 #: src/gui/uifiles/dialog_star_remix.ui:374
 #: src/gui/uifiles/dialog_star_remix.ui:1011
@@ -3480,6 +3488,9 @@ msgid ""
 "thus adjusting the amount of stretch applied to the rest of the image. "
 "Increasing D increases the intensity of stars in the resulting composition."
 msgstr ""
+"SP を中心としたコントラスト（ストレッチの傾き）を制御し、それによって画像の残"
+"りの部分に適用されるストレッチ量を調整します。 D を大きくすると、合成後の画像"
+"における星の強度が増加します。"
 
 #: src/gui/uifiles/dialog_star_remix.ui:479
 #: src/gui/uifiles/dialog_star_remix.ui:1117
@@ -3495,6 +3506,10 @@ msgid ""
 "peak brightness above SP, but may bloat their PSF; it will reduce the "
 "intensity of stars below SP."
 msgstr ""
+"ストレッチの集中度を調整するパラメータです。b の値を変更すると、ストレッチ曲"
+"線の形状そのものが変化します。b を大きくすると、ピーク輝度が SP を超える星の"
+"強度は増加しますが、その PSF が肥大化する可能性があります。一方で、SP 未満の"
+"星の強度は減少します。"
 
 #: src/gui/uifiles/dialog_star_remix.ui:549
 #: src/gui/uifiles/dialog_star_remix.ui:1187
@@ -3598,6 +3613,12 @@ msgid ""
 "brightness. When this is set to zero, the stretch will be the identity "
 "transform, but any ordered black point adjustment will still occur."
 msgstr ""
+"対称点 (SP) を中心としたストレッチの傾きを独立して制御し、画像全体に適用され"
+"るストレッチの強さを調整します。このパラメータはストレッチの形状を変更するの"
+"ではなく、その量だけを変更します。また、コントラストと明るさの分布を制御する"
+"ために、b と組み合わせて使用する必要があります。この値を 0 に設定すると、"
+"ストレッチは恒等変換になりますが、設定されたブラックポイント調整は引き続き適"
+"用されます。"
 
 #: src/gui/uifiles/dialog_star_remix.ui:1128
 #: src/gui/uifiles/dialog_star_remix.ui:1152
@@ -3613,6 +3634,12 @@ msgid ""
 "(with small D) can still be used for precise placement of additional "
 "contrast."
 msgstr ""
+"対称点（SP）を中心に「輝度領域のどこにコントラストを集中させるか（局所的な広"
+"がり幅）」を調整します。b の値を大きくすると SP 周辺の狭い範囲にピンポイント"
+"でコントラストが集中する鋭いS字形状になり、小さく（あるいはマイナスに）すると"
+"広い輝度帯に均等に分散するマイルドな形状になります。通常、ストレッチ処理の終"
+"盤になるほど b は小さな値を使用します。 ただし、D を小さく設定した場合は、大"
+"きめの b を使って特定の輝度域へ追加のコントラストを集中させることもできます。"
 
 #: src/gui/uifiles/dialog_star_remix.ui:1198
 #: src/gui/uifiles/dialog_star_remix.ui:1244
@@ -3625,6 +3652,12 @@ msgid ""
 "pixel values away from SP. This parameter must be greater than or equal to "
 "LP and less than or equal to HP."
 msgstr ""
+"ストレッチの中心となる対称点（SP）を設定します。コントラストは SP を基準とし"
+"て左右対称に分配されます。通常は、処理したいヒストグラムのピーク付近に設定し"
+"ます。 SP に設定した輝度域では最も強くコントラストが増加するため、その部分の"
+"ヒストグラムは広がり、ピークは低くなります。ストレッチ処理では、ピクセル値は "
+"SP から離れる方向へ移動します。SP の値は LP 以上、HP 以下である必要があります"
+"。"
 
 #: src/gui/uifiles/dialog_star_remix.ui:1218
 #: src/gui/uifiles/histogram_dialog.ui:1141
@@ -3633,6 +3666,9 @@ msgid ""
 "on the average value of  the current selection. This helps in picking out "
 "faint detail above the dark background."
 msgstr ""
+"このスポイトを使うと、現在の選択領域の平均値に基づいて背景ストレッチの対称点"
+"を設定できます。 これにより、暗い背景の上にある微弱なディテールを際立たせるこ"
+"とができます。"
 
 #: src/gui/uifiles/dialog_star_remix.ui:1361
 #: src/gui/uifiles/dialog_star_remix.ui:1387
@@ -3647,6 +3683,14 @@ msgid ""
 "of limited use for starless backgrounds but is very effective on the star "
 "mask for preventing star bloat."
 msgstr ""
+"ハイライトや星のコントラストを保護するためのしきい値（HP）を設定します。HP を"
+"超える輝度領域では、通常のストレッチの代わりに線形ストレッチが適用され、必要"
+"なコントラストは画像の他の輝度域から確保されます。HP を SP（対称点）に近づけ"
+"るほど、コントラスト保護の対象範囲と効果が大きくなります。これにより、"
+"ハイライト部分のディテールやコントラストを維持したまま、画像全体のストレッチ"
+"をより暗い輝度域へ集中させることができます。HP の値は SP 以上、かつ 1 以下で"
+"ある必要があります。この設定は星のない背景画像では効果が限定的ですが、星"
+"マスクに対して使用すると、星の肥大化を防ぐのに非常に有効です。"
 
 #: src/gui/uifiles/dialog_star_remix.ui:1499
 #, fuzzy
@@ -21161,7 +21205,8 @@ msgstr ""
 msgid ""
 "New version is available. You can download it at <a href=\"%s\">%s</a>\n"
 msgstr ""
-"新しいバージョンが利用可能です。<a href=\"%s\">%s</a>でダウンロードできます\n"
+"新しいバージョンが利用可能です。 <a href=\"%s\">%s</a> でダウンロードできま"
+"す\n"
 
 #: src/core/siril_update.c:453
 msgid "No update check: this is a development version\n"
@@ -24505,6 +24550,13 @@ msgid ""
 "When choosing 2pass, you will then need to export the sequence using  the "
 "Apply Existing Registration method"
 msgstr ""
+"<b>Global Star Alignment</b>: deep-sky画像向けの基本的な位置合わせ方法です。"
+"三角形類似法を用いて、各画像に共通する星を自動検出し、位置合わせを行います。"
+"r_(デフォルト)または指定した接頭辞を付けた新しいシーケンスが作成されます。"
+"2passのチェックボックスを有効にした場合、登録済み画像は作成されず、位置合わせ"
+"データのみがシーケンスに保存されます。参照フレームは星検出結果に基づいて自動"
+"選択されます。2pass を選択した場合は、その後 Apply Existing Registration を使"
+"用してシーケンスを書き出す必要があります。"
 
 #: src/gui/registration.c:54
 msgid ""
@@ -24513,6 +24565,10 @@ msgid ""
 "shifting + rotation if 2 or 3 stars are selected.\n"
 "Transformations are saved to the input sequence file."
 msgstr ""
+"<b>1-2-3 Stars Registration</b>: deep-sky画像を位置合わせするための最も簡単な"
+"方法です。1 個の星を選択した場合はシフトのみで、2 個または 3 個の星を選択した"
+"場合はシフトと回転を用いて位置合わせされます。\n"
+"変換情報は入力シーケンスファイルに保存されます。"
 
 #: src/gui/registration.c:58
 msgid ""
@@ -24522,6 +24578,10 @@ msgid ""
 "sky images registration. Shifts at pixel precision are saved to the input "
 "sequence file."
 msgstr ""
+"<b>Image Pattern Alignment</b>: 空間領域における相互相関を用いた平行移動によ"
+"るシンプルな位置合わせ方法です。処理速度が速いため、主に惑星動画の位置合わせ"
+"に使用されますが、一部のdeep-sky画像にも利用できます。計算されたピクセル単位"
+"のシフト量は、入力シーケンスファイルに保存されます。"
 
 #: src/gui/registration.c:62
 msgid ""
@@ -24529,6 +24589,9 @@ msgid ""
 "images and to align them accordingly. Only translation is taken into "
 "account. Shifts at pixel precision are saved to the input sequence file."
 msgstr ""
+"<b>KOMBAT</b>: 画像内の特定のパターンを検出し、その位置を基準に画像を位置合わ"
+"せするシンプルなアルゴリズムです。位置合わせでは 平行移動のみが考慮されます。"
+"計算されたピクセル単位のシフト量は、入力シーケンスファイルに保存されます。"
 
 #: src/gui/registration.c:65
 msgid ""
@@ -24542,6 +24605,15 @@ msgid ""
 "prefix of your choice (comet_ by default), but the images are not "
 "duplicated, they are symlinked to the input images."
 msgstr ""
+"<b>Comet/Asteroid Registration</b>: 彗星や小惑星を基準に位置合わせするための"
+"専用アルゴリズムです。この機能を使用するには、FITS ヘッダーに撮影時刻（"
+"タイムスタンプ）が記録されており、あらかじめ星基準で位置合わせしたシーケンス"
+"を読み込んでいる必要があります。各フレームの撮影時刻と、最初の画像から最後の"
+"画像までの対象天体の移動量をもとに、フレームごとの平行移動量を計算して位置合"
+"わせを行います。既存の位置合わせデータがある場合は、新たに計算した移動量が既"
+"存の変換情報に加算されます。処理後は、指定した接頭辞（既定値：comet_）を付け"
+"た新しいシーケンスが作成されます。なお、画像ファイル自体は複製されず、元画像"
+"へのシンボリックリンクが作成されます。"
 
 #: src/gui/registration.c:73
 msgid ""
@@ -24551,17 +24623,21 @@ msgid ""
 "Output Registration section and it can be applied on selected/filtered "
 "images only, to avoid saving unnecessary images."
 msgstr ""
+"<b>Apply existing registration</b>: これはアルゴリズムではなく、"
+"シーケンスファイルに保存されている既存の位置合わせデータを適用するための機能"
+"です。補間方式またはドリズル(Drizzle)は「Output Registration」セクションで選"
+"択できます。また、不要な画像の保存を避けるために、選択済み／フィルタリング済"
+"みの画像のみに適用することもできます。"
 
 #: src/gui/registration.c:97 src/gui/stacking.c:49
 msgid ""
 "Number of standard deviations for rejection of worst images by k-sigma "
 "clipping algorithm."
-msgstr ""
+msgstr "k-sigma クリッピングで低品質画像を除外する際に使用する標準偏差(σ)の値です。"
 
 #: src/gui/registration.c:265
-#, fuzzy
 msgid "1-2-3 Stars Registration (deep-sky)"
-msgstr "選択した星の整列 (天空)"
+msgstr ""
 
 #: src/gui/registration.c:267
 msgid "Image Pattern Alignment (planetary - full disk)"
@@ -24576,14 +24652,12 @@ msgid "Comet/Asteroid Registration"
 msgstr ""
 
 #: src/gui/registration.c:273
-#, fuzzy
 msgid "Apply Existing Registration"
-msgstr "ヒストグラム変換を適用する"
+msgstr ""
 
 #: src/gui/registration.c:400
-#, fuzzy
 msgid "WCS Files (*.wcs)"
-msgstr "SER ファイル (*.ser)"
+msgstr ""
 
 #. we check result is inside the selection box
 #: src/gui/registration.c:453
