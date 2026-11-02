@@ -15,6 +15,9 @@ siril-1.5.0
 * Fixed blurry image display on HiDPI and Wayland fractional-scaling displays (!1052)
 * Fixed command help popover being too tall on low-resolution screens
 * Fixed freeze when previewing JPEG XL files in the open dialog (#1961)
+* Fixed Curves dropping the ICC profile of the image on undo or cancel, which made it appear and save very dark (#1978)
+* Fixed aperture photometry and its uncertainties and the e-/ADU value of the last opened image no longer overwrites the gain set in preferences (#1211)
+* Fixed seq file corruption (#1934)
 
 **Improvements**
 * Vectorized rejection stacking hotspot with portable SIMD, ~13% cold / ~22% warm stacking speedup (!1032)
@@ -55,20 +58,25 @@ siril-1.5.0
 * Improved the Curves tool with the VeraLux engine: R, G, B, L*, chroma and saturation curves, Akima splines, luminance range masking and non-destructive stages (!983)
 * Improved plot windows: SPCC fits grouped in a single window with summary tiles and key figures, y-axis log scale and whole-window PNG export
 * Added HDR composition of registered linear images taken with different exposure times, with exposure ratios measured on the data, noise-optimal weighting and feathered saturation masks (hdr command and Image Processing > Composition menu)
+* Added a preference to not use the MIPS-LO/HI keywords to set the display sliders
+* Added Search box in the menus treeview (Image processing, Tools, Scripts)
 
 siril-1.4.6
 --/--/--
 
 **Fixes**
 * Fixed snapshots including the empty canvas area around the image when the image is smaller than the display area
+* Fixed PSF fitting converging on wrong solutions when the width parameter became negative (sign error in the Jacobian) (#2015)
 
 siril-1.4.5
 10/28/26
 
 **Fixes**
 * Fixed constellation names in annotations (#1055)
+* Fixed python-related thread contention bug (#1959)
 * Fixed opening JPEG XL files wrapped in an ISO/IEC 18181-2 container (#1961)
 * Fixed compilation when the version of opencv is >= 5
+* Fixed a race in the Python venv initialisation: the shared initialisation handle was read and cleared without a lock, and pyscript could launch python before the virtual environment's variables had been exported (#1977)
 * Fixed an invalid EQUINOX value written in the FITS header when the astrometric solution came from a solver that does not write an EQUINOX card (#1979)
 * Fixed FITS extension truncation (e.g., .fit.) causing corrupted filenames like foo.fit..fit..fz; invalid extensions are now rejected (#1984)
 * Fixed garbage characters in the save dialog file name when a sequence is loaded and the displayed image is not one of its frames (#1980)
@@ -79,27 +87,25 @@ siril-1.4.5
 * Fixed a selection dragged past the right or bottom edge of the image losing its last column and row, which made the crop one pixel smaller than expected (#1996)
 * Fixed the 100% zoom button jumping to the top-left corner of the image instead of keeping the current view center (#1997)
 * Fixed crash when the `wavelet` or `linear_match` commands were called with too few arguments (#1998)
-* Fixed Curves dropping the ICC profile of the image on undo or cancel, which made it appear and save very dark (#1978)
+* Fixed a potential issue with XISF handling of Bayer Pattern stored as XISF-native metadata (#1102)
 * Fixed `cancel` command from pipes to stop a command (#2000)
 * Fixed the display sliders not being reset to 0–65535 when switching to linear display while a stretch tool is open (#2002)
 * Fixed crash when converting files in parallel with a cfitsio built without thread safety (#2003)
 * Fixed MIPS-FHI not being saved in 32-bit FITS files, so their display cutoffs were lost on reopening
 * Fixed cosmetic correction in calibration and live stacking ignoring the hot and cold sigma values of the Calibration tab and using those of the Cosmetic Correction dialog instead (#2009)
 * Fixed AAVSO export writing V-C instead of the standardized magnitude when Cstd was left at its default of 0: Cstd is now mandatory, and empty text fields and an unknown airmass (previously -999) are written as "na" as the format requires
-* Fixed aperture photometry and its uncertainties and the e-/ADU value of the last opened image no longer overwrites the gain set in preferences (#1211)
 
 **Improvements**
 * Allowed editing FITS keywords of a whole sequence from the UI
 * Reviewed banding reduction command arguments and reimplemented the algorithm for improved speed (!1097)
 * Added 2 commands `addwcs` and `catquery` (!1103)
-* Added a preference to not use the MIPS-LO/HI keywords to set the display sliders
 * Add a SirilInterface.is_headless property that scripts can check to avoid running a GUI (!1111)
 
 siril-1.4.4
 06/17/26
 
 **Fixes**
-* Fixed seq file corruption (#1204, #1934)
+* Fixed seq file corruption (#1204)
 * Fixed crash when loading a sequence with an out-of-range reference image, e.g. after preprocessing (#1950)
 * Fixed wrong "not enough disk space" error on macOS external APFS/HFS volumes
 * Fixed scripts in custom subfolders showing up under "Other" instead of their folder name on Windows
@@ -137,7 +143,7 @@ siril-1.4.2-HF1
 * Removes deprecated build environment msys2/mingw64 from Windows build scripts
 
 siril-1.4.2
-02/18/26
+18/02/26
 
 **Fixes**
 * Fixed crash in RGB composition when trying to align RGB while L is loaded but not checked
@@ -151,8 +157,8 @@ siril-1.4.2
 * Added new Windows build environment, UCRT64, to expand the max limit of files in a sequence to 8192 (!987)
 * Improved robustness of python venv creation (!990)
 * Improved sirilpy.gpuhelper to provide better GPU detection and capabilities for use by the Helper classes (!988)
-* Added passing a list of sequence frame numbers to sirilpy.set_seq_frame_incl (!995)
 * Improved sirilpy.ensure_installed to handle downgrades, add sirilpy.uninstall_package
+* Added passing a list of sequence frame numbers to sirilpy.set_seq_frame_incl (!995)
 
 siril-1.4.1
 01/05/26
@@ -195,7 +201,6 @@ siril 1.4.0-RC2
 * Updated log messages to avoid double newlines
 * Fixed rejection stacking for sequence in 16b (#1858)
 * Increase sirilpy timeouts
-* Fixed rejection stacking for sequence in 16b (#1858)
 * Attempted fix for memory allocation issue during stacking on Windows (#1858, #1866)
 * Fixed regression in pixelmath where FITS header keywords were not properly copied from the source image to the result (#1851)
 
@@ -277,7 +282,7 @@ siril 1.4.0-beta4
 * Added SirilInterface.get_image_from_file() method
 * Added new sirilpy methods for getting and setting GUI properties (sliders, STF, pan offsets, zoomlevel)
 * Improved sirilpy get_seq_frame() and get_image_from_file() so they now populate FFit.header and .icc_profile
-* Added Search box in the menus treeview (Image processing, Tools, Scripts)
+* Added Search box in the Script treeview
 * Made reading astrometric solution more robust to CDELT/PC matrices not following the expected formalism (#1770)
 * Added SirilInterface.analyse_image_from_file(), .undo(), .redo() and .clear_undo_history()
 * Approved use of PyQt6 for creating python script GUIs (now confident it is problem free on all target OSes)
