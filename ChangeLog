@@ -55,6 +55,7 @@ siril-1.5.0
 * Improved the Curves tool with the VeraLux engine: R, G, B, L*, chroma and saturation curves, Akima splines, luminance range masking and non-destructive stages (!983)
 * Improved plot windows: SPCC fits grouped in a single window with summary tiles and key figures, y-axis log scale and whole-window PNG export
 * Added HDR composition of registered linear images taken with different exposure times, with exposure ratios measured on the data, noise-optimal weighting and feathered saturation masks (hdr command and Image Processing > Composition menu)
+* Added PSF Signal Weight and PSF SNR stacking weighting, and fixed the existing weighting methods
 
 siril-1.4.5
 xx/xx/xx
