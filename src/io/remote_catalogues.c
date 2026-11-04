@@ -42,7 +42,7 @@
 static const gchar *catcodefmt = "%02d", *rafmt = "%08.4f", *decfmt = "%+08.4f",
 					*radiusfmt = "%3.2f", *limitmagfmt = "%3.1f";
 
-#define PGC_DIAMETER_EXPR "EXP(logD25)/10"
+#define PGC_DIAMETER_EXPR "POWER(10,logD25)/10"
 
 static const gchar *simbad_servers[SIMBAD_MIRROR_NB] = {
 	"https://simbad.cds.unistra.fr",
@@ -389,7 +389,7 @@ static gboolean parse_ASU_buffer(const gchar *buffer, siril_cat_index cat, GOutp
 				if (!isnan(val))
 					g_string_append(out, g_ascii_formatd(num, sizeof(num), "%.7f", val));
 			} else if (!g_strcmp0(fields->tap_columns[field], PGC_DIAMETER_EXPR)) {
-				g_string_append(out, g_ascii_formatd(num, sizeof(num), "%.4f", exp(g_ascii_strtod(v, NULL)) / 10.));
+				g_string_append(out, g_ascii_formatd(num, sizeof(num), "%.4f", pow(10., g_ascii_strtod(v, NULL)) / 10.));
 			} else {
 				gchar *end = NULL;
 				g_ascii_strtod(v, &end);

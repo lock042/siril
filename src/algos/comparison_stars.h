@@ -41,7 +41,7 @@ void free_compstars_arg(gpointer p);
 gpointer compstars_worker(gpointer arg);
 
 int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *file_path,
-		gboolean use_comp1, gboolean use_comp2, fits *first);
+		gboolean use_comp1, gboolean use_comp2, int max_refs, fits *first);
 
 void write_nina_file(struct compstars_arg *args);
 
