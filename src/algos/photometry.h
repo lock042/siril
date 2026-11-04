@@ -12,12 +12,13 @@
 struct photometry_struct {
 	double mag;	// magnitude
 	double s_mag;	// magnitude uncertainty
-	gboolean valid;	// TRUE if no pixel outside of the range
+	gboolean valid;	// TRUE if no aperture pixel outside of the range
 	double SNR;	// SNR estimation
+	double aperture, inner, outer;	// radii used for the measurement
 };
 
 double getMagnitude(double intensity);
-double getMagErr(double intensity, double area, int nsky, double skysig, double cvf, double *SNR);
+double getMagErr(double intensity, double area, double area_sq, int nsky, double skysig, double cvf, double *SNR);
 
 struct phot_config *phot_set_adjusted_for_image(const fits *fit);
 
@@ -47,6 +48,7 @@ struct light_curve_args {
 	char *target_descr;	// the description to put in the data file and graph
 	gboolean display_graph;	// if true, show it, if false, generate png
 	gboolean force_rad;	// if true, fixed aperture radius, if false, dynamic aperture radius
+	double inner, outer;	// ring radii for this run (-autoring), 0 to use the settings
 
 	// metadata from the NINA file created by Siril
 	struct compstars_arg *metadata;
