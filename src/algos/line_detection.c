@@ -352,6 +352,7 @@ static void streak_photometry(fits *fit, struct track *track, struct track *resu
 		else {
 			double mag = getMagnitude(flux);
 			double snr;
+			// binary mask: all weights are 1, so the sum of their squares is ap_count
 			double mag_err = getMagErr(flux, ap_count, ap_count, bkg_count, stdev, pset->gain, &snr);
 			siril_log_message("streak mag%s: %.3f (%.3f corrected) +/- %.3f, (flux %f from %d pixels)\n",
 					saturated? " (saturated)" : "",
