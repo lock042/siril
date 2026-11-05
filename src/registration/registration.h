@@ -219,6 +219,18 @@ const char *describe_transformation_type(transformation_type type);
 // Homography-related functions
 void selection_H_transform(rectangle *selection, Homography Href, Homography Himg);
 void translation_from_H(Homography H, double *dx, double *dy);
+struct s_star;
+void compute_psf_terms(psf_star **stars, psf_star **ref_stars, struct s_star *match, struct s_star *match_ref,
+		double noise, float *psf_flux, float *psf_mean_flux);
+/* PSF signal weight or PSF SNR from the PSF terms of the registration */
+static inline double psf_weight(double psf_flux, double psf_mean_flux, gboolean signal_weight) {
+	return signal_weight ? psf_flux * psf_mean_flux : psf_flux * psf_flux;
+}
+double psf_weight_mean(const sequence *seq, int layer, gboolean signal_weight);
+/* PSF weight of an image relative to the mean given by psf_weight_mean() */
+static inline double relative_psf_weight(const regdata *reg, gboolean signal_weight, double mean) {
+	return mean > 0. ? psf_weight(reg->psf_flux, reg->psf_mean_flux, signal_weight) / mean : 0.;
+}
 Homography H_from_translation(double dx, double dy);
 void SetNullH(Homography *H);
 void compute_roi(Homography *H, int rx, int ry, framing_roi *roi);
