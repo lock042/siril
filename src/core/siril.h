@@ -441,6 +441,8 @@ typedef struct {
 	float background_lvl;
 	int number_of_stars;
 	Homography H;
+	float psf_flux;		// median ratio of fluxes with the reference / noise, for PSF weighting
+	float psf_mean_flux;	// median ratio of amplitudes with the reference / noise, for PSF weighting
 } regdata;
 
 // to be stored in the seq file

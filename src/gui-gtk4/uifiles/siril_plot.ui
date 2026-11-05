@@ -193,6 +193,8 @@ Cross marker: the value for the currently loaded frame.</property>
                           <item translatable="yes">wFWHM</item>
                           <item translatable="yes">Background</item>
                           <item translatable="yes"># Stars</item>
+                          <item translatable="yes">PSF SNR</item>
+                          <item translatable="yes">PSF signal weight</item>
                           <item translatable="yes">X Position</item>
                           <item translatable="yes">Y Position</item>
                           <item translatable="yes">Quality</item>
@@ -200,7 +202,7 @@ Cross marker: the value for the currently loaded frame.</property>
                         </items>
                       </object>
                     </property>
-                    <property name="selected">6</property>
+                    <property name="selected">8</property>
                     <signal name="notify::selected" handler="on_plotComboX_changed"/>
                   </object>
                 </child>
@@ -219,6 +221,8 @@ Cross marker: the value for the currently loaded frame.</property>
                           <item translatable="yes">wFWHM</item>
                           <item translatable="yes">Background</item>
                           <item translatable="yes"># Stars</item>
+                          <item translatable="yes">PSF SNR</item>
+                          <item translatable="yes">PSF signal weight</item>
                           <item translatable="yes">Quality</item>
                           <item translatable="yes">X Position</item>
                           <item translatable="yes">Y Position</item>
