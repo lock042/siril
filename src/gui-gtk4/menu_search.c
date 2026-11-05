@@ -264,10 +264,15 @@ static void on_search_changed(GtkSearchEntry *entry, gpointer user_data) {
 	gtk_widget_set_visible(ms->scroll, count > 0);
 }
 
-static void on_popover_closed(GtkPopover *popover, gpointer user_data) {
+/* the query survives closing: refresh it (sensitivity may have changed)
+ * and select it so that typing replaces it */
+static void on_popover_show(GtkWidget *popover, gpointer user_data) {
 	(void) popover;
 	MenuSearch *ms = user_data;
-	gtk_editable_set_text(GTK_EDITABLE(ms->entry), "");
+	if (!*gtk_editable_get_text(GTK_EDITABLE(ms->entry)))
+		return;
+	on_search_changed(GTK_SEARCH_ENTRY(ms->entry), ms);
+	gtk_editable_select_region(GTK_EDITABLE(ms->entry), 0, -1);
 }
 
 /* Puts a search entry above the popover's "<popover_id>_stack". Typing while
@@ -317,5 +322,5 @@ void attach_menu_search(const char *popover_id, const char *action_namespace, co
 	g_object_unref(stack);
 	gtk_popover_set_child(popover, box);
 
-	g_signal_connect(popover, "closed", G_CALLBACK(on_popover_closed), ms);
+	g_signal_connect(popover, "show", G_CALLBACK(on_popover_show), ms);
 }

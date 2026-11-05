@@ -1945,9 +1945,10 @@ static void set_colors(struct kplotcfg *cfg) {
 	}
 
 	for (int i = 0; i < MAX_SEQPSF; i++) {
-		cfg->clrs[i].rgba[0] = color_tab[i][0] / 255.0;
-		cfg->clrs[i].rgba[1] = color_tab[i][1] / 255.0;
-		cfg->clrs[i].rgba[2] = color_tab[i][2] / 255.0;
+		int c = i % G_N_ELEMENTS(color_tab);
+		cfg->clrs[i].rgba[0] = color_tab[c][0] / 255.0;
+		cfg->clrs[i].rgba[1] = color_tab[c][1] / 255.0;
+		cfg->clrs[i].rgba[2] = color_tab[c][2] / 255.0;
 	}
 }
 

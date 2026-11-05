@@ -891,8 +891,14 @@ void on_header_snapshot_button_clicked(gboolean clipboard) {
 	gint x1 = max(0, (int) gui.display_offset.x);
 	gint y1 = max(0, (int) gui.display_offset.y);
 
-	gint x2 = min(width * z + (int) gui.display_offset.x, gtk_widget_get_width(widget));
-	gint y2 = min(height * z + (int) gui.display_offset.y, gtk_widget_get_height(widget));
+	/* crop to the displayed image, not the canvas around it */
+	gint x2 = min(gfit->rx * z + (int) gui.display_offset.x, gtk_widget_get_width(widget));
+	gint y2 = min(gfit->ry * z + (int) gui.display_offset.y, gtk_widget_get_height(widget));
+	if (x2 <= x1 || y2 <= y1) {
+		cairo_surface_destroy(surface);
+		g_free(filename);
+		return;
+	}
 
 	/* Crop into a fresh ARGB32 image surface, then build a GdkTexture
 	 * from it.  Cairo sub-surfaces aren't image surfaces and don't have

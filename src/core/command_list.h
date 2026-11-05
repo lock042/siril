@@ -104,7 +104,7 @@ static command commands[] = {
 	{"jsonmetadata", 1, "jsonmetadata FITS_file [-stats_from_loaded] [-nostats] [-out=]", process_jsonmetadata, STR_JSONMETADATA, TRUE, REQ_CMD_NONE},
 
 	{"light_curve", 3, "light_curve sequencename channel [-autoring] { -at=x,y | -wcs=ra,dec } { -refat=x,y | -refwcs=ra,dec } ...\n"
-				"light_curve sequencename channel [-autoring] -ninastars=file", process_light_curve, STR_LIGHTCURVE, TRUE, REQ_CMD_NO_THREAD},
+				"light_curve sequencename channel [-autoring] -ninastars=file [-maxrefs=19]", process_light_curve, STR_LIGHTCURVE, TRUE, REQ_CMD_NO_THREAD},
 	{"limit", 1, "limit { -clip | -posrescale | -rescale }", process_limit, STR_LIMIT, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"linear_match", 3, "linear_match reference low high", process_linear_match, STR_LMATCH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"link", 1, "link basename [-date] [-start=index] [-out=]", process_link, STR_LINK, TRUE, REQ_CMD_NO_THREAD},

@@ -1215,6 +1215,85 @@
                                       </object>
                                     </child>
                                     <child>
+                                      <object class="GtkFrame">
+                                        <property name="child">
+                                          <object class="GtkGrid">
+                                            <property name="column-spacing">6</property>
+                                            <property name="margin-start">6</property>
+                                            <property name="row-spacing">6</property>
+                                            <child>
+                                              <object class="GtkLabel">
+                                                <property name="halign">start</property>
+                                                <property name="label" translatable="yes">SIMBAD server:</property>
+                                                <layout>
+                                                  <property name="column">0</property>
+                                                  <property name="row">0</property>
+                                                </layout>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="GtkDropDown" id="simbad_mirror_combo">
+                                                <property name="halign">start</property>
+                                                <property name="model">
+                                                  <object class="GtkStringList">
+                                                    <items>
+                                                      <item>CDS (Strasbourg)</item>
+                                                      <item>CfA (Harvard)</item>
+                                                      <item>IDIA (South Africa)</item>
+                                                    </items>
+                                                  </object>
+                                                </property>
+                                                <property name="tooltip-text" translatable="yes">Server used for SIMBAD queries (object search, SIMBAD catalogue). Choose a mirror if the CDS in Strasbourg is unavailable.</property>
+                                                <layout>
+                                                  <property name="column">1</property>
+                                                  <property name="row">0</property>
+                                                </layout>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="GtkLabel">
+                                                <property name="halign">start</property>
+                                                <property name="label" translatable="yes">VizieR server:</property>
+                                                <layout>
+                                                  <property name="column">0</property>
+                                                  <property name="row">1</property>
+                                                </layout>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="GtkDropDown" id="vizier_mirror_combo">
+                                                <property name="halign">start</property>
+                                                <property name="model">
+                                                  <object class="GtkStringList">
+                                                    <items>
+                                                      <item>CDS (Strasbourg)</item>
+                                                      <item>CfA (Harvard)</item>
+                                                      <item>IDIA (South Africa)</item>
+                                                      <item>NAOJ (Japan)</item>
+                                                      <item>China-VO</item>
+                                                    </items>
+                                                  </object>
+                                                </property>
+                                                <property name="tooltip-text" translatable="yes">Server used for VizieR catalogues (Tycho-2, NOMAD, Gaia, APASS, GCVS, VSX...) and name resolution. Mirrors are queried with the ASU interface as they do not provide TAP.</property>
+                                                <layout>
+                                                  <property name="column">1</property>
+                                                  <property name="row">1</property>
+                                                </layout>
+                                              </object>
+                                            </child>
+                                          </object>
+                                        </property>
+                                        <child type="label">
+                                          <object class="GtkLabel">
+                                            <property name="label" translatable="yes">&lt;b&gt;Online Catalogue Servers&lt;/b&gt;</property>
+                                            <property name="margin-bottom">10</property>
+                                            <property name="margin-top">10</property>
+                                            <property name="use-markup">1</property>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
                                       <object class="GtkFrame" id="frame3">
                                         <property name="child">
                                           <object class="GtkBox">
