@@ -4679,7 +4679,7 @@ int process_merge(int nb) {
 			int written_frames = 0;
 			for (int i = 0; i < nb_seq; i++) {
 				for (unsigned int frame = 0; frame < seqs[i]->number; frame++) {
-					seqwriter_wait_for_memory();
+					seqwriter_wait_for_memory(-1);
 					fits *fit = calloc(1, sizeof(fits));
 					if (ser_read_frame(seqs[i]->ser_file, frame, fit, FALSE, com.pref.debayer.open_debayer)) {
 						siril_log_error(_("Failed to read frame %d from input sequence `%s'\n"), frame, word[i + 1]);
@@ -4720,7 +4720,7 @@ int process_merge(int nb) {
 			written_frames = 0;
 			for (int i = 0; i < nb_seq; i++) {
 				for (unsigned int frame = 0; frame < seqs[i]->number; frame++) {
-					seqwriter_wait_for_memory();
+					seqwriter_wait_for_memory(-1);
 					fits *fit = calloc(1, sizeof(fits));
 					if (fitseq_read_frame(seqs[i]->fitseq_file, frame, fit, FALSE, -1)) {
 						siril_log_error(_("Failed to read frame %d from input sequence `%s'\n"), frame, word[i + 1]);

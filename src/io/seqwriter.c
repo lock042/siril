@@ -250,6 +250,7 @@ int stop_writer(struct seqwriter_data *writer, gboolean aborting) {
  */
 
 static int nb_blocks_active, configured_max_active_blocks;
+static int next_index_to_free;	// index the writer needs next
 static int nb_outputs = 1;
 static GCond pool_cond;
 static GMutex pool_mutex;
@@ -279,14 +280,18 @@ void seqwriter_set_max_active_blocks(int max) {
 	siril_log_message(_("Number of images allowed in the write queue: %d (zero or less is unlimited)\n"), max);
 	configured_max_active_blocks = max;
 	nb_blocks_active = 0;
+	next_index_to_free = 0;
 }
 
-void seqwriter_wait_for_memory() {
+/* index is the output index of the image, -1 if unknown. The image the writer
+ * needs next always gets a slot, otherwise images that come after it could
+ * take all slots and block the writer forever. */
+void seqwriter_wait_for_memory(int index) {
 	if (configured_max_active_blocks <= 0)
 		return;
 	siril_log_debug("entering the wait function\n");
 	g_mutex_lock(&pool_mutex);
-	while (nb_blocks_active >= configured_max_active_blocks) {
+	while (nb_blocks_active >= configured_max_active_blocks && index != next_index_to_free) {
 		siril_log_debug("  waiting for free memory slot (%d active)\n", nb_blocks_active);
 		g_cond_wait(&pool_cond, &pool_mutex);
 	}
@@ -345,7 +350,8 @@ static void notify_data_freed(struct seqwriter_data *writer, int index) {
 	}
 
 	nb_blocks_active--;
-	g_cond_signal(&pool_cond);
+	next_index_to_free = index + 1;
+	g_cond_broadcast(&pool_cond);
 	g_mutex_unlock(&pool_mutex);
 }
 
