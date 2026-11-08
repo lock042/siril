@@ -22,6 +22,10 @@ If you use Siril in your work, please cite this software using the following inf
 C. Richard et al., Journal of Open Source Software, 2024, 9(102), 7242. DOI:
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.07242/status.svg)](https://doi.org/10.21105/joss.07242).
 
+Software archive and registry:
+[![Zenodo](https://zenodo.org/badge/DOI/10.5281/zenodo.13880497.svg)](https://doi.org/10.5281/zenodo.13880497)
+[![ascl:2412.014](https://img.shields.io/badge/ascl-2412.014-blue.svg?colorB=262255)](https://ascl.net/2412.014)
+
 ## Requirements
 
 For compilation, these tools are needed in addition to the base development packages:
