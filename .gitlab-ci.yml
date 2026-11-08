@@ -388,6 +388,26 @@ win64-native-installer:
           - MSYSTEM: $[[ matrix.MSYSTEM ]]
   allow_failure: true
 
+# Archive stable releases (X.Y.Z tags only) on Zenodo. ZENODO_TOKEN must be a
+# masked, protected CI variable, so release tags must be protected.
+zenodo-release:
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^[0-9]+\.[0-9]+\.[0-9]+$/ && $ZENODO_TOKEN'
+  stage: distribution
+  cache: {}
+  before_script:
+    - apt-get update
+    - apt-get install -y --no-install-recommends ca-certificates git wget bzip2 python3 python3-yaml
+  script:
+    - sh build/package_sources.sh "$CI_COMMIT_TAG"
+    - python3 build/zenodo_upload.py "siril-$CI_COMMIT_TAG.tar.bz2" "$CI_COMMIT_TAG"
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - siril-$CI_COMMIT_TAG.tar.bz2
+  needs: []
+  dependencies: []
+
 ################################################################################
 build-paper:
   rules:
