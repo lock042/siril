@@ -23,7 +23,7 @@ int stop_writer(struct seqwriter_data *writer, gboolean aborting);
 int seqwriter_append_write(struct seqwriter_data *writer, fits *image, int index);
 
 void seqwriter_set_max_active_blocks(int max);
-void seqwriter_wait_for_memory();
+void seqwriter_wait_for_memory(int index);
 void seqwriter_release_memory();
 void seqwriter_set_number_of_outputs(int number_of_outputs);
 

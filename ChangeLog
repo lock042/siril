@@ -5,6 +5,7 @@ siril-1.4.6
 * Fixed snapshots including the empty canvas area around the image when the image is smaller than the display area
 * Fixed PSF fitting converging on wrong solutions when the width parameter became negative (sign error in the Jacobian) (#2015)
 * Fixed crash when cropping, mirroring or otherwise transforming a plate-solved image with OpenCV >= 5 (#1967)
+* Fixed sequence processing with SER or FITS sequence output (e.g. calibration) and `convert` hanging in some cases
 
 siril-1.4.5
 10/28/26

@@ -399,7 +399,7 @@ static gpointer export_sequence(gpointer ptr) {
 		}
 
 		if (have_seqwriter)
-			seqwriter_wait_for_memory();
+			seqwriter_wait_for_memory(-1);
 
 		if (!seq_get_image_filename(args->seq, i, filename)) {
 			seqwriter_release_memory();
