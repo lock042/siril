@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: Siril in Italiano\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-01 13:48+0200\n"
-"PO-Revision-Date: 2026-03-09 21:56+0000\n"
-"Last-Translator: Daniele Piretti <fenice319@gmail.com>\n"
+"PO-Revision-Date: 2026-11-09 11:47+0000\n"
+"Last-Translator: Mattia Vessecchia <vessecchiamattia2007@gmail.com>\n"
 "Language-Team: Italian <https://weblate.siril.org/projects/siril/software/"
 "siril/it/>\n"
 "Language: it_IT\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.8.4\n"
+"X-Generator: Weblate 5.16.2\n"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:49 src/gui/uifiles/siril.ui:1942
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
@@ -634,6 +634,9 @@ msgid ""
 "For stars catalogues containing photometric data, stars with no B-V "
 "information will be kept; they can be excluded by check this option."
 msgstr ""
+"Per i cataloghi stellari contenenti dati fotometrici, le stelle prive di "
+"dati B-V saranno conservate; possono essere escluse selezionando questa "
+"opzione."
 
 #: src/gui/uifiles/annotate_dialog.ui:174
 #: src/gui/uifiles/annotate_dialog.ui:426
@@ -652,6 +655,14 @@ msgid ""
 "with the tag check button to display names alongside markers and log check "
 "button to list the objects in the console log."
 msgstr ""
+"Alcuni cataloghi (bsc, gcvs, pgc, exo, aavso_chart, varisum e solsys) "
+"mostreranno, da impostazione predefinita, i nomi insieme agli indicatori "
+"nella visualizzazione e li elenca nel log. Per altri con un numero maggiore "
+"di oggetti, principalmente vsx e simbad, le informazioni possono essere "
+"mostrare, ma visto che possono ingombrare la visualizzazione, non è attivato "
+"come impostazione predefinita. Questa impostazione può essere attivata o "
+"disattivata con la spunta tag per mostrare i nomi insieme agli indicatori e "
+"la spunta log per elencare gli oggetti nel log della console."
 
 #: src/gui/uifiles/annotate_dialog.ui:189
 #: src/gui/uifiles/annotate_dialog.ui:442
@@ -668,6 +679,8 @@ msgid ""
 "The list of elements present in the image can be saved in a csv file by "
 "filling in this text field or by clicking on the button to the right."
 msgstr ""
+"La lista degli elementi presenti nell'immagine può essere salvata in un file "
+"csv compilando questo campo o cliccando il pulsante sulla destra."
 
 #: src/gui/uifiles/annotate_dialog.ui:252
 msgid "Limit magnitude used in the query."
@@ -1122,10 +1135,13 @@ msgid "Solution order: "
 msgstr "Risoluzione: "
 
 #: src/gui/uifiles/astrometry_dialog.ui:662
+#, fuzzy
 msgid ""
 "Choose Siril internal solver or local Astrometry.net (needs to be installed "
 "on your system)"
 msgstr ""
+"Scegli tra il solver interno di Siril o Astrometry.net locale (deve essere "
+"installato sul tuo sistema)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:665
 #, fuzzy
@@ -1140,7 +1156,7 @@ msgstr "Astrometry.net Platesolving"
 #: src/gui/uifiles/astrometry_dialog.ui:679
 #: src/gui/uifiles/astrometry_dialog.ui:697
 msgid "Radius used by the solver to search around the target."
-msgstr ""
+msgstr "Il raggio usato dal solver per la ricerca intorno al soggetto."
 
 #: src/gui/uifiles/astrometry_dialog.ui:700
 #, fuzzy

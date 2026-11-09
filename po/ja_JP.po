@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-01 13:48+0200\n"
-"PO-Revision-Date: 2026-11-02 21:20+0000\n"
-"Last-Translator: Tomoya Maeda <yumyum.ytm6020@gmail.com>\n"
+"PO-Revision-Date: 2026-11-09 11:47+0000\n"
+"Last-Translator: 城䑓　駿 <jodai.shun@gmail.com>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
 "Language: ja_JP\n"
@@ -208,7 +208,7 @@ msgstr "輝度を使用"
 
 #: src/gui/uifiles/SCNR_dialog.ui:41
 msgid "Subtractive Chromatic Green Noise Reduction"
-msgstr "減法混色緑ノイズ低減"
+msgstr "グリーンノイズ除去（SCNR）"
 
 #: src/gui/uifiles/SCNR_dialog.ui:124
 msgid "Protection method: "
@@ -219,16 +219,16 @@ msgid ""
 "Average Neutral Protection is the default option. This is the recommended "
 "option in most cases."
 msgstr ""
-"平均中立保護がデフォルトのオプションです。これはほとんどの場合に推奨されるオ"
-"プションです。"
+"「平均ニュートラル保護」が既定の設定です。ほとんどの場合、この設定を推奨しま"
+"す。"
 
 #: src/gui/uifiles/SCNR_dialog.ui:141
 msgid "Average Neutral"
-msgstr "平均中立"
+msgstr "平均ニュートラル"
 
 #: src/gui/uifiles/SCNR_dialog.ui:142
 msgid "Maximum Neutral"
-msgstr "最大中立"
+msgstr "最大ニュートラル"
 
 #: src/gui/uifiles/SCNR_dialog.ui:143
 msgid "Maximum Mask"
@@ -246,7 +246,7 @@ msgstr "量"
 
 #: src/gui/uifiles/SCNR_dialog.ui:222
 msgid "Preserve lightness"
-msgstr "明るさを維持"
+msgstr "輝度を保持"
 
 #: src/gui/uifiles/SCNR_dialog.ui:226
 msgid "Preserves the original CIE L* component in the processed image."
@@ -321,8 +321,7 @@ msgstr "AAVSO パラメータ"
 #: src/gui/uifiles/aavso_dialog.ui:69
 #: src/gui/uifiles/file_information_dialog.ui:96
 msgid "Non-square pixels can be entered but will not be used in most cases."
-msgstr ""
-"正方形以外のピクセルを入力することもできますが, ほとんどの場合使用されません."
+msgstr "正方形でないピクセルの入力は可能ですが、使われない場合が多いです。"
 
 #: src/gui/uifiles/aavso_dialog.ui:71
 msgid "Obstype: "
@@ -986,7 +985,7 @@ msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:512
 msgid "Flip image if needed"
-msgstr "画像/ビデオを開く"
+msgstr "画像の反転"
 
 #: src/gui/uifiles/astrometry_dialog.ui:516
 msgid "Flip image at the end of the platesolving if image is mirrored."
@@ -1036,9 +1035,8 @@ msgid ""
 msgstr "入力した天体名の座標を検索するサーバーを選択します。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:595
-#, fuzzy
 msgid "CDS"
-msgstr "RCD"
+msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:596
 msgid "VizieR"
@@ -1081,9 +1079,8 @@ msgstr ""
 "らを使用するか選択します"
 
 #: src/gui/uifiles/astrometry_dialog.ui:665
-#, fuzzy
 msgid "Siril solver"
-msgstr "Siril コントロール センター"
+msgstr "Siril ソルバー"
 
 #: src/gui/uifiles/astrometry_dialog.ui:666
 msgid "Astrometry.net (local)"
@@ -1140,11 +1137,15 @@ msgid ""
 "When platesolving a sequence, the distortion file is saved from the "
 "reference image."
 msgstr ""
+"位置合わせ時の歪み補正に使用する歪みファイルとして、プレートソルブ結果を保存"
+"します。\n"
+"このオプションは、解の次数が 2 以上の場合にのみ有効です。\n"
+"シーケンスをプレートソルブする場合、歪みファイルは基準画像から作成されます。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:789
 msgid ""
 "Path to the distortion file to be created (ending with a *.wcs extension)"
-msgstr ""
+msgstr "作成する歪みファイルの保存先パス（拡張子: .wcs）"
 
 #: src/gui/uifiles/astrometry_dialog.ui:874
 msgid "Image Parameters"
@@ -1161,6 +1162,8 @@ msgid ""
 "Maximum star magnitude used in the catalog queries. Wider is the field, "
 "lower is the value."
 msgstr ""
+"カタログ検索に使用する恒星の最大等級です。視野が広い場合は、より小さい値を設"
+"定してください。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:931
 #: src/gui/uifiles/astrometry_dialog.ui:988
@@ -1173,7 +1176,7 @@ msgstr "自動"
 msgid ""
 "The limit magnitude is automatically determined using the approximation of "
 "the Field Of View."
-msgstr ""
+msgstr "限界等級は、推定された視野角に基づいて自動的に設定されます。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:951
 msgid "Star Catalogue: "
@@ -1207,6 +1210,22 @@ msgid ""
 "V, plus Sloan u', g′, r′, i′, z_s and Z. It is valid from about 7th "
 "magnitude to about 17th magnitude for over 37 million stars."
 msgstr ""
+"比較に使用するオンライン星表を選択します。\n"
+"* TYCHO-2: 天の川の明るい恒星約254万個の位置、固有運動、測光データを収録して"
+"います。\n"
+"* NOMAD: 複数の主要星表を統合したデータベースです。約11億個の恒星の位置・測光"
+"データを収録しており、オフライン版でもほとんどのプレートソルブに対応できます"
+"。\n"
+"* Gaia DR3: 約14.6億天体の高精度な位置天文学・測光データを収録しています。限"
+"界等級は G=21 で、現在利用できる最高水準の星表の一つです。オフライン版でも、"
+"非常に深い星野を除くほぼすべてのプレートソルブに対応できます。\n"
+"* PPMXL: 約9億個の恒星および銀河の位置、固有運動、測光データを収録しています"
+"。\n"
+"* Bright Star Catalogue: 肉眼で見える恒星をほぼ網羅した星表です。6.5等以上の"
+"恒星 9,110 個を収録しています。\n"
+"* APASS (AAVSO Photometric All Sky Survey) : 全天測光サーベイによる星表です。"
+"8種類のフィルターで観測された、約7〜17等級の3,700万個以上の恒星の測光データを"
+"収録しています。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:992
 msgid ""
@@ -1214,12 +1233,17 @@ msgid ""
 "Field Of View and magnitude. Local catalogues are preferred over remote "
 "ones, and Gaia DR3 is preferred over Tycho + NOMAD."
 msgstr ""
+"使用する星表は、推定された視野角と等級に基づいて自動的に選択されます。"
+"ローカル星表が利用可能な場合は優先して使用され、Gaia DR3 は Tycho + NOMAD よ"
+"り優先されます。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1007
 msgid ""
 "The TYCHO2, NOMAD and Bright Stars catalogues can be installed locally to "
 "not rely on an Internet connection for this operation."
 msgstr ""
+"TYCHO2、NOMAD、および Bright Stars 星表はローカルにインストールできます。これ"
+"により、インターネット接続なしでこの処理を実行できます。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1025
 #: src/gui/uifiles/s_pcc_dialog.ui:1106
@@ -1227,9 +1251,8 @@ msgid "Catalogue Parameters"
 msgstr "星表パラメータ"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1046
-#, fuzzy
 msgid "Manual detection"
-msgstr "マニュアル整列"
+msgstr "手動検出"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1050
 msgid ""
@@ -1239,6 +1262,11 @@ msgid ""
 "Use the Dynamic PSF tool, or the findstar command, adjusting the settings to "
 "your image."
 msgstr ""
+"星を手動で選択する場合は、このオプションを有効にしてください。Siril が十分な"
+"数の星を検出できない場合に役立ちます。できるだけ画像内の明るい星を選択してく"
+"ださい。\n"
+"Dynamic PSF ツールまたは findstar コマンドを使用し、画像に合わせて検出設定を"
+"調整してください。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1060
 #: src/gui/uifiles/stars_list_window.ui:865
@@ -1401,9 +1429,8 @@ msgstr ""
 "次数を上げるほど、より複雑な背景勾配を取り除くことができます。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:299
-#, fuzzy
 msgid "Samples per line"
-msgstr "サンプル ピクセル:"
+msgstr ""
 
 #: src/gui/uifiles/background_extraction_dialog.ui:357
 msgid ""
@@ -1411,8 +1438,8 @@ msgid ""
 "background gradient.\n"
 "This should be enabled for non-stretched images."
 msgstr ""
-"低ダイナミックな背景勾配にランダムノイズを加えて、バンディングの発生を防ぎま"
-"す。\n"
+"ダイナミックレンジの低い背景グラデーションにランダムノイズを加え、"
+"バンディングの発生を抑制します。\n"
 "非ストレッチ画像では、このオプションを有効にすることを推奨します。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:360
@@ -1425,6 +1452,8 @@ msgid ""
 "mad). By decreasing this value, Siril will be more restrictive to select "
 "background samples."
 msgstr ""
+"背景サンプルのグローバル除外に使用する許容係数です（MAD単位: 中央値 + 値 × "
+"MAD）。値を小さくすると、背景サンプルの選択条件がより厳しくなります。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:389
 msgid "Keep all samples"
@@ -1436,12 +1465,17 @@ msgid ""
 "gradients if tolerance 6 is insufficient: you will need to remove samples "
 "from astronomical objects manually."
 msgstr ""
+"許容値によるサンプル除外を無効化し、すべてのサンプルを保持します。許容値 6 で"
+"は十分でない強いグラデーションが存在する場合に有効です。その場合、天体上の"
+"サンプルは手動で削除してください。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:414
 msgid ""
 "Tolerance of global sample rejection, in sigma units. By decreasing this "
 "value, Siril will be more restrictive to select background samples."
 msgstr ""
+"背景サンプルのグローバル除外に使用する許容値です（σ単位）。値を小さくすると、"
+"背景サンプルの選択条件がより厳しくなります。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:429
 msgid "Add dither"
@@ -1454,6 +1488,11 @@ msgid ""
 "quantization error, preventing large-scale patterns such as color banding in "
 "images."
 msgstr ""
+"背景抽出後にカラーバンディングが発生する場合は、このオプションを有効にしてく"
+"ださい。\n"
+"ディザリングは、量子化誤差をランダム化するために微量のノイズを加える手法です"
+"。これにより、カラーバンディングなどのパターン状アーティファクトの発生を抑制"
+"します。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:450
 msgid "Generate"
@@ -1468,6 +1507,11 @@ msgid ""
 "placement: samples will automatically be created for each frame in the "
 "sequence."
 msgstr ""
+"クリックすると、自動配置サンプルを生成します。\n"
+"\n"
+"シーケンス処理時に表示されるサンプルは、samples_per_line と Grid tolerance の"
+"設定による配置結果を確認するためのプレビューです。実際のサンプルは、"
+"シーケンス内の各フレームごとに自動生成されます。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:476
 msgid "Click here to clear all the samples."
@@ -1478,6 +1522,8 @@ msgid ""
 "You also can set samples manually.\n"
 "Left click adds samples while right click removes them."
 msgstr ""
+"サンプルを手動で配置することもできます。\n"
+"左クリックでサンプルを追加し、右クリックで削除します。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:514
 msgid "Interpolation Method"
@@ -1492,14 +1538,19 @@ msgid ""
 "vignetting or differential atmospheric absorption for example. However, this "
 "kind of operation should be done by master-flat correction."
 msgstr ""
+"適用する補正方式を選択してください。\n"
+"減算: 光害や月明かりによる背景グラデーションなどの加算成分を補正する場合に使"
+"用します。\n"
+"除算: 周辺減光や大気吸収のムラなどの乗算成分を補正する場合に使用します。ただ"
+"し、通常はマスターフラットによるフラット補正で処理してください。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:543
 msgid "Subtraction"
-msgstr "引き算"
+msgstr "減算"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:544
 msgid "Division"
-msgstr "割り算"
+msgstr "除算"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:552
 msgid "Correction"
@@ -1515,6 +1566,8 @@ msgid ""
 "correction. The model is always computed from the original image kept in "
 "memory allowing the user to work iteratively."
 msgstr ""
+"背景モデルを生成し、選択した補正を適用します。モデルは常にメモリ内の元画像か"
+"ら再計算されるため、設定を調整しながら繰り返し試すことができます。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:585
 msgid "Show original image"
@@ -1522,7 +1575,7 @@ msgstr "元の画像を表示"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:590
 msgid "Keep pressing this button to see the original image."
-msgstr ""
+msgstr "このボタンを押している間は、元画像を表示します。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:608
 #: src/gui/uifiles/bdeconv_dialog.ui:2126
@@ -1545,8 +1598,8 @@ msgid ""
 "If a sequence is loaded and this is activated, perform the processing on all "
 "images of the sequence instead of only the loaded image."
 msgstr ""
-"シーケンスが読み込まれ、これがアクティブになっている場合は、読み込まれた画像"
-"だけでなく、シーケンスのすべての画像に対して処理を実行します。"
+"シーケンスを読み込んでいる場合、このオプションを有効にすると、シーケンス内の"
+"すべての画像に処理を適用します。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:626
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:278
@@ -1564,12 +1617,14 @@ msgstr "背景抽出プロセスにより生成された画像名のプレフィ
 
 #: src/gui/uifiles/bdeconv_dialog.ui:249
 msgid "Deconvolution"
-msgstr "逆畳み込み"
+msgstr "デコンボリューション"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:288 src/gui/uifiles/bdeconv_dialog.ui:306
 msgid ""
 "Generate the kernel and use it to deconvolve the current image or sequence"
 msgstr ""
+"カーネルを生成し、現在の画像またはシーケンスにデコンボリューションを適用しま"
+"す"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:369
 msgid "Blind deconvolution"
@@ -1637,18 +1692,16 @@ msgid "Load PSF from file"
 msgstr ""
 
 #: src/gui/uifiles/bdeconv_dialog.ui:485
-#, fuzzy
 msgid "Generate PSF"
-msgstr "生成"
+msgstr "PSF 生成"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:489
 msgid "Generate and preview the PSF, but do not carry out deconvolution"
 msgstr "PSF を生成してプレビューしますが、デコンボリューションは実行しません"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:511
-#, fuzzy
 msgid "Save PSF to a file"
-msgstr "ファイルを保存"
+msgstr "PSFファイルを保存"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:530
 #, fuzzy
@@ -2131,9 +2184,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2067 src/gui/uifiles/siril.ui:8107
-#, fuzzy
 msgid "Multiplicative"
-msgstr "多重 SER"
+msgstr "乗算型"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2068
 msgid "Gradient Descent"
@@ -2175,9 +2227,8 @@ msgid "Binning factor:"
 msgstr ""
 
 #: src/gui/uifiles/binxy_dialog.ui:138
-#, fuzzy
 msgid "Downsample mode:"
-msgstr "画像を正規化"
+msgstr ""
 
 #: src/gui/uifiles/binxy_dialog.ui:152
 msgid "Average"
@@ -2229,9 +2280,8 @@ msgid "Prefix of the image names resulting from the unband process."
 msgstr "前処理により得られた画像ファイル名プレフィックス."
 
 #: src/gui/uifiles/ccm_dialog.ui:13 src/gui/uifiles/ccm_dialog.ui:248
-#, fuzzy
 msgid "Color Conversion Matrix"
-msgstr "整列完了."
+msgstr "カラー変換マトリクス"
 
 #: src/gui/uifiles/ccm_dialog.ui:27
 msgid "Restore ICC"
@@ -2465,9 +2515,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/composition_dialog.ui:136
-#, fuzzy
 msgid "Multi-layer image composition"
-msgstr "HSL 色空間"
+msgstr "マルチレイヤー画像合成"
 
 #: src/gui/uifiles/composition_dialog.ui:207 src/compositing/compositing.c:439
 #: src/compositing/compositing.c:440 src/compositing/compositing.c:833
@@ -2629,7 +2678,7 @@ msgstr "選択整列法を用いた自動整列."
 #: src/filters/cosmetic_correction.c:434 src/filters/cosmetic_correction.c:608
 #: src/filters/cosmetic_correction.c:820
 msgid "Cosmetic Correction"
-msgstr "Cosmetic Correction"
+msgstr "Cosmetic Correction (欠陥画素の補正)"
 
 #: src/gui/uifiles/cosmetic_dialog.ui:73
 #: src/gui/uifiles/dialog_star_remix.ui:192
@@ -6393,7 +6442,7 @@ msgstr "注釈"
 #: src/gui/uifiles/settings_window.ui:1329
 msgid ""
 "Choose the position of the compass being displayed with the celestial grid."
-msgstr ""
+msgstr "天球グリッドと一緒に表示する方位マーカーの位置を選択します。"
 
 #: src/gui/uifiles/settings_window.ui:1335
 msgid "Center"
@@ -6546,14 +6595,14 @@ msgid "Update default focal length and pixel size from the result"
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:1622
-#, fuzzy
 msgid ""
 "When an astrometric solution is found, the computed focal length and input "
 "pixel size are stored in the settings as default values for images that "
 "don't have the corresponding metadata."
 msgstr ""
-"焦点距離とピクセルサイズをデフォルト値として設定に保存し, これらのメタデータ"
-"を含まない画像に使用します"
+"プレートソルブに成功すると、算出された焦点距離とピクセルサイズが設定に保存さ"
+"れます。これらの値は、対応するメタデータを持たない画像の既定値として使用され"
+"ます。"
 
 #: src/gui/uifiles/settings_window.ui:1642
 msgid "Sampling tolerance (%):"
@@ -6687,19 +6736,16 @@ msgid "Use the chosen master as default file in the Calibration tab"
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:2059
-#, fuzzy
 msgid "Master-flat:"
-msgstr "Flat を使用"
+msgstr "マスターフラット:"
 
 #: src/gui/uifiles/settings_window.ui:2071
-#, fuzzy
 msgid "Master-bias:"
-msgstr "Flat を使用"
+msgstr "マスターバイアス:"
 
 #: src/gui/uifiles/settings_window.ui:2083
-#, fuzzy
 msgid "Master-dark:"
-msgstr "Flat を使用"
+msgstr "マスターダーク:"
 
 #: src/gui/uifiles/settings_window.ui:2094
 msgid ""
@@ -7099,9 +7145,8 @@ msgid "Asinh"
 msgstr "Arcsinh"
 
 #: src/gui/uifiles/settings_window.ui:3661
-#, fuzzy
 msgid "Autostretch"
-msgstr "自動イコライゼーション"
+msgstr "オートストレッチ"
 
 #: src/gui/uifiles/settings_window.ui:3662 src/gui/uifiles/siril.ui:639
 msgid "Histogram"
@@ -7664,7 +7709,6 @@ msgstr ""
 "新されます。"
 
 #: src/gui/uifiles/settings_window.ui:5211
-#, fuzzy
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
 "Scripts menu. Double-click a row to open the script in the Script Editor. "
@@ -7676,11 +7720,14 @@ msgid ""
 "startup do not show a toggle."
 msgstr ""
 "利用可能なスクリプトの一覧。選択したスクリプトは、スクリプトメニューから使用"
-"できます。行をダブルクリックすると、スクリプトエディタでスクリプトが開きま"
-"す。（これは、スクリプトにローカルな変更を加えて保存するために使用できま"
-"す。）\n"
-"古いリビジョンを開く（例えば、スクリプトの更新失敗後に古いバージョンを取得す"
-"る場合）には、行を右クリックしてください。"
+"できます。行をダブルクリックすると、スクリプトエディタでスクリプトが開きます"
+"。（これは、スクリプトにローカルな変更を加えて保存するために使用できます。"
+"）\n"
+"以前のバージョンを開くには、行を右クリックしてください。スクリプト更新後に問"
+"題が発生した場合、古いバージョンを取得できます。\n"
+"一部の Python スクリプトは起動時に自動実行できます。対応するスクリプトには［"
+"起動時］列にスイッチが表示されます。起動時実行に対応していないスクリプトには"
+"表示されません。"
 
 #: src/gui/uifiles/settings_window.ui:5229
 msgid "Category"
@@ -7716,6 +7763,12 @@ msgid ""
 "This is normally not necessary but is provided as a last resort to restore "
 "the venv to a pristine state as an aid to troubleshooting."
 msgstr ""
+"<b>警告!!</b><i>実行中のすべての Python スクリプトを停止し、仮想環境（venv）"
+"を初期状態にリセットします。スクリプトによってインストールされたモジュールは"
+"再インストールが必要になります。</i>\n"
+"\n"
+"通常、この操作は必要ありません。問題解決のために venv をクリーンな初期状態へ"
+"戻す最終手段として使用してください。"
 
 #: src/gui/uifiles/settings_window.ui:5414
 msgid "Python Interface"
@@ -7740,13 +7793,12 @@ msgid ""
 "If you don't have paged memory configured on some storage, a value of 1 or "
 "above will likely result in a crash of siril or of the operating system."
 msgstr ""
-"Sirilは、空き物理メモリの量の割合を上限として動作し、必要に応じて作業タスクの"
-"サイズを縮小します。\n"
-"1より大きな値は、設定されたストレージにページングされたメモリが一部使用される"
-"ことになり、プロセス全体の処理速度が低下し、一部の操作中にシステムが応答しな"
-"くなる可能性があります。\n"
-"特定のストレージにページングメモリが設定されていない場合、この値を1以上に設定"
-"すると、Sirilまたはオペレーティングシステムがクラッシュする可能性があります。"
+"Siril が使用するメモリ量を、利用可能な物理メモリに対する割合として指定します"
+"。必要に応じて、処理単位のサイズを自動的に調整します。\n"
+"1 を超える値を設定すると、ページファイルが使用されます。そのため処理速度が低"
+"下し、一部の処理中にシステムの応答が悪くなる場合があります。\n"
+"仮想メモリが設定されていない場合、1 以上の値を設定すると Siril または"
+"オペレーティングシステムがクラッシュする可能性があります。"
 
 #: src/gui/uifiles/settings_window.ui:5499
 msgid "Fixed amount (GB)"
@@ -7772,6 +7824,11 @@ msgid ""
 "used for stacking above 1 will require the use of on-disk memory, which is "
 "very slow and unrecommended"
 msgstr ""
+"スタック処理に使用するメモリ量を指定します。値は、他のアプリケーションの使用"
+"状況に応じて 0.05 ～ 2 の範囲で設定してください。値を大きくするとスタック処理"
+"が高速になる場合がありますが、1 を超える値では仮想メモリ（スワップ／"
+"ページファイル）が使用されます。仮想メモリは非常に低速なため、通常は推奨され"
+"ません。"
 
 #: src/gui/uifiles/settings_window.ui:5564
 msgid "<b>Memory management</b>"
@@ -7926,6 +7983,14 @@ msgid ""
 "and can be deleted when stacking is finished: if a sequence is re-drizzled, "
 "any existing drizzle weights will be overwritten."
 msgstr ""
+"既定では、Drizzle は 8 ビットの重みファイルを使用します。これは多くの場合で十"
+"分な精度を提供し、保存容量も少なくて済みます。\n"
+"このオプションを有効にすると、重みファイルを Drizzle シーケンスと同じビット深"
+"度で保存し、より高い精度で処理できます。ただし、重みファイルのサイズは "
+"Drizzle シーケンスをもう 1 つ保存するのと同程度になります。\n"
+"重みファイルは作業ディレクトリの drizztmp フォルダーに保存されます。スタック"
+"完了後は削除できます。シーケンスを再度 Drizzle 処理すると、既存の重みファイル"
+"は上書きされます。"
 
 #: src/gui/uifiles/settings_window.ui:5904
 #: src/gui/uifiles/settings_window.ui:6347
@@ -8678,7 +8743,7 @@ msgstr "クリップボードへコピー"
 
 #: src/gui/uifiles/siril.ui:2406
 msgid "Image Plate Solver..."
-msgstr "画像プレートソルバー…"
+msgstr "プレートソルブ"
 
 #: src/gui/uifiles/siril.ui:2420
 msgid "Annotate..."
@@ -9131,13 +9196,12 @@ msgid "Sequence export"
 msgstr "シーケンスのエクスポート"
 
 #: src/gui/uifiles/siril.ui:4591
-#, fuzzy
 msgid ""
 "Images are manipulated in sequences. Siril can find sequences in CWD, and "
 "you can filter images out."
 msgstr ""
-"Les images sont manipulés sous forme de séquence et Siril peut trouver ces "
-"séquences dans le répertoire de travail. "
+"画像はシーケンスとして管理されます。Siril は現在の作業ディレクトリ（CWD）内の"
+"シーケンスを検出でき、画像をフィルタで除外することもできます。"
 
 #: src/gui/uifiles/siril.ui:4594 src/gui/callbacks.c:2448
 msgid "Sequence"
@@ -9153,8 +9217,8 @@ msgid ""
 "All images in the sequence will be divided by the master flat image (each "
 "pixel value)."
 msgstr ""
-"このシーケンスに含まれるすべての画像は (各ピクセル値に対する) マスターflat画"
-"像により分割されます."
+"シーケンス内のすべての画像を、マスターフラット画像で（各ピクセル値ごとに）除"
+"算します。"
 
 #: src/gui/uifiles/siril.ui:4653
 msgid ""
@@ -9162,10 +9226,9 @@ msgid ""
 "All images in the sequence will be divided by the master flat image (each "
 "pixel value)."
 msgstr ""
-"マスター flatファイル名をここに入力するか, ブラウスボタンを使用してくださ"
-"い.\n"
-"このシーケンスに含まれるすべての画像は (各 pixel 値に対する) マスター flat 画"
-"像により分割されます."
+"マスターフラットのファイル名を入力するか、参照ボタンから選択します。\n"
+"シーケンス内のすべての画像を、マスターフラット画像で（各ピクセル値ごとに）除"
+"算します。"
 
 #. Dark is the kind of the picture used here. In french I've decided to not translate the word.
 #: src/gui/uifiles/siril.ui:4688
@@ -9174,16 +9237,15 @@ msgstr "dark を使用"
 
 #: src/gui/uifiles/siril.ui:4692 src/gui/uifiles/siril.ui:4708
 msgid "The dark master image will be removed from all images in the sequence."
-msgstr "この dark マスター画像はシーケンスのすべての画像から削除されます."
+msgstr "シーケンス内のすべての画像から、マスターダークを減算します。"
 
 #: src/gui/uifiles/siril.ui:4729
 msgid ""
 "Enter the master dark file name here, or use the browse button.\n"
 "The dark master image will be removed from all images in the sequence."
 msgstr ""
-"マスター dark ファイル名をここに入力するか ブラウスボタンを使用してくださ"
-"い.\n"
-"dark マスター画像はこのシーケンスのすべての画像から削除されます."
+"ここにマスターダークファイル名を入力するか、参照ボタンを使用してください。\n"
+"シーケンス内のすべての画像から、マスターダークを減算します。"
 
 #. Offset is the kind of the picture used here. In french I've decided to not translate the word.
 #: src/gui/uifiles/siril.ui:4742
@@ -9194,7 +9256,7 @@ msgstr "bias を使用"
 #: src/gui/uifiles/siril.ui:5752
 msgid ""
 "The bias/offset master image will be removed from all images in the sequence."
-msgstr "この Bias マスター画像はシーケンスのすべての画像から削除されます。"
+msgstr "シーケンス内のすべての画像から、マスターバイアス/オフセットを減算します。"
 
 #: src/gui/uifiles/siril.ui:4761
 msgid ""
@@ -9206,10 +9268,9 @@ msgid ""
 msgstr ""
 "ここにマスターバイアス/オフセットファイル名を入力するか、参照ボタンを使用して"
 "ください。\n"
-"バイアス/オフセットマスター画像は、シーケンス内のすべての画像から削除されま"
-"す。\n"
-"画像の代わりに、=256 や =64*$OFFSET のように、\"=\" 記号で始まる減算する均一"
-"レベルを指定することもできます。"
+"シーケンス内のすべての画像から、マスターバイアス/オフセットを減算します。\n"
+"画像の代わりに、「=」で始まる一定値を指定して減算することもできます（例：=256"
+"、=64*$OFFSET）。"
 
 #: src/gui/uifiles/siril.ui:4765
 msgid "master-bias.fit"
@@ -9305,7 +9366,7 @@ msgstr "画像キャリブレーション"
 
 #: src/gui/uifiles/siril.ui:4928
 msgid "Enable Cosmectic Correction"
-msgstr "Cosmectic Correction を可能にする"
+msgstr "Cosmectic Correction を有効にする"
 
 #: src/gui/uifiles/siril.ui:4932
 msgid ""
@@ -20163,7 +20224,7 @@ msgstr "FITSファイル拡張子"
 
 #: src/core/settings.c:351
 msgid "don't use 32 bits for pixel depth"
-msgstr ""
+msgstr "32ビットのピクセル深度を使用しない"
 
 #: src/core/settings.c:352
 msgid "embed ICC profiles in FITS when saving"
@@ -20761,25 +20822,24 @@ msgid "Mouse smooth scroll speed limit"
 msgstr ""
 
 #: src/core/settings.c:517
-#, fuzzy
 msgid "configure background samples color"
-msgstr "最初の画像の「核」の X-座標."
+msgstr "背景サンプルの色を設定"
 
 #: src/core/settings.c:518
 msgid "configure standard annotation color"
-msgstr ""
+msgstr "標準注釈の色を設定"
 
 #: src/core/settings.c:519
 msgid "configure dso annotation color"
-msgstr ""
+msgstr "DSO注釈の色を設定"
 
 #: src/core/settings.c:520
 msgid "configure sso annotation color"
-msgstr ""
+msgstr "SSO注釈の色を設定"
 
 #: src/core/settings.c:521
 msgid "configure tmp annotation color"
-msgstr ""
+msgstr "一時注釈の色を設定"
 
 #: src/core/settings.c:522
 msgid "path to custom monitor ICC profile"
@@ -21377,9 +21437,9 @@ msgid "blue"
 msgstr "青"
 
 #: src/core/utils.c:372
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to create directory '%s': %s\n"
-msgstr "最初の画像の「核」の X-座標."
+msgstr "ディレクトリ '%s' を作成できませんでした: %s\n"
 
 #: src/core/utils.c:756
 msgid "Unknown error\n"
@@ -21441,7 +21501,7 @@ msgstr ""
 
 #: src/drizzle/cdrizzleutil.c:123
 msgid "Drizzling parameters:\n"
-msgstr ""
+msgstr "Drizzle 設定:\n"
 
 #: src/drizzle/cdrizzleutil.c:124
 #, c-format
@@ -21449,9 +21509,9 @@ msgid "kernel:         %s\n"
 msgstr ""
 
 #: src/drizzle/cdrizzleutil.c:125
-#, fuzzy, c-format
+#, c-format
 msgid "pixel_fraction: %f\n"
-msgstr "Pixel Area Relation"
+msgstr "pixel_fraction: %f\n"
 
 #: src/drizzle/cdrizzleutil.c:126
 #, c-format
@@ -21501,14 +21561,12 @@ msgid "cosmetic correction: cosme file format error at line %d: %s\n"
 msgstr ""
 
 #: src/filters/epf.c:129
-#, fuzzy
 msgid "Bilateral filter: processing...\n"
-msgstr "Rotational gradient: 処理中…\n"
+msgstr "Bilateral filter: 処理中…\n"
 
 #: src/filters/fft.c:455
-#, fuzzy
 msgid "Siril FFT wisdom imported successfully...\n"
-msgstr "スクリプトの実行を無事に終了.\n"
+msgstr "Siril FFT 最適化情報を読み込みました..\n"
 
 #: src/filters/fft.c:457
 msgid "System FFT wisdom imported successfully...\n"
@@ -21907,9 +21965,8 @@ msgid "StarNet"
 msgstr "重ね合わせ"
 
 #: src/filters/starnet.c:958
-#, fuzzy
 msgid "StarNet: Processing..."
-msgstr "前処理開始"
+msgstr "StarNet: 処理中..."
 
 #: src/filters/synthstar.c:335
 msgid "Star synthesis (full star mask creation): processing...\n"
@@ -22047,9 +22104,8 @@ msgid "Nothing to export"
 msgstr ""
 
 #: src/gui/PSF_list.c:926
-#, fuzzy
 msgid "There are no stars in the list."
-msgstr "リストから全ての星を除去"
+msgstr "リストに星がありません。"
 
 #: src/gui/about_dialog.c:56
 #, c-format
@@ -22076,9 +22132,8 @@ msgid "csv files (*.csv)"
 msgstr "csvファイル (*.csv)"
 
 #: src/gui/annotate.c:294
-#, fuzzy
 msgid "Could not parse coordinates or name, aborting\n"
-msgstr "FITS ファイル %s を開けない\n"
+msgstr "座標または天体名を認識できないため、処理を中止しました。\n"
 
 #: src/gui/annotate.c:383
 #, fuzzy
@@ -22144,11 +22199,17 @@ msgid ""
 "Finally, keep in mind that plate solving algorithm should only be applied on "
 "linear image."
 msgstr ""
+"これは通常、初期設定値（ピクセルサイズ、焦点距離、初期座標）が画像の実際の"
+"メタデータと大きく異なっているために発生します。\n"
+"\n"
+"別の星表を使用するか、［ダウンサンプリング］にチェックを入れて試してください"
+"。特に Drizzle 処理後の画像で有効な場合があります。\n"
+"\n"
+"また、プレートソルブはリニア画像に対してのみ実行してください。"
 
 #: src/gui/astrometry_solver.c:570
-#, fuzzy
 msgid "No object found\n"
-msgstr "No rejection"
+msgstr "天体が見つかりません\n"
 
 #: src/gui/astrometry_solver.c:677
 msgid ""
