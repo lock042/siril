@@ -207,6 +207,8 @@ src/gui-gtk4/mouse_action_functions.h
 src/gui-gtk4/mouse_action_preferences.c
 src/gui-gtk4/mpp_ap_editor.c
 src/gui-gtk4/mpp_shift_viewer.c
+src/gui-gtk4/nde_editors.c
+src/gui-gtk4/nde_joint_editor.c
 src/gui-gtk4/newdeconv.c
 src/gui-gtk4/nina_light_curve.c
 src/gui-gtk4/open_dialog.c

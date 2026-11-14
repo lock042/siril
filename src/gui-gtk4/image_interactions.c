@@ -336,7 +336,8 @@ gboolean is_inside_of_sel(pointi zoomed, double zoom) {
 	return FALSE;
 }
 
-/* Clamp given coordinates to the DISPLAYED image's boundaries.
+/* Clamp given coordinates to [0, rx] x [0, ry] of the DISPLAYED image
+   (selection ends are exclusive, so rx / ry themselves are valid ends).
    Returns true if point was inside, false otherwise.
 
    For a FLIS the displayed image is the canvas-sized composite, not the
@@ -353,7 +354,7 @@ static gboolean clamp2image(pointi* pt) {
 	if (pt->x < 0) {
 		pt->x = 0;
 	} else if (pt->x > disp_rx) {
-		pt->x = disp_rx - 1;
+		pt->x = disp_rx;
 	} else {
 		x_inside = pt->x < disp_rx;
 	}
@@ -362,7 +363,7 @@ static gboolean clamp2image(pointi* pt) {
 	if (pt->y < 0) {
 		pt->y = 0;
 	} else if (pt->y > disp_ry) {
-		pt->y = disp_ry - 1;
+		pt->y = disp_ry;
 	} else {
 		y_inside = pt->y < disp_ry;
 	}
@@ -406,6 +407,11 @@ GdkModifierType get_primary() {
 }
 
 void enforce_ratio_and_clamp() {
+	/* com.selection is in DISPLAY (canvas) coordinates: for a FLIS the bounds
+	 * are the canvas, not the active layer's fits, which may be smaller and
+	 * offset.  Identical to gfit->rx/ry for a plain image (see clamp2image). */
+	const gint disp_rx = (gint)flis_canvas_rx();
+	const gint disp_ry = (gint)flis_canvas_ry();
 	if (gui.ratio > 0.0
 		&& !(gui.freezeX && gui.freezeY)) {
 		// Enforce a ratio for the selection
@@ -423,20 +429,20 @@ void enforce_ratio_and_clamp() {
 		}
 
 		// clamp the selection dimensions
-		if (com.selection.w > gfit->rx) {
-			com.selection.w = gfit->rx;
+		if (com.selection.w > disp_rx) {
+			com.selection.w = disp_rx;
 			com.selection.h = round_to_int(com.selection.w / gui.ratio);
 		}
-		else if (com.selection.h > gfit->ry) {
-			com.selection.h = gfit->ry;
+		else if (com.selection.h > disp_ry) {
+			com.selection.h = disp_ry;
 			com.selection.w = round_to_int(com.selection.h * gui.ratio);
 		}
 	}
 
 	// clamp the selection inside the image (needed when enforcing a ratio or moving)
 	// keep the origin inside the image even when a side is empty
-	com.selection.x = set_int_in_interval(com.selection.x, 0, gfit->rx - max(com.selection.w, 1));
-	com.selection.y = set_int_in_interval(com.selection.y, 0, gfit->ry - max(com.selection.h, 1));
+	com.selection.x = set_int_in_interval(com.selection.x, 0, disp_rx - max(com.selection.w, 1));
+	com.selection.y = set_int_in_interval(com.selection.y, 0, disp_ry - max(com.selection.h, 1));
 
 	// If the image is CFA ensure the selection is aligned to a Bayer repeat
 	// This ensures CFA statistics (for Bayer patterns) will be valid
@@ -470,8 +476,8 @@ void enforce_ratio_and_clamp() {
 		if (com.selection.h < 2)
 			com.selection.h = 2;
 		// the rounding above can grow the selection past the image edge
-		com.selection.x = set_int_in_interval(com.selection.x, 0, ((int) gfit->rx - com.selection.w) & ~1);
-		com.selection.y = set_int_in_interval(com.selection.y, 0, ((int) gfit->ry - com.selection.h) & ~1);
+		com.selection.x = set_int_in_interval(com.selection.x, 0, (disp_rx - com.selection.w) & ~1);
+		com.selection.y = set_int_in_interval(com.selection.y, 0, (disp_ry - com.selection.h) & ~1);
 	}
 }
 
@@ -1090,11 +1096,13 @@ gboolean update_zoom(gdouble x, gdouble y, double scale) {
 	 * are variable-sized, so the user can end up between two discrete levels
 	 * with no way to land exactly on min_zoom via multiplication alone. */
 	double min_zoom = ZOOM_MIN;
-	if (scale < 1.0 && gfit->rx > 0 && gfit->ry > 0) {
+	/* the displayed image is the canvas for a FLIS, gfit otherwise */
+	const double disp_rx = (double)flis_canvas_rx(), disp_ry = (double)flis_canvas_ry();
+	if (scale < 1.0 && disp_rx > 0 && disp_ry > 0) {
 		int ww = gtk_widget_get_width(gui.view[RED_VPORT].drawarea);
 		int wh = gtk_widget_get_height(gui.view[RED_VPORT].drawarea);
 		if (ww > 1 && wh > 1)
-			min_zoom = min(ZOOM_MIN, min((double)ww / gfit->rx, (double)wh / gfit->ry));
+			min_zoom = min(ZOOM_MIN, min((double)ww / disp_rx, (double)wh / disp_ry));
 		if (factor < min_zoom)
 			factor = min_zoom;
 	}

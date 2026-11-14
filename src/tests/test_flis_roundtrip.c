@@ -414,3 +414,140 @@ Test(flis_roundtrip, legacy_mask_ids_are_renumbered_on_load) {
 	cr_assert(r_top->lmask_item_id > 0 && r_top->lmask_item_id < 10000);
 	cr_assert(r_top->pmask_item_id > 0 && r_top->pmask_item_id < 10000);
 }
+
+/* A successful save leaves exactly the document behind: the temporary file
+ * the save writes through is renamed into place, not left beside it. */
+Test(flis_roundtrip, save_leaves_no_temporary_file) {
+	flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.25f), "base");
+	cr_assert_eq(save_flis(tmppath), 0);
+	gchar *part = g_strdup_printf("%s.part", tmppath);
+	cr_assert(g_file_test(tmppath, G_FILE_TEST_IS_REGULAR));
+	cr_assert(!g_file_test(part, G_FILE_TEST_EXISTS),
+	          "the temporary save file was left behind");
+	g_free(part);
+}
+
+/* A save that fails must not touch the file it was asked to replace.  The
+ * failure is forced by occupying the temporary path with a directory, so the
+ * new document cannot even be created; the previous save has to survive
+ * byte-for-byte and still load. */
+Test(flis_roundtrip, failed_save_keeps_the_previous_file) {
+	flis_layer_t *l = flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.25f), "base");
+	cr_assert_not_null(l);
+	cr_assert_eq(save_flis(tmppath), 0);
+
+	gchar *before = NULL, *after = NULL;
+	gsize before_len = 0, after_len = 0;
+	cr_assert(g_file_get_contents(tmppath, &before, &before_len, NULL));
+
+	gchar *part = g_strdup_printf("%s.part", tmppath);
+	cr_assert_eq(g_mkdir(part, 0700), 0);
+
+	l->fit->fdata[0] = 0.75f;   /* a change the failed save must not land */
+	cr_assert_neq(save_flis(tmppath), 0, "save_flis should have failed");
+
+	cr_assert(g_file_get_contents(tmppath, &after, &after_len, NULL),
+	          "the previous file is gone");
+	cr_assert_eq(before_len, after_len);
+	cr_assert_eq(memcmp(before, after, before_len), 0,
+	             "the previous file was modified by a failed save");
+
+	g_rmdir(part);
+	g_free(part);
+	g_free(before);
+	g_free(after);
+
+	flis_free_layers(com.uniq);
+	cr_assert_eq(load_flis(tmppath), 0);
+	flis_layer_t *reloaded = (flis_layer_t *)com.uniq->layers->data;
+	cr_assert_float_eq(reloaded->fit->fdata[0], 0.25f, 1e-5);
+}
+
+/* ---------------- pixel payloads other than float layers ---------------- */
+
+/* A 16-bit layer survives the file with its values intact.  The loader may
+ * hand it back as 16-bit or promote it to float depending on preferences, so
+ * the comparison is made in whichever representation came back. */
+Test(flis_roundtrip, ushort_layer_pixels_round_trip) {
+	fits *f = NULL;
+	cr_assert_eq(new_fit_image(&f, 4, 4, 1, DATA_USHORT), 0);
+	for (int i = 0; i < 16; i++)
+		f->data[i] = (WORD)(1000 + 4000 * i);
+	cr_assert_not_null(flis_test_add_layer(f, "sixteen"));
+	cr_assert_eq(save_flis(tmppath), 0);
+
+	flis_free_layers(com.uniq);
+	cr_assert_eq(load_flis(tmppath), 0);
+	fits *r = ((flis_layer_t *)com.uniq->layers->data)->fit;
+	cr_assert_eq(r->rx, 4);
+	cr_assert_eq(r->ry, 4);
+	for (int i = 0; i < 16; i++) {
+		const float expect = 1000.f + 4000.f * i;
+		const float got = (r->type == DATA_USHORT) ? (float)r->data[i]
+		                                           : r->fdata[i] * USHRT_MAX_SINGLE;
+		cr_assert_float_eq(got, expect, 0.5f, "pixel %d: got %g, expected %g",
+		                   i, got, expect);
+	}
+}
+
+/* Mask PIXELS round-trip, not only their ids, and the layers stored after a
+ * masked layer still load their own pixels.  FLIS_META addresses every data
+ * HDU by a pre-computed index, so a mask HDU that went missing or was written
+ * out of step would hand the top layer the wrong HDU. */
+Test(flis_roundtrip, mask_pixels_round_trip_and_later_layers_keep_their_hdu) {
+	flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.1f), "base");
+	flis_layer_t *mid = flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.4f), "mid");
+	flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.9f), "top");
+
+	layermask_t *lm = make_lmask(4, 4, 0);
+	for (int i = 0; i < 16; i++)
+		((uint8_t *)lm->data)[i] = (uint8_t)(i * 16);
+	cr_assert_eq(flis_layer_set_lmask(mid, lm), 0);
+	attach_pmask(mid, 0.f);
+	for (int i = 0; i < 16; i++)
+		((float *)mid->fit->mask->data)[i] = i / 16.f;
+
+	cr_assert_eq(save_flis(tmppath), 0);
+	flis_free_layers(com.uniq);
+	cr_assert_eq(load_flis(tmppath), 0);
+	cr_assert_eq(flis_layer_count(), 3);
+
+	flis_layer_t *r_mid = flis_layer_get_by_name("mid");
+	flis_layer_t *r_top = flis_layer_get_by_name("top");
+	cr_assert_not_null(r_mid);
+	cr_assert_not_null(r_top);
+	cr_assert_not_null(r_mid->lmask);
+	cr_assert_eq(r_mid->lmask->w, 4);
+	cr_assert_eq(r_mid->lmask->h, 4);
+	cr_assert_eq(r_mid->lmask->bitpix, 8);
+	cr_assert_not_null(r_mid->fit->mask);
+	cr_assert_eq(r_mid->fit->mask->bitpix, 32);
+	for (int i = 0; i < 16; i++) {
+		cr_assert_eq(((uint8_t *)r_mid->lmask->data)[i], (uint8_t)(i * 16),
+		             "layer mask pixel %d", i);
+		cr_assert_float_eq(((float *)r_mid->fit->mask->data)[i], i / 16.f, 1e-6,
+		                   "processing mask pixel %d", i);
+	}
+	cr_assert_float_eq(r_mid->fit->fdata[0], 0.4f, 1e-5);
+	cr_assert_float_eq(r_top->fit->fdata[0], 0.9f, 1e-5,
+	                   "the layer after the masks loaded another HDU's pixels");
+	cr_assert_null(r_top->lmask);
+}
+
+/* Layer masks are 8-bit on disk by format definition; a deeper in-memory mask
+ * is quantised on save rather than written as raw bytes. */
+Test(flis_roundtrip, a_16bit_layer_mask_is_quantised_to_8bit) {
+	flis_layer_t *l = flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.5f), "base");
+	cr_assert_eq(flis_layer_set_lmask(l, flis_test_make_const_lmask(4, 4, 16, 0.5)), 0);
+	cr_assert_eq(save_flis(tmppath), 0);
+
+	flis_free_layers(com.uniq);
+	cr_assert_eq(load_flis(tmppath), 0);
+	flis_layer_t *r = (flis_layer_t *)com.uniq->layers->data;
+	cr_assert_not_null(r->lmask);
+	cr_assert_eq(r->lmask->bitpix, 8);
+	for (int i = 0; i < 16; i++) {
+		const int v = ((uint8_t *)r->lmask->data)[i];
+		cr_assert(v == 127 || v == 128, "mask pixel %d is %d", i, v);
+	}
+}

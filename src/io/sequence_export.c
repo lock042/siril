@@ -110,10 +110,7 @@ static gpointer export_sequence(gpointer ptr) {
 	gboolean aborted = FALSE;
 	/* Sequence export does not carry colour profiles: per-fits ICC
 	 * state has been removed and per the project policy colour
-	 * management is excluded from sequence operations.  Leftover
-	 * variables below are guarded with `(void)ref_icc` no-op casts. */
-	cmsHPROFILE ref_icc = NULL;
-	(void)ref_icc;
+	 * management is excluded from sequence operations. */
 	gboolean preserve_wcs = TRUE;
 	double dxref = 0., dyref = 0.;
 #ifdef HAVE_FFMPEG
@@ -555,8 +552,6 @@ static gpointer export_sequence(gpointer ptr) {
 	}
 
 free_and_reset_progress_bar:
-	cmsCloseProfile(ref_icc);
-	ref_icc = NULL;
 	if (destfit && !have_seqwriter)
 		clearfits(destfit);
 	if (args->normalize) {

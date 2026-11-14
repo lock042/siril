@@ -1061,6 +1061,29 @@ Test(nde_serializers, denoise_roundtrip) {
 	g_free(blob);
 }
 
+/* A history recorded before the banding rewrite stored sigma as 1/k; the
+ * engine now takes the rejection factor k directly.  Replaying an old record
+ * must hand the engine the same threshold the user originally chose. */
+Test(nde_serializers, banding_v1_sigma_is_migrated_to_the_rejection_factor) {
+	struct banding_data in = { 0 };
+	in.sigma = 0.25;
+	in.amount = 1.0;
+	in.protect_highlights = TRUE;
+	gchar *blob = op_desc_banding.serialize(&in);
+	cr_assert_not_null(blob);
+
+	struct banding_data *v1 = op_desc_banding.deserialize(blob, 1);
+	cr_assert_not_null(v1);
+	cr_assert_float_eq(v1->sigma, 4.0, 1e-12, "v1 sigma 0.25 is k = 4, got %g", v1->sigma);
+	FREE_VIA_DESTRUCTOR(v1);
+
+	struct banding_data *v2 = op_desc_banding.deserialize(blob, 2);
+	cr_assert_not_null(v2);
+	cr_assert_float_eq(v2->sigma, 0.25, 1e-12, "a v2 record is taken as written");
+	FREE_VIA_DESTRUCTOR(v2);
+	g_free(blob);
+}
+
 Test(nde_serializers, banding_roundtrip) {
 	struct banding_data in = { 0 };
 	in.sigma = 2.0 + 0.1;

@@ -56,6 +56,8 @@ siril-1.5.0
 * Improve speed of extract_thumbnail_from_fits (!1066)
 * Improved à trous wavelets tool: better strength control, per-scale denoising, faster (!1049, !1085)
 * Improved the Curves tool with the VeraLux engine: R, G, B, L*, chroma and saturation curves, Akima splines, luminance range masking and non-destructive stages (!983)
+* Added layered images in the FLIS format (.flis): a Layers panel with blend modes, opacity, tints, layer masks, groups and an independent canvas, layer-aware processing, undo and geometry, layer registration and matching, and a full set of `flis_*` commands for scripting (!tbc)
+* Sequences are no longer colour managed: sequence frames carry no ICC profile and sequence export does not convert to sRGB. Colour management applies to the loaded single image only (!tbc)
 * Added a nondestructive edit history to FLIS layered images: operations are recorded with their parameters, persisted in .flis files, shown in the Layers panel's History section and inspectable with the new `flis_history` command (!tbc)
 * FLIS files carrying an edit history remain readable by builds without the feature, but those builds drop the history on their next save; tile-compressed saves omit the per-layer pixel checksums used to warn about external edits (!tbc)
 * Opaque operations in an FLIS edit history (ICC conversions, Python pixel edits and the like) now store a restart checkpoint so later steps stay editable instead of freezing the whole history; deleting the most recent opaque step unlocks the steps before it. Saved .flis files grow by one embedded image per opaque step (!tbc)

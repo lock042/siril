@@ -40,6 +40,7 @@
 
 #include "config.h"  /* VERSION */
 
+#include <errno.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1898,7 +1899,8 @@ static int write_nde_base_hdu(fitsfile *fptr, fits *f, gint item_id,
  * live record are persisted (the saver-side of the "live records only" gate).
  * The lossless compression settings are applied here and restored after, so
  * baselines round-trip bit-exactly whatever the user's compression pref. */
-static void write_nde_base_hdus(fitsfile *fptr, GPtrArray *records) {
+static int write_nde_base_hdus(fitsfile *fptr, GPtrArray *records) {
+    int failures = 0;
     /* Every item the history mentions, at either end of any of its edges.
      * Neither direction is redundant.  A layer merged away without ever having
      * been edited has no records of its own, only a baseline and an edge to the
@@ -1935,19 +1937,23 @@ static void write_nde_base_hdus(fitsfile *fptr, GPtrArray *records) {
         if (!wrote_any) {
             if (nde_base_set_lossless(fptr)) {
                 nde_state_free(base);
+                failures++;
                 break;
             }
             wrote_any = TRUE;
         }
         if (write_nde_base_hdu(fptr, base->pix, id, base->has_pos,
-                               base->pos_x, base->pos_y))
-            siril_log_warning(_("FLIS: failed to write NDE baseline for item %d\n"), id);
+                               base->pos_x, base->pos_y)) {
+            siril_log_error(_("FLIS: failed to write NDE baseline for item %d\n"), id);
+            failures++;
+        }
         nde_state_free(base);
     }
     if (wrote_any)
         nde_base_restore_compression(fptr);
     g_hash_table_destroy(seen);
     g_ptr_array_free(ids, TRUE);
+    return failures;
 }
 
 /* ===================================================================== */
@@ -2010,7 +2016,8 @@ static int write_nde_ckpt_hdu(fitsfile *fptr, const nde_state *st, gint64 record
  * Shares NDE_BASE's lossless compression wrapper so checkpoints round-trip
  * bit-exactly whatever the user's compression pref; restored after.  Records
  * without a checkpoint (pre-phase-4, deleted, truncated) produce no HDU. */
-static void write_nde_ckpt_hdus(fitsfile *fptr, GPtrArray *records) {
+static int write_nde_ckpt_hdus(fitsfile *fptr, GPtrArray *records) {
+    int failures = 0;
     gboolean wrote_any = FALSE;
     for (guint i = 0; i < records->len; i++) {
         nde_record *rec = g_ptr_array_index(records, i);
@@ -2022,17 +2029,21 @@ static void write_nde_ckpt_hdus(fitsfile *fptr, GPtrArray *records) {
         if (!wrote_any) {
             if (nde_base_set_lossless(fptr)) {
                 nde_state_free(ck);
+                failures++;
                 break;
             }
             wrote_any = TRUE;
         }
-        if (write_nde_ckpt_hdu(fptr, ck, rec->record_id, rec->target_item_id))
-            siril_log_warning(_("FLIS: failed to write NDE checkpoint for record %" G_GINT64_FORMAT "\n"),
-                              rec->record_id);
+        if (write_nde_ckpt_hdu(fptr, ck, rec->record_id, rec->target_item_id)) {
+            siril_log_error(_("FLIS: failed to write NDE checkpoint for record %" G_GINT64_FORMAT "\n"),
+                            rec->record_id);
+            failures++;
+        }
         nde_state_free(ck);
     }
     if (wrote_any)
         nde_base_restore_compression(fptr);
+    return failures;
 }
 
 /* ---- FLIS_NDE_CAT: embedded star catalogues (nde_cat.h) -----------------
@@ -2145,16 +2156,20 @@ static int write_flis_nde_cat_hdu(fitsfile *fptr, gint64 record_id,
     return 0;
 }
 
-static void write_flis_nde_cat_hdus(fitsfile *fptr, GPtrArray *records) {
+static int write_flis_nde_cat_hdus(fitsfile *fptr, GPtrArray *records) {
+    int failures = 0;
     for (guint i = 0; i < records->len; i++) {
         nde_record *rec = g_ptr_array_index(records, i);
         siril_catalogue *cat = nde_cat_peek(rec->record_id);
         if (!cat)
             continue;
-        if (write_flis_nde_cat_hdu(fptr, rec->record_id, cat))
-            siril_log_warning(_("FLIS: failed to write the star catalogue for record %" G_GINT64_FORMAT "\n"),
-                              rec->record_id);
+        if (write_flis_nde_cat_hdu(fptr, rec->record_id, cat)) {
+            siril_log_error(_("FLIS: failed to write the star catalogue for record %" G_GINT64_FORMAT "\n"),
+                            rec->record_id);
+            failures++;
+        }
     }
+    return failures;
 }
 
 typedef struct {
@@ -2636,14 +2651,20 @@ int save_flis(const gchar *filename) {
     }
 
     gchar *outpath = g_strdup(filename);
+    /* The document is written to a sibling temporary file and renamed over
+     * @filename only once every HDU is on disk: a failed save (disk full, out
+     * of memory, a write error) then leaves the previous file untouched
+     * instead of replacing it with a truncated one. */
+    gchar *tmppath = g_strdup_printf("%s.part", filename);
 
-    if (g_unlink(outpath))
+    if (g_unlink(tmppath))
         siril_debug_print("g_unlink() failed (may not exist)\n");
 
     int status = 0;
     fitsfile *fptr = NULL;
-    if (siril_fits_create_diskfile(&fptr, outpath, &status)) {
+    if (siril_fits_create_diskfile(&fptr, tmppath, &status)) {
         report_fits_error(status);
+        g_free(tmppath);
         g_free(outpath);
         return 1;
     }
@@ -2687,6 +2708,8 @@ int save_flis(const gchar *filename) {
         g_slist_free(sorted);
         if (nde_records)
             g_ptr_array_unref(nde_records);
+        g_unlink(tmppath);
+        g_free(tmppath);
         g_free(outpath);
         return 1;
     }
@@ -2714,6 +2737,8 @@ int save_flis(const gchar *filename) {
         g_slist_free(sorted);
         if (nde_records)
             g_ptr_array_unref(nde_records);
+        g_unlink(tmppath);
+        g_free(tmppath);
         g_free(outpath);
         return 1;
     }
@@ -2729,8 +2754,13 @@ int save_flis(const gchar *filename) {
         siril_fits_compress(&tmp_f);
     }
 
+    /* FLIS_META (already written) carries a pre-computed HDU_INDEX for every
+     * layer and mask, and the loader trusts it.  A mask that is skipped or
+     * fails to write would shift every later HDU by one and make the file
+     * load with layers and masks mismatched, so any such failure aborts the
+     * save rather than being downgraded to a warning. */
     int saved_ok = 1;
-    for (GSList *l = sorted; l; l = l->next) {
+    for (GSList *l = sorted; l && saved_ok; l = l->next) {
         flis_layer_t *lay = (flis_layer_t *)l->data;
 
         /* --- Layer pixel data HDU --- */
@@ -2775,18 +2805,22 @@ int save_flis(const gchar *filename) {
                     wm = &conv;
                 } else {
                     PRINT_ALLOC_ERR;
-                    siril_log_warning(_("FLIS: out of memory converting layer mask for '%s', mask not saved\n"),
-                                      lay->layer_name ? lay->layer_name : "?");
+                    siril_log_error(_("FLIS: out of memory converting layer mask for '%s'\n"),
+                                    lay->layer_name ? lay->layer_name : "?");
                     wm = NULL;
+                    saved_ok = 0;
                 }
             }
             if (wm && write_mask_hdu(fptr, wm, lmask_id,
                                FLIS_TYPE_LMASK, lname,
                                BYTE_IMG, TBYTE, lay->lmask_active)) {
-                siril_log_warning(_("FLIS: failed writing layer mask for '%s'\n"), lay->layer_name ? lay->layer_name : "?");
+                siril_log_error(_("FLIS: failed writing layer mask for '%s'\n"), lay->layer_name ? lay->layer_name : "?");
+                saved_ok = 0;
             }
             free(conv.data);
             g_free(lname);
+            if (!saved_ok)
+                break;
         }
 
         /* --- Processing mask HDU (MASK) --- */
@@ -2809,10 +2843,11 @@ int save_flis(const gchar *filename) {
                      * bytes labelled as float32 — a buffer over-read.  Skip
                      * this mask instead. */
                     PRINT_ALLOC_ERR;
-                    siril_log_warning(_("FLIS: out of memory converting processing mask for '%s', mask not saved\n"),
-                                      lay->layer_name ? lay->layer_name : "?");
+                    siril_log_error(_("FLIS: out of memory converting processing mask for '%s'\n"),
+                                    lay->layer_name ? lay->layer_name : "?");
                     g_free(mname);
-                    continue;
+                    saved_ok = 0;
+                    break;
                 }
                 if (pmask->bitpix == 8) {
                     const uint8_t *src = (const uint8_t *)pmask->data;
@@ -2835,30 +2870,38 @@ int save_flis(const gchar *filename) {
             if (write_mask_hdu(fptr, &tmp_lm, pmask_id,
                                FLIS_TYPE_MASK, mname,
                                FLOAT_IMG, TFLOAT, lay->fit->mask_active)) {
-                siril_log_warning(_("FLIS: failed writing processing mask for '%s'\n"), lay->layer_name ? lay->layer_name : "?");
+                siril_log_error(_("FLIS: failed writing processing mask for '%s'\n"), lay->layer_name ? lay->layer_name : "?");
+                saved_ok = 0;
             }
             free(float_data);
             g_free(mname);
         }
     }
 
-    /* FLIS_HIST rides after the data HDUs (located by EXTNAME on load).  A
-     * failure here is a warning, not a save failure — the pixels are
-     * intact; the loader treats FLISNDE=T without a table as "warn, empty
-     * history". */
+    /* FLIS_HIST rides after the data HDUs (located by EXTNAME on load).  The
+     * primary HDU already advertises FLISNDE=T, and a history without its
+     * baselines / checkpoints is not replayable, so a failure in any of
+     * these fails the save: the file is written to a temporary path, so the
+     * user keeps the previous document rather than getting one that has
+     * silently lost its edit history. */
     if (saved_ok && nde_records) {
-        if (write_flis_hist_hdu(fptr, nde_records, nde_next_id))
-            siril_log_warning(_("FLIS: failed to write the NDE history table\n"));
+        if (write_flis_hist_hdu(fptr, nde_records, nde_next_id)) {
+            siril_log_error(_("FLIS: failed to write the NDE history table\n"));
+            saved_ok = 0;
+        }
         /* NDE baselines ride after FLIS_HIST (plan P2.C), one lossless image
          * HDU per item that has a live record and a captured baseline. */
-        write_nde_base_hdus(fptr, nde_records);
+        if (saved_ok && write_nde_base_hdus(fptr, nde_records))
+            saved_ok = 0;
         /* NDE output checkpoints ride after NDE_BASE (plan P4.3), one lossless
          * image HDU per live barrier record that has an in-session checkpoint. */
-        write_nde_ckpt_hdus(fptr, nde_records);
+        if (saved_ok && write_nde_ckpt_hdus(fptr, nde_records))
+            saved_ok = 0;
         /* Embedded star catalogues (nde_cat.h), one binary table per live
          * photometric record that registered one — the file replays PCC/SPCC
          * offline, on any machine. */
-        write_flis_nde_cat_hdus(fptr, nde_records);
+        if (saved_ok && write_flis_nde_cat_hdus(fptr, nde_records))
+            saved_ok = 0;
     }
     if (nde_records)
         g_ptr_array_unref(nde_records);
@@ -2867,15 +2910,27 @@ int save_flis(const gchar *filename) {
     fits_close_file(fptr, &status);
     g_slist_free(sorted);
 
-    if (!status && saved_ok) {
+    if (status) {
+        report_fits_error(status);
+        saved_ok = 0;
+    }
+    if (saved_ok && g_rename(tmppath, outpath)) {
+        siril_log_error(_("FLIS: could not move the saved file into place at %s: %s\n"),
+                        outpath, g_strerror(errno));
+        saved_ok = 0;
+    }
+    if (saved_ok) {
         siril_log_message(_("FLIS: saved %d layer(s) to %s\n"),
                           g_slist_length(com.uniq->layers), outpath);
-    } else if (status) {
-        report_fits_error(status);
+    } else {
+        siril_log_error(_("FLIS: save failed, %s was not modified\n"), outpath);
+        if (g_unlink(tmppath))
+            siril_debug_print("g_unlink() failed (may not exist)\n");
     }
 
+    g_free(tmppath);
     g_free(outpath);
-    return (!saved_ok || status) ? 1 : 0;
+    return saved_ok ? 0 : 1;
 }
 
 /* ===================================================================== */

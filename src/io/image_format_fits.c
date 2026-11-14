@@ -1444,6 +1444,15 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 			 * ~500-byte one-off leak into a use-after-free. */
 			return rv;
 		}
+	} else {
+		/* One place for every operand / reference reader (pixel math, RGB
+		 * composition, linear match, HDR, ...): say what is about to
+		 * happen instead of leaving each caller to guard against it. */
+		int flis_flag = 0, flis_status = 0;
+		fits_read_key(fit->fptr, TLOGICAL, "FLIS", &flis_flag, NULL, &flis_status);
+		if (flis_status == 0 && flis_flag)
+			siril_log_warning(_("%s is a FLIS layered image: only its flattened 8-bit preview is read here. "
+					"Open it and export the flattened image to use the full-depth data.\n"), filename);
 	}
 	free(name);
 

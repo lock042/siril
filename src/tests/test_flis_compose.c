@@ -114,6 +114,102 @@ BLEND_TEST(soft_light,  FLIS_BLEND_SOFT_LIGHT,  ref_soft_light)
 BLEND_TEST(difference,  FLIS_BLEND_DIFFERENCE,  ref_difference)
 BLEND_TEST(exclusion,   FLIS_BLEND_EXCLUSION,   ref_exclusion)
 
+/* ---- non-separable modes -------------------------------------------------
+ * HUE / SATURATION / COLOR / LUMINOSITY are defined in HSL: the result takes
+ * the named component(s) from the top layer and the rest from the base.  The
+ * reference below is the textbook hue2rgb formulation, deliberately a
+ * different derivation from the kernel's chroma/x/m one, so an error in
+ * either shows up as a disagreement.  The colours are chosen so every result
+ * is in gamut and the kernel's clip step is the identity. */
+static void ref_rgb_to_hsl(const float c[3], float *h, float *s, float *l) {
+	const float mx = fmaxf(c[0], fmaxf(c[1], c[2]));
+	const float mn = fminf(c[0], fminf(c[1], c[2]));
+	*l = (mx + mn) / 2.f;
+	if (mx == mn) { *h = *s = 0.f; return; }
+	const float d = mx - mn;
+	*s = (*l > 0.5f) ? d / (2.f - mx - mn) : d / (mx + mn);
+	if (mx == c[0])      *h = (c[1] - c[2]) / d + (c[1] < c[2] ? 6.f : 0.f);
+	else if (mx == c[1]) *h = (c[2] - c[0]) / d + 2.f;
+	else                 *h = (c[0] - c[1]) / d + 4.f;
+	*h /= 6.f;
+}
+
+static float ref_hue2rgb(float p, float q, float t) {
+	if (t < 0.f) t += 1.f;
+	if (t > 1.f) t -= 1.f;
+	if (t < 1.f / 6.f) return p + (q - p) * 6.f * t;
+	if (t < 1.f / 2.f) return q;
+	if (t < 2.f / 3.f) return p + (q - p) * (2.f / 3.f - t) * 6.f;
+	return p;
+}
+
+static void ref_hsl_to_rgb(float h, float s, float l, float out[3]) {
+	if (s == 0.f) { out[0] = out[1] = out[2] = l; return; }
+	const float q = (l < 0.5f) ? l * (1.f + s) : l + s - l * s;
+	const float p = 2.f * l - q;
+	out[0] = ref_hue2rgb(p, q, h + 1.f / 3.f);
+	out[1] = ref_hue2rgb(p, q, h);
+	out[2] = ref_hue2rgb(p, q, h - 1.f / 3.f);
+}
+
+static const float NS_BASE[3] = { 0.20f, 0.40f, 0.60f };
+static const float NS_TOP[3]  = { 0.70f, 0.30f, 0.50f };
+
+static void check_hsl_mode(flis_blend_mode_t mode, gboolean take_h,
+                           gboolean take_s, gboolean take_l) {
+	float bh, bs, bl, th, ts, tl, expect[3];
+	ref_rgb_to_hsl(NS_BASE, &bh, &bs, &bl);
+	ref_rgb_to_hsl(NS_TOP, &th, &ts, &tl);
+	ref_hsl_to_rgb(take_h ? th : bh, take_s ? ts : bs, take_l ? tl : bl, expect);
+
+	fits *out = run_compose_two(NS_BASE[0], NS_BASE[1], NS_BASE[2],
+	                            NS_TOP[0], NS_TOP[1], NS_TOP[2], mode, 1.0f);
+	cr_assert_not_null(out, "compose returned NULL");
+	for (int c = 0; c < 3; c++)
+		cr_assert_float_eq(out->fpdata[c][0], expect[c], 1e-4,
+		                   "channel %d: got %g, expected %g",
+		                   c, out->fpdata[c][0], expect[c]);
+	clearfits(out); free(out);
+}
+
+Test(flis_compose, blend_hue)        { check_hsl_mode(FLIS_BLEND_HUE,        TRUE,  FALSE, FALSE); }
+Test(flis_compose, blend_saturation) { check_hsl_mode(FLIS_BLEND_SATURATION, FALSE, TRUE,  FALSE); }
+Test(flis_compose, blend_color)      { check_hsl_mode(FLIS_BLEND_COLOR,      TRUE,  TRUE,  FALSE); }
+Test(flis_compose, blend_luminosity) { check_hsl_mode(FLIS_BLEND_LUMINOSITY, FALSE, FALSE, TRUE);  }
+
+/* A non-separable mode at zero opacity leaves the base untouched. */
+Test(flis_compose, blend_color_at_zero_opacity_is_the_base) {
+	fits *out = run_compose_two(NS_BASE[0], NS_BASE[1], NS_BASE[2],
+	                            NS_TOP[0], NS_TOP[1], NS_TOP[2],
+	                            FLIS_BLEND_COLOR, 0.0f);
+	cr_assert_not_null(out);
+	for (int c = 0; c < 3; c++)
+		cr_assert_float_eq(out->fpdata[c][0], NS_BASE[c], 1e-4);
+	clearfits(out); free(out);
+}
+
+/* CHROMA (LRGB): the top layer's colour scaled to the base's BT.709 luma. */
+Test(flis_compose, blend_chroma_takes_colour_from_top_and_luma_from_base) {
+	const float w[3] = { 0.2126f, 0.7152f, 0.0722f };
+	float lb = 0.f, lt = 0.f;
+	for (int c = 0; c < 3; c++) { lb += w[c] * NS_BASE[c]; lt += w[c] * NS_TOP[c]; }
+
+	fits *out = run_compose_two(NS_BASE[0], NS_BASE[1], NS_BASE[2],
+	                            NS_TOP[0], NS_TOP[1], NS_TOP[2],
+	                            FLIS_BLEND_CHROMA, 1.0f);
+	cr_assert_not_null(out);
+	float lo = 0.f;
+	for (int c = 0; c < 3; c++) {
+		const float expect = NS_TOP[c] * lb / lt;
+		cr_assert_float_eq(out->fpdata[c][0], expect, 1e-4,
+		                   "channel %d: got %g, expected %g",
+		                   c, out->fpdata[c][0], expect);
+		lo += w[c] * out->fpdata[c][0];
+	}
+	cr_assert_float_eq(lo, lb, 1e-4, "the base's luma was not preserved");
+	clearfits(out); free(out);
+}
+
 /* Opacity test: at opacity=0 the composite equals the base; at opacity=1
  * it equals the per-mode blend formula; intermediate values are a linear
  * Porter-Duff interpolation between the two. */
