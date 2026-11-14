@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: Siril in Italiano\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-20 14:55+0200\n"
-"PO-Revision-Date: 2026-03-10 06:59+0000\n"
-"Last-Translator: Carlo Mollicone <carlo.mollicone@alice.it>\n"
+"PO-Revision-Date: 2026-11-09 11:46+0000\n"
+"Last-Translator: Mattia Vessecchia <vessecchiamattia2007@gmail.com>\n"
 "Language-Team: Italian <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/it/>\n"
 "Language: it_IT\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.8.4\n"
+"X-Generator: Weblate 5.16.2\n"
 
 #: src/gui-gtk4/uifiles/CLAHE_dialog.ui:37
 msgid "Tiles Grid Size"
@@ -41,7 +41,6 @@ msgstr "Fissa il valore di soglia per la limitazione del contrasto."
 
 #. Try to have 3 lines here.
 #: src/gui-gtk4/uifiles/CLAHE_dialog.ui:93
-#, fuzzy
 msgid ""
 "Please, make sure to remove all black borders or other\n"
 "    stacking residuals by cropping the image. If you don't,\n"
@@ -173,7 +172,6 @@ msgid "Iterations"
 msgstr "Iterazioni"
 
 #: src/gui-gtk4/uifiles/Median_dialog.ui:81
-#, fuzzy
 msgid ""
 "Number of iterations of the algorithm.\n"
 "    This is useful when modulation parameter is different to 1 helping the "
@@ -190,15 +188,14 @@ msgid "Modulation"
 msgstr "Modulazione"
 
 #: src/gui-gtk4/uifiles/Median_dialog.ui:120
-#, fuzzy
 msgid ""
 "Modulation parameter set in the [0, 1] range.\n"
 "    When this parameter is equal to 1, no modulation is applied.\n"
 "    If the parameters is null, so no filter is apply at all."
 msgstr ""
 "Parametro di modulazione impostato nell'intervallo [0, 1].\n"
-"Quando questo parametro è uguale a 1 nessuna modulazione è applicata.\n"
-"Se il parametro è nullo non viene applicato alcun filtro."
+"     Quando questo parametro è uguale a 1, nessuna modulazione è applicata.\n"
+"     Se il parametro è nullo, non viene applicato alcun filtro."
 
 #: src/gui-gtk4/uifiles/Median_dialog.ui:131
 #: src/gui-gtk4/uifiles/composition_dialog.ui:104
@@ -649,6 +646,9 @@ msgid ""
 "For stars catalogues containing photometric data, stars with no B-V "
 "information will be kept; they can be excluded by check this option."
 msgstr ""
+"Per i cataloghi stellari contenenti dati fotometrici, le stelle prive di "
+"dati B-V saranno conservate; possono essere escluse selezionando questa "
+"opzione."
 
 #: src/gui-gtk4/uifiles/annotate_dialog.ui:108
 #: src/gui-gtk4/uifiles/annotate_dialog.ui:294
@@ -667,6 +667,14 @@ msgid ""
 "with the tag check button to display names alongside markers and log check "
 "button to list the objects in the console log."
 msgstr ""
+"Alcuni cataloghi (bsc, gcvs, pgc, exo, aavso_chart, varisum e solsys) "
+"mostreranno, da impostazione predefinita, i nomi insieme agli indicatori "
+"nella visualizzazione e li elenca nel log. Per altri con un numero maggiore "
+"di oggetti, principalmente vsx e simbad, le informazioni possono essere "
+"mostrare, ma visto che possono ingombrare la visualizzazione, non è attivato "
+"come impostazione predefinita. Questa impostazione può essere attivata o "
+"disattivata con la spunta tag per mostrare i nomi insieme agli indicatori e "
+"la spunta log per elencare gli oggetti nel log della console."
 
 #: src/gui-gtk4/uifiles/annotate_dialog.ui:120
 #: src/gui-gtk4/uifiles/annotate_dialog.ui:307
@@ -683,6 +691,8 @@ msgid ""
 "The list of elements present in the image can be saved in a csv file by "
 "filling in this text field or by clicking on the button to the right."
 msgstr ""
+"La lista degli elementi presenti nell'immagine può essere salvata in un file "
+"csv compilando questo campo o cliccando il pulsante sulla destra."
 
 #: src/gui-gtk4/uifiles/annotate_dialog.ui:173
 msgid "13"
@@ -1185,15 +1195,18 @@ msgid "Astrometry.net (local)"
 msgstr "Astrometry.net Platesolving"
 
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:518
+#, fuzzy
 msgid ""
 "Choose Siril internal solver or local Astrometry.net (needs to be installed "
 "on your system)"
 msgstr ""
+"Scegli tra il solver interno di Siril o Astrometry.net locale (deve essere "
+"installato sul tuo sistema)"
 
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:533
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:545
 msgid "Radius used by the solver to search around the target."
-msgstr ""
+msgstr "Il raggio usato dal solver per la ricerca intorno al soggetto."
 
 #: src/gui-gtk4/uifiles/astrometry_dialog.ui:544
 #, fuzzy

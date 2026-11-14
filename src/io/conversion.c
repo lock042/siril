@@ -683,6 +683,7 @@ gpointer convert_thread_worker(gpointer p) {
 	args->pool = g_thread_pool_new(pool_worker, &convert, 1, FALSE, NULL);
 	open_next_input_seq(&convert);
 	open_next_output_seq(args, &convert);
+	gboolean queued = FALSE;
 	do {
 		struct reader_data *reader = calloc(1, sizeof(struct reader_data));
 		seqread_status rstatus = get_next_read_details(&convert, reader);
@@ -719,6 +720,7 @@ gpointer convert_thread_worker(gpointer p) {
 			free(rwarg);
 			break;
 		}
+		queued = TRUE;
 		if (rstatus == GOT_OK_LAST_FILE || rstatus == GOT_OK_LAST_IN_SEQ_LAST_FILE)
 			break;
 		if (rstatus == GOT_OK_LAST_IN_SEQ || rstatus == GOT_OK_FILE) {
@@ -729,7 +731,8 @@ gpointer convert_thread_worker(gpointer p) {
 	} while (processing_should_continue());
 	siril_log_debug("conversion scheduling loop finished, waiting for first read task to signal\n");
 	g_mutex_lock(&args->pool_mutex);
-	while (convert.first <= 0) {
+	// no task to signal if nothing was queued
+	while (queued && convert.first <= 0) {
 		g_cond_wait(&args->pool_cond, &args->pool_mutex);
 	}
 	g_mutex_unlock(&args->pool_mutex);
@@ -1130,7 +1133,7 @@ static void pool_worker(gpointer data, gpointer user_data) {
 	convert_status *conv = (convert_status *)user_data;
 	seqread_status read_status;
 	if (rwdata->writer->have_seqwriter)
-		seqwriter_wait_for_memory();
+		seqwriter_wait_for_memory(rwdata->writer->index);
 
 	if (!processing_should_continue() || g_atomic_int_get(&conv->fatal_error)) {
 		handle_error(rwdata);
