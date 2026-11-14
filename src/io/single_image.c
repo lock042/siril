@@ -649,7 +649,7 @@ void init_layers_hi_and_lo_values_from(sliders_mode force_minmax, fits *src) {
 	if (force_minmax == USER || !src) return;
 	WORD lo = 0, hi = 0xFFFF;
 	sliders_mode sliders;
-	if (src->keywords.hi == 0 || force_minmax == MINMAX) {
+	if (src->keywords.hi == 0 || force_minmax == MINMAX || !com.pref.use_mips_lohi) {
 		sliders = MINMAX;
 		image_find_minmax(src);
 		fit_lohi_to_layers(src, src->mini, src->maxi, &lo, &hi);
@@ -821,7 +821,9 @@ void notify_gfit_data_modified() {
 		 *              range differed from the active layer's. */
 		g_mutex_lock(&com.mutex);
 		sliders_mode sm = (sliders_mode)gui_iface.get_sliders_mode();
-		if (sm == MIPSLOHI) {
+		/* With MIPS-LO/HI disabled in preferences, init falls back to
+		 * MINMAX, which must measure the composite like the MINMAX branch. */
+		if (sm == MIPSLOHI && com.pref.use_mips_lohi) {
 			/* The hi == 0 skip is FLIS-only (see the comment above);
 			 * ordinary images keep the historical behaviour where init
 			 * falls back to MINMAX for files without MIPS-HI — skipping

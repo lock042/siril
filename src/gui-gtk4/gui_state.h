@@ -146,6 +146,7 @@ struct image_view {
 	guint             invalidate_seq;
 	int               wk_target_mip;
 	gboolean          render_neg;
+	gboolean          render_rainbow;
 
 	/* Lazy mode: tile bytes are allocated on demand by materialise_tile and
 	 * may be freed by LRU eviction once lazy_bytes_used exceeds the budget. */

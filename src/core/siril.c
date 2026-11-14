@@ -299,8 +299,9 @@ int visu(fits *fit, int low, int high) {
 		return 1;
 	if (!single_image_is_loaded() && !sequence_is_loaded())
 		return 1;
-	notify_gfit_data_modified();
+	/* range first: the remap in notify_gfit_data_modified() must use it */
 	gui_iface.set_display_range(low, high);
+	notify_gfit_data_modified();
 	gui_iface.redraw_image(REDRAW_ALL);
 	gui_iface.redraw_previews();
 	return 0;

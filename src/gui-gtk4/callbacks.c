@@ -65,6 +65,7 @@ void update_export_crop_label();
 #include "gui-gtk4/histogram.h"
 #include "gui-gtk4/image_display.h"
 #include "gui-gtk4/image_interactions.h"
+#include "gui-gtk4/menu_search.h"
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/plot.h"
 #include "gui-gtk4/progress_and_log.h"
@@ -555,6 +556,15 @@ static gboolean try_remap_for_mode_change_idle(gpointer p) {
 	return FALSE;
 }
 
+static gboolean stretch_dialog_is_open() {
+	const gchar *ids[] = { "histogram_dialog", "asinh_dialog", "curves_dialog", "dialog_star_remix" };
+	for (guint i = 0; i < G_N_ELEMENTS(ids); i++) {
+		if (gtk_widget_get_visible(lookup_widget(ids[i])))
+			return TRUE;
+	}
+	return FALSE;
+}
+
 void on_display_item_toggled(GtkCheckButton *checkmenuitem, gpointer user_data) {
 	if (!siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(checkmenuitem)))) return;
 
@@ -584,6 +594,10 @@ void on_display_item_toggled(GtkCheckButton *checkmenuitem, gpointer user_data) 
 	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY, gfit->naxes[2] == 3);
 
 	com.gui_icc.same_primaries = same_primaries(current_icc_profile(), com.gui_icc.monitor, com.gui_icc.soft_proof ? com.gui_icc.soft_proof : NULL);
+
+	/* same as when a stretch dialog is opened in linear mode */
+	if (gui.rendering_mode == LINEAR_DISPLAY && stretch_dialog_is_open())
+		setup_stretch_sliders();
 
 	if (single_image_is_loaded() || sequence_is_loaded()) {
 		if (processing_is_job_active()) {
@@ -2768,6 +2782,9 @@ void initialize_all_GUI(gchar *supported_files) {
 	 * navigation buttons and check buttons are already aligned and
 	 * skipped by the walker. */
 	align_menu_popover_labels_left();
+
+	attach_menu_search("processing_menu", "processing", _("Search processing tools\xe2\x80\xa6"));
+	attach_menu_search("tools_menu", "tools", _("Search tools\xe2\x80\xa6"));
 
 	/* Populate the Recent Files dropdown next to the Open button.  GTK4
 	 * removed GtkRecentChooserMenu; we build a GMenuModel from

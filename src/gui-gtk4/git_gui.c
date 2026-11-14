@@ -369,19 +369,19 @@ static void ensure_git_view(void) {
 	g_signal_connect(git_columnview, "activate", G_CALLBACK(on_row_activated), NULL);
 
 	GtkColumnViewColumn *c;
-	c = gtk_column_view_column_new(N_("Category"), make_string_factory(SCRIPT_COL_CATEGORY));
+	c = gtk_column_view_column_new(_("Category"), make_string_factory(SCRIPT_COL_CATEGORY));
 	gtk_column_view_column_set_resizable(c, TRUE);
 	gtk_column_view_column_set_expand(c, TRUE);
 	gtk_column_view_column_set_sorter(c, GTK_SORTER(gtk_custom_sorter_new(cmp_category, NULL, NULL)));
 	gtk_column_view_append_column(git_columnview, c); g_object_unref(c);
 
-	c = gtk_column_view_column_new(N_("Script"), make_string_factory(SCRIPT_COL_SCRIPTNAME));
+	c = gtk_column_view_column_new(_("Script"), make_string_factory(SCRIPT_COL_SCRIPTNAME));
 	gtk_column_view_column_set_resizable(c, TRUE);
 	gtk_column_view_column_set_expand(c, TRUE);
 	gtk_column_view_column_set_sorter(c, GTK_SORTER(gtk_custom_sorter_new(cmp_scriptname, NULL, NULL)));
 	gtk_column_view_append_column(git_columnview, c); g_object_unref(c);
 
-	c = gtk_column_view_column_new(N_("Type"), make_string_factory(SCRIPT_COL_TYPE));
+	c = gtk_column_view_column_new(_("Type"), make_string_factory(SCRIPT_COL_TYPE));
 	gtk_column_view_column_set_resizable(c, TRUE);
 	gtk_column_view_column_set_sorter(c, GTK_SORTER(gtk_custom_sorter_new(cmp_type, NULL, NULL)));
 	gtk_column_view_append_column(git_columnview, c); g_object_unref(c);
@@ -390,7 +390,7 @@ static void ensure_git_view(void) {
 	g_signal_connect(fsel, "setup",  G_CALLBACK(selected_setup_cb),  NULL);
 	g_signal_connect(fsel, "bind",   G_CALLBACK(selected_bind_cb),   NULL);
 	g_signal_connect(fsel, "unbind", G_CALLBACK(selected_unbind_cb), NULL);
-	c = gtk_column_view_column_new(N_("Sel"), GTK_LIST_ITEM_FACTORY(fsel));
+	c = gtk_column_view_column_new(_("Sel"), GTK_LIST_ITEM_FACTORY(fsel));
 	gtk_column_view_column_set_resizable(c, TRUE);
 	gtk_column_view_column_set_sorter(c, GTK_SORTER(gtk_custom_sorter_new(cmp_selected, NULL, NULL)));
 	gtk_column_view_append_column(git_columnview, c); g_object_unref(c);
@@ -399,7 +399,7 @@ static void ensure_git_view(void) {
 	g_signal_connect(fst, "setup",  G_CALLBACK(startup_setup_cb),  NULL);
 	g_signal_connect(fst, "bind",   G_CALLBACK(startup_bind_cb),   NULL);
 	g_signal_connect(fst, "unbind", G_CALLBACK(startup_unbind_cb), NULL);
-	c = gtk_column_view_column_new(N_("Startup"), GTK_LIST_ITEM_FACTORY(fst));
+	c = gtk_column_view_column_new(_("Startup"), GTK_LIST_ITEM_FACTORY(fst));
 	gtk_column_view_column_set_resizable(c, TRUE);
 	gtk_column_view_column_set_sorter(c, GTK_SORTER(gtk_custom_sorter_new(cmp_startup, NULL, NULL)));
 	gtk_column_view_append_column(git_columnview, c); g_object_unref(c);

@@ -11,6 +11,10 @@ siril-1.5.0
 * Fixed a crash when closing a large image: the pixel data was freed without the gfit writer lock, and the display's tile grid without the mutex guarding it, while the tile-materialisation threads were still reading both (#1975)
 * Fixed a race in the Python venv initialisation: the shared initialisation handle was read and cleared without a lock, and pyscript could launch python before the virtual environment's variables had been exported (#1977)
 * Fixed crash when using PCC in a script with siril-cli. (!1100)
+* Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
+* Fixed blurry image display on HiDPI and Wayland fractional-scaling displays (!1052)
+* Fixed command help popover being too tall on low-resolution screens
+* Fixed freeze when previewing JPEG XL files in the open dialog (#1961)
 
 **Improvements**
 * Vectorized rejection stacking hotspot with portable SIMD, ~13% cold / ~22% warm stacking speedup (!1032)
@@ -55,15 +59,16 @@ siril-1.5.0
 * History steps can be edited in their original dialogs: editing a recorded stretch, curve, SCNR, median or saturation step reopens its dialog pre-filled with the recorded parameters and previews live against the state just before that step; later steps are hidden during editing and recomputed on Apply. Background extraction steps open form-only. Editing history is much faster thanks to cached intermediate states (disk budget configurable with the core.nde_cache_mb setting) (!tbc)
 * History steps can be reordered: Move up/Move down in the History panel, or the new `flis_hist_move` command. Like other history edits this recomputes the image and clears the undo history (!tbc)
 * Improved plot windows: SPCC fits grouped in a single window with summary tiles and key figures, y-axis log scale and whole-window PNG export
+* Added HDR composition of registered linear images taken with different exposure times, with exposure ratios measured on the data, noise-optimal weighting and feathered saturation masks (hdr command and Image Processing > Composition menu)
+
+siril-1.4.6
+--/--/--
 
 **Fixes**
-* Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
-* Fixed blurry image display on HiDPI and Wayland fractional-scaling displays (!1052)
-* Fixed command help popover being too tall on low-resolution screens
-* Fixed freeze when previewing JPEG XL files in the open dialog (#1961)
+* Fixed snapshots including the empty canvas area around the image when the image is smaller than the display area
 
 siril-1.4.5
-xx/xx/xx
+10/28/26
 
 **Fixes**
 * Fixed constellation names in annotations (#1055)
@@ -79,12 +84,20 @@ xx/xx/xx
 * Fixed a selection dragged past the right or bottom edge of the image losing its last column and row, which made the crop one pixel smaller than expected (#1996)
 * Fixed the 100% zoom button jumping to the top-left corner of the image instead of keeping the current view center (#1997)
 * Fixed crash when the `wavelet` or `linear_match` commands were called with too few arguments (#1998)
+* Fixed Curves dropping the ICC profile of the image on undo or cancel, which made it appear and save very dark (#1978)
 * Fixed `cancel` command from pipes to stop a command (#2000)
+* Fixed the display sliders not being reset to 0–65535 when switching to linear display while a stretch tool is open (#2002)
+* Fixed crash when converting files in parallel with a cfitsio built without thread safety (#2003)
+* Fixed MIPS-FHI not being saved in 32-bit FITS files, so their display cutoffs were lost on reopening
+* Fixed cosmetic correction in calibration and live stacking ignoring the hot and cold sigma values of the Calibration tab and using those of the Cosmetic Correction dialog instead (#2009)
+* Fixed AAVSO export writing V-C instead of the standardized magnitude when Cstd was left at its default of 0: Cstd is now mandatory, and empty text fields and an unknown airmass (previously -999) are written as "na" as the format requires
 
 **Improvements**
 * Allowed editing FITS keywords of a whole sequence from the UI
 * Reviewed banding reduction command arguments and reimplemented the algorithm for improved speed (!1097)
 * Added 2 commands `addwcs` and `catquery` (!1103)
+* Added a preference to not use the MIPS-LO/HI keywords to set the display sliders
+* Add a SirilInterface.is_headless property that scripts can check to avoid running a GUI (!1111)
 
 siril-1.4.4
 06/17/26
@@ -268,7 +281,7 @@ siril 1.4.0-beta4
 * Added SirilInterface.get_image_from_file() method
 * Added new sirilpy methods for getting and setting GUI properties (sliders, STF, pan offsets, zoomlevel)
 * Improved sirilpy get_seq_frame() and get_image_from_file() so they now populate FFit.header and .icc_profile
-* Added Search box in the Script treeview
+* Added Search box in the menus treeview (Image processing, Tools, Scripts)
 * Made reading astrometric solution more robust to CDELT/PC matrices not following the expected formalism (#1770)
 * Added SirilInterface.analyse_image_from_file(), .undo(), .redo() and .clear_undo_history()
 * Approved use of PyQt6 for creating python script GUIs (now confident it is problem free on all target OSes)
