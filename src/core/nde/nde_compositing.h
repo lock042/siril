@@ -35,23 +35,23 @@
  * such a record simply re-folds the log onto the layer and re-renders.  No
  * pixels move, no chain is built, nothing is replayed.
  *
- * THE LOG IS AUTHORITATIVE.  The fold starts from the creation defaults and
- * applies every record, so a layer's compositing state is exactly what its
- * history says it is — including when the last record for a property is
- * DELETED, which must return the property to its default rather than strand
- * it at the deleted record's value.  The alternative (leaving properties the
- * log does not mention at their live value) was tried and rejected: it lets
- * the layer sit in a state no part of the log describes, so a later save
- * writes FLIS_META that disagrees with FLIS_HIST.
+ * THE LOG IS AUTHORITATIVE.  The fold starts from the state the layer was in
+ * before the log's first word about it and applies every record, so a layer's
+ * compositing state is exactly what its history says it is — including when
+ * the last record for a property is DELETED, which must return the property
+ * to where it started rather than strand it at the deleted record's value.
+ * The alternative (leaving properties the log does not mention at their live
+ * value) was tried and rejected: it lets the layer sit in a state no part of
+ * the log describes, so a later save writes FLIS_META that disagrees with
+ * FLIS_HIST.
  *
- * The cost of that choice is a narrow one: a layer carrying a non-default
- * property with NO record to explain it (a file from a build predating the
- * record, or one whose history was truncated) is folded back to the default
- * the first time any compositing record on that layer is edited.  Files
- * written by this build always record what they set, so the fold reproduces
- * their FLIS_META exactly.  A per-item compositing baseline would close the
- * gap properly; that is the step-4 input-port generalisation, where the
- * baseline is simply another input (nde-graph-design-note.md §6).
+ * THE STARTING STATE is the new-layer defaults for a layer the log saw
+ * created.  A layer that arrived with its own state (a file opened without a
+ * history, a duplicate) starts from that state instead: see the block above
+ * nde_compositing_params_with_base() below.  Only a layer with neither a
+ * recorded base nor a mark — one whose records predate the base_* keys and
+ * which was not loaded or duplicated by this build — still folds from the
+ * defaults.
  *
  * RESET POINTS.  Two structural records restore an item to the compositing
  * defaults and so make every property "known" from that point on:
