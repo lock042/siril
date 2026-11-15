@@ -49,7 +49,7 @@
  * and replay applied them verbatim.
  * v2 (joint-calibration lineage, nde_joint.h): the record carries the full
  * ANALYSIS INPUTS and the pipeline re-runs at replay against the replayed
- * upstream pixels — the star data it needs travels inside the .flis as the
+ * upstream pixels — the star data it needs travels inside the FLIS file as the
  * record's embedded catalogue (nde_cat.h), so no network is involved.  The
  * computed kw/bg stay recorded as diagnostics and as the fallback the hook
  * applies (with a warning) when the recompute cannot run.  v1 records keep

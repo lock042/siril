@@ -26,7 +26,7 @@
  *
  * The current document (com.uniq) carries an ordered log of the operations
  * that produced its pixels.  Phase 1 is provenance-only: records are captured
- * from generic_image_worker and structural FLIS commands, persisted in .flis
+ * from generic_image_worker and structural FLIS commands, persisted in FLIS
  * files (FLIS_HIST table), and displayed — nothing replays yet.
  *
  * Threading: the canonical log is guarded by an internal GMutex that is a

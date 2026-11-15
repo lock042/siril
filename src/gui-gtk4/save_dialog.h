@@ -2,18 +2,14 @@
 #include <gtk/gtk.h>
 #define SRC_GUI_SAVE_DIALOG_H_
 
-/* User's choice from the multi-layer FLIS save confirmation dialog.
- * The dialog is shown on the main thread (GTK can only be called from
- * the GUI thread); the result is stashed in savedial_data and read by
- * the worker thread when it dispatches the actual save.  Default
- * FLIS_SAVE_AUTOMATIC means "no choice needed" — the worker decides
- * based on data state (single-layer FLIS → save_flis; plain FITS →
- * savefits; multi-layer FLIS reaching the worker with AUTOMATIC is
- * a bug — the dialog should have been shown by the caller). */
+/* The format a FITS save writes, from the "File Format" radios of the save
+ * popup.  Read on the main thread (initialize_data) and stashed in
+ * savedial_data for the worker, which must not touch GTK.  The preselected
+ * radio follows flis_save_default_is_flis(). */
 typedef enum {
-	FLIS_SAVE_AUTOMATIC = 0,  /* not multi-layer or no dialog needed */
-	FLIS_SAVE_AS_FLIS,        /* preserve layers via save_flis */
-	FLIS_SAVE_FLATTEN,        /* flis_flatten_all then savefits */
+	FLIS_SAVE_AUTOMATIC = 0,  /* unset; treated as a standard FITS image */
+	FLIS_SAVE_AS_FLIS,        /* FLIS: layers, masks and edit history kept */
+	FLIS_SAVE_FLATTEN,        /* standard FITS image (a flattened copy if layered) */
 } flis_save_choice_t;
 
 /* Savedialog data from GUI */

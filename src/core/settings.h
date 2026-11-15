@@ -235,6 +235,10 @@ struct gui_config {
 	gint open_dialog_h;		// remembered height of the custom open-file dialog (0 = use default)
 	gint open_dialog_sidebar_pos;	// remembered sidebar|content divider position (0 = use default)
 	gint open_dialog_paned_pos;	// remembered list|preview divider position (0 = use default)
+	gint layers_panel_w;		// remembered size of the layers panel (0 = use default)
+	gint layers_panel_h;
+	gint nde_history_w;		// remembered size of the nondestructive history window (0 = use default)
+	gint nde_history_h;
 	gint pan_position;
 	gboolean is_extended;
 	gboolean is_maximized;

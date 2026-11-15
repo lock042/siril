@@ -2048,7 +2048,7 @@ static int write_nde_ckpt_hdus(fitsfile *fptr, GPtrArray *records) {
 
 /* ---- FLIS_NDE_CAT: embedded star catalogues (nde_cat.h) -----------------
  * One binary-table HDU per photometric calibration record whose analysis
- * catalogue is registered, so the .flis is self-contained: replay re-runs
+ * catalogue is registered, so the FLIS file is self-contained: replay re-runs
  * PCC/SPCC offline from the very star data (B/V magnitudes, Teff, sampled
  * flux spectra) the original run used.  Located by EXTNAME scan like
  * FLIS_HIST; the owning record is named by the NDECATID keyword.  The FLIS
@@ -3326,6 +3326,7 @@ int load_flis(const gchar *filename) {
     g_free(com.uniq->filename);
     com.uniq->filename  = g_strdup(filename);
     com.uniq->fileexist = TRUE;
+    com.uniq->file_is_flis = TRUE;
     com.uniq->layers    = layers;
     com.uniq->groups    = groups;
     com.uniq->next_item_id = 1; /* will be set properly below */
@@ -4401,6 +4402,90 @@ gboolean is_current_image_flis(void) {
      * Layer count is intentionally not checked: a single-layer FLIS is
      * still a FLIS and must go through the composite path. */
     return com.uniq != NULL && com.uniq->layers != NULL;
+}
+
+/* ===================================================================== */
+/* Save format: the default rule and the one save entry point            */
+/* ===================================================================== */
+
+gboolean flis_document_has_mask(void) {
+    if (!com.uniq)
+        return FALSE;
+    if (!com.uniq->layers)
+        return gfit && gfit->mask && gfit->mask->data;
+    gboolean found = FALSE;
+    flis_stack_reader_lock();
+    for (GSList *l = com.uniq->layers; l && !found; l = l->next) {
+        const flis_layer_t *lay = (const flis_layer_t *)l->data;
+        if (!lay) continue;
+        found = (lay->lmask && lay->lmask->data)
+             || (lay->fit && lay->fit->mask && lay->fit->mask->data);
+    }
+    flis_stack_reader_unlock();
+    return found;
+}
+
+gboolean flis_save_default_is_flis(void) {
+    return flis_layer_count() > 1 || flis_document_has_mask();
+}
+
+int flis_save_document(const gchar *filename, gboolean as_flis) {
+    if (!filename || !*filename || !gfit)
+        return 1;
+    gchar *name = set_right_extension(filename);
+    int ret;
+
+    if (as_flis) {
+        if (!is_current_image_flis()) {
+            /* A plain image has no layer stack to write; make it the base
+             * layer of a single-layer FLIS.  This is what lets a plain
+             * image keep its edit history on disk. */
+            if (!com.uniq || flis_promote_from_gfit(NULL)) {
+                siril_log_error(_("Save: could not turn the image into a "
+                                  "single-layer FLIS.\n"));
+                g_free(name);
+                return 1;
+            }
+            gui_iface.flis_gui_update();
+        }
+        ret = save_flis(name);
+    } else if (is_current_image_flis()) {
+        /* A flattened COPY: render the composite and save that.  The
+         * in-memory layer stack must survive — flattening the live
+         * document here would destroy the user's layers.  Reader lock:
+         * this may run on a save worker thread (M-F12). */
+        flis_stack_reader_lock();
+        fits *flat = flis_render_layers(com.uniq->layers);
+        flis_stack_reader_unlock();
+        if (!flat) {
+            siril_log_error(_("Save: flatten failed.\n"));
+            g_free(name);
+            return 1;
+        }
+        copy_fits_metadata(gfit, flat);
+        flat->bitpix   = gfit->bitpix;
+        flat->checksum = gfit->checksum;
+        ret = savefits(name, flat);
+        clearfits(flat);
+        free(flat);
+        if (!ret && flis_save_default_is_flis())
+            siril_log_message(_("Saved a flattened standard FITS image; layers, "
+                                "masks and the edit history were not written.\n"));
+    } else {
+        ret = savefits(name, gfit);
+    }
+
+    if (!ret && com.uniq) {
+        free(com.uniq->filename);
+        com.uniq->filename     = strdup(name);
+        com.uniq->fileexist    = TRUE;
+        com.uniq->file_is_flis = as_flis;
+        /* The header bar names the file of a layered image; it only learns
+         * of a new name when the FLIS GUI state is refreshed. */
+        gui_iface.flis_gui_update();
+    }
+    g_free(name);
+    return ret;
 }
 
 /* ===================================================================== */

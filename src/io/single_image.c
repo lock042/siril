@@ -119,7 +119,7 @@ void free_image_data() {
 			com.uniq->icc_profile = NULL;
 		}
 		com.uniq->color_managed = FALSE;
-		/* Provenance dies with the document (it persists only in .flis). */
+		/* Provenance dies with the document (it persists only in a FLIS file). */
 		nde_history_attach(NULL);
 		/* FLIS cleanup (stage 3.1): release the display-side composite
 		 * cache and the in-memory layer stack before freeing the single

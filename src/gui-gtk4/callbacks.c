@@ -2147,7 +2147,7 @@ gboolean set_GUI_CWD(gpointer user_data) {
 	 * replacement is set_title_widget with a custom GtkLabel containing
 	 * markup for the two lines (title + dimmed subtitle).
 	 *
-	 * For a FLIS image the subtitle becomes "name.flis — layer 'X' [n/N]"
+	 * For a FLIS image the subtitle becomes "name.fit — layer 'X' [n/N]"
 	 * so the active layer and stack position are visible at a glance.
 	 * For sequence / plain-FITS / no-image we keep the working directory. */
 	GtkHeaderBar *bar = GTK_HEADER_BAR(lookup_widget("headerbar"));

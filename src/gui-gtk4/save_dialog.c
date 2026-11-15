@@ -38,6 +38,7 @@
 #include "io/Astro-TIFF.h"
 #include "io/flis_compose.h"
 #include "io/image_format_fits.h"
+#include "core/nde/nde_replay.h"   /* nde_edit_at_refuses_op */
 #include "io/image_format_flis.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
@@ -56,6 +57,90 @@ static GtkCheckButton *sd_update_hilo = NULL, *sd_checksum = NULL;
 static GtkEntry *sd_size_estimate_entry = NULL;
 static GtkWidget *sd_header_snapshot_btn = NULL;
 static GtkScrolledWindow *sd_scrolledwindow3 = NULL;
+/* "File format" choice on the FITS page (built in code, see
+ * build_fits_format_choice): standard FITS first, FLIS second, always in
+ * that order; which one is preselected follows the document. */
+static GtkWidget *sd_format_frame = NULL;
+static GtkCheckButton *sd_format_fits = NULL, *sd_format_flis = NULL;
+static GtkWidget *sd_format_hint = NULL;
+
+/* The line under the two radios: what the selected format keeps or drops
+ * for THIS document. */
+static void update_fits_format_hint(void) {
+	if (!sd_format_hint || !sd_format_flis)
+		return;
+	const gboolean flis = siril_toggle_get_active(GTK_WIDGET(sd_format_flis));
+	const char *txt;
+	if (flis)
+		txt = _("Keeps layers, masks, blend settings and the edit history. "
+		        "A FLIS is still a valid FITS file: other software reads a "
+		        "preview of the composite from it.");
+	else if (is_current_image_flis() && flis_save_default_is_flis())
+		txt = _("Writes a flattened copy of the visible layers. Layers, masks "
+		        "and the edit history are not saved; the image stays layered "
+		        "in Siril.");
+	else
+		txt = _("A single image, readable by any FITS software. The edit "
+		        "history is not saved.");
+	gtk_label_set_text(GTK_LABEL(sd_format_hint), txt);
+}
+
+static void on_fits_format_toggled(GtkCheckButton *b, gpointer u) {
+	(void)b; (void)u;
+	update_fits_format_hint();
+}
+
+/* Add the format choice above the "Sample Format" frame of the FITS page. */
+static void build_fits_format_choice(void) {
+	GtkWidget *page = GTK_WIDGET(gtk_builder_get_object(gui.builder, "box65"));
+	if (!page || sd_format_frame)
+		return;
+	sd_format_frame = gtk_frame_new(NULL);
+	{
+		/* Bold, like the page's other frame titles. */
+		GtkWidget *title = gtk_label_new(NULL);
+		gchar *markup = g_markup_printf_escaped("<b>%s</b>", _("File Format"));
+		gtk_label_set_markup(GTK_LABEL(title), markup);
+		g_free(markup);
+		gtk_frame_set_label_widget(GTK_FRAME(sd_format_frame), title);
+	}
+	GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+	gtk_widget_set_margin_start (box, 6);
+	gtk_widget_set_margin_end   (box, 6);
+	gtk_widget_set_margin_top   (box, 5);
+	gtk_widget_set_margin_bottom(box, 5);
+	sd_format_fits = GTK_CHECK_BUTTON(gtk_check_button_new_with_label(
+			_("Standard FITS image")));
+	sd_format_flis = GTK_CHECK_BUTTON(gtk_check_button_new_with_label(
+			_("FLIS layered image")));
+	gtk_check_button_set_group(sd_format_flis, sd_format_fits);
+	sd_format_hint = gtk_label_new(NULL);
+	gtk_label_set_wrap(GTK_LABEL(sd_format_hint), TRUE);
+	gtk_label_set_xalign(GTK_LABEL(sd_format_hint), 0.0f);
+	gtk_label_set_max_width_chars(GTK_LABEL(sd_format_hint), 48);
+	gtk_widget_add_css_class(sd_format_hint, "dim-label");
+	gtk_box_append(GTK_BOX(box), GTK_WIDGET(sd_format_fits));
+	gtk_box_append(GTK_BOX(box), GTK_WIDGET(sd_format_flis));
+	gtk_box_append(GTK_BOX(box), sd_format_hint);
+	gtk_frame_set_child(GTK_FRAME(sd_format_frame), box);
+	gtk_box_prepend(GTK_BOX(page), sd_format_frame);
+	g_signal_connect(sd_format_fits, "toggled", G_CALLBACK(on_fits_format_toggled), NULL);
+	g_signal_connect(sd_format_flis, "toggled", G_CALLBACK(on_fits_format_toggled), NULL);
+}
+
+/* Preselect the format for the image about to be saved.  Run every time the
+ * popup is shown: the default is a property of the document, never of what
+ * was chosen last time. */
+static void reset_fits_format_choice(void) {
+	if (!sd_format_frame)
+		return;
+	/* A frame of a sequence is always a standard FITS image. */
+	const gboolean offer = single_image_is_loaded();
+	gtk_widget_set_visible(sd_format_frame, offer);
+	const gboolean flis = offer && flis_save_default_is_flis();
+	siril_toggle_set_active(GTK_WIDGET(flis ? sd_format_flis : sd_format_fits), TRUE);
+	update_fits_format_hint();
+}
 
 static void save_dialog_init_statics(void) {
 	if (sd_notebook_format) return;
@@ -74,6 +159,7 @@ static void save_dialog_init_statics(void) {
 	sd_size_estimate_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "size_estimate_entry"));
 	sd_header_snapshot_btn = GTK_WIDGET(gtk_builder_get_object(gui.builder, "header_snapshot_button"));
 	sd_scrolledwindow3 = GTK_SCROLLED_WINDOW(gtk_builder_get_object(gui.builder, "scrolledwindow3"));
+	build_fits_format_choice();
 }
 
 /* Populate the save browser's "Save as type" dropdown, one filter per writable
@@ -84,14 +170,14 @@ static void save_dialog_init_statics(void) {
  * the file list matches existing files.  `suggested` marks the matching filter
  * default so the dropdown agrees with the pre-filled name.
  *
- * FLIS is a FITS container variant per spec §10.5, so the same filter accepts
- * .flis; the save dispatch picks the actual writer from the loaded image's
- * data state, not the chosen extension. */
+ * A FLIS is a FITS file (spec §10.5) and carries a FITS extension; whether a
+ * save writes a FLIS or a standard FITS image is chosen in the format popup,
+ * not by the extension. */
 static void set_filters_save_browser(SirilFileBrowser *fb, image_type suggested) {
 	gchar *fits_filter = g_strdup_printf(
 			"*%s;*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;"
-			"*.fit.fz;*.fits.fz;*.fts.fz;*.flis;*.FLIS", com.pref.ext);
-	siril_file_browser_add_filter_pattern(fb, _("FITS / FLIS Files (*.fit, *.fits, *.fts, *.flis)"),
+			"*.fit.fz;*.fits.fz;*.fts.fz", com.pref.ext);
+	siril_file_browser_add_filter_pattern(fb, _("FITS Files (*.fit, *.fits, *.fts)"),
 			fits_filter, suggested == TYPEFITS || suggested == TYPEUNDEF);
 	g_free(fits_filter);
 
@@ -230,16 +316,10 @@ static void prepare_savepopup() {
 		break;
 	default:
 	case TYPEFITS:
-		/* Same notebook page handles plain FITS and FLIS: bitpix and
-		 * checksum apply equally to FLIS layer HDUs.  The title varies
-		 * with the loaded data state so the user knows which writer
-		 * will run. */
-		if (is_current_image_flis() && flis_layer_count() > 1)
-			gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving FLIS (multi-layer)"));
-		else if (is_current_image_flis())
-			gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving FLIS"));
-		else
-			gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving FITS"));
+		/* Same notebook page handles standard FITS and FLIS: bitpix and
+		 * checksum apply equally to FLIS layer HDUs, and the page's
+		 * "File Format" choice says which of the two is written. */
+		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving FITS"));
 		tab = PAGE_FITS;
 	}
 
@@ -385,6 +465,12 @@ static void initialize_data(gpointer p) {
 #endif
 	args->entry = sd_savetxt_entry;
 	args->filename = gtk_editable_get_text(GTK_EDITABLE(args->entry));
+	/* FITS only (the worker ignores it otherwise).  A sequence frame has no
+	 * format choice and is always a standard FITS image. */
+	args->flis_save_choice =
+		(single_image_is_loaded() && sd_format_flis
+		 && siril_toggle_get_active(GTK_WIDGET(sd_format_flis)))
+			? FLIS_SAVE_AS_FLIS : FLIS_SAVE_FLATTEN;
 
 	if (siril_toggle_get_active(GTK_WIDGET(fits_8)))
 		args->bitpix = BYTE_IMG;
@@ -556,59 +642,17 @@ static gpointer mini_save_dialog(gpointer p) {
 				gfit->keywords.lo = 0;
 			}
 			gfit->checksum = args->checksum;
-			/* Format follows data state (plus, for multi-layer FLIS, the
-			 * user's pre-resolved choice from prompt_flis_save_choice_main):
-			 *   - Multi-layer FLIS: act on args->flis_save_choice, which
-			 *     was set on the main thread before this worker started.
-			 *   - Single-layer FLIS: always preserve via save_flis.
-			 *   - Plain FITS: savefits as today.
-			 * GTK calls must never happen here — this runs on a worker
-			 * thread.  Any user prompt has to be in the GUI-thread caller. */
-			gboolean wrote_flis = FALSE;
-			if (is_current_image_flis() && flis_layer_count() > 1) {
-				if (args->flis_save_choice == FLIS_SAVE_FLATTEN) {
-					/* Export a flattened COPY: render the composite and
-					 * save that.  The in-memory layer stack must survive
-					 * — flattening the live document here would destroy
-					 * the user's layers (and mutate the stack from the
-					 * save worker thread while the main thread may be
-					 * rendering it).  Reader lock: this walk runs on the
-					 * save worker thread (M-F12). */
-					flis_stack_reader_lock();
-					fits *flat = flis_render_layers(com.uniq->layers);
-					flis_stack_reader_unlock();
-					if (!flat) {
-						siril_log_error(_("Save: flatten failed.\n"));
-						args->retval = 1;
-						break;
-					}
-					copy_fits_metadata(gfit, flat);
-					args->retval = savefits(args->filename, flat);
-					clearfits(flat);
-					free(flat);
-				} else {
-					/* FLIS_SAVE_AS_FLIS or AUTOMATIC fallback for safety
-					 * (preserves data — never silently flatten). */
-					args->retval = save_flis(args->filename);
-					wrote_flis = TRUE;
-				}
-			} else if (is_current_image_flis()) {
-				/* 1-layer FLIS — preserve format silently. */
-				args->retval = save_flis(args->filename);
-				wrote_flis = TRUE;
-			} else {
-				/* Plain FITS path (unchanged). */
+			/* The format was chosen on the main thread (the popup's "File
+			 * Format" radios, read by initialize_data) — GTK calls must
+			 * never happen here, this runs on a worker thread.
+			 * flis_save_document() covers the four cases (FLIS or standard
+			 * FITS, from a layered or a plain image) and records the
+			 * resulting file state on com.uniq. */
+			if (single_image_is_loaded())
+				args->retval = flis_save_document(args->filename,
+						args->flis_save_choice == FLIS_SAVE_AS_FLIS);
+			else
 				args->retval = savefits(args->filename, gfit);
-			}
-			if (!args->retval && single_image_is_loaded()) {
-				gchar *actual = wrote_flis
-				    ? g_strdup(args->filename)
-				    : set_right_extension(args->filename);
-				free(com.uniq->filename);
-				com.uniq->filename = strdup(actual);
-				g_free(actual);
-				com.uniq->fileexist = TRUE;
-			}
 			break;
 		case TYPEPNM:
 			args->retval = saveNetPBM(args->filename, gfit);
@@ -689,69 +733,11 @@ void on_quality_spinbutton_value_changed(GtkSpinButton *button, gpointer user_da
 	}
 }
 
-/* Shared flatten-vs-FLIS question for a multi-layer FLIS.  Returns the
- * raw three-button choice: 0 = cancelled, 1 = flatten to plain FITS,
- * 2 = preserve as FLIS.  Main thread only (runs a GtkAlertDialog). */
-static int ask_flis_flatten_or_preserve(void) {
-	gchar *msg = g_strdup_printf(
-		_("This image has %d layers.\n\n"
-		  "Saving as FLIS preserves every layer, mask, blend mode, and "
-		  "metadata key — recommended for in-work editing.\n\n"
-		  "Saving as plain FITS writes a flattened copy of the visible "
-		  "layers — useful for sharing with tools that don't read FLIS. "
-		  "The layered image stays open and unchanged in Siril.\n\n"
-		  "FLIS files remain valid FITS files: any FITS reader will see "
-		  "the composite thumbnail as a fallback."),
-		flis_layer_count());
-	int choice = siril_three_button_dialog(
-		_("Save with layers?"), msg,
-		_("Flatten and save as plain FITS"),
-		_("Save as FLIS (preserve layers)"));
-	g_free(msg);
-	return choice;
-}
-
-/* Ask the user — on the main thread — whether to flatten a multi-layer
- * FLIS or preserve it.  Sets args->flis_save_choice and returns TRUE if
- * the worker should proceed; FALSE if the user cancelled.  No-ops (and
- * returns TRUE with FLIS_SAVE_AUTOMATIC) when the image isn't a
- * multi-layer FLIS.  Must be called on the GTK main thread — never from
- * the worker thread, since it creates and runs a GtkAlertDialog. */
-static gboolean prompt_flis_save_choice_main(struct savedial_data *args) {
-	args->flis_save_choice = FLIS_SAVE_AUTOMATIC;
-	if (!is_current_image_flis() || flis_layer_count() <= 1)
-		return TRUE;
-
-	/* An explicitly typed .flis filename already answers the question —
-	 * asking again (and possibly writing a flattened plain-FITS payload
-	 * into a .flis-named file) would be incoherent. */
-	if (args->filename && g_str_has_suffix(args->filename, ".flis")) {
-		args->flis_save_choice = FLIS_SAVE_AS_FLIS;
-		return TRUE;
-	}
-
-	int choice = ask_flis_flatten_or_preserve();
-
-	if (choice == 0) return FALSE;  /* cancelled */
-	args->flis_save_choice = (choice == 2) ? FLIS_SAVE_AS_FLIS : FLIS_SAVE_FLATTEN;
-	return TRUE;
-}
-
 void on_button_savepopup_clicked(GtkButton *button, gpointer user_data) {
 	struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
 
 	set_cursor_waiting(TRUE);
 	initialize_data(args);
-	/* Ask the multi-layer flatten-vs-FLIS question on this (main) thread
-	 * before the worker fires — GTK cannot be called from the worker.
-	 * If the user cancels, free args and bail. */
-	if (!prompt_flis_save_choice_main(args)) {
-		set_cursor_waiting(FALSE);
-		g_free(args->copyright);
-		g_free(args->description);
-		free(args);
-		return;
-	}
 	if (test_for_viewer_mode()) {
 		if (!start_in_new_thread(mini_save_dialog, args)) {
 			g_free(args->copyright);
@@ -771,13 +757,6 @@ void on_savetxt_activate(GtkEntry *entry, gpointer user_data) {
 
 	set_cursor_waiting(TRUE);
 	initialize_data(args);
-	if (!prompt_flis_save_choice_main(args)) {
-		set_cursor_waiting(FALSE);
-		g_free(args->copyright);
-		g_free(args->description);
-		free(args);
-		return;
-	}
 	if (test_for_viewer_mode()) {
 		if (!start_in_new_thread(mini_save_dialog, args)) {
 			g_free(args->copyright);
@@ -1117,40 +1096,40 @@ void on_header_snapshot_button_clicked(gboolean clipboard) {
 
 #undef NEW_SIZE
 
+/* The header "Save" button: overwrite the current file without a dialog —
+ * when it is clear what should be written.
+ *   - The file was last read or written as a FLIS: it stays a FLIS.
+ *   - Otherwise, a single-layer image with no mask: a standard FITS image.
+ *   - Otherwise the file is a standard FITS image but the document has since
+ *     gained layers or masks, which that format cannot hold: ask, with the
+ *     same format popup Save As uses (FLIS preselected). */
 void on_header_save_button_clicked() {
 	if (!single_image_is_loaded() || !com.uniq->fileexist)
 		return;
+	if (nde_edit_at_refuses_op(_("Saving")))
+		return;
 
-	/* Data-driven dispatch matching the Save As path: format follows the
-	 * loaded image's state, not the filename extension.  Multi-layer FLIS
-	 * goes through the flatten-vs-preserve confirmation; single-layer FLIS
-	 * silently uses save_flis; plain FITS continues to use savefits. */
-	if (is_current_image_flis() && flis_layer_count() > 1) {
-		int choice = ask_flis_flatten_or_preserve();
-		if (choice == 0) return;
-		if (choice == 2) {
-			save_flis(com.uniq->filename);
-		} else {
-			/* Export a flattened COPY — the open document keeps its
-			 * layers (see the Save As worker path).  Reader lock: a
-			 * layer-worker job could be mutating the stack (M-F12). */
-			flis_stack_reader_lock();
-			fits *flat = flis_render_layers(com.uniq->layers);
-			flis_stack_reader_unlock();
-			if (!flat) {
-				siril_log_error(_("Save: flatten failed.\n"));
-				return;
-			}
-			copy_fits_metadata(gfit, flat);
-			savefits(com.uniq->filename, flat);
-			clearfits(flat);
-			free(flat);
-		}
-	} else if (is_current_image_flis()) {
-		save_flis(com.uniq->filename);
+	gboolean as_flis;
+	if (com.uniq->file_is_flis) {
+		as_flis = TRUE;
+	} else if (!flis_save_default_is_flis()) {
+		as_flis = FALSE;
 	} else {
-		savefits(com.uniq->filename, gfit);
+		save_dialog_init_statics();
+		type_of_image = TYPEFITS;
+		gtk_editable_set_text(GTK_EDITABLE(sd_savetxt_entry), com.uniq->filename);
+		prepare_savepopup();
+		GtkWindow *parent = siril_get_active_window();
+		if (!GTK_IS_WINDOW(parent))
+			parent = sd_control_window;
+		gtk_window_set_transient_for(GTK_WINDOW(sd_savepopup), parent);
+		gtk_widget_set_visible(sd_savepopup, TRUE);
+		gtk_window_present(GTK_WINDOW(sd_savepopup));
+		return;
 	}
+	set_cursor_waiting(TRUE);
+	flis_save_document(com.uniq->filename, as_flis);
+	set_cursor_waiting(FALSE);
 }
 
 void on_savepopup_show(GtkWidget *widget, gpointer user_data) {
@@ -1177,6 +1156,7 @@ void on_savepopup_show(GtkWidget *widget, gpointer user_data) {
 		GtkCheckButton *b32bits = sd_fits_32f;
 		siril_toggle_set_active(GTK_WIDGET(b32bits), gfit->type == DATA_FLOAT);
 		siril_toggle_set_active(GTK_WIDGET(b16bitu), gfit->type == DATA_USHORT);
+		reset_fits_format_choice();
 	}
 
 	gtk_scrolled_window_set_min_content_height(scrolled_window, height);

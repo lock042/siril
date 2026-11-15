@@ -33,7 +33,7 @@ static char *tmppath = NULL;
 static void setup(void) {
 	flis_test_init_com();
 	tmpdir = g_dir_make_tmp("flis-rt-XXXXXX", NULL);
-	tmppath = g_build_filename(tmpdir, "test.flis", NULL);
+	tmppath = g_build_filename(tmpdir, "test.fit", NULL);
 }
 
 static void teardown(void) {
@@ -550,4 +550,87 @@ Test(flis_roundtrip, a_16bit_layer_mask_is_quantised_to_8bit) {
 		const int v = ((uint8_t *)r->lmask->data)[i];
 		cr_assert(v == 127 || v == 128, "mask pixel %d is %d", i, v);
 	}
+}
+
+/* ---- Save format: the default rule and flis_save_document ---------------
+ * One rule decides what a FITS save writes by default — a FLIS when the
+ * document has more than one layer or any mask, a standard FITS image
+ * otherwise — and one function writes either format. */
+
+Test(flis_roundtrip, save_default_is_standard_fits_for_one_unmasked_layer) {
+	flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.25f), "base");
+	cr_assert(!flis_document_has_mask());
+	cr_assert(!flis_save_default_is_flis());
+}
+
+Test(flis_roundtrip, save_default_is_flis_for_two_layers) {
+	flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.25f), "base");
+	flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.50f), "top");
+	cr_assert(!flis_document_has_mask());
+	cr_assert(flis_save_default_is_flis());
+}
+
+Test(flis_roundtrip, save_default_is_flis_for_one_layer_with_a_layer_mask) {
+	flis_layer_t *l = flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.25f), "base");
+	cr_assert_eq(flis_layer_set_lmask(l, make_lmask(8, 8, 60)), 0);
+	cr_assert(flis_document_has_mask());
+	cr_assert(flis_save_default_is_flis());
+}
+
+Test(flis_roundtrip, save_default_is_flis_for_one_layer_with_a_processing_mask) {
+	flis_layer_t *l = flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.25f), "base");
+	attach_pmask(l, 0.5f);
+	cr_assert(flis_document_has_mask());
+	cr_assert(flis_save_default_is_flis());
+}
+
+/* Saving a layered document as a standard FITS image writes a flattened
+ * copy: the file is not a FLIS, and the open document keeps its layers. */
+Test(flis_roundtrip, save_document_as_standard_fits_flattens_a_copy) {
+	com.pref.ext = g_strdup(".fit");
+	flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.25f), "base");
+	flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.50f), "top");
+	uniq_set_active_layer(com.uniq, 0);
+	com.uniq->file_is_flis = TRUE;
+
+	cr_assert_eq(flis_save_document(tmppath, FALSE), 0);
+	cr_assert(g_file_test(tmppath, G_FILE_TEST_IS_REGULAR));
+	cr_assert(!is_flis_file(tmppath), "a standard FITS save wrote a FLIS");
+	cr_assert_eq(flis_layer_count(), 2, "the open document lost its layers");
+	cr_assert(!com.uniq->file_is_flis);
+	cr_assert(com.uniq->fileexist);
+	cr_assert_str_eq(com.uniq->filename, tmppath);
+	g_free(com.pref.ext);
+	com.pref.ext = NULL;
+}
+
+/* Saving as FLIS keeps the layers, records the file as a FLIS, and gives a
+ * name without a FITS extension the preferred one — never ".flis". */
+Test(flis_roundtrip, save_document_as_flis_keeps_layers_and_uses_a_fits_extension) {
+	com.pref.ext = g_strdup(".fit");
+	flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.25f), "base");
+	flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.50f), "top");
+	uniq_set_active_layer(com.uniq, 0);
+
+	gchar *stem = g_strdup(tmppath);
+	gchar *dot = strrchr(stem, '.');
+	cr_assert_not_null(dot);
+	*dot = '\0';
+	gchar *expected = g_strdup_printf("%s.fit", stem);
+
+	cr_assert_eq(flis_save_document(stem, TRUE), 0);
+	cr_assert_str_eq(com.uniq->filename, expected);
+	cr_assert(is_flis_file(expected));
+	cr_assert(com.uniq->file_is_flis);
+
+	flis_free_layers(com.uniq);
+	cr_assert_eq(load_flis(expected), 0);
+	cr_assert_eq(flis_layer_count(), 2);
+	cr_assert(com.uniq->file_is_flis, "a loaded FLIS is recorded as one");
+
+	g_unlink(expected);
+	g_free(expected);
+	g_free(stem);
+	g_free(com.pref.ext);
+	com.pref.ext = NULL;
 }

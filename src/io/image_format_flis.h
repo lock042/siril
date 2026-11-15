@@ -261,7 +261,7 @@ typedef struct _flis_layer_t {
 
 /**
  * load_flis:
- * @filename: path to the .flis file to open.
+ * @filename: path to the FLIS file to open.
  *
  * Reads a FLIS file and populates com.uniq with the layer stack.
  * On success, com.uniq->layers is populated, com.uniq->active_layer is set
@@ -285,9 +285,8 @@ gboolean is_flis_file(const gchar *filename);
 
 /**
  * save_flis:
- * @filename: output path, used verbatim — callers append the .flis
- *            extension themselves (the save dialog and the save command
- *            both do).
+ * @filename: output path, used verbatim.  A FLIS is a FITS file and
+ *            carries a FITS extension; flis_save_document() adds it.
  *
  * Writes all layers in com.uniq->layers to a new FLIS file.
  * The composite thumbnail in HDU 0 is generated from the base layer.
@@ -808,6 +807,47 @@ gint flis_layer_get_index(const flis_layer_t *layer);
  * NULL.
  */
 gint flis_layer_count(void);
+
+/**
+ * flis_document_has_mask:
+ *
+ * TRUE when the loaded single image carries any mask: a layer mask on any
+ * layer, or a processing mask on any layer's image (for a plain image, on
+ * the image itself).
+ */
+gboolean flis_document_has_mask(void);
+
+/**
+ * flis_save_default_is_flis:
+ *
+ * The format a FITS save defaults to: FLIS when the loaded image has more
+ * than one layer or any mask — a standard FITS image cannot hold either —
+ * and a standard FITS image otherwise.  The one rule behind the save
+ * dialog's preselected choice, the header Save button and the `save`
+ * command, so that the three always agree.
+ */
+gboolean flis_save_default_is_flis(void);
+
+/**
+ * flis_save_document:
+ * @filename: output path; the preferred FITS extension is appended when the
+ *            name does not already carry a FITS one.
+ * @as_flis:  TRUE to write a FLIS (layers, masks and edit history kept),
+ *            FALSE to write a standard FITS image.
+ *
+ * Saves the loaded single image in the requested format:
+ *  - FLIS from a layered document: save_flis();
+ *  - FLIS from a plain image: the image is first promoted to a single-layer
+ *    FLIS in memory, then saved;
+ *  - standard FITS from a layered document: a flattened COPY of the visible
+ *    layers is written, the open document keeps its layers;
+ *  - standard FITS from a plain image: savefits().
+ * On success com.uniq's filename, fileexist and file_is_flis are updated.
+ * Safe to call from a worker thread (no GTK calls).
+ *
+ * Returns: 0 on success, non-zero on error.
+ */
+int flis_save_document(const gchar *filename, gboolean as_flis);
 
 /* -----------------------------------------------------------------------
  * Group management

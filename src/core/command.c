@@ -427,10 +427,29 @@ int process_save(int nb){
 	int status, retval;
 
 	gfit->checksum = FALSE;
+	/* Format: the default follows the document (flis_save_default_is_flis);
+	 * -flis and -fits override it. */
+	gboolean force_flis = FALSE, force_fits = FALSE;
 	for (int i = 2; i < nb; i++) {
-		if (word[i] && !g_strcmp0(word[i], "-chksum")) {
+		if (!word[i])
+			continue;
+		if (!g_strcmp0(word[i], "-chksum")) {
 			gfit->checksum = TRUE;
+		} else if (!g_strcmp0(word[i], "-flis")) {
+			force_flis = TRUE;
+		} else if (!g_strcmp0(word[i], "-fits")) {
+			force_fits = TRUE;
 		}
+	}
+	if (force_flis && force_fits) {
+		siril_log_error(_("save: -flis and -fits are mutually exclusive\n"));
+		g_free(filename);
+		return CMD_ARG_ERROR;
+	}
+	if (force_flis && !single_image_is_loaded()) {
+		siril_log_error(_("save: -flis needs a single image, not a sequence frame\n"));
+		g_free(filename);
+		return CMD_ARG_ERROR;
 	}
 
 	if (!com.script) {
@@ -445,40 +464,17 @@ int process_save(int nb){
 		retval = CMD_GENERIC_ERROR;
 	} else {
 		gui_iface.set_busy(TRUE);
-		/* Data-driven save dispatch (matches the GUI save / save-as paths):
-		 * format follows the loaded image's state, not the filename
-		 * extension.  Headless / scripted runs cannot show the multi-layer
-		 * flatten-vs-preserve dialog, so the safe default is always to
-		 * preserve layers — a script that wants to flatten should invoke
-		 * `flis_flatten` first. */
-		if (is_current_image_flis()) {
-			/* Append the .flis extension when none was given, mirroring
-			 * the plain-FITS branch below — `save result` should
-			 * produce result.flis, not an extensionless file. */
-			gchar *flis_name = g_str_has_suffix(savename, ".flis")
-				? g_strdup(savename)
-				: g_strdup_printf("%s.flis", savename);
-			retval = save_flis(flis_name) ? CMD_GENERIC_ERROR : CMD_OK;
-			if (retval == CMD_OK && com.uniq) {
-				free(com.uniq->filename);
-				com.uniq->filename = strdup(flis_name);
-				com.uniq->fileexist = TRUE;
-			}
-			g_free(flis_name);
+		/* Same rule as the GUI save paths: FLIS when the document has more
+		 * than one layer or any mask, a standard FITS image otherwise,
+		 * unless -flis / -fits says differently.  A standard FITS save of
+		 * a layered document writes a flattened copy and leaves the
+		 * document layered. */
+		if (single_image_is_loaded()) {
+			const gboolean as_flis = force_flis
+					|| (!force_fits && flis_save_default_is_flis());
+			retval = flis_save_document(savename, as_flis) ? CMD_GENERIC_ERROR : CMD_OK;
 		} else {
 			retval = savefits(savename, gfit) ? CMD_GENERIC_ERROR : CMD_OK;
-			if (com.uniq && retval == CMD_OK) {
-				if (!g_str_has_suffix(savename, com.pref.ext)) {
-					gchar* tempfilename = g_strdup_printf("%s%s", savename, com.pref.ext);
-					free(com.uniq->filename);
-					com.uniq->filename = strdup(tempfilename);
-					g_free(tempfilename);
-				} else {
-					free(com.uniq->filename);
-					com.uniq->filename = strdup(savename);
-				}
-				com.uniq->fileexist = TRUE;
-			}
 		}
 		gui_iface.set_busy(FALSE);
 	}
@@ -17685,7 +17681,7 @@ int process_flis_group_list(int nb) {
 /* flis_history [-format=text|csv] — print the nondestructive edit history of
  * the loaded image (sketch §17).  SINGLE_IMAGE-gated, not FLIS_IMAGE: a plain
  * image's in-memory log is inspectable too (it persists only if saved as
- * .flis). */
+ * a FLIS). */
 int process_flis_history(int nb) {
 	int fmt = parse_format_arg(nb);
 	if (fmt < 0) return CMD_ARG_ERROR;

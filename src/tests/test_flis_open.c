@@ -165,9 +165,9 @@ Test(flis_open, save_flis_preserves_layers_with_fit_extension) {
 	flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.7f), "top");
 	cr_assert_eq(flis_layer_count(), 2);
 
-	/* Write to a non-.flis extension — save_flis is still the right
-	 * writer because the data state is FLIS.  The file is a valid FITS
-	 * container by spec, so the .fit extension is correct. */
+	/* Write under a second name — save_flis is the right writer because
+	 * the data state is FLIS, whatever the file is called.  The file is a
+	 * valid FITS container by spec, so it carries a FITS extension. */
 	gchar *fit_path = g_build_filename(tmpdir, "test.fit", NULL);
 	cr_assert_eq(save_flis(fit_path), 0);
 

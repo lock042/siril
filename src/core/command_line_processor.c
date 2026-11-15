@@ -76,6 +76,12 @@ const char *cmd_err_to_str(cmd_errors err) {
 		case CMD_NOT_FOR_SINGLE:
 			return _("command is only for a sequence");
 		case CMD_NOT_FOR_MONO:
+			/* A layered image can look like a colour image on screen while
+			 * the layer the command would act on is one of its mono
+			 * channels; the bare refusal reads as a contradiction then. */
+			if (is_current_image_flis() && flis_layer_count() > 1)
+				return _("command is not for monochrome images: the active layer of "
+				         "this layered image is monochrome, so select a colour layer first");
 			return _("command is not for monochrome images");
 		case CMD_NOT_FOR_RGB:
 			return _("command is not for color images");

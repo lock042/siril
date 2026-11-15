@@ -145,7 +145,10 @@ struct _NdeHistRowItem {
 	gchar   *badge;      /* "#7" (Tier B marked "#7·B") */
 	gchar   *summary;
 	gchar   *target;     /* layer name / "canvas" / "document" / "deleted layer" */
-	gchar   *detail;     /* popover + tooltip text */
+	gchar   *detail;     /* popover + tooltip text: what was done, in words */
+	gchar   *brief;      /* the parameters on one line, shown dimmed on the row */
+	gchar   *when;       /* "Applied <local date and time>" (NULL if unknown) */
+	gchar   *tech;       /* record identity + raw parameters, for "Details" */
 	gboolean dead;       /* beyond live_count (undone) → dimmed */
 	/* Edit/Delete UI state (P3.D) — resolved at refresh from the snapshot. */
 	gint64   record_id;
@@ -184,6 +187,9 @@ static void nde_hist_row_item_finalize(GObject *obj) {
 	g_free(self->summary);
 	g_free(self->target);
 	g_free(self->detail);
+	g_free(self->brief);
+	g_free(self->when);
+	g_free(self->tech);
 	g_free(self->params);
 	g_free(self->op_id);
 	G_OBJECT_CLASS(nde_hist_row_item_parent_class)->finalize(obj);
@@ -199,7 +205,6 @@ static void nde_hist_row_item_init(NdeHistRowItem *self) { (void)self; }
 
 struct flis_panel {
 	GtkWidget *window;
-	GtkWidget *mode_label;          /* FITS / FLIS / FLIS·active group */
 
 	/* Toolbar */
 	GtkWidget *btn_add, *btn_remove, *btn_duplicate, *btn_group;
@@ -211,8 +216,12 @@ struct flis_panel {
 	GListStore *list_store;         /* of FlisRowItem* */
 	GtkMultiSelection *list_sel;
 	GtkWidget *list_view;
-	GtkWidget *edge_drop_top;       /* drop zone above the list — "to top of stack" */
-	GtkWidget *edge_drop_bottom;    /* drop zone below the list — "to bottom of stack" */
+	/* Drop zones over the top / bottom edge of the list.  Shown only while
+	 * a row is being dragged. */
+	GtkWidget *edge_drop_top;
+	GtkWidget *edge_drop_bottom;
+	GtkWidget *ctx_popover;         /* lazy; the row context menu */
+	GSimpleActionGroup *actions;    /* the win.flis-* actions (owned) */
 
 	/* Property panel */
 	GtkWidget *prop_frame;
@@ -220,7 +229,6 @@ struct flis_panel {
 	GtkWidget *blend_dropdown;
 	GtkWidget *opacity_scale;
 	GtkWidget *opacity_spin;
-	GtkWidget *opacity_apply;
 	GtkAdjustment *opacity_adj;
 
 	/* Tint sub-frame */
@@ -245,7 +253,9 @@ struct flis_panel {
 	 * become the only place it was usable. */
 	GtkWidget  *hist_content;       /* the content box */
 	GtkWidget  *hist_win;           /* lazy; kept and reused across shows */
-	GtkWidget  *hist_header;        /* "Nondestructive History (n)" heading */
+	GtkWidget  *hist_header;        /* step count line ("3 steps") */
+	GtkWidget  *hist_scroller;      /* scrolled window holding the graph */
+	GtkWidget  *hist_placeholder;   /* shown instead while there are no steps */
 	GtkWidget  *hist_stale_revealer;
 	GtkWidget  *hist_insert_revealer;   /* "inserting before step N" banner */
 	GtkWidget  *hist_insert_label;
@@ -257,7 +267,12 @@ struct flis_panel {
 	GPtrArray  *hist_nodes;          /* hist_node_ui*, rebuilt per refresh */
 	GtkListItemFactory *hist_factory;/* shared by every node's list view */
 	GtkWidget  *hist_popover;        /* lazy; parented to hist_container */
-	GtkWidget  *hist_popover_label;
+	GtkWidget  *hist_popover_title;  /* operation name */
+	GtkWidget  *hist_popover_label;  /* what was done (capture summary, inputs) */
+	GtkWidget  *hist_popover_when;   /* local date and time */
+	GtkWidget  *hist_popover_expander;/* "Details" — collapsed on every show */
+	GtkWidget  *hist_popover_tech;   /* record identity + raw parameters */
+	GtkWidget  *hist_popover_actions;/* the button row; sets the window's minimum width */
 	GtkWidget  *hist_edit_btn;       /* "Edit parameters…" in the popover */
 	GtkWidget  *hist_insert_btn;     /* "Insert before…" in the popover */
 	GtkWidget  *hist_delete_btn;     /* "Delete step" in the popover */
@@ -292,6 +307,7 @@ static void   register_panel_actions(void);
 static void   refresh_panel(void);
 static void   sync_property_widgets(flis_layer_t *lay);
 static void   update_toolbar_sensitivity(void);
+static void   update_action_sensitivity(void);
 static void   ensure_flis_css(void);
 static flis_layer_t *current_selected_layer(void);
 static void dispatch_ungroup(gint layer_id);
@@ -415,6 +431,51 @@ void flis_gui_update_from_idle(void) {
  * Build helpers
  * ========================================================================= */
 
+/* Remembered window sizes (preferences → "remember window positions").
+ * GTK keeps a window's default-width/height properties in step with the
+ * size the user gives it, so those are the values to follow; the init file
+ * is written when the window is hidden, and only if the size changed. */
+struct panel_size_slot {
+	gint *w, *h;
+	gboolean dirty;
+};
+
+static void on_panel_window_size_notify(GObject *o, GParamSpec *ps, gpointer u) {
+	(void)ps;
+	struct panel_size_slot *slot = u;
+	int w = 0, h = 0;
+	gtk_window_get_default_size(GTK_WINDOW(o), &w, &h);
+	if (w <= 0 || h <= 0 || (w == *slot->w && h == *slot->h))
+		return;
+	*slot->w = w;
+	*slot->h = h;
+	slot->dirty = TRUE;
+}
+
+static void on_panel_window_hide(GtkWidget *w, gpointer u) {
+	(void)w;
+	struct panel_size_slot *slot = u;
+	if (!slot->dirty || !com.pref.gui.remember_windows)
+		return;
+	slot->dirty = FALSE;
+	writeinitfile();
+}
+
+static void panel_window_remember_size(GtkWindow *w, int def_w, int def_h,
+                                       gint *pref_w, gint *pref_h) {
+	const gboolean use = com.pref.gui.remember_windows && *pref_w > 0 && *pref_h > 0;
+	gtk_window_set_default_size(w, use ? *pref_w : def_w, use ? *pref_h : def_h);
+	struct panel_size_slot *slot = g_new0(struct panel_size_slot, 1);
+	slot->w = pref_w;
+	slot->h = pref_h;
+	g_signal_connect(w, "notify::default-width",
+	                 G_CALLBACK(on_panel_window_size_notify), slot);
+	g_signal_connect(w, "notify::default-height",
+	                 G_CALLBACK(on_panel_window_size_notify), slot);
+	g_signal_connect_data(w, "hide", G_CALLBACK(on_panel_window_hide), slot,
+	                      (GClosureNotify)g_free, 0);
+}
+
 static void build_panel(void) {
 	if (g_panel) return;
 	g_panel = g_new0(struct flis_panel, 1);
@@ -425,7 +486,8 @@ static void build_panel(void) {
 	gtk_window_set_title(GTK_WINDOW(w), _("FLIS Layers"));
 	/* Compact default size; the layer list inside the scrolled window
 	 * absorbs vertical growth, so we don't need a tall initial window. */
-	gtk_window_set_default_size(GTK_WINDOW(w), 320, 540);
+	panel_window_remember_size(GTK_WINDOW(w), 320, 540,
+			&com.pref.gui.layers_panel_w, &com.pref.gui.layers_panel_h);
 	gtk_window_set_hide_on_close(GTK_WINDOW(w), TRUE);
 	GtkWidget *main_w = lookup_widget("control_window");
 	if (main_w)
@@ -438,13 +500,6 @@ static void build_panel(void) {
 	gtk_widget_set_margin_bottom(outer, 4);
 	gtk_window_set_child(GTK_WINDOW(w), outer);
 
-	/* Mode indicator — folded into the toolbar to save a row.  Kept as a
-	 * member for the refresh path which writes "FITS" / "FLIS" / "FLIS ·
-	 * group X selected". */
-	g_panel->mode_label = gtk_label_new("FITS");
-	gtk_label_set_xalign(GTK_LABEL(g_panel->mode_label), 0.0f);
-	gtk_widget_add_css_class(g_panel->mode_label, "dim-label");
-
 	build_toolbar (outer);
 	build_list    (outer);
 	build_property(outer);
@@ -455,16 +510,61 @@ static void build_panel(void) {
 
 /* ---- Toolbar -------------------------------------------------------- */
 
+/* An icon-only button says nothing to a screen reader unless it is given a
+ * name; the tooltip text is the obvious one. */
+static void set_accessible_label(GtkWidget *w, const char *label) {
+	gtk_accessible_update_property(GTK_ACCESSIBLE(w),
+			GTK_ACCESSIBLE_PROPERTY_LABEL, label, -1);
+}
+
 static GtkWidget *icon_button(const char *icon, const char *tooltip) {
 	GtkWidget *b = gtk_button_new_from_icon_name(icon);
 	gtk_widget_set_tooltip_text(b, tooltip);
+	set_accessible_label(b, tooltip);
 	return b;
 }
 
-static GtkWidget *icon_toggle(const char *icon, const char *tooltip) {
+/* Four-way arrow for the "drag layer in canvas" toggle.  The stock icon
+ * themes have no move glyph, so it is drawn here in the widget's own
+ * foreground colour, which keeps it right in light and dark themes and in
+ * the insensitive state. */
+static void draw_move_icon(GtkDrawingArea *da, cairo_t *cr, int w, int h, gpointer u) {
+	(void)u;
+	GdkRGBA fg;
+	gtk_widget_get_color(GTK_WIDGET(da), &fg);
+	gdk_cairo_set_source_rgba(cr, &fg);
+	const double s = MIN(w, h), cx = w / 2.0, cy = h / 2.0;
+	const double r = s * 0.5 - 0.5;      /* tip distance from the centre */
+	const double head = s * 0.22;        /* arrowhead half-width and depth */
+	cairo_set_line_width(cr, MAX(1.5, s / 9.0));
+	cairo_move_to(cr, cx - r + head, cy); cairo_line_to(cr, cx + r - head, cy);
+	cairo_move_to(cr, cx, cy - r + head); cairo_line_to(cr, cx, cy + r - head);
+	cairo_stroke(cr);
+	static const int dir[4][2] = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
+	for (int i = 0; i < 4; i++) {
+		const double dx = dir[i][0], dy = dir[i][1];
+		const double tx = cx + dx * r, ty = cy + dy * r;          /* tip */
+		const double bx = tx - dx * head, by = ty - dy * head;    /* base centre */
+		cairo_move_to(cr, tx, ty);
+		cairo_line_to(cr, bx - dy * head, by + dx * head);
+		cairo_line_to(cr, bx + dy * head, by - dx * head);
+		cairo_close_path(cr);
+		cairo_fill(cr);
+	}
+}
+
+static GtkWidget *move_toggle(const char *tooltip) {
 	GtkWidget *b = gtk_toggle_button_new();
-	gtk_button_set_icon_name(GTK_BUTTON(b), icon);
+	GtkWidget *da = gtk_drawing_area_new();
+	gtk_drawing_area_set_content_width (GTK_DRAWING_AREA(da), 16);
+	gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(da), 16);
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(da), draw_move_icon, NULL, NULL);
+	gtk_widget_set_halign(da, GTK_ALIGN_CENTER);
+	gtk_widget_set_valign(da, GTK_ALIGN_CENTER);
+	gtk_button_set_child(GTK_BUTTON(b), da);
+	gtk_widget_add_css_class(b, "image-button");
 	gtk_widget_set_tooltip_text(b, tooltip);
+	set_accessible_label(b, tooltip);
 	return b;
 }
 
@@ -483,12 +583,12 @@ static void build_toolbar(GtkWidget *box) {
 	gtk_widget_add_css_class(bar, "toolbar");
 
 	g_panel->btn_add       = icon_button("list-add-symbolic",        _("Add layer"));
-	g_panel->btn_remove    = icon_button("list-remove-symbolic",     _("Remove selected layer"));
-	g_panel->btn_duplicate = icon_button("edit-copy-symbolic",       _("Duplicate selected layer"));
+	g_panel->btn_remove    = icon_button("list-remove-symbolic",     _("Remove selected layer or group (Delete)"));
+	g_panel->btn_duplicate = icon_button("edit-copy-symbolic",       _("Duplicate selected layer (Ctrl+D)"));
 	g_panel->btn_group     = icon_button("folder-new-symbolic",      _("Create group"));
-	g_panel->btn_drag      = icon_toggle("input-mouse-symbolic",     _("Drag layer in canvas"));
-	g_panel->btn_move_up   = icon_button("go-up-symbolic",           _("Move layer up"));
-	g_panel->btn_move_down = icon_button("go-down-symbolic",         _("Move layer down"));
+	g_panel->btn_drag      = move_toggle(_("Drag the selected layer in the canvas"));
+	g_panel->btn_move_up   = icon_button("go-up-symbolic",           _("Move up (Alt+Up)"));
+	g_panel->btn_move_down = icon_button("go-down-symbolic",         _("Move down (Alt+Down)"));
 	g_panel->btn_canvas    = icon_button("document-page-setup-symbolic",
 	                                      _("Canvas properties — resize, fit, rotate, mirror…"));
 
@@ -510,15 +610,15 @@ static void build_toolbar(GtkWidget *box) {
 	gtk_box_append(GTK_BOX(bar), g_panel->btn_move_down);
 	gtk_box_append(GTK_BOX(bar), g_panel->btn_canvas);
 
-	/* Mode label between the toolbar buttons and the right-side menu —
-	 * keeps the panel header to a single row. */
-	gtk_widget_set_margin_start(g_panel->mode_label, 8);
-	gtk_widget_set_hexpand(g_panel->mode_label, TRUE);
-	gtk_box_append(GTK_BOX(bar), g_panel->mode_label);
+	/* Push the menu button to the right-hand end. */
+	GtkWidget *spacer = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_widget_set_hexpand(spacer, TRUE);
+	gtk_box_append(GTK_BOX(bar), spacer);
 
 	g_panel->btn_menu = gtk_menu_button_new();
 	gtk_menu_button_set_icon_name(GTK_MENU_BUTTON(g_panel->btn_menu), "open-menu-symbolic");
 	gtk_widget_set_tooltip_text(g_panel->btn_menu, _("Layer actions"));
+	set_accessible_label(g_panel->btn_menu, _("Layer actions"));
 	GMenu *ctx = build_context_menu();
 	gtk_menu_button_set_menu_model(GTK_MENU_BUTTON(g_panel->btn_menu), G_MENU_MODEL(ctx));
 	g_object_unref(ctx);
@@ -538,12 +638,16 @@ static void on_selection_changed    (GtkSelectionModel *sel, guint pos, guint ni
  * since it's small.  Each row is a horizontal box of: expander (groups
  * only, invisible for layers), visibility toggle, lock toggle,
  * thumbnail, and name label. */
+#define THUMB_SIZE 32
+#define FLIS_NAME_MAX_CHARS 32   /* flis_layer_props_t::name is [33] */
+
 typedef struct {
 	GtkWidget *row_box;
 	GtkWidget *expander;          /* chevron button on group rows; hidden on layer rows */
 	GtkWidget *visible_toggle;
 	GtkWidget *lock_toggle;
 	GtkWidget *thumb;
+	GtkWidget *group_icon;        /* folder icon on group rows; hidden on layer rows */
 	GtkWidget *name_label;
 	GtkWidget *kind_badge;        /* "group" badge for group rows */
 	gulong     vis_handler_id;
@@ -569,23 +673,30 @@ static void ensure_flis_css(void) {
 		"  background-color: alpha(@accent_bg_color, 0.18);"
 		"  border-left: 3px solid @accent_color;"
 		"}"
+		/* Shown over the list's top / bottom edge for the duration of a row
+		 * drag, so they need an opaque background to stay readable. */
 		".flis-edge-drop {"
-		"  min-height: 18px;"
-		"  background: transparent;"
-		"  border: 1px dashed alpha(@borders, 0.6);"
+		"  min-height: 20px;"
+		"  background-color: @theme_base_color;"
+		"  border: 1px dashed @theme_selected_bg_color;"
 		"  border-radius: 4px;"
 		"  margin: 2px 4px;"
-		"  color: alpha(@view_fg_color, 0.55);"
+		"  color: @theme_text_color;"
 		"  font-size: 90%;"
 		"}"
 		".flis-edge-drop.drop-active {"
-		"  background-color: alpha(@accent_bg_color, 0.25);"
+		"  background-color: @theme_selected_bg_color;"
 		"  border-style: solid;"
-		"  color: @accent_fg_color;"
+		"  color: @theme_selected_fg_color;"
 		"}"
 		/* NDE history drag-reorder: rows the dragged step cannot be dropped
 		 * on (frozen prefix before a Tier-B barrier, other items' records,
 		 * undone rows) are de-highlighted for the drag's duration. */
+		/* The step popover's delete button: marked as the destructive one
+		 * by colour, legible on any popover background. */
+		".nde-step-delete:not(:disabled) {"
+		"  color: @error_color;"
+		"}"
 		".nde-drop-dim {"
 		"  opacity: 0.35;"
 		"}"
@@ -664,6 +775,100 @@ static gboolean row_drop_received(GtkDropTarget *tgt, const GValue *value,
 	return TRUE;
 }
 
+/* The edge drop zones exist only to receive a dragged row, so they are on
+ * screen only while one is being dragged. */
+static void edge_drop_zones_show(gboolean show) {
+	if (!g_panel) return;
+	if (g_panel->edge_drop_top) {
+		gtk_widget_remove_css_class(g_panel->edge_drop_top, "drop-active");
+		gtk_widget_set_visible(g_panel->edge_drop_top, show);
+	}
+	if (g_panel->edge_drop_bottom) {
+		gtk_widget_remove_css_class(g_panel->edge_drop_bottom, "drop-active");
+		gtk_widget_set_visible(g_panel->edge_drop_bottom, show);
+	}
+}
+
+static void on_row_drag_begin(GtkDragSource *src, GdkDrag *drag, gpointer u) {
+	(void)src; (void)drag; (void)u;
+	edge_drop_zones_show(TRUE);
+}
+
+static void on_row_drag_end(GtkDragSource *src, GdkDrag *drag, gboolean del, gpointer u) {
+	(void)src; (void)drag; (void)del; (void)u;
+	edge_drop_zones_show(FALSE);
+}
+
+static gboolean on_row_drag_cancel(GtkDragSource *src, GdkDrag *drag,
+                                   GdkDragCancelReason reason, gpointer u) {
+	(void)src; (void)drag; (void)reason; (void)u;
+	edge_drop_zones_show(FALSE);
+	return FALSE;
+}
+
+/* ---- Context menu popup --------------------------------------------- */
+
+/* Pop the layer-actions menu up at (@x, @y) in @relative_to's coordinates.
+ * The same GMenu model backs the toolbar's menu button, so the two can
+ * never offer different things. */
+static void panel_popup_context_menu(GtkWidget *relative_to, double x, double y) {
+	if (!g_panel || !g_panel->list_view) return;
+	GtkWidget *anchor = gtk_window_get_child(GTK_WINDOW(g_panel->window));
+	if (!anchor) return;
+	if (!g_panel->ctx_popover) {
+		GMenu *m = build_context_menu();
+		g_panel->ctx_popover = gtk_popover_menu_new_from_model(G_MENU_MODEL(m));
+		g_object_unref(m);
+		/* Parented to the window's content box, not to the list view: as a
+		 * child of the (scrollable) list the menu was sized against it and
+		 * came up clipped, with a scrollbar. */
+		gtk_widget_set_parent(g_panel->ctx_popover, anchor);
+		gtk_popover_set_has_arrow(GTK_POPOVER(g_panel->ctx_popover), FALSE);
+		gtk_widget_set_halign(g_panel->ctx_popover, GTK_ALIGN_START);
+	}
+	graphene_point_t in = GRAPHENE_POINT_INIT((float)x, (float)y), out = in;
+	if (!gtk_widget_compute_point(relative_to, anchor, &in, &out))
+		out = in;
+	const GdkRectangle r = { (int)out.x, (int)out.y, 1, 1 };
+	gtk_popover_set_pointing_to(GTK_POPOVER(g_panel->ctx_popover), &r);
+	gtk_popover_popup(GTK_POPOVER(g_panel->ctx_popover));
+}
+
+/* Right-click on a row: the menu acts on the selection, so a click on a row
+ * outside it selects that row first; a click inside a multi-selection keeps
+ * the set. */
+static void on_row_secondary_pressed(GtkGestureClick *g, int n, double x, double y, gpointer ud) {
+	(void)n;
+	row_widgets_t *rw = ud;
+	if (!g_panel || !rw) return;
+	gtk_gesture_set_state(GTK_GESTURE(g), GTK_EVENT_SEQUENCE_CLAIMED);
+	/* Translate the click to the list view NOW: selecting the row below can
+	 * rebuild the list (the active layer moves with the selection), which
+	 * takes this row widget out of the tree. */
+	graphene_point_t in = GRAPHENE_POINT_INIT((float)x, (float)y), at = in;
+	if (!gtk_widget_compute_point(rw->row_box, g_panel->list_view, &in, &at))
+		at = GRAPHENE_POINT_INIT(0.f, 0.f);
+	const guint nstore = g_list_model_get_n_items(G_LIST_MODEL(g_panel->list_store));
+	for (guint i = 0; i < nstore; i++) {
+		FlisRowItem *ri = g_list_model_get_item(G_LIST_MODEL(g_panel->list_store), i);
+		const gboolean match = ri && ri->kind == rw->current_kind
+		                          && ri->item_id == rw->current_item_id;
+		if (ri) g_object_unref(ri);
+		if (!match) continue;
+		if (!gtk_selection_model_is_selected(GTK_SELECTION_MODEL(g_panel->list_sel), i))
+			gtk_selection_model_select_item(GTK_SELECTION_MODEL(g_panel->list_sel), i, TRUE);
+		break;
+	}
+	panel_popup_context_menu(g_panel->list_view, at.x, at.y);
+}
+
+/* Right-click on the list outside any row: same menu, selection untouched. */
+static void on_list_secondary_pressed(GtkGestureClick *g, int n, double x, double y, gpointer ud) {
+	(void)n; (void)ud;
+	gtk_gesture_set_state(GTK_GESTURE(g), GTK_EVENT_SEQUENCE_CLAIMED);
+	panel_popup_context_menu(g_panel->list_view, x, y);
+}
+
 static void on_row_setup(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 	(void)f; (void)u;
 	row_widgets_t *rw = g_new0(row_widgets_t, 1);
@@ -680,11 +885,13 @@ static void on_row_setup(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 	 * set_active call and produced a "two clicks needed" behaviour. */
 	rw->expander = gtk_button_new_from_icon_name("pan-down-symbolic");
 	gtk_widget_set_tooltip_text(rw->expander, _("Toggle group collapse"));
+	set_accessible_label(rw->expander, _("Toggle group collapse"));
 	gtk_widget_add_css_class(rw->expander, "flat");
 
 	rw->visible_toggle = gtk_toggle_button_new();
 	gtk_button_set_icon_name(GTK_BUTTON(rw->visible_toggle), "view-reveal-symbolic");
 	gtk_widget_set_tooltip_text(rw->visible_toggle, _("Toggle visibility"));
+	set_accessible_label(rw->visible_toggle, _("Toggle visibility"));
 	gtk_widget_add_css_class(rw->visible_toggle, "flat");
 
 	rw->lock_toggle = gtk_toggle_button_new();
@@ -692,13 +899,17 @@ static void on_row_setup(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 	 * swaps to "prevent" when the layer is locked. */
 	gtk_button_set_icon_name(GTK_BUTTON(rw->lock_toggle), "changes-allow-symbolic");
 	gtk_widget_set_tooltip_text(rw->lock_toggle, _("Unlocked — click to lock"));
+	set_accessible_label(rw->lock_toggle, _("Lock layer"));
 	gtk_widget_add_css_class(rw->lock_toggle, "flat");
 
 	rw->thumb = gtk_picture_new();
-	gtk_widget_set_size_request(rw->thumb, 32, 32);
+	gtk_widget_set_size_request(rw->thumb, THUMB_SIZE, THUMB_SIZE);
+
+	rw->group_icon = gtk_image_new_from_icon_name("folder-symbolic");
 
 	rw->name_label = gtk_label_new(NULL);
 	gtk_label_set_xalign(GTK_LABEL(rw->name_label), 0.0f);
+	gtk_label_set_ellipsize(GTK_LABEL(rw->name_label), PANGO_ELLIPSIZE_END);
 	gtk_widget_set_hexpand(rw->name_label, TRUE);
 
 	rw->kind_badge = gtk_label_new(NULL);
@@ -708,6 +919,7 @@ static void on_row_setup(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 	gtk_box_append(GTK_BOX(rw->row_box), rw->visible_toggle);
 	gtk_box_append(GTK_BOX(rw->row_box), rw->lock_toggle);
 	gtk_box_append(GTK_BOX(rw->row_box), rw->thumb);
+	gtk_box_append(GTK_BOX(rw->row_box), rw->group_icon);
 	gtk_box_append(GTK_BOX(rw->row_box), rw->name_label);
 	gtk_box_append(GTK_BOX(rw->row_box), rw->kind_badge);
 
@@ -719,6 +931,9 @@ static void on_row_setup(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 	gtk_drag_source_set_actions(rw->drag_source, GDK_ACTION_MOVE);
 	g_signal_connect(rw->drag_source, "prepare",
 	                 G_CALLBACK(row_drag_prepare), rw);
+	g_signal_connect(rw->drag_source, "drag-begin",  G_CALLBACK(on_row_drag_begin),  NULL);
+	g_signal_connect(rw->drag_source, "drag-end",    G_CALLBACK(on_row_drag_end),    NULL);
+	g_signal_connect(rw->drag_source, "drag-cancel", G_CALLBACK(on_row_drag_cancel), NULL);
 	gtk_widget_add_controller(rw->row_box, GTK_EVENT_CONTROLLER(rw->drag_source));
 
 	rw->drop_target = gtk_drop_target_new(G_TYPE_INT, GDK_ACTION_MOVE);
@@ -726,49 +941,124 @@ static void on_row_setup(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 	                 G_CALLBACK(row_drop_received), rw);
 	gtk_widget_add_controller(rw->row_box, GTK_EVENT_CONTROLLER(rw->drop_target));
 
+	GtkGesture *rc = gtk_gesture_click_new();
+	gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(rc), GDK_BUTTON_SECONDARY);
+	g_signal_connect(rc, "pressed", G_CALLBACK(on_row_secondary_pressed), rw);
+	gtk_widget_add_controller(rw->row_box, GTK_EVENT_CONTROLLER(rc));
+
 	g_object_set_data_full(G_OBJECT(item), "row-widgets", rw, g_free);
 	gtk_list_item_set_child(item, rw->row_box);
 }
 
-/* Build a 32×32 BGRA thumbnail of a layer's pixels.  Cheap nearest-
- * neighbour downsample; called once per layer per panel refresh.  The
- * texture is freshly allocated on every call — GdkPicture takes its
- * own ref so it's safe to unref locally. */
-static GdkTexture *build_fits_thumb(const fits *f) {
+/* ---- Row thumbnails -------------------------------------------------
+ *
+ * A layer of linear astronomical data mapped straight to 8 bits is a black
+ * square: the sky sits a fraction of a percent above zero.  The thumbnail
+ * therefore gets its own autostretch — the usual shadow clip at a few MADs
+ * below the median plus a midtone transfer that puts the background at
+ * THUMB_TARGET_BG — computed from a coarse sample grid so the cost stays
+ * negligible on a hundred-megapixel layer.  Data that is already stretched
+ * (median above THUMB_LINEAR_MEDIAN) is shown as it is. */
+#define THUMB_STAT_GRID      64
+#define THUMB_TARGET_BG      0.25f
+#define THUMB_SHADOW_SIGMAS  2.8f
+#define THUMB_LINEAR_MEDIAN  0.2f
+
+static int thumb_float_cmp(const void *a, const void *b) {
+	const float fa = *(const float *)a, fb = *(const float *)b;
+	return (fa > fb) - (fa < fb);
+}
+
+/* Midtone transfer function, m in (0,1), x in [0,1]. */
+static inline float thumb_mtf(float m, float x) {
+	if (x <= 0.f) return 0.f;
+	if (x >= 1.f) return 1.f;
+	return ((m - 1.f) * x) / (((2.f * m - 1.f) * x) - m);
+}
+
+static inline float thumb_sample(const fits *f, int chan, size_t idx) {
+	return f->type == DATA_FLOAT ? f->fpdata[chan][idx]
+	                             : (float)f->pdata[chan][idx] / USHRT_MAX_SINGLE;
+}
+
+/* Shadow clip point and midtone balance for @f, linked across channels.
+ * Exact zeros are the FLIS no-data value (registration borders) and are
+ * left out of the statistics. */
+static void thumb_stretch_params(const fits *f, int nchans, float *c0, float *m) {
+	*c0 = 0.f;
+	*m  = 0.5f;   /* identity */
+	const int sw = (int)f->rx, sh = (int)f->ry;
+	const int gx = MIN(sw, THUMB_STAT_GRID), gy = MIN(sh, THUMB_STAT_GRID);
+	float *vals = g_new(float, (gsize)gx * gy * nchans);
+	gsize n = 0;
+	for (int c = 0; c < nchans; c++)
+		for (int y = 0; y < gy; y++)
+			for (int x = 0; x < gx; x++) {
+				const size_t si = (size_t)(y * sh / gy) * sw + (size_t)(x * sw / gx);
+				const float v = thumb_sample(f, c, si);
+				if (v > 0.f && v == v)
+					vals[n++] = v;
+			}
+	if (n >= 16) {
+		qsort(vals, n, sizeof(float), thumb_float_cmp);
+		const float med = vals[n / 2];
+		if (med < THUMB_LINEAR_MEDIAN) {
+			for (gsize i = 0; i < n; i++)
+				vals[i] = fabsf(vals[i] - med);
+			qsort(vals, n, sizeof(float), thumb_float_cmp);
+			const float mad = vals[n / 2] * 1.4826f;
+			const float shadows = CLAMP(med - THUMB_SHADOW_SIGMAS * mad, 0.f, 1.f);
+			const float bg = (med - shadows) / (1.f - shadows);
+			if (bg > 0.f && bg < THUMB_TARGET_BG) {
+				*c0 = shadows;
+				*m  = thumb_mtf(THUMB_TARGET_BG, bg);
+			}
+		}
+	}
+	g_free(vals);
+}
+
+/* Build a THUMB_SIZE² BGRA thumbnail of @f.  Nearest-neighbour downsample,
+ * autostretched; when @tint is non-NULL (a tinted mono layer) the result is
+ * coloured the way the layer contributes to the composite, so the R, G and B
+ * layers of a composite can be told apart at a glance.  The texture is
+ * freshly allocated on every call — GtkPicture takes its own ref. */
+static GdkTexture *build_fits_thumb(const fits *f, const flis_tint_t *tint) {
 	if (!f) return NULL;
 	const int sw = (int)f->rx;
 	const int sh = (int)f->ry;
 	if (sw <= 0 || sh <= 0) return NULL;
-	const int tw = 32, th = 32;
-	uint8_t *bgra = g_malloc((gsize)tw * th * 4);
-
+	if (f->type == DATA_FLOAT ? !f->fpdata[0] : !f->pdata[0]) return NULL;
+	const int tw = THUMB_SIZE, th = THUMB_SIZE;
 	const gboolean is_rgb = (f->naxes[2] >= 3);
+	const int nchans = is_rgb ? 3 : 1;
+
+	float c0, m;
+	thumb_stretch_params(f, nchans, &c0, &m);
+	const float range = 1.f - c0;
+	const float tr = tint ? (float)tint->r : 1.f;
+	const float tg = tint ? (float)tint->g : 1.f;
+	const float tb = tint ? (float)tint->b : 1.f;
+
+	uint8_t *bgra = g_malloc((gsize)tw * th * 4);
 	for (int y = 0; y < th; y++) {
 		const int sy_disp = y * sh / th;
 		const int sy_fits = sh - 1 - sy_disp;
 		for (int x = 0; x < tw; x++) {
 			const int sx = x * sw / tw;
 			const size_t si = (size_t)sy_fits * sw + (size_t)sx;
-			uint8_t r, g, b;
-			if (f->type == DATA_FLOAT) {
-				float fr = f->fpdata[0][si];
-				float fg = is_rgb ? f->fpdata[1][si] : fr;
-				float fb = is_rgb ? f->fpdata[2][si] : fr;
-				r = (uint8_t)CLAMP((int)(fr * 255.f), 0, 255);
-				g = (uint8_t)CLAMP((int)(fg * 255.f), 0, 255);
-				b = (uint8_t)CLAMP((int)(fb * 255.f), 0, 255);
-			} else {
-				WORD wr = f->pdata[0][si];
-				WORD wg = is_rgb ? f->pdata[1][si] : wr;
-				WORD wb = is_rgb ? f->pdata[2][si] : wr;
-				r = (uint8_t)(wr >> 8);
-				g = (uint8_t)(wg >> 8);
-				b = (uint8_t)(wb >> 8);
+			float rgb[3];
+			for (int c = 0; c < 3; c++) {
+				const float v = thumb_sample(f, is_rgb ? c : 0, si);
+				rgb[c] = thumb_mtf(m, (v - c0) / range);
+			}
+			if (!is_rgb) {
+				rgb[0] *= tr; rgb[1] *= tg; rgb[2] *= tb;
 			}
 			const size_t di = ((size_t)y * tw + (size_t)x) * 4;
-			bgra[di + 0] = b;
-			bgra[di + 1] = g;
-			bgra[di + 2] = r;
+			bgra[di + 0] = (uint8_t)CLAMP((int)(rgb[2] * 255.f + 0.5f), 0, 255);
+			bgra[di + 1] = (uint8_t)CLAMP((int)(rgb[1] * 255.f + 0.5f), 0, 255);
+			bgra[di + 2] = (uint8_t)CLAMP((int)(rgb[0] * 255.f + 0.5f), 0, 255);
 			bgra[di + 3] = 255;
 		}
 	}
@@ -780,7 +1070,9 @@ static GdkTexture *build_fits_thumb(const fits *f) {
 }
 
 static GdkTexture *build_layer_thumb(flis_layer_t *lay) {
-	return lay ? build_fits_thumb(lay->fit) : NULL;
+	if (!lay) return NULL;
+	const gboolean tinted = lay->has_tint && lay->fit && lay->fit->naxes[2] == 1;
+	return build_fits_thumb(lay->fit, tinted ? &lay->layer_tint : NULL);
 }
 
 static void on_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
@@ -835,6 +1127,7 @@ static void on_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 		gtk_widget_set_visible(rw->visible_toggle, TRUE);
 		gtk_widget_set_visible(rw->lock_toggle,    TRUE);
 		gtk_widget_set_visible(rw->thumb,          TRUE);
+		gtk_widget_set_visible(rw->group_icon,     FALSE);
 		gtk_widget_set_sensitive(rw->lock_toggle, TRUE);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rw->visible_toggle), lay->visible);
 		/* Open / crossed-out eye to make the state unambiguous at a
@@ -878,15 +1171,16 @@ static void on_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 		gtk_widget_set_visible(rw->visible_toggle, FALSE);
 		gtk_widget_set_visible(rw->lock_toggle,    FALSE);
 		gtk_widget_set_visible(rw->thumb,          TRUE);
+		gtk_widget_set_visible(rw->group_icon,     FALSE);
 		gtk_widget_add_css_class(rw->row_box, "flis-active-layer-row");
 		gtk_label_set_text(GTK_LABEL(rw->name_label), _("Background"));
-		GdkTexture *thumb = build_fits_thumb(gfit);
+		GdkTexture *thumb = build_fits_thumb(gfit, NULL);
 		gtk_picture_set_paintable(GTK_PICTURE(rw->thumb), GDK_PAINTABLE(thumb));
 		if (thumb) g_object_unref(thumb);
 		gtk_label_set_text(GTK_LABEL(rw->kind_badge), _("FITS"));
 	} else {
 		/* Group header row: distinguished visually so the hierarchy is
-		 * obvious.  Bold label with a folder symbol, no lock toggle,
+		 * obvious.  Bold label with a folder icon, no lock toggle,
 		 * no thumbnail, header CSS class for any future theme styling. */
 		flis_group_t *grp = row_group(ri);
 		if (!grp) {
@@ -897,6 +1191,7 @@ static void on_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 		gtk_widget_set_visible(rw->expander,    TRUE);
 		gtk_widget_set_visible(rw->lock_toggle, FALSE);
 		gtk_widget_set_visible(rw->thumb,       FALSE);
+		gtk_widget_set_visible(rw->group_icon,  TRUE);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rw->visible_toggle), grp->visible);
 		gtk_button_set_icon_name(GTK_BUTTON(rw->visible_toggle),
 			grp->visible ? "view-reveal-symbolic" : "view-conceal-symbolic");
@@ -904,8 +1199,7 @@ static void on_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 		 * are below), pan-end when collapsed (click to expand). */
 		gtk_button_set_icon_name(GTK_BUTTON(rw->expander),
 			grp->collapsed ? "pan-end-symbolic" : "pan-down-symbolic");
-		gchar *markup = g_markup_printf_escaped(
-			"\xF0\x9F\x97\x80 <b>%s</b>",   /* U+1F5C0 file folder */
+		gchar *markup = g_markup_printf_escaped("<b>%s</b>",
 			grp->name ? grp->name : _("(group)"));
 		gtk_label_set_markup(GTK_LABEL(rw->name_label), markup);
 		g_free(markup);
@@ -920,8 +1214,8 @@ static void on_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 	}
 }
 
-/* Edge drop zones (top / bottom of list).  Always visible so users
- * can drag a layer out of a group with no external siblings (the row-
+/* Edge drop zones (top / bottom of list).  They let users
+ * drag a layer out of a group with no external siblings (the row-
  * level drop targets all sit on layer rows, so there's no way to
  * express "drop outside any layer" without these).  Drops here also
  * force-clear the source's group_id, regardless of what the nearest
@@ -995,12 +1289,62 @@ static GtkWidget *make_edge_drop_zone(const gchar *label_text, gboolean to_top) 
 	GtkWidget *lbl = gtk_label_new(label_text);
 	gtk_widget_add_css_class(lbl, "flis-edge-drop");
 	gtk_widget_set_halign(lbl, GTK_ALIGN_FILL);
+	gtk_widget_set_valign(lbl, to_top ? GTK_ALIGN_START : GTK_ALIGN_END);
+	gtk_widget_set_visible(lbl, FALSE);
 	GtkDropTarget *dt = gtk_drop_target_new(G_TYPE_INT, GDK_ACTION_MOVE);
 	g_signal_connect(dt, "drop",  G_CALLBACK(edge_drop_received), to_top ? GINT_TO_POINTER(1) : NULL);
 	g_signal_connect(dt, "motion", G_CALLBACK(edge_drop_motion), NULL);
 	g_signal_connect(dt, "leave",  G_CALLBACK(edge_drop_leave),  NULL);
 	gtk_widget_add_controller(lbl, GTK_EVENT_CONTROLLER(dt));
 	return lbl;
+}
+
+/* Put the keyboard focus in the name entry with its text selected — the
+ * rename gesture (F2, double-click or Enter on a row). */
+static void panel_begin_rename(void) {
+	if (!g_panel || !g_panel->name_entry) return;
+	if (g_panel->selected_kind != FLIS_ROW_KIND_LAYER
+	    && g_panel->selected_kind != FLIS_ROW_KIND_GROUP)
+		return;
+	gtk_widget_grab_focus(g_panel->name_entry);
+	gtk_editable_select_region(GTK_EDITABLE(g_panel->name_entry), 0, -1);
+}
+
+static void on_list_row_activated(GtkListView *lv, guint pos, gpointer u) {
+	(void)lv; (void)pos; (void)u;
+	panel_begin_rename();
+}
+
+static gboolean on_list_key_pressed(GtkEventControllerKey *c, guint keyval,
+                                    guint keycode, GdkModifierType state, gpointer u) {
+	(void)c; (void)keycode; (void)u;
+	if (!g_panel) return FALSE;
+	const GdkModifierType mods = state & (GDK_CONTROL_MASK | GDK_ALT_MASK | GDK_SHIFT_MASK);
+	if (mods == 0 && (keyval == GDK_KEY_Delete || keyval == GDK_KEY_KP_Delete)) {
+		if (gtk_widget_get_sensitive(g_panel->btn_remove))
+			on_remove_clicked(NULL, NULL);
+		return TRUE;
+	}
+	if (mods == 0 && keyval == GDK_KEY_F2) {
+		panel_begin_rename();
+		return TRUE;
+	}
+	if (mods == GDK_CONTROL_MASK && (keyval == GDK_KEY_d || keyval == GDK_KEY_D)) {
+		if (gtk_widget_get_sensitive(g_panel->btn_duplicate))
+			on_duplicate_clicked(NULL, NULL);
+		return TRUE;
+	}
+	if (mods == GDK_ALT_MASK && (keyval == GDK_KEY_Up || keyval == GDK_KEY_KP_Up)) {
+		if (gtk_widget_get_sensitive(g_panel->btn_move_up))
+			on_move_up_clicked(NULL, NULL);
+		return TRUE;
+	}
+	if (mods == GDK_ALT_MASK && (keyval == GDK_KEY_Down || keyval == GDK_KEY_KP_Down)) {
+		if (gtk_widget_get_sensitive(g_panel->btn_move_down))
+			on_move_down_clicked(NULL, NULL);
+		return TRUE;
+	}
+	return FALSE;
 }
 
 static void build_list(GtkWidget *box) {
@@ -1025,17 +1369,37 @@ static void build_list(GtkWidget *box) {
 	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), g_panel->list_view);
 	gtk_widget_set_vexpand(sw, TRUE);
 
-	/* Edge drop zones flanking the list — sit always-visible so the
-	 * user can drag a layer to the top / bottom of the stack and
-	 * (most importantly) drag a layer OUT of a group even when no
-	 * other ungrouped layer exists to drop on. */
+	/* Edge drop zones over the list's top / bottom edge: the way to drag a
+	 * layer to the very top / bottom of the stack and (most importantly) OUT
+	 * of a group when no other ungrouped layer exists to drop on.  They are
+	 * overlaid rather than packed around the list so that showing them at
+	 * drag-begin does not shift the rows under the pointer. */
 	g_panel->edge_drop_top    = make_edge_drop_zone(
-		_("⤴ drop here to move to top of stack (outside any group)"),  TRUE);
+		_("Move to top of stack, out of any group"),  TRUE);
 	g_panel->edge_drop_bottom = make_edge_drop_zone(
-		_("⤵ drop here to move to bottom of stack (outside any group)"), FALSE);
-	gtk_box_append(GTK_BOX(box), g_panel->edge_drop_top);
-	gtk_box_append(GTK_BOX(box), sw);
-	gtk_box_append(GTK_BOX(box), g_panel->edge_drop_bottom);
+		_("Move to bottom of stack, out of any group"), FALSE);
+	GtkWidget *overlay = gtk_overlay_new();
+	gtk_overlay_set_child(GTK_OVERLAY(overlay), sw);
+	gtk_overlay_add_overlay(GTK_OVERLAY(overlay), g_panel->edge_drop_top);
+	gtk_overlay_add_overlay(GTK_OVERLAY(overlay), g_panel->edge_drop_bottom);
+	gtk_widget_set_vexpand(overlay, TRUE);
+	gtk_box_append(GTK_BOX(box), overlay);
+
+	/* Keyboard: Delete, F2, Ctrl+D, Alt+Up / Alt+Down.  Capture phase, so
+	 * Alt+arrows reorder instead of moving the list cursor. */
+	GtkEventController *kc = gtk_event_controller_key_new();
+	gtk_event_controller_set_propagation_phase(kc, GTK_PHASE_CAPTURE);
+	g_signal_connect(kc, "key-pressed", G_CALLBACK(on_list_key_pressed), NULL);
+	gtk_widget_add_controller(g_panel->list_view, kc);
+
+	/* Double-click / Enter on a row: rename it. */
+	g_signal_connect(g_panel->list_view, "activate",
+	                 G_CALLBACK(on_list_row_activated), NULL);
+
+	GtkGesture *rc = gtk_gesture_click_new();
+	gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(rc), GDK_BUTTON_SECONDARY);
+	g_signal_connect(rc, "pressed", G_CALLBACK(on_list_secondary_pressed), NULL);
+	gtk_widget_add_controller(g_panel->list_view, GTK_EVENT_CONTROLLER(rc));
 
 	g_signal_connect(g_panel->list_sel, "selection-changed",
 	                 G_CALLBACK(on_selection_changed), NULL);
@@ -1048,8 +1412,11 @@ static void on_name_focus_leave  (GtkEventControllerFocus *c, gpointer u);
 static void on_drag_toggled      (GtkToggleButton *b,  gpointer u);
 static void on_blend_changed     (GtkDropDown *dd, GParamSpec *p, gpointer u);
 static void on_opacity_changed   (GtkAdjustment *adj, gpointer u);
-static void on_opacity_apply_clicked(GtkButton *btn, gpointer u);
-static void opacity_edit_revert  (void);
+static void opacity_commit       (gboolean selection_moved);
+static gboolean on_opacity_scale_event(GtkEventControllerLegacy *c, GdkEvent *ev, gpointer u);
+static void on_name_changed      (GtkEditable *e, gpointer u);
+static gboolean on_name_key_pressed(GtkEventControllerKey *c, guint keyval,
+                                    guint keycode, GdkModifierType state, gpointer u);
 static void on_tint_check_toggled(GtkCheckButton *btn, gpointer u);
 static void on_tint_color_chosen (GtkColorDialogButton *btn, GParamSpec *p, gpointer u);
 
@@ -1093,7 +1460,14 @@ static void build_property(GtkWidget *box) {
 	/* Name */
 	gtk_grid_attach(GTK_GRID(grid), gtk_label_new(_("Name")), 0, row, 1, 1);
 	g_panel->name_entry = gtk_entry_new();
-	gtk_entry_set_max_length(GTK_ENTRY(g_panel->name_entry), 32);
+	gtk_entry_set_max_length(GTK_ENTRY(g_panel->name_entry), FLIS_NAME_MAX_CHARS);
+	g_signal_connect(g_panel->name_entry, "changed", G_CALLBACK(on_name_changed), NULL);
+	{
+		/* Escape abandons a rename in progress. */
+		GtkEventController *kc = gtk_event_controller_key_new();
+		g_signal_connect(kc, "key-pressed", G_CALLBACK(on_name_key_pressed), NULL);
+		gtk_widget_add_controller(g_panel->name_entry, kc);
+	}
 	{
 		/* Commit the edit when focus leaves the entry, not only on
 		 * Enter — clicking elsewhere silently discarded the new name. */
@@ -1126,18 +1500,23 @@ static void build_property(GtkWidget *box) {
 	gtk_widget_set_hexpand(g_panel->opacity_scale, TRUE);
 	gtk_scale_set_draw_value(GTK_SCALE(g_panel->opacity_scale), FALSE);
 	g_panel->opacity_spin  = gtk_spin_button_new(g_panel->opacity_adj, 1.0, 0);
-	g_panel->opacity_apply = gtk_button_new_from_icon_name("object-select-symbolic");
-	gtk_widget_set_tooltip_text(g_panel->opacity_apply,
-		_("Apply the opacity change (adds an undo step). "
-		  "Selecting another layer without applying reverts it."));
-	gtk_widget_set_sensitive(g_panel->opacity_apply, FALSE);
+	gtk_widget_set_tooltip_text(g_panel->opacity_scale,
+		_("Layer opacity. The image follows the slider as it moves; the change "
+		  "is recorded as a single undo step when the slider is released."));
+	{
+		/* Button state of the slider, so a drag commits once, on release
+		 * (see the opacity section below).  A legacy controller in the
+		 * capture phase sees the press and release whatever the scale's
+		 * own gestures do with them. */
+		GtkEventController *lc = gtk_event_controller_legacy_new();
+		gtk_event_controller_set_propagation_phase(lc, GTK_PHASE_CAPTURE);
+		g_signal_connect(lc, "event", G_CALLBACK(on_opacity_scale_event), NULL);
+		gtk_widget_add_controller(g_panel->opacity_scale, lc);
+	}
 	gtk_grid_attach(GTK_GRID(grid), g_panel->opacity_scale, 1, row, 1, 1);
 	gtk_grid_attach(GTK_GRID(grid), g_panel->opacity_spin,  2, row, 1, 1);
-	gtk_grid_attach(GTK_GRID(grid), g_panel->opacity_apply, 3, row, 1, 1);
 	g_signal_connect(g_panel->opacity_adj, "value-changed",
 	                 G_CALLBACK(on_opacity_changed), NULL);
-	g_signal_connect(g_panel->opacity_apply, "clicked",
-	                 G_CALLBACK(on_opacity_apply_clicked), NULL);
 	row++;
 
 	/* Tint frame */
@@ -1185,7 +1564,7 @@ static void build_mask(GtkWidget *box) {
 	g_panel->mask_status_btn = gtk_button_new_with_label(_("(no mask)"));
 	gtk_widget_set_hexpand(g_panel->mask_status_btn, TRUE);
 	gtk_widget_set_tooltip_text(g_panel->mask_status_btn,
-		_("Click to toggle mask active; right-click for more options"));
+		_("Click to enable or disable the layer mask"));
 	g_panel->mask_toggle_btn = gtk_button_new_with_label(_("Add…"));
 	g_panel->mask_move_btn   = gtk_button_new_with_label(_("Move…"));
 	gtk_box_append(GTK_BOX(row1), g_panel->mask_status_btn);
@@ -1224,29 +1603,94 @@ static void build_mask(GtkWidget *box) {
  * the parsed params, keys sorted for a stable display. */
 static gchar *build_hist_detail(const nde_record *rec) {
 	GString *s = g_string_new(NULL);
+	/* The row shows the operation's name; the full capture summary —
+	 * "Color saturation 34%, threshold 1.00" — lives here. */
+	if (rec->summary && *rec->summary)
+		g_string_append_printf(s, "%s\n", rec->summary);
+	/* Prefer the pin: it names WHICH mask and in what state, where
+	 * mask_active only ever said that one existed.  Older records (and any
+	 * captured before the mask had an item) still have only the flag. */
+	gchar *pins = nde_pins_to_string(rec->inputs);
+	if (pins)
+		g_string_append_printf(s, _("Inputs: %s"), pins);
+	else if (rec->mask_active)
+		g_string_append(s, _("A mask was active"));
+	g_free(pins);
+	if (rec->tier == NDE_TIER_B) {
+		if (s->len && s->str[s->len - 1] != '\n')
+			g_string_append_c(s, '\n');
+		g_string_append(s, _("Opaque step: it cannot be edited or re-run"));
+	}
+	if (s->len && s->str[s->len - 1] == '\n')
+		g_string_truncate(s, s->len - 1);
+	return g_string_free(s, FALSE);
+}
+
+/* The record's parameters on one line, for the row: the capture summary with
+ * the operation's own name taken off the front ("Unsharp mask: sigma=2,
+ * amount=0.5" → "sigma=2, amount=0.5"), since the row already shows the name.
+ * NULL when the summary says nothing beyond the name. */
+static gchar *build_hist_brief(const nde_record *rec, const gchar *name) {
+	if (!rec->summary || !*rec->summary)
+		return NULL;
+	const gchar *p = rec->summary;
+	if (name && *name) {
+		const gsize n = strlen(name);
+		if (!g_ascii_strncasecmp(p, name, n))
+			p += n;
+	}
+	while (*p == ' ' || *p == ':' || *p == ',' || *p == '-' || *p == '(')
+		p++;
+	if (!*p)
+		return NULL;
+	gchar *out = g_strdup(p);
+	/* Keep it to one line, and drop the bracket a "(...)" summary closes on. */
+	gchar *nl = strpbrk(out, "\r\n");
+	if (nl) *nl = '\0';
+	gsize len = strlen(out);
+	if (len && out[len - 1] == ')' && p > rec->summary && p[-1] == '(')
+		out[len - 1] = '\0';
+	g_strstrip(out);
+	if (!*out) {
+		g_free(out);
+		return NULL;
+	}
+	return out;
+}
+
+/* "Applied <date and time>" in the user's locale and time zone; the record
+ * stores UTC ISO 8601.  NULL when there is no (parsable) timestamp. */
+static gchar *build_hist_when(const nde_record *rec) {
+	if (!rec->timestamp || !*rec->timestamp)
+		return NULL;
+	GDateTime *utc = g_date_time_new_from_iso8601(rec->timestamp, NULL);
+	if (!utc)
+		return NULL;
+	GDateTime *local = g_date_time_to_local(utc);
+	gchar *stamp = g_date_time_format(local, "%c");
+	gchar *out = stamp ? g_strdup_printf(_("Applied %s"), stamp) : NULL;
+	g_free(stamp);
+	g_date_time_unref(local);
+	g_date_time_unref(utc);
+	return out;
+}
+
+/* Everything a bug report wants and a user normally does not: the record's
+ * identity, the build that wrote it, the stored timestamp and the raw
+ * parameter blob (keys sorted for a stable display).  Shown under the
+ * popover's "Details" expander. */
+static gchar *build_hist_tech(const nde_record *rec) {
+	GString *s = g_string_new(NULL);
 	const gchar *tier_label = rec->tier == NDE_TIER_A ? _("replayable") :
 	                          rec->tier == NDE_TIER_C ? _("script, replayable") :
 	                          _("opaque");
 	g_string_append_printf(s, "record %" G_GINT64_FORMAT ": %s v%d (%s)\n",
 	                       rec->record_id, rec->op_id ? rec->op_id : "?",
 	                       rec->op_version, tier_label);
-	/* The row shows only the operation's name; the full capture summary —
-	 * "Color saturation 34%, threshold 1.00" — lives here instead. */
-	if (rec->summary && *rec->summary)
-		g_string_append_printf(s, "%s\n", rec->summary);
 	if (rec->timestamp)
 		g_string_append_printf(s, "%s\n", rec->timestamp);
 	if (rec->impl)
 		g_string_append_printf(s, "%s\n", rec->impl);
-	/* Prefer the pin: it names WHICH mask and in what state, where
-	 * mask_active only ever said that one existed.  Older records (and any
-	 * captured before the mask had an item) still have only the flag. */
-	gchar *pins = nde_pins_to_string(rec->inputs);
-	if (pins)
-		g_string_append_printf(s, "%s: %s\n", _("inputs"), pins);
-	else if (rec->mask_active)
-		g_string_append_printf(s, "%s\n", _("a mask was active"));
-	g_free(pins);
 	if (rec->params && *rec->params) {
 		g_string_append_c(s, '\n');
 		GHashTable *kv = nde_kv_parse(rec->params);
@@ -1487,6 +1931,9 @@ static gboolean on_hist_drop(GtkDropTarget *t, const GValue *value,
 }
 
 
+static void on_hist_row_secondary_pressed(GtkGestureClick *g, int n, double x,
+                                          double y, gpointer row);
+
 static void on_hist_row_setup(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 	(void)f; (void)u;
 	GtkWidget *row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
@@ -1507,6 +1954,15 @@ static void on_hist_row_setup(GtkListItemFactory *f, GtkListItem *item, gpointer
 	gtk_label_set_ellipsize(GTK_LABEL(summary), PANGO_ELLIPSIZE_END);
 	gtk_widget_set_hexpand(summary, TRUE);
 
+	/* The parameters, dimmed, after the name.  Width-capped: the graph pays
+	 * for every node's widest row in layout width, so this label may take
+	 * spare room but must not ask for it. */
+	GtkWidget *brief = gtk_label_new(NULL);
+	gtk_label_set_xalign(GTK_LABEL(brief), 0.0f);
+	gtk_label_set_ellipsize(GTK_LABEL(brief), PANGO_ELLIPSIZE_END);
+	gtk_label_set_max_width_chars(GTK_LABEL(brief), 32);
+	gtk_widget_add_css_class(brief, "dim-label");
+
 	/* No per-row target column any more: the node this row lives in names
 	 * the item, so repeating it on every row was duplication — and for an
 	 * item the document no longer lists it printed "deleted layer", which
@@ -1514,6 +1970,8 @@ static void on_hist_row_setup(GtkListItemFactory *f, GtkListItem *item, gpointer
 	gtk_box_append(GTK_BOX(row), badge);
 	gtk_box_append(GTK_BOX(row), lock);
 	gtk_box_append(GTK_BOX(row), summary);
+	gtk_box_append(GTK_BOX(row), brief);
+	g_object_set_data(G_OBJECT(item), "hist-brief",   brief);
 	g_object_set_data(G_OBJECT(item), "hist-badge",   badge);
 	g_object_set_data(G_OBJECT(item), "hist-lock",    lock);
 	g_object_set_data(G_OBJECT(item), "hist-summary", summary);
@@ -1533,6 +1991,12 @@ static void on_hist_row_setup(GtkListItemFactory *f, GtkListItem *item, gpointer
 	g_signal_connect(dtgt, "drop",   G_CALLBACK(on_hist_drop), row);
 	gtk_widget_add_controller(row, GTK_EVENT_CONTROLLER(dtgt));
 
+	/* Right-click opens the same step popover a click does. */
+	GtkGesture *rc = gtk_gesture_click_new();
+	gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(rc), GDK_BUTTON_SECONDARY);
+	g_signal_connect(rc, "pressed", G_CALLBACK(on_hist_row_secondary_pressed), row);
+	gtk_widget_add_controller(row, GTK_EVENT_CONTROLLER(rc));
+
 	gtk_list_item_set_child(item, row);
 }
 
@@ -1543,6 +2007,7 @@ static void on_hist_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer 
 	GtkWidget *badge   = g_object_get_data(G_OBJECT(item), "hist-badge");
 	GtkWidget *lock    = g_object_get_data(G_OBJECT(item), "hist-lock");
 	GtkWidget *summary = g_object_get_data(G_OBJECT(item), "hist-summary");
+	GtkWidget *brief   = g_object_get_data(G_OBJECT(item), "hist-brief");
 	if (!r || !row) return;
 	g_object_set_data(G_OBJECT(row), "hist-item", r);
 	/* The graph view anchors a mask's span bracket on the rows it masked; the
@@ -1551,7 +2016,16 @@ static void on_hist_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer 
 	                       g_memdup2(&r->record_id, sizeof(gint64)), g_free);
 	gtk_label_set_text(GTK_LABEL(badge),   r->badge   ? r->badge   : "");
 	gtk_label_set_text(GTK_LABEL(summary), r->summary ? r->summary : "");
-	gtk_widget_set_tooltip_text(row, r->detail);
+	gtk_label_set_text(GTK_LABEL(brief),   r->brief   ? r->brief   : "");
+	gtk_widget_set_visible(brief, r->brief != NULL);
+	{
+		/* Tooltip: what was done and when; the popover has the rest. */
+		gchar *tip = (r->detail && *r->detail && r->when)
+				? g_strdup_printf("%s\n%s", r->detail, r->when)
+				: g_strdup((r->detail && *r->detail) ? r->detail : r->when);
+		gtk_widget_set_tooltip_text(row, tip);
+		g_free(tip);
+	}
 	/* Barrier and frozen rows carry the lock icon (subtle, next to the
 	 * badge); a dead row keeps its dimming — dead wins over frozen. */
 	gtk_widget_set_visible(lock, r->barrier || r->frozen);
@@ -2395,76 +2869,136 @@ static const char *hist_insert_disabled_reason(const NdeHistRowItem *r) {
 	return NULL;
 }
 
-static void on_hist_row_activate(GtkListView *lv, guint position, gpointer u) {
-	(void)u;
-	GListModel *model = G_LIST_MODEL(gtk_list_view_get_model(lv));
-	NdeHistRowItem *r = g_list_model_get_item(model, position);
+/* Build the step popover (once).  Its button row is also what sets the
+ * history window's minimum width — see hist_window_fit_actions(). */
+static void hist_popover_ensure(void) {
+	if (g_panel->hist_popover)
+		return;
+	g_panel->hist_popover = gtk_popover_new();
+	/* Parented to the CONTAINER, not to the list view that raised the
+	 * popover: node list views are destroyed and rebuilt on every
+	 * refresh, and the popover outlives them. */
+	gtk_widget_set_parent(g_panel->hist_popover, g_panel->hist_container);
+
+	GtkWidget *pbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+	gtk_widget_set_margin_start (pbox, 6);
+	gtk_widget_set_margin_end   (pbox, 6);
+	gtk_widget_set_margin_top   (pbox, 6);
+	gtk_widget_set_margin_bottom(pbox, 6);
+
+	/* What the step is and did, in words. */
+	g_panel->hist_popover_title = gtk_label_new(NULL);
+	gtk_label_set_xalign(GTK_LABEL(g_panel->hist_popover_title), 0.0f);
+	gtk_widget_add_css_class(g_panel->hist_popover_title, "heading");
+	gtk_box_append(GTK_BOX(pbox), g_panel->hist_popover_title);
+
+	g_panel->hist_popover_label = gtk_label_new(NULL);
+	gtk_label_set_xalign(GTK_LABEL(g_panel->hist_popover_label), 0.0f);
+	gtk_label_set_wrap(GTK_LABEL(g_panel->hist_popover_label), TRUE);
+	gtk_label_set_max_width_chars(GTK_LABEL(g_panel->hist_popover_label), 60);
+	gtk_box_append(GTK_BOX(pbox), g_panel->hist_popover_label);
+
+	g_panel->hist_popover_when = gtk_label_new(NULL);
+	gtk_label_set_xalign(GTK_LABEL(g_panel->hist_popover_when), 0.0f);
+	gtk_widget_add_css_class(g_panel->hist_popover_when, "dim-label");
+	gtk_box_append(GTK_BOX(pbox), g_panel->hist_popover_when);
+
+	/* The record's identity and raw parameters, out of the way.  One line
+	 * per recorded parameter, and a composite records fifteen of them PER
+	 * INPUT — a three-layer flatten runs to fifty lines.  A bare label
+	 * cannot shrink (its minimum height is its natural height), so such a
+	 * popover asked for more than the window had and GTK simply never
+	 * mapped it.  Scrolled, its minimum is small and it fits. */
+	g_panel->hist_popover_tech = gtk_label_new(NULL);
+	gtk_label_set_selectable(GTK_LABEL(g_panel->hist_popover_tech), TRUE);
+	gtk_label_set_xalign(GTK_LABEL(g_panel->hist_popover_tech), 0.0f);
+	gtk_label_set_max_width_chars(GTK_LABEL(g_panel->hist_popover_tech), 60);
+	gtk_widget_add_css_class(g_panel->hist_popover_tech, "monospace");
+	GtkWidget *detail_sw = gtk_scrolled_window_new();
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(detail_sw),
+	                               GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_propagate_natural_width(GTK_SCROLLED_WINDOW(detail_sw), TRUE);
+	gtk_scrolled_window_set_propagate_natural_height(GTK_SCROLLED_WINDOW(detail_sw), TRUE);
+	gtk_scrolled_window_set_max_content_height(GTK_SCROLLED_WINDOW(detail_sw), 220);
+	gtk_scrolled_window_set_max_content_width(GTK_SCROLLED_WINDOW(detail_sw), 520);
+	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(detail_sw),
+	                              g_panel->hist_popover_tech);
+	g_panel->hist_popover_expander = gtk_expander_new(_("Details"));
+	gtk_expander_set_child(GTK_EXPANDER(g_panel->hist_popover_expander), detail_sw);
+	gtk_box_append(GTK_BOX(pbox), g_panel->hist_popover_expander);
+
+	GtkWidget *actions = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	g_panel->hist_popover_actions = actions;
+	gtk_widget_set_halign(actions, GTK_ALIGN_END);
+	gtk_widget_set_margin_top(actions, 4);
+	g_panel->hist_move_up_btn   = gtk_button_new_with_label(_("Move up"));
+	g_panel->hist_move_down_btn = gtk_button_new_with_label(_("Move down"));
+	g_panel->hist_edit_btn   = gtk_button_new_with_label(_("Edit parameters…"));
+	g_panel->hist_insert_btn = gtk_button_new_with_label(_("Insert before…"));
+	g_panel->hist_delete_btn = gtk_button_new_with_label(_("Delete step"));
+	/* Not "destructive-action": inside a popover that class drew the label
+	 * in the destructive foreground colour (white) on the popover's own
+	 * background, i.e. an invisible button. */
+	gtk_widget_add_css_class(g_panel->hist_delete_btn, "nde-step-delete");
+	gtk_box_append(GTK_BOX(actions), g_panel->hist_move_up_btn);
+	gtk_box_append(GTK_BOX(actions), g_panel->hist_move_down_btn);
+	gtk_box_append(GTK_BOX(actions), g_panel->hist_edit_btn);
+	gtk_box_append(GTK_BOX(actions), g_panel->hist_insert_btn);
+	gtk_box_append(GTK_BOX(actions), g_panel->hist_delete_btn);
+	gtk_box_append(GTK_BOX(pbox), actions);
+
+	g_signal_connect(g_panel->hist_move_up_btn,   "clicked",
+	                 G_CALLBACK(on_hist_move_up_clicked),   NULL);
+	g_signal_connect(g_panel->hist_move_down_btn, "clicked",
+	                 G_CALLBACK(on_hist_move_down_clicked), NULL);
+	g_signal_connect(g_panel->hist_edit_btn,   "clicked",
+	                 G_CALLBACK(on_hist_edit_clicked),   NULL);
+	g_signal_connect(g_panel->hist_insert_btn, "clicked",
+	                 G_CALLBACK(on_hist_insert_clicked), NULL);
+	g_signal_connect(g_panel->hist_delete_btn, "clicked",
+	                 G_CALLBACK(on_hist_delete_clicked), NULL);
+
+	gtk_popover_set_child(GTK_POPOVER(g_panel->hist_popover), pbox);
+}
+
+/* A popover cannot be wider than the window it belongs to has room for, and
+ * the step popover's five buttons are wider than a narrow history window —
+ * the last one ("Delete step") was simply cut off.  So the window's content
+ * is given a minimum width that the button row, at its widest label, fits in.
+ * Measured rather than hard-coded: it depends on the translation and the
+ * font scale. */
+#define HIST_POPOVER_CHROME_PX 48   /* popover padding, shadow and box margins */
+static void hist_window_fit_actions(void) {
+	if (!g_panel || !g_panel->hist_content)
+		return;
+	hist_popover_ensure();
+	/* The delete button has two labels; measure with the longer. */
+	const char *del_a = _("Delete step"), *del_b = _("Undo the merge…");
+	gtk_button_set_label(GTK_BUTTON(g_panel->hist_delete_btn),
+	                     g_utf8_strlen(del_b, -1) > g_utf8_strlen(del_a, -1) ? del_b : del_a);
+	int min_w = 0, nat_w = 0;
+	gtk_widget_measure(g_panel->hist_popover_actions, GTK_ORIENTATION_HORIZONTAL,
+	                   -1, &min_w, &nat_w, NULL, NULL);
+	if (nat_w > 0)
+		gtk_widget_set_size_request(g_panel->hist_content,
+		                            nat_w + HIST_POPOVER_CHROME_PX, -1);
+}
+
+/* Show the step popover for @r, pointing at @row_widget (the list item
+ * widget holding the row; may be NULL, in which case the popover takes its
+ * default anchor). */
+static void hist_popover_show_for(NdeHistRowItem *r, GtkWidget *row_widget) {
 	if (!r) return;
-	if (!g_panel->hist_popover) {
-		g_panel->hist_popover = gtk_popover_new();
-		/* Parented to the CONTAINER, not to the list view that raised this
-		 * activate: node list views are destroyed and rebuilt on every
-		 * refresh, and the popover outlives them. */
-		gtk_widget_set_parent(g_panel->hist_popover, g_panel->hist_container);
-
-		GtkWidget *pbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
-		gtk_widget_set_margin_start (pbox, 6);
-		gtk_widget_set_margin_end   (pbox, 6);
-		gtk_widget_set_margin_top   (pbox, 6);
-		gtk_widget_set_margin_bottom(pbox, 6);
-
-		/* The detail is one line per recorded parameter, and a composite
-		 * records fifteen of them PER INPUT — a three-layer flatten runs to
-		 * fifty lines.  A bare label cannot shrink (its minimum height is its
-		 * natural height), so such a popover asked for more than the window
-		 * had and GTK simply never mapped it: double-clicking a merge row did
-		 * nothing whatever.  Scrolled, its minimum is small and it fits. */
-		g_panel->hist_popover_label = gtk_label_new(NULL);
-		gtk_label_set_selectable(GTK_LABEL(g_panel->hist_popover_label), TRUE);
-		gtk_label_set_xalign(GTK_LABEL(g_panel->hist_popover_label), 0.0f);
-		gtk_label_set_max_width_chars(GTK_LABEL(g_panel->hist_popover_label), 60);
-		gtk_widget_add_css_class(g_panel->hist_popover_label, "monospace");
-		GtkWidget *detail_sw = gtk_scrolled_window_new();
-		gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(detail_sw),
-		                               GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-		gtk_scrolled_window_set_propagate_natural_width(GTK_SCROLLED_WINDOW(detail_sw), TRUE);
-		gtk_scrolled_window_set_propagate_natural_height(GTK_SCROLLED_WINDOW(detail_sw), TRUE);
-		gtk_scrolled_window_set_max_content_height(GTK_SCROLLED_WINDOW(detail_sw), 260);
-		gtk_scrolled_window_set_max_content_width(GTK_SCROLLED_WINDOW(detail_sw), 520);
-		gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(detail_sw),
-		                              g_panel->hist_popover_label);
-		gtk_box_append(GTK_BOX(pbox), detail_sw);
-
-		GtkWidget *actions = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
-		gtk_widget_set_halign(actions, GTK_ALIGN_END);
-		g_panel->hist_move_up_btn   = gtk_button_new_with_label(_("Move up"));
-		g_panel->hist_move_down_btn = gtk_button_new_with_label(_("Move down"));
-		g_panel->hist_edit_btn   = gtk_button_new_with_label(_("Edit parameters…"));
-		g_panel->hist_insert_btn = gtk_button_new_with_label(_("Insert before…"));
-		g_panel->hist_delete_btn = gtk_button_new_with_label(_("Delete step"));
-		gtk_widget_add_css_class(g_panel->hist_delete_btn, "destructive-action");
-		gtk_box_append(GTK_BOX(actions), g_panel->hist_move_up_btn);
-		gtk_box_append(GTK_BOX(actions), g_panel->hist_move_down_btn);
-		gtk_box_append(GTK_BOX(actions), g_panel->hist_edit_btn);
-		gtk_box_append(GTK_BOX(actions), g_panel->hist_insert_btn);
-		gtk_box_append(GTK_BOX(actions), g_panel->hist_delete_btn);
-		gtk_box_append(GTK_BOX(pbox), actions);
-
-		g_signal_connect(g_panel->hist_move_up_btn,   "clicked",
-		                 G_CALLBACK(on_hist_move_up_clicked),   NULL);
-		g_signal_connect(g_panel->hist_move_down_btn, "clicked",
-		                 G_CALLBACK(on_hist_move_down_clicked), NULL);
-		g_signal_connect(g_panel->hist_edit_btn,   "clicked",
-		                 G_CALLBACK(on_hist_edit_clicked),   NULL);
-		g_signal_connect(g_panel->hist_insert_btn, "clicked",
-		                 G_CALLBACK(on_hist_insert_clicked), NULL);
-		g_signal_connect(g_panel->hist_delete_btn, "clicked",
-		                 G_CALLBACK(on_hist_delete_clicked), NULL);
-
-		gtk_popover_set_child(GTK_POPOVER(g_panel->hist_popover), pbox);
-	}
+	hist_popover_ensure();
+	gtk_label_set_text(GTK_LABEL(g_panel->hist_popover_title),
+	                   r->summary ? r->summary : "");
 	gtk_label_set_text(GTK_LABEL(g_panel->hist_popover_label),
 	                   r->detail ? r->detail : "");
+	gtk_widget_set_visible(g_panel->hist_popover_label, r->detail && *r->detail);
+	gtk_label_set_text(GTK_LABEL(g_panel->hist_popover_when), r->when ? r->when : "");
+	gtk_widget_set_visible(g_panel->hist_popover_when, r->when != NULL);
+	gtk_label_set_text(GTK_LABEL(g_panel->hist_popover_tech), r->tech ? r->tech : "");
+	gtk_expander_set_expanded(GTK_EXPANDER(g_panel->hist_popover_expander), FALSE);
 
 	/* Remember the targeted row for the action callbacks. */
 	g_clear_object(&g_panel->hist_popover_row);
@@ -2498,32 +3032,49 @@ static void on_hist_row_activate(GtkListView *lv, guint position, gpointer u) {
 	                             ? _("Deleting this opaque step unlocks the steps before it")
 	                             : NULL));
 
-	/* Point the popover at the activated row (rather than the list's
-	 * default anchor at its bottom edge).  The bound item on a realized
-	 * row's box is the same object instance as the model item, so a
-	 * pointer compare finds the right row. */
+	/* Point the popover at the row (rather than the container's default
+	 * anchor at its bottom edge).  Bounds in the container's coordinates,
+	 * which is what the popover is parented to. */
 	gtk_popover_set_pointing_to(GTK_POPOVER(g_panel->hist_popover), NULL);
-	for (GtkWidget *c = gtk_widget_get_first_child(GTK_WIDGET(lv)); c;
-	     c = gtk_widget_get_next_sibling(c)) {
-		GtkWidget *rowbox = gtk_widget_get_first_child(c);
-		NdeHistRowItem *cr = rowbox ?
-				g_object_get_data(G_OBJECT(rowbox), "hist-item") : NULL;
-		if (cr == r) {
-			graphene_rect_t b;
-			/* Bounds in the container's coordinates, which is what the
-			 * popover is now parented to. */
-			if (gtk_widget_compute_bounds(c, g_panel->hist_container, &b)) {
-				GdkRectangle rect = { (int)b.origin.x, (int)b.origin.y,
-				                      (int)b.size.width, (int)b.size.height };
-				gtk_popover_set_pointing_to(GTK_POPOVER(g_panel->hist_popover),
-				                            &rect);
-			}
-			break;
-		}
+	graphene_rect_t b;
+	if (row_widget
+	    && gtk_widget_compute_bounds(row_widget, g_panel->hist_container, &b)) {
+		GdkRectangle rect = { (int)b.origin.x, (int)b.origin.y,
+		                      (int)b.size.width, (int)b.size.height };
+		gtk_popover_set_pointing_to(GTK_POPOVER(g_panel->hist_popover), &rect);
 	}
 
 	gtk_popover_popup(GTK_POPOVER(g_panel->hist_popover));
+}
+
+/* A click (the lists are single-click-activate), Enter or Space on a row. */
+static void on_hist_row_activate(GtkListView *lv, guint position, gpointer u) {
+	(void)u;
+	GListModel *model = G_LIST_MODEL(gtk_list_view_get_model(lv));
+	NdeHistRowItem *r = g_list_model_get_item(model, position);
+	if (!r) return;
+	/* The bound item on a realized row's box is the same object instance
+	 * as the model item, so a pointer compare finds the right row. */
+	GtkWidget *row_widget = NULL;
+	for (GtkWidget *c = gtk_widget_get_first_child(GTK_WIDGET(lv)); c;
+	     c = gtk_widget_get_next_sibling(c)) {
+		GtkWidget *rowbox = gtk_widget_get_first_child(c);
+		if (rowbox && g_object_get_data(G_OBJECT(rowbox), "hist-item") == r) {
+			row_widget = c;
+			break;
+		}
+	}
+	hist_popover_show_for(r, row_widget);
 	g_object_unref(r);
+}
+
+static void on_hist_row_secondary_pressed(GtkGestureClick *g, int n, double x,
+                                          double y, gpointer row) {
+	(void)n; (void)x; (void)y;
+	NdeHistRowItem *r = g_object_get_data(G_OBJECT(row), "hist-item");
+	if (!r || !g_panel) return;
+	gtk_gesture_set_state(GTK_GESTURE(g), GTK_EVENT_SEQUENCE_CLAIMED);
+	hist_popover_show_for(r, gtk_widget_get_parent(GTK_WIDGET(row)));
 }
 
 /* Per-record freeze marks derived from the P4.1 chain verdicts (P4.4).
@@ -2658,6 +3209,9 @@ static hist_node_ui *hist_node_get(gint item_id, const nde_graph_node *gn,
 	gtk_single_selection_set_can_unselect(sel, TRUE);
 	n->list = gtk_list_view_new(GTK_SELECTION_MODEL(sel),
 	                            g_object_ref(g_panel->hist_factory));
+	/* One click opens the step's popover: the actions on a step were
+	 * otherwise behind an undiscoverable double-click. */
+	gtk_list_view_set_single_click_activate(GTK_LIST_VIEW(n->list), TRUE);
 	g_signal_connect(n->list, "activate", G_CALLBACK(on_hist_row_activate), NULL);
 
 	/* Header: what the item is, and — the thing the flat list could not say
@@ -2947,6 +3501,9 @@ static void refresh_history(void) {
 					? g_strdup(_(od->description))
 					: g_strdup(rec->summary ? rec->summary : rec->op_id);
 			item->detail  = build_hist_detail(rec);
+			item->brief   = build_hist_brief(rec, item->summary);
+			item->when    = build_hist_when(rec);
+			item->tech    = build_hist_tech(rec);
 			item->dead    = (i >= live);
 			item->record_id = rec->record_id;
 			item->amendable = nde_record_amendable(rec);
@@ -3011,9 +3568,14 @@ static void refresh_history(void) {
 	                              anchor != 0);
 	gtk_widget_set_visible(g_panel->hist_fits_hint,
 	                       total > 0 && !is_current_image_flis());
-	gchar *lbl = g_strdup_printf(_("Nondestructive History (%u)"), live);
+	gchar *lbl = g_strdup_printf(ngettext("%u step", "%u steps", live), live);
 	gtk_label_set_text(GTK_LABEL(g_panel->hist_header), lbl);
 	g_free(lbl);
+	/* Nothing recorded yet: say what this window is for instead of showing
+	 * an empty pane. */
+	gtk_widget_set_visible(g_panel->hist_header,      total > 0);
+	gtk_widget_set_visible(g_panel->hist_scroller,    total > 0);
+	gtk_widget_set_visible(g_panel->hist_placeholder, total == 0);
 }
 
 /* Coalesced cross-thread refresh — same CAS pattern as refresh_pending
@@ -3092,7 +3654,8 @@ static GtkWidget *hist_window_get(void) {
 	GtkWidget *w = gtk_window_new();
 	g_panel->hist_win = w;
 	gtk_window_set_title(GTK_WINDOW(w), _("Nondestructive History"));
-	gtk_window_set_default_size(GTK_WINDOW(w), 720, 560);
+	panel_window_remember_size(GTK_WINDOW(w), 720, 560,
+			&com.pref.gui.nde_history_w, &com.pref.gui.nde_history_h);
 	GtkWidget *main_w = lookup_widget("control_window");
 	if (main_w)
 		gtk_window_set_transient_for(GTK_WINDOW(w), GTK_WINDOW(main_w));
@@ -3131,10 +3694,11 @@ static void build_history_popover(void) {
 	gtk_window_set_child(GTK_WINDOW(hist_window_get()), vbox);
 
 	GtkWidget *hdr = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
-	g_panel->hist_header = gtk_label_new(_("Nondestructive History"));
+	/* The title bar already names the window; this line carries the count. */
+	g_panel->hist_header = gtk_label_new(NULL);
 	gtk_label_set_xalign(GTK_LABEL(g_panel->hist_header), 0.0f);
 	gtk_widget_set_hexpand(g_panel->hist_header, TRUE);
-	gtk_widget_add_css_class(g_panel->hist_header, "heading");
+	gtk_widget_add_css_class(g_panel->hist_header, "dim-label");
 	gtk_box_append(GTK_BOX(hdr), g_panel->hist_header);
 	gtk_box_append(GTK_BOX(vbox), hdr);
 
@@ -3206,6 +3770,35 @@ static void build_history_popover(void) {
 	gtk_widget_set_vexpand(sw, TRUE);
 	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), g_panel->hist_container);
 	gtk_box_append(GTK_BOX(vbox), sw);
+	g_panel->hist_scroller = sw;
+
+	/* Empty state. */
+	GtkWidget *ph = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+	gtk_widget_set_valign(ph, GTK_ALIGN_CENTER);
+	gtk_widget_set_vexpand(ph, TRUE);
+	gtk_widget_set_margin_start(ph, 24);
+	gtk_widget_set_margin_end  (ph, 24);
+	GtkWidget *ph_icon = gtk_image_new_from_icon_name("document-open-recent-symbolic");
+	gtk_image_set_pixel_size(GTK_IMAGE(ph_icon), 48);
+	gtk_widget_add_css_class(ph_icon, "dim-label");
+	GtkWidget *ph_title = gtk_label_new(_("No processing steps yet"));
+	gtk_widget_add_css_class(ph_title, "heading");
+	GtkWidget *ph_text = gtk_label_new(
+			_("Each operation applied to this image is recorded here as a step. "
+			  "Click a step to see its settings, change them, move it, insert "
+			  "new steps before it or delete it; the image is recomputed to match."));
+	gtk_label_set_wrap(GTK_LABEL(ph_text), TRUE);
+	gtk_label_set_justify(GTK_LABEL(ph_text), GTK_JUSTIFY_CENTER);
+	gtk_label_set_max_width_chars(GTK_LABEL(ph_text), 50);
+	gtk_widget_add_css_class(ph_text, "dim-label");
+	gtk_box_append(GTK_BOX(ph), ph_icon);
+	gtk_box_append(GTK_BOX(ph), ph_title);
+	gtk_box_append(GTK_BOX(ph), ph_text);
+	gtk_widget_set_visible(ph, FALSE);
+	gtk_box_append(GTK_BOX(vbox), ph);
+	g_panel->hist_placeholder = ph;
+
+	hist_window_fit_actions();
 
 	GtkWidget *btn = lookup_widget("nde_history_button");
 	if (btn && GTK_IS_TOGGLE_BUTTON(btn))
@@ -3229,15 +3822,29 @@ static void on_ctx_layers_match  (GSimpleAction *a, GVariant *v, gpointer u);
 static void on_ctx_register_layers(GSimpleAction *a, GVariant *v, gpointer u);
 static void on_ctx_delete_group  (GSimpleAction *a, GVariant *v, gpointer u);
 
+/* Labels follow the capitalisation of Siril's existing menus (title case).
+ * Sections: export / alignment / grouping / destructive. */
 static GMenu *build_context_menu(void) {
 	GMenu *m = g_menu_new();
-	g_menu_append(m, _("Export current layer as FITS…"), "win.flis-export-layer");
-	g_menu_append(m, _("Register layers…"),              "win.flis-register-layers");
-	g_menu_append(m, _("Layers match…"),                 "win.flis-layers-match");
-	g_menu_append(m, _("Move layer to group…"),          "win.flis-move-to-group");
-	g_menu_append(m, _("Delete group…"),                 "win.flis-delete-group");
-	g_menu_append(m, _("Merge Down"),                    "win.flis-merge-down");
-	g_menu_append(m, _("Flatten Image"),                 "win.flis-flatten");
+	GMenu *sec = g_menu_new();
+	g_menu_append(sec, _("Export Current Layer as FITS…"), "win.flis-export-layer");
+	g_menu_append_section(m, NULL, G_MENU_MODEL(sec));
+	g_object_unref(sec);
+	sec = g_menu_new();
+	g_menu_append(sec, _("Register Layers…"),              "win.flis-register-layers");
+	g_menu_append(sec, _("Layers Match…"),                 "win.flis-layers-match");
+	g_menu_append_section(m, NULL, G_MENU_MODEL(sec));
+	g_object_unref(sec);
+	sec = g_menu_new();
+	g_menu_append(sec, _("Move Layer to Group…"),          "win.flis-move-to-group");
+	g_menu_append(sec, _("Delete Group…"),                 "win.flis-delete-group");
+	g_menu_append_section(m, NULL, G_MENU_MODEL(sec));
+	g_object_unref(sec);
+	sec = g_menu_new();
+	g_menu_append(sec, _("Merge Down…"),                   "win.flis-merge-down");
+	g_menu_append(sec, _("Flatten Image…"),                "win.flis-flatten");
+	g_menu_append_section(m, NULL, G_MENU_MODEL(sec));
+	g_object_unref(sec);
 	return m;
 }
 
@@ -3266,7 +3873,7 @@ static void register_panel_actions(void) {
 	                                 NULL);
 	gtk_widget_insert_action_group(g_panel->window, "win",
 	                                G_ACTION_GROUP(group));
-	g_object_unref(group);
+	g_panel->actions = group;   /* kept: update_action_sensitivity() */
 }
 
 /* =========================================================================
@@ -3330,6 +3937,46 @@ static flis_layer_t *current_selected_layer(void) {
 	return lay;
 }
 
+static void panel_action_set_enabled(const char *name, gboolean enabled) {
+	GAction *a = g_action_map_lookup_action(G_ACTION_MAP(g_panel->actions), name);
+	if (a)
+		g_simple_action_set_enabled(G_SIMPLE_ACTION(a), enabled);
+}
+
+/* Enable each layer-menu action only where its handler would do something.
+ * The conditions mirror the early-outs in the on_ctx_* handlers, which stay
+ * as a backstop. */
+static void update_action_sensitivity(void) {
+	if (!g_panel || !g_panel->actions) return;
+	const gboolean is_flis = is_current_image_flis();
+	flis_layer_t *sel_lay = is_flis ? current_selected_layer() : NULL;
+	flis_group_t *sel_grp = is_flis ? current_selected_group() : NULL;
+	const guint n_layers = (is_flis && com.uniq) ? g_slist_length(com.uniq->layers) : 0;
+
+	guint n_members = 0;
+	if (sel_grp) {
+		GSList *members = flis_group_get_layers(sel_grp);
+		n_members = g_slist_length(members);
+		g_slist_free(members);
+	}
+	GArray *ids = panel_selected_layer_ids();
+	const gboolean any_layer_selected = is_flis && ids->len > 0;
+	g_array_unref(ids);
+
+	/* Merge Down: a group of two or more, or a layer with one beneath it
+	 * (com.uniq->layers is bottom-first). */
+	const gboolean can_merge = sel_grp ? n_members >= 2
+		: (sel_lay && com.uniq->layers && com.uniq->layers->data != sel_lay);
+
+	panel_action_set_enabled("flis-export-layer",    sel_lay != NULL);
+	panel_action_set_enabled("flis-register-layers", (sel_grp ? n_members : n_layers) >= 2);
+	panel_action_set_enabled("flis-layers-match",    n_layers >= 2);
+	panel_action_set_enabled("flis-move-to-group",   any_layer_selected);
+	panel_action_set_enabled("flis-delete-group",    sel_grp != NULL);
+	panel_action_set_enabled("flis-merge-down",      can_merge);
+	panel_action_set_enabled("flis-flatten",         n_layers >= 2);
+}
+
 /* Compute toolbar button sensitivity from current selection + image
  * state.  Called from refresh_panel and on_selection_changed so the
  * buttons re-enable as soon as the user picks a different row, not
@@ -3353,6 +4000,8 @@ static void update_toolbar_sensitivity(void) {
 	gtk_widget_set_sensitive(g_panel->btn_drag,      sel_lay != NULL);
 	gtk_widget_set_sensitive(g_panel->btn_add,       com.uniq != NULL);
 	gtk_widget_set_sensitive(g_panel->btn_group,     is_flis);
+
+	update_action_sensitivity();
 
 	/* Resync the drag toggle to the actual mouse mode — the mode can be
 	 * switched away from FLIS drag via the mouse-actions UI, which left
@@ -3430,18 +4079,6 @@ static void refresh_panel(void) {
 	g_panel->refreshing = TRUE;
 
 	const gboolean is_flis = is_current_image_flis();
-
-	/* Mode label */
-	if (!com.uniq) {
-		gtk_label_set_text(GTK_LABEL(g_panel->mode_label), _("(no image)"));
-	} else if (!is_flis) {
-		gtk_label_set_text(GTK_LABEL(g_panel->mode_label), "FITS");
-	} else {
-		/* Active-group mode (FLIS·group_name) is a §5 addition once
-		 * the group-edit-context lives somewhere on com.uniq; for
-		 * now the panel just signals plain "FLIS" mode. */
-		gtk_label_set_text(GTK_LABEL(g_panel->mode_label), "FLIS");
-	}
 
 	/* Remember which rows were selected so we can restore them after the
 	 * rebuild — otherwise every refresh (triggered by any mutation)
@@ -4147,9 +4784,9 @@ static void on_group_expander_clicked(GtkButton *btn, gpointer u) {
 static void on_selection_changed(GtkSelectionModel *sel, guint pos, guint nitems, gpointer u) {
 	(void)sel; (void)pos; (void)nitems; (void)u;
 	if (g_panel && g_panel->refreshing) return;
-	/* An un-applied opacity preview does not survive a selection
-	 * change — put the outgoing item's opacity back. */
-	opacity_edit_revert();
+	/* An opacity edit still settling belongs to the outgoing item:
+	 * commit it now rather than lose it. */
+	opacity_commit(TRUE);
 	/* Several rows selected: single-target state reads as "nothing",
 	 * multi-aware flows read the whole set via panel_selected_layer_ids.
 	 * The sole-row accessors below return NULL in this case already; the
@@ -4197,6 +4834,44 @@ static void on_selection_changed(GtkSelectionModel *sel, guint pos, guint nitems
 }
 
 /* Property handlers */
+
+/* The name is capped by the on-disk format (flis_layer_props_t::name).
+ * GtkEntry simply stops accepting characters at max-length, which reads as
+ * a stuck keyboard; say why. */
+static void on_name_changed(GtkEditable *e, gpointer u) {
+	(void)u;
+	const gboolean full =
+		g_utf8_strlen(gtk_editable_get_text(e), -1) >= FLIS_NAME_MAX_CHARS;
+	gtk_entry_set_icon_from_icon_name(GTK_ENTRY(e), GTK_ENTRY_ICON_SECONDARY,
+	                                  full ? "dialog-warning-symbolic" : NULL);
+	if (full) {
+		gchar *tip = g_strdup_printf(
+			_("Layer and group names are limited to %d characters"),
+			FLIS_NAME_MAX_CHARS);
+		gtk_entry_set_icon_tooltip_text(GTK_ENTRY(e), GTK_ENTRY_ICON_SECONDARY, tip);
+		g_free(tip);
+	}
+}
+
+/* Escape in the name entry: put the current name back (so the focus-leave
+ * commit sees no change) and hand the focus back to the list. */
+static gboolean on_name_key_pressed(GtkEventControllerKey *c, guint keyval,
+                                    guint keycode, GdkModifierType state, gpointer u) {
+	(void)c; (void)keycode; (void)state; (void)u;
+	if (keyval != GDK_KEY_Escape || !g_panel) return FALSE;
+	const char *cur = NULL;
+	if (g_panel->selected_kind == FLIS_ROW_KIND_GROUP) {
+		flis_group_t *grp = flis_group_get_by_id(g_panel->selected_item_id);
+		cur = grp ? grp->name : NULL;
+	} else if (g_panel->selected_kind == FLIS_ROW_KIND_LAYER) {
+		flis_layer_t *lay = flis_layer_get_by_id(g_panel->selected_item_id);
+		cur = lay ? lay->layer_name : NULL;
+	}
+	gtk_editable_set_text(GTK_EDITABLE(g_panel->name_entry), cur ? cur : "");
+	gtk_widget_grab_focus(g_panel->list_view);
+	return TRUE;
+}
+
 static void on_name_focus_leave(GtkEventControllerFocus *c, gpointer u) {
 	(void)c; (void)u;
 	if (g_panel && g_panel->name_entry)
@@ -4274,59 +4949,51 @@ void flis_drag_tick_refresh(void) {
 	g_idle_add_full(G_PRIORITY_DEFAULT_IDLE, drag_refresh_idle_cb, NULL, NULL);
 }
 
-/* Opacity edits are "live preview" only: slider / spin-button ticks
- * write the property directly (plus the coalesced display refresh) and
- * never touch the worker or the undo stack.  The Apply button next to
- * the spin button commits the edit: it restores the pre-edit value and
- * dispatches a single worker op, so the undo snapshot taken by
- * dispatch_op records the true pre-edit state.  Selecting a different
- * layer or group without applying reverts the preview.
+/* Opacity edits preview live and commit by themselves.
+ *
+ * Slider / spin-button ticks write the property directly (plus the coalesced
+ * display refresh) and never touch the worker or the undo stack.  The edit
+ * is COMMITTED — the pre-edit value is restored and a single worker op
+ * dispatched, so the undo snapshot records the true pre-edit state — when:
+ *   - the slider is released after a drag;
+ *   - the value has stopped changing for OPACITY_COMMIT_DELAY_MS (spin
+ *     button, keyboard, scroll wheel); or
+ *   - the selection moves to another row.
+ * One gesture therefore makes one undo step, and no change is ever lost
+ * for want of pressing a button.
  *
  * (Historical note: dispatching a worker op per adjustment tick tripped
  * start_in_new_thread's busy guard — "The processing thread is busy" —
  * which spammed the log and dropped the refused ops; a per-tick commit
- * also produced one undo entry per tick.) */
+ * also produced one undo entry per tick.  An earlier design committed only
+ * from an Apply button and reverted the preview on a selection change,
+ * which silently discarded edits.) */
+#define OPACITY_COMMIT_DELAY_MS 400
 
-/* Un-applied edit; id == 0 means none pending. */
+/* Un-committed edit; id == 0 means none pending. */
 static struct {
 	gint     id;
 	gboolean is_group;
-	gfloat   start;      /* property value before the edit, for undo/revert */
+	gfloat   start;      /* property value before the edit, for the undo snapshot */
 } opacity_edit = { 0, FALSE, 0.0f };
+
+/* A multi-selection has no live preview; this marks that the widget value
+ * is waiting to be applied to every selected layer. */
+static gboolean opacity_multi_pending = FALSE;
+static guint    opacity_commit_source = 0;
+static gboolean opacity_scale_pressed = FALSE;
 
 static void opacity_edit_clear(void) {
 	opacity_edit.id = 0;
-	if (g_panel && g_panel->opacity_apply)
-		gtk_widget_set_sensitive(g_panel->opacity_apply, FALSE);
+	opacity_multi_pending = FALSE;
+	if (opacity_commit_source) {
+		g_source_remove(opacity_commit_source);
+		opacity_commit_source = 0;
+	}
 }
 
-/* Discard an un-applied edit, restoring the pre-edit value. */
-static void opacity_edit_revert(void) {
-	if (opacity_edit.id == 0) return;
-	gboolean changed = FALSE;
-	if (opacity_edit.is_group) {
-		flis_group_t *grp = flis_group_get_by_id(opacity_edit.id);
-		if (grp && grp->opacity != opacity_edit.start) {
-			grp->opacity = opacity_edit.start;
-			changed = TRUE;
-		}
-	} else {
-		flis_layer_t *lay = flis_layer_get_by_id(opacity_edit.id);
-		if (lay && lay->opacity != opacity_edit.start) {
-			lay->opacity = opacity_edit.start;
-			changed = TRUE;
-		}
-	}
-	if (changed) {
-		gui_iface.flis_display_invalidate(FLIS_INV_LAYER_PROPS, opacity_edit.id);
-		flis_drag_tick_refresh();
-	}
-	opacity_edit_clear();
-}
-
-/* Commit payload captured at Apply-click time, so a subsequent
- * selection change (which reverts the *pending* edit) cannot disturb an
- * apply that is waiting out a busy worker. */
+/* Commit payload captured at commit time, so a later selection change
+ * cannot disturb a commit that is waiting out a busy worker. */
 struct opacity_apply {
 	gint     id;
 	gboolean is_group;
@@ -4362,12 +5029,18 @@ DONE:
 	return G_SOURCE_REMOVE;
 }
 
-static void on_opacity_apply_clicked(GtkButton *btn, gpointer u) {
-	(void)btn; (void)u;
-	/* Multi-selection: no live preview ticks ran (on_opacity_changed
-	 * skips them), so Apply commits the spin value to every selected
-	 * layer directly. */
-	if (g_panel && g_panel->selected_kind == FLIS_SEL_MULTI) {
+/* Commit whatever opacity edit is pending.  @selection_moved: called from
+ * the selection-changed handler, i.e. the rows the edit was made against
+ * are no longer the selected ones. */
+static void opacity_commit(gboolean selection_moved) {
+	const gboolean multi = opacity_multi_pending;
+	if (multi) {
+		opacity_edit_clear();
+		/* The multi-selection targets are read from the selection itself,
+		 * so once it has moved there is nothing left to apply to; nothing
+		 * was previewed either, so nothing needs putting back. */
+		if (selection_moved || !g_panel || g_panel->selected_kind != FLIS_SEL_MULTI)
+			return;
 		struct op_payload *op = g_new0(struct op_payload, 1);
 		op->destroy_fn = op_payload_free;
 		op->kind = OP_SET_OPACITY;
@@ -4403,13 +5076,53 @@ static void on_opacity_apply_clicked(GtkButton *btn, gpointer u) {
 		g_timeout_add(100, opacity_apply_cb, a);
 }
 
+static gboolean opacity_commit_timeout_cb(gpointer u) {
+	(void)u;
+	/* Mid-drag with the pointer held still: not finished yet. */
+	if (opacity_scale_pressed)
+		return G_SOURCE_CONTINUE;
+	opacity_commit_source = 0;
+	opacity_commit(FALSE);
+	return G_SOURCE_REMOVE;
+}
+
+static void opacity_commit_schedule(guint delay_ms) {
+	if (opacity_commit_source)
+		g_source_remove(opacity_commit_source);
+	opacity_commit_source = g_timeout_add(delay_ms, opacity_commit_timeout_cb, NULL);
+}
+
+/* Press / release on the opacity slider.  The release is what ends a drag;
+ * the short delay lets the final value-changed of the gesture land first.
+ * Never consumes the event. */
+static gboolean on_opacity_scale_event(GtkEventControllerLegacy *c, GdkEvent *ev, gpointer u) {
+	(void)c; (void)u;
+	switch (gdk_event_get_event_type(ev)) {
+		case GDK_BUTTON_PRESS:
+		case GDK_TOUCH_BEGIN:
+			opacity_scale_pressed = TRUE;
+			break;
+		case GDK_BUTTON_RELEASE:
+		case GDK_TOUCH_END:
+		case GDK_TOUCH_CANCEL:
+			opacity_scale_pressed = FALSE;
+			if (opacity_edit.id != 0 || opacity_multi_pending)
+				opacity_commit_schedule(50);
+			break;
+		default:
+			break;
+	}
+	return GDK_EVENT_PROPAGATE;   /* observe only: the scale handles it */
+}
+
 static void on_opacity_changed(GtkAdjustment *adj, gpointer u) {
 	(void)u;
 	if (!g_panel || g_panel->refreshing) return;
 	if (g_panel->selected_kind == FLIS_SEL_MULTI) {
-		/* No live preview across a multi-selection — just arm Apply,
-		 * which commits the spin value to every selected layer. */
-		gtk_widget_set_sensitive(g_panel->opacity_apply, TRUE);
+		/* No live preview across a multi-selection — the value is applied
+		 * to every selected layer when the edit settles. */
+		opacity_multi_pending = TRUE;
+		opacity_commit_schedule(OPACITY_COMMIT_DELAY_MS);
 		return;
 	}
 	if (g_panel->selected_item_id == 0) return;
@@ -4417,11 +5130,11 @@ static void on_opacity_changed(GtkAdjustment *adj, gpointer u) {
 	const gint id = g_panel->selected_item_id;
 	const gfloat v = (gfloat)(gtk_adjustment_get_value(adj) / 100.0);
 
-	/* Shouldn't happen (selection change reverts first), but never let
+	/* Shouldn't happen (a selection change commits first), but never let
 	 * an edit of one item adopt another item's start value. */
 	if (opacity_edit.id != 0 &&
 	    (opacity_edit.id != id || opacity_edit.is_group != is_group))
-		opacity_edit_revert();
+		opacity_commit(TRUE);
 
 	if (is_group) {
 		flis_group_t *grp = flis_group_get_by_id(id);
@@ -4438,9 +5151,9 @@ static void on_opacity_changed(GtkAdjustment *adj, gpointer u) {
 	}
 	opacity_edit.id = id;
 	opacity_edit.is_group = is_group;
-	gtk_widget_set_sensitive(g_panel->opacity_apply, v != opacity_edit.start);
 	gui_iface.flis_display_invalidate(FLIS_INV_LAYER_PROPS, id);
 	flis_drag_tick_refresh();
+	opacity_commit_schedule(OPACITY_COMMIT_DELAY_MS);
 }
 
 static void on_tint_check_toggled(GtkCheckButton *btn, gpointer u) {
@@ -4558,7 +5271,13 @@ static void on_remove_confirm_resp(GObject *src, GAsyncResult *res, gpointer ud)
 static void on_remove_clicked(GtkButton *b, gpointer u) {
 	(void)b; (void)u;
 	flis_layer_t *lay = current_selected_layer();
-	if (!lay) return;
+	if (!lay) {
+		/* A group header is selected: Remove means "delete this group",
+		 * which has its own keep-or-delete-the-members question. */
+		if (current_selected_group())
+			on_ctx_delete_group(NULL, NULL, NULL);
+		return;
+	}
 	GtkAlertDialog *ad = gtk_alert_dialog_new(
 		_("Remove layer '%s'?"),
 		lay->layer_name ? lay->layer_name : _("(unnamed)"));

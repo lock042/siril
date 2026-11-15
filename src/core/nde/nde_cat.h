@@ -29,7 +29,7 @@
  * the Gaia catalogues) for PCC, the full sampled flux spectra for SPCC.  At
  * analysis time all of it sits in memory in the pipeline's ref_stars — so it
  * is stashed right there, adopted by the NDE capture under the new record's
- * id, persisted into the .flis as a FLIS_NDE_CAT binary-table HDU (the file
+ * id, persisted into the FLIS file as a FLIS_NDE_CAT binary-table HDU (the file
  * is then fully self-contained and portable — user decision 2026-08-05), and
  * re-registered on load.  Replay re-projects the stored sky positions with
  * the replayed image's WCS and runs the ordinary pipeline, no network.
