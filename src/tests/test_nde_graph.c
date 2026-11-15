@@ -23,6 +23,7 @@
 #include <criterion/criterion.h>
 
 #include "core/masks.h"
+#include "core/nde/nde_replay.h"
 #include "core/nde/nde_checkpoint.h"
 #include "core/nde/nde_graph.h"
 #include "core/nde/nde_history.h"
@@ -170,6 +171,58 @@ Test(nde_graph, a_promoted_image_takes_its_origin_with_it) {
 	cr_assert_str_eq(n->label, "Background");
 	cr_assert_eq(n->record_ids->len, 1);
 	nde_graph_free(g);
+	/* the base layer owns f now; the suite teardown frees it */
+	nde_history_attach(NULL);
+}
+
+/* The steps of a promoted image stay editable.  Geometry on a plain image is
+ * recorded with scope CANVAS; carried onto the base layer unchanged it read
+ * as a move of that layer with no starting position, which froze every step
+ * recorded before the promote — adding a layer put padlocks on them.  It is
+ * a pixel step of the layer, and the checkpoints that came with it sit at
+ * the canvas origin. */
+Test(nde_graph, a_promoted_image_keeps_its_geometry_steps_editable) {
+	fits *f = fresh_image();
+	com.uniq->fit = f;
+	com.uniq->chans = 1;
+	nde_checkpoint_baseline_ensure(f, NDE_ITEM_IMAGE);
+	cr_assert(!nde_checkpoint_baseline_has_position(NDE_ITEM_IMAGE),
+	          "a plain image has no canvas position");
+
+	nde_record *pix = nde_record_new();
+	pix->op_id = g_strdup("geometry.mirrorx");
+	pix->op_version = 1;
+	pix->tier = NDE_TIER_A;
+	pix->params = g_strdup("x_axis=1");
+	pix->scope = NDE_SCOPE_LAYER;
+	nde_history_append(pix);
+	nde_record *geo = nde_record_new();
+	geo->op_id = g_strdup("geometry.mirrorx");
+	geo->op_version = 1;
+	geo->tier = NDE_TIER_A;
+	geo->params = g_strdup("x_axis=1");
+	geo->scope = NDE_SCOPE_CANVAS;
+	nde_history_append(geo);
+
+	cr_assert_eq(flis_promote_from_gfit("Background"), 0);
+	flis_layer_t *base = flis_active_layer();
+	cr_assert_not_null(base);
+
+	cr_assert(nde_checkpoint_baseline_has_position(base->item_id),
+	          "the promoted baseline sits where the base layer does");
+	gint px = -1, py = -1;
+	nde_checkpoint_baseline_position(base->item_id, &px, &py);
+	cr_assert_eq(px, 0);
+	cr_assert_eq(py, 0);
+
+	nde_chain *chain = nde_chain_build(base->item_id);
+	cr_assert_eq(chain->records->len, 2, "both steps belong to the base layer");
+	cr_assert_eq(chain->reasons->len, 0, "nothing blocks the chain (reason: %s)",
+	             chain->reasons->len ? (char *)g_ptr_array_index(chain->reasons, 0) : "none");
+	cr_assert_eq(chain->tail_start, 0, "no step is frozen");
+	cr_assert(!chain->has_geometry,
+	          "a step recorded on the plain image never moved the layer");
+	nde_chain_free(chain);
 	/* the base layer owns f now; the suite teardown frees it */
 	nde_history_attach(NULL);
 }

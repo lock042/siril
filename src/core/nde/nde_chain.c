@@ -226,7 +226,11 @@ nde_chain *nde_chain_build_excluding(gint item_id, gint64 exclude_record_id) {
 			gboolean geometric = nde_op_class_for(rec->op_id)->traits &
 			                     NDE_OPT_GEOMETRIC;
 			gboolean mine = nde_record_writes_item(rec, item_id);
+			/* Scope CANVAS as well as geometric: a geometry step recorded
+			 * on a plain image before the promote is a pixel step of the
+			 * layer (nde_history_rebind_item) and never moved it. */
 			if (geometric && mine && is_flis &&
+			    rec->scope == NDE_SCOPE_CANVAS &&
 			    nde_checkpoint_baseline_has_position(item_id))
 				chain->has_geometry = TRUE;
 			continue;

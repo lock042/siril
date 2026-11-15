@@ -1952,15 +1952,18 @@ static void on_hist_row_setup(GtkListItemFactory *f, GtkListItem *item, gpointer
 	GtkWidget *summary = gtk_label_new(NULL);
 	gtk_label_set_xalign(GTK_LABEL(summary), 0.0f);
 	gtk_label_set_ellipsize(GTK_LABEL(summary), PANGO_ELLIPSIZE_END);
-	gtk_widget_set_hexpand(summary, TRUE);
+	/* A common width for the names, so the parameters after them line up
+	 * down the node as a column. */
+	gtk_label_set_width_chars(GTK_LABEL(summary), 16);
 
-	/* The parameters, dimmed, after the name.  Width-capped: the graph pays
-	 * for every node's widest row in layout width, so this label may take
-	 * spare room but must not ask for it. */
+	/* The parameters, dimmed, after the name.  They take the rest of the
+	 * row: the graph view shares the window's width between its columns, so
+	 * a lone layer's parameters are shown in full and only crowded columns
+	 * ellipsize them. */
 	GtkWidget *brief = gtk_label_new(NULL);
 	gtk_label_set_xalign(GTK_LABEL(brief), 0.0f);
 	gtk_label_set_ellipsize(GTK_LABEL(brief), PANGO_ELLIPSIZE_END);
-	gtk_label_set_max_width_chars(GTK_LABEL(brief), 32);
+	gtk_widget_set_hexpand(brief, TRUE);
 	gtk_widget_add_css_class(brief, "dim-label");
 
 	/* No per-row target column any more: the node this row lives in names

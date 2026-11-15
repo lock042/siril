@@ -162,6 +162,34 @@ void nde_checkpoint_rebind_item(gint from_item, gint to_item) {
 	g_ptr_array_unref(retag);
 }
 
+void nde_checkpoint_place_item(gint item_id, gint pos_x, gint pos_y) {
+	GPtrArray *snaps = g_ptr_array_new();
+	g_mutex_lock(&cp_mutex);
+	if (cp_table) {
+		nde_snap *s = g_hash_table_lookup(cp_table, GINT_TO_POINTER(item_id));
+		if (s)
+			g_ptr_array_add(snaps, s);
+	}
+	if (out_table) {
+		GHashTableIter it;
+		gpointer k, v;
+		g_hash_table_iter_init(&it, out_table);
+		while (g_hash_table_iter_next(&it, &k, &v))
+			g_ptr_array_add(snaps, v);
+	}
+	g_mutex_unlock(&cp_mutex);
+
+	/* Outside cp_mutex, as the rebind above: the snapstore takes its own
+	 * lock, and the caller is the promote, with no jobs running. */
+	for (guint i = 0; i < snaps->len; i++) {
+		nde_snap *s = g_ptr_array_index(snaps, i);
+		gint item = 0;
+		if (nde_snap_tag_get(s, &item, NULL, NULL) && item == item_id)
+			nde_snap_place_if_unplaced(s, pos_x, pos_y);
+	}
+	g_ptr_array_unref(snaps);
+}
+
 void nde_checkpoint_baseline_adopt(const nde_state *src, gint item_id) {
 	if (!src || !src->pix)
 		return;

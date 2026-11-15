@@ -603,8 +603,14 @@ nde_state *nde_replay_apply_records(nde_state *state, const nde_chain *chain,
 		args->user = user;
 		args->nde_replay = TRUE;
 		args->mask_aware = (scratch->mask != NULL);
-		args->layer_pos_x = pos_x;   /* NULL unless the chain has geometry */
-		args->layer_pos_y = pos_y;
+		/* NULL unless the chain has geometry — and then only for a step that
+		 * moved the layer.  A geometry step recorded on a plain image before
+		 * it was promoted is scope LAYER (nde_history_rebind_item): it
+		 * changed pixels and must leave the carried offset alone. */
+		gboolean moves = rec->scope == NDE_SCOPE_CANVAS ||
+		                 nde_joint_is_geometric_op(rec->op_id);
+		args->layer_pos_x = moves ? pos_x : NULL;
+		args->layer_pos_y = moves ? pos_y : NULL;
 		args->max_threads = com.max_thread;
 		int rc = GPOINTER_TO_INT(generic_image_worker(args));
 		free_generic_img_args(args);   /* frees user via its destructor too */

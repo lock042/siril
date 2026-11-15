@@ -112,13 +112,18 @@ G_DEFINE_FINAL_TYPE(NdeGraphView, nde_graph_view, GTK_TYPE_WIDGET)
 
 /* ---- geometry ----------------------------------------------------------- */
 
-/* Measure one child the way this view wants it: as wide as its widest step
- * summary, held between the column bounds, and as tall as that width makes it. */
-static void measure_child(GtkWidget *child, gint *w, gint *h) {
+/* Measure one child the way this view wants it, and as tall as that width
+ * makes it.  With @col_w == 0 the width is the child's own: as wide as its
+ * widest step summary, held between the column bounds.  With @col_w > 0 it is
+ * @col_w — the common column width that makes the columns fill the view. */
+static void measure_child(GtkWidget *child, gint col_w, gint *w, gint *h) {
 	int min_w, nat_w, min_h, nat_h, ignored;
 	gtk_widget_measure(child, GTK_ORIENTATION_HORIZONTAL, -1,
 	                   &min_w, &nat_w, &ignored, &ignored);
-	*w = MAX(CLAMP(nat_w, NODE_MIN_W, NODE_MAX_W), min_w);
+	if (col_w > 0)
+		*w = MAX(col_w, min_w);
+	else
+		*w = MAX(CLAMP(nat_w, NODE_MIN_W, NODE_MAX_W), min_w);
 	gtk_widget_measure(child, GTK_ORIENTATION_VERTICAL, *w,
 	                   &min_h, &nat_h, &ignored, &ignored);
 	*h = MAX(nat_h, min_h);
@@ -128,7 +133,7 @@ static void measure_child(GtkWidget *child, gint *w, gint *h) {
  * in together because a satellite's column is what the band's next node has to
  * start beyond — reserving that space is the layout's job, not a second pass
  * bolted on afterwards. */
-static GArray *layout_now(NdeGraphView *self, gint *w, gint *h) {
+static GArray *layout_now(NdeGraphView *self, gint col_w, gint *w, gint *h) {
 	GArray *boxes = g_array_new(FALSE, TRUE, sizeof(nde_graph_box));
 	for (guint i = 0; i < self->nodes->len; i++) {
 		const view_node *n = &g_array_index(self->nodes, view_node, i);
@@ -140,7 +145,7 @@ static GArray *layout_now(NdeGraphView *self, gint *w, gint *h) {
 		                    .retired = n->retired,
 		                    .span_items = n->span_items,
 		                    .n_span_items = n->n_span_items };
-		measure_child(n->child, &b.w, &b.h);
+		measure_child(n->child, col_w, &b.w, &b.h);
 		g_array_append_val(boxes, b);
 	}
 	for (guint i = 0; i < self->sats->len; i++) {
@@ -148,12 +153,32 @@ static GArray *layout_now(NdeGraphView *self, gint *w, gint *h) {
 		if (!gtk_widget_should_layout(s->child))
 			continue;
 		nde_graph_box b = { .item_id = s->item_id, .host_item = s->host };
-		measure_child(s->child, &b.w, &b.h);
+		/* A mask is an aside: it keeps its own width, and the columns take
+		 * whatever room is to spare. */
+		measure_child(s->child, 0, &b.w, &b.h);
 		g_array_append_val(boxes, b);
 	}
 	GArray *places = nde_graph_layout(boxes, COL_GAP, ROW_GAP, w, h);
 	g_array_unref(boxes);
 	return places;
+}
+
+/* The common column width at which the layout is exactly as wide as @width
+ * allows: the columns share the view between them, so one layer's history
+ * runs the width of the window and several sit side by side without a
+ * scrollbar.  Never under NODE_MIN_W — below that the view scrolls instead.
+ * The layout's width grows with the column width, so this is a bisection. */
+static gint fit_col_w(NdeGraphView *self, gint width) {
+	gint lo = NODE_MIN_W, hi = MAX(width, NODE_MIN_W);
+	while (lo < hi) {
+		gint mid = lo + (hi - lo + 1) / 2, w = 0;
+		g_array_unref(layout_now(self, mid, &w, NULL));
+		if (w <= width)
+			lo = mid;
+		else
+			hi = mid - 1;
+	}
+	return lo;
 }
 
 static nde_graph_place *place_of_mut(GArray *places, gint item_id) {
@@ -206,10 +231,15 @@ static void nde_graph_view_measure(GtkWidget *widget, GtkOrientation orientation
 	(void)for_size;
 	NdeGraphView *self = NDE_GRAPH_VIEW(widget);
 	gint w = 0, h = 0;
-	GArray *places = layout_now(self, &w, &h);
-	g_array_unref(places);
+	g_array_unref(layout_now(self, 0, &w, &h));
 
 	*minimum = *natural = (orientation == GTK_ORIENTATION_HORIZONTAL) ? w : h;
+	if (orientation == GTK_ORIENTATION_HORIZONTAL) {
+		/* The columns narrow to NODE_MIN_W before the view asks to scroll. */
+		gint min_w = 0;
+		g_array_unref(layout_now(self, NODE_MIN_W, &min_w, NULL));
+		*minimum = MIN(min_w, w);
+	}
 	*minimum_baseline = *natural_baseline = -1;
 }
 
@@ -265,11 +295,11 @@ static void sat_anchor(NdeGraphView *self) {
 
 static void nde_graph_view_size_allocate(GtkWidget *widget, int width, int height,
                                          int baseline) {
-	(void)width; (void)height; (void)baseline;
+	(void)height; (void)baseline;
 	NdeGraphView *self = NDE_GRAPH_VIEW(widget);
 
 	g_clear_pointer(&self->places, g_array_unref);
-	self->places = layout_now(self, NULL, NULL);
+	self->places = layout_now(self, fit_col_w(self, width), NULL, NULL);
 
 	for (guint i = 0; i < self->nodes->len; i++) {
 		const view_node *n = &g_array_index(self->nodes, view_node, i);

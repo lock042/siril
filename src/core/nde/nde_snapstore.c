@@ -354,6 +354,18 @@ gboolean nde_snap_position(const nde_snap *s, gint *pos_x, gint *pos_y) {
 	return TRUE;
 }
 
+void nde_snap_place_if_unplaced(nde_snap *s, gint pos_x, gint pos_y) {
+	if (!s)
+		return;
+	g_mutex_lock(&store_mutex);
+	if (!s->has_pos) {
+		s->pos_x = pos_x;
+		s->pos_y = pos_y;
+		s->has_pos = TRUE;
+	}
+	g_mutex_unlock(&store_mutex);
+}
+
 gboolean nde_snap_tag_get(const nde_snap *s, gint *item_id, gint64 *record_id, gboolean *post) {
 	if (!s || !s->tagged)
 		return FALSE;

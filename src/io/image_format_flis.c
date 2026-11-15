@@ -4125,6 +4125,9 @@ int flis_promote_from_gfit(const gchar *name) {
      * pool states for the old item are dropped (cache only). */
     nde_history_rebind_item(NDE_ITEM_IMAGE, base->item_id);
     nde_checkpoint_rebind_item(NDE_ITEM_IMAGE, base->item_id);
+    /* Those checkpoints were taken of an image with no canvas, so they carry
+     * no position; the layer they now belong to sits at the canvas origin. */
+    nde_checkpoint_place_item(base->item_id, base->position_x, base->position_y);
     nde_snapstore_invalidate_from(NDE_ITEM_IMAGE, 0);
     /* Same move for the processing mask: gfit's mask travelled into the base
      * layer with its pixels, so the records describing how it was built now

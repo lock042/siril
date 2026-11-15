@@ -97,6 +97,13 @@ gboolean nde_checkpoint_baseline_exists(gint item_id);
 gboolean nde_checkpoint_baseline_position(gint item_id, gint *pos_x, gint *pos_y);
 gboolean nde_checkpoint_baseline_has_position(gint item_id);
 
+/** Record (@pos_x, @pos_y) as the position of every checkpoint of @item_id
+ *  that has none — its baseline and its barrier outputs.  The plain → FLIS
+ *  promote calls this for the new base layer: checkpoints taken of a plain
+ *  image carry no position, because a plain image has no canvas, and without
+ *  one no geometry step of the layer could be replayed afterwards. */
+void nde_checkpoint_place_item(gint item_id, gint pos_x, gint pos_y);
+
 /**
  * Adopt @src as the baseline for @item_id, replacing any existing one.  Used
  * by the FLIS loader to install persisted NDE_BASE HDUs, which carry the

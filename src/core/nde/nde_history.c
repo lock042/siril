@@ -509,8 +509,18 @@ void nde_history_rebind_item(gint from_item, gint to_item) {
 	if (h) {
 		for (guint i = 0; i < h->records->len; i++) {
 			nde_record *rec = g_ptr_array_index(h->records, i);
-			if (rec->target_item_id == from_item)
-				rec->target_item_id = to_item;
+			if (rec->target_item_id != from_item)
+				continue;
+			rec->target_item_id = to_item;
+			/* Geometry on a plain image is scope CANVAS, but there the
+			 * image IS the canvas: the step changed pixels and moved
+			 * nothing.  Left as CANVAS on the layer the image has just
+			 * become, it would read as a move of that layer — one with no
+			 * starting position, which froze every step of the promoted
+			 * history, and which a replay would have applied to the
+			 * layer's offset.  As a layer's step it is a pixel step. */
+			if (from_item == NDE_ITEM_IMAGE && rec->scope == NDE_SCOPE_CANVAS)
+				rec->scope = NDE_SCOPE_LAYER;
 		}
 	}
 	g_mutex_unlock(&nde_mutex);

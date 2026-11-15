@@ -110,6 +110,11 @@ gboolean nde_snapstore_has(gint item_id, gint64 record_id, gboolean post);
  *  FALSE when it has none.  @pos_x / @pos_y may be NULL. */
 gboolean nde_snap_position(const nde_snap *s, gint *pos_x, gint *pos_y);
 
+/** Give a stored value that has no canvas position one.  A value that already
+ *  has a position keeps it.  For the plain → FLIS promote, where pixels stored
+ *  for an image with no canvas become a layer's. */
+void nde_snap_place_if_unplaced(nde_snap *s, gint pos_x, gint pos_y);
+
 /** Read @s's tag (immutable once set).  FALSE when untagged. */
 gboolean nde_snap_tag_get(const nde_snap *s, gint *item_id, gint64 *record_id, gboolean *post);
 
