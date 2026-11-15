@@ -237,6 +237,18 @@ typedef struct _flis_layer_t {
     flis_tint_t       layer_tint;    /* Tint applied to mono pixel value
                                         before RGB compositing.          */
 
+    /* The compositing state this layer had when it joined the document
+     * with no history describing it — loaded from a file, or duplicated.
+     * The edit history folds a layer's blend / opacity / visibility / tint
+     * forward from a starting state; for such a layer that state is this
+     * one, not the new-layer defaults (nde_compositing.h).  Runtime only. */
+    gboolean          comp_base_valid;
+    flis_blend_mode_t comp_base_blend;
+    gfloat            comp_base_opacity;
+    gboolean          comp_base_visible;
+    gboolean          comp_base_tinted;
+    flis_tint_t       comp_base_tint;
+
     /* Sparse layer support — reserved, must be 0 until implemented */
     gint              position_x;    /* X offset relative to canvas.     */
     gint              position_y;    /* Y offset relative to canvas.     */
@@ -1334,6 +1346,14 @@ int flis_layer_set_blend_mode(flis_layer_t *layer, flis_blend_mode_t mode);
  * Returns: 0 on success, non-zero if @layer is locked.
  */
 int flis_layer_set_opacity(flis_layer_t *layer, gfloat opacity);
+
+/**
+ * flis_layer_mark_compositing_base:
+ * Record @layer's present blend mode, opacity, visibility and tint as the
+ * state the edit history starts from for it.  Called when a layer joins the
+ * document already carrying such state: on load and on duplicate.
+ */
+void flis_layer_mark_compositing_base(flis_layer_t *layer);
 
 /**
  * flis_layer_set_visible:

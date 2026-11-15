@@ -147,24 +147,168 @@ gboolean nde_compositing_has_tint_record(gint item_id) {
 	return nde_compositing_has_tint_record_upto(item_id, 0);
 }
 
+/* ---- where the fold starts ----------------------------------------------- */
+
+typedef struct {
+	gfloat            opacity;
+	flis_blend_mode_t blend;
+	gboolean          visible;
+	gboolean          tinted;
+	double            tint[3];
+} comp_state;
+
+static void comp_state_defaults(comp_state *st) {
+	st->opacity = COMP_DEFAULT_OPACITY;
+	st->blend   = COMP_DEFAULT_BLEND;
+	st->visible = COMP_DEFAULT_VISIBLE;
+	st->tinted  = FALSE;   /* creation default: no tint */
+	st->tint[0] = st->tint[1] = st->tint[2] = 1.0;
+}
+
+/* The starting state a compositing record carries (base_* keys): what its
+ * layer looked like before the first such record.  All or nothing. */
+static gboolean comp_base_read(GHashTable *kv, comp_state *st) {
+	float o;
+	gint64 bl;
+	gboolean vis, tinted;
+	double r = 1.0, g = 1.0, b = 1.0;
+	if (!nde_kv_get_float(kv, "base_opacity", &o) || o < 0.f || o > 1.f ||
+	    !nde_kv_get_int(kv, "base_blend", &bl) || !nde_compositing_blend_valid(bl) ||
+	    !nde_kv_get_bool(kv, "base_visible", &vis) ||
+	    !nde_kv_get_bool(kv, "base_tinted", &tinted))
+		return FALSE;
+	if (tinted && (!nde_kv_get_double(kv, "base_r", &r) ||
+	               !nde_kv_get_double(kv, "base_g", &g) ||
+	               !nde_kv_get_double(kv, "base_b", &b) ||
+	               r < 0. || r > 1. || g < 0. || g > 1. || b < 0. || b > 1.))
+		return FALSE;
+	st->opacity = o;
+	st->blend   = (flis_blend_mode_t)bl;
+	st->visible = vis;
+	st->tinted  = tinted;
+	st->tint[0] = r; st->tint[1] = g; st->tint[2] = b;
+	return TRUE;
+}
+
+static void comp_base_write(GString *kv, const comp_state *st) {
+	nde_kv_add_float(kv, "base_opacity", st->opacity);
+	nde_kv_add_int(kv, "base_blend", (gint64)st->blend);
+	nde_kv_add_bool(kv, "base_visible", st->visible);
+	nde_kv_add_bool(kv, "base_tinted", st->tinted);
+	if (st->tinted) {
+		nde_kv_add_double(kv, "base_r", st->tint[0]);
+		nde_kv_add_double(kv, "base_g", st->tint[1]);
+		nde_kv_add_double(kv, "base_b", st->tint[2]);
+	}
+}
+
+/* The state @item_id was in before the log's first word about it.  The
+ * new-layer defaults are right only for a layer the log saw being created;
+ * one that arrived with its own blend mode, opacity or tint — every layer of
+ * a file opened without a history, every duplicate — starts from those, and
+ * folding it from the defaults made deleting its one opacity step reset its
+ * blend mode as well.  In order of authority:
+ *   - the base a compositing record of the item carries (it travels with the
+ *     file, so it is the answer in a later session too);
+ *   - what the live layer was marked with when it joined the document;
+ *   - the defaults.
+ * TRUE when the answer is one of the first two, i.e. actually known. */
+static gboolean comp_start(GPtrArray *live, gint item_id, comp_state *st) {
+	gboolean known = FALSE;
+	comp_state_defaults(st);
+	const flis_layer_t *lay = item_id >= 0 ? flis_layer_get_by_id(item_id) : NULL;
+	if (lay && lay->comp_base_valid) {
+		st->opacity = lay->comp_base_opacity;
+		st->blend   = lay->comp_base_blend;
+		st->visible = lay->comp_base_visible;
+		st->tinted  = lay->comp_base_tinted;
+		st->tint[0] = lay->comp_base_tint.r;
+		st->tint[1] = lay->comp_base_tint.g;
+		st->tint[2] = lay->comp_base_tint.b;
+		known = TRUE;
+	}
+	for (guint i = 0; live && i < live->len; i++) {
+		const nde_record *rec = g_ptr_array_index(live, i);
+		if (rec->target_item_id != item_id)
+			continue;
+		/* Past a reset the fold starts over from the defaults anyway. */
+		if (nde_op_class_for(rec->op_id)->traits & NDE_OPT_COMPOSITING_RESET)
+			break;
+		if (!nde_compositing_is_op(rec->op_id))
+			continue;
+		GHashTable *kv = nde_kv_parse(rec->params);
+		gboolean has = comp_base_read(kv, st);
+		g_hash_table_unref(kv);
+		if (has) {
+			known = TRUE;
+			break;
+		}
+	}
+	return known;
+}
+
+gchar *nde_compositing_params_with_base(gchar *params, gint item_id) {
+	comp_state st;
+	GPtrArray *live = nde_history_snapshot(NULL);
+	gboolean known = comp_start(live, item_id, &st);
+	if (live)
+		g_ptr_array_unref(live);
+	if (!known)
+		return params;
+	GString *kv = g_string_new(params ? params : "");
+	g_free(params);
+	comp_base_write(kv, &st);
+	return g_string_free(kv, FALSE);
+}
+
+void nde_compositing_adopt_recorded_bases(void) {
+	if (!com.uniq)
+		return;
+	GPtrArray *live = nde_history_snapshot(NULL);
+	for (GSList *l = com.uniq->layers; l; l = l->next) {
+		flis_layer_t *lay = l->data;
+		comp_state st;
+		if (!comp_start(live, lay->item_id, &st))
+			continue;
+		lay->comp_base_opacity = st.opacity;
+		lay->comp_base_blend   = st.blend;
+		lay->comp_base_visible = st.visible;
+		lay->comp_base_tinted  = st.tinted;
+		lay->comp_base_tint.r  = st.tint[0];
+		lay->comp_base_tint.g  = st.tint[1];
+		lay->comp_base_tint.b  = st.tint[2];
+		lay->comp_base_valid   = TRUE;
+	}
+	if (live)
+		g_ptr_array_unref(live);
+}
+
+gchar *nde_compositing_carry_base(const char *old_params, const char *new_params) {
+	comp_state st;
+	GHashTable *okv = nde_kv_parse(old_params);
+	GHashTable *nkv = nde_kv_parse(new_params);
+	gboolean carry = comp_base_read(okv, &st) &&
+	                 !g_hash_table_contains(nkv, "base_opacity");
+	g_hash_table_unref(okv);
+	g_hash_table_unref(nkv);
+	if (!carry)
+		return g_strdup(new_params);
+	GString *kv = g_string_new(new_params ? new_params : "");
+	comp_base_write(kv, &st);
+	return g_string_free(kv, FALSE);
+}
+
 /* The fold itself, shared by the live-layer recompute, the retained-input
  * refresh (nde_composite_refresh_input_state) and the joint-record replay
  * (nde_joint.c, which needs the state AS OF a record's log position): walk
  * the live log and derive the compositing state the history describes for
- * @item_id.  @upto_record_id stops the fold just BEFORE that record
- * (exclusive; 0 folds the whole live log) — record ids are stable across
- * reorder, so the bound survives everything a position would not. */
-void nde_compositing_fold_upto(gint item_id, gint64 upto_record_id,
-                               gfloat *out_opacity,
-                               gint *out_blend, gboolean *out_visible,
-                               gboolean *out_tinted, double *out_tint /* [3] */) {
-	gfloat            opacity = COMP_DEFAULT_OPACITY;
-	flis_blend_mode_t blend   = COMP_DEFAULT_BLEND;
-	gboolean          visible = COMP_DEFAULT_VISIBLE;
-	gboolean          tinted  = FALSE;   /* creation default: no tint */
-	double            tint[3] = { 1.0, 1.0, 1.0 };
-
+ * @item_id, from the state it started in (comp_start).  @upto_record_id stops
+ * the fold just BEFORE that record (exclusive; 0 folds the whole live log) —
+ * record ids are stable across reorder, so the bound survives everything a
+ * position would not.  Returns whether the starting state was known. */
+static gboolean comp_fold(gint item_id, gint64 upto_record_id, comp_state *st) {
 	GPtrArray *live = nde_history_snapshot(NULL);
+	gboolean known = comp_start(live, item_id, st);
 	for (guint i = 0; live && i < live->len; i++) {
 		const nde_record *rec = g_ptr_array_index(live, i);
 		if (upto_record_id && rec->record_id == upto_record_id)
@@ -175,11 +319,7 @@ void nde_compositing_fold_upto(gint item_id, gint64 upto_record_id,
 		/* Reset points: after these the layer provably sits at the defaults,
 		 * so everything recorded earlier is superseded. */
 		if (nde_op_class_for(rec->op_id)->traits & NDE_OPT_COMPOSITING_RESET) {
-			opacity = COMP_DEFAULT_OPACITY;
-			blend   = COMP_DEFAULT_BLEND;
-			visible = COMP_DEFAULT_VISIBLE;
-			tinted  = FALSE;
-			tint[0] = tint[1] = tint[2] = 1.0;
+			comp_state_defaults(st);
 			continue;
 		}
 		if (!nde_compositing_is_op(rec->op_id))
@@ -192,43 +332,52 @@ void nde_compositing_fold_upto(gint item_id, gint64 upto_record_id,
 		if (!g_strcmp0(rec->op_id, OP_SET_OPACITY)) {
 			float v;
 			if (nde_kv_get_float(kv, "opacity", &v) && v >= 0.f && v <= 1.f)
-				opacity = v;
+				st->opacity = v;
 		} else if (!g_strcmp0(rec->op_id, OP_SET_BLEND)) {
 			gint64 v;
 			if (nde_kv_get_int(kv, "blend", &v) && nde_compositing_blend_valid(v))
-				blend = (flis_blend_mode_t)v;
+				st->blend = (flis_blend_mode_t)v;
 		} else if (!g_strcmp0(rec->op_id, OP_SET_TINT)) {
 			gboolean t;
 			double r, g, b;
 			if (nde_kv_get_bool(kv, "tinted", &t)) {
 				if (!t) {
-					tinted = FALSE;
+					st->tinted = FALSE;
 				} else if (nde_kv_get_double(kv, "r", &r) &&
 				           nde_kv_get_double(kv, "g", &g) &&
 				           nde_kv_get_double(kv, "b", &b) &&
 				           r >= 0. && r <= 1. && g >= 0. && g <= 1. &&
 				           b >= 0. && b <= 1.) {
-					tinted = TRUE;
-					tint[0] = r; tint[1] = g; tint[2] = b;
+					st->tinted = TRUE;
+					st->tint[0] = r; st->tint[1] = g; st->tint[2] = b;
 				}
 			}
 		} else {
 			gboolean v;
 			if (nde_kv_get_bool(kv, "visible", &v))
-				visible = v;
+				st->visible = v;
 		}
 		g_hash_table_unref(kv);
 	}
 	if (live)
 		g_ptr_array_unref(live);
-	if (out_opacity) *out_opacity = opacity;
-	if (out_blend)   *out_blend   = (gint)blend;
-	if (out_visible) *out_visible = visible;
-	if (out_tinted)  *out_tinted  = tinted;
+	return known;
+}
+
+void nde_compositing_fold_upto(gint item_id, gint64 upto_record_id,
+                               gfloat *out_opacity,
+                               gint *out_blend, gboolean *out_visible,
+                               gboolean *out_tinted, double *out_tint /* [3] */) {
+	comp_state st;
+	comp_fold(item_id, upto_record_id, &st);
+	if (out_opacity) *out_opacity = st.opacity;
+	if (out_blend)   *out_blend   = (gint)st.blend;
+	if (out_visible) *out_visible = st.visible;
+	if (out_tinted)  *out_tinted  = st.tinted;
 	if (out_tint) {
-		out_tint[0] = tint[0];
-		out_tint[1] = tint[1];
-		out_tint[2] = tint[2];
+		out_tint[0] = st.tint[0];
+		out_tint[1] = st.tint[1];
+		out_tint[2] = st.tint[2];
 	}
 }
 
@@ -251,25 +400,23 @@ gboolean nde_compositing_recompute(gint item_id, gchar **err) {
 		return FALSE;
 	}
 
-	/* The log is authoritative: fold from the creation defaults through every
-	 * record, so the result is exactly what the history describes (header). */
-	gfloat   opacity;
-	gint     blend;
-	gboolean visible;
-	gboolean tinted;
-	double   tint[3];
-	nde_compositing_fold(item_id, &opacity, &blend, &visible, &tinted, tint);
+	/* The log is authoritative: fold from the state the layer started in
+	 * through every record, so the result is exactly what the history
+	 * describes (header). */
+	comp_state st;
+	gboolean known = comp_fold(item_id, 0, &st);
 
-	flis_layer_set_opacity(lay, opacity);
-	flis_layer_set_blend_mode(lay, (flis_blend_mode_t)blend);
-	flis_layer_set_visible(lay, visible);
+	flis_layer_set_opacity(lay, st.opacity);
+	flis_layer_set_blend_mode(lay, st.blend);
+	flis_layer_set_visible(lay, st.visible);
 	/* Tint joined the recorded set after blend/opacity/visibility: only let
-	 * the fold drive it when the history actually says something about it,
-	 * so an amend on an older document cannot clear a tint the log never
-	 * described (nde_compositing_has_tint_record). */
-	if (nde_compositing_has_tint_record(item_id)) {
-		if (tinted)
-			flis_layer_set_tint(lay, tint[0], tint[1], tint[2]);
+	 * the fold drive it when the history actually says something about it
+	 * or the starting state is known, so an amend on an older document
+	 * cannot clear a tint the log never described
+	 * (nde_compositing_has_tint_record). */
+	if (known || nde_compositing_has_tint_record(item_id)) {
+		if (st.tinted)
+			flis_layer_set_tint(lay, st.tint[0], st.tint[1], st.tint[2]);
 		else
 			flis_layer_clear_tint(lay);
 	}

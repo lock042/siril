@@ -117,6 +117,31 @@ void nde_compositing_fold_upto(gint item_id, gint64 upto_record_id,
  * folding for documents recorded before tint capture existed). */
 gboolean nde_compositing_has_tint_record(gint item_id);
 
+/**
+ * The fold starts from the state a layer was in before the log's first word
+ * about it.  For a layer the log saw created that is the new-layer defaults;
+ * for one that arrived with its own blend mode, opacity or tint (a file
+ * opened without a history, a duplicate) it is that state, which the layer
+ * is marked with (flis_layer_mark_compositing_base) and which every
+ * compositing record of it carries as base_* keys, so that it survives a
+ * save and reload.
+ *
+ * nde_compositing_params_with_base() appends those keys to a new record's
+ * @params (taken; the result is returned and owned by the caller) when the
+ * starting state of @item_id is known.  nde_compositing_carry_base() returns
+ * a copy of @new_params with @old_params' base keys added — an amend replaces
+ * a record's params wholesale and must not drop them.
+ *
+ * nde_compositing_adopt_recorded_bases() is for the loader, once the file's
+ * history is attached: a loaded layer is marked with the state it has NOW,
+ * which is where it started only if the history never touched it.  Where a
+ * record says otherwise, the record is right, and the layer's mark is
+ * corrected to match — so the answer outlives the deletion of that record.
+ */
+void nde_compositing_adopt_recorded_bases(void);
+gchar *nde_compositing_params_with_base(gchar *params, gint item_id);
+gchar *nde_compositing_carry_base(const char *old_params, const char *new_params);
+
 /* As above, bounded to records strictly before @upto_record_id (0 = whole
  * log).  The joint replay's "does the log say anything about this layer's
  * tint before me?" question — FALSE means fall back to the tint recorded in

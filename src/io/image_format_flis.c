@@ -72,6 +72,7 @@
 #include "core/nde/nde_cat.h"
 #include "core/nde/nde_checkpoint.h"
 #include "core/nde/nde_composite.h"
+#include "core/nde/nde_compositing.h"
 #include "core/nde/nde_history.h"
 #include "core/nde/nde_joint.h"
 #include "core/nde/nde_replay.h"
@@ -3329,6 +3330,10 @@ int load_flis(const gchar *filename) {
     com.uniq->file_is_flis = TRUE;
     com.uniq->layers    = layers;
     com.uniq->groups    = groups;
+    /* What each layer looks like now is where its history starts, unless
+     * the history loaded below says otherwise (nde_compositing.h). */
+    for (GSList *l = layers; l; l = l->next)
+        flis_layer_mark_compositing_base(l->data);
     com.uniq->next_item_id = 1; /* will be set properly below */
 
     /* ICC profile (image-level — see icc_profile.h accessors) lives
@@ -3396,6 +3401,9 @@ int load_flis(const gchar *filename) {
             siril_log_warning(_("FLIS: layer pixels were modified outside the recorded history\n"));
     }
     nde_history_attach(nde_hist);
+    /* The layers were marked with the compositing state they were loaded
+     * with; where the history records what they started from, that wins. */
+    nde_compositing_adopt_recorded_bases();
 
     /* Adopt the persisted baselines into the (freshly purged) checkpoint
      * store — AFTER attach, since attach purges it.  Only baselines for
@@ -5490,6 +5498,10 @@ flis_layer_t *flis_layer_duplicate(const flis_layer_t *src) {
     if (src->unknown_metadata)
         dup->unknown_metadata = g_strdup(src->unknown_metadata);
 
+    /* A duplicate starts with its source's compositing state, not with the
+     * new-layer defaults. */
+    flis_layer_mark_compositing_base(dup);
+
     com.uniq->layers = g_slist_insert_sorted(com.uniq->layers, dup,
                                               (GCompareFunc)layer_order_cmp);
 
@@ -5678,6 +5690,17 @@ int flis_layer_set_blend_mode(flis_layer_t *layer, flis_blend_mode_t mode) {
     layer->blend_mode = mode;
     flis_layer_touch_modified(layer);
     return 0;
+}
+
+void flis_layer_mark_compositing_base(flis_layer_t *layer) {
+    if (!layer)
+        return;
+    layer->comp_base_blend   = layer->blend_mode;
+    layer->comp_base_opacity = layer->opacity;
+    layer->comp_base_visible = layer->visible;
+    layer->comp_base_tinted  = layer->has_tint;
+    layer->comp_base_tint    = layer->layer_tint;
+    layer->comp_base_valid   = TRUE;
 }
 
 int flis_layer_set_opacity(flis_layer_t *layer, gfloat opacity) {

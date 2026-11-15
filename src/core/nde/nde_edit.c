@@ -847,6 +847,7 @@ gboolean nde_edit_execute(gint64 record_id, const gchar *new_params, gchar **err
 	 * user-facing errors before any heavy work.  (nde_history_amend/delete
 	 * re-validate under the mutex at commit time.) */
 	gint item_id = 0;
+	g_autofree gchar *comp_params = NULL;   /* new_params + the carried base */
 	gboolean found = FALSE, is_compositing = FALSE, is_joint = FALSE;
 	gboolean is_joint_geometry = FALSE;
 	GPtrArray *live = nde_history_snapshot(NULL);
@@ -859,6 +860,10 @@ gboolean nde_edit_execute(gint64 record_id, const gchar *new_params, gchar **err
 			is_joint = nde_joint_is_op(rec->op_id);
 			is_joint_geometry = nde_joint_is_geometric_op(rec->op_id);
 			if (new_params && is_compositing) {
+				/* The dialog builds the new params from scratch; the state
+				 * the layer started in rides along (nde_compositing.h). */
+				comp_params = nde_compositing_carry_base(rec->params, new_params);
+				log_change.new_params = comp_params;
 				/* These take the cheap path below and never reach the
 				 * amend's own validation, so check the params here.  The
 				 * registry knows how this family checks itself

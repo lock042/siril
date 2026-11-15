@@ -304,3 +304,80 @@ Test(nde_compositing, other_items_records_do_not_reset_this_one) {
 	cr_assert(nde_compositing_recompute(layer->item_id, &err), "%s", err ? err : "");
 	cr_assert_float_eq(layer->opacity, 0.6f, 1e-6);
 }
+
+/* ---- a layer that arrived with its own compositing state ----------------
+ * A layer of a file opened without a history, or a duplicate, does not start
+ * at the new-layer defaults.  Folding it from them meant deleting its only
+ * opacity step also reset its blend mode: on an LRGB stack of Screen-blended
+ * channels the image came back with a colour cast instead of as it was. */
+
+static void arrive_as_screen_tinted(void) {
+	flis_layer_set_blend_mode(layer, FLIS_BLEND_SCREEN);
+	flis_layer_set_opacity(layer, 0.9f);
+	flis_layer_set_tint(layer, 1.0, 0.0, 0.0);
+	flis_layer_mark_compositing_base(layer);
+}
+
+Test(nde_compositing, deleting_the_only_step_restores_the_state_the_layer_arrived_with) {
+	arrive_as_screen_tinted();
+	flis_layer_set_opacity(layer, 0.7f);
+	gint64 id = capture_opacity(0.7f);
+
+	gchar *err = NULL;
+	cr_assert(nde_delete_execute(id, &err), "delete failed: %s", err ? err : "?");
+	cr_assert_float_eq(layer->opacity, 0.9f, 1e-6, "opacity returns to what it was");
+	cr_assert_eq(layer->blend_mode, FLIS_BLEND_SCREEN, "the blend mode is not reset");
+	cr_assert(layer->visible);
+	cr_assert(layer->has_tint, "the tint is not cleared");
+	cr_assert_float_eq(layer->layer_tint.r, 1.0, 1e-9);
+	cr_assert_float_eq(layer->layer_tint.g, 0.0, 1e-9);
+	nde_history_attach(NULL);
+}
+
+/* The starting state travels in the record, so it is still known once the
+ * session that marked the layer is gone — here, with the mark cleared. */
+Test(nde_compositing, the_starting_state_survives_in_the_records) {
+	arrive_as_screen_tinted();
+	flis_layer_set_opacity(layer, 0.7f);
+	capture_opacity(0.7f);
+	flis_layer_set_opacity(layer, 0.5f);
+	gint64 second = capture_opacity(0.5f);
+	layer->comp_base_valid = FALSE;   /* as after a save and reload */
+
+	gfloat opacity;
+	gint blend;
+	gboolean visible, tinted;
+	double tint[3];
+	nde_compositing_fold(layer->item_id, &opacity, &blend, &visible, &tinted, tint);
+	cr_assert_float_eq(opacity, 0.5f, 1e-6);
+	cr_assert_eq(blend, FLIS_BLEND_SCREEN);
+	cr_assert(tinted);
+
+	/* An amend replaces the params wholesale; the base must ride along. */
+	gchar *err = NULL;
+	cr_assert(nde_amend_execute(second, "opacity=0.25", &err), "amend failed: %s", err ? err : "?");
+	cr_assert_float_eq(layer->opacity, 0.25f, 1e-6);
+	cr_assert_eq(layer->blend_mode, FLIS_BLEND_SCREEN);
+	GPtrArray *live = nde_history_snapshot(NULL);
+	const nde_record *rec = g_ptr_array_index(live, live->len - 1);
+	cr_assert_not_null(strstr(rec->params, "base_blend="), "amend dropped the base: %s", rec->params);
+	g_ptr_array_unref(live);
+	nde_history_attach(NULL);
+}
+
+/* A layer the log never saw arrive, and that was never marked, still folds
+ * from the defaults: nothing better is known. */
+Test(nde_compositing, an_unmarked_layer_still_starts_from_the_defaults) {
+	gint64 id = capture_opacity(0.4f);
+	GPtrArray *live = nde_history_snapshot(NULL);
+	const nde_record *rec = g_ptr_array_index(live, 0);
+	cr_assert_null(strstr(rec->params, "base_"), "no base to record: %s", rec->params);
+	g_ptr_array_unref(live);
+	(void)id;
+	gfloat opacity;
+	gint blend;
+	nde_compositing_fold(layer->item_id, &opacity, &blend, NULL, NULL, NULL);
+	cr_assert_float_eq(opacity, 0.4f, 1e-6);
+	cr_assert_eq(blend, FLIS_BLEND_NORMAL);
+	nde_history_attach(NULL);
+}

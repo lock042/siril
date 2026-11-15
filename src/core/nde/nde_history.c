@@ -29,6 +29,7 @@
 #include "core/nde/nde_composite.h"
 #include "core/nde/nde_history.h"
 #include "core/nde/nde_joint.h"
+#include "core/nde/nde_compositing.h"
 #include "core/nde/nde_op_class.h"
 #include "core/nde/nde_replay.h"    /* nde_item_is_retained_input() */
 #include "core/nde/nde_snapstore.h"
@@ -1408,6 +1409,11 @@ gint64 nde_capture_structural_pinned(const char *op_id, gint scope,
 	 * (post == NULL): an unpinned one is not a chain member at all, and a
 	 * pinned composite re-runs from its inputs rather than from a stored
 	 * copy of its result (nde_composite.h). */
+	/* A compositing record carries the state its layer started in, so the
+	 * fold has somewhere to start from once this session's memory of it is
+	 * gone (nde_compositing.h). */
+	if (nde_compositing_is_op(op_id))
+		params = nde_compositing_params_with_base(params, target_item_id);
 	nde_capture_req req = {
 		.op_id       = op_id,
 		.version     = 1,
