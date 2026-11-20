@@ -18,6 +18,7 @@ siril-1.5.0
 * Fixed Curves dropping the ICC profile of the image on undo or cancel, which made it appear and save very dark (#1978)
 * Fixed aperture photometry and its uncertainties and the e-/ADU value of the last opened image no longer overwrites the gain set in preferences (#1211)
 * Fixed seq file corruption (#1934)
+* Fixed Pixel Math presets, functions, operators and variables always being inserted in the R expression instead of the focused G or B one (#2023)
 
 **Improvements**
 * Vectorized rejection stacking hotspot with portable SIMD, ~13% cold / ~22% warm stacking speedup (!1032)
