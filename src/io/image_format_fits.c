@@ -3291,6 +3291,12 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gc
 	int status = 0;
 	fitsfile *fptr = NULL;
 
+	/* only a COMMENT card can be written without a keyword name */
+	if (!key && (newkey || value || !comment)) {
+		siril_log_color_message(_("A keyword name is required.\n"), "red");
+		return 1;
+	}
+
 	memptr = malloc(memsize);
 	if (!memptr) {
 		PRINT_ALLOC_ERR;
@@ -3354,7 +3360,8 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gc
 			/* construct template for new keyword */
 			strl_with_check(newcard, key, FLEN_CARD, g_strlcpy);
 			strl_with_check(newcard, " = ", FLEN_CARD, g_strlcat);
-			strl_with_check(newcard, value, FLEN_CARD, g_strlcat);
+			/* comment-only update: keep the current value */
+			strl_with_check(newcard, value ? value : oldvalue, FLEN_CARD, g_strlcat);
 
 			if (*oldcomment || comment) { /* Restore comment if exist, or use new one */
 				strl_with_check(newcard, " / ", FLEN_CARD, g_strlcat);
