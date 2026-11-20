@@ -321,7 +321,7 @@ void cvTransformImageRefPoint(Homography Hom, point refpointin, point *refpointo
 	/* the homogeneous point must be built as an explicit 3x1 column vector:
 	 * Mat(Point3d) is 3x1 with OpenCV 4 but 1x3 with OpenCV 5, which makes
 	 * the matrix product throw */
-	Mat refptin = (Mat_<double>(3, 1) << refpointin.x, refpointin.y, 1.);
+	Mat refptin = Mat_<double>({3, 1}, {refpointin.x, refpointin.y, 1.});
 	Mat refptout = H * refptin;
 	refpointout->x = refptout.at<double>(0) / refptout.at<double>(2);
 	refpointout->y = refptout.at<double>(1) / refptout.at<double>(2);
@@ -999,7 +999,7 @@ double cvCalculRigidTransform(s_star *star_array_in,
 	// computing the maximum error
 	double err = 0., norm2;
 	for (int i = 0; i < n; i++) {
-		res = H * (Mat_<double>(3,1) << star_array_out[i].x - 0.5, star_array_out[i].y - 0.5, 1) - (Mat_<double>(3,1) << star_array_in[i].x - 0.5, star_array_in[i].y - 0.5, 1);
+		res = H * Mat_<double>({3, 1}, {star_array_out[i].x - 0.5, star_array_out[i].y - 0.5, 1.}) - Mat_<double>({3, 1}, {star_array_in[i].x - 0.5, star_array_in[i].y - 0.5, 1.});
 		norm2 = cv::norm(res);
 		if (norm2 > err) err = norm2;
 	}
