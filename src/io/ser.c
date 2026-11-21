@@ -1226,7 +1226,7 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 		return SER_GENERIC_ERROR;
 
 	// return bottom-up fits to top-down ser row_order
-	if (!g_strcmp0(fit->keywords.row_order, "TOP-DOWN") && fit_is_cfa(fit)) {
+	if (fit_is_cfa(fit) && cfa_is_top_down(fit)) {
 		const char *pattern_str = fit->keywords.bayer_pattern;
 		gchar *new_pattern_str = flip_bayer_pattern(pattern_str, fit->ry);
 		strncpy(fit->keywords.bayer_pattern, new_pattern_str, 70); // fixed char* length FLEN == 71, leave 1 char for the NULL

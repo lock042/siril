@@ -482,6 +482,7 @@ static gpointer export_sequence(gpointer ptr) {
 
 		// we copy the header
 		copy_fits_metadata(&fit, destfit);
+		destfit->top_down = fit.top_down;
 
 		int shiftx, shifty;
 		/* load registration data for current image */

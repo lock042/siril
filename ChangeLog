@@ -8,6 +8,7 @@ siril-1.4.6
 * Fixed sequence processing with SER or FITS sequence output (e.g. calibration) and `convert` hanging in some cases
 * Fixed crash when adding a FITS keyword with a value but no name (#2033)
 * Fixed build failure with OpenCV 5.1 (#2024)
+* Fixed wrong Bayer pattern when saving CFA images to SER if their row order was not given by the ROWORDER keyword (#2034)
 
 siril-1.4.5
 10/28/26
