@@ -1,0 +1,140 @@
+{
+  "@context": "https://w3id.org/codemeta/3.0",
+  "@type": "SoftwareSourceCode",
+  "name": "Siril",
+  "description": "Siril is an open source software package for the pre- and post-processing of astronomical images, providing tools for calibration, registration, stacking, photometry, astrometry and image enhancement. It handles a wide range of file formats, including FITS, camera RAW files and image sequences such as SER files and films. Images can be processed through its graphical user interface, through its command language and scripts, or through Python scripts using a dedicated module. Siril also performs plate solving, photometric and spectrophotometric color calibration, and many other operations on astronomical data.",
+  "version": "1.4.5",
+  "developmentStatus": "https://www.repostatus.org/#active",
+  "dateCreated": "2005",
+  "license": "https://spdx.org/licenses/GPL-3.0-or-later",
+  "identifier": [
+    "https://doi.org/10.5281/zenodo.13880497",
+    "https://ascl.net/2412.014"
+  ],
+  "url": "https://siril.org",
+  "codeRepository": "https://gitlab.com/free-astro/siril",
+  "issueTracker": "https://gitlab.com/free-astro/siril/-/issues",
+  "continuousIntegration": "https://gitlab.com/free-astro/siril/-/pipelines",
+  "readme": "https://gitlab.com/free-astro/siril/-/blob/master/README.md",
+  "downloadUrl": "https://siril.org/download/",
+  "softwareHelp": "https://siril.readthedocs.io",
+  "applicationCategory": "Astronomy",
+  "keywords": [
+    "astronomy",
+    "astrophotography",
+    "image processing",
+    "calibration",
+    "registration",
+    "stacking",
+    "photometry",
+    "astrometry",
+    "plate solving"
+  ],
+  "programmingLanguage": [
+    "C",
+    "C++",
+    "Python"
+  ],
+  "operatingSystem": [
+    "Linux",
+    "macOS",
+    "Windows"
+  ],
+  "softwareRequirements": [
+    "GTK 3",
+    "GtkSourceView 4",
+    "GLib",
+    "cfitsio",
+    "GSL",
+    "FFTW",
+    "OpenCV",
+    "wcslib",
+    "LittleCMS 2",
+    "HEALPix C++",
+    "OpenMP"
+  ],
+  "author": [
+    {
+      "@type": "Person",
+      "@id": "https://orcid.org/0000-0002-8882-8448",
+      "givenName": "Cyril",
+      "familyName": "Richard",
+      "affiliation": {
+        "@type": "Organization",
+        "name": "Laboratoire Interdisciplinaire Carnot de Bourgogne, UMR 6303 CNRS - Université Bourgogne Europe"
+      }
+    },
+    {
+      "@type": "Person",
+      "@id": "https://orcid.org/0009-0005-3901-552X",
+      "givenName": "Vincent",
+      "familyName": "Hourdin",
+      "affiliation": {
+        "@type": "Organization",
+        "name": "Independent Researcher"
+      }
+    },
+    {
+      "@type": "Person",
+      "@id": "https://orcid.org/0009-0008-4722-3371",
+      "givenName": "Cécile",
+      "familyName": "Melis",
+      "affiliation": {
+        "@type": "Organization",
+        "name": "Independent Researcher"
+      }
+    },
+    {
+      "@type": "Person",
+      "@id": "https://orcid.org/0009-0000-7994-0350",
+      "givenName": "Adrian",
+      "familyName": "Knagg-Baugh",
+      "affiliation": {
+        "@type": "Organization",
+        "name": "Independent Researcher"
+      }
+    }
+  ],
+  "maintainer": {
+    "@id": "https://orcid.org/0000-0002-8882-8448"
+  },
+  "copyrightHolder": {
+    "@type": "Organization",
+    "name": "Team free-astro",
+    "url": "https://free-astro.org"
+  },
+  "referencePublication": {
+    "@type": "ScholarlyArticle",
+    "@id": "https://doi.org/10.21105/joss.07242",
+    "name": "Siril: An Advanced Tool for Astronomical Image Processing",
+    "author": [
+      {
+        "@id": "https://orcid.org/0000-0002-8882-8448"
+      },
+      {
+        "@id": "https://orcid.org/0009-0005-3901-552X"
+      },
+      {
+        "@id": "https://orcid.org/0009-0008-4722-3371"
+      },
+      {
+        "@id": "https://orcid.org/0009-0000-7994-0350"
+      }
+    ],
+    "datePublished": "2024-10-15",
+    "pageStart": "7242",
+    "isPartOf": {
+      "@type": "PublicationIssue",
+      "issueNumber": "102",
+      "isPartOf": {
+        "@type": "PublicationVolume",
+        "volumeNumber": "9",
+        "isPartOf": {
+          "@type": "Periodical",
+          "name": "Journal of Open Source Software",
+          "issn": "2475-9066"
+        }
+      }
+    }
+  }
+}
