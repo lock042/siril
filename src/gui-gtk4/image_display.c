@@ -24,6 +24,7 @@
 #include "algos/background_extraction.h"
 #include "algos/ccd-inspector.h"
 #include "algos/colors.h"
+#include "algos/photometry.h"
 #include "algos/siril_wcs.h"
 #include "algos/sorting.h"
 #include "core/icc_profile.h"
@@ -3852,6 +3853,13 @@ static void draw_stars(const draw_data_t* dd) {
 			if (the_psf) {
 				double size = (!com.pref.phot_set.force_radius && the_psf->fwhmx > 0.0) ?
 					0.5 * the_psf->fwhmx * com.pref.phot_set.auto_aperture_factor : com.pref.phot_set.aperture;
+				// use the radii of the measurement when available, the settings may have changed
+				double inner = com.pref.phot_set.inner, outer = com.pref.phot_set.outer;
+				if (the_psf->phot) {
+					size = the_psf->phot->aperture;
+					inner = the_psf->phot->inner;
+					outer = the_psf->phot->outer;
+				}
 				cairo_set_dash(cr, NULL, 0, 0);
 				// make the aperture slightly brighter
 				cairo_set_source_rgba(cr, min(com.seq.photometry_colors[i][0] + 0.2, 1.0),
@@ -3864,15 +3872,15 @@ static void draw_stars(const draw_data_t* dd) {
 				cairo_set_source_rgba(cr, com.seq.photometry_colors[i][0],
 						com.seq.photometry_colors[i][1],
 						com.seq.photometry_colors[i][2], 1.0);
-				cairo_arc(cr, the_psf->xpos, the_psf->ypos, com.pref.phot_set.inner, 0.,
+				cairo_arc(cr, the_psf->xpos, the_psf->ypos, inner, 0.,
 						2. * G_PI);
 				cairo_stroke(cr);
-				cairo_arc(cr, the_psf->xpos, the_psf->ypos, com.pref.phot_set.outer, 0.,
+				cairo_arc(cr, the_psf->xpos, the_psf->ypos, outer, 0.,
 						2. * G_PI);
 				cairo_stroke(cr);
 				cairo_select_font_face(cr, "Purisa", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
 				cairo_set_font_size(cr, 40.0 / dd->zoom);
-				cairo_move_to(cr, the_psf->xpos + com.pref.phot_set.outer + 5, the_psf->ypos);
+				cairo_move_to(cr, the_psf->xpos + outer + 5, the_psf->ypos);
 				if (i == 0) {
 					cairo_show_text(cr, "V");
 				} else {

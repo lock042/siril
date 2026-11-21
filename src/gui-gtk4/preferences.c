@@ -924,6 +924,12 @@ gboolean check_pref_sanity(gchar **error) {
 		*error = err;
 		return FALSE;
 	}
+	gboolean forced = !siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("photometry_force_radius_button"))));
+	if (forced && gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinAperture"))) >= in) {
+		err = _("The aperture radius must be less than the inner radius. Please change the value in Photometry tab.");
+		*error = err;
+		return FALSE;
+	}
 	/* check for FITS pref */
 	gdouble quantization = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_comp_fits_quantization")));
 	if (quantization == 0.0) {

@@ -102,7 +102,8 @@
 typedef unsigned char BYTE;	// default type for image display data
 typedef unsigned short WORD;	// default type for internal image data
 
-#define MAX_REF_STARS 20	// uchar
+#define MAX_REF_STARS 50	// uchar
+#define DEFAULT_MAX_REF_STARS 19	// reference stars taken from a star list by default
 #define MAX_SEQPSF MAX_REF_STARS// max number of stars for which seqpsf can be run
 				// if we use seqpsf for the light curve, we must allow as many as MAX_REF_STARS
 
@@ -440,6 +441,8 @@ typedef struct {
 	float background_lvl;
 	int number_of_stars;
 	Homography H;
+	float psf_flux;		// median ratio of fluxes with the reference / noise, for PSF weighting
+	float psf_mean_flux;	// median ratio of amplitudes with the reference / noise, for PSF weighting
 } regdata;
 
 // to be stored in the seq file

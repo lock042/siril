@@ -62,6 +62,7 @@ struct seqpsf_args {
 	gboolean init_from_center;
 	super_bool allow_use_as_regdata;
 	framing_mode framing;
+	double inner, outer;	// ring radii overriding the settings if > 0
 
 	/* The seqpsf result for each image, list of seqpsf_data */
 	GSList *list;
@@ -87,6 +88,8 @@ gboolean	enforce_area_in_image(rectangle *area, sequence *seq, int index);
 
 int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean init_from_center, gboolean regall,
 		framing_mode framing, gboolean run_in_thread, gboolean no_GUI);
+int seqpsf_with_rings(sequence *seq, int layer, gboolean for_registration, gboolean init_from_center, gboolean regall,
+		framing_mode framing, gboolean run_in_thread, gboolean no_GUI, double inner, double outer);
 int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, fits *fit, rectangle *area, int threads);
 void free_reference_image();
 
