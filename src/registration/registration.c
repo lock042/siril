@@ -357,6 +357,7 @@ int shift_fit_from_reg(fits *fit, Homography H) {
 		}
 	}
 	copy_fits_metadata(fit, destfit);
+	destfit->top_down = fit->top_down;
 	destfit->rx = destfit->naxes[0] = fit->rx;
 	destfit->ry = destfit->naxes[1] = fit->ry;
 	int shiftx, shifty;
