@@ -19,7 +19,6 @@ siril-1.5.0
 * Fixed aperture photometry and its uncertainties and the e-/ADU value of the last opened image no longer overwrites the gain set in preferences (#1211)
 * Fixed seq file corruption (#1934)
 * Fixed Pixel Math presets, functions, operators and variables always being inserted in the R expression instead of the focused G or B one (#2023)
-* Fixed wrong Bayer pattern when saving CFA images to SER if their row order was not given by the ROWORDER keyword (#2034)
 
 **Improvements**
 * Vectorized rejection stacking hotspot with portable SIMD, ~13% cold / ~22% warm stacking speedup (!1032)
@@ -73,6 +72,7 @@ siril-1.4.6
 * Fixed sequence processing with SER or FITS sequence output (e.g. calibration) and `convert` hanging in some cases
 * Fixed crash when adding a FITS keyword with a value but no name (#2033)
 * Fixed build failure with OpenCV 5.1 (#2024)
+* Fixed wrong Bayer pattern when saving CFA images to SER if their row order was not given by the ROWORDER keyword (#2034)
 
 siril-1.4.5
 10/28/26
