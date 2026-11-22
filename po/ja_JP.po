@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-01 13:48+0200\n"
-"PO-Revision-Date: 2026-11-09 11:47+0000\n"
-"Last-Translator: 城䑓　駿 <jodai.shun@gmail.com>\n"
+"PO-Revision-Date: 2026-11-22 20:54+0000\n"
+"Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
 "Language: ja_JP\n"
@@ -19407,6 +19407,8 @@ msgid ""
 "The \"requires\" command is missing at the top of the script file. This "
 "command is needed to check script compatibility.\n"
 msgstr ""
+"スクリプトファイルの先頭に\"requires\"コマンドがありません。このコマンドは、"
+"スクリプトの互換性を確認するために必要です。\n"
 
 #: src/core/command_line_processor.c:310
 #, fuzzy
@@ -19428,7 +19430,7 @@ msgstr "スクリプトの実行を無事に終了.\n"
 
 #: src/core/command_line_processor.c:408
 msgid "Total execution time"
-msgstr ""
+msgstr "総実行時間"
 
 #: src/core/command_line_processor.c:410
 msgid "Script execution failed.\n"
@@ -27649,9 +27651,8 @@ msgid "Error cloning repository into %s: %s\n"
 msgstr "%d: ‘%s’ 行目にエラー.\n"
 
 #: src/io/siril_git.c:246
-#, fuzzy
 msgid "Repository re-cloned successfully!\n"
-msgstr "スクリプトの実行を無事に終了.\n"
+msgstr "リポジトリのクローン再作成に成功しました！\n"
 
 #: src/io/siril_git.c:250
 msgid ""
@@ -27703,13 +27704,12 @@ msgstr "%d: ‘%s’ 行目にエラー.\n"
 #: src/io/siril_git.c:565 src/io/siril_git.c:590 src/io/siril_git.c:888
 #: src/io/siril_git.c:904
 msgid "Attempting to clone from remote source...\n"
-msgstr ""
+msgstr "リモートソースからのクローン作成を試みています...\n"
 
 #: src/io/siril_git.c:575 src/io/siril_git.c:600 src/io/siril_git.c:897
 #: src/io/siril_git.c:914
-#, fuzzy
 msgid "Repository cloned successfully!\n"
-msgstr "スクリプトの実行を無事に終了.\n"
+msgstr "リポジトリのクローン作成に成功しました！\n"
 
 #: src/io/siril_git.c:579 src/io/siril_git.c:604
 msgid ""
@@ -28999,7 +28999,7 @@ msgstr ""
 
 #: src/main-cli.c:118 src/main.c:132
 msgid "changing the current working directory as the argument"
-msgstr ""
+msgstr "現在の作業ディレクトリを引数として指定されたものに変更"
 
 #: src/main-cli.c:119 src/main.c:133
 msgid ""
@@ -29018,29 +29018,30 @@ msgstr ""
 
 #: src/main-cli.c:122 src/main.c:136
 msgid "specify the path for the read pipe, the one receiving commands"
-msgstr ""
+msgstr "コマンドを受け取る読み取りパイプのパスを指定"
 
 #: src/main-cli.c:123 src/main.c:137
 msgid "specify the path for the write pipe, the one outputting messages"
-msgstr ""
+msgstr "メッセージを出力する書き込みパイプのパスを指定"
 
 #: src/main-cli.c:124 src/main.c:138
 msgid ""
 "print all supported image file formats (depending on installed libraries)"
 msgstr ""
+"サポートされているすべての画像ファイル形式を表示（インストールされている"
+"ライブラリに依存）"
 
 #: src/main-cli.c:125 src/main.c:139
 msgid "start in offline mode"
-msgstr ""
+msgstr "オフラインモードで開始"
 
 #: src/main-cli.c:126 src/main.c:140
 msgid "print the application’s version"
-msgstr ""
+msgstr "アプリケーションのバージョンを表示"
 
 #: src/main-cli.c:127 src/main.c:141
-#, fuzzy
 msgid "print the copyright"
-msgstr "Log ファイルをエクスポート"
+msgstr "著作権を表示"
 
 #: src/main-cli.c:176 src/main.c:343
 #, c-format
@@ -29085,7 +29086,7 @@ msgstr ""
 #: src/main.c:282
 #, c-format
 msgid "Initializing FFTW multithreading support...\n"
-msgstr ""
+msgstr "FFTWのマルチスレッド対応を初期化中...\n"
 
 #: src/main.c:353
 #, c-format
