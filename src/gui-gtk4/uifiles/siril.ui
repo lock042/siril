@@ -2032,6 +2032,13 @@ Current state: linked.</property>
                   </object>
                 </child>
                 <child>
+                  <object class="GtkButton" id="showLightCurve">
+                    <property name="label" translatable="yes">Show Light Curve</property>
+                    <property name="tooltip-text" translatable="yes">Display the light curve from the photometry stored in the sequence, without saving a file</property>
+                    <signal name="clicked" handler="on_showLightCurve_clicked"/>
+                  </object>
+                </child>
+                <child>
                   <object class="GtkButton" id="proc_photometry_output">
                     <property name="action-name">tools.page</property>
                     <property name="action-target">'photometry_output'</property>

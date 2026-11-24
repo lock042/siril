@@ -567,9 +567,11 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 
 	// now we sort to have all dates ascending
 	siril_plot_sort_x(spl_data);
-	// saving dat
+	// saving dat, unless only displaying
 	int ret = 0;
-	if (!siril_plot_save_ETD_light_curve(spl_data, filename, TRUE)) {
+	if (!filename) {
+		siril_plot_set_title(spl_data, titleimg);
+	} else if (!siril_plot_save_ETD_light_curve(spl_data, filename, TRUE)) {
 		ret = 1;
 		free_siril_plot_data(spl_data);
 		spl_data = NULL;

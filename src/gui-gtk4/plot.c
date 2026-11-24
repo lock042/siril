@@ -31,6 +31,7 @@
 #include "core/siril_log.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/image_display.h"
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/plot.h"
 #include "gui-gtk4/progress_and_log.h"
@@ -51,7 +52,7 @@
 #define SEL_TOLERANCE 3. // toerance in pixels for grabbing the selection borders
 
 static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
-		*photometry_output1 = NULL, *photometry_output2 = NULL, *photo_clear_button = NULL, *buttonClearAll = NULL,
+		*photometry_output0 = NULL, *photometry_output1 = NULL, *photometry_output2 = NULL, *photo_clear_button = NULL, *buttonClearAll = NULL,
 		*buttonClearLatest = NULL, *arcsec = NULL, *julianw = NULL, *label_display_plot = NULL,
 		*comboX = NULL, *layer_selector = NULL, *buttonSaveCSV = NULL;
 static pldata *plot_data;
@@ -791,6 +792,12 @@ static int light_curve(pldata *plot, sequence *seq, gchar *filename, gchar **err
 	return retval;
 }
 
+void on_showLightCurve_clicked(GtkButton *button, gpointer user_data) {
+	set_cursor_waiting(TRUE);
+	light_curve(plot_data, &com.seq, NULL, NULL, NULL);
+	set_cursor_waiting(FALSE);
+}
+
 static int exportCSV(pldata *plot, sequence *seq, gchar *filename, gchar **err, void *ptr) {
 	if (!plot) {
 		fprintf(stderr, "exportCSV: Nothing to export\n");
@@ -1123,6 +1130,7 @@ static void fill_plot_statics() {
 
 		combo = GTK_WIDGET(gtk_builder_get_object(gui.builder, "plotCombo"));
 		comboX = GTK_WIDGET(gtk_builder_get_object(gui.builder, "plotComboX"));
+		photometry_output0 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "showLightCurve"));
 		photometry_output1 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "varCurvePhotometry"));
 		photometry_output2 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "exportAAVSO_button"));
 		buttonSaveCSV = GTK_WIDGET(gtk_builder_get_object(gui.builder, "ButtonSaveCSV"));
@@ -1158,6 +1166,7 @@ static void validate_combos() {
 		if (!(com.seq.regparam) || !(com.seq.regparam[reglayer]))
 			reglayer = get_registration_layer(&com.seq);
 	}
+	gtk_widget_set_sensitive(photometry_output0, use_photometry);
 	gtk_widget_set_sensitive(photometry_output1, use_photometry);
 	gtk_widget_set_sensitive(photometry_output2, use_photometry);
 	gtk_widget_set_visible(buttonSaveCSV, !(plot_data == NULL));
@@ -1531,6 +1540,7 @@ void on_clearLatestPhotometry_clicked(GtkButton *button, gpointer user_data) {
 		clear_stars_list(TRUE);
 	}
 	drawPlot();
+	redraw(REDRAW_OVERLAY);
 }
 
 void clear_all_photometry_and_plot() {
@@ -1540,6 +1550,7 @@ void clear_all_photometry_and_plot() {
 	reset_plot();
 	clear_stars_list(TRUE);
 	drawPlot();
+	redraw(REDRAW_OVERLAY);
 }
 
 void on_clearAllPhotometry_clicked(GtkButton *button, gpointer user_data) {

@@ -21,6 +21,7 @@ siril-1.5.0
 * Fixed Pixel Math presets, functions, operators and variables always being inserted in the R expression instead of the focused G or B one (#2023)
 
 **Improvements**
+* Added a Show Light Curve entry to display the light curve from the photometry stored in the sequence at any time, without saving an ETD file first
 * Vectorized rejection stacking hotspot with portable SIMD, ~13% cold / ~22% warm stacking speedup (!1032)
 * Introduced generic_image_worker to standardize image operations (!965)
 * Added splashscreen at startup (!975)

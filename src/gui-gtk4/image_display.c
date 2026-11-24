@@ -3839,11 +3839,6 @@ static void draw_stars(const draw_data_t* dd) {
 		cairo_stroke(cr);
 		cairo_arc(cr, gui.qphot->xpos, gui.qphot->ypos, com.pref.phot_set.outer, 0., 2. * G_PI);
 		cairo_stroke(cr);
-		cairo_select_font_face(cr, "Purisa", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-		cairo_set_font_size(cr, 40.0 / dd->zoom);
-		cairo_move_to(cr, gui.qphot->xpos + com.pref.phot_set.outer + 5, gui.qphot->ypos);
-		cairo_show_text(cr, "V");  // was missing — stroke on empty path was a no-op
-		cairo_stroke(cr);
 	}
 
 	/* draw seqpsf stars */
