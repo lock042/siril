@@ -832,6 +832,12 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 			if (g_strcmp0(value, "") == 0) value = NULL;
 			if (g_strcmp0(comment, "") == 0) comment = NULL;
 
+			if (value && !key) {
+				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"),
+						_("A keyword name is required to set a value."));
+				continue;
+			}
+
 			if (comment || (value && key)) {
 				char valstring[FLEN_VALUE] = { 0 };
 				process_keyword_string_value(value, valstring, string_has_space(value));

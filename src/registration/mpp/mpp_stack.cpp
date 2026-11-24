@@ -336,9 +336,9 @@ void stack_remap_subpixel(const cv::Mat &frame, cv::Mat &buffer,
 	 * only at frame edges) are replicated — the affected ring is inside
 	 * the border trim. warpAffine's cost scales with the dst patch, not
 	 * the frame, so passing the whole frame as src costs nothing. */
-	const cv::Mat M = (cv::Mat_<double>(2, 3)
-	    << 1.0, 0.0, (double) (x_low + x_low_dst) + shift_x,
-	       0.0, 1.0, (double) (y_low + y_low_dst) + shift_y);
+	const cv::Mat M = cv::Mat_<double>({2, 3},
+	    {1.0, 0.0, (double) (x_low + x_low_dst) + shift_x,
+	     0.0, 1.0, (double) (y_low + y_low_dst) + shift_y});
 	cv::Mat patch;
 	cv::warpAffine(frame, patch, M,
 	               cv::Size(x_high_dst - x_low_dst, y_high_dst - y_low_dst),

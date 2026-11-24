@@ -13,6 +13,7 @@ sensor_pattern get_validated_cfa_pattern(fits *fit, gboolean force_debayer, gboo
 int FC_array(int row, int col, BYTE* bpattern, int size);
 int get_compiled_pattern(fits *fit, BYTE pattern[36], int *pattern_size, gboolean verbose);
 gboolean fit_is_cfa(fits *fit);
+gboolean cfa_is_top_down(fits *fit);
 gboolean compare_compiled_pattern(BYTE *refpattern, BYTE *pattern, int pattern_size);
 void update_bayer_pattern_information(fits *fit, sensor_pattern pattern);
 void get_debayer_area(const rectangle *area, rectangle *debayer_area,

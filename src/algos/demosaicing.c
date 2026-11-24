@@ -76,13 +76,16 @@ static gboolean get_debayer_orientation(fits *fit, gboolean *forced, gboolean *h
 	gboolean top_down = FALSE;
 	if (header)
 		*header = FALSE;
+	/* frames read from SER keep the row order set by Siril: forcing only applies to FITS */
+	gboolean ser_frame = fit->top_down && (!g_strcmp0(fit->keywords.row_order, "TOP-DOWN")
+			|| !g_strcmp0(fit->keywords.row_order, "BOTTOM-UP"));
 	if (forced)
-		*forced = com.pref.debayer.orientation == ROW_ORDER_FORCE_BOTTOMUP || com.pref.debayer.orientation == ROW_ORDER_FORCE_TOPDOWN;
-	if (com.pref.debayer.orientation == ROW_ORDER_FORCE_BOTTOMUP)
+		*forced = !ser_frame && (com.pref.debayer.orientation == ROW_ORDER_FORCE_BOTTOMUP || com.pref.debayer.orientation == ROW_ORDER_FORCE_TOPDOWN);
+	if (!ser_frame && com.pref.debayer.orientation == ROW_ORDER_FORCE_BOTTOMUP)
 		return FALSE;
-	if (com.pref.debayer.orientation == ROW_ORDER_FORCE_TOPDOWN)
+	if (!ser_frame && com.pref.debayer.orientation == ROW_ORDER_FORCE_TOPDOWN)
 		return TRUE;
-	if (com.pref.debayer.orientation == ROW_ORDER_HEADER_TOPDOWN || com.pref.debayer.orientation == ROW_ORDER_HEADER_BOTTOMUP) {
+	if (ser_frame || com.pref.debayer.orientation == ROW_ORDER_HEADER_TOPDOWN || com.pref.debayer.orientation == ROW_ORDER_HEADER_BOTTOMUP) {
 		if (!g_strcmp0(fit->keywords.row_order, "TOP-DOWN")) {
 			if (header)
 				*header = TRUE;
@@ -97,6 +100,11 @@ static gboolean get_debayer_orientation(fits *fit, gboolean *forced, gboolean *h
 		}
 	}
 	return top_down;
+}
+
+/* row order of a CFA image, as debayering interprets it */
+gboolean cfa_is_top_down(fits *fit) {
+	return get_debayer_orientation(fit, NULL, NULL);
 }
 
 static void adjust_Bayer_pattern_offset(sensor_pattern *pattern, int xbayeroff, int ybayeroff) {

@@ -78,7 +78,7 @@ cv::Mat blurred(const cv::Mat &mono, const mpp_config_t &cfg) {
 }
 
 cv::Mat shifted(const cv::Mat &mono, int dy, int dx) {
-	const cv::Mat M = (cv::Mat_<double>(2, 3) << 1, 0, dx, 0, 1, dy);
+	const cv::Mat M = cv::Mat_<double>({2, 3}, {1., 0., (double) dx, 0., 1., (double) dy});
 	cv::Mat out;
 	cv::warpAffine(mono, out, M, mono.size(), cv::INTER_NEAREST,
 	               cv::BORDER_REPLICATE);

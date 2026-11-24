@@ -60,6 +60,14 @@ using namespace cv;
 static void convert_H_to_MatH(const Homography *from, Mat &to);
 static void convert_MatH_to_H(Mat from, Homography *to);
 
+/* OpenCV throws on errors, allocation failures included: an exception reaching
+ * the C callers terminates Siril */
+static int report_cv_exception(const char *func, const std::exception &e) {
+	const cv::Exception *cve = dynamic_cast<const cv::Exception *>(&e);
+	siril_log_error(_("%s failed: %s\n"), func, cve ? cve->err.c_str() : e.what());
+	return 1;
+}
+
 /* TODO:
  * fix memory leak
  *
@@ -249,7 +257,7 @@ static void init_guide(fits *image, unsigned int target_rx, unsigned int target_
 }
 
 /* resizes image to the sizes toX * toY, and stores it back in image */
-int cvResizeGaussian(fits *image, int toX, int toY, int interpolation, gboolean clamp) {
+int cvResizeGaussian(fits *image, int toX, int toY, int interpolation, gboolean clamp) try {
 	Mat in, out;
 	void *bgr = NULL;
 	if (image_to_Mat(image, &in, &out, &bgr, toX, toY))
@@ -272,6 +280,8 @@ int cvResizeGaussian(fits *image, int toX, int toY, int interpolation, gboolean 
 		tmp1.release();
 	}
 	return Mat_to_image(image, &in, &out, bgr, toX, toY);
+} catch (const std::exception &e) {
+	return report_cv_exception(__func__, e);
 }
 
 void cvResizeArray(double *in, double *out, int inX, int inY, int outX, int outY) {
@@ -281,7 +291,7 @@ void cvResizeArray(double *in, double *out, int inX, int inY, int outX, int outY
 }
 
 // This function is now used only for mod90 rotations w/o interp
-int cvRotateImage(fits *image, int angle) {
+int cvRotateImage(fits *image, int angle) try {
 	Mat in, out;
 	void *bgr = NULL;
 	int target_rx = image->rx, target_ry = image->ry;
@@ -313,6 +323,8 @@ int cvRotateImage(fits *image, int angle) {
 		flip(out, out, 1);
 	}
 	return Mat_to_image(image, &in, &out, bgr, target_rx, target_ry);
+} catch (const std::exception &e) {
+	return report_cv_exception(__func__, e);
 }
 
 void cvTransformImageRefPoint(Homography Hom, point refpointin, point *refpointout) {
@@ -321,7 +333,7 @@ void cvTransformImageRefPoint(Homography Hom, point refpointin, point *refpointo
 	/* the homogeneous point must be built as an explicit 3x1 column vector:
 	 * Mat(Point3d) is 3x1 with OpenCV 4 but 1x3 with OpenCV 5, which makes
 	 * the matrix product throw */
-	Mat refptin = (Mat_<double>(3, 1) << refpointin.x, refpointin.y, 1.);
+	Mat refptin = Mat_<double>({3, 1}, {refpointin.x, refpointin.y, 1.});
 	Mat refptout = H * refptin;
 	refpointout->x = refptout.at<double>(0) / refptout.at<double>(2);
 	refpointout->y = refptout.at<double>(1) / refptout.at<double>(2);
@@ -524,7 +536,7 @@ void cvPrepareDrizzleH(Homography *Hom, double scale, int source_rx, int source_
 }
 
 // transform an image using the homography.
-int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homography Hom, float scale, int interpolation, gboolean clamp, disto_data *disto) {
+int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homography Hom, float scale, int interpolation, gboolean clamp, disto_data *disto) try {
 	Mat in, out;
 	void *bgr = NULL;
 	int target_rx = width, target_ry = height;
@@ -589,6 +601,8 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 	free(xmap);
 	free(ymap);
 	return Mat_to_image(image, &in, &out, bgr, width, height);
+} catch (const std::exception &e) {
+	return report_cv_exception(__func__, e);
 }
 
 void cvDownscaleBlendMask(int rx, int ry, int out_rx, int out_ry, uint8_t *maskin, float *maskout) {
@@ -624,7 +638,7 @@ void cvUpscaleBlendMask(int rx, int ry, int out_rx, int out_ry, float *maskin, f
 
 
 
-int cvUnsharpFilter(fits* image, double sigma, double amount) {
+int cvUnsharpFilter(fits* image, double sigma, double amount) try {
 	Mat in, out;
 	void *bgr = NULL;
 	int target_rx = image->rx, target_ry = image->ry;
@@ -646,9 +660,11 @@ int cvUnsharpFilter(fits* image, double sigma, double amount) {
 	}
 
 	return Mat_to_image(image, &in, &out, bgr, target_rx, target_ry);
+} catch (const std::exception &e) {
+	return report_cv_exception(__func__, e);
 }
 
-int cvBilateralFilter(fits* image, double d, double sigma_col, double sigma_space) {
+int cvBilateralFilter(fits* image, double d, double sigma_col, double sigma_space) try {
 	Mat in, out;
 	void *bgr = NULL;
 	if (image_to_Mat(image, &in, &out, &bgr, image->rx, image->ry))
@@ -656,9 +672,11 @@ int cvBilateralFilter(fits* image, double d, double sigma_col, double sigma_spac
 	siril_log_debug("using opencv Bilateral Filter (CPU)\n");
 	bilateralFilter(in, out, d, sigma_col, sigma_space, BORDER_DEFAULT);
 	return Mat_to_image(image, &in, &out, bgr, image->rx, image->ry);
+} catch (const std::exception &e) {
+	return report_cv_exception(__func__, e);
 }
 
-int cvGuidedFilter(fits* image, fits *guide, double r, double eps) {
+int cvGuidedFilter(fits* image, fits *guide, double r, double eps) try {
 	Mat in, out, guide_mat;
 	void *bgr = NULL;
 	int rx = guide->rx, ry = guide->ry;
@@ -695,6 +713,8 @@ int cvGuidedFilter(fits* image, fits *guide, double r, double eps) {
 	result.copyTo(out);
 	guide_mat.release();
 	return Mat_to_image(image, &in, &out, bgr, image->rx, image->ry);
+} catch (const std::exception &e) {
+	return report_cv_exception(__func__, e);
 }
 
 /* Work on grey images. If image is in RGB it must be first converted
@@ -893,12 +913,14 @@ static int cvClahe_float(fits *image, double clip_limit, int size) {
 	return 0;
 }
 
-int cvClahe(fits *image, double clip_limit, int size) {
+int cvClahe(fits *image, double clip_limit, int size) try {
 	if (image->type == DATA_USHORT)
 		return cvClahe_ushort(image, clip_limit, size);
 	if (image->type == DATA_FLOAT)
 		return cvClahe_float(image, clip_limit, size);
 	return -1;
+} catch (const std::exception &e) {
+	return report_cv_exception(__func__, e);
 }
 
 // https://igl.ethz.ch/projects/ARAP/svd_rot.pdf
@@ -1009,7 +1031,7 @@ double cvCalculRigidTransform(s_star *star_array_in,
 	// computing the maximum error
 	double err = 0., norm2;
 	for (int i = 0; i < n; i++) {
-		res = H * (Mat_<double>(3,1) << star_array_out[i].x - 0.5, star_array_out[i].y - 0.5, 1) - (Mat_<double>(3,1) << star_array_in[i].x - 0.5, star_array_in[i].y - 0.5, 1);
+		res = H * Mat_<double>({3, 1}, {star_array_out[i].x - 0.5, star_array_out[i].y - 0.5, 1.}) - Mat_<double>({3, 1}, {star_array_in[i].x - 0.5, star_array_in[i].y - 0.5, 1.});
 		norm2 = cv::norm(res);
 		if (norm2 > err) err = norm2;
 	}

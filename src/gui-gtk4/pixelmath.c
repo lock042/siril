@@ -409,6 +409,17 @@ static void on_pm_var_selection_changed(GtkSelectionModel *sm, guint position, g
 
 /* ── Widget initialisation ──────────────────────────────────────────────── */
 
+/* GTK4 has no focus-in-event: track the last focused expression entry. */
+static void on_pm_entry_focus_enter(GtkEventControllerFocus *ctrl, gpointer user_data) {
+	entry_has_focus = GPOINTER_TO_INT(user_data);
+}
+
+static void track_entry_focus(GtkEntry *entry, int idx) {
+	GtkEventController *fc = gtk_event_controller_focus_new();
+	g_signal_connect(fc, "enter", G_CALLBACK(on_pm_entry_focus_enter), GINT_TO_POINTER(idx));
+	gtk_widget_add_controller(GTK_WIDGET(entry), fc);
+}
+
 static void init_widgets() {
 	if (!pm_var_store) {
 		pixel_math_status_bar = GTK_LABEL(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pixel_math_status")));
@@ -416,6 +427,9 @@ static void init_widgets() {
 		pixel_math_entry_r = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pixel_math_entry_r")));
 		pixel_math_entry_g = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pixel_math_entry_g")));
 		pixel_math_entry_b = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pixel_math_entry_b")));
+		track_entry_focus(pixel_math_entry_r, 0);
+		track_entry_focus(pixel_math_entry_g, 1);
+		track_entry_focus(pixel_math_entry_b, 2);
 #if GTK_CHECK_VERSION(3, 22, 0)
 		gtk_scrolled_window_set_propagate_natural_width(GTK_SCROLLED_WINDOW(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pixel_math_scrolled_functions"))), TRUE);
 		gtk_scrolled_window_set_propagate_natural_width(GTK_SCROLLED_WINDOW(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pixel_math_scrolled_operators"))), TRUE);
@@ -1214,24 +1228,6 @@ void on_pm_use_rgb_button_toggled(GtkCheckButton *button, gpointer user_data) {
 	gtk_widget_set_sensitive(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pixel_math_entry_b")), !siril_toggle_get_active(GTK_WIDGET(button)));
 	gtk_label_set_text(GTK_LABEL(GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_RGBK"))), siril_toggle_get_active(GTK_WIDGET(button)) ? _("RGB/K") : _("R"));
 	if (siril_toggle_get_active(GTK_WIDGET(button))) entry_has_focus = 0;
-}
-
-gboolean on_pixel_math_entry_r_focus_in_event(GtkWidget *widget,
-		GdkEvent *event, gpointer user_data) {
-	entry_has_focus = 0;
-	return FALSE;
-}
-
-gboolean on_pixel_math_entry_g_focus_in_event(GtkWidget *widget,
-		GdkEvent *event, gpointer user_data) {
-	entry_has_focus = 1;
-	return FALSE;
-}
-
-gboolean on_pixel_math_entry_b_focus_in_event(GtkWidget *widget,
-		GdkEvent *event, gpointer user_data) {
-	entry_has_focus = 2;
-	return FALSE;
 }
 
 void on_pixel_math_add_var_button_clicked(GtkButton *button, gpointer user_data) {
