@@ -107,6 +107,47 @@ fits *flis_render_layers_ctx(GSList *layers, const flis_render_ctx *ctx,
                                        sub_composite, first_raw);
 }
 
+flis_layer_t *flis_compose_passthrough_layer(GSList *layers,
+                                             const flis_render_ctx *ctx) {
+    if (!layers || layers->next)
+        return NULL;
+    flis_render_ctx doc;
+    if (!ctx) {
+        doc = ctx_from_document();
+        ctx = &doc;
+    }
+    flis_layer_t *lay = (flis_layer_t *)layers->data;
+    if (!lay || !lay->fit)
+        return NULL;
+    const fits *fit = lay->fit;
+    if (fit->naxes[2] != 1 && fit->naxes[2] != 3)
+        return NULL;
+    if (!lay->visible || lay->blend_mode != FLIS_BLEND_NORMAL
+        || lay->opacity < 1.f)
+        return NULL;
+    if (lay->has_tint && (lay->layer_tint.r != 1.0 || lay->layer_tint.g != 1.0
+                          || lay->layer_tint.b != 1.0))
+        return NULL;
+    if (lay->lmask && lay->lmask_active)
+        return NULL;
+    if (lay->position_x != 0 || lay->position_y != 0)
+        return NULL;
+    /* Same canvas fallback as the compositor: no canvas = the layer's dims. */
+    if (ctx->canvas_w && ctx->canvas_h
+        && (fit->rx != ctx->canvas_w || fit->ry != ctx->canvas_h))
+        return NULL;
+    if (ctx->bg_r != 0.0 || ctx->bg_g != 0.0 || ctx->bg_b != 0.0)
+        return NULL;
+    if (lay->group_id) {
+        const flis_group_t *grp = ctx_group_by_id(ctx, lay->group_id);
+        if (!grp || !grp->visible || grp->opacity < 1.f
+            || (grp->blend_mode != FLIS_BLEND_NORMAL
+                && grp->blend_mode != FLIS_BLEND_PASS_THROUGH))
+            return NULL;
+    }
+    return lay;
+}
+
 /* Merge-down variant: the first (bottom) layer is painted RAW — tint only,
  * no blend mode / opacity / mask — because merge-down's contract is that
  * the surviving layer RETAINS those parameters; baking them into the

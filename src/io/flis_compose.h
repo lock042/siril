@@ -79,6 +79,27 @@ fits *flis_render_layers_ctx(GSList *layers, const flis_render_ctx *ctx,
                              gboolean sub_composite, gboolean first_raw);
 
 /**
+ * flis_compose_passthrough_layer:
+ *
+ * The one layer whose own pixels ARE the composite, or NULL.  True of a stack
+ * holding exactly one layer that is visible, NORMAL-blended at full opacity,
+ * untinted (or tinted 1,1,1), has no active layer mask, sits at the canvas
+ * origin and covers the whole canvas exactly, is ungrouped or in a group that
+ * is itself visible, opaque and NORMAL/PASS_THROUGH, over a black canvas
+ * background (zero pixels are "no data" and would otherwise show it).
+ *
+ * In that case the display can render the layer directly, as it does a plain
+ * image, instead of building a canvas-sized three-plane float composite on
+ * every edit: for a mono layer the composite is 12 bytes per pixel that carry
+ * nothing the layer does not.  The only difference left is that the composite
+ * clamps to [0, 1], which the plain display path does in its LUT anyway.
+ *
+ * @ctx as for flis_render_layers_ctx(); NULL = the live document.
+ */
+flis_layer_t *flis_compose_passthrough_layer(GSList *layers,
+                                             const flis_render_ctx *ctx);
+
+/**
  * flis_compose_bake_tile_bgra8:
  * @lay:      layer to bake from (uses lay->fit, lay->has_tint, lay->layer_tint)
  * @tile_dim: tile side length; tile (tx, ty) covers layer-local display rows

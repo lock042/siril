@@ -165,6 +165,25 @@ static int flis_composite_ensure_built(void) {
 	 * which rebuilds cleanly once the writer has released. */
 	if (!flis_stack_reader_trylock())
 		return flis_display_composite ? 0 : 1;
+	/* Single trivial layer: its pixels ARE the composite, so render gfit
+	 * directly as for a plain image (callers fall back to gfit on non-zero)
+	 * instead of building a canvas-sized RGB float copy on every edit.  Only
+	 * when the layer is gfit — an insertion that borrows the display points
+	 * gfit elsewhere and must keep the composite.  Drop any stale composite
+	 * so its memory is returned; dirty stays TRUE so the next call re-asks,
+	 * which is cheap, and picks the composite back up once the stack stops
+	 * being trivial. */
+	flis_layer_t *pass = flis_compose_passthrough_layer(com.uniq->layers, NULL);
+	if (pass && pass->fit == gfit) {
+		flis_stack_reader_unlock();
+		if (flis_display_composite) {
+			clearfits(flis_display_composite);
+			free(flis_display_composite);
+			flis_display_composite = NULL;
+		}
+		flis_composite_dirty = TRUE;
+		return 1;
+	}
 	fits *fresh = flis_render_layers(com.uniq->layers);
 	flis_stack_reader_unlock();
 	if (!fresh) return 1;

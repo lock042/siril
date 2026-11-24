@@ -412,3 +412,112 @@ Test(flis_compose, one_rgb_layer_is_enough) {
 	flis_test_add_layer(flis_test_make_rgb_fits(4, 4, 0.2f, 0.4f, 0.6f), "colour");
 	cr_assert(flis_composite_is_chromatic());
 }
+
+/* ---- single-layer pass-through (display fast path) ----------------------
+ * flis_compose_passthrough_layer() lets the display skip the canvas-sized
+ * composite when one layer's own pixels already ARE the composite.  Each
+ * test below changes exactly one condition from the trivial case; any one of
+ * them must send the display back through the compositor. */
+
+static flis_layer_t *add_trivial_mono(void) {
+	flis_layer_t *lay = flis_test_add_layer(flis_test_make_mono_fits(4, 3, 0.25f), "only");
+	cr_assert_not_null(lay);
+	return lay;
+}
+
+Test(flis_compose, passthrough_single_mono) {
+	flis_layer_t *lay = add_trivial_mono();
+	cr_assert_eq(flis_compose_passthrough_layer(com.uniq->layers, NULL), lay,
+	             "a lone plain mono layer is its own composite");
+}
+
+Test(flis_compose, passthrough_single_rgb) {
+	flis_layer_t *lay = flis_test_add_layer(
+		flis_test_make_rgb_fits(4, 3, 0.1f, 0.2f, 0.3f), "only");
+	cr_assert_eq(flis_compose_passthrough_layer(com.uniq->layers, NULL), lay);
+}
+
+Test(flis_compose, passthrough_matches_compositor) {
+	/* The claim the fast path rests on: for the trivial case the composite
+	 * holds nothing the layer does not — mono broadcast to R=G=B. */
+	flis_layer_t *lay = add_trivial_mono();
+	cr_assert_not_null(flis_compose_passthrough_layer(com.uniq->layers, NULL));
+	fits *out = flis_render_layers(com.uniq->layers);
+	cr_assert_not_null(out);
+	size_t n = (size_t)lay->fit->rx * lay->fit->ry;
+	for (int c = 0; c < 3; c++)
+		for (size_t i = 0; i < n; i++)
+			cr_assert(flis_test_approx_eq(out->fpdata[c][i], lay->fit->fdata[i], 1e-6f));
+	clearfits(out);
+	free(out);
+}
+
+Test(flis_compose, passthrough_refuses_two_layers) {
+	add_trivial_mono();
+	add_trivial_mono();
+	cr_assert_null(flis_compose_passthrough_layer(com.uniq->layers, NULL));
+}
+
+Test(flis_compose, passthrough_refuses_hidden) {
+	flis_layer_set_visible(add_trivial_mono(), FALSE);
+	cr_assert_null(flis_compose_passthrough_layer(com.uniq->layers, NULL));
+}
+
+Test(flis_compose, passthrough_refuses_opacity) {
+	flis_layer_set_opacity(add_trivial_mono(), 0.5f);
+	cr_assert_null(flis_compose_passthrough_layer(com.uniq->layers, NULL));
+}
+
+Test(flis_compose, passthrough_refuses_blend_mode) {
+	flis_layer_set_blend_mode(add_trivial_mono(), FLIS_BLEND_SCREEN);
+	cr_assert_null(flis_compose_passthrough_layer(com.uniq->layers, NULL));
+}
+
+Test(flis_compose, passthrough_tint) {
+	flis_layer_t *lay = add_trivial_mono();
+	flis_layer_set_tint(lay, 1.0, 1.0, 1.0);
+	cr_assert_eq(flis_compose_passthrough_layer(com.uniq->layers, NULL), lay,
+	             "a unit tint changes nothing");
+	flis_layer_set_tint(lay, 0.2, 0.8, 1.0);
+	cr_assert_null(flis_compose_passthrough_layer(com.uniq->layers, NULL));
+}
+
+Test(flis_compose, passthrough_refuses_active_lmask) {
+	flis_layer_t *lay = add_trivial_mono();
+	flis_layer_set_lmask(lay, flis_test_make_const_lmask(4, 3, 8, 0.5));
+	lay->lmask_active = TRUE;
+	cr_assert_null(flis_compose_passthrough_layer(com.uniq->layers, NULL));
+	lay->lmask_active = FALSE;
+	cr_assert_eq(flis_compose_passthrough_layer(com.uniq->layers, NULL), lay,
+	             "an inactive layer mask does not take part");
+}
+
+Test(flis_compose, passthrough_refuses_offset_or_size) {
+	flis_layer_t *lay = add_trivial_mono();
+	lay->position_x = 1;
+	cr_assert_null(flis_compose_passthrough_layer(com.uniq->layers, NULL));
+	lay->position_x = 0;
+	flis_render_ctx ctx = { .canvas_w = 8, .canvas_h = 3 };
+	cr_assert_null(flis_compose_passthrough_layer(com.uniq->layers, &ctx),
+	               "a layer smaller than the canvas leaves background showing");
+}
+
+Test(flis_compose, passthrough_refuses_canvas_bg) {
+	add_trivial_mono();
+	flis_render_ctx ctx = { .canvas_w = 4, .canvas_h = 3, .bg_g = 0.5 };
+	cr_assert_null(flis_compose_passthrough_layer(com.uniq->layers, &ctx),
+	               "zero pixels are no-data and would show the background");
+}
+
+Test(flis_compose, passthrough_group) {
+	flis_layer_t *lay = add_trivial_mono();
+	flis_group_t *grp = flis_group_add("g");
+	cr_assert_not_null(grp);
+	cr_assert_eq(flis_layer_set_group(lay, grp->item_id), 0);
+	cr_assert_eq(flis_compose_passthrough_layer(com.uniq->layers, NULL), lay);
+	grp->opacity = 0.5f;
+	cr_assert_null(flis_compose_passthrough_layer(com.uniq->layers, NULL));
+	grp->opacity = 1.f;
+	grp->visible = FALSE;
+	cr_assert_null(flis_compose_passthrough_layer(com.uniq->layers, NULL));
+}
