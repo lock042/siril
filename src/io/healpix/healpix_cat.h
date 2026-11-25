@@ -8,6 +8,12 @@
 extern "C" {
 #endif
 
+/* All get_raw_stars_from_*_gaia_* loaders below take an optional (nullable)
+ * epoch out-parameter. On success it receives the reference epoch of the
+ * catalogue positions as a Julian Date, derived from the gaia_version byte
+ * of the catalogue header, or 0.0 if the version has no known epoch (the
+ * caller should then fall back to siril_catalog_epoch()). */
+
 /* Photometric-catalogue kinds we can find in the user's gaia photo dir.
  * Values 2/3 mirror the cat_type byte at offset 50 of the on-disk header
  * (Siril HEALpix Catalog Format 1.0.0, https://zenodo.org/records/14697486).
@@ -42,21 +48,24 @@ int get_raw_stars_from_local_gaia_astro_catalogue(double ra,
 												  double limitmag,
 												  gboolean phot,
 												  deepStarData **stars,
-												  uint32_t *nb_stars);
+												  uint32_t *nb_stars,
+												  double *epoch);
 
 int get_raw_stars_from_local_gaia_xpsampled_catalogue(double ra,
 													  double dec,
 													  double radius,
 													  double limitmag,
 													  SourceEntryXPsamp **stars,
-													  uint32_t *nb_stars);
+													  uint32_t *nb_stars,
+													  double *epoch);
 
 int get_raw_stars_from_remote_gaia_xpsampled_catalogue(double ra,
 													  double dec,
 													  double radius,
 													  double limitmag,
 													  SourceEntryXPsamp **stars,
-													  uint32_t *nb_stars);
+													  uint32_t *nb_stars,
+													  double *epoch);
 
 /* xp_continuous variants. The local one reads chunked xpcts catalogue files
  * from catalogue_paths[5]. The remote one fetches via HTTP RANGE from the
@@ -66,14 +75,16 @@ int get_raw_stars_from_local_gaia_xpcontinuous_catalogue(double ra,
 														 double radius,
 														 double limitmag,
 														 SourceEntryXPcts **stars,
-														 uint32_t *nb_stars);
+														 uint32_t *nb_stars,
+														 double *epoch);
 
 int get_raw_stars_from_remote_gaia_xpcontinuous_catalogue(double ra,
 														  double dec,
 														  double radius,
 														  double limitmag,
 														  SourceEntryXPcts **stars,
-														  uint32_t *nb_stars);
+														  uint32_t *nb_stars,
+														  double *epoch);
 
 
 #ifdef __cplusplus

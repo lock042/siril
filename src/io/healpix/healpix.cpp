@@ -55,6 +55,27 @@ enum class GaiaVersion {
     DR5 = 5
 };
 
+// Reference epoch of the positions published by each Gaia data release, as a
+// Julian Date (Julian epochs: JD = 2451545.0 + (epoch - 2000.0) * 365.25).
+// Siril catalogues store positions at the native epoch of the release they
+// were built from, so this is what proper motions must be propagated from.
+// Returns 0.0 for a release whose epoch is not known yet.
+static double gaia_version_to_epoch(uint8_t gaia_version) {
+    double year;
+    switch (static_cast<GaiaVersion>(gaia_version)) {
+        case GaiaVersion::DR1:  year = 2015.0; break;
+        case GaiaVersion::DR2:  year = 2015.5; break;
+        case GaiaVersion::EDR3:
+        case GaiaVersion::DR3:  year = 2016.0; break;
+        case GaiaVersion::DR4:  year = 2017.5; break;
+        default:
+            siril_log_warning(_("Unknown reference epoch for Gaia data release designator %u, "
+                                "assuming the default catalogue epoch\n"), gaia_version);
+            return 0.0;
+    }
+    return 2451545.0 + (year - 2000.0) * 365.25;
+}
+
 // Enum for Catalogue Type
 enum class CatalogueType {
     Cat_None = 0,
@@ -823,7 +844,7 @@ static std::string find_matching_cat_file(std::string& path, const char *type_ta
 template<typename EntryType>
 static int local_gaia_xp_query_impl(double ra, double dec, double radius, double limitmag,
                                     const char *type_tag, uint8_t expected_cat_type,
-                                    EntryType **stars, uint32_t *nb_stars) {
+                                    EntryType **stars, uint32_t *nb_stars, double *epoch) {
     radius /= 60.0; // arcmin -> deg, then radians below
     siril_log_debug("Search radius: %f deg\n", radius);
     const double DEG_TO_RAD = G_PI / 180.0;
@@ -855,6 +876,8 @@ static int local_gaia_xp_query_impl(double ra, double dec, double radius, double
         *stars = nullptr; *nb_stars = 0;
         return 1;
     }
+    if (epoch)
+        *epoch = gaia_version_to_epoch(header.gaia_version);
 
     T_Healpix_Base<int> healpix_base(header.healpix_level, NEST);
     pointing point(theta, phi);
@@ -939,10 +962,10 @@ static int local_gaia_xp_query_impl(double ra, double dec, double radius, double
 template<typename EntryType>
 static int local_gaia_xp_query(double ra, double dec, double radius, double limitmag,
                                const char *type_tag, uint8_t expected_cat_type,
-                               EntryType **stars, uint32_t *nb_stars) {
+                               EntryType **stars, uint32_t *nb_stars, double *epoch) {
     try {
         return local_gaia_xp_query_impl<EntryType>(ra, dec, radius, limitmag,
-                                                   type_tag, expected_cat_type, stars, nb_stars);
+                                                   type_tag, expected_cat_type, stars, nb_stars, epoch);
     } catch (const std::exception& e) {
         siril_log_error(_("Error querying the local %s catalogue: %s\n"), type_tag, e.what());
     } catch (...) {
@@ -1005,7 +1028,7 @@ extern "C" {
         return LOCAL_GAIA_PHOTO_BAD;
     }
 
-    static int get_raw_stars_from_local_gaia_astro_catalogue_impl(double ra, double dec, double radius, double limitmag, gboolean phot, deepStarData **stars, uint32_t *nb_stars) {
+    static int get_raw_stars_from_local_gaia_astro_catalogue_impl(double ra, double dec, double radius, double limitmag, gboolean phot, deepStarData **stars, uint32_t *nb_stars, double *epoch) {
 
 #ifdef HEALPIX_DEBUG
         show_healpixel_entries(0);
@@ -1029,6 +1052,8 @@ extern "C" {
             *nb_stars = 0;
             return 1;
         }
+        if (epoch)
+            *epoch = gaia_version_to_epoch(header.gaia_version);
         T_Healpix_Base<int> healpix_base(header.healpix_level, NEST);
 
         pointing point(theta, phi);
@@ -1114,9 +1139,9 @@ extern "C" {
         return 0;
     }
 
-    int get_raw_stars_from_local_gaia_astro_catalogue(double ra, double dec, double radius, double limitmag, gboolean phot, deepStarData **stars, uint32_t *nb_stars) {
+    int get_raw_stars_from_local_gaia_astro_catalogue(double ra, double dec, double radius, double limitmag, gboolean phot, deepStarData **stars, uint32_t *nb_stars, double *epoch) {
         try {
-            return get_raw_stars_from_local_gaia_astro_catalogue_impl(ra, dec, radius, limitmag, phot, stars, nb_stars);
+            return get_raw_stars_from_local_gaia_astro_catalogue_impl(ra, dec, radius, limitmag, phot, stars, nb_stars, epoch);
         } catch (const std::exception& e) {
             siril_log_error(_("Error querying the local Gaia astrometric catalogue: %s\n"), e.what());
         } catch (...) {
@@ -1127,12 +1152,12 @@ extern "C" {
         return 1;
     }
 
-    int get_raw_stars_from_local_gaia_xpsampled_catalogue(double ra, double dec, double radius, double limitmag, SourceEntryXPsamp **stars, uint32_t *nb_stars) {
-        return local_gaia_xp_query<SourceEntryXPsamp>(ra, dec, radius, limitmag, "xpsamp", 2, stars, nb_stars);
+    int get_raw_stars_from_local_gaia_xpsampled_catalogue(double ra, double dec, double radius, double limitmag, SourceEntryXPsamp **stars, uint32_t *nb_stars, double *epoch) {
+        return local_gaia_xp_query<SourceEntryXPsamp>(ra, dec, radius, limitmag, "xpsamp", 2, stars, nb_stars, epoch);
     }
 
-    int get_raw_stars_from_local_gaia_xpcontinuous_catalogue(double ra, double dec, double radius, double limitmag, SourceEntryXPcts **stars, uint32_t *nb_stars) {
-        return local_gaia_xp_query<SourceEntryXPcts>(ra, dec, radius, limitmag, "xpcts", 3, stars, nb_stars);
+    int get_raw_stars_from_local_gaia_xpcontinuous_catalogue(double ra, double dec, double radius, double limitmag, SourceEntryXPcts **stars, uint32_t *nb_stars, double *epoch) {
+        return local_gaia_xp_query<SourceEntryXPcts>(ra, dec, radius, limitmag, "xpcts", 3, stars, nb_stars, epoch);
     }
 
 #ifdef HAVE_LIBCURL
@@ -1152,7 +1177,7 @@ template<typename EntryType>
 static int remote_gaia_xp_query_impl(double ra, double dec, double radius, double limitmag,
                                      const char *type_tag, uint8_t expected_cat_type,
                                      gchar **mirrors, gchar **current_mirror_ptr,
-                                     EntryType **stars, uint32_t *nb_stars) {
+                                     EntryType **stars, uint32_t *nb_stars, double *epoch) {
     if (!mirrors || !mirrors[0] || !current_mirror_ptr || !*current_mirror_ptr) {
         siril_log_error(_("No remote %s mirrors are configured.\n"), type_tag);
         *stars = nullptr; *nb_stars = 0;
@@ -1198,6 +1223,8 @@ static int remote_gaia_xp_query_impl(double ra, double dec, double radius, doubl
         *stars = nullptr; *nb_stars = 0;
         return 1;
     }
+    if (epoch)
+        *epoch = gaia_version_to_epoch(header.gaia_version);
     curl_easy_cleanup(curl);
 
     T_Healpix_Base<int> healpix_base(header.healpix_level, NEST);
@@ -1346,11 +1373,11 @@ template<typename EntryType>
 static int remote_gaia_xp_query(double ra, double dec, double radius, double limitmag,
                                 const char *type_tag, uint8_t expected_cat_type,
                                 gchar **mirrors, gchar **current_mirror_ptr,
-                                EntryType **stars, uint32_t *nb_stars) {
+                                EntryType **stars, uint32_t *nb_stars, double *epoch) {
     try {
         return remote_gaia_xp_query_impl<EntryType>(ra, dec, radius, limitmag,
                                                     type_tag, expected_cat_type,
-                                                    mirrors, current_mirror_ptr, stars, nb_stars);
+                                                    mirrors, current_mirror_ptr, stars, nb_stars, epoch);
     } catch (const std::exception& e) {
         siril_log_error(_("Error querying the remote %s catalogue: %s\n"), type_tag, e.what());
     } catch (...) {
@@ -1364,16 +1391,17 @@ static int remote_gaia_xp_query(double ra, double dec, double radius, double lim
 extern "C" {
     int get_raw_stars_from_remote_gaia_xpsampled_catalogue(double ra, double dec, double radius,
                                                            double limitmag, SourceEntryXPsamp **stars,
-                                                           uint32_t *nb_stars) {
+                                                           uint32_t *nb_stars, double *epoch) {
         return remote_gaia_xp_query<SourceEntryXPsamp>(ra, dec, radius, limitmag,
                                                        "xpsamp", 2,
                                                        spcc_mirrors, &com.spcc_remote_catalogue,
-                                                       stars, nb_stars);
+                                                       stars, nb_stars, epoch);
     }
 #else
     int get_raw_stars_from_remote_gaia_xpsampled_catalogue(double ra, double dec, double radius,
                                                            double limitmag, SourceEntryXPsamp **stars,
-                                                           uint32_t *nb_stars) {
+                                                           uint32_t *nb_stars, double *epoch) {
+        (void)epoch;
         siril_log_error(_("Error: Siril was compiled without libcurl support. Remote catalogue access is unavailable.\n"));
         *stars = nullptr;
         *nb_stars = 0;
@@ -1387,17 +1415,17 @@ extern "C" {
 #ifdef HAVE_LIBCURL
     int get_raw_stars_from_remote_gaia_xpcontinuous_catalogue(double ra, double dec, double radius,
                                                               double limitmag, SourceEntryXPcts **stars,
-                                                              uint32_t *nb_stars) {
+                                                              uint32_t *nb_stars, double *epoch) {
         return remote_gaia_xp_query<SourceEntryXPcts>(ra, dec, radius, limitmag,
                                                       "xpcts", 3,
                                                       spcc_mirrors_xpcts, &com.spcc_remote_catalogue_xpcts,
-                                                      stars, nb_stars);
+                                                      stars, nb_stars, epoch);
     }
 #else
     int get_raw_stars_from_remote_gaia_xpcontinuous_catalogue(double ra, double dec, double radius,
                                                               double limitmag, SourceEntryXPcts **stars,
-                                                              uint32_t *nb_stars) {
-        (void)ra; (void)dec; (void)radius; (void)limitmag;
+                                                              uint32_t *nb_stars, double *epoch) {
+        (void)ra; (void)dec; (void)radius; (void)limitmag; (void)epoch;
         siril_log_error(_("Error: Siril was compiled without libcurl support. Remote catalogue access is unavailable.\n"));
         *stars = nullptr; *nb_stars = 0;
         return 1;
