@@ -23,6 +23,7 @@
 
 #include <gsl/gsl_statistics.h>
 
+#include "algos/barycentric.h"
 #include "algos/comparison_stars.h"
 #include "algos/photometric_cc.h"
 #include "algos/photometry.h"
@@ -309,7 +310,7 @@ void print_psf_error_summary(gint *code_sums) {
 
 // save the light curve to a dat file
 // with formatting compatible with ETD
-static gboolean siril_plot_save_ETD_light_curve(siril_plot_data *spl_data, const char *datfilename, gboolean add_title) {
+static gboolean siril_plot_save_ETD_light_curve(siril_plot_data *spl_data, const char *datfilename, const char *timescale, gboolean add_title) {
 	GString *header = NULL;
 	FILE* fileout = NULL;
 	gboolean retval = TRUE;
@@ -324,9 +325,11 @@ static gboolean siril_plot_save_ETD_light_curve(siril_plot_data *spl_data, const
 		// spl_data->title is assumed to have the # signs at each line start as necessary
 		// and to finish by a \n character
 		header = g_string_new(spl_data->title);
-		g_string_append_printf(header, "# JD_UT V-C err");
-	} else
-		header = g_string_new("# JD_UT V-C err");
+		g_string_append_printf(header, "# %s V-C err", timescale);
+	} else {
+		header = g_string_new(NULL);
+		g_string_printf(header, "# %s V-C err", timescale);
+	}
 
 	// xy points with y error bars
 	splxyerrdata *plots = (splxyerrdata *)spl_data->plots->data;
@@ -375,6 +378,37 @@ clean_and_exit:
 	g_string_free(header, TRUE);
 	free(data);
 	return retval;
+}
+
+/* mid-exposure JD_UTC of a frame, 0 if its date is unknown */
+double seq_frame_mid_julian(const sequence *seq, int index) {
+	GDateTime *dt = seq->imgparam[index].date_obs;
+	if (!dt)
+		return 0.0;
+	if (seq->exposure <= 0.0)
+		return date_time_to_Julian(dt);
+	GDateTime *mid = g_date_time_add_seconds(dt, seq->exposure * 0.5);
+	double julian = date_time_to_Julian(mid);
+	g_date_time_unref(mid);
+	return julian;
+}
+
+/* J2000 coordinates of a position given in display coordinates */
+gboolean display_pos_to_radec(fits *fit, double x, double y, double *ra, double *dec) {
+	if (!fit || !has_wcs(fit))
+		return FALSE;
+	double fx, fy;
+	display_to_siril(x, y, &fx, &fy, fit->ry);
+	pix2wcs(fit, fx, fy, ra, dec);
+	return isfinite(*ra) && isfinite(*dec);
+}
+
+void light_curve_set_target_coords(struct light_curve_args *args, fits *fit) {
+	if (args->nb < 1 || !args->areas)
+		return;
+	const rectangle *area = &args->areas[0];
+	args->has_target_coords = display_pos_to_radec(fit, area->x + 0.5 * area->w,
+			area->y + 0.5 * area->h, &args->target_ra, &args->target_dec);
 }
 
 /****************** making a light curve from sequence-stored data ****************/
@@ -445,6 +479,10 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 		free_siril_plot_data(spl_data);
 		return -1;
 	}
+	gboolean use_bjd = com.pref.phot_set.bjd_tdb && lcargs->has_target_coords;
+	if (com.pref.phot_set.bjd_tdb && !lcargs->has_target_coords)
+		siril_log_warning(_("The coordinates of the target are unknown (plate solve the image), dates are given in JD_UTC instead of BJD_TDB\n"));
+	const char *timescale = use_bjd ? "BJD_TDB" : "JD_UTC";
 	double min_date = DBL_MAX;
 	// i is index in dataset, j is index in output
 	for (i = 0, j = 0; i < seq->number; i++) {
@@ -452,17 +490,10 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 			continue;
 
 		// X value: the date
-		if (seq->imgparam[i].date_obs) {
-			double julian;
-			GDateTime *tsi = g_date_time_ref(seq->imgparam[i].date_obs);
-			if (seq->exposure > 0.0) {
-				GDateTime *new_dt = g_date_time_add_seconds(tsi, seq->exposure * 0.5);
-				julian = date_time_to_Julian(new_dt);
-				g_date_time_unref(new_dt);
-			} else {
-				julian = date_time_to_Julian(tsi);
-			}
-			g_date_time_unref(tsi);
+		double julian = seq_frame_mid_julian(seq, i);
+		if (julian > 0.0) {
+			if (use_bjd)
+				julian = julian_utc_to_bjd_tdb(julian, lcargs->target_ra, lcargs->target_dec);
 			date[j] = julian;
 			if (julian < min_date)
 				min_date = julian;
@@ -551,8 +582,8 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 		titleimg = g_strdup_printf("%s %s%s", _("Light curve of star"), lcargs->target_descr, subtitleimg);
 	}
 	gchar *subtitledat = generate_lc_subtitle(lcargs->metadata, FALSE);
-	gchar *titledat = g_strdup_printf("%s#JD_UT (+ %d)\n", subtitledat, julian0);
-	gchar *xlabel = g_strdup_printf("JD_UT (+ %d)", julian0);
+	gchar *titledat = g_strdup_printf("%s#%s (+ %d)\n", subtitledat, timescale, julian0);
+	gchar *xlabel = g_strdup_printf("%s (+ %d)", timescale, julian0);
 
 	siril_plot_set_title(spl_data, titledat);
 	siril_plot_set_xlabel(spl_data, xlabel);
@@ -571,7 +602,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	int ret = 0;
 	if (!filename) {
 		siril_plot_set_title(spl_data, titleimg);
-	} else if (!siril_plot_save_ETD_light_curve(spl_data, filename, TRUE)) {
+	} else if (!siril_plot_save_ETD_light_curve(spl_data, filename, timescale, TRUE)) {
 		ret = 1;
 		free_siril_plot_data(spl_data);
 		spl_data = NULL;

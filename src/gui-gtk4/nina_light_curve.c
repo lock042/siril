@@ -323,6 +323,7 @@ static void on_nina_lc_response(GtkWindow *self, gint response_id, gpointer user
 		return;
 	}
 	g_free(nina_file);
+	light_curve_set_target_coords(args, gfit);
 	args->seq = &com.seq;
 	args->layer = layer;
 	args->display_graph = siril_toggle_get_active(GTK_WIDGET(display_curve));

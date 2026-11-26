@@ -2357,6 +2357,58 @@
                                     <property name="column-spacing">6</property>
                                     <property name="margin-start">6</property>
                                     <property name="row-spacing">6</property>
+                                    <property name="valign">start</property>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="yes">Dates:</property>
+                                        <layout>
+                                          <property name="column">0</property>
+                                          <property name="row">0</property>
+                                        </layout>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkDropDown" id="photometry_time_ref">
+                                        <property name="halign">start</property>
+                                        <property name="tooltip-text" translatable="yes">Time reference of the light curves. BJD_TDB is the barycentric Julian date, corrected for the light travel time across the Earth's orbit, standard for exoplanet transits. It requires the loaded image to be plate solved, JD_UTC is used otherwise. The AAVSO export always uses JD.</property>
+                                        <property name="model">
+                                          <object class="GtkStringList">
+                                            <items>
+                                              <item translatable="yes">JD (UTC)</item>
+                                              <item translatable="yes">BJD (TDB)</item>
+                                            </items>
+                                          </object>
+                                        </property>
+                                        <layout>
+                                          <property name="column">1</property>
+                                          <property name="row">0</property>
+                                        </layout>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </property>
+                                <child type="label">
+                                  <object class="GtkLabel">
+                                    <property name="label" translatable="yes">Light Curves</property>
+                                    <property name="margin-bottom">10</property>
+                                    <property name="margin-top">10</property>
+                                    <property name="single-line-mode">1</property>
+                                    <attributes>
+                                      <attribute name="weight" value="bold"/>
+                                    </attributes>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkFrame">
+                                <property name="child">
+                                  <object class="GtkGrid">
+                                    <property name="column-homogeneous">1</property>
+                                    <property name="column-spacing">6</property>
+                                    <property name="margin-start">6</property>
+                                    <property name="row-spacing">6</property>
                                     <child>
                                       <object class="GtkLabel">
                                         <property name="halign">start</property>

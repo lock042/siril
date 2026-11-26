@@ -55,9 +55,17 @@ struct light_curve_args {
 
 	// spl_data for siril_plot if the light curve is displayed
 	siril_plot_data *spl_data;
+
+	// J2000 coordinates of the target, in degrees, for BJD dates
+	gboolean has_target_coords;
+	double target_ra, target_dec;
 };
 
 void free_light_curve_args(struct light_curve_args *args);
+
+double seq_frame_mid_julian(const sequence *seq, int index);
+gboolean display_pos_to_radec(fits *fit, double x, double y, double *ra, double *dec);
+void light_curve_set_target_coords(struct light_curve_args *args, fits *fit);
 
 gpointer light_curve_worker(gpointer arg);
 

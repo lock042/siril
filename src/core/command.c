@@ -84,6 +84,7 @@
 #include "algos/geometry.h"
 #include "algos/noise.h"
 #include "algos/photometric_cc.h"
+#include "algos/photometry.h"
 #include "algos/PSF.h"
 #include "algos/quality.h"
 #include "algos/siril_wcs.h"
@@ -6631,6 +6632,7 @@ int process_light_curve(int nb) {
 		}
 		args->nb = nb - argidx;
 	}
+	light_curve_set_target_coords(args, has_GUI ? gfit : &reffit);
 	clearfits(&reffit);
 	args->seq = seq;
 	args->layer = layer;

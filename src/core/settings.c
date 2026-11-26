@@ -211,6 +211,7 @@ preferences pref_init = {
 		.minval = -1500.0,
 		.maxval = 60000.0,
 		.discard_var_catalogues = 4,
+		.bjd_tdb = FALSE,
 	},
 	.astrometry = {
 		.update_default_scale = TRUE,
@@ -405,6 +406,7 @@ struct settings_access all_settings[] = {
 	{ "photometry", "minval", STYPE_DOUBLE, N_("minimum valid pixel value for photometry"), &com.pref.phot_set.minval, { .range_double = { -65536.0, 65534.0 } } },
 	{ "photometry", "maxval", STYPE_DOUBLE, N_("maximum valid pixel value for photometry"), &com.pref.phot_set.maxval, { .range_double = { 1.0, 65535.0 } } },
 	{ "photometry", "discard_var_catalogues", STYPE_INT, N_("catalogues to be used to discard the variable stars from the comparison stars list"), &com.pref.phot_set.discard_var_catalogues, { .range_int = { 0, 7 } } },
+	{ "photometry", "bjd_tdb", STYPE_BOOL, N_("light curve dates as BJD_TDB instead of JD_UTC"), &com.pref.phot_set.bjd_tdb },
 	{ "photometry", "redpref", STYPE_STR, N_("preferred SPCC red filter"), &com.pref.spcc.redpref },
 	{ "photometry", "greenpref", STYPE_STR, N_("preferred SPCC green filter"), &com.pref.spcc.greenpref },
 	{ "photometry", "bluepref", STYPE_STR, N_("preferred SPCC blue filter"), &com.pref.spcc.bluepref },

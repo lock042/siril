@@ -152,6 +152,7 @@ struct phot_config {
 				// b0 (LSB) sets (or not) the VSX catologue
 				// b1 sets (or not) the GCVS catologue
 				// b2 sets (or not) the Varisum catologue
+	gboolean bjd_tdb;	// light curve dates as BJD_TDB instead of JD_UTC
 };
 
 struct analysis_config {

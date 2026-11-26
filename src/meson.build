@@ -32,6 +32,7 @@ src_files = [
   'algos/img_t/vec2.hpp',
   'algos/astrometry_solver.c',
   'algos/background_extraction.c',
+  'algos/barycentric.c',
   'algos/ccd-inspector.c',
   'algos/colors.c',
   'algos/comparison_stars.c',

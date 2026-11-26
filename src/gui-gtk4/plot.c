@@ -25,6 +25,8 @@
 
 #include <cairo.h>
 
+#include "algos/barycentric.h"
+#include "algos/photometry.h"
 #include "algos/PSF.h"
 #include "core/siril.h"
 #include "core/siril_date.h"
@@ -84,6 +86,9 @@ static enum photometry_source photometry_selected_source = FWHM;
 static enum registration_source registration_selected_source = r_FWHM;
 static enum registration_source X_selected_source = r_FRAME;
 static int julian0 = 0;
+// BJD_TDB dates, for the target at plot_ra, plot_dec
+static gboolean plot_bjd = FALSE;
+static double plot_ra, plot_dec;
 static int reglayer = 0;
 static gboolean is_fwhm = TRUE;
 static gboolean is_arcsec = FALSE;
@@ -626,19 +631,11 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 }
 
 static void set_x_photometry_values(sequence *seq, pldata *plot, int image_index, int point_index) {
-	double julian = 0.;
-	if (seq->imgparam[image_index].date_obs) {
-		GDateTime *tsi = g_date_time_ref(seq->imgparam[image_index].date_obs);
-		if (seq->exposure > 0.0) {
-			GDateTime *new_dt = g_date_time_add_seconds(tsi, seq->exposure * 0.5);
-			julian = date_time_to_Julian(new_dt);
-			g_date_time_unref(new_dt);
-		} else {
-			julian = date_time_to_Julian(tsi);
-		}
-
+	double julian = seq_frame_mid_julian(seq, image_index);
+	if (julian > 0.0) {
+		if (plot_bjd)
+			julian = julian_utc_to_bjd_tdb(julian, plot_ra, plot_dec);
 		julian -= (double)julian0;
-		g_date_time_unref(tsi);
 	} else {
 		julian = (double) image_index + 1; // should not happen
 		siril_log_debug("no DATE-OBS information for frame %d\n", image_index);
@@ -653,6 +650,14 @@ static void set_x_photometry_values(sequence *seq, pldata *plot, int image_index
 	plot->err[point_index].x = plot->data[point_index].x;
 }
 
+/* the variable star in the plate solved loaded image gives the target for BJD */
+static gboolean get_target_coords(sequence *seq, double *ra, double *dec) {
+	if (!com.pref.phot_set.bjd_tdb || !seq->photometry[0] || seq->current < 0)
+		return FALSE;
+	psf_star *star = seq->photometry[0][seq->current];
+	return star && display_pos_to_radec(gfit, star->xpos, star->ypos, ra, dec);
+}
+
 static void build_photometry_dataset(sequence *seq, int dataset, int ref_image, pldata *plot) {
 	int i, j;
 	double offset = -1001.0;
@@ -665,21 +670,10 @@ static void build_photometry_dataset(sequence *seq, int dataset, int ref_image, 
 		if (!seq->imgparam[i].incl || !psfs[i])
 			continue;
 		if (!julian0 && !xlabel) {
-			if (seq->imgparam[i].date_obs) {
-				GDateTime *ts0 = g_date_time_ref(seq->imgparam[i].date_obs);
-				if (seq->exposure > 0.0) {
-					GDateTime *new_dt = g_date_time_add_seconds(ts0, seq->exposure * 0.5);
-					julian0 = (int) date_time_to_Julian(new_dt);
-					g_date_time_unref(new_dt);
-				} else {
-					julian0 = (int) date_time_to_Julian(ts0);
-				}
-				g_date_time_unref(ts0);
-				//siril_log_debug("julian0 set to %d\n", julian0);
-			}
+			julian0 = (int) seq_frame_mid_julian(seq, i);
 			if (julian0 && force_Julian) {
 				xlabel = malloc(XLABELSIZE * sizeof(char));
-				g_snprintf(xlabel, XLABELSIZE, "(JD) %d +", julian0);
+				g_snprintf(xlabel, XLABELSIZE, "(%s) %d +", plot_bjd ? "BJD_TDB" : "JD", julian0);
 			} else {
 				xlabel = _("Frames");
 			}
@@ -779,6 +773,7 @@ static int light_curve(pldata *plot, sequence *seq, gchar *filename, gchar **err
 	lcargs->layer = 0; // We don't care. This is not used in our case
 	lcargs->display_graph = TRUE;
 	lcargs->target_descr = NULL;
+	lcargs->has_target_coords = get_target_coords(seq, &lcargs->target_ra, &lcargs->target_dec);
 
 	int retval = new_light_curve(filename, lcargs);
 	if (!retval && lcargs->spl_data) {
@@ -1346,6 +1341,7 @@ void drawPlot() {
 		// datamin/max must be init here to be common to all the stars
 		pdd.datamin = (point){ DBL_MAX, DBL_MAX};
 		pdd.datamax = (point){ -DBL_MAX, -DBL_MAX};
+		plot_bjd = get_target_coords(seq, &plot_ra, &plot_dec);
 		for (int i = 0; i < MAX_SEQPSF && seq->photometry[i]; i++) {
 			if (i > 0) {
 				plot->next = alloc_plot_data(seq->number);

@@ -32,6 +32,7 @@
 #include "gui-gtk4/fix_xtrans_af.h"
 #include "gui-gtk4/icc_profile.h"
 #include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/plot.h"
 #include "gui-gtk4/preferences.h"
 #include "gui-gtk4/PSF_list.h"
 #include "gui-gtk4/python_gui.h"
@@ -245,6 +246,7 @@ static void update_photometry_preferences() {
 	com.pref.phot_set.auto_aperture_factor = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinRadRatio")));
 	com.pref.phot_set.minval = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinMinPhot")));
 	com.pref.phot_set.maxval = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinMaxPhot")));
+	com.pref.phot_set.bjd_tdb = gtk_drop_down_get_selected(GTK_DROP_DOWN(lookup_widget("photometry_time_ref"))) == 1;
 }
 
 static void update_analysis_preferences() {
@@ -699,6 +701,7 @@ void update_preferences_from_model() {
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinGain")), pref->phot_set.gain);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinMinPhot")), pref->phot_set.minval);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinMaxPhot")), pref->phot_set.maxval);
+	gtk_drop_down_set_selected(GTK_DROP_DOWN(lookup_widget("photometry_time_ref")), pref->phot_set.bjd_tdb ? 1 : 0);
 
 	/* tab Analysis Tools */
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinpanel")), pref->analysis.mosaic_panel);
@@ -979,6 +982,8 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 			color_manage(gfit, gfit->color_managed);
 			gfit_modified_update_gui();
 		}
+		if (sequence_is_loaded())
+			drawPlot();	// the photometry time reference may have changed
 		siril_close_dialog("settings_window");
 		update_reg_interface(TRUE); // To update UI with new preferences
 	}
