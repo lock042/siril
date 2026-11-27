@@ -200,6 +200,7 @@ typedef struct {
 	uint32_t columns; // the list of columns which where parsed when read
 	gchar *header; // the file header lines (#) if read from file
 	int trixel; // trixelID
+	double epoch; // reference epoch of the positions (JD) as reported by the catalogue itself, 0 if unknown
 } siril_catalogue;
 
 #define has_field(cat, column) (cat->columns & (1 << CAT_FIELD_##column))

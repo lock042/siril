@@ -89,7 +89,7 @@ Test(healpix_cat, invalid_catalogue_query_fails_cleanly) {
 	deepStarData *stars = (deepStarData*) 0x1;	// must be reset by the callee
 	uint32_t nb_stars = 42;
 	int retval = get_raw_stars_from_local_gaia_astro_catalogue(302.0, 60.0, 30.0,
-			17.0, FALSE, &stars, &nb_stars);
+			17.0, FALSE, &stars, &nb_stars, NULL);
 	cr_expect_neq(retval, 0, "querying an invalid catalogue must report an error");
 	cr_expect_null(stars);
 	cr_expect_eq(nb_stars, 0);
@@ -101,7 +101,7 @@ Test(healpix_cat, truncated_catalogue_query_fails_cleanly) {
 	deepStarData *stars = (deepStarData*) 0x1;
 	uint32_t nb_stars = 42;
 	int retval = get_raw_stars_from_local_gaia_astro_catalogue(302.0, 60.0, 30.0,
-			17.0, FALSE, &stars, &nb_stars);
+			17.0, FALSE, &stars, &nb_stars, NULL);
 	cr_expect_neq(retval, 0, "querying a truncated catalogue must report an error");
 	cr_expect_null(stars);
 	cr_expect_eq(nb_stars, 0);
