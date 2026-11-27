@@ -205,6 +205,13 @@ double siril_catalog_epoch(siril_cat_index cat) {
 	return J2000;
 }
 
+// Epoch of the positions of a loaded catalogue: the one it reported when
+// queried (e.g. from the Gaia release in a Healpix catalogue header) if any,
+// otherwise the default for its type
+static double siril_catalog_items_epoch(const siril_catalogue *siril_cat) {
+	return siril_cat->epoch > 0. ? siril_cat->epoch : siril_catalog_epoch(siril_cat->cat_index);
+}
+
 double siril_catalog_ra_multiplier(siril_cat_index cat) {
 	if (cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_LOCAL_GAIA_XPSAMP || cat == CAT_LOCAL_GAIA_XPCTS
 			|| cat == CAT_REMOTE_GAIA_XPSAMP || cat == CAT_REMOTE_GAIA_XPCTS)
@@ -489,6 +496,7 @@ void siril_catalogue_copy(siril_catalogue *from, siril_catalogue *to, gboolean m
 		to->nbitems = 0;
 		to->nbincluded = -1;
 		to->projected = CAT_PROJ_NONE;
+		to->epoch = 0.;
 	}
 }
 
@@ -537,6 +545,7 @@ void siril_catalog_free_items(siril_catalogue *siril_cat) {
 	siril_cat->nbitems = 0;
 	siril_cat->nbincluded = -1;
 	siril_cat->projected = CAT_PROJ_NONE;
+	siril_cat->epoch = 0.;
 }
 
 // frees only one cat_items
@@ -616,6 +625,9 @@ int siril_catalog_conesearch(siril_catalogue *siril_cat) {
 		siril_log_debug("trying to fetch a catalog while a list already exists, should not happen\n");
 		return 0;
 	}
+	// the epoch describes the items: it is set again by the loader if it knows it
+	if (siril_cat->cat_index != CAT_SHOW)
+		siril_cat->epoch = 0.;
 	if (siril_cat->cat_index < CAT_AN_MESSIER) {
 #ifndef HAVE_LIBCURL
 		siril_log_error(_("Siril was compiled without networking support, cannot do this operation\n"));
@@ -935,7 +947,7 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 	use_proper_motion = use_proper_motion && can_use_proper_motion(fit, siril_cat);
 	use_velocity = use_velocity && can_use_velocity(fit, siril_cat);
 	gboolean has_second_star = siril_cat->cat_index == CAT_AN_CONST;
-	double cat_epoch = siril_catalog_epoch(siril_cat->cat_index);
+	double cat_epoch = siril_catalog_items_epoch(siril_cat);
 	if (use_proper_motion) {
 		GDateTime *dt = g_date_time_ref(fit->keywords.date_obs);
 		gdouble jd = date_time_to_Julian(dt);
@@ -1041,7 +1053,7 @@ int siril_catalog_project_gnomonic(siril_catalogue *siril_cat, double ra0, doubl
 	if (!has_field(siril_cat, RA) || !has_field(siril_cat, DEC))
 		return 1;
 	double jyears = 0.;
-	double cat_epoch = siril_catalog_epoch(siril_cat->cat_index);
+	double cat_epoch = siril_catalog_items_epoch(siril_cat);
 	if (use_proper_motion) {
 		if (!date_obs) {
 			siril_log_warning(_("no DATE-OBS information, cannot account for stars proper motions\n"));
@@ -1590,6 +1602,7 @@ int siril_catalog_inner_conesearch(siril_catalogue *siril_cat_in, siril_catalogu
 	siril_cat_out->cat_items = final_array;
 	siril_cat_out->nbitems = nb_items;
 	siril_cat_out->nbincluded = nb_items;
+	siril_cat_out->epoch = siril_cat_in->epoch;
 	return nb_items;
 }
 
