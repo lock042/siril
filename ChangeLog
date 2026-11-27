@@ -44,7 +44,7 @@ siril-1.5.0
 * Refactored the undo/redo mechanism. A right click displays the history list. The command line now supports undo and redo functions.
 * Added external reference image support to global star alignment, allowing multi-session alignment via the GUI or the new `-extref=` option of the `register` command
 * Adding TIFF support in Pixelmath (#1726)
-* Added support for continuous representation Gaia spectra. This will support a more space-efficient Gaia DR4 SPCC catalogue.
+* Added support for continuous representation Gaia spectra. This will support a more space-efficient Gaia DR4 SPCC catalogue (!1028). Also support correct Gaia catalog epochs (!1120)
 * Converge NL_Bayes and DA3D to use the same img_t framework as deconvolution: makes noise reduction c. 11% faster (!1038).
 * Added Search Entry in the Script menu to filter scripts by name (!1042)
 * Migrated GUI to GTK4 and improved image rendering to use GPU-backed GtkSurface (!1027)
