@@ -852,7 +852,7 @@ int siril_catalog_get_stars_from_online_catalogues(siril_catalogue *siril_cat) {
 		double ra_mult = siril_catalog_ra_multiplier(siril_cat->cat_index);
 		double dec_mult = siril_catalog_dec_multiplier(siril_cat->cat_index);
 		SourceEntryXPsamp *stars = NULL;
-		if (get_raw_stars_from_remote_gaia_xpsampled_catalogue(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag, &stars, &nb_stars))
+		if (get_raw_stars_from_remote_gaia_xpsampled_catalogue(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag, &stars, &nb_stars, &siril_cat->epoch))
 			return 0;
 		siril_cat->nbitems = (int)nb_stars;
 		siril_cat->nbincluded = (int)nb_stars;
@@ -882,7 +882,7 @@ int siril_catalog_get_stars_from_online_catalogues(siril_catalogue *siril_cat) {
 		double ra_mult = siril_catalog_ra_multiplier(siril_cat->cat_index);
 		double dec_mult = siril_catalog_dec_multiplier(siril_cat->cat_index);
 		SourceEntryXPcts *stars = NULL;
-		if (get_raw_stars_from_remote_gaia_xpcontinuous_catalogue(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag, &stars, &nb_stars))
+		if (get_raw_stars_from_remote_gaia_xpcontinuous_catalogue(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag, &stars, &nb_stars, &siril_cat->epoch))
 			return 0;
 		siril_cat->nbitems = (int)nb_stars;
 		siril_cat->nbincluded = (int)nb_stars;
